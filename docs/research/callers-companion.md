@@ -153,7 +153,10 @@ calc/display/search helpers, prefixed `zc_`/`zi_`/`zk_`). Substantive user data:
 - **Elements (32)**: N/P/M Swing, allemandes, Down 4, Gypsy, Hey (full/half),
   Half Fig 8, Petronella, chains, stars, RL, DSD, LLFB, Promenade, waves, etc.
   — the exact vocabulary CC's element-search + matrix depend on, and which our
-  structured taxonomy replaces (derived, not hand-ticked).
+  structured taxonomy replaces (derived, not hand-ticked). (A later live read of
+  the `.USR` `Elements` **table** counted **45** rows — see § Phase 3 spike (#563);
+  the "32" here is the per-dance checklist size, the 45 is the full tag-definition
+  table.)
 - **InsertCall** buttons: label → `InsertButtonText` (+ `…Alt` gender-free
   variant) + `InsertButtonBeats` (e.g. `B&S-N` → "Neighbor balance and swing",
   alt "Neighbor gypsy and swing", 16). Confirms the per-user snippet model and
@@ -193,11 +196,15 @@ durable feature.**
 The issue's original idea — mine a *per-user* dialect from `Elements` — is blocked
 by our never-fabricate rule: in the surveyed real `.USR` **all 45 `Elements` rows
 are shipped defaults** (`zk_Constant = 1`), so there is no user-specific signal to
-mine. Inventing a dialect a user never expressed is exactly the failure mode we
-forbid. The spike was therefore reframed to an honest, non-fabricating question:
-does mapping CC's **default** `Elements` vocabulary (short classification tags like
-a neighbor-swing tag, an allemande tag, a do-si-do tag) onto our taxonomy lift
-recognition of the real `Phrase` free-text corpus?
+mine. (The `.USR` `Elements` **table** has 45 rows — the tag-definition vocabulary,
+verified via a live read — which is distinct from the "up-to-32 per-dance boolean
+Elements checklist" surveyed earlier in this doc (§ Feature inventory / Schema-level
+addendum): the 45-row table is the vocabulary *source*, the ~32 checklist is the
+per-dance *UI* that references it.) Inventing a dialect a user never expressed is
+exactly the failure mode we forbid. The spike was therefore reframed to an honest,
+non-fabricating question: does mapping CC's **default** `Elements` vocabulary (short
+classification tags like a neighbor-swing tag, an allemande tag, a do-si-do tag)
+onto our taxonomy lift recognition of the real `Phrase` free-text corpus?
 
 ### Method (reproducible; measured against the real `.USR`, nothing committed)
 
@@ -249,6 +256,7 @@ role-vocabulary or spelling dialect signal.
   | Traditional / triple-minor coverage (cast off, down-the-outside, bend the line) | ~12 % |
   | Compound / multi-clause lines | ~12 % |
   | Typos / spelling variants | ~7 % |
+  | Other / uncategorized | ~17 % |
 
   None of these are a *vocabulary* problem an `Elements` map addresses.
 
