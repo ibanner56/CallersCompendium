@@ -141,7 +141,8 @@ CcUsrArchive readCcUsrArchive(
 /// container reader is validated separately against real files).
 CcUsrArchive extractCcUsrArchive(FmpDatabase db) {
   final warnings = <String>[...db.warnings];
-  final dances = _extractDances(db, warnings);
+  final phraseBodies = _extractPhraseBodies(db, warnings);
+  final dances = _extractDances(db, warnings, phraseBodies);
   final sets = _extractSets(db, warnings);
   return CcUsrArchive(dances: dances, sets: sets, warnings: warnings);
 }
@@ -151,7 +152,11 @@ CcUsrArchive extractCcUsrArchive(FmpDatabase db) {
 const List<String> _danceTableNames = ['Dance', 'Dances'];
 const List<String> _bodyLabels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
-List<CcDanceEntry> _extractDances(FmpDatabase db, List<String> warnings) {
+List<CcDanceEntry> _extractDances(
+  FmpDatabase db,
+  List<String> warnings,
+  Map<String, List<CcBodySection>> phraseBodies,
+) {
   final table = _findTable(db, _danceTableNames);
   if (table == null) {
     warnings.add(
@@ -182,7 +187,10 @@ List<CcDanceEntry> _extractDances(FmpDatabase db, List<String> warnings) {
     entries.add(
       CcDanceEntry(
         recordId: recordId,
-        record: ccDanceRecordFromColumns(columns),
+        record: ccDanceRecordFromColumns(
+          columns,
+          bodyOverride: phraseBodies[recordId],
+        ),
         rawColumns: columns,
       ),
     );
@@ -200,7 +208,19 @@ List<CcDanceEntry> _extractDances(FmpDatabase db, List<String> warnings) {
 /// Builds a [CcDanceRecord] from a case-insensitive CC `Dance` column map.
 /// Shared by the `.USR` reader (columns from the binary) and the adapter's
 /// `parse` step (columns from the fetched JSON), so both interpret CC the same.
-CcDanceRecord ccDanceRecordFromColumns(Map<String, String> columns) {
+///
+/// [bodyOverride] supplies the figure body from an out-of-row source — the CC
+/// **`Phrase` table** (`extractCcUsrArchive` joins it per dance; see
+/// [_extractPhraseBodies]) or the adapter's threaded JSON payload. When it is
+/// non-null **and non-empty** it is used verbatim as [CcDanceRecord.body],
+/// because the real `.USR` keeps its transcription in `Phrase`, not the
+/// `Dance`-row `A1..C2` columns. When it is null/empty the record falls back to
+/// deriving the body from the bare `A1..C2` columns on the `Dance` row (the CC
+/// text adapter and any export that carries them still work).
+CcDanceRecord ccDanceRecordFromColumns(
+  Map<String, String> columns, {
+  List<CcBodySection>? bodyOverride,
+}) {
   final lookup = _CiColumns(columns);
 
   final authors = [
@@ -221,17 +241,22 @@ CcDanceRecord ccDanceRecordFromColumns(Map<String, String> columns) {
     level = 'Mixed';
   }
 
-  final body = <CcBodySection>[];
-  for (final label in _bodyLabels) {
-    final raw = lookup.get(label);
-    if (raw == null || raw.trim().isEmpty) continue;
-    final lines = raw
-        .replaceAll('\r\n', '\n')
-        .replaceAll('\r', '\n')
-        .split('\n')
-        .where((l) => l.trim().isNotEmpty)
-        .toList();
-    if (lines.isNotEmpty) body.add(CcBodySection(label: label, lines: lines));
+  // Prefer the joined Phrase body (the real figure source); fall back to the
+  // Dance-row A1..C2 columns only when no Phrase body was supplied.
+  final List<CcBodySection> body;
+  if (bodyOverride != null && bodyOverride.isNotEmpty) {
+    body = bodyOverride;
+  } else {
+    final fallback = <CcBodySection>[];
+    for (final label in _bodyLabels) {
+      final raw = lookup.get(label);
+      if (raw == null || raw.trim().isEmpty) continue;
+      final lines = _splitBodyLines(raw);
+      if (lines.isNotEmpty) {
+        fallback.add(CcBodySection(label: label, lines: lines));
+      }
+    }
+    body = fallback;
   }
 
   final userFields = <CcUserField>[];
@@ -264,6 +289,150 @@ CcDanceRecord ccDanceRecordFromColumns(Map<String, String> columns) {
     userFields: userFields,
     body: body,
   );
+}
+
+// --- Phrase extraction -----------------------------------------------------
+
+const List<String> _phraseTableNames = ['Phrase', 'Phrases'];
+
+/// The canonical CC section order (`PhraseNumber`): A1→A2→B1→B2→C1→C2. Any
+/// other/unknown label sorts *after* these, keeping its first-seen order.
+const List<String> _phraseOrder = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+/// Reads the CC **`Phrase`** table — the real home of the figure transcription
+/// in a `.USR` — and returns each dance's ordered figure body keyed by the CC
+/// `zk_Dance_ID` value (the same join identity [_extractDances] exposes as
+/// [CcDanceEntry.recordId]).
+///
+/// Grouped by `zk_Dance_ID`, ordered by `PhraseNumber` (A1→A2→B1→B2→C1→C2, then
+/// any others in first-seen order), each `PhraseText` split on newlines becomes
+/// one [CcBodySection] (label = its `PhraseNumber`). A missing table/columns
+/// degrades to an empty map (the Dance-row `A1..C2` fallback still applies),
+/// never a throw — parse-never-fails.
+///
+/// Column names are resolved exact-first (confirmed against the real
+/// `CallersCompanion2.USR` schema) so the gender-swapped variants the same table
+/// carries (`PhraseText_GenderSwap_LR/RL/Switch`) are never mistaken for the
+/// primary `PhraseText`.
+Map<String, List<CcBodySection>> _extractPhraseBodies(
+  FmpDatabase db,
+  List<String> warnings,
+) {
+  final table = _findTable(db, _phraseTableNames);
+  // A missing Phrase table is normal for text-shaped exports; the Dance-row
+  // A1..C2 fallback covers them, so this is silent (no warning).
+  if (table == null) return const {};
+
+  final danceIdCol = _resolveColumn(
+    table,
+    ['zk_Dance_ID'],
+    [
+      ['dance', 'id'],
+      ['danceid'],
+    ],
+  );
+  final phraseNumCol = _resolveColumn(
+    table,
+    ['PhraseNumber'],
+    [
+      ['phrase', 'number'],
+      ['phrase', 'num'],
+    ],
+  );
+  final phraseTextCol = _resolvePhraseTextColumn(table);
+  if (danceIdCol == null || phraseTextCol == null) {
+    warnings.add(
+      'The Caller\'s Companion "Phrase" table was found but its '
+      'dance-id/text columns could not be resolved; figures were read from the '
+      'Dance rows instead (they are usually empty).',
+    );
+    return const {};
+  }
+
+  // Group rows by CC dance id, preserving each row's PhraseNumber + text.
+  final byDance = <String, List<_PhraseRow>>{};
+  for (final rec in table.records) {
+    final cols = _CiColumns(_rowColumns(table, rec));
+    final danceId = cols.get(danceIdCol)?.trim();
+    if (danceId == null || danceId.isEmpty) continue;
+    final text = cols.get(phraseTextCol);
+    if (text == null || text.trim().isEmpty) continue;
+    final number = phraseNumCol == null ? null : cols.get(phraseNumCol)?.trim();
+    byDance
+        .putIfAbsent(danceId, () => [])
+        .add(_PhraseRow(number: number, text: text));
+  }
+
+  final result = <String, List<CcBodySection>>{};
+  for (final entry in byDance.entries) {
+    final rows = entry.value;
+    // Stable sort by canonical PhraseNumber order, unknown/blank labels last.
+    final ordered = [for (var i = 0; i < rows.length; i++) MapEntry(i, rows[i])]
+      ..sort((a, b) {
+        final rank = _phraseRank(
+          a.value.number,
+        ).compareTo(_phraseRank(b.value.number));
+        return rank != 0 ? rank : a.key.compareTo(b.key); // stable on ties
+      });
+    final sections = <CcBodySection>[];
+    for (final e in ordered) {
+      final lines = _splitBodyLines(e.value.text);
+      if (lines.isEmpty) continue;
+      final label = (e.value.number == null || e.value.number!.isEmpty)
+          ? null
+          : e.value.number;
+      sections.add(CcBodySection(label: label, lines: lines));
+    }
+    if (sections.isNotEmpty) result[entry.key] = sections;
+  }
+  return result;
+}
+
+/// Rank of a `PhraseNumber` for ordering: its index in [_phraseOrder]
+/// (case-insensitive), or a large value (unknown/blank sorts last).
+int _phraseRank(String? number) {
+  if (number == null) return _phraseOrder.length;
+  final i = _phraseOrder.indexWhere(
+    (l) => l.toLowerCase() == number.trim().toLowerCase(),
+  );
+  return i < 0 ? _phraseOrder.length : i;
+}
+
+/// Resolves the primary `PhraseText` column, preferring the exact name so the
+/// gender-swapped variants (`PhraseText_GenderSwap_*`) are never selected. The
+/// token fallback additionally rejects any candidate whose normalised name
+/// contains `swap`/`genderswap`, so a differently-cased build still avoids them.
+String? _resolvePhraseTextColumn(FmpTable table) {
+  final exact = table.columns.firstWhereOrNull(
+    (c) => c.name.toLowerCase() == 'phrasetext',
+  );
+  if (exact != null) return exact.name;
+  String norm(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  for (final col in table.columns) {
+    final n = norm(col.name);
+    if (n.contains('phrase') && n.contains('text') && !n.contains('swap')) {
+      return col.name;
+    }
+  }
+  return null;
+}
+
+/// Splits a raw body value on newlines, dropping blank lines (shared by the
+/// Phrase join and the Dance-row `A1..C2` fallback so both parse identically).
+List<String> _splitBodyLines(String raw) => raw
+    .replaceAll('\r\n', '\n')
+    .replaceAll('\r', '\n')
+    .split('\n')
+    .where((l) => l.trim().isNotEmpty)
+    .toList();
+
+/// One CC `Phrase` row's ordering label + verbatim text (internal to
+/// [_extractPhraseBodies]).
+class _PhraseRow {
+  _PhraseRow({this.number, required this.text});
+
+  final String? number;
+  final String text;
 }
 
 // --- Set / SetItem extraction ---------------------------------------------

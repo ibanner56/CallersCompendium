@@ -18,10 +18,11 @@ import 'package:test/test.dart';
 /// (`zk_Set_ID`/`zk_Dance_ID`) actually link sets, items and dances.
 ///
 /// Observed structure of this sample (for reference): version 12, 22 tables,
-/// 40 dances, 205 authors, 1 set, 7 set items. Its dances carry only metadata
-/// (name/author/level/rating/type/formation/notes) — none have A1..B2 figure
-/// notation — so the figure→`custom` path is exercised only by the synthetic
-/// fixtures, not this file.
+/// 40 dances, 205 authors, 1 set, 7 set items, 162 `Phrase` rows. The dances'
+/// `Dance`-row `A1..B2` columns are empty — the figure transcription lives in
+/// the separate `Phrase` table, which `extractCcUsrArchive` now joins — so this
+/// file exercises the real Phrase-join figure path (the hermetic fixtures cover
+/// the same logic on every CI run).
 void main() {
   final fixture = File('test/imports/support/fmp_local/CallersCompanion2.USR');
 
@@ -145,6 +146,15 @@ void main() {
 
         // No stale "guessed column" warnings — the schema is confirmed.
         expect(archive.warnings.any((w) => w.contains('guessed')), isFalse);
+
+        // #559: every dance now carries its figure body, joined from the
+        // separate `Phrase` table (the empty Dance-row A1..C2 columns yielded
+        // zero figures before). No dance should come across bodyless.
+        expect(
+          archive.dances.every((d) => d.record.body.isNotEmpty),
+          isTrue,
+          reason: 'every real dance should carry a Phrase-joined figure body',
+        );
       },
       skip: fixture.existsSync() ? false : 'no local CC .USR fixture present',
     );

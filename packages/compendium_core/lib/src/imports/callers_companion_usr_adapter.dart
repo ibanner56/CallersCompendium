@@ -93,7 +93,15 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
           label: (entry.record.name ?? '').trim().isEmpty
               ? null
               : entry.record.name!.trim(),
-          locator: {'rowId': entry.recordId, 'columns': entry.rawColumns},
+          locator: {
+            'rowId': entry.recordId,
+            'columns': entry.rawColumns,
+            // The figure body is joined from the separate `Phrase` table (or the
+            // Dance-row A1..C2 fallback) and is NOT in the per-dance column map,
+            // so thread it through discover→fetch→parse explicitly — otherwise
+            // `parse` would re-derive an empty body from the payload columns.
+            'body': _encodeBody(entry.record.body),
+          },
         ),
     ];
   }
@@ -108,9 +116,14 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
         'Record locator is missing its dance columns; re-run discover.',
       );
     }
+    final body = record.locator['body'];
     final payload = jsonEncode({
       'rowId': rowId,
       'columns': columns.map((k, v) => MapEntry('$k', '$v')),
+      // Preserve the joined figure body verbatim so `parse` rebuilds it rather
+      // than deriving an empty body from the columns. Absent on a legacy
+      // locator — omitted so the payload stays backward compatible.
+      if (body is List) 'body': body,
     });
     return RawRecord(
       source: source,
@@ -124,6 +137,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
   @override
   StructuredDraft parse(RawRecord raw) {
     final Map<String, String> columns;
+    List<CcBodySection>? bodyOverride;
     try {
       final decoded = jsonDecode(raw.payload);
       if (decoded is! Map || decoded['columns'] is! Map) {
@@ -133,6 +147,11 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
         );
       }
       columns = (decoded['columns'] as Map).map((k, v) => MapEntry('$k', '$v'));
+      // The threaded figure body (Phrase-join or Dance-row fallback). Legacy
+      // payloads have no `body` key, so `ccDanceRecordFromColumns` re-derives it
+      // from the A1..C2 columns instead (backward compatible).
+      final rawBody = decoded['body'];
+      if (rawBody is List) bodyOverride = _decodeBody(rawBody);
     } on FormatException {
       throw parseError(
         source,
@@ -140,7 +159,10 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
       );
     }
 
-    final record = ccDanceRecordFromColumns(columns);
+    final record = ccDanceRecordFromColumns(
+      columns,
+      bodyOverride: bodyOverride,
+    );
     // Figure text is scrubbed + structured by the shared parser (the mapping's
     // default scrub is the core `scrubFigureText` chokepoint).
     final mapping = mapCallersCompanionDance(record);
@@ -179,4 +201,37 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
           'options["bytes"] or a base64 payload).',
     );
   }
+}
+
+/// Serialises a joined figure [body] to a JSON-safe list for the discover
+/// locator / fetch payload: `[{label, lines:[...]}]`. Preserves section order,
+/// the (nullable) label, and every verbatim line.
+List<Map<String, Object?>> _encodeBody(List<CcBodySection> body) => [
+  for (final section in body) {'label': section.label, 'lines': section.lines},
+];
+
+/// Rebuilds the figure body from a decoded JSON payload, defensively. The
+/// payload is untrusted (it is persisted provenance that can be re-imported), so
+/// every element is type-checked and malformed entries are skipped rather than
+/// throwing — mirroring the parse-never-fails posture of the rest of the import
+/// path. Downstream, each surviving line still flows through the mapping's
+/// `scrubFigureText` chokepoint. Any structural bound belongs to #561.
+List<CcBodySection> _decodeBody(List<Object?> raw) {
+  final sections = <CcBodySection>[];
+  for (final element in raw) {
+    if (element is! Map) continue;
+    final rawLabel = element['label'];
+    final label = rawLabel is String && rawLabel.trim().isNotEmpty
+        ? rawLabel
+        : null;
+    final rawLines = element['lines'];
+    if (rawLines is! List) continue;
+    final lines = [
+      for (final line in rawLines)
+        if (line is String && line.trim().isNotEmpty) line,
+    ];
+    if (lines.isEmpty) continue;
+    sections.add(CcBodySection(label: label, lines: lines));
+  }
+  return sections;
 }
