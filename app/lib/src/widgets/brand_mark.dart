@@ -26,7 +26,6 @@ class BrandMark extends StatelessWidget {
     this.size = 24,
     this.color,
     this.showTile = false,
-    this.tileColor,
     this.semanticLabel,
   });
 
@@ -57,10 +56,6 @@ class BrandMark extends StatelessWidget {
   /// Whether to render the full-colour illustration on its rounded brand tile
   /// (the app icon). When false, a single-colour silhouette is drawn instead.
   final bool showTile;
-
-  /// Retained for API compatibility. The tile colour is baked into the brand
-  /// SVG, so this is currently ignored.
-  final Color? tileColor;
 
   /// Optional accessibility label. When null the mark is treated as decorative
   /// and excluded from the semantics tree.

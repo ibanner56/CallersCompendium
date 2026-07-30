@@ -5,17 +5,19 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   SvgPicture svgOf(WidgetTester tester) => tester.widget<SvgPicture>(
-        find.descendant(
-          of: find.byType(BrandMark),
-          matching: find.byType(SvgPicture),
-        ),
-      );
+    find.descendant(
+      of: find.byType(BrandMark),
+      matching: find.byType(SvgPicture),
+    ),
+  );
 
   testWidgets('builds and lays out at a range of sizes', (tester) async {
     for (final size in <double>[16, 24, 48, 96]) {
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(body: Center(child: BrandMark(size: size))),
+          home: Scaffold(
+            body: Center(child: BrandMark(size: size)),
+          ),
         ),
       );
       expect(find.byType(BrandMark), findsOneWidget);

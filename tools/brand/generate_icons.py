@@ -139,11 +139,19 @@ def _fmt(n: float) -> str:
 
 
 def _flatten_d(d: str) -> str:
+    # The committed brand SVGs are pre-baked to transform-free, *absolute*
+    # M/L/C/Z paths (see app/assets/brand/*.svg), so every number is an (x, y)
+    # coordinate the uniform 108-viewport map applies to. Both letter cases are
+    # accepted (Z/z close) so a stray lowercase close is never dropped.
     out: List[str] = []
-    for cmd, args in re.findall(r"([MLCZ])([^MLCZ]*)", d):
+    for cmd, args in re.findall(r"([MLCZmlcz])([^MLCZmlcz]*)", d):
+        upper = cmd.upper()
+        if upper == "Z":
+            out.append("Z")
+            continue
         nums = [float(x) for x in re.findall(r"-?\d+\.?\d*", args)]
         mapped = [_fmt(v * _K + _T) for v in nums]  # uniform k,t on every coord
-        out.append(cmd + ("" if not mapped else " " + " ".join(mapped)))
+        out.append(upper + ("" if not mapped else " " + " ".join(mapped)))
     return "".join(out)
 
 
