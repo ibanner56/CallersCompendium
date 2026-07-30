@@ -147,6 +147,23 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDateFormatMdy => 'Maand/dag/jaar (07/15/2026)';
 
   @override
+  String get settingsDateFormatCustom => 'Aangepast…';
+
+  @override
+  String get settingsDateFormatCustomPatternLabel => 'Aangepast datumpatroon';
+
+  @override
+  String get settingsDateFormatCustomPatternHint => 'MM.DD.YY';
+
+  @override
+  String get settingsDateFormatCustomLegend =>
+      'Tokens: yyyy of yy = jaar, MM = maand, dd = dag. Scheidingstekens: - / . of spatie.';
+
+  @override
+  String get settingsDateFormatCustomInvalid =>
+      'Onbekend patroon — de systeemstandaard wordt gebruikt totdat dit is gecorrigeerd.';
+
+  @override
   String get settingsFirstDayOfWeekTitle => 'Eerste dag van de week';
 
   @override

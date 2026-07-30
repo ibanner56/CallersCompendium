@@ -22,7 +22,7 @@ import 'support/l10n_harness.dart';
 /// them so the section behaves in tests exactly as it does in the running app.
 typedef _RegionalNotifiers = ({
   ValueNotifier<Locale?> locale,
-  ValueNotifier<DateFormatPref> dateFormat,
+  ValueNotifier<DateFormatSetting> dateFormat,
   ValueNotifier<FirstDayOfWeekPref> firstDayOfWeek,
 });
 
@@ -41,8 +41,11 @@ Future<_RegionalNotifiers> _pumpRegional(
   final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
   final customThemes = CustomThemesController(repos.settings);
   await customThemes.load();
-  final dateFormat = ValueNotifier<DateFormatPref>(
-    dateFormatPrefFromStored(await repos.settings.get(kDateFormatKey)),
+  final dateFormat = ValueNotifier<DateFormatSetting>(
+    dateFormatSettingFromStored(
+      await repos.settings.get(kDateFormatKey),
+      await repos.settings.get(kDateFormatCustomPatternKey),
+    ),
   );
   final firstDayOfWeek = ValueNotifier<FirstDayOfWeekPref>(
     firstDayOfWeekPrefFromStored(await repos.settings.get(kFirstDayOfWeekKey)),
@@ -150,7 +153,96 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(await repos.settings.get(kDateFormatKey), DateFormatPref.ymd.token);
-    expect(notifiers.dateFormat.value, DateFormatPref.ymd);
+    expect(notifiers.dateFormat.value, DateFormatSetting(DateFormatPref.ymd));
+  });
+
+  testWidgets('selecting Custom reveals the pattern field + legend and a valid '
+      'pattern persists and takes effect (#584)', (tester) async {
+    final repos = openTestRepositories();
+    final notifiers = await _pumpRegional(tester, repos);
+
+    await tester.tap(find.byKey(const ValueKey('regional-date-format')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Custom…').last);
+    await tester.pumpAndSettle();
+
+    // The pattern field and its always-visible token legend are revealed.
+    expect(
+      find.byKey(const ValueKey('regional-date-format-custom-pattern')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('regional-date-format-custom-legend')),
+      findsOneWidget,
+    );
+    // The custom token persists immediately on selection.
+    expect(
+      await repos.settings.get(kDateFormatKey),
+      DateFormatPref.custom.token,
+    );
+
+    // Typing a valid pattern persists it and drives the live setting.
+    await tester.enterText(
+      find.byKey(const ValueKey('regional-date-format-custom-pattern')),
+      'MM.DD.YY',
+    );
+    await tester.pumpAndSettle();
+    expect(await repos.settings.get(kDateFormatCustomPatternKey), 'MM.DD.YY');
+    expect(
+      notifiers.dateFormat.value,
+      DateFormatSetting(DateFormatPref.custom, customPattern: 'MM.DD.YY'),
+    );
+    expect(notifiers.dateFormat.value.effectivePattern, isNotNull);
+  });
+
+  testWidgets('an invalid stored custom pattern shows the inline warning and '
+      'stays effective-system until corrected (#584)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kDateFormatKey, DateFormatPref.custom.token);
+    await repos.settings.set(kDateFormatCustomPatternKey, 'nope');
+    final notifiers = await _pumpRegional(tester, repos);
+
+    const warning =
+        "Unrecognized pattern — using the system default until it's corrected.";
+    expect(find.text(warning), findsOneWidget);
+    expect(notifiers.dateFormat.value.hasInvalidCustomPattern, isTrue);
+    expect(notifiers.dateFormat.value.effectivePattern, isNull);
+
+    // Correcting the pattern clears the warning and validates.
+    await tester.enterText(
+      find.byKey(const ValueKey('regional-date-format-custom-pattern')),
+      'yyyy-MM-dd',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(warning), findsNothing);
+    expect(notifiers.dateFormat.value.effectivePattern, isNotNull);
+  });
+
+  testWidgets('a persisted valid custom pattern loads into the dropdown and '
+      'field (#584)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kDateFormatKey, DateFormatPref.custom.token);
+    await repos.settings.set(kDateFormatCustomPatternKey, 'MM.DD.YY');
+    final notifiers = await _pumpRegional(tester, repos);
+
+    expect(
+      tester
+          .widget<DropdownButton<DateFormatPref>>(
+            find.byKey(const ValueKey('regional-date-format')),
+          )
+          .value,
+      DateFormatPref.custom,
+    );
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('regional-date-format-custom-pattern')),
+          )
+          .controller
+          ?.text,
+      'MM.DD.YY',
+    );
+    expect(notifiers.dateFormat.value.effectivePattern, isNotNull);
   });
 
   testWidgets('the language dropdown defaults to System default (null)', (

@@ -13,6 +13,16 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Custom date format.** The **Settings ▸ Language & region ▸ Date format**
+  picker gains a **Custom…** option that reveals a text box for your own pattern
+  (e.g. `MM.DD.YY`), with an always-visible token legend (`yyyy`/`yy` = year,
+  `MM` = month, `dd` = day; separators `-` `/` `.` or space), a live example, and
+  an inline warning when the pattern isn't recognized. A valid custom pattern
+  renders program event dates and helps disambiguate numeric dates when
+  auto-detecting the event date from a ContraDB program title. The pattern is
+  treated as untrusted input — length-capped, allowlist-validated, and
+  ReDoS-safe — and any empty, unrecognized, or corrupted value falls back to the
+  system default everywhere until it's corrected. (#584)
 - **Scope calling history to your own programs.** A new **General ▸ Calling
   history** setting, **Track calling history for all callers** (off by
   default), lets a caller who has set a *default caller for new programs*

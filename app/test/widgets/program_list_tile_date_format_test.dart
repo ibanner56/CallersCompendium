@@ -20,8 +20,8 @@ Program _program(DateTime eventDate) => Program(
   updatedAt: _now,
 );
 
-Future<void> _pumpTile(WidgetTester tester, DateFormatPref pref) async {
-  final notifier = ValueNotifier<DateFormatPref>(pref);
+Future<void> _pumpTile(WidgetTester tester, DateFormatSetting setting) async {
+  final notifier = ValueNotifier<DateFormatSetting>(setting);
   addTearDown(notifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
@@ -40,15 +40,38 @@ Future<void> _pumpTile(WidgetTester tester, DateFormatPref pref) async {
 void main() {
   testWidgets('program list tile renders the event date in the ymd format when '
       'the scope selects it', (tester) async {
-    await _pumpTile(tester, DateFormatPref.ymd);
+    await _pumpTile(tester, DateFormatSetting(DateFormatPref.ymd));
     expect(find.textContaining('2026-07-15'), findsOneWidget);
     expect(find.textContaining('July'), findsNothing);
+  });
+
+  testWidgets('the tile renders a valid custom pattern from the scope', (
+    tester,
+  ) async {
+    await _pumpTile(
+      tester,
+      DateFormatSetting(DateFormatPref.custom, customPattern: 'MM.DD.YY'),
+    );
+    expect(find.textContaining('07.15.26'), findsOneWidget);
+  });
+
+  testWidgets('an invalid custom pattern falls back to the platform medium '
+      'date', (tester) async {
+    await _pumpTile(
+      tester,
+      DateFormatSetting(DateFormatPref.custom, customPattern: 'bogus'),
+    );
+    final expected = const DefaultMaterialLocalizations().formatMediumDate(
+      _eventDate,
+    );
+    expect(find.textContaining(expected), findsOneWidget);
+    expect(find.textContaining('bogus'), findsNothing);
   });
 
   testWidgets('the same tile renders the platform medium date under system', (
     tester,
   ) async {
-    await _pumpTile(tester, DateFormatPref.system);
+    await _pumpTile(tester, DateFormatSetting(DateFormatPref.system));
     final expected = const DefaultMaterialLocalizations().formatMediumDate(
       _eventDate,
     );

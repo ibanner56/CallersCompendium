@@ -146,6 +146,23 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDateFormatMdy => '月/日/年 (07/15/2026)';
 
   @override
+  String get settingsDateFormatCustom => 'カスタム…';
+
+  @override
+  String get settingsDateFormatCustomPatternLabel => 'カスタム日付パターン';
+
+  @override
+  String get settingsDateFormatCustomPatternHint => 'MM.DD.YY';
+
+  @override
+  String get settingsDateFormatCustomLegend =>
+      'トークン：yyyy または yy = 年、MM = 月、dd = 日。区切り文字：- / . またはスペース。';
+
+  @override
+  String get settingsDateFormatCustomInvalid =>
+      '認識できないパターンです — 修正されるまでシステムの既定値を使用します。';
+
+  @override
   String get settingsFirstDayOfWeekTitle => '週の始まりの曜日';
 
   @override

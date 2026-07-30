@@ -148,6 +148,24 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDateFormatMdy => 'Måned/dag/år (07/15/2026)';
 
   @override
+  String get settingsDateFormatCustom => 'Brugerdefineret…';
+
+  @override
+  String get settingsDateFormatCustomPatternLabel =>
+      'Brugerdefineret datomønster';
+
+  @override
+  String get settingsDateFormatCustomPatternHint => 'MM.DD.YY';
+
+  @override
+  String get settingsDateFormatCustomLegend =>
+      'Tokens: yyyy eller yy = år, MM = måned, dd = dag. Separatorer: - / . eller mellemrum.';
+
+  @override
+  String get settingsDateFormatCustomInvalid =>
+      'Ukendt mønster – bruger systemstandarden, indtil det rettes.';
+
+  @override
   String get settingsFirstDayOfWeekTitle => 'Ugens første dag';
 
   @override

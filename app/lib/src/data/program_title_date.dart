@@ -1,3 +1,4 @@
+import 'custom_date_pattern.dart';
 import 'regional_formats.dart';
 
 /// Best-effort, **high-confidence-only** detection of a program's event date
@@ -14,46 +15,73 @@ import 'regional_formats.dart';
 /// 2. **Month name** forms — `March 15 2024`, `March 15, 2024`,
 ///    `15 March 2024`, `Mar 15 2024` (full or 3-letter abbreviation, optional
 ///    `st`/`nd`/`rd`/`th` ordinal).
-/// 3. **Numeric with a 4-digit year LAST** — `MM/DD/YYYY` or `DD/MM/YYYY`
+/// 3. **The user's explicit custom pattern** (issue #584) — when [setting]
+///    selects a valid custom pattern, a numeric title date matching its declared
+///    field order/separators (including two-digit years) is read per that
+///    layout.
+/// 4. **Numeric with a 4-digit year LAST** — `MM/DD/YYYY` or `DD/MM/YYYY`
 ///    (`/`, `.`, or `-` separators). When exactly one of the two leading fields
 ///    is `> 12` the order is forced. When both are `<= 12` (genuinely
-///    ambiguous) the order is resolved **only** if [pref] expresses a numeric
-///    convention (`mdy` → month-first, `dmy` → day-first); for `system`/`ymd`
-///    the value is skipped rather than guessed.
+///    ambiguous) the order is resolved **only** if [setting] expresses a numeric
+///    convention (`mdy`/month-first custom → month-first; `dmy`/day-first custom
+///    → day-first); for `system`/`ymd`/invalid-custom the value is skipped
+///    rather than guessed.
 ///
 /// ## What is deliberately NOT matched (left null)
-/// Two-digit years (`3/15/24`, `01.12.18`) and loose/season text
-/// (`Spring Fling '24`): the century and/or field order are ambiguous, so
-/// auto-filling would be an over-match.
+/// Two-digit years (`3/15/24`, `01.12.18`) — unless a valid custom pattern
+/// declares a two-digit year and thereby resolves the century/order — and
+/// loose/season text (`Spring Fling '24`): the century and/or field order are
+/// otherwise ambiguous, so auto-filling would be an over-match.
 ///
 /// ## Safety
 /// The title is length-capped before matching and every pattern uses bounded
 /// quantifiers with no nesting or backreferences, so adversarial titles cannot
-/// trigger catastrophic backtracking (ReDoS). All candidates are validated as
-/// real calendar dates within [_minYear]–[_maxYear].
+/// trigger catastrophic backtracking (ReDoS). The custom-pattern matcher is
+/// built by [matchTitleWithCustomPattern] under the same guarantees. All
+/// candidates are validated as real calendar dates within [_minYear]–[_maxYear].
 ///
 /// ## Precedence
-/// Formats are tried in **confidence-tier order** — ISO → month-name → numeric
-/// (see [_matchers]) — and the first tier that produces a valid date wins,
-/// regardless of where each format appears in the title. The tiers are
-/// mutually near-exclusive in practice (a given substring reads as at most one
-/// of them), and the more specific/unambiguous formats are deliberately
-/// preferred over the ambiguous numeric one. Within a single tier, that
-/// pattern's first textual match in the title is used.
-DateTime? detectEventDateFromTitle(String title, DateFormatPref pref) {
+/// Formats are tried in **confidence-tier order** — ISO → month-name → explicit
+/// custom pattern → generic numeric — and the first tier that produces a valid
+/// date wins, regardless of where each format appears in the title. Text forms
+/// are deliberately preferred over numeric ones, and the user's explicit custom
+/// layout is preferred over the generic numeric guesser. Within a single tier,
+/// that pattern's first textual match in the title is used.
+DateTime? detectEventDateFromTitle(String title, DateFormatSetting setting) {
   // Cap work regardless of input size (ReDoS belt-and-suspenders).
   final text = title.length > _kMaxTitleScan
       ? title.substring(0, _kMaxTitleScan)
       : title;
 
-  // Try each confidence tier in order; the first tier to yield a valid date
-  // wins (ISO/month-name are preferred over the ambiguous numeric form).
-  for (final matcher in _matchers) {
+  final custom = setting.effectivePattern;
+  final order = _numericOrderFor(setting, custom);
+
+  // Tiers 1–2: ISO then month-name (unambiguous, highest confidence).
+  for (final matcher in _highConfidenceMatchers) {
     final match = matcher.pattern.firstMatch(text);
     if (match == null) continue;
-    final date = matcher.build(match, pref);
+    final date = matcher.build(match);
     if (date != null) return date;
   }
+
+  // Tier 3: the user's explicit custom layout (adds two-digit-year support and
+  // uses the declared field ORDER; separator segments match any allowed
+  // separator run — see matchTitleWithCustomPattern — rather than the exact
+  // declared separators). Only when the custom pattern is valid; an
+  // invalid/absent pattern skips this tier and behaves like `system`.
+  if (custom != null) {
+    final date = matchTitleWithCustomPattern(text, custom);
+    if (date != null) return date;
+  }
+
+  // Tier 4: generic ambiguous numeric (4-digit year last), resolved by field
+  // range or, when ambiguous, the effective month/day order.
+  final numericMatch = _ambiguousNumericPattern.firstMatch(text);
+  if (numericMatch != null) {
+    final date = _buildAmbiguousNumeric(numericMatch, order);
+    if (date != null) return date;
+  }
+
   return null;
 }
 
@@ -64,13 +92,41 @@ const int _kMaxTitleScan = 200;
 const int _minYear = 1900;
 const int _maxYear = 2100;
 
-/// Ordered list of high-confidence matchers; the first that yields a valid date
-/// wins. ISO first (most specific), then month-name, then ambiguous numeric.
-final List<_DateMatcher> _matchers = [
+/// How to resolve an otherwise-ambiguous numeric date (both leading fields
+/// `<= 12`). Derived once per call from the active [DateFormatSetting].
+enum _NumericOrder { none, monthFirst, dayFirst }
+
+/// Maps the active [setting] (and its parsed [custom] pattern, when any) to the
+/// numeric field order used for the ambiguous-numeric tier. A valid custom
+/// pattern contributes its declared month/day order; an invalid custom pattern
+/// resolves to [_NumericOrder.none] so it behaves exactly like `system`.
+_NumericOrder _numericOrderFor(
+  DateFormatSetting setting,
+  CustomDatePattern? custom,
+) {
+  switch (setting.pref) {
+    case DateFormatPref.mdy:
+      return _NumericOrder.monthFirst;
+    case DateFormatPref.dmy:
+      return _NumericOrder.dayFirst;
+    case DateFormatPref.custom:
+      if (custom == null) return _NumericOrder.none;
+      return custom.monthBeforeDay
+          ? _NumericOrder.monthFirst
+          : _NumericOrder.dayFirst;
+    case DateFormatPref.system:
+    case DateFormatPref.ymd:
+      return _NumericOrder.none;
+  }
+}
+
+/// High-confidence, order-independent matchers tried first: ISO, then the two
+/// month-name forms. These never depend on the user's numeric convention.
+final List<_DateMatcher> _highConfidenceMatchers = [
   // ISO-like: 4-digit year first, e.g. 2024-03-15 (or / or . separators).
   _DateMatcher(
     RegExp(r'\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b'),
-    (m, _) => _build(
+    (m) => _build(
       year: int.parse(m.group(1)!),
       month: int.parse(m.group(2)!),
       day: int.parse(m.group(3)!),
@@ -84,7 +140,7 @@ final List<_DateMatcher> _matchers = [
           r')\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\b',
       caseSensitive: false,
     ),
-    (m, _) => _build(
+    (m) => _build(
       year: int.parse(m.group(3)!),
       month: _monthNumber(m.group(1)!),
       day: int.parse(m.group(2)!),
@@ -98,21 +154,22 @@ final List<_DateMatcher> _matchers = [
           r')\.?,?\s+(\d{4})\b',
       caseSensitive: false,
     ),
-    (m, _) => _build(
+    (m) => _build(
       year: int.parse(m.group(3)!),
       month: _monthNumber(m.group(2)!),
       day: int.parse(m.group(1)!),
     ),
   ),
-  // Numeric, 4-digit year LAST: NN[sep]NN[sep]YYYY. Order resolved by field
-  // range (one field > 12) or, when ambiguous, by the user's mdy/dmy pref.
-  _DateMatcher(
-    RegExp(r'\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b'),
-    _buildAmbiguousNumeric,
-  ),
 ];
 
-DateTime? _buildAmbiguousNumeric(RegExpMatch m, DateFormatPref pref) {
+/// Ambiguous numeric form, 4-digit year LAST: NN[sep]NN[sep]YYYY. Order resolved
+/// by field range (one field > 12) or, when ambiguous, by the effective
+/// [_NumericOrder]. Bounded and backreference-free (ReDoS-safe).
+final RegExp _ambiguousNumericPattern = RegExp(
+  r'\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b',
+);
+
+DateTime? _buildAmbiguousNumeric(RegExpMatch m, _NumericOrder order) {
   final a = int.parse(m.group(1)!); // first field
   final b = int.parse(m.group(2)!); // second field
   final year = int.parse(m.group(3)!);
@@ -133,15 +190,14 @@ DateTime? _buildAmbiguousNumeric(RegExpMatch m, DateFormatPref pref) {
   } else if (aCanBeMonth && bCanBeMonth) {
     // Both plausible as month → ambiguous. Only resolve on an explicit numeric
     // convention; otherwise skip rather than guess.
-    switch (pref) {
-      case DateFormatPref.mdy:
+    switch (order) {
+      case _NumericOrder.monthFirst:
         month = a;
         day = b;
-      case DateFormatPref.dmy:
+      case _NumericOrder.dayFirst:
         day = a;
         month = b;
-      case DateFormatPref.system:
-      case DateFormatPref.ymd:
+      case _NumericOrder.none:
         return null;
     }
   } else {
@@ -193,8 +249,7 @@ int _monthNumber(String raw) {
   return 0; // never reached given the alternation, but keeps _build safe.
 }
 
-typedef _DateBuilder =
-    DateTime? Function(RegExpMatch match, DateFormatPref pref);
+typedef _DateBuilder = DateTime? Function(RegExpMatch match);
 
 class _DateMatcher {
   _DateMatcher(this.pattern, this.build);
