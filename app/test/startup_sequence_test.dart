@@ -12,6 +12,8 @@ import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/window_service.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
+import 'package:compendium_app/src/screens/settings_screen.dart'
+    show kAppThemeKey;
 
 /// A [WindowService] whose restore does nothing — the plugin glue is untestable
 /// under `flutter test` (no real window), and these tests only care about the
@@ -453,6 +455,37 @@ void main() {
       // not the always-on disc_full glyph the review flagged (issue #442).
       expect(find.byIcon(Icons.folder_off_outlined), findsOneWidget);
       expect(find.byIcon(Icons.disc_full), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'a wrong-typed theme_mode preference does not brick startup (issue #609)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      // Simulate a restored/corrupt backup that persisted a non-string under
+      // the theme key. The old startup read cast this with `as String?`, which
+      // threw here and — because the value stays on disk — re-threw on every
+      // subsequent launch, bricking the app. Startup must now tolerate it and
+      // fall back to the default theme.
+      await appData.repositories.settings.set(kAppThemeKey, 123);
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The app opens normally instead of throwing out of `_loadPreferences`.
+      expect(find.byType(AppShell), findsOneWidget);
+      expect(
+        find.textContaining('Could not prepare the collection'),
+        findsNothing,
+      );
     },
   );
 }
