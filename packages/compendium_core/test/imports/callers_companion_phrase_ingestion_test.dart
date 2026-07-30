@@ -103,21 +103,20 @@ void main() {
       });
     });
 
-    test('a compound-beat line still structures (beats lost → #560); an '
-        'out-of-coverage line is an importGap custom (never dropped)', () async {
+    test('a compound-beat line structures AND carries its summed beats (#560); '
+        'an out-of-coverage line is an importGap custom (never dropped)', () async {
       final dance = await danceFor('4');
 
       // A2 "(4,12) neighbors balance and swing" structures to a swing via the
       // fan-out (the acceptance target), so the line is ingested — NOT dropped.
-      // BUT the COMPOUND beat prefix "(4,12)" (= 16 total) is not parsed by the
-      // single-integer beat split, so the beats degrade to 0 (unspecified).
-      // Robust compound-beat parsing is #560; #559 only requires the figure
-      // survive. When #560 lands, `beats` here should become 16.
+      // The COMPOUND beat prefix "(4,12)" (= 16 total) is parsed by the robust
+      // beat split (#560): the line structures as a SINGLE swing, so the total
+      // (16) rides on that lone figure.
       final compound = dance.figures[1];
       expect(compound.isCustom, isFalse);
       expect(compound.move, 'swing');
       expect(compound.params['who'], 'neighbors');
-      expect(compound.beats, 0); // #560: compound beat count not yet parsed
+      expect(compound.beats, 16);
 
       // B1 "(8) hey for four" is out of the recognised cut → importGap custom,
       // stored verbatim (parse-never-fails, still not dropped).
@@ -176,10 +175,13 @@ void main() {
         final four = byExternal['4']!;
         // The full pipeline path (plan → adapter.discover/fetch/parse → commit)
         // persisted the choreography, not just metadata: a structured swing, a
-        // second swing from the compound-beat line (#560), and one importGap
-        // custom — 3 figures, 0 Phrase lines dropped.
+        // second swing from the compound-beat line whose "(4,12)" prefix sums to
+        // 16 beats (#560), and one importGap custom — 3 figures, 0 Phrase lines
+        // dropped.
         expect(four.figures, hasLength(3));
         expect(four.figures.first.move, 'swing');
+        expect(four.figures[1].move, 'swing');
+        expect(four.figures[1].beats, 16);
         expect(
           four.figures.where((f) => f.customOrigin == CustomOrigin.importGap),
           hasLength(1),

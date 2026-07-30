@@ -135,8 +135,21 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
   `columns` payload. The `Phrase` body is **not** in that per-dance column map,
   so the joined body is threaded through the `discover → fetch → parse` payload
   explicitly (legacy payloads without it fall back to the `A1..C2` columns).
-- Follow-ups: compound `(4,12)` beat parsing (#560); OWASP hardening/limits for
-  the new `Phrase`/`InsertCall`/`Elements` tables (#561); seeding user shorthands
+- Beat-prefix parsing (#560): each body line's leading beats prefix is peeled by
+  `splitCcBeatPrefix` before the fan-out. It accepts a lone `(16)`, a **compound**
+  `(4,12)` / `(4, 12)` (whitespace-tolerant, each group ≤ 4 digits, mirroring the
+  free-text inline-beat cap), and a bare/absent prefix (beats `0`); a **malformed**
+  prefix (`()`, `(x)`, `(4,)`, `(,12)`) does not match and is left as ordinary text
+  (`parse-never-fails`). **Compound-beat semantics:** a compound's parts **sum** to
+  the line total; a line that structures as a **single** figure (e.g. balance-and-
+  swing is one swing) carries that **total**, whereas a line the fan-out cleanly
+  **splits** into exactly as many non-custom figures as parts has each part
+  **distributed** in order. Any other case (part-count ≠ figure-count, or a custom
+  fallback) keeps the splitter's Option-A allocation (total on the first figure),
+  which is always lossless w.r.t. the cumulative total and never invents an
+  allocation the source did not state.
+- Follow-ups: OWASP hardening/limits for the new
+  `Phrase`/`InsertCall`/`Elements` tables (#561); seeding user shorthands
   from `InsertCall` (#562).
 - Fixture: the publicly downloadable demo `.USR` (kept out of the repo until
   redistribution permission is clarified; local test asset otherwise). CI runs
