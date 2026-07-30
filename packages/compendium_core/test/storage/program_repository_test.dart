@@ -1570,7 +1570,9 @@ void main() {
           reason: 'filter ${filter == null ? 'null' : '"$filter"'}',
         );
         expect(
-          (await repo.countByDance(callerFilter: filter))['d1']!.countFor(false),
+          (await repo.countByDance(
+            callerFilter: filter,
+          ))['d1']!.countFor(false),
           4,
         );
       }
