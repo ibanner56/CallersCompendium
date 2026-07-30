@@ -665,6 +665,52 @@ void main() {
           'role2s start a hey - rights in center, lefts on ends - until someone meets the second time',
         );
       });
+      // issue #576: a set `meetTarget` names WHICH pair you run until you meet.
+      String sTarget(String length, String meetTarget) =>
+          renderer.renderSummary(
+            Figure(
+              move: 'hey',
+              params: {'length': length, 'meetTarget': meetTarget},
+            ),
+            d,
+          );
+      test('lessThanHalf names the meetTarget pair (bare "meet")', () {
+        expect(
+          sTarget('lessThanHalf', 'partners'),
+          'role2s start a hey - rights in center, lefts on ends - until partners meet',
+        );
+      });
+      test('betweenHalfAndFull names the meetTarget pair + second time', () {
+        expect(
+          sTarget('betweenHalfAndFull', 'partners'),
+          'role2s start a hey - rights in center, lefts on ends - until partners meet the second time',
+        );
+      });
+      test('meetTarget unspecified keeps the generic "someone" clause', () {
+        expect(
+          sTarget('lessThanHalf', 'unspecified'),
+          'role2s start a hey - rights in center, lefts on ends - until someone meets',
+        );
+      });
+      test('meetTarget is ignored for non-partial lengths (half/full)', () {
+        expect(
+          sTarget('half', 'partners'),
+          'role2s start a half hey - rights in center, lefts on ends',
+        );
+        expect(
+          sTarget('full', 'partners'),
+          'role2s start a full hey - rights in center, lefts on ends',
+        );
+      });
+      test(
+        'an out-of-domain meetTarget falls back to "someone" (allow-list)',
+        () {
+          expect(
+            sTarget('lessThanHalf', 'bogusToken'),
+            'role2s start a hey - rights in center, lefts on ends - until someone meets',
+          );
+        },
+      );
       test('summary equals the base line (no appended clause)', () {
         for (final length in [
           'half',
@@ -1623,6 +1669,18 @@ void main() {
             d,
           ),
           'role2s start a hey - rights in center, lefts on ends - until someone meets the second time',
+        );
+      });
+      test('partial hey with a meetTarget names the pair (issue #576)', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'hey',
+              params: {'length': 'lessThanHalf', 'meetTarget': 'neighbors'},
+            ),
+            d,
+          ),
+          'role2s start a hey - rights in center, lefts on ends - until neighbors meet',
         );
       });
       test('a ricochet flag adds the ricochet clause', () {

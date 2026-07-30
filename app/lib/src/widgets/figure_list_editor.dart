@@ -1008,6 +1008,15 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // Explicitly editing the subject makes it a stated choice, so it is no
     // longer a parser-assumed default (#460): drop the non-authoritative marker.
     if (key == 'who') draft.assumedSubject = false;
+    // issue #576: hey's `meetTarget` only applies to the partial lengths. If the
+    // user moves `length` back to `half`/`full`, drop any stale `meetTarget` so
+    // a now-irrelevant target can't linger in the stored figure (it would be
+    // hidden in the editor and ignored by the renderer, but keeping it out
+    // avoids surprising re-surfacing and keeps the figure minimal).
+    if (draft.move == 'hey' && key == 'length') {
+      final partial = value == 'lessThanHalf' || value == 'betweenHalfAndFull';
+      if (!partial) draft.params.remove('meetTarget');
+    }
     final oldDefault = _canonicalBeats(draft.params);
     draft.params[key] = value;
     final newDefault = _canonicalBeats(draft.params);
@@ -1571,7 +1580,24 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   Widget _buildParams(BuildContext context, MoveDef def) {
     final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
-    final entries = def.params.entries.toList();
+    var entries = def.params.entries.toList();
+    // issue #576: hey's `meetTarget` is meaningful only for the two partial
+    // lengths — surface it in the editor ONLY when `length ∈ {lessThanHalf,
+    // betweenHalfAndFull}`, so the field never appears for half/full heys (and
+    // never for other moves, which lack the param). Filtering it out of the
+    // entries here keeps the "first 3 inline" disclosure byte-identical to today
+    // for non-partial heys.
+    if (def.id == 'hey') {
+      final length =
+          draft.params['length'] ?? def.params['length']?.defaultValue;
+      final showsMeetTarget =
+          length == 'lessThanHalf' || length == 'betweenHalfAndFull';
+      if (!showsMeetTarget) {
+        entries = entries
+            .where((e) => e.key != 'meetTarget')
+            .toList(growable: false);
+      }
+    }
     // Progressive disclosure: >3 params → first 3 inline, rest behind a
     // collapsed "More options" disclosure. ≤3 params → all inline, no toggle.
     final hasMore = entries.length > 3;
