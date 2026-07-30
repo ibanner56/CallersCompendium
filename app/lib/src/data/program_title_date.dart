@@ -64,8 +64,10 @@ DateTime? detectEventDateFromTitle(String title, DateFormatSetting setting) {
     if (date != null) return date;
   }
 
-  // Tier 3: the user's explicit custom layout (adds two-digit-year and
-  // exact-separator support). Only when the custom pattern is valid; an
+  // Tier 3: the user's explicit custom layout (adds two-digit-year support and
+  // uses the declared field ORDER; separator segments match any allowed
+  // separator run — see matchTitleWithCustomPattern — rather than the exact
+  // declared separators). Only when the custom pattern is valid; an
   // invalid/absent pattern skips this tier and behaves like `system`.
   if (custom != null) {
     final date = matchTitleWithCustomPattern(text, custom);
