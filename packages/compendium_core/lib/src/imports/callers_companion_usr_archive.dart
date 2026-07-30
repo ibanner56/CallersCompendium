@@ -29,6 +29,7 @@ class CcUsrArchive {
   CcUsrArchive({
     required this.dances,
     required this.sets,
+    this.insertCalls = const [],
     required this.warnings,
   });
 
@@ -38,8 +39,55 @@ class CcUsrArchive {
   /// One entry per CC `Set` row, each carrying its ordered [CcSetItem]s.
   final List<CcSet> sets;
 
+  /// One entry per CC `InsertCall` row (a shipped default "call button": a short
+  /// label → full call text + beats, with an optional ALT form), in file order.
+  /// The seed source for user shorthands (issue #562); empty when the file has
+  /// no `InsertCall` table.
+  final List<CcInsertCall> insertCalls;
+
   /// Non-fatal notes (missing tables, guessed column names, reader warnings).
   final List<String> warnings;
+}
+
+/// A single CC `InsertCall` row (a shipped default "call button"), reshaped into
+/// a source-agnostic value object the shorthand-seeding step consumes (issue
+/// #562).
+///
+/// CC's buttons carry a short [label] (`InsertButtonLabel`, e.g. `"B&S-N"`), the
+/// full call [text] (`InsertButtonText`, e.g. `"Neighbor balance and swing"`)
+/// with its [beats] (`InsertButtonBeats`), and a SECOND, usually *different*
+/// call in the ALT slot ([altText]/`InsertButtonTextAlt` + [altBeats]) toggled
+/// by the same button (e.g. `"Robins Chain"` / `"Larks Chain"`). All text is
+/// sanitized at this ingestion boundary; the primary vs. alt distinction is
+/// preserved so the seeding step can offer the alt as an alternative expansion
+/// for the same shorthand token.
+class CcInsertCall {
+  CcInsertCall({
+    required this.label,
+    required this.text,
+    this.beats = 0,
+    this.altText,
+    this.altBeats = 0,
+  });
+
+  /// The button's short label — the proposed shorthand token. Sanitized,
+  /// original casing preserved for display.
+  final String label;
+
+  /// The full primary call text the button inserts. Sanitized.
+  final String text;
+
+  /// The primary call's beat count (`InsertButtonBeats`), or 0 when absent /
+  /// unparseable.
+  final int beats;
+
+  /// The ALT call text (`InsertButtonTextAlt`), sanitized, or `null` when the
+  /// button has no distinct alt. May differ entirely from [text].
+  final String? altText;
+
+  /// The ALT call's beat count (`InsertButtonBeatsAlt`), or 0 when absent /
+  /// unparseable.
+  final int altBeats;
 }
 
 /// A single CC `Dance` row: its CC relational id, the mapped [CcDanceRecord],
@@ -167,7 +215,13 @@ CcUsrArchive extractCcUsrArchive(
     );
   }
   final sets = _extractSets(db, warnings);
-  return CcUsrArchive(dances: dances, sets: sets, warnings: warnings);
+  final insertCalls = _extractInsertCalls(db, warnings, limits);
+  return CcUsrArchive(
+    dances: dances,
+    sets: sets,
+    insertCalls: insertCalls,
+    warnings: warnings,
+  );
 }
 
 // --- Dance extraction ------------------------------------------------------
@@ -719,6 +773,135 @@ List<CcSet> _extractSets(FmpDatabase db, List<String> warnings) {
     );
   }
   return sets;
+}
+
+// --- InsertCall extraction (shorthand seeding, #562) -----------------------
+
+const List<String> _insertCallTableNames = ['InsertCall', 'InsertCalls'];
+
+/// Reads the CC **`InsertCall`** table — the shipped default "call buttons" — as
+/// source-agnostic [CcInsertCall]s for the shorthand-seeding step (issue #562).
+///
+/// A missing table yields an empty list (silent — a text-shaped export has no
+/// buttons), never a throw (parse-never-fails). Column names are resolved
+/// exact-first (confirmed against the real `CallersCompanion2.USR` schema) with a
+/// tolerant token fallback, mirroring the Dance/Phrase/Set resolvers.
+///
+/// ## OWASP hardening
+/// The `InsertCall` table is untrusted external free text. This layer:
+/// - **Sanitizes** every label + button text at the ingestion boundary via
+///   [sanitizeImportedText] so control/bidi/format spoofing characters can never
+///   reach a [CcInsertCall], the candidate builder, or storage.
+/// - **Bounds** the scan fail-closed: at most [FmpReadLimits.maxInsertCallRows]
+///   rows (a hand-built [FmpDatabase] bypasses the byte-level guard, so the cap
+///   is enforced here) — exceeding it throws a [FmpResourceLimitException].
+/// - **Degrades** gracefully: a row with a missing/empty label OR empty primary
+///   text is skipped (nothing to seed), never a throw.
+List<CcInsertCall> _extractInsertCalls(
+  FmpDatabase db,
+  List<String> warnings,
+  FmpReadLimits limits,
+) {
+  final table = _findTable(db, _insertCallTableNames);
+  if (table == null) return const [];
+
+  final labelCol = _resolveColumn(
+    table,
+    ['InsertButtonLabel'],
+    [
+      ['button', 'label'],
+      ['insertlabel'],
+      ['label'],
+    ],
+  );
+  final textCol = _resolveColumn(
+    table,
+    ['InsertButtonText'],
+    [
+      ['button', 'text'],
+      ['inserttext'],
+    ],
+  );
+  if (labelCol == null || textCol == null) {
+    warnings.add(
+      'The Caller\'s Companion "InsertCall" table was found but its '
+      'label/text columns could not be resolved; no shorthands were seeded.',
+    );
+    return const [];
+  }
+  // Beats/alt columns are optional — a differently-named build simply loses the
+  // beats/alt refinement, never the whole button.
+  final beatsCol = _resolveColumn(
+    table,
+    ['InsertButtonBeats'],
+    [
+      ['button', 'beats'],
+    ],
+  );
+  final altTextCol = _resolveColumn(
+    table,
+    ['InsertButtonTextAlt'],
+    [
+      ['button', 'text', 'alt'],
+    ],
+  );
+  final altBeatsCol = _resolveColumn(
+    table,
+    ['InsertButtonBeatsAlt'],
+    [
+      ['button', 'beats', 'alt'],
+    ],
+  );
+
+  final result = <CcInsertCall>[];
+  var processedRows = 0;
+  for (final rec in table.records) {
+    // Bound the rows the CC layer will process — fail closed before a
+    // pathological InsertCall table can exhaust memory (a hand-built
+    // FmpDatabase bypasses the byte-level maxRecords guard).
+    if (processedRows >= limits.maxInsertCallRows) {
+      throw FmpResourceLimitException(
+        'The Caller\'s Companion "InsertCall" table has too many rows to import '
+        'safely (> ${limits.maxInsertCallRows}).',
+      );
+    }
+    processedRows++;
+    final cols = _CiColumns(_rowColumns(table, rec));
+    final label = _sanitizeButtonLabel(cols.get(labelCol));
+    if (label.isEmpty) continue;
+    final text = _sanitizeButtonText(cols.get(textCol));
+    if (text.isEmpty) continue;
+    final altRaw = altTextCol == null ? null : cols.get(altTextCol);
+    final altText = _sanitizeButtonText(altRaw);
+    result.add(
+      CcInsertCall(
+        label: label,
+        text: text,
+        beats: beatsCol == null ? 0 : _parseBeats(cols.get(beatsCol)),
+        altText: altText.isEmpty ? null : altText,
+        altBeats: altBeatsCol == null ? 0 : _parseBeats(cols.get(altBeatsCol)),
+      ),
+    );
+  }
+  return result;
+}
+
+/// Sanitizes a button label at the ingestion boundary — single-line (labels
+/// never span lines), control/bidi/format spoofing stripped.
+String _sanitizeButtonLabel(String? raw) =>
+    raw == null ? '' : sanitizeImportedText(raw, allowLineBreaks: false).trim();
+
+/// Sanitizes button call text at the ingestion boundary. Line breaks are
+/// preserved (a few default buttons carry a two-line call the fan-out reads) but
+/// control/bidi/format spoofing characters are stripped.
+String _sanitizeButtonText(String? raw) =>
+    raw == null ? '' : sanitizeImportedText(raw).trim();
+
+/// Parses a CC beats value (`InsertButtonBeats`), tolerating stray non-digit
+/// characters; 0 when absent/unparseable. Negative values clamp to 0.
+int _parseBeats(String? raw) {
+  final n = _parseInt(raw);
+  return (n == null || n < 0) ? 0 : n;
 }
 
 // --- Helpers ---------------------------------------------------------------

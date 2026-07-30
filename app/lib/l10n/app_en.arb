@@ -5394,6 +5394,61 @@
   "@shorthandEditorErrorNoFigures": {
     "description": "Validation error when no target figures have been added to a shorthand."
   },
+  "importShorthandSeedTitle": "Seed figure shorthands",
+  "@importShorthandSeedTitle": {
+    "description": "App-bar title for the optional step that seeds figure shorthands from a Caller's Companion file's call buttons."
+  },
+  "importShorthandSeedIntro": "Your Caller's Companion file's call buttons can become figure shorthands. Pick the ones you want; each expands to the figures shown. Nothing is added until you confirm, and your existing shorthands are never overwritten.",
+  "@importShorthandSeedIntro": {
+    "description": "Intro paragraph on the shorthand-seeding step explaining it is opt-in and previewed."
+  },
+  "importShorthandSeedAvailableHeader": "From your call buttons",
+  "@importShorthandSeedAvailableHeader": {
+    "description": "Section header above the list of seedable shorthand candidates."
+  },
+  "importShorthandSeedUsePrimary": "Primary",
+  "@importShorthandSeedUsePrimary": {
+    "description": "Label for the toggle option that seeds a button's primary call."
+  },
+  "importShorthandSeedUseAlt": "Alternate",
+  "@importShorthandSeedUseAlt": {
+    "description": "Label for the toggle option that seeds a button's alternate call instead of its primary call."
+  },
+  "importShorthandSeedConflictHeader": "Already defined — skipped",
+  "@importShorthandSeedConflictHeader": {
+    "description": "Section header above call buttons whose shorthand token already exists and will not be seeded."
+  },
+  "importShorthandSeedConflictNote": "A shorthand named “{token}” already exists, so this button was left as-is.",
+  "@importShorthandSeedConflictNote": {
+    "description": "Explanation shown for a skipped, conflicting shorthand candidate; {token} is the user's token, rendered as plain text.",
+    "placeholders": {
+      "token": {
+        "type": "String"
+      }
+    }
+  },
+  "importShorthandSeedSkip": "Skip",
+  "@importShorthandSeedSkip": {
+    "description": "Button that declines seeding any shorthands and closes the step."
+  },
+  "importShorthandSeedConfirm": "{count, plural, =0{Seed shorthands} =1{Seed 1 shorthand} other{Seed {count} shorthands}}",
+  "@importShorthandSeedConfirm": {
+    "description": "Confirm button on the shorthand-seeding step; {count} is how many are selected.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importShorthandSeedComplete": "{count, plural, =1{Seeded 1 shorthand} other{Seeded {count} shorthands}}",
+  "@importShorthandSeedComplete": {
+    "description": "Snackbar shown after shorthands are seeded; {count} is how many were added.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "themeEditorTitle": "Edit theme",
   "@themeEditorTitle": {
     "description": "App-bar title for the theme editor."

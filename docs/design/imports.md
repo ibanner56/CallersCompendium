@@ -169,10 +169,32 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
     unbounded work; the aggregate caps are the real DoS guard).
   - **Untrusted joins degrade, never throw.** A `Phrase` row with a
     missing/empty `zk_Dance_ID`, or an orphan id matching no `Dance`, is dropped
-    with a warning; duplicate keys are grouped. (`InsertCall`/`Elements` are not
-    ingested yet — #562/#563 — so nothing to harden there today.)
-- Follow-ups: seeding user shorthands
-  from `InsertCall` (#562).
+    with a warning; duplicate keys are grouped. (`Elements` is not ingested yet —
+    #563 — so nothing to harden there today.)
+- **Shorthand seeding from `InsertCall` (#562).** After the dance/program commit,
+  the review flow offers an **opt-in, previewed** step that turns CC's shipped
+  default "call buttons" (`InsertCall`: label → call text + beats, with an ALT
+  form) into figure shorthands (#420). Per maintainer direction we target the
+  shipped defaults **as-is** — there is no user-vs-default discriminator. Core
+  (`extractCcUsrArchive` → `insert_call_shorthands.dart`) reads `InsertCall` via
+  the same tolerant table/column resolver, sanitizes each label/text through
+  `sanitizeImportedText`, bounds the scan (`FmpReadLimits.maxInsertCallRows`,
+  default 20 000), and — for each button whose text structures through
+  `parseFigureLinesFanOut` to **non-custom** taxonomy figure(s) — builds a
+  `ShorthandSeedCandidate{token = label, figures}`. Buttons that only parse to
+  `custom` seed nothing (no raw-text shorthands). Where the ALT slot is a
+  *distinct* call that also structures, it is offered as a **selectable alternate
+  expansion for the same token** (CC toggles the two under one button; a shorthand
+  token is unique, so exactly one mapping persists per token). Candidate figures,
+  token length, and total count honour the shorthand-store bounds
+  (`maxShorthandTargetFigures`/`maxShorthandTokenLength`/`maxShorthandMappings`),
+  and candidates dedupe on the normalized token. The app step (`ImportShorthandSeedScreen`)
+  previews each candidate's rendered figures; the user picks which to seed (and
+  primary vs. alt). Tokens that collide with an **existing** shorthand are
+  surfaced in a read-only "already defined — skipped" section — never overwritten
+  — which also makes **re-import idempotent** (a second import of the same file
+  finds those tokens present and adds nothing). Declining seeds nothing.
+- Follow-ups: approximating dialect from `Elements`/button phrasing (#563).
 - Fixture: the publicly downloadable demo `.USR` (kept out of the repo until
   redistribution permission is clarified; local test asset otherwise). CI runs
   against hand-built `.fmp12`/`FmpDatabase` fixtures shaped like the real schema.

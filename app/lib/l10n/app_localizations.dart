@@ -7511,6 +7511,66 @@ abstract class AppLocalizations {
   /// **'Add at least one figure for this shorthand to expand to.'**
   String get shorthandEditorErrorNoFigures;
 
+  /// App-bar title for the optional step that seeds figure shorthands from a Caller's Companion file's call buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'Seed figure shorthands'**
+  String get importShorthandSeedTitle;
+
+  /// Intro paragraph on the shorthand-seeding step explaining it is opt-in and previewed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Caller\'s Companion file\'s call buttons can become figure shorthands. Pick the ones you want; each expands to the figures shown. Nothing is added until you confirm, and your existing shorthands are never overwritten.'**
+  String get importShorthandSeedIntro;
+
+  /// Section header above the list of seedable shorthand candidates.
+  ///
+  /// In en, this message translates to:
+  /// **'From your call buttons'**
+  String get importShorthandSeedAvailableHeader;
+
+  /// Label for the toggle option that seeds a button's primary call.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary'**
+  String get importShorthandSeedUsePrimary;
+
+  /// Label for the toggle option that seeds a button's alternate call instead of its primary call.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternate'**
+  String get importShorthandSeedUseAlt;
+
+  /// Section header above call buttons whose shorthand token already exists and will not be seeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Already defined — skipped'**
+  String get importShorthandSeedConflictHeader;
+
+  /// Explanation shown for a skipped, conflicting shorthand candidate; {token} is the user's token, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'A shorthand named “{token}” already exists, so this button was left as-is.'**
+  String importShorthandSeedConflictNote(String token);
+
+  /// Button that declines seeding any shorthands and closes the step.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get importShorthandSeedSkip;
+
+  /// Confirm button on the shorthand-seeding step; {count} is how many are selected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Seed shorthands} =1{Seed 1 shorthand} other{Seed {count} shorthands}}'**
+  String importShorthandSeedConfirm(int count);
+
+  /// Snackbar shown after shorthands are seeded; {count} is how many were added.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Seeded 1 shorthand} other{Seeded {count} shorthands}}'**
+  String importShorthandSeedComplete(int count);
+
   /// App-bar title for the theme editor.
   ///
   /// In en, this message translates to:
