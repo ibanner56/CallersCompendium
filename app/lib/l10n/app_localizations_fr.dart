@@ -160,7 +160,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDateFormatCustomLegend =>
-      'Jetons : yyyy ou yy = année, MM = mois, dd = jour. Séparateurs : - / . ou espace.';
+      'Jetons : yyyy ou yy = année, MM = mois (MMM = nom abrégé, MMMM = nom complet), dd = jour. Séparateurs : - / . ou espace.';
 
   @override
   String get settingsDateFormatCustomInvalid =>

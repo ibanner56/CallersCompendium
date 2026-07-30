@@ -16,8 +16,8 @@ each release so store builds and tags can be traced back to an entry.
 - **Write out the month in your custom date format.** The custom date-format
   pattern (Settings ▸ Language & region ▸ Date format ▸ Custom) now understands
   written-out month tokens alongside the numeric ones: `MMM` renders a short
-  month name (e.g. `12 May 2026` from `dd MMM yyyy`) and `MMMM` a full one
-  (e.g. `June 3, 2026` from `MMMM d, yyyy`). Month names are localized — they
+  month name (e.g. `dd MMM yyyy` → `03 Jun 2026`) and `MMMM` a full one
+  (e.g. `MMMM dd yyyy` → `June 03 2026`). Month names are localized — they
   reuse the app's existing translated short names, with English full names where
   a translation isn't available yet. The token legend under the field documents
   the new tokens, and the live example plus the inline "unrecognized pattern"

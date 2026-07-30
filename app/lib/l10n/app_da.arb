@@ -44,7 +44,7 @@
   "settingsDateFormatCustom": "Brugerdefineret…",
   "settingsDateFormatCustomPatternLabel": "Brugerdefineret datomønster",
   "settingsDateFormatCustomPatternHint": "MM.DD.YY",
-  "settingsDateFormatCustomLegend": "Tokens: yyyy eller yy = år, MM = måned, dd = dag. Separatorer: - / . eller mellemrum.",
+  "settingsDateFormatCustomLegend": "Tokens: yyyy eller yy = år, MM = måned (MMM = kort navn, MMMM = fuldt navn), dd = dag. Separatorer: - / . eller mellemrum.",
   "settingsDateFormatCustomInvalid": "Ukendt mønster – bruger systemstandarden, indtil det rettes.",
   "settingsFirstDayOfWeekTitle": "Ugens første dag",
   "settingsFirstDayOfWeekSubtitle": "Hvilken dag ugen starter på i appens datovisninger. Kommer i en fremtidig opdatering.",

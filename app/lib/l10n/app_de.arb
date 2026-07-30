@@ -44,7 +44,7 @@
   "settingsDateFormatCustom": "Benutzerdefiniert…",
   "settingsDateFormatCustomPatternLabel": "Benutzerdefiniertes Datumsmuster",
   "settingsDateFormatCustomPatternHint": "MM.DD.YY",
-  "settingsDateFormatCustomLegend": "Tokens: yyyy oder yy = Jahr, MM = Monat, dd = Tag. Trennzeichen: - / . oder Leerzeichen.",
+  "settingsDateFormatCustomLegend": "Tokens: yyyy oder yy = Jahr, MM = Monat (MMM = Kurzname, MMMM = vollständiger Name), dd = Tag. Trennzeichen: - / . oder Leerzeichen.",
   "settingsDateFormatCustomInvalid": "Unbekanntes Muster – bis zur Korrektur wird die Systemvorgabe verwendet.",
   "settingsFirstDayOfWeekTitle": "Erster Wochentag",
   "settingsFirstDayOfWeekSubtitle": "Welcher Tag die Woche in den Datumsansichten der App beginnt. In einem zukünftigen Update verfügbar.",

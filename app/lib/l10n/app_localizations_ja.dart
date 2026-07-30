@@ -156,7 +156,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDateFormatCustomLegend =>
-      'トークン：yyyy または yy = 年、MM = 月、dd = 日。区切り文字：- / . またはスペース。';
+      'トークン：yyyy または yy = 年、MM = 月（MMM = 略称、MMMM = 正式名称）、dd = 日。区切り文字：- / . またはスペース。';
 
   @override
   String get settingsDateFormatCustomInvalid =>

@@ -159,7 +159,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDateFormatCustomLegend =>
-      'Tokens: yyyy eller yy = år, MM = måned, dd = dag. Separatorer: - / . eller mellemrum.';
+      'Tokens: yyyy eller yy = år, MM = måned (MMM = kort navn, MMMM = fuldt navn), dd = dag. Separatorer: - / . eller mellemrum.';
 
   @override
   String get settingsDateFormatCustomInvalid =>

@@ -159,7 +159,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDateFormatCustomLegend =>
-      'Tokens: yyyy oder yy = Jahr, MM = Monat, dd = Tag. Trennzeichen: - / . oder Leerzeichen.';
+      'Tokens: yyyy oder yy = Jahr, MM = Monat (MMM = Kurzname, MMMM = vollständiger Name), dd = Tag. Trennzeichen: - / . oder Leerzeichen.';
 
   @override
   String get settingsDateFormatCustomInvalid =>
