@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import '../util/text_sanitizer.dart';
 import 'callers_companion_mapping.dart';
 import 'fmp/fmp_reader.dart';
 
@@ -132,17 +133,39 @@ CcUsrArchive readCcUsrArchive(
   FmpReadLimits limits = const FmpReadLimits(),
 }) {
   final db = readFmp12(bytes, limits: limits);
-  return extractCcUsrArchive(db);
+  return extractCcUsrArchive(db, limits: limits);
 }
 
 /// Extracts the CC tables from an already-parsed [FmpDatabase]. Split out from
 /// [readCcUsrArchive] so the CC-schema extraction can be unit-tested against a
 /// hand-built [FmpDatabase] without crafting raw FileMaker bytes (the raw
 /// container reader is validated separately against real files).
-CcUsrArchive extractCcUsrArchive(FmpDatabase db) {
+///
+/// [limits] bounds the CC `Phrase`-table join (row count, per-dance figure
+/// count, per-line length). A hand-built [FmpDatabase] bypasses [readFmp12]'s
+/// byte-level guards, so these CC-semantic caps are enforced here — over-limit
+/// input **fails closed** with a [FmpResourceLimitException] (the adapter maps it
+/// to a friendly "too large" message), never OOM/throw-through.
+CcUsrArchive extractCcUsrArchive(
+  FmpDatabase db, {
+  FmpReadLimits limits = const FmpReadLimits(),
+}) {
   final warnings = <String>[...db.warnings];
-  final phraseBodies = _extractPhraseBodies(db, warnings);
+  final phraseBodies = _extractPhraseBodies(db, warnings, limits);
   final dances = _extractDances(db, warnings, phraseBodies);
+  // Phrase rows whose `zk_Dance_ID` matches no `Dance` row are orphans: their
+  // choreography can't be attached to any dance. Degrade gracefully — drop them
+  // with a warning, never a throw (parse-never-fails; mirrors missingIdCount).
+  final danceIds = {for (final d in dances) d.recordId};
+  final orphanIds = phraseBodies.keys
+      .where((id) => !danceIds.contains(id))
+      .toList();
+  if (orphanIds.isNotEmpty) {
+    warnings.add(
+      '${orphanIds.length} Caller\'s Companion "Phrase" group(s) referenced a '
+      '"zk_Dance_ID" with no matching dance; their figures were skipped.',
+    );
+  }
   final sets = _extractSets(db, warnings);
   return CcUsrArchive(dances: dances, sets: sets, warnings: warnings);
 }
@@ -314,9 +337,25 @@ const List<String> _phraseOrder = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 /// `CallersCompanion2.USR` schema) so the gender-swapped variants the same table
 /// carries (`PhraseText_GenderSwap_LR/RL/Switch`) are never mistaken for the
 /// primary `PhraseText`.
+///
+/// ## OWASP hardening (#561)
+/// The `Phrase` table is untrusted external free text. This layer:
+/// - **Sanitizes** every body line at the ingestion boundary (via
+///   [_splitBodyLines] → [sanitizeImportedText]) so control/bidi/format
+///   spoofing characters can never reach the [CcBodySection], the adapter's
+///   persisted JSON payload, or storage.
+/// - **Bounds** the join fail-closed against a pathological file: at most
+///   [FmpReadLimits.maxPhraseRows] rows, [FmpReadLimits.maxFiguresPerDance] body
+///   lines per dance, and [FmpReadLimits.maxBodyLineLength] characters per line —
+///   each throws a [FmpResourceLimitException] (never OOM/throw-through).
+/// - **Degrades** malformed joins gracefully: a row with a missing/empty
+///   `zk_Dance_ID` is skipped with a warning (orphan ids — present but matching
+///   no dance — are warned about by [extractCcUsrArchive]); duplicate keys are
+///   grouped, never throwing.
 Map<String, List<CcBodySection>> _extractPhraseBodies(
   FmpDatabase db,
   List<String> warnings,
+  FmpReadLimits limits,
 ) {
   final table = _findTable(db, _phraseTableNames);
   // A missing Phrase table is normal for text-shaped exports; the Dance-row
@@ -351,16 +390,40 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
 
   // Group rows by CC dance id, preserving each row's PhraseNumber + text.
   final byDance = <String, List<_PhraseRow>>{};
+  var missingIdCount = 0;
+  var processedRows = 0;
   for (final rec in table.records) {
+    // Bound the rows the CC layer will process — fail closed before a
+    // pathological Phrase table can exhaust memory (a hand-built FmpDatabase
+    // bypasses the byte-level maxRecords guard, so this must be enforced here).
+    if (processedRows >= limits.maxPhraseRows) {
+      throw FmpResourceLimitException(
+        'The Caller\'s Companion "Phrase" table has too many rows to import '
+        'safely (> ${limits.maxPhraseRows}).',
+      );
+    }
+    processedRows++;
     final cols = _CiColumns(_rowColumns(table, rec));
     final danceId = cols.get(danceIdCol)?.trim();
-    if (danceId == null || danceId.isEmpty) continue;
+    // A missing/empty join key can't be attached to any dance; skip it but
+    // count so the user is told rather than silently losing choreography.
+    if (danceId == null || danceId.isEmpty) {
+      missingIdCount++;
+      continue;
+    }
     final text = cols.get(phraseTextCol);
     if (text == null || text.trim().isEmpty) continue;
     final number = phraseNumCol == null ? null : cols.get(phraseNumCol)?.trim();
     byDance
         .putIfAbsent(danceId, () => [])
         .add(_PhraseRow(number: number, text: text));
+  }
+  if (missingIdCount > 0) {
+    warnings.add(
+      '$missingIdCount Caller\'s Companion "Phrase" row(s) had no '
+      '"zk_Dance_ID"; their figures could not be linked to a dance and were '
+      'skipped.',
+    );
   }
 
   final result = <String, List<CcBodySection>>{};
@@ -375,9 +438,30 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
         return rank != 0 ? rank : a.key.compareTo(b.key); // stable on ties
       });
     final sections = <CcBodySection>[];
+    var lineCount = 0;
     for (final e in ordered) {
       final lines = _splitBodyLines(e.value.text);
       if (lines.isEmpty) continue;
+      // Bound a single pathological PhraseText line (e.g. multi-megabyte, no
+      // newlines) — fail closed rather than carry it into storage/the parser.
+      for (final line in lines) {
+        if (line.length > limits.maxBodyLineLength) {
+          throw FmpResourceLimitException(
+            'A Caller\'s Companion figure line is too long to import safely '
+            '(> ${limits.maxBodyLineLength} characters).',
+          );
+        }
+      }
+      // Bound the total figure lines a single dance can accumulate, so a file
+      // that aims many Phrase rows at one zk_Dance_ID can't force an unbounded
+      // figure list downstream.
+      lineCount += lines.length;
+      if (lineCount > limits.maxFiguresPerDance) {
+        throw FmpResourceLimitException(
+          'A Caller\'s Companion dance has too many figure lines to import '
+          'safely (> ${limits.maxFiguresPerDance}).',
+        );
+      }
       final label = (e.value.number == null || e.value.number!.isEmpty)
           ? null
           : e.value.number;
@@ -419,11 +503,20 @@ String? _resolvePhraseTextColumn(FmpTable table) {
 
 /// Splits a raw body value on newlines, dropping blank lines (shared by the
 /// Phrase join and the Dance-row `A1..C2` fallback so both parse identically).
+///
+/// Each line is **sanitized at this ingestion boundary** (#561) via
+/// [sanitizeImportedText] (single-line mode) so control, bidi-override and
+/// invisible/format spoofing characters are stripped before the line can reach
+/// a [CcBodySection], the adapter's persisted JSON payload, or storage —
+/// defense in depth ahead of the parser's own `scrubFigureText` chokepoint
+/// (the transform is idempotent, so this never double-mangles legitimate text).
+/// A line that is empty after sanitizing is dropped.
 List<String> _splitBodyLines(String raw) => raw
     .replaceAll('\r\n', '\n')
     .replaceAll('\r', '\n')
     .split('\n')
-    .where((l) => l.trim().isNotEmpty)
+    .map((l) => sanitizeImportedText(l, allowLineBreaks: false).trim())
+    .where((l) => l.isNotEmpty)
     .toList();
 
 /// One CC `Phrase` row's ordering label + verbatim text (internal to

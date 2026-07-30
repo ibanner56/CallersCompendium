@@ -78,20 +78,58 @@ const int kMaxFmpTables = 256;
 /// holds a few hundred rows; 200k is far above any legitimate file.
 const int kMaxFmpRecords = 200000;
 
-/// Structural bounds enforced by [readFmp12], failing closed with a
-/// [FmpResourceLimitException] once exceeded. Defaults mirror the module
-/// constants; tests inject tiny values to exercise the guards hermetically
-/// (mirroring `ArchiveIntakeService`'s injectable `maxBytes`).
+/// Maximum number of Caller's Companion `Phrase` rows the CC-schema layer
+/// (`extractCcUsrArchive`) will join into figure bodies.
+///
+/// This is a **CC-semantic** bound applied on top of [kMaxFmpRecords]: a
+/// hand-built [FmpDatabase] (used by the hermetic archive tests) bypasses the
+/// raw byte reader, and even under [kMaxFmpRecords] a file could aim its whole
+/// record budget at the `Phrase` table. The real `CallersCompanion2.USR` has
+/// **162** Phrase rows; 20k is ~123× that headroom while refusing a pathological
+/// table. Exceeding it **fails closed** with a [FmpResourceLimitException].
+const int kMaxCcPhraseRows = 20000;
+
+/// Maximum number of figure/body lines the CC-schema layer will accumulate for a
+/// **single dance** across all its `Phrase` sections.
+///
+/// Bounds the per-dance figure-list blow-up a hostile file could force by aiming
+/// many `Phrase` rows (each with many lines) at one `zk_Dance_ID`. A real dance
+/// carries ~6 sections and a few dozen lines; 512 is generous while fail-closed.
+const int kMaxCcFiguresPerDance = 512;
+
+/// Maximum character length of a single Caller's Companion body line (one
+/// newline-split `PhraseText` line) the CC-schema layer will accept.
+///
+/// Bounds a single pathological `PhraseText` value (e.g. a multi-megabyte line
+/// with no newlines). A real figure call-line is well under ~200 chars; 2000 is
+/// generous while fail-closed against an over-large field.
+const int kMaxCcBodyLineLength = 2000;
+
+/// Structural bounds enforced by [readFmp12] and the CC-schema layer
+/// (`extractCcUsrArchive`), failing closed with a [FmpResourceLimitException]
+/// once exceeded. Defaults mirror the module constants; tests inject tiny values
+/// to exercise the guards hermetically (mirroring `ArchiveIntakeService`'s
+/// injectable `maxBytes`).
+///
+/// [maxSectors]/[maxTables]/[maxRecords] bound the raw FileMaker container read;
+/// [maxPhraseRows]/[maxFiguresPerDance]/[maxBodyLineLength] bound the CC
+/// `Phrase`-table join layered on top (see the per-field dartdoc).
 class FmpReadLimits {
   const FmpReadLimits({
     this.maxSectors = kMaxFmpSectors,
     this.maxTables = kMaxFmpTables,
     this.maxRecords = kMaxFmpRecords,
+    this.maxPhraseRows = kMaxCcPhraseRows,
+    this.maxFiguresPerDance = kMaxCcFiguresPerDance,
+    this.maxBodyLineLength = kMaxCcBodyLineLength,
   });
 
   final int maxSectors;
   final int maxTables;
   final int maxRecords;
+  final int maxPhraseRows;
+  final int maxFiguresPerDance;
+  final int maxBodyLineLength;
 }
 
 /// A column definition recovered from a table's schema.

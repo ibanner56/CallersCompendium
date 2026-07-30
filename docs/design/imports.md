@@ -148,8 +148,25 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
   fallback) keeps the splitter's Option-A allocation (total on the first figure),
   which is always lossless w.r.t. the cumulative total and never invents an
   allocation the source did not state.
-- Follow-ups: OWASP hardening/limits for the new
-  `Phrase`/`InsertCall`/`Elements` tables (#561); seeding user shorthands
+- Security hardening (#561, OWASP — do not trust because it's local/community):
+  the `Phrase` table is newly-surfaced untrusted free text + rows, so it is
+  guarded consistently with the `.USR` reader's existing bounds.
+  - **Sanitized at the ingestion boundary.** Every body line is scrubbed via
+    `sanitizeImportedText` (single-line, issue #444) inside `_splitBodyLines`
+    *before* it reaches a `CcBodySection`, so control/bidi-override/invisible
+    format spoofing characters can never enter the joined body, the persisted
+    JSON payload (`provenance.raw_payload`), or storage — defense in depth ahead
+    of the parser's own `scrubFigureText` chokepoint (idempotent, no double-mangle).
+  - **Bounded fail-closed.** `FmpReadLimits` gains CC-layer caps enforced in
+    `extractCcUsrArchive`: `maxPhraseRows` (default 20 000; sample is 162),
+    `maxFiguresPerDance` (512) and `maxBodyLineLength` (2 000 chars). Exceeding
+    any throws `FmpResourceLimitException`, which the adapter's `discover` maps to
+    the friendly "That file is too large to import." — never OOM/throw-through.
+  - **Untrusted joins degrade, never throw.** A `Phrase` row with a
+    missing/empty `zk_Dance_ID`, or an orphan id matching no `Dance`, is dropped
+    with a warning; duplicate keys are grouped. (`InsertCall`/`Elements` are not
+    ingested yet — #562/#563 — so nothing to harden there today.)
+- Follow-ups: seeding user shorthands
   from `InsertCall` (#562).
 - Fixture: the publicly downloadable demo `.USR` (kept out of the repo until
   redistribution permission is clarified; local test asset otherwise). CI runs

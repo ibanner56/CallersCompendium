@@ -132,7 +132,12 @@ calc/display/search helpers, prefixed `zc_`/`zi_`/`zk_`). Substantive user data:
   ordered by `PhraseNumber` A1→C2), reading the primary `PhraseText` only —
   never the gender-swapped variants — and routes each line through the shared
   free-text fan-out (see `docs/design/imports.md` §2). The `Dance`-row `A1..C2`
-  path remains a fallback.
+  path remains a fallback. Because `PhraseText` is untrusted external free text,
+  the join is hardened (#561): each body line is sanitized at the ingestion
+  boundary (control/bidi/format stripping) before it reaches storage, and the
+  join is bounded fail-closed (`FmpReadLimits.maxPhraseRows` = 20 000,
+  `maxFiguresPerDance` = 512, `maxBodyLineLength` = 2 000) with orphan/missing
+  `zk_Dance_ID` rows degrading to warnings rather than throwing.
 - Dates: **`DateComposed`/`DateRevised`** (+ partial day/month/year fields),
   separate from record created/modified stamps.
 - Curation: **`Rating`**, `Status`, `StarterSet`, `DistinctiveMove`,
