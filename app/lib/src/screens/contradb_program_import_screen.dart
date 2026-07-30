@@ -655,6 +655,7 @@ class _ContraDbProgramImportScreenState
       message: tooltip,
       child: Semantics(
         label: tooltip,
+        excludeSemantics: true,
         child: Row(
           key: ValueKey(badgeKey),
           mainAxisSize: MainAxisSize.min,

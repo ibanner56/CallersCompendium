@@ -75,7 +75,7 @@ When you search, the app marks programs you've likely already brought in, so
 repeat imports are easy to spot:
 
 - **Imported** — you already imported this exact ContraDB program before (matched
-  by its ContraDB program id). Hover for the date it was imported.
+  by its ContraDB program id). Hover or long-press for the date it was imported.
 - **Possibly imported** — a program with the same title already exists in your
   collection, but nothing ties it to this ContraDB event (for example, you built
   it by hand, or imported it before this marker existed).
