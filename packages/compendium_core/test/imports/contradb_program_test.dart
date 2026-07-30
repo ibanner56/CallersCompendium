@@ -189,4 +189,76 @@ void main() {
       expect(program.activities.single.danceId, '7');
     });
   });
+
+  group('parseContraDbProgram (#611 bidi/zero-width sanitization)', () {
+    // U+202E RIGHT-TO-LEFT OVERRIDE and U+200B ZERO WIDTH SPACE — the same
+    // spoofing characters #444 strips from the dance import paths.
+    const rlo = '\u202E';
+    const zwsp = '\u200B';
+
+    test('strips bidi/zero-width characters from the program title', () {
+      final html =
+          '<div class="programs-show-content">'
+          '<h1>${rlo}Evil${zwsp}Night</h1></div>';
+      expect(parseContraDbProgram(html).title, 'EvilNight');
+    });
+
+    test('strips bidi/zero-width characters from a linked dance title', () {
+      final html =
+          '<div class="activity-breakdown">'
+          '<h2 class="activity-breakdown-dance-title">'
+          '<a href="/dances/9">${rlo}Spoofed${zwsp}Title</a></h2></div>';
+      final activity = parseContraDbProgram(html).activities.single;
+      expect(activity.danceId, '9');
+      expect(activity.title, 'SpoofedTitle');
+    });
+
+    test(
+      'strips bidi/zero-width characters from a standalone note activity',
+      () {
+        final html =
+            '<div class="activity-breakdown">'
+            '<h2 class="activity-breakdown-text">${rlo}Waltz${zwsp}Break</h2>'
+            '</div>';
+        final activity = parseContraDbProgram(html).activities.single;
+        expect(activity.isDance, isFalse);
+        expect(activity.text, 'WaltzBreak');
+      },
+    );
+
+    test('strips bidi/zero-width characters from an attached note', () {
+      final html =
+          '<div class="activity-breakdown">'
+          '<h2 class="activity-breakdown-dance-title">'
+          '<a href="/dances/9">Clean Title</a></h2>'
+          '<p class="activity-breakdown-text">${rlo}Called$zwsp weird</p>'
+          '</div>';
+      final activity = parseContraDbProgram(html).activities.single;
+      expect(activity.text, 'Called weird');
+    });
+
+    test('a dance heading without a /dances link is sanitized as a note', () {
+      final html =
+          '<div class="activity-breakdown">'
+          '<h2 class="activity-breakdown-dance-title">'
+          '${rlo}Orphan${zwsp}Title</h2></div>';
+      final activity = parseContraDbProgram(html).activities.single;
+      expect(activity.isDance, isFalse);
+      expect(activity.text, 'OrphanTitle');
+    });
+
+    test('strips bidi/zero-width characters from the contributor', () {
+      final html =
+          '<div class="programs-show-content"><h1>Night</h1>'
+          '<a href="/users/9">${rlo}Karl${zwsp}Senseman</a></div>';
+      expect(parseContraDbProgram(html).contributor, 'KarlSenseman');
+    });
+
+    test('a clean program is byte-stable (no spurious mangling)', () {
+      final program = parseContraDbProgram(fixture);
+      expect(program.title, '01.12.18-Harrisburg, Pa');
+      expect(program.contributor, 'Karl Senseman');
+      expect(program.activities.first.title, 'Courageous Soul');
+    });
+  });
 }

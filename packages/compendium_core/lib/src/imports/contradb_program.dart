@@ -2,6 +2,8 @@ import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 import 'package:meta/meta.dart';
 
+import '../util/text_sanitizer.dart';
+
 /// One activity of a **ContraDB program** (set list), in the exact order it
 /// appears on the program page.
 ///
@@ -25,25 +27,44 @@ class ContraDbProgramActivity {
 
   /// A linked ContraDB dance. [danceId] is the numeric `/dances/{id}` id and
   /// [title] is the dance title as shown on the program page (surrounding
-  /// whitespace trimmed, otherwise verbatim). [note] is optional free text
+  /// whitespace trimmed, otherwise verbatim, aside from the #444/#611
+  /// bidi/zero-width sanitization below). [note] is optional free text
   /// attached to this dance on the program (e.g. "Called as ladles:'pirates'…");
-  /// its content is preserved as-is (outer whitespace trimmed) and never guessed.
+  /// its content is preserved as-is (outer whitespace trimmed) and never
+  /// guessed.
+  ///
+  /// [title] is sanitized as a single-line field
+  /// (`sanitizeImportedText(allowLineBreaks: false)`) and [note] as multi-line
+  /// prose (`sanitizeImportedText`, default) — the same #444 defense the dance
+  /// import paths apply — so a hostile program page can't smuggle bidi
+  /// overrides or invisible/zero-width characters into stored program text
+  /// (issue #611).
   factory ContraDbProgramActivity.dance({
     required String danceId,
     required String title,
     String? note,
-  }) => ContraDbProgramActivity._(
-    isDance: true,
-    danceId: danceId,
-    title: title,
-    text: (note != null && note.trim().isNotEmpty) ? note.trim() : null,
-  );
+  }) {
+    final cleanNote = (note != null && note.trim().isNotEmpty)
+        ? sanitizeImportedText(note.trim()).trim()
+        : null;
+    return ContraDbProgramActivity._(
+      isDance: true,
+      danceId: danceId,
+      title: sanitizeImportedText(title, allowLineBreaks: false),
+      text: (cleanNote != null && cleanNote.isNotEmpty) ? cleanNote : null,
+    );
+  }
 
   /// A standalone free-text note activity (announcement / waltz / break). Its
-  /// content is preserved as-is (surrounding whitespace trimmed); consumers must
-  /// render it as a note slot and must **not** try to resolve it to a dance.
+  /// content is preserved as-is (surrounding whitespace trimmed) other than
+  /// the #444/#611 bidi/zero-width sanitization (`sanitizeImportedText`,
+  /// multi-line prose); consumers must render it as a note slot and must
+  /// **not** try to resolve it to a dance.
   factory ContraDbProgramActivity.note(String text) =>
-      ContraDbProgramActivity._(isDance: false, text: text.trim());
+      ContraDbProgramActivity._(
+        isDance: false,
+        text: sanitizeImportedText(text.trim()).trim(),
+      );
 
   /// Whether this activity is a linked dance ([danceId]/[title] set). When
   /// false it is a standalone note ([text] holds the note body).
@@ -154,12 +175,14 @@ ContraDbProgram parseContraDbProgram(String html) {
     return const ContraDbProgram(title: '', activities: []);
   }
 
-  final title =
-      (document.querySelector('.programs-show-content h1') ??
-              document.querySelector('h1'))
-          ?.text
-          .trim() ??
-      '';
+  final title = sanitizeImportedText(
+    (document.querySelector('.programs-show-content h1') ??
+                document.querySelector('h1'))
+            ?.text
+            .trim() ??
+        '',
+    allowLineBreaks: false,
+  );
 
   final contributor = _parseContributor(document);
 
@@ -239,16 +262,21 @@ String? _parseContributor(dom.Document document) {
   }
 }
 
-/// Collapses internal whitespace, strips control characters, trims, and bounds
-/// the length of a scraped contributor name. Returns null for an empty or
-/// over-long (implausible) value so the caller can fall back to the default.
+/// Collapses internal whitespace, strips control/bidi/zero-width characters,
+/// trims, and bounds the length of a scraped contributor name. Returns null
+/// for an empty or over-long (implausible) value so the caller can fall back
+/// to the default.
+///
+/// Reuses the shared #444 sanitizer (`sanitizeImportedText`) rather than a
+/// second, divergent hand-rolled scrubber (issue #611) — it strips the same
+/// bidi-override/zero-width spoofing characters the dance import paths
+/// guard against, not just C0/C1 controls.
 String? _sanitizeContributor(String raw) {
-  // Drop C0/C1 control chars (incl. newlines/tabs) then collapse runs of
-  // whitespace to single spaces so a multi-line/padded name normalizes cleanly.
-  final cleaned = raw
-      .replaceAll(RegExp(r'[\u0000-\u001F\u007F-\u009F]'), ' ')
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
+  final sanitized = sanitizeImportedText(raw, allowLineBreaks: false);
+  // Collapse runs of whitespace (incl. any newlines/tabs the single-line
+  // sanitizer already stripped) to single spaces so a multi-line/padded name
+  // normalizes cleanly.
+  final cleaned = sanitized.replaceAll(RegExp(r'\s+'), ' ').trim();
   if (cleaned.isEmpty) return null;
   if (cleaned.length > _kMaxContributorLength) return null;
   return cleaned;
