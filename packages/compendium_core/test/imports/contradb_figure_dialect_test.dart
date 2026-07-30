@@ -504,4 +504,111 @@ void main() {
       expect(f.note, isNull);
     });
   });
+
+  // Regression coverage for #578. ContraDB's `bal` param renders `balance & `
+  // before the move (libfigure `stringParamBalance`), so every balance-prefixed
+  // figure arrives with an `&` the recognizer must consume; leaving it behind
+  // used to demote an otherwise-matchable figure to custom. Strings here are the
+  // ACTUAL renders (the two Rory O'More rows are captured verbatim from the repro
+  // dance https://contradb.com/dances/2254).
+  group('contraDbHtmlFigureFrontEnd — #578 balance & compounds', () {
+    test("balance & Rory O'More right (in long waves) → recognized + note", () {
+      final f = _parse("balance &  Rory O'More right (in long waves)");
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'rory_o_more');
+      expect(f.params['balance'], isTrue);
+      expect(f.params['slide'], 'right');
+      expect(f.note, '(in long waves)');
+    });
+
+    test("balance & Rory O'More left (in long waves) → recognized + note", () {
+      final f = _parse("balance &  Rory O'More left (in long waves)");
+      expect(f.move, 'rory_o_more');
+      expect(f.params['balance'], isTrue);
+      expect(f.params['slide'], 'left');
+      expect(f.note, '(in long waves)');
+    });
+
+    test('balance & petronella → petronella with balance', () {
+      final f = _parse('balance & petronella');
+      expect(f.move, 'petronella');
+      expect(f.params['balance'], isTrue);
+    });
+
+    test('<who> balance & pull by → pull_by_dancers with balance', () {
+      final f = _parse('gentlespoons balance & pull by right');
+      expect(f.move, 'pull_by_dancers');
+      expect(f.params['who'], 'role1s');
+      expect(f.params['balance'], isTrue);
+      expect(f.params['hand'], 'right');
+    });
+
+    test('balance & pull by <hand> <dir> → pull_by_direction with balance', () {
+      final f = _parse('balance & pull by right across');
+      expect(f.move, 'pull_by_direction');
+      expect(f.params['balance'], isTrue);
+      expect(f.params['hand'], 'right');
+      expect(f.params['dir'], 'across');
+    });
+
+    test('balance & box circulate → box_circulate with balance', () {
+      final f = _parse(
+        'balance & box circulate - gentlespoons cross while ladles loop right',
+      );
+      expect(f.move, 'box_circulate');
+      expect(f.params['balance'], isTrue);
+      expect(f.params['who'], 'role1s');
+      expect(f.params['hand'], 'right');
+    });
+
+    test('square through with rendered "balance & " on the odd clause', () {
+      final f = _parse(
+        'square through four - partners balance & pull by right, then neighbors pull by left',
+      );
+      expect(f.move, 'square_through');
+      expect(f.params['balance'], isTrue);
+      expect(f.params['who'], 'partners');
+      expect(f.params['hand'], 'right');
+      expect(f.params['who2'], 'neighbors');
+    });
+
+    test('plain balance is unaffected (no trailing &)', () {
+      final f = _parse('partners balance');
+      expect(f.move, 'balance');
+      expect(f.params['who'], 'partners');
+      expect(f.note, isNull);
+    });
+  });
+
+  // #578 parenthetical-note handling. A trailing parenthetical rides through as a
+  // verbatim note on the recognized figure; a paren interrupting the template
+  // stays custom; malformed/unbalanced parens are handled safely (no crash,
+  // bounded parsing — the tokenizer never backtracks).
+  group('contraDbHtmlFigureFrontEnd — #578 parenthetical notes', () {
+    test('paren note on a matched figure → recognized + note attached', () {
+      final f = _parse('neighbors swing (on the left diagonal)');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'swing');
+      expect(f.params['who'], 'neighbors');
+      expect(f.note, '(on the left diagonal)');
+    });
+
+    test('mid-phrase paren (not a clean trailing note) stays custom', () {
+      final f = _parse('circle (left 3 places) around');
+      expect(f.isCustom, isTrue);
+    });
+
+    test('unbalanced trailing paren is handled safely (no crash)', () {
+      final f = _parse('neighbors swing (unbalanced');
+      expect(f.move, 'swing');
+      expect(f.params['who'], 'neighbors');
+      expect(f.note, '(unbalanced');
+    });
+
+    test('nested / unbalanced parens do not crash the recognizer', () {
+      final f = _parse('neighbors swing (a (nested note');
+      expect(f.move, 'swing');
+      expect(f.note, '(a (nested note');
+    });
+  });
 }

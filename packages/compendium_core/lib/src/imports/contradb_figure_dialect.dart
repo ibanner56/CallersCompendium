@@ -143,12 +143,14 @@ FigureMatch? _balance(String text) {
   final s = _Scan(text);
   final who = _subject(s);
   if (!s.eat('balance')) return null;
-  // "balance the ..." / "balance & ..." belong to other moves; only guard the
-  // subject-less case (a stated subject already disambiguates).
-  if (who == null) {
-    final next = s.peek();
-    if (next == 'the' || next == '&') return null;
-  }
+  // A trailing "&" always marks a `balance & <move>` compound (swing, rory,
+  // petronella, pull by, box circulate, …) emitted by the `bal` param's
+  // "balance & " render — never a plain balance — so decline regardless of
+  // subject and let the specific recognizer claim it (#578). "balance the ..."
+  // likewise belongs to another move; guard it only in the subject-less case
+  // (a stated subject already disambiguates a plain balance).
+  if (s.peek() == '&') return null;
+  if (who == null && s.peek() == 'the') return null;
   return FigureMatch(
     'balance',
     params: {'who': who ?? 'everyone'},
@@ -352,6 +354,20 @@ bool _eatAmpBalance(_Scan s) {
   return false;
 }
 
+/// Consumes a leading `balance` prefix and the `&` ContraDB renders after it,
+/// returning whether a balance was present. The `bal` param's forward renderer
+/// (`libfigure` `stringParamBalance`) always emits `balance & ` before the move
+/// (e.g. `balance & Rory O'More`, `balance & petronella`), so the `&` is a
+/// template token, not a leftover note — leaving it unconsumed would make the
+/// recognizer decline and demote an otherwise-matchable figure to custom (#578).
+/// The `&` is only eaten when it immediately follows `balance`, so a bare
+/// `balance` (no ampersand) is left intact for its own recognizer.
+bool _eatBalanceAmp(_Scan s) {
+  if (!s.eat('balance')) return false;
+  s.eat('&');
+  return true;
+}
+
 /// heyWords (common full/half form). Renders as: "PASS1 start a FULL|HALF hey -
 /// SH1 PLACE, SH2 PLACE". Extracts pass1, length, and the first shoulder; the
 /// shoulder/place clause is part of the render (consumed, not a note).
@@ -434,7 +450,7 @@ FigureMatch? _formLongWaves(String text) {
 /// Ordered before [_balance] so `balance petronella` is not read as a balance.
 FigureMatch? _petronella(String text) {
   final s = _Scan(text);
-  final balance = s.eat('balance');
+  final balance = _eatBalanceAmp(s);
   if (!s.eat('petronella')) return null;
   return FigureMatch(
     'petronella',
@@ -702,7 +718,7 @@ FigureMatch? _pullByDancers(String text) {
   final s = _Scan(text);
   final who = _subject(s);
   if (who == null) return null;
-  final balance = s.eat('balance');
+  final balance = _eatBalanceAmp(s);
   if (!s.eatPhrase('pull by')) return null;
   final hand = _leftRight(s.peek());
   if (hand == null) return null;
@@ -717,7 +733,7 @@ FigureMatch? _pullByDancers(String text) {
 /// pullByDirectionWords (non-diagonal): `[balance] pull by <hand> <dir>`.
 FigureMatch? _pullByDirection(String text) {
   final s = _Scan(text);
-  final balance = s.eat('balance');
+  final balance = _eatBalanceAmp(s);
   if (!s.eatPhrase('pull by')) return null;
   final hand = _leftRight(s.peek());
   if (hand == null) return null;
@@ -759,7 +775,7 @@ FigureMatch? _contraCorners(String text) {
 /// roryOMoreWords: `[balance] [<who>] Rory O'More <slide>`.
 FigureMatch? _roryOMore(String text) {
   final s = _Scan(text);
-  final balance = s.eat('balance');
+  final balance = _eatBalanceAmp(s);
   final who = _subject(s);
   if (!s.eatPhrase("rory o'more")) return null;
   final params = <String, Object?>{'balance': balance};
@@ -811,7 +827,7 @@ FigureMatch? _zigZag(String text) {
 /// OTHER loop HAND".
 FigureMatch? _boxCirculate(String text) {
   final s = _Scan(text);
-  final balance = s.eat('balance');
+  final balance = _eatBalanceAmp(s);
   if (!s.eatPhrase('box circulate')) return null;
   final params = <String, Object?>{if (balance) 'balance': true};
   final save = s.pos;
@@ -1030,7 +1046,7 @@ FigureMatch? _squareThrough(String text) {
     final who = _subject(s);
     if (who != null) {
       params['who'] = who;
-      params['balance'] = s.eat('balance');
+      params['balance'] = _eatBalanceAmp(s);
       if (s.eatPhrase('pull by')) {
         final hand = _leftRight(s.peek());
         if (hand != null) {

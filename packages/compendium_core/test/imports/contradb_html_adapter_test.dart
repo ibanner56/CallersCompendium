@@ -54,8 +54,30 @@ const String _rendezvousBody = '''
 </table>
 ''';
 
-Future<StructuredDraft> _importOne(String payload, {String? uri}) async {
-  final adapter = ContraDbHtmlAdapter();
+/// The two Rory O'More rows from the repro dance
+/// (https://contradb.com/dances/2254), captured verbatim — including ContraDB's
+/// rendered `balance & ` prefix and the trailing parenthetical note. Regression
+/// fixture for #578: these used to demote to custom because the `&` was left
+/// behind after `balance`.
+const String _rory2254Body = '''
+<h1 class="dance-show-title">Repro 2254</h1>
+<p class="dance-show-choreographer">by: <strong><a href="/choreographers/88">Isaac Banner</a></strong></p>
+<p class="dance-show-formation">formation: improper </p>
+<table class="table table-bordered table-condensed contra-table-nonfluid">
+  <tr class="a1b1 ">
+    <td>A1</td>
+    <td class=dance-show-beats>8</td>
+    <td><div class="show-figure">balance &amp;  Rory O'More right (in long waves)</div></td>
+  </tr>
+  <tr class="a1b1 ">
+    <td></td>
+    <td class=dance-show-beats>8</td>
+    <td><div class="show-figure">balance &amp;  Rory O'More left (in long waves)</div></td>
+  </tr>
+</table>
+''';
+
+Future<StructuredDraft> _importOne(String payload, {String? uri}) async {  final adapter = ContraDbHtmlAdapter();
   final discovered = await adapter.discover(
     ImportRequest(payload: payload, uri: uri),
   );
@@ -329,6 +351,24 @@ void main() {
       expect(draft.dance.figures[2].move, 'do_si_do');
       expect(draft.dance.figures[2].params['who'], 'role2s');
     });
+
+    test(
+      'repro dance 2254: "balance & Rory O\'More … (in long waves)" '
+      'structures with the paren note (#578)',
+      () async {
+        final draft = await _importOne(_page(_rory2254Body));
+        final figures = draft.dance.figures;
+        expect(figures, hasLength(2));
+        for (final f in figures) {
+          expect(f.isCustom, isFalse, reason: 'should not fall through to custom');
+          expect(f.move, 'rory_o_more');
+          expect(f.params['balance'], isTrue);
+          expect(f.note, '(in long waves)');
+        }
+        expect(figures[0].params['slide'], 'right');
+        expect(figures[1].params['slide'], 'left');
+      },
+    );
 
     test(
       'splits "form an ocean wave & balance" into wave + a balance',

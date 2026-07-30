@@ -11,6 +11,16 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
+### Fixed
+
+- **ContraDB import: figures with a `balance &` prefix now recognize instead of
+  falling through to a plain custom figure.** ContraDB renders a balanced move as
+  `balance & <move>` (e.g. `balance & Rory O'More right`), and the `&` was being
+  left behind, demoting otherwise-matchable Rory O'More, petronella, pull by, box
+  circulate, and square-through figures to custom. A trailing parenthetical note
+  (e.g. `(in long waves)`) is preserved verbatim on the recognized figure. Notes
+  that interrupt a figure mid-phrase still stay custom, and malformed/unbalanced
+  parentheses are handled safely. (#578)
 ## [0.1.0] - 2026-07-29
 
 Flutter build: `0.1.0+1`.
