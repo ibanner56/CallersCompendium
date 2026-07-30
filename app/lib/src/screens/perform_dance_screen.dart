@@ -186,33 +186,48 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   /// confirmation first. Mirrors [PerformProgramScreen]'s guard exactly,
   /// reusing the same dialog keys and l10n strings so the two Perform
   /// surfaces stay consistent.
+  ///
+  /// [_exitDialogShowing] prevents re-entrancy: without it, rapid taps on the
+  /// close button (or repeated back gestures while the dialog is up) could
+  /// stack multiple confirmation dialogs, letting a second confirm pop an
+  /// extra screen. Only one dialog may be in flight at a time, and the flag
+  /// is always cleared in `finally` so a later exit attempt isn't
+  /// permanently blocked even if the dialog throws.
+  bool _exitDialogShowing = false;
+
   Future<void> _confirmAndExit() async {
-    final l10n = AppLocalizations.of(context);
-    final navigator = Navigator.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        key: const ValueKey('perform-exit-dialog'),
-        title: Text(l10n.performExitTitle),
-        content: Text(l10n.performExitBody),
-        actions: [
-          TextButton(
-            key: const ValueKey('perform-exit-cancel'),
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l10n.performExitCancel),
-          ),
-          FilledButton(
-            key: const ValueKey('perform-exit-confirm'),
-            autofocus: true,
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.performExitConfirm),
-          ),
-        ],
-      ),
-    );
-    // A direct pop (not `maybePop`) so it bypasses the PopScope in
-    // [_guardExit] rather than re-triggering the confirmation.
-    if (confirmed == true) navigator.pop();
+    if (_exitDialogShowing) return;
+    _exitDialogShowing = true;
+    try {
+      final l10n = AppLocalizations.of(context);
+      final navigator = Navigator.of(context);
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          key: const ValueKey('perform-exit-dialog'),
+          title: Text(l10n.performExitTitle),
+          content: Text(l10n.performExitBody),
+          actions: [
+            TextButton(
+              key: const ValueKey('perform-exit-cancel'),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.performExitCancel),
+            ),
+            FilledButton(
+              key: const ValueKey('perform-exit-confirm'),
+              autofocus: true,
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.performExitConfirm),
+            ),
+          ],
+        ),
+      );
+      // A direct pop (not `maybePop`) so it bypasses the PopScope in
+      // [_guardExit] rather than re-triggering the confirmation.
+      if (confirmed == true) navigator.pop();
+    } finally {
+      _exitDialogShowing = false;
+    }
   }
 
   /// Wraps the Perform scaffold so an implicit pop (system back /
