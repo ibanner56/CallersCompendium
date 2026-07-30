@@ -631,8 +631,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       try {
         await controller.upsert(mapping);
         seeded++;
-      } catch (_) {
-        // Bounds/duplicate backstop — never surface a raw error to the user.
+      } catch (e, stackTrace) {
+        // Bounds/duplicate backstop — never surface a raw error to the user
+        // (this is an optional background step), but log it so an unexpected
+        // failure is diagnosable.
+        debugPrint('Shorthand seed upsert failed: $e\n$stackTrace');
       }
     }
     if (!mounted || seeded == 0) return;
