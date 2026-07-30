@@ -645,8 +645,15 @@ class _CompendiumAppState extends State<CompendiumApp> {
     await _dialectLibrary.load();
     _dialectNotifier.value = _dialectLibrary.active;
     // Load the persisted theme selection, defaulting to System when unset.
-    final themeName =
-        await _appData.repositories.settings.get(kAppThemeKey) as String?;
+    // Defensive (issue #609): the stored value is untrusted (a restored backup
+    // can smuggle a non-string under this key). Guard with `is String` instead
+    // of an unchecked `as String?` cast so a wrong-typed value degrades to the
+    // System default rather than throwing here and bricking startup on every
+    // subsequent launch.
+    final storedTheme = await _appData.repositories.settings
+        .get(kAppThemeKey)
+        .catchError((_) => null);
+    final themeName = storedTheme is String ? storedTheme : null;
     final selection = AppThemeSelection.forName(themeName);
     if (selection != null) _themeNotifier.value = selection;
     // Load the "require mark-performed for calling history" setting (ROADMAP

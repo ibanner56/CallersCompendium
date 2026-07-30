@@ -85,6 +85,18 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **A corrupt backup can no longer brick startup.** Restoring a backup applied
+  its saved preferences without checking them, and one startup read cast the
+  theme preference with an unchecked cast — so a backup carrying a wrong-typed
+  or out-of-range value (whether corrupted, truncated, hand-edited, or crafted:
+  the file's checksum proves integrity, not that the contents make sense) could
+  make the app throw on launch and keep throwing on every launch after, the
+  kind of failure only clearing app data recovers from. Restored preferences are
+  now validated at the trust boundary against a per-setting type/range schema:
+  any value that doesn't fit is dropped so that setting falls back to its safe
+  default (with a non-fatal notice), while every valid setting still restores,
+  and startup reads the theme defensively so a bad value degrades to the default
+  theme instead of crashing. (#609)
 - **ContraDB import: figures with a `balance &` prefix now recognize instead of
   falling through to a plain custom figure.** ContraDB renders a balanced move as
   `balance & <move>` (e.g. `balance & Rory O'More right`), and the `&` was being

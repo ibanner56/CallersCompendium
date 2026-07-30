@@ -5,6 +5,7 @@ import '../editor/program_editor_draft_codec.dart'
     show kProgramEditorDraftKeyPrefix;
 import 'backup_document.dart';
 import 'backup_reminder.dart';
+import 'backup_settings_schema.dart';
 import 'custom_theme.dart';
 import 'custom_themes_controller.dart';
 import 'dialect_library_controller.dart';
@@ -228,7 +229,7 @@ class BackupService {
       );
     }
 
-    await _applyAppSettings(doc);
+    await _applyAppSettings(doc, warnings);
 
     return BackupRestoreOutcome(
       errors: errors,
@@ -245,7 +246,10 @@ class BackupService {
   /// can't leave stale preferences behind. Denylisted keys (device-local
   /// geometry, backup metadata, and the structurally-represented dialect/theme
   /// keys) are preserved and handled explicitly below.
-  Future<void> _applyAppSettings(BackupDocument doc) async {
+  Future<void> _applyAppSettings(
+    BackupDocument doc,
+    List<String> warnings,
+  ) async {
     final settings = _repos.settings;
 
     final existing = await settings.all();
@@ -275,11 +279,29 @@ class BackupService {
     ]);
     await settings.set(kActiveCustomThemeKey, doc.activeCustomThemeId);
 
-    // Preference settings: re-apply every backed-up key. The predicate guards
-    // against a hand-edited or hostile backup smuggling a denylisted/device-local
-    // key into `app.settings`.
+    // Preference settings: re-apply every backed-up key. The eligibility
+    // predicate guards against a hand-edited or hostile backup smuggling a
+    // denylisted/device-local key into `app.settings`.
+    //
+    // SECURITY / RESILIENCE (issue #609, OWASP input validation): the restored
+    // settings blob is UNTRUSTED — its checksum proves integrity, not schema
+    // validity. Each value is validated against a per-key type/range schema
+    // before it is written. An invalid (wrong-type / out-of-range) value is
+    // NOT persisted; instead the key is removed so its live reader falls back
+    // to the safe default, and a non-fatal warning is recorded. This degrades a
+    // corrupt value gracefully instead of letting it reach an unchecked cast
+    // and brick startup — while every valid key still restores. Unknown
+    // (forward-compatible) keys have no schema and pass through unchanged.
     for (final entry in doc.settings.entries) {
       if (!isBackupEligibleSettingKey(entry.key)) continue;
+      if (validateBackupSettingValue(entry.key, entry.value) == false) {
+        await settings.remove(entry.key);
+        warnings.add(
+          'Skipped an invalid value for "${entry.key}" from the backup; '
+          'using its default instead.',
+        );
+        continue;
+      }
       await settings.set(entry.key, entry.value);
     }
   }

@@ -7,7 +7,9 @@ import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.d
 import 'package:compendium_app/src/data/reduce_motion_scope.dart'
     show kReduceMotionKey;
 import 'package:compendium_app/src/screens/settings_screen.dart'
-    show kSortIgnoreArticlesKey;
+    show kSortIgnoreArticlesKey, kAppThemeKey, kPerformTextScaleKey;
+import 'package:compendium_app/src/data/soft_delete_retention.dart'
+    show kSoftDeleteRetentionKey;
 import 'package:compendium_app/src/data/window_service.dart'
     show kWindowFrameKey;
 import 'package:compendium_core/compendium_core.dart';
@@ -124,6 +126,79 @@ void main() {
       expect(await target.settings.get(kSortIgnoreArticlesKey), false);
       // Device-local key was neither backed up nor restored.
       expect(await target.settings.get(kWindowFrameKey), isNull);
+    },
+  );
+
+  test(
+    'restore drops invalid settings values, keeps valid ones, and never throws '
+    '(issue #609)',
+    () async {
+      // A backup carrying schema-invalid preference values: a non-string theme,
+      // an out-of-range retention day count, and a non-numeric perform scale.
+      // These simulate a corrupt / hand-edited / hostile-but-checksum-valid
+      // backup. A valid preference rides alongside to prove the good keys still
+      // restore.
+      final source = openTestRepositories();
+      await _seed(source);
+      await source.settings.set(kAppThemeKey, 123); // wrong type (want String)
+      await source.settings.set(kSoftDeleteRetentionKey, -5); // out of range
+      await source.settings.set(kPerformTextScaleKey, 'huge'); // wrong type
+      final json = await BackupService(source).exportToJson();
+
+      // Target pre-seeded with stale valid values to prove the bad keys are
+      // cleared (fall back to default) rather than left with old data.
+      final target = openTestRepositories();
+      await target.settings.set(kAppThemeKey, 'dark');
+      await target.settings.set(kSoftDeleteRetentionKey, 90);
+      await target.settings.set(kPerformTextScaleKey, 2.0);
+
+      final outcome = await BackupService(target).restoreFromJson(json);
+
+      // Restore still succeeds — a corrupt value degrades gracefully, it does
+      // not fail the whole restore or throw.
+      expect(outcome.applied, isTrue);
+      expect(outcome.hasErrors, isFalse);
+
+      // Each invalid key is dropped so its live reader falls back to default.
+      expect(await target.settings.get(kAppThemeKey), isNull);
+      expect(await target.settings.get(kSoftDeleteRetentionKey), isNull);
+      expect(await target.settings.get(kPerformTextScaleKey), isNull);
+
+      // The valid key restored correctly.
+      expect(await target.settings.get(kSortIgnoreArticlesKey), false);
+
+      // A non-fatal warning surfaced for each skipped key.
+      expect(outcome.warnings.length, greaterThanOrEqualTo(3));
+      expect(
+        outcome.warnings.where((w) => w.contains(kAppThemeKey)),
+        isNotEmpty,
+      );
+    },
+  );
+
+  test(
+    'restore preserves a fully valid settings blob unchanged (issue #609)',
+    () async {
+      final source = openTestRepositories();
+      await _seed(source);
+      await source.settings.set(kAppThemeKey, 'dark');
+      await source.settings.set(kSoftDeleteRetentionKey, 90);
+      await source.settings.set(kPerformTextScaleKey, 2.0);
+      final json = await BackupService(source).exportToJson();
+
+      final target = openTestRepositories();
+      final outcome = await BackupService(target).restoreFromJson(json);
+
+      expect(outcome.applied, isTrue);
+      expect(outcome.hasErrors, isFalse);
+      // No settings were skipped, so no per-key warnings were raised.
+      expect(outcome.warnings, isEmpty);
+
+      // Every valid value round-trips verbatim.
+      expect(await target.settings.get(kAppThemeKey), 'dark');
+      expect(await target.settings.get(kSoftDeleteRetentionKey), 90);
+      expect(await target.settings.get(kPerformTextScaleKey), 2.0);
+      expect(await target.settings.get(kSortIgnoreArticlesKey), false);
     },
   );
 
