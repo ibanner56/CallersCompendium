@@ -15,8 +15,8 @@ committed):
 
 Policy (see app/assets/brand/README.md):
 
-* Full illustration is used at >= 48 px; the simplified two-dancers-on-a-book
-  "small mark" is used at <= 32 px so it stays legible.
+* Full illustration is used at >= 32 px; the simplified two-dancers-on-a-book
+  "small mark" is used at < 32 px (i.e. 16 and 24 px slots) so it stays legible.
 * The default tile everywhere is **Soft Dark** (``#1E2A38``). iOS additionally
   ships Dark and Tinted appearance variants (Any = Soft Dark).
 * Android keeps an adaptive icon (Soft Dark background + full-illustration
@@ -49,8 +49,15 @@ DARK = "#121A24"        # dark scheme surface (iOS Dark variant)
 LIGHT = "#F4F6FA"       # light scheme surface
 TILE_RADIUS_RATIO = 28.4 / 128.0  # rounded-tile corner radius (~22.2%)
 
-# Small-mark crossover: at or below this pixel size use the simplified mark.
+# Small-mark crossover: *below* this pixel size use the simplified mark; at this
+# size and above use the full illustration. So 16/24 px use the small mark and
+# 32 px and up use the full illustration.
 SMALL_MAX = 32
+# At or below this pixel size, scale the small mark up so its content sits a
+# single pixel from the tile edge at the narrowest side (maximum legibility at
+# the tiniest icon slots — Windows .ico 16px, macOS 16pt).
+TIGHT_FIT_MAX = 16
+TIGHT_FIT_BORDER_PX = 1
 
 
 # --- brand source content ---------------------------------------------------
@@ -68,12 +75,46 @@ SMALL_TAN = _inner("mark-small-light.svg")  # simplified mark, tan pages (light 
 
 
 def content_for(size: int, light: bool = False) -> str:
-    if size <= SMALL_MAX:
+    if size < SMALL_MAX:
         return SMALL_TAN if light else SMALL_CREAM
     return FULL
 
 
 # --- rasterisation ----------------------------------------------------------
+_BBOX_CACHE: dict = {}
+
+
+def _content_bbox(content: str) -> Tuple[float, float, float, float]:
+    """Tight (x0, y0, x1, y1) alpha bounding box of `content`, in 2048 units."""
+    if content in _BBOX_CACHE:
+        return _BBOX_CACHE[content]
+    probe = 1024
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 2048" '
+        'width="%d" height="%d">%s</svg>' % (probe, probe, content)
+    )
+    box = rasterize(svg, probe).split()[3].getbbox()  # alpha channel bbox
+    scale = 2048.0 / probe
+    bbox = tuple(v * scale for v in box)
+    _BBOX_CACHE[content] = bbox
+    return bbox
+
+
+def _fit_transform(content: str, size: int, border_px: int) -> str:
+    """Wrap `content` so its bbox sits `border_px` from the edge at the narrowest
+    side of a `size`x`size` render (uniform scale, centred)."""
+    x0, y0, x1, y1 = _content_bbox(content)
+    w, h = x1 - x0, y1 - y0
+    border = 2048.0 * border_px / size  # border expressed in 2048 units
+    avail = 2048.0 - 2.0 * border
+    f = avail / max(w, h)
+    tx = (2048.0 - w * f) / 2.0 - x0 * f
+    ty = (2048.0 - h * f) / 2.0 - y0 * f
+    return '<g transform="translate(%.4f %.4f) scale(%.6f)">%s</g>' % (
+        tx, ty, f, content,
+    )
+
+
 def _compose_svg(size: int, content: str, bg, rounded: bool) -> str:
     tile = ""
     if bg is not None:
@@ -82,6 +123,8 @@ def _compose_svg(size: int, content: str, bg, rounded: bool) -> str:
             tile = '<rect width="2048" height="2048" rx="%.3f" fill="%s"/>' % (r, bg)
         else:
             tile = '<rect width="2048" height="2048" fill="%s"/>' % bg
+    if size <= TIGHT_FIT_MAX:
+        content = _fit_transform(content, size, TIGHT_FIT_BORDER_PX)
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 2048" '
         'width="%d" height="%d">%s%s</svg>' % (size, size, tile, content)
@@ -105,9 +148,19 @@ def rasterize(svg: str, size: int) -> Image.Image:
             os.unlink(path + ".png")
 
 
-def render_tile(size: int, bg, rounded: bool, light: bool = False) -> Image.Image:
-    """Composited tile: (optional) background + size-appropriate content."""
-    return rasterize(_compose_svg(size, content_for(size, light), bg, rounded), size)
+def render_tile(size: int, bg, rounded: bool, light: bool = False,
+                nominal: int = None) -> Image.Image:
+    """Composited tile: (optional) background + size-appropriate content.
+
+    ``size`` is the raster pixel size. ``nominal`` is the icon *slot* size that
+    drives the small-mark-vs-full crossover; it defaults to ``size`` but differs
+    on macOS, where the content is rendered into an inner square inside a ~10%
+    transparent margin (so a 32 px slot renders its content at ~26 px but should
+    still pick the full illustration).
+    """
+    slot = size if nominal is None else nominal
+    content = content_for(slot, light)
+    return rasterize(_compose_svg(size, content, bg, rounded), size)
 
 
 def write_png(path: str, img: Image.Image, rgb: bool = False) -> None:
@@ -264,7 +317,9 @@ def macos(root: str) -> None:
     for s in (16, 32, 64, 128, 256, 512, 1024):
         margin = round(s * 0.10)
         inner = s - 2 * margin
-        tile = render_tile(inner, SOFT_DARK, rounded=True)
+        # `nominal=s` so the small-mark/full crossover follows the icon slot,
+        # not the (smaller) inner render size left by the transparent margin.
+        tile = render_tile(inner, SOFT_DARK, rounded=True, nominal=s)
         canvas = Image.new("RGBA", (s, s), (0, 0, 0, 0))
         canvas.paste(tile, (margin, margin), tile)
         write_png(os.path.join(d, "app_icon_%d.png" % s), canvas)

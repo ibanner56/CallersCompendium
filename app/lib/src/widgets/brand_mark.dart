@@ -41,8 +41,10 @@ class BrandMark extends StatelessWidget {
   static const String _smallTileAsset = 'assets/brand/icon-small.svg';
   static const String _markAsset = 'assets/brand/mark-small.svg';
 
-  /// Below/at this edge length the simplified small mark is used instead of the
-  /// full illustration (mirrors the launcher-icon crossover).
+  /// Below this edge length the simplified small mark is used instead of the
+  /// full illustration; at [_smallMax] and above the full illustration is used
+  /// (mirrors the launcher-icon crossover: 16/24 px use the small mark, 32 px
+  /// and up use the full illustration).
   static const double _smallMax = 32;
 
   /// Edge length of the (square) mark, in logical pixels.
@@ -65,7 +67,7 @@ class BrandMark extends StatelessWidget {
   Widget build(BuildContext context) {
     final Widget graphic;
     if (showTile) {
-      final asset = size <= _smallMax ? _smallTileAsset : _fullTileAsset;
+      final asset = size < _smallMax ? _smallTileAsset : _fullTileAsset;
       graphic = SvgPicture.asset(asset, width: size, height: size);
     } else {
       final tint = color ?? Theme.of(context).colorScheme.onSurfaceVariant;
