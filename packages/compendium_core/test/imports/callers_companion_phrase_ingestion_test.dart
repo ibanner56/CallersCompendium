@@ -207,7 +207,9 @@ void main() {
         index: 1,
         name: 'Dance',
         columnNames: ['zk_Dance_ID', 'Name'],
-        rows: [MapEntry(10, {1: '4', 2: 'Simplicity Swing'})],
+        rows: [
+          MapEntry(10, {1: '4', 2: 'Simplicity Swing'}),
+        ],
       ),
       FmpFixtureTable(
         index: 2,

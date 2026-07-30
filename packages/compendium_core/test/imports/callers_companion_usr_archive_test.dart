@@ -315,18 +315,16 @@ void main() {
         1,
         'Dance',
         [FmpColumn(3, 'zk_Dance_ID'), FmpColumn(1, 'Name')],
-        danceRows ?? [FmpRecord(5430, {3: '4', 1: 'Simplicity Swing'})],
+        danceRows ??
+            [
+              FmpRecord(5430, {3: '4', 1: 'Simplicity Swing'}),
+            ],
       );
-      final phrase = FmpTable(
-        4,
-        'Phrase',
-        [
-          FmpColumn(1, 'zk_Dance_ID'),
-          FmpColumn(2, 'PhraseNumber'),
-          FmpColumn(3, 'PhraseText'),
-        ],
-        phraseRows,
-      );
+      final phrase = FmpTable(4, 'Phrase', [
+        FmpColumn(1, 'zk_Dance_ID'),
+        FmpColumn(2, 'PhraseNumber'),
+        FmpColumn(3, 'PhraseText'),
+      ], phraseRows);
       return FmpDatabase(
         versionNum: 12,
         creator: 'Pro 12.0',
@@ -336,18 +334,18 @@ void main() {
     }
 
     List<String> bodyLinesOf(CcUsrArchive archive) => [
-      for (final section in archive.dances.single.record.body)
-        ...section.lines,
+      for (final section in archive.dances.single.record.body) ...section.lines,
     ];
 
     test('sanitizes control/bidi/format chars out of a Phrase line, preserving '
         'legitimate text', () {
       // A line laced with: BELL (C0 control), RLO (bidi override), zero-width
       // space, and a byte-order mark — all display-spoofing / injection vectors.
-      const dirty =
-          '(8) circle\u0007 left\u202E four\u200B places\uFEFF';
+      const dirty = '(8) circle\u0007 left\u202E four\u200B places\uFEFF';
       final archive = extractCcUsrArchive(
-        dbWithPhrase([FmpRecord(700, {1: '4', 2: 'A1', 3: dirty})]),
+        dbWithPhrase([
+          FmpRecord(700, {1: '4', 2: 'A1', 3: dirty}),
+        ]),
       );
       final line = bodyLinesOf(archive).single;
 
@@ -373,27 +371,42 @@ void main() {
       );
     });
 
-    test('an over-structured single dance (too many figure lines) fails closed',
-        () {
-      // One Phrase row whose PhraseText has more lines than the per-dance cap.
-      final text = List.generate(6, (i) => '(8) circle left $i').join('\n');
-      expect(
-        () => extractCcUsrArchive(
-          dbWithPhrase([FmpRecord(700, {1: '4', 2: 'A1', 3: text})]),
-          limits: const FmpReadLimits(maxFiguresPerDance: 3),
-        ),
-        throwsA(isA<FmpResourceLimitException>()),
-      );
-    });
+    test(
+      'an over-structured single dance (too many figure lines) fails closed',
+      () {
+        // One Phrase row whose PhraseText has more lines than the per-dance cap.
+        final text = List.generate(6, (i) => '(8) circle left $i').join('\n');
+        expect(
+          () => extractCcUsrArchive(
+            dbWithPhrase([
+              FmpRecord(700, {1: '4', 2: 'A1', 3: text}),
+            ]),
+            limits: const FmpReadLimits(maxFiguresPerDance: 3),
+          ),
+          throwsA(isA<FmpResourceLimitException>()),
+        );
+      },
+    );
 
-    test('an over-long single Phrase line fails closed', () {
+    test('an over-long single Phrase line is dropped with a warning, and the '
+        'rest of the dance still imports', () {
       final huge = '(8) ${'x' * 100}';
+      final archive = extractCcUsrArchive(
+        dbWithPhrase([
+          // Over-length line (dropped + warned) alongside a normal one (kept).
+          FmpRecord(700, {1: '4', 2: 'A1', 3: huge}),
+          FmpRecord(701, {1: '4', 2: 'B1', 3: '(8) hey for four'}),
+        ]),
+        limits: const FmpReadLimits(maxBodyLineLength: 20),
+      );
+      // The over-long line is gone; the safe line still imported — no throw.
+      expect(bodyLinesOf(archive), ['(8) hey for four']);
       expect(
-        () => extractCcUsrArchive(
-          dbWithPhrase([FmpRecord(700, {1: '4', 2: 'A1', 3: huge})]),
-          limits: const FmpReadLimits(maxBodyLineLength: 20),
+        archive.warnings.any(
+          (w) =>
+              w.contains('exceeded the safe length') && w.contains('dropped'),
         ),
-        throwsA(isA<FmpResourceLimitException>()),
+        isTrue,
       );
     });
 
@@ -402,7 +415,11 @@ void main() {
       // lines must import with no limit exception.
       final archive = extractCcUsrArchive(
         dbWithPhrase([
-          FmpRecord(700, {1: '4', 2: 'A1', 3: '(16) neighbors balance and swing'}),
+          FmpRecord(700, {
+            1: '4',
+            2: 'A1',
+            3: '(16) neighbors balance and swing',
+          }),
           FmpRecord(701, {1: '4', 2: 'B1', 3: '(8) hey for four'}),
         ]),
       );
@@ -455,10 +472,7 @@ void main() {
           FmpRecord(701, {1: '4', 2: 'A1', 3: '(8) second A1 line'}),
         ]),
       );
-      expect(bodyLinesOf(archive), [
-        '(8) first A1 line',
-        '(8) second A1 line',
-      ]);
+      expect(bodyLinesOf(archive), ['(8) first A1 line', '(8) second A1 line']);
     });
   });
 }

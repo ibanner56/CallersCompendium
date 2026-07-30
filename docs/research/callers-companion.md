@@ -136,8 +136,9 @@ calc/display/search helpers, prefixed `zc_`/`zi_`/`zk_`). Substantive user data:
   the join is hardened (#561): each body line is sanitized at the ingestion
   boundary (control/bidi/format stripping) before it reaches storage, and the
   join is bounded fail-closed (`FmpReadLimits.maxPhraseRows` = 20 000,
-  `maxFiguresPerDance` = 512, `maxBodyLineLength` = 2 000) with orphan/missing
-  `zk_Dance_ID` rows degrading to warnings rather than throwing.
+  `maxFiguresPerDance` = 512), while a single over-`maxBodyLineLength` (2 000)
+  line is dropped with a warning rather than aborting the import, and
+  orphan/missing `zk_Dance_ID` rows degrade to warnings rather than throwing.
 - Dates: **`DateComposed`/`DateRevised`** (+ partial day/month/year fields),
   separate from record created/modified stamps.
 - Curation: **`Rating`**, `Status`, `StarterSet`, `DistinctiveMove`,

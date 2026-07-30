@@ -158,10 +158,14 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
     JSON payload (`provenance.raw_payload`), or storage — defense in depth ahead
     of the parser's own `scrubFigureText` chokepoint (idempotent, no double-mangle).
   - **Bounded fail-closed.** `FmpReadLimits` gains CC-layer caps enforced in
-    `extractCcUsrArchive`: `maxPhraseRows` (default 20 000; sample is 162),
-    `maxFiguresPerDance` (512) and `maxBodyLineLength` (2 000 chars). Exceeding
-    any throws `FmpResourceLimitException`, which the adapter's `discover` maps to
-    the friendly "That file is too large to import." — never OOM/throw-through.
+    `extractCcUsrArchive`: `maxPhraseRows` (default 20 000; sample is 162) and
+    `maxFiguresPerDance` (512) throw `FmpResourceLimitException`, which the
+    adapter's `discover` maps to the friendly "That file is too large to
+    import." — never OOM/throw-through. `maxBodyLineLength` (2 000 chars, matching
+    the local `maxFreeTextEntryLength`) is the exception: a single over-long line
+    is **dropped with a warning**, not fatal — mirroring the free-text-entry path
+    so one over-long line can't abort a 40-dance import (the O(1) check does no
+    unbounded work; the aggregate caps are the real DoS guard).
   - **Untrusted joins degrade, never throw.** A `Phrase` row with a
     missing/empty `zk_Dance_ID`, or an orphan id matching no `Dance`, is dropped
     with a warning; duplicate keys are grouped. (`InsertCall`/`Elements` are not

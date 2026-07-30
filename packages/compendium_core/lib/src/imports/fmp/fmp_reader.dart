@@ -102,7 +102,9 @@ const int kMaxCcFiguresPerDance = 512;
 ///
 /// Bounds a single pathological `PhraseText` value (e.g. a multi-megabyte line
 /// with no newlines). A real figure call-line is well under ~200 chars; 2000 is
-/// generous while fail-closed against an over-large field.
+/// generous (matching the local `maxFreeTextEntryLength`). A line past this is
+/// **dropped with a warning** — not fail-closed — so one over-long line can't
+/// abort the whole import; the aggregate caps above stay fail-closed.
 const int kMaxCcBodyLineLength = 2000;
 
 /// Structural bounds enforced by [readFmp12] and the CC-schema layer

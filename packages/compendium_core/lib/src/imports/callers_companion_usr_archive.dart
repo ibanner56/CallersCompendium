@@ -345,9 +345,12 @@ const List<String> _phraseOrder = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 ///   spoofing characters can never reach the [CcBodySection], the adapter's
 ///   persisted JSON payload, or storage.
 /// - **Bounds** the join fail-closed against a pathological file: at most
-///   [FmpReadLimits.maxPhraseRows] rows, [FmpReadLimits.maxFiguresPerDance] body
-///   lines per dance, and [FmpReadLimits.maxBodyLineLength] characters per line —
-///   each throws a [FmpResourceLimitException] (never OOM/throw-through).
+///   [FmpReadLimits.maxPhraseRows] rows and [FmpReadLimits.maxFiguresPerDance]
+///   body lines per dance — each throws a [FmpResourceLimitException] (never
+///   OOM/throw-through). A single line longer than
+///   [FmpReadLimits.maxBodyLineLength] is instead **dropped with a warning**
+///   (not fatal), mirroring the local free-text-entry path so one over-long line
+///   can't abort the whole import.
 /// - **Degrades** malformed joins gracefully: a row with a missing/empty
 ///   `zk_Dance_ID` is skipped with a warning (orphan ids — present but matching
 ///   no dance — are warned about by [extractCcUsrArchive]); duplicate keys are
@@ -427,6 +430,7 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
   }
 
   final result = <String, List<CcBodySection>>{};
+  var overLongCount = 0;
   for (final entry in byDance.entries) {
     final rows = entry.value;
     // Stable sort by canonical PhraseNumber order, unknown/blank labels last.
@@ -440,21 +444,27 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
     final sections = <CcBodySection>[];
     var lineCount = 0;
     for (final e in ordered) {
-      final lines = _splitBodyLines(e.value.text);
-      if (lines.isEmpty) continue;
-      // Bound a single pathological PhraseText line (e.g. multi-megabyte, no
-      // newlines) — fail closed rather than carry it into storage/the parser.
-      for (final line in lines) {
+      final split = _splitBodyLines(e.value.text);
+      if (split.isEmpty) continue;
+      // A single over-long line is DROPPED with a warning, not fatal: it mirrors
+      // the local free-text-entry path (free_text_entry.dart drops a line past
+      // maxFreeTextEntryLength rather than throwing), so the same line reaching
+      // us via .USR import can't abort the whole file — worse availability for
+      // no extra safety. The O(1) length check does no unbounded work; the
+      // AGGREGATE caps below stay fail-closed against pathological files.
+      final lines = <String>[];
+      for (final line in split) {
         if (line.length > limits.maxBodyLineLength) {
-          throw FmpResourceLimitException(
-            'A Caller\'s Companion figure line is too long to import safely '
-            '(> ${limits.maxBodyLineLength} characters).',
-          );
+          overLongCount++;
+          continue;
         }
+        lines.add(line);
       }
+      if (lines.isEmpty) continue;
       // Bound the total figure lines a single dance can accumulate, so a file
       // that aims many Phrase rows at one zk_Dance_ID can't force an unbounded
-      // figure list downstream.
+      // figure list downstream. This aggregate cap FAILS CLOSED — it signals a
+      // genuinely pathological file, unlike a lone over-long line.
       lineCount += lines.length;
       if (lineCount > limits.maxFiguresPerDance) {
         throw FmpResourceLimitException(
@@ -468,6 +478,13 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
       sections.add(CcBodySection(label: label, lines: lines));
     }
     if (sections.isNotEmpty) result[entry.key] = sections;
+  }
+  if (overLongCount > 0) {
+    warnings.add(
+      '$overLongCount Caller\'s Companion figure line(s) exceeded the safe '
+      'length (> ${limits.maxBodyLineLength} characters) and were dropped; the '
+      'rest of the dance was imported.',
+    );
   }
   return result;
 }
