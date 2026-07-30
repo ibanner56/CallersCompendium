@@ -85,6 +85,15 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **The single-dance Perform view no longer exits on one stray tap or back
+  gesture.** Exiting single-dance Perform mode used to pop the screen
+  immediately on a single tap of the close control, with no `PopScope` to
+  catch a system/predictive back gesture either — an accidental brush could
+  drop a caller out of the stage view mid-dance, losing wake-lock and their
+  adjusted text scale. The close control and system back now route through
+  the same deliberate confirm dialog ("Exit performance view?" / Cancel /
+  Exit) already used by the multi-dance program Perform view (#434), keeping
+  the two Perform surfaces consistent. (#612)
 - **A corrupt backup can no longer brick startup.** Restoring a backup applied
   its saved preferences without checking them, and one startup read cast the
   theme preference with an unchecked cast — so a backup carrying a wrong-typed

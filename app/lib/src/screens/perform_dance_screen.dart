@@ -180,6 +180,55 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
     );
   }
 
+  /// Guards leaving Perform (issue #612, sibling of #434). A single stray tap
+  /// on the close control — or a system back / predictive-back gesture — must
+  /// not drop the caller out mid-dance, so we require a deliberate
+  /// confirmation first. Mirrors [PerformProgramScreen]'s guard exactly,
+  /// reusing the same dialog keys and l10n strings so the two Perform
+  /// surfaces stay consistent.
+  Future<void> _confirmAndExit() async {
+    final l10n = AppLocalizations.of(context);
+    final navigator = Navigator.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const ValueKey('perform-exit-dialog'),
+        title: Text(l10n.performExitTitle),
+        content: Text(l10n.performExitBody),
+        actions: [
+          TextButton(
+            key: const ValueKey('perform-exit-cancel'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.performExitCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('perform-exit-confirm'),
+            autofocus: true,
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.performExitConfirm),
+          ),
+        ],
+      ),
+    );
+    // A direct pop (not `maybePop`) so it bypasses the PopScope in
+    // [_guardExit] rather than re-triggering the confirmation.
+    if (confirmed == true) navigator.pop();
+  }
+
+  /// Wraps the Perform scaffold so an implicit pop (system back /
+  /// predictive-back gesture) is intercepted and routed through the same
+  /// [_confirmAndExit] confirmation as the close control (issue #612).
+  Widget _guardExit({required Widget child}) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _confirmAndExit();
+      },
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -206,151 +255,155 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
       title: widget.dance.title,
       child: PerformStageTheme(
         enabled: _stageMode,
-        child: Scaffold(
-          appBar: AppBar(
-            leading: IconButton(
-              key: const ValueKey('exit-perform'),
-              tooltip: l10n.performExitTooltip,
-              icon: const Icon(Icons.close),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            title: Text(l10n.performTitle),
-            // Responsive AppBar actions (issue #433): full set inline on
-            // tablets/large windows; secondary controls collapse into a "More
-            // actions" overflow on narrow phones so the toolbar can't overflow.
-            // The stage-mode toggle and per-gig dialect quick-switch stay inline.
-            actions: buildPerformAppBarActions(
-              wide: wide,
-              leadingPrimary: const DialectQuickSwitch(),
-              secondaryInline: [
-                if (_hasWalkthrough)
+        child: _guardExit(
+          child: Scaffold(
+            appBar: AppBar(
+              leading: IconButton(
+                key: const ValueKey('exit-perform'),
+                tooltip: l10n.performExitTooltip,
+                icon: const Icon(Icons.close),
+                onPressed: _confirmAndExit,
+              ),
+              title: Text(l10n.performTitle),
+              // Responsive AppBar actions (issue #433): full set inline on
+              // tablets/large windows; secondary controls collapse into a "More
+              // actions" overflow on narrow phones so the toolbar can't overflow.
+              // The stage-mode toggle and per-gig dialect quick-switch stay inline.
+              actions: buildPerformAppBarActions(
+                wide: wide,
+                leadingPrimary: const DialectQuickSwitch(),
+                secondaryInline: [
+                  if (_hasWalkthrough)
+                    IconButton(
+                      key: const ValueKey('perform-walkthrough-toggle'),
+                      tooltip: l10n.performShowWalkthrough,
+                      isSelected: _showWalkthrough,
+                      icon: const Icon(Icons.menu_book_outlined),
+                      selectedIcon: const Icon(Icons.menu_book),
+                      onPressed: _toggleWalkthrough,
+                    ),
                   IconButton(
-                    key: const ValueKey('perform-walkthrough-toggle'),
-                    tooltip: l10n.performShowWalkthrough,
-                    isSelected: _showWalkthrough,
-                    icon: const Icon(Icons.menu_book_outlined),
-                    selectedIcon: const Icon(Icons.menu_book),
-                    onPressed: _toggleWalkthrough,
+                    key: const ValueKey('perform-metronome'),
+                    tooltip: l10n.performTapTempo,
+                    icon: const Icon(Icons.av_timer),
+                    onPressed: _openMetronomeSheet,
                   ),
-                IconButton(
-                  key: const ValueKey('perform-metronome'),
-                  tooltip: l10n.performTapTempo,
-                  icon: const Icon(Icons.av_timer),
-                  onPressed: _openMetronomeSheet,
-                ),
-                PerformSizeControls(
-                  canDecrease: canDecrease,
-                  onDecrease: _decreaseTextSize,
-                  onIncrease: _increaseTextSize,
-                ),
-                PerformAutoSizeToggle(
-                  autoSizeOn: _autoSize,
-                  onChanged: (value) => setState(() {
-                    _autoSizeUserSet = true;
-                    _autoSize = value;
-                  }),
-                ),
-                if (!isCanonicalDialect)
-                  PerformDialectToggle(
-                    canonical: _canonicalView,
-                    onChanged: (value) {
-                      setState(() {
-                        _canonicalUserSet = true;
-                        _canonicalView = value;
-                      });
-                      _persistCanonicalView();
-                    },
+                  PerformSizeControls(
+                    canDecrease: canDecrease,
+                    onDecrease: _decreaseTextSize,
+                    onIncrease: _increaseTextSize,
                   ),
-              ],
-              overflowActions: [
-                if (_hasWalkthrough)
+                  PerformAutoSizeToggle(
+                    autoSizeOn: _autoSize,
+                    onChanged: (value) => setState(() {
+                      _autoSizeUserSet = true;
+                      _autoSize = value;
+                    }),
+                  ),
+                  if (!isCanonicalDialect)
+                    PerformDialectToggle(
+                      canonical: _canonicalView,
+                      onChanged: (value) {
+                        setState(() {
+                          _canonicalUserSet = true;
+                          _canonicalView = value;
+                        });
+                        _persistCanonicalView();
+                      },
+                    ),
+                ],
+                overflowActions: [
+                  if (_hasWalkthrough)
+                    PerformMenuAction(
+                      menuKey: const ValueKey(
+                        'perform-walkthrough-toggle-menu',
+                      ),
+                      icon: Icons.menu_book,
+                      label: l10n.performShowWalkthrough,
+                      toggledOn: _showWalkthrough,
+                      onSelected: _toggleWalkthrough,
+                    ),
                   PerformMenuAction(
-                    menuKey: const ValueKey('perform-walkthrough-toggle-menu'),
-                    icon: Icons.menu_book,
-                    label: l10n.performShowWalkthrough,
-                    toggledOn: _showWalkthrough,
-                    onSelected: _toggleWalkthrough,
+                    menuKey: const ValueKey('perform-metronome-menu'),
+                    icon: Icons.av_timer,
+                    label: l10n.performTapTempo,
+                    onSelected: _openMetronomeSheet,
                   ),
-                PerformMenuAction(
-                  menuKey: const ValueKey('perform-metronome-menu'),
-                  icon: Icons.av_timer,
-                  label: l10n.performTapTempo,
-                  onSelected: _openMetronomeSheet,
-                ),
-                PerformMenuAction(
-                  menuKey: const ValueKey('decrease-text-size-menu'),
-                  icon: Icons.text_decrease,
-                  label: l10n.performDecreaseTextSize,
-                  onSelected: _decreaseTextSize,
-                  enabled: canDecrease,
-                ),
-                PerformMenuAction(
-                  menuKey: const ValueKey('increase-text-size-menu'),
-                  icon: Icons.text_increase,
-                  label: l10n.performIncreaseTextSize,
-                  onSelected: _increaseTextSize,
-                ),
-                PerformMenuAction(
-                  menuKey: const ValueKey('perform-autosize-toggle-menu'),
-                  icon: Icons.fit_screen,
-                  label: l10n.performAutoSizeMenuLabel,
-                  toggledOn: _autoSize,
-                  onSelected: () => setState(() {
-                    _autoSizeUserSet = true;
-                    _autoSize = !_autoSize;
-                  }),
-                ),
-                if (!isCanonicalDialect)
                   PerformMenuAction(
-                    menuKey: const ValueKey('perform-dialect-toggle-menu'),
-                    icon: Icons.groups,
-                    label: l10n.performShowCanonicalTerms,
-                    toggledOn: _canonicalView,
-                    onSelected: () {
-                      setState(() {
-                        _canonicalUserSet = true;
-                        _canonicalView = !_canonicalView;
-                      });
-                      _persistCanonicalView();
-                    },
+                    menuKey: const ValueKey('decrease-text-size-menu'),
+                    icon: Icons.text_decrease,
+                    label: l10n.performDecreaseTextSize,
+                    onSelected: _decreaseTextSize,
+                    enabled: canDecrease,
                   ),
-              ],
-              trailingPrimary: PerformStageToggle(
-                stageOn: _stageMode,
-                onChanged: (value) {
-                  setState(() {
-                    _stageModeUserSet = true;
-                    _stageMode = value;
-                  });
-                  _persistStageMode();
-                },
+                  PerformMenuAction(
+                    menuKey: const ValueKey('increase-text-size-menu'),
+                    icon: Icons.text_increase,
+                    label: l10n.performIncreaseTextSize,
+                    onSelected: _increaseTextSize,
+                  ),
+                  PerformMenuAction(
+                    menuKey: const ValueKey('perform-autosize-toggle-menu'),
+                    icon: Icons.fit_screen,
+                    label: l10n.performAutoSizeMenuLabel,
+                    toggledOn: _autoSize,
+                    onSelected: () => setState(() {
+                      _autoSizeUserSet = true;
+                      _autoSize = !_autoSize;
+                    }),
+                  ),
+                  if (!isCanonicalDialect)
+                    PerformMenuAction(
+                      menuKey: const ValueKey('perform-dialect-toggle-menu'),
+                      icon: Icons.groups,
+                      label: l10n.performShowCanonicalTerms,
+                      toggledOn: _canonicalView,
+                      onSelected: () {
+                        setState(() {
+                          _canonicalUserSet = true;
+                          _canonicalView = !_canonicalView;
+                        });
+                        _persistCanonicalView();
+                      },
+                    ),
+                ],
+                trailingPrimary: PerformStageToggle(
+                  stageOn: _stageMode,
+                  onChanged: (value) {
+                    setState(() {
+                      _stageModeUserSet = true;
+                      _stageMode = value;
+                    });
+                    _persistStageMode();
+                  },
+                ),
               ),
             ),
-          ),
-          body: SafeArea(
-            child: Stack(
-              children: [
-                PerformCard(
-                  dance: widget.dance,
-                  renderer: widget.renderer,
-                  dialect: dialect,
-                  textScale: _textScale,
-                  autoSize: _autoSize,
-                  authorNames: widget.authorNames,
-                ),
-                // The walkthrough overlay is a sibling of the card — never a
-                // child routed through its `_FitToHeight` measurement — so
-                // showing it can't shrink or compete with the notation (#370).
-                if (_showWalkthrough && _hasWalkthrough)
-                  Positioned.fill(
-                    child: PerformWalkthroughOverlay(
-                      walkthrough: widget.dance.walkthrough,
-                      renderer: widget.renderer,
-                      dialect: dialect,
-                      onClose: _toggleWalkthrough,
-                    ),
+            body: SafeArea(
+              child: Stack(
+                children: [
+                  PerformCard(
+                    dance: widget.dance,
+                    renderer: widget.renderer,
+                    dialect: dialect,
+                    textScale: _textScale,
+                    autoSize: _autoSize,
+                    authorNames: widget.authorNames,
                   ),
-              ],
+                  // The walkthrough overlay is a sibling of the card — never a
+                  // child routed through its `_FitToHeight` measurement — so
+                  // showing it can't shrink or compete with the notation (#370).
+                  if (_showWalkthrough && _hasWalkthrough)
+                    Positioned.fill(
+                      child: PerformWalkthroughOverlay(
+                        walkthrough: widget.dance.walkthrough,
+                        renderer: widget.renderer,
+                        dialect: dialect,
+                        onClose: _toggleWalkthrough,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
