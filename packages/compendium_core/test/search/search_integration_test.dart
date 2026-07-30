@@ -365,6 +365,10 @@ void main() {
           PublishedSource(id: 's1', title: 'Save 100% Effort'),
         );
         await sources.upsert(PublishedSource(id: 's2', title: 'Unrelated'));
+        // A source whose title contains a literal backslash, to prove the
+        // backslash is matched literally rather than stripped or treated
+        // as an escape/wildcard.
+        await sources.upsert(PublishedSource(id: 's3', title: r'Path\To Tune'));
         await dances.create(
           _dance(
             id: 'discount',
@@ -377,6 +381,12 @@ void main() {
             title: 'Plain',
           ).copyWith(sourceCitations: [SourceCitation(sourceId: 's2')]),
         );
+        await dances.create(
+          _dance(
+            id: 'slashed',
+            title: 'Slashed',
+          ).copyWith(sourceCitations: [SourceCitation(sourceId: 's3')]),
+        );
 
         // A literal '100%' query must match only the source that actually
         // contains that literal substring, not every row (which an
@@ -385,9 +395,15 @@ void main() {
         // '_' must match a literal underscore, not "any single character" —
         // there is no dance citing a source with an actual underscore.
         expect(await dances.search(const SourceFilter('Sa_e')), isEmpty);
-        // A backslash in the query must not break the pattern or match
-        // everything.
-        expect(await dances.search(const SourceFilter(r'Sa\e')), isEmpty);
+        // A literal '\' query matches only the source that actually contains
+        // a backslash.
+        expect(await dances.search(const SourceFilter(r'Path\To')), [
+          'slashed',
+        ]);
+        // The same query with the backslash removed must NOT match — proving
+        // the backslash is a required literal character, not silently
+        // dropped or treated as a wildcard/escape by the LIKE engine.
+        expect(await dances.search(const SourceFilter('PathTo')), isEmpty);
       },
     );
 
@@ -820,6 +836,7 @@ void main() {
         type: CustomFieldType.text,
       );
       await seed(def, 'Save 100% Effort');
+      await seed(def, r'Path\To Tune', id: 'b');
       // Literal '%' in the query must not wildcard-match every row.
       expect(
         await dances.search(
@@ -827,10 +844,28 @@ void main() {
         ),
         ['a'],
       );
-      // '_' must match a literal underscore, not any single character.
+      // '_' must match a literal underscore, not any single character — an
+      // unescaped '_' would wildcard-match "Save" (S-a-<any>-e).
       expect(
         await dances.search(
           CustomFieldFilter(def, CustomFieldOp.contains, 'Sa_e'),
+        ),
+        isEmpty,
+      );
+      // A literal '\' query matches the value that actually contains a
+      // backslash.
+      expect(
+        await dances.search(
+          CustomFieldFilter(def, CustomFieldOp.contains, r'Path\To'),
+        ),
+        ['b'],
+      );
+      // The same query with the backslash removed must NOT match — proving
+      // the backslash is a required literal character, not dropped or
+      // treated as a wildcard/escape.
+      expect(
+        await dances.search(
+          CustomFieldFilter(def, CustomFieldOp.contains, 'PathTo'),
         ),
         isEmpty,
       );
