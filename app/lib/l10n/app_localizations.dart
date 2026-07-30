@@ -370,10 +370,10 @@ abstract class AppLocalizations {
   /// **'MM.DD.YY'**
   String get settingsDateFormatCustomPatternHint;
 
-  /// Always-visible legend explaining the allowed custom date-pattern tokens and separators. The literal tokens (yyyy, yy, MM, dd) and separators (- / . space) must not be translated; translate only the surrounding words (Tokens, year, month, day, Separators, or, space).
+  /// Always-visible legend explaining the allowed custom date-pattern tokens and separators. The literal tokens (yyyy, yy, MM, MMM, MMMM, dd) and separators (- / . space) must not be translated; translate only the surrounding words (Tokens, year, month, short name, full name, day, Separators, or, space).
   ///
   /// In en, this message translates to:
-  /// **'Tokens: yyyy or yy = year, MM = month, dd = day. Separators: - / . or space.'**
+  /// **'Tokens: yyyy or yy = year, MM = month (MMM = short name, MMMM = full name), dd = day. Separators: - / . or space.'**
   String get settingsDateFormatCustomLegend;
 
   /// Inline warning shown beneath the custom date-pattern field when the entered pattern is empty, contains unknown tokens, or is otherwise unrecognized; the app falls back to the system default until corrected.
@@ -6481,6 +6481,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dec'**
   String get danceEditorMonthDec;
+
+  /// Full month name "January", used to render the MMMM token in a custom date format (issue #632).
+  ///
+  /// In en, this message translates to:
+  /// **'January'**
+  String get monthFullJanuary;
+
+  /// Full month name "February", used to render the MMMM token in a custom date format (issue #632).
+  ///
+  /// In en, this message translates to:
+  /// **'February'**
+  String get monthFullFebruary;
+
+  /// Full month name "March", used to render the MMMM token in a custom date format (issue #632).
+  ///
+  /// In en, this message translates to:
+  /// **'March'**
+  String get monthFullMarch;
+
+  /// Full month name "April", used to render the MMMM token in a custom date format (issue #632).
+  ///
+  /// In en, this message translates to:
+  /// **'April'**
+  String get monthFullApril;
+
+  /// Full month name "May", used to render the MMMM token in a custom date format (issue #632).
+  ///
+  /// In en, this message translates to:
+  /// **'May'**
+  String get monthFullMay;
+
+  /// Full month name "June", used to render the MMMM token in a custom date format (issue #632).
+  ///
+  /// In en, this message translates to:
+  /// **'June'**
+  String get monthFullJune;
+
+  /// Full month name "July", used to render the MMMM token in a custom date format (issue #632).
+  ///
+  /// In en, this message translates to:
+  /// **'July'**
+  String get monthFullJuly;
+
+  /// Full month name "August", used to render the MMMM token in a custom date format (issue #632).
+  ///
+  /// In en, this message translates to:
+  /// **'August'**
+  String get monthFullAugust;
+
+  /// Full month name "September", used to render the MMMM token in a custom date format (issue #632).
+  ///
+  /// In en, this message translates to:
+  /// **'September'**
+  String get monthFullSeptember;
+
+  /// Full month name "October", used to render the MMMM token in a custom date format (issue #632).
+  ///
+  /// In en, this message translates to:
+  /// **'October'**
+  String get monthFullOctober;
+
+  /// Full month name "November", used to render the MMMM token in a custom date format (issue #632).
+  ///
+  /// In en, this message translates to:
+  /// **'November'**
+  String get monthFullNovember;
+
+  /// Full month name "December", used to render the MMMM token in a custom date format (issue #632).
+  ///
+  /// In en, this message translates to:
+  /// **'December'**
+  String get monthFullDecember;
 
   /// Hint text for adding a suggested tune to a dance.
   ///

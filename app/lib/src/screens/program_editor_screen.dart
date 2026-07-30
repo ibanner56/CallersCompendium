@@ -1429,6 +1429,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             _eventDate!,
             DateFormatScope.of(context),
             MaterialLocalizations.of(context),
+            l10n,
           );
 
     return Column(

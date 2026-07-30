@@ -169,6 +169,7 @@ class _RegionalView extends StatelessWidget {
       DateTime.now(),
       dateFormat,
       MaterialLocalizations.of(context),
+      l10n,
     );
     final isCustom = dateFormat.pref == DateFormatPref.custom;
     // System default + every locale the app ships a translation for. Dropping a

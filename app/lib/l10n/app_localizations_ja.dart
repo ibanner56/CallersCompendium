@@ -156,7 +156,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDateFormatCustomLegend =>
-      'トークン：yyyy または yy = 年、MM = 月、dd = 日。区切り文字：- / . またはスペース。';
+      'トークン：yyyy または yy = 年、MM = 月（MMM = 略称、MMMM = 正式名称）、dd = 日。区切り文字：- / . またはスペース。';
 
   @override
   String get settingsDateFormatCustomInvalid =>
@@ -4019,6 +4019,42 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorMonthDec => '12月';
+
+  @override
+  String get monthFullJanuary => 'January';
+
+  @override
+  String get monthFullFebruary => 'February';
+
+  @override
+  String get monthFullMarch => 'March';
+
+  @override
+  String get monthFullApril => 'April';
+
+  @override
+  String get monthFullMay => 'May';
+
+  @override
+  String get monthFullJune => 'June';
+
+  @override
+  String get monthFullJuly => 'July';
+
+  @override
+  String get monthFullAugust => 'August';
+
+  @override
+  String get monthFullSeptember => 'September';
+
+  @override
+  String get monthFullOctober => 'October';
+
+  @override
+  String get monthFullNovember => 'November';
+
+  @override
+  String get monthFullDecember => 'December';
 
   @override
   String get danceEditorAddTuneHint => 'おすすめのチューンを追加…';

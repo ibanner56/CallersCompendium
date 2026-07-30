@@ -106,6 +106,7 @@ Widget _buildProgramPickRow(
           program.eventDate!,
           DateFormatScope.of(context),
           MaterialLocalizations.of(context),
+          l10n,
         );
   final countLabel = l10n.collectionDanceCount(slotCount);
   final subtitleParts = [?dateLabel, countLabel];

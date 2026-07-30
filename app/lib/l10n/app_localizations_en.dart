@@ -157,7 +157,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDateFormatCustomLegend =>
-      'Tokens: yyyy or yy = year, MM = month, dd = day. Separators: - / . or space.';
+      'Tokens: yyyy or yy = year, MM = month (MMM = short name, MMMM = full name), dd = day. Separators: - / . or space.';
 
   @override
   String get settingsDateFormatCustomInvalid =>
@@ -4154,6 +4154,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorMonthDec => 'Dec';
+
+  @override
+  String get monthFullJanuary => 'January';
+
+  @override
+  String get monthFullFebruary => 'February';
+
+  @override
+  String get monthFullMarch => 'March';
+
+  @override
+  String get monthFullApril => 'April';
+
+  @override
+  String get monthFullMay => 'May';
+
+  @override
+  String get monthFullJune => 'June';
+
+  @override
+  String get monthFullJuly => 'July';
+
+  @override
+  String get monthFullAugust => 'August';
+
+  @override
+  String get monthFullSeptember => 'September';
+
+  @override
+  String get monthFullOctober => 'October';
+
+  @override
+  String get monthFullNovember => 'November';
+
+  @override
+  String get monthFullDecember => 'December';
 
   @override
   String get danceEditorAddTuneHint => 'Add a suggested tune…';

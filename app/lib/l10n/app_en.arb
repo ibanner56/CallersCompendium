@@ -211,9 +211,9 @@
   "@settingsDateFormatCustomPatternHint": {
     "description": "Placeholder shown in the custom date-pattern field as an example pattern. Keep the literal tokens (letters and separators); do not translate them."
   },
-  "settingsDateFormatCustomLegend": "Tokens: yyyy or yy = year, MM = month, dd = day. Separators: - / . or space.",
+  "settingsDateFormatCustomLegend": "Tokens: yyyy or yy = year, MM = month (MMM = short name, MMMM = full name), dd = day. Separators: - / . or space.",
   "@settingsDateFormatCustomLegend": {
-    "description": "Always-visible legend explaining the allowed custom date-pattern tokens and separators. The literal tokens (yyyy, yy, MM, dd) and separators (- / . space) must not be translated; translate only the surrounding words (Tokens, year, month, day, Separators, or, space)."
+    "description": "Always-visible legend explaining the allowed custom date-pattern tokens and separators. The literal tokens (yyyy, yy, MM, MMM, MMMM, dd) and separators (- / . space) must not be translated; translate only the surrounding words (Tokens, year, month, short name, full name, day, Separators, or, space)."
   },
   "settingsDateFormatCustomInvalid": "Unrecognized pattern — using the system default until it's corrected.",
   "@settingsDateFormatCustomInvalid": {
@@ -4431,6 +4431,54 @@
   "danceEditorMonthDec": "Dec",
   "@danceEditorMonthDec":   {
     "description": "Abbreviated month label \"Dec\" in the partial-date picker."
+  },
+  "monthFullJanuary": "January",
+  "@monthFullJanuary": {
+    "description": "Full month name \"January\", used to render the MMMM token in a custom date format (issue #632)."
+  },
+  "monthFullFebruary": "February",
+  "@monthFullFebruary": {
+    "description": "Full month name \"February\", used to render the MMMM token in a custom date format (issue #632)."
+  },
+  "monthFullMarch": "March",
+  "@monthFullMarch": {
+    "description": "Full month name \"March\", used to render the MMMM token in a custom date format (issue #632)."
+  },
+  "monthFullApril": "April",
+  "@monthFullApril": {
+    "description": "Full month name \"April\", used to render the MMMM token in a custom date format (issue #632)."
+  },
+  "monthFullMay": "May",
+  "@monthFullMay": {
+    "description": "Full month name \"May\", used to render the MMMM token in a custom date format (issue #632)."
+  },
+  "monthFullJune": "June",
+  "@monthFullJune": {
+    "description": "Full month name \"June\", used to render the MMMM token in a custom date format (issue #632)."
+  },
+  "monthFullJuly": "July",
+  "@monthFullJuly": {
+    "description": "Full month name \"July\", used to render the MMMM token in a custom date format (issue #632)."
+  },
+  "monthFullAugust": "August",
+  "@monthFullAugust": {
+    "description": "Full month name \"August\", used to render the MMMM token in a custom date format (issue #632)."
+  },
+  "monthFullSeptember": "September",
+  "@monthFullSeptember": {
+    "description": "Full month name \"September\", used to render the MMMM token in a custom date format (issue #632)."
+  },
+  "monthFullOctober": "October",
+  "@monthFullOctober": {
+    "description": "Full month name \"October\", used to render the MMMM token in a custom date format (issue #632)."
+  },
+  "monthFullNovember": "November",
+  "@monthFullNovember": {
+    "description": "Full month name \"November\", used to render the MMMM token in a custom date format (issue #632)."
+  },
+  "monthFullDecember": "December",
+  "@monthFullDecember": {
+    "description": "Full month name \"December\", used to render the MMMM token in a custom date format (issue #632)."
   },
   "danceEditorAddTuneHint": "Add a suggested tune…",
   "@danceEditorAddTuneHint":   {

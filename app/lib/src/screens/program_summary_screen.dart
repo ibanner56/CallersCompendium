@@ -378,6 +378,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             program.eventDate!,
             DateFormatScope.of(context),
             MaterialLocalizations.of(context),
+            l10n,
           );
 
     return ListView(

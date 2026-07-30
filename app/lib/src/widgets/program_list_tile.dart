@@ -49,6 +49,7 @@ class ProgramListTile extends StatelessWidget {
             eventDate,
             DateFormatScope.of(context),
             MaterialLocalizations.of(context),
+            l10n,
           );
 
     final venue = resolveVenueLabel(program, venuesById);

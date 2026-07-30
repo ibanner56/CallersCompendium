@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
+import 'package:compendium_app/src/data/custom_date_pattern.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/date_format_scope.dart';
@@ -193,6 +194,38 @@ void main() {
       DateFormatSetting(DateFormatPref.custom, customPattern: 'MM.DD.YY'),
     );
     expect(notifiers.dateFormat.value.effectivePattern, isNotNull);
+  });
+
+  testWidgets('a written-out month pattern validates and the legend documents '
+      'MMM/MMMM (#632)', (tester) async {
+    final repos = openTestRepositories();
+    final notifiers = await _pumpRegional(tester, repos);
+
+    await tester.tap(find.byKey(const ValueKey('regional-date-format')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Custom…').last);
+    await tester.pumpAndSettle();
+
+    // The legend now documents the written-out month tokens.
+    final legend = tester.widget<Text>(
+      find.byKey(const ValueKey('regional-date-format-custom-legend')),
+    );
+    expect(legend.data, contains('MMM'));
+    expect(legend.data, contains('MMMM'));
+
+    // A written-out month pattern is accepted (validates to a real pattern).
+    await tester.enterText(
+      find.byKey(const ValueKey('regional-date-format-custom-pattern')),
+      'dd MMM yyyy',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      await repos.settings.get(kDateFormatCustomPatternKey),
+      'dd MMM yyyy',
+    );
+    final pattern = notifiers.dateFormat.value.effectivePattern;
+    expect(pattern, isNotNull);
+    expect(pattern!.monthStyle, MonthStyle.abbreviated);
   });
 
   testWidgets('an invalid stored custom pattern shows the inline warning and '

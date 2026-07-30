@@ -44,7 +44,7 @@
   "settingsDateFormatCustom": "カスタム…",
   "settingsDateFormatCustomPatternLabel": "カスタム日付パターン",
   "settingsDateFormatCustomPatternHint": "MM.DD.YY",
-  "settingsDateFormatCustomLegend": "トークン：yyyy または yy = 年、MM = 月、dd = 日。区切り文字：- / . またはスペース。",
+  "settingsDateFormatCustomLegend": "トークン：yyyy または yy = 年、MM = 月（MMM = 略称、MMMM = 正式名称）、dd = 日。区切り文字：- / . またはスペース。",
   "settingsDateFormatCustomInvalid": "認識できないパターンです — 修正されるまでシステムの既定値を使用します。",
   "settingsFirstDayOfWeekTitle": "週の始まりの曜日",
   "settingsFirstDayOfWeekSubtitle": "アプリの日付表示で週の始まる曜日を指定します。将来のアップデートで追加予定です。",

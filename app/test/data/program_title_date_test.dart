@@ -305,4 +305,60 @@ void main() {
       expect(sw.elapsedMilliseconds, lessThan(1000));
     });
   });
+
+  group('detectEventDateFromTitle — written-out month tokens (#632)', () {
+    DateFormatSetting custom(String pattern) =>
+        DateFormatSetting(DateFormatPref.custom, customPattern: pattern);
+
+    test('dd MMM yyyy reads an abbreviated month in a title', () {
+      expect(
+        detectEventDateFromTitle(
+          '12 May 2026 Spring Contra',
+          custom('dd MMM yyyy'),
+        ),
+        DateTime.utc(2026, 5, 12),
+      );
+    });
+
+    test('MMMM dd yyyy reads a full month, month-first', () {
+      expect(
+        detectEventDateFromTitle('June 03 2026 Gig', custom('MMMM dd yyyy')),
+        DateTime.utc(2026, 6, 3),
+      );
+    });
+
+    test('a mixed dd MMM yyyy pattern is unambiguous vs pure numeric', () {
+      // "05 Mar 2024" cannot be read as month-first numeric; the written month
+      // pins it to March regardless of the numeric convention.
+      expect(
+        detectEventDateFromTitle('05 Mar 2024', custom('dd MMM yyyy')),
+        DateTime.utc(2024, 3, 5),
+      );
+    });
+
+    test('an unknown month word yields no date (allowlist)', () {
+      expect(
+        detectEventDateFromTitle('12 Smarch 2026', custom('dd MMM yyyy')),
+        isNull,
+      );
+    });
+
+    test('the built-in month-name tier still wins over the custom tier', () {
+      // Tier 2 (month-name) is tried before the custom tier, so a plain
+      // "March 15 2024" resolves even under a written-month custom pattern.
+      expect(
+        detectEventDateFromTitle('March 15 2024', custom('dd MMMM yyyy')),
+        DateTime.utc(2024, 3, 15),
+      );
+    });
+
+    test('adversarial month-name title stays fast (ReDoS)', () {
+      final hostile = '${'May ' * 5000}no date';
+      final sw = Stopwatch()..start();
+      final result = detectEventDateFromTitle(hostile, custom('dd MMMM yyyy'));
+      sw.stop();
+      expect(result, isNull);
+      expect(sw.elapsedMilliseconds, lessThan(1000));
+    });
+  });
 }

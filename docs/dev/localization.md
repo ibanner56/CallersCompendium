@@ -115,7 +115,14 @@ as `InheritedNotifier` scopes (mirroring `AppThemeScope`/`DateFormatScope`):
 use by `parseCustomDatePattern` (`custom_date_pattern.dart`); an
 invalid/empty/over-long value resolves to the system default everywhere it is
 consumed — on-screen rendering *and* ContraDB title date detection — while the
-settings screen surfaces an inline warning. See #584.
+settings screen surfaces an inline warning. See #584. The pattern also accepts
+written-out month tokens — `MMM` (short name) and `MMMM` (full name) — which
+render **localized** month names: `formatEventDate` builds a `MonthNames` table
+from `AppLocalizations` (`monthNamesFromL10n`, reusing the existing
+`danceEditorMonth*` short names and the `monthFull*` full names) and passes it
+into the pure formatter. Title-date detection recognizes written months against
+the English month-name allowlist it already uses for its month-name tiers. See
+#632.
 
 Read a scope with `Scope.of(context)` (registers a rebuild); change it with
 `Scope.notifierOf(context)`. Changing `LocaleScope` updates `MaterialApp.locale`,
@@ -138,13 +145,16 @@ startup or select an unsupported option:
 - **Enums** (`DateFormatPref`, `FirstDayOfWeekPref`) — resolved by token via
   `…PrefFromStored`, which falls back to the safe `system` default for `null`, a
   non-string, or an unknown token.
-- **Custom date pattern** (#584) — the raw pattern for `DateFormatPref.custom`
-  is untrusted free-form input. `parseCustomDatePattern` length-caps it
-  (`kMaxCustomDatePatternLength`), allowlists tokens (`yyyy`/`yy`, `MM`, `dd`)
-  and separators (`-` `/` `.` space), builds only bounded, backreference-free
-  matchers (ReDoS-safe), never surfaces raw error text, and validates produced
-  dates as real calendar dates within 1900–2100. Anything unrecognized resolves
-  to the system default via `DateFormatSetting.effectivePattern`.
+- **Custom date pattern** (#584/#632) — the raw pattern for
+  `DateFormatPref.custom` is untrusted free-form input. `parseCustomDatePattern`
+  length-caps it (`kMaxCustomDatePatternLength`), allowlists tokens (`yyyy`/`yy`,
+  `MM`/`MMM`/`MMMM`, `dd`) and separators (`-` `/` `.` space), builds only
+  bounded, backreference-free matchers (ReDoS-safe), never surfaces raw error
+  text, and validates produced dates as real calendar dates within 1900–2100.
+  Written-out month tokens are matched against a **fixed allowlist** of the
+  known month names (a finite, regex-escaped alternation — never a free regex
+  over the title), so they add no backtracking risk. Anything unrecognized
+  resolves to the system default via `DateFormatSetting.effectivePattern`.
 
 ## Key-naming convention
 

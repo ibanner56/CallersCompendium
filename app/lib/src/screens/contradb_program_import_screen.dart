@@ -640,6 +640,7 @@ class _ContraDbProgramImportScreenState
                 importedAt,
                 DateFormatScope.of(context),
                 MaterialLocalizations.of(context),
+                l10n,
               ),
             );
       badgeKey = 'contradb-program-marker-imported';
@@ -843,6 +844,7 @@ class _ContraDbProgramImportScreenState
             _eventDate!,
             DateFormatScope.of(context),
             MaterialLocalizations.of(context),
+            l10n,
           );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

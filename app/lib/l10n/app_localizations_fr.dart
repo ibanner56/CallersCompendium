@@ -160,7 +160,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDateFormatCustomLegend =>
-      'Jetons : yyyy ou yy = année, MM = mois, dd = jour. Séparateurs : - / . ou espace.';
+      'Jetons : yyyy ou yy = année, MM = mois (MMM = nom abrégé, MMMM = nom complet), dd = jour. Séparateurs : - / . ou espace.';
 
   @override
   String get settingsDateFormatCustomInvalid =>
@@ -4212,6 +4212,42 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceEditorMonthDec => 'Déc';
+
+  @override
+  String get monthFullJanuary => 'January';
+
+  @override
+  String get monthFullFebruary => 'February';
+
+  @override
+  String get monthFullMarch => 'March';
+
+  @override
+  String get monthFullApril => 'April';
+
+  @override
+  String get monthFullMay => 'May';
+
+  @override
+  String get monthFullJune => 'June';
+
+  @override
+  String get monthFullJuly => 'July';
+
+  @override
+  String get monthFullAugust => 'August';
+
+  @override
+  String get monthFullSeptember => 'September';
+
+  @override
+  String get monthFullOctober => 'October';
+
+  @override
+  String get monthFullNovember => 'November';
+
+  @override
+  String get monthFullDecember => 'December';
 
   @override
   String get danceEditorAddTuneHint => 'Ajouter un air suggéré…';
