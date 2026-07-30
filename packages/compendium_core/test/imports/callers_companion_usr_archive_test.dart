@@ -337,6 +337,30 @@ void main() {
       for (final section in archive.dances.single.record.body) ...section.lines,
     ];
 
+    test(
+      'splits multi-line PhraseText on \\n, \\r\\n and \\r endings, dropping '
+      'blank lines',
+      () {
+        // The incremental line walker must treat all three endings (and a CRLF
+        // pair as one break) identically and drop empty segments.
+        final archive = extractCcUsrArchive(
+          dbWithPhrase([
+            FmpRecord(700, {
+              1: '4',
+              2: 'A1',
+              3: '(8) circle left\r\n(8) do si do\r(8) swing\n\n(8) balance',
+            }),
+          ]),
+        );
+        expect(bodyLinesOf(archive), [
+          '(8) circle left',
+          '(8) do si do',
+          '(8) swing',
+          '(8) balance',
+        ]);
+      },
+    );
+
     test('sanitizes control/bidi/format chars out of a Phrase line, preserving '
         'legitimate text', () {
       // A line laced with: BELL (C0 control), RLO (bidi override), zero-width
@@ -374,8 +398,10 @@ void main() {
     test(
       'an over-structured single dance (too many figure lines) fails closed',
       () {
-        // One Phrase row whose PhraseText has more lines than the per-dance cap.
-        final text = List.generate(6, (i) => '(8) circle left $i').join('\n');
+        // A single PhraseText with far more newline-delimited lines than the
+        // per-dance cap: the guard must trip during the incremental walk, before
+        // the whole list is materialized (the DoS bound precedes its allocation).
+        final text = List.generate(500, (i) => '(8) circle left $i').join('\n');
         expect(
           () => extractCcUsrArchive(
             dbWithPhrase([
@@ -385,6 +411,24 @@ void main() {
           ),
           throwsA(isA<FmpResourceLimitException>()),
         );
+      },
+    );
+
+    test(
+      'the per-dance cap counts across sections and admits a dance exactly at '
+      'the cap',
+      () {
+        // Three sections × one line = 3 lines == maxFiguresPerDance: imports
+        // cleanly (boundary is inclusive). A 4th line would trip the cap.
+        final archive = extractCcUsrArchive(
+          dbWithPhrase([
+            FmpRecord(700, {1: '4', 2: 'A1', 3: '(8) circle left'}),
+            FmpRecord(701, {1: '4', 2: 'A2', 3: '(8) do si do'}),
+            FmpRecord(702, {1: '4', 2: 'B1', 3: '(8) swing'}),
+          ]),
+          limits: const FmpReadLimits(maxFiguresPerDance: 3),
+        );
+        expect(bodyLinesOf(archive), hasLength(3));
       },
     );
 

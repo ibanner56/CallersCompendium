@@ -444,34 +444,42 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
     final sections = <CcBodySection>[];
     var lineCount = 0;
     for (final e in ordered) {
-      final split = _splitBodyLines(e.value.text);
-      if (split.isEmpty) continue;
-      // A single over-long line is DROPPED with a warning, not fatal: it mirrors
-      // the local free-text-entry path (free_text_entry.dart drops a line past
-      // maxFreeTextEntryLength rather than throwing), so the same line reaching
-      // us via .USR import can't abort the whole file — worse availability for
-      // no extra safety. The O(1) length check does no unbounded work; the
-      // AGGREGATE caps below stay fail-closed against pathological files.
+      // Split + sanitize INCREMENTALLY, enforcing the caps as each line is
+      // produced, so a pathological PhraseText (e.g. millions of short lines)
+      // trips the fail-closed guard *before* the full list is materialized —
+      // the OOM/DoS bound this change adds must precede the allocation it
+      // guards, not follow it. Behavior is identical for well-formed input.
       final lines = <String>[];
-      for (final line in split) {
+      _forEachBodyLine(e.value.text, (rawLine) {
+        final line = sanitizeImportedText(
+          rawLine,
+          allowLineBreaks: false,
+        ).trim();
+        // A line empty after sanitizing carries nothing to store — dropped.
+        if (line.isEmpty) return;
+        // A single over-long line is DROPPED with a warning, not fatal: it
+        // mirrors the local free-text-entry path (free_text_entry.dart drops a
+        // line past maxFreeTextEntryLength rather than throwing), so the same
+        // line reaching us via .USR import can't abort the whole file — worse
+        // availability for no extra safety. O(1), no unbounded work.
         if (line.length > limits.maxBodyLineLength) {
           overLongCount++;
-          continue;
+          return;
+        }
+        // Bound the total figure lines a single dance can accumulate, so a file
+        // that aims many Phrase rows at one zk_Dance_ID can't force an unbounded
+        // figure list. This aggregate cap FAILS CLOSED — checked here, before
+        // the line is retained, so `lines` never grows past the bound.
+        lineCount++;
+        if (lineCount > limits.maxFiguresPerDance) {
+          throw FmpResourceLimitException(
+            'A Caller\'s Companion dance has too many figure lines to import '
+            'safely (> ${limits.maxFiguresPerDance}).',
+          );
         }
         lines.add(line);
-      }
+      });
       if (lines.isEmpty) continue;
-      // Bound the total figure lines a single dance can accumulate, so a file
-      // that aims many Phrase rows at one zk_Dance_ID can't force an unbounded
-      // figure list downstream. This aggregate cap FAILS CLOSED — it signals a
-      // genuinely pathological file, unlike a lone over-long line.
-      lineCount += lines.length;
-      if (lineCount > limits.maxFiguresPerDance) {
-        throw FmpResourceLimitException(
-          'A Caller\'s Companion dance has too many figure lines to import '
-          'safely (> ${limits.maxFiguresPerDance}).',
-        );
-      }
       final label = (e.value.number == null || e.value.number!.isEmpty)
           ? null
           : e.value.number;
@@ -518,8 +526,10 @@ String? _resolvePhraseTextColumn(FmpTable table) {
   return null;
 }
 
-/// Splits a raw body value on newlines, dropping blank lines (shared by the
-/// Phrase join and the Dance-row `A1..C2` fallback so both parse identically).
+/// Splits a raw body value on newlines, dropping blank lines (used by the
+/// Dance-row `A1..C2` fallback in [ccDanceRecordFromColumns]; the untrusted
+/// `Phrase` join walks lines incrementally via [_forEachBodyLine] so its caps
+/// bound allocation).
 ///
 /// Each line is **sanitized at this ingestion boundary** (#561) via
 /// [sanitizeImportedText] (single-line mode) so control, bidi-override and
@@ -528,13 +538,44 @@ String? _resolvePhraseTextColumn(FmpTable table) {
 /// defense in depth ahead of the parser's own `scrubFigureText` chokepoint
 /// (the transform is idempotent, so this never double-mangles legitimate text).
 /// A line that is empty after sanitizing is dropped.
-List<String> _splitBodyLines(String raw) => raw
-    .replaceAll('\r\n', '\n')
-    .replaceAll('\r', '\n')
-    .split('\n')
-    .map((l) => sanitizeImportedText(l, allowLineBreaks: false).trim())
-    .where((l) => l.isNotEmpty)
-    .toList();
+List<String> _splitBodyLines(String raw) {
+  final lines = <String>[];
+  _forEachBodyLine(raw, (rawLine) {
+    final line = sanitizeImportedText(rawLine, allowLineBreaks: false).trim();
+    if (line.isNotEmpty) lines.add(line);
+  });
+  return lines;
+}
+
+/// Walks [raw] one newline-delimited line at a time, invoking [emit] with each
+/// raw (pre-sanitize) line, **without materializing the full split list**.
+///
+/// Handles `\n`, `\r` and `\r\n` line endings (a `\r\n` pair is one separator).
+/// Emitting incrementally lets the untrusted `Phrase` join enforce its per-dance
+/// caps as lines are produced (#561), so a pathological value with a huge number
+/// of short lines fails closed *before* the whole list is allocated — the guard
+/// precedes the allocation it bounds. At most one line substring is live per
+/// callback.
+void _forEachBodyLine(String raw, void Function(String line) emit) {
+  final len = raw.length;
+  var start = 0;
+  var i = 0;
+  while (i < len) {
+    final c = raw.codeUnitAt(i);
+    if (c == 0x0A || c == 0x0D) {
+      emit(raw.substring(start, i));
+      // Treat a CR immediately followed by LF as a single line break.
+      if (c == 0x0D && i + 1 < len && raw.codeUnitAt(i + 1) == 0x0A) i++;
+      i++;
+      start = i;
+    } else {
+      i++;
+    }
+  }
+  // Trailing segment (raw not ending in a line break). A trailing break leaves
+  // start == len, contributing nothing — matching the old blank-line filter.
+  if (start < len) emit(raw.substring(start, len));
+}
 
 /// One CC `Phrase` row's ordering label + verbatim text (internal to
 /// [_extractPhraseBodies]).
