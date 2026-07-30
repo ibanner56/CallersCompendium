@@ -1,339 +1,285 @@
 #!/usr/bin/env python3
-"""Deterministic, dependency-free launcher-icon generator for Caller's Compendium.
+"""Launcher-icon generator for Caller's Compendium — "Dancers rising from a book".
 
-This environment has no SVG rasterizer (rsvg-convert / inkscape / imagemagick /
-cairosvg / node) and no Pillow. The brand mark is pure geometry (two rounded
-bars on a rounded tile), so we render it directly with the Python standard
-library only: an analytic rounded-rectangle signed-distance field for crisp
-anti-aliased coverage, and hand-rolled PNG / ICO encoders (zlib + struct).
+The brand mark is now a full-colour illustration (two role-neutral dancers
+spinning up out of an open book), so — unlike the previous pure-geometry mark —
+it can no longer be rendered from the Python standard library alone. This script
+rasterises the committed SVG sources in ``app/assets/brand/`` and composites the
+per-platform tiles.
 
-Everything is derived from ONE 128-unit "Progression bars" glyph so all
-platforms stay in sync. Outputs (PNGs, the Windows .ico, and the two Android
-vector drawables) are generated here and committed; this script does NOT run in
-CI. Re-run from the repo root:  python3 tools/brand/generate_icons.py
+Dependencies (local only — this script does **not** run in CI; its outputs are
+committed):
 
-See app/assets/brand/README.md for the concept, palette and geometry.
+* ``librsvg`` / ``rsvg-convert`` on ``PATH`` (SVG rasteriser)
+* ``Pillow`` (``pip install pillow``) for compositing + the Windows ``.ico``
+
+Policy (see app/assets/brand/README.md):
+
+* Full illustration is used at >= 48 px; the simplified two-dancers-on-a-book
+  "small mark" is used at <= 32 px so it stays legible.
+* The default tile everywhere is **Soft Dark** (``#1E2A38``). iOS additionally
+  ships Dark and Tinted appearance variants (Any = Soft Dark).
+* Android keeps an adaptive icon (Soft Dark background + full-illustration
+  foreground) plus a monochrome themed layer (the small-mark silhouette).
+
+Re-run from the repo root::
+
+    python3 tools/brand/generate_icons.py
 """
 
 from __future__ import annotations
 
-import math
 import os
-import struct
-import zlib
-from typing import List, Optional, Sequence, Tuple
+import re
+import subprocess
+import tempfile
+from typing import List, Sequence, Tuple
+
+from PIL import Image
 
 # --- repo layout ------------------------------------------------------------
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, os.pardir, os.pardir))
 APP = os.path.join(REPO, "app")
+BRAND = os.path.join(APP, "assets", "brand")
 
 # --- palette (exact values from app/lib/src/theme/color_schemes.dart) -------
-PETROL = (0x12, 0x1A, 0x24, 255)         # dark surface / "Blue Hour" petrol
-AMBER = (0xFF, 0xB7, 0x84, 255)          # dark primary — lantern amber
-LIGHT_SURFACE = (0xF4, 0xF6, 0xFA, 255)  # light scheme surface (light tile)
-LIGHT_PRIMARY = (0x9A, 0x53, 0x12, 255)  # light primary (light-ground bars)
+SOFT_DARK = "#1E2A38"   # default tile — Soft Dark scheme surface
+DARK = "#121A24"        # dark scheme surface (iOS Dark variant)
+LIGHT = "#F4F6FA"       # light scheme surface
+TILE_RADIUS_RATIO = 28.4 / 128.0  # rounded-tile corner radius (~22.2%)
 
-# --- canonical glyph geometry, 128-unit box ---------------------------------
-# left bar and right bar (right stepped UP -> progression up the set).
-# (x, y, w, h, r)
-LEFT_BAR = (38.0, 44.0, 18.0, 56.0, 9.0)
-RIGHT_BAR = (72.0, 28.0, 18.0, 56.0, 9.0)
-TILE_RADIUS = 28.4                       # rounded tile corner radius in 128 box
-UNIT = 128.0
-
-Rect = Tuple[float, float, float, float, float]
-Op = Tuple[Rect, Tuple[int, int, int, int]]
+# Small-mark crossover: at or below this pixel size use the simplified mark.
+SMALL_MAX = 32
 
 
-def glyph_ops(bar_color: Tuple[int, int, int, int]) -> List[Op]:
-    return [(LEFT_BAR, bar_color), (RIGHT_BAR, bar_color)]
+# --- brand source content ---------------------------------------------------
+def _inner(svg_name: str, strip_bg: bool = True) -> str:
+    s = open(os.path.join(BRAND, svg_name), encoding="utf-8").read()
+    body = s[s.index(">", s.index("<svg")) + 1: s.rindex("</svg>")]
+    if strip_bg:
+        body = re.sub(r'<rect width="2048" height="2048"[^>]*/>', "", body, count=1)
+    return body.strip()
 
 
-def scale_rect(r: Rect, s: float, cx: float = 64.0, cy: float = 64.0) -> Rect:
-    x, y, w, h, rad = r
-    return (cx + s * (x - cx), cy + s * (y - cy), w * s, h * s, rad * s)
+FULL = _inner("mark.svg")               # full illustration, transparent, vb 2048
+SMALL_CREAM = _inner("mark-small.svg")  # simplified mark, cream pages
+SMALL_TAN = _inner("mark-small-light.svg")  # simplified mark, tan pages (light bg)
 
 
-def scale_ops(ops: Sequence[Op], s: float) -> List[Op]:
-    return [(scale_rect(r, s), c) for r, c in ops]
+def content_for(size: int, light: bool = False) -> str:
+    if size <= SMALL_MAX:
+        return SMALL_TAN if light else SMALL_CREAM
+    return FULL
 
 
-# --- rounded-rectangle signed distance field --------------------------------
-def rrect_sdf(px: float, py: float, rect: Rect) -> float:
-    """<0 inside, >0 outside; magnitude in glyph units."""
-    x, y, w, h, r = rect
-    r = max(0.0, min(r, w / 2.0, h / 2.0))
-    cx, cy = x + w / 2.0, y + h / 2.0
-    hx, hy = w / 2.0, h / 2.0
-    dx = abs(px - cx) - (hx - r)
-    dy = abs(py - cy) - (hy - r)
-    ox, oy = max(dx, 0.0), max(dy, 0.0)
-    outside = math.hypot(ox, oy)
-    inside = min(max(dx, dy), 0.0)
-    return outside + inside - r
-
-
-def render(size: int, ops: Sequence[Op],
-           opaque_bg: Optional[Tuple[int, int, int, int]]) -> bytearray:
-    """Render ops (in 128-unit space) to `size`x`size` RGBA bytes.
-
-    Coverage is analytic: a ~1px anti-alias band from the rounded-rect SDF
-    (equivalent to very high supersampling but O(pixels) instead of O(samples)).
-    `opaque_bg`, when given, fills the canvas first and forces alpha 255.
-    """
-    px_unit = UNIT / size          # glyph units per output pixel
-    out = bytearray(size * size * 4)
-
-    if opaque_bg is not None:
-        br, bgc, bb, _ = opaque_bg
-        base = (float(br), float(bgc), float(bb), 255.0)
-    else:
-        base = (0.0, 0.0, 0.0, 0.0)
-
-    for j in range(size):
-        gy = (j + 0.5) * px_unit
-        row = j * size * 4
-        for i in range(size):
-            gx = (i + 0.5) * px_unit
-            r_acc, g_acc, b_acc, a_acc = base
-            for rect, (sr, sg, sb, sa) in ops:
-                d = rrect_sdf(gx, gy, rect)
-                cov = 0.5 - d / px_unit
-                if cov <= 0.0:
-                    continue
-                if cov > 1.0:
-                    cov = 1.0
-                a = (sa / 255.0) * cov
-                if a <= 0.0:
-                    continue
-                inv = 1.0 - a
-                r_acc = sr * a + r_acc * inv
-                g_acc = sg * a + g_acc * inv
-                b_acc = sb * a + b_acc * inv
-                a_acc = sa * cov + a_acc * inv
-            o = row + i * 4
-            out[o] = int(r_acc + 0.5)
-            out[o + 1] = int(g_acc + 0.5)
-            out[o + 2] = int(b_acc + 0.5)
-            out[o + 3] = 255 if opaque_bg is not None else int(a_acc + 0.5)
-    return out
-
-
-# --- PNG encoder ------------------------------------------------------------
-def _chunk(tag: bytes, data: bytes) -> bytes:
-    return (struct.pack(">I", len(data)) + tag + data
-            + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF))
-
-
-def encode_png(size: int, rgba: bytes, rgb_only: bool = False) -> bytes:
-    if rgb_only:
-        color_type = 2
-        stride = size * 3
-        raw = bytearray((stride + 1) * size)
-        p = 0
-        for j in range(size):
-            raw[p] = 0
-            p += 1
-            src = j * size * 4
-            for i in range(size):
-                s = src + i * 4
-                raw[p] = rgba[s]
-                raw[p + 1] = rgba[s + 1]
-                raw[p + 2] = rgba[s + 2]
-                p += 3
-    else:
-        color_type = 6
-        stride = size * 4
-        raw = bytearray((stride + 1) * size)
-        p = 0
-        for j in range(size):
-            raw[p] = 0
-            p += 1
-            src = j * stride
-            raw[p:p + stride] = rgba[src:src + stride]
-            p += stride
-    comp = zlib.compress(bytes(raw), 9)
-    ihdr = struct.pack(">IIBBBBB", size, size, 8, color_type, 0, 0, 0)
-    return (b"\x89PNG\r\n\x1a\n" + _chunk(b"IHDR", ihdr)
-            + _chunk(b"IDAT", comp) + _chunk(b"IEND", b""))
-
-
-def write_png(path: str, size: int, ops, opaque_bg=None, rgb_only=False) -> None:
-    rgba = render(size, ops, opaque_bg)
-    with open(path, "wb") as f:
-        f.write(encode_png(size, rgba, rgb_only=rgb_only))
-    print(f"  png {size:>4}px  {os.path.relpath(path, REPO)}")
-
-
-# --- ICO encoder ------------------------------------------------------------
-def _bmp_dib(size: int, rgba: bytes) -> bytes:
-    """32-bit BGRA BMP (DIB) with AND mask, for ICO entries < 256px."""
-    header = struct.pack("<IiiHHIIiiII", 40, size, size * 2, 1, 32, 0, 0, 0, 0, 0, 0)
-    pix = bytearray(size * size * 4)
-    p = 0
-    for j in range(size - 1, -1, -1):  # bottom-up
-        src = j * size * 4
-        for i in range(size):
-            s = src + i * 4
-            pix[p] = rgba[s + 2]      # B
-            pix[p + 1] = rgba[s + 1]  # G
-            pix[p + 2] = rgba[s]      # R
-            pix[p + 3] = rgba[s + 3]  # A
-            p += 4
-    mask_stride = ((size + 31) // 32) * 4
-    mask = bytes(mask_stride * size)  # all-zero: opaque via alpha channel
-    return header + bytes(pix) + mask
-
-
-def write_ico(path: str, sizes: Sequence[int], ops, opaque_bg=None) -> None:
-    entries = []
-    for s in sorted(sizes):
-        rgba = render(s, ops, opaque_bg)
-        data = encode_png(s, rgba) if s >= 256 else _bmp_dib(s, rgba)
-        entries.append((s, data))
-    count = len(entries)
-    header = struct.pack("<HHH", 0, 1, count)
-    offset = 6 + 16 * count
-    dir_bytes = b""
-    blob = b""
-    for s, data in entries:
-        w = h = 0 if s >= 256 else s
-        dir_bytes += struct.pack("<BBBBHHII", w, h, 0, 0, 1, 32, len(data), offset)
-        blob += data
-        offset += len(data)
-    with open(path, "wb") as f:
-        f.write(header + dir_bytes + blob)
-    print(f"  ico       {os.path.relpath(path, REPO)}  sizes={sorted(sizes)}")
-
-
-# --- Android vector drawable path data --------------------------------------
-def _fmt(n: float) -> str:
-    s = f"{n:.3f}".rstrip("0").rstrip(".")
-    return "0" if s in ("-0", "") else s
-
-
-def rrect_path(rect: Rect) -> str:
-    x, y, w, h, r = rect
-    r = max(0.0, min(r, w / 2.0, h / 2.0))
-    f = _fmt
+# --- rasterisation ----------------------------------------------------------
+def _compose_svg(size: int, content: str, bg, rounded: bool) -> str:
+    tile = ""
+    if bg is not None:
+        if rounded:
+            r = 2048 * TILE_RADIUS_RATIO
+            tile = '<rect width="2048" height="2048" rx="%.3f" fill="%s"/>' % (r, bg)
+        else:
+            tile = '<rect width="2048" height="2048" fill="%s"/>' % bg
     return (
-        f"M{f(x + r)},{f(y)}"
-        f"L{f(x + w - r)},{f(y)}"
-        f"A{f(r)},{f(r)},0,0,1,{f(x + w)},{f(y + r)}"
-        f"L{f(x + w)},{f(y + h - r)}"
-        f"A{f(r)},{f(r)},0,0,1,{f(x + w - r)},{f(y + h)}"
-        f"L{f(x + r)},{f(y + h)}"
-        f"A{f(r)},{f(r)},0,0,1,{f(x)},{f(y + h - r)}"
-        f"L{f(x)},{f(y + r)}"
-        f"A{f(r)},{f(r)},0,0,1,{f(x + r)},{f(y)}Z"
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 2048" '
+        'width="%d" height="%d">%s%s</svg>' % (size, size, tile, content)
     )
 
 
-def android_vector(color_hex: str, ops: Sequence[Op]) -> str:
-    paths = "\n".join(
-        f'    <path\n        android:fillColor="{color_hex}"\n'
-        f'        android:pathData="{rrect_path(rect)}" />'
-        for rect, _ in ops
-    )
-    return (
-        '<?xml version="1.0" encoding="utf-8"?>\n'
-        '<!-- Generated by tools/brand/generate_icons.py — do not edit by hand. -->\n'
-        '<vector xmlns:android="http://schemas.android.com/apk/res/android"\n'
-        '    android:width="108dp"\n'
-        '    android:height="108dp"\n'
-        '    android:viewportWidth="108"\n'
-        '    android:viewportHeight="108">\n'
-        f"{paths}\n"
-        "</vector>\n"
-    )
+def rasterize(svg: str, size: int) -> Image.Image:
+    with tempfile.NamedTemporaryFile("w", suffix=".svg", delete=False) as f:
+        f.write(svg)
+        path = f.name
+    try:
+        out = path + ".png"
+        subprocess.run(
+            ["rsvg-convert", "-w", str(size), "-h", str(size), path, "-o", out],
+            check=True,
+        )
+        return Image.open(out).convert("RGBA").copy()
+    finally:
+        os.unlink(path)
+        if os.path.exists(path + ".png"):
+            os.unlink(path + ".png")
+
+
+def render_tile(size: int, bg, rounded: bool, light: bool = False) -> Image.Image:
+    """Composited tile: (optional) background + size-appropriate content."""
+    return rasterize(_compose_svg(size, content_for(size, light), bg, rounded), size)
+
+
+def write_png(path: str, img: Image.Image, rgb: bool = False) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    img.save(path, "PNG")
+    if rgb:  # iOS wants opaque, no alpha
+        Image.open(path).convert("RGB").save(path, "PNG")
+    print("  png %4dpx  %s" % (img.width, os.path.relpath(path, REPO)))
 
 
 def write_text(path: str, text: str) -> None:
-    # Force UTF-8 + LF regardless of the host OS so regenerating on Windows vs
-    # macOS/Linux yields byte-identical files (the XML comments contain an
-    # em-dash, and Windows would otherwise default to CRLF / cp1252).
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
-    print(f"  xml       {os.path.relpath(path, REPO)}")
+    print("  txt        %s" % os.path.relpath(path, REPO))
 
 
-# --- scenes -----------------------------------------------------------------
-# Full-color rounded tile: petrol tile (rx 28.4) + amber glyph, transparent
-# surround. Used for Android legacy mipmaps and the Windows .ico.
-ROUNDED_OPS: List[Op] = [((0.0, 0.0, UNIT, UNIT, TILE_RADIUS), PETROL)] + glyph_ops(AMBER)
-# iOS: full-bleed opaque petrol square + amber glyph (no alpha, no rounding —
-# iOS applies its own superellipse mask). Petrol supplied via opaque_bg.
-IOS_OPS: List[Op] = glyph_ops(AMBER)
-# macOS: the rounded tile scaled to ~80% (Apple's ~10% transparent margin).
-MACOS_OPS: List[Op] = scale_ops(ROUNDED_OPS, 0.80)
-
-# Android adaptive foreground / monochrome: glyph mapped into the 108 viewport
-# at scale 0.80 about (64,64) so it lands inside the 66dp themed safe circle.
-FG_SCALE = 0.80
-FG_LEFT = (54.0 + FG_SCALE * (38.0 - 64.0), 54.0 + FG_SCALE * (44.0 - 64.0),
-           18.0 * FG_SCALE, 56.0 * FG_SCALE, 9.0 * FG_SCALE)
-FG_RIGHT = (54.0 + FG_SCALE * (72.0 - 64.0), 54.0 + FG_SCALE * (28.0 - 64.0),
-            18.0 * FG_SCALE, 56.0 * FG_SCALE, 9.0 * FG_SCALE)
-FG_OPS: List[Op] = [(FG_LEFT, AMBER), (FG_RIGHT, AMBER)]
+# --- Android VectorDrawable (flatten transforms into path coords) -----------
+# Content lives in a 2048 box; adaptive layers map it into the 108 viewport,
+# scaled 0.80 about centre so it lands inside the 66dp themed safe circle:
+#   q = p * (108/2048) * 0.80 + 54*(1 - 0.80)
+_K = (108.0 / 2048.0) * 0.80
+_T = 54.0 * (1.0 - 0.80)
 
 
+def _fmt(n: float) -> str:
+    s = ("%.3f" % n).rstrip("0").rstrip(".")
+    return "0" if s in ("", "-0") else s
+
+
+def _flatten_d(d: str) -> str:
+    # The committed brand SVGs are pre-baked to transform-free, *absolute*
+    # M/L/C/Z paths (see app/assets/brand/*.svg), so every number is an (x, y)
+    # coordinate the uniform 108-viewport map applies to. Both letter cases are
+    # accepted (Z/z close) so a stray lowercase close is never dropped.
+    out: List[str] = []
+    for cmd, args in re.findall(r"([MLCZmlcz])([^MLCZmlcz]*)", d):
+        upper = cmd.upper()
+        if upper == "Z":
+            out.append("Z")
+            continue
+        nums = [float(x) for x in re.findall(r"-?\d+\.?\d*", args)]
+        mapped = [_fmt(v * _K + _T) for v in nums]  # uniform k,t on every coord
+        out.append(upper + ("" if not mapped else " " + " ".join(mapped)))
+    return "".join(out)
+
+
+def _rgb_to_hex(fill: str) -> str:
+    m = re.match(r"rgb\((\d+),\s*(\d+),\s*(\d+)\)", fill)
+    if not m:
+        return fill if fill.startswith("#") else "#000000"
+    return "#{:02X}{:02X}{:02X}".format(*(int(x) for x in m.groups()))
+
+
+def _paths_from(content: str, force_color) -> List[Tuple[str, str]]:
+    result = []
+    for p in re.findall(r"<path[^>]*/>", content):
+        d = re.search(r'd="([^"]*)"', p).group(1)
+        fill = re.search(r'fill="([^"]*)"', p)
+        color = force_color or _rgb_to_hex(fill.group(1) if fill else "#000000")
+        result.append((color, _flatten_d(d)))
+    return result
+
+
+def android_vector(content: str, force_color) -> str:
+    paths = "\n".join(
+        '    <path\n        android:fillColor="%s"\n'
+        '        android:pathData="%s" />' % (color, d)
+        for color, d in _paths_from(content, force_color)
+    )
+    return (
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        "<!-- Generated by tools/brand/generate_icons.py \u2014 do not edit by hand. -->\n"
+        '<vector xmlns:android="http://schemas.android.com/apk/res/android"\n'
+        '    android:width="108dp"\n    android:height="108dp"\n'
+        '    android:viewportWidth="108"\n    android:viewportHeight="108">\n'
+        "%s\n</vector>\n" % paths
+    )
+
+
+# --- ICO (Pillow) -----------------------------------------------------------
+def write_ico(path: str, sizes: Sequence[int]) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    ordered = sorted(sizes)
+    imgs = [render_tile(s, SOFT_DARK, rounded=True) for s in ordered]
+    imgs[-1].save(path, format="ICO", sizes=[(s, s) for s in ordered],
+                  append_images=imgs[:-1])
+    print("  ico        %s  sizes=%s" % (os.path.relpath(path, REPO), ordered))
+
+
+# --- platforms --------------------------------------------------------------
 def android(res: str) -> None:
     print("Android:")
     legacy = {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}
     for dpi, s in legacy.items():
-        write_png(os.path.join(res, f"mipmap-{dpi}", "ic_launcher.png"), s, ROUNDED_OPS)
+        write_png(os.path.join(res, "mipmap-%s" % dpi, "ic_launcher.png"),
+                  render_tile(s, SOFT_DARK, rounded=True))
     drawable = os.path.join(res, "drawable")
-    os.makedirs(drawable, exist_ok=True)
     write_text(os.path.join(drawable, "ic_launcher_foreground.xml"),
-               android_vector("#FFB784", FG_OPS))
-    # Monochrome layer (Android 13+ themed icons): flat black; the system tints it.
+               android_vector(FULL, force_color=None))
     write_text(os.path.join(drawable, "ic_launcher_monochrome.xml"),
-               android_vector("#000000", FG_OPS))
-    anydpi = os.path.join(res, "mipmap-anydpi-v26")
-    os.makedirs(anydpi, exist_ok=True)
+               android_vector(SMALL_CREAM, force_color="#000000"))
     adaptive = (
         '<?xml version="1.0" encoding="utf-8"?>\n'
         '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
         '    <background android:drawable="@color/ic_launcher_background" />\n'
         '    <foreground android:drawable="@drawable/ic_launcher_foreground" />\n'
         '    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />\n'
-        '</adaptive-icon>\n'
+        "</adaptive-icon>\n"
     )
-    write_text(os.path.join(anydpi, "ic_launcher.xml"), adaptive)
-    values = os.path.join(res, "values")
-    os.makedirs(values, exist_ok=True)
-    write_text(os.path.join(values, "colors.xml"),
+    write_text(os.path.join(res, "mipmap-anydpi-v26", "ic_launcher.xml"), adaptive)
+    write_text(os.path.join(res, "values", "colors.xml"),
                '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
-               '    <color name="ic_launcher_background">#121A24</color>\n</resources>\n')
+               '    <color name="ic_launcher_background">%s</color>\n'
+               "</resources>\n" % SOFT_DARK)
 
 
 def ios(root: str) -> None:
     print("iOS:")
     d = os.path.join(root, "ios", "Runner", "Assets.xcassets", "AppIcon.appiconset")
-    files = {
-        "Icon-App-20x20@1x.png": 20, "Icon-App-20x20@2x.png": 40, "Icon-App-20x20@3x.png": 60,
-        "Icon-App-29x29@1x.png": 29, "Icon-App-29x29@2x.png": 58, "Icon-App-29x29@3x.png": 87,
-        "Icon-App-40x40@1x.png": 40, "Icon-App-40x40@2x.png": 80, "Icon-App-40x40@3x.png": 120,
-        "Icon-App-60x60@2x.png": 120, "Icon-App-60x60@3x.png": 180,
-        "Icon-App-76x76@1x.png": 76, "Icon-App-76x76@2x.png": 152,
-        "Icon-App-83.5x83.5@2x.png": 167, "Icon-App-1024x1024@1x.png": 1024,
-    }
-    for name, s in files.items():
-        write_png(os.path.join(d, name), s, IOS_OPS, opaque_bg=PETROL, rgb_only=True)
+    if os.path.isdir(d):
+        for f in os.listdir(d):
+            if f.endswith(".png"):
+                os.unlink(os.path.join(d, f))
+    any_img = render_tile(1024, SOFT_DARK, rounded=False)   # Any = Soft Dark
+    dark_img = render_tile(1024, DARK, rounded=False)       # Dark
+    tinted = render_tile(1024, DARK, rounded=False).convert("L").convert("RGBA")
+    write_png(os.path.join(d, "Icon-App-1024.png"), any_img, rgb=True)
+    write_png(os.path.join(d, "Icon-App-1024-dark.png"), dark_img, rgb=True)
+    write_png(os.path.join(d, "Icon-App-1024-tinted.png"), tinted, rgb=True)
+    contents = (
+        '{\n  "images" : [\n'
+        '    {\n      "filename" : "Icon-App-1024.png",\n'
+        '      "idiom" : "universal",\n      "platform" : "ios",\n'
+        '      "size" : "1024x1024"\n    },\n'
+        '    {\n      "appearances" : [\n        {\n'
+        '          "appearance" : "luminosity",\n          "value" : "dark"\n        }\n      ],\n'
+        '      "filename" : "Icon-App-1024-dark.png",\n'
+        '      "idiom" : "universal",\n      "platform" : "ios",\n'
+        '      "size" : "1024x1024"\n    },\n'
+        '    {\n      "appearances" : [\n        {\n'
+        '          "appearance" : "luminosity",\n          "value" : "tinted"\n        }\n      ],\n'
+        '      "filename" : "Icon-App-1024-tinted.png",\n'
+        '      "idiom" : "universal",\n      "platform" : "ios",\n'
+        '      "size" : "1024x1024"\n    }\n  ],\n'
+        '  "info" : {\n    "author" : "xcode",\n    "version" : 1\n  }\n}\n'
+    )
+    write_text(os.path.join(d, "Contents.json"), contents)
 
 
 def macos(root: str) -> None:
     print("macOS:")
     d = os.path.join(root, "macos", "Runner", "Assets.xcassets", "AppIcon.appiconset")
     for s in (16, 32, 64, 128, 256, 512, 1024):
-        write_png(os.path.join(d, f"app_icon_{s}.png"), s, MACOS_OPS)
+        margin = round(s * 0.10)
+        inner = s - 2 * margin
+        tile = render_tile(inner, SOFT_DARK, rounded=True)
+        canvas = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+        canvas.paste(tile, (margin, margin), tile)
+        write_png(os.path.join(d, "app_icon_%d.png" % s), canvas)
 
 
 def windows(root: str) -> None:
     print("Windows:")
-    p = os.path.join(root, "windows", "runner", "resources", "app_icon.ico")
-    write_ico(p, (16, 24, 32, 48, 64, 128, 256), ROUNDED_OPS)
+    write_ico(os.path.join(root, "windows", "runner", "resources", "app_icon.ico"),
+              (16, 24, 32, 48, 64, 128, 256))
+
+
+def linux_packaging() -> None:
+    print("Linux packaging:")
+    write_png(os.path.join(REPO, "packaging", "linux", "icon.png"),
+              render_tile(512, SOFT_DARK, rounded=True))
 
 
 def main() -> None:
@@ -341,6 +287,7 @@ def main() -> None:
     ios(APP)
     macos(APP)
     windows(APP)
+    linux_packaging()
     print("done.")
 
 
