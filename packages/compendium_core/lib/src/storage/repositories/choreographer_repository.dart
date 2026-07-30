@@ -41,8 +41,11 @@ class ChoreographerRepository {
 
   /// Throws if [id] is still referenced by any `dance_authors` row — callers
   /// should reassign or remove authorship first (deleting a choreographer
-  /// silently orphaning credited dances would be a silent data loss bug).
-  Future<void> delete(String id) async {
+  /// silently orphaning credited dances would be a silent data loss bug). The
+  /// "still credited?" check and the delete run inside a single transaction
+  /// so no dance can acquire a reference between the check and the delete (no
+  /// check-then-act race). Mirrors `VenueRepository.delete`.
+  Future<void> delete(String id) => _db.transaction(() async {
     final stillUsed = await (_db.select(
       _db.danceAuthors,
     )..where((t) => t.choreographerId.equals(id))).get();
@@ -53,7 +56,7 @@ class ChoreographerRepository {
       );
     }
     await (_db.delete(_db.choreographers)..where((t) => t.id.equals(id))).go();
-  }
+  });
 
   Choreographer _toModel(ChoreographerRow row) => Choreographer(
     id: row.id,

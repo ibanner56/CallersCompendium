@@ -129,4 +129,20 @@ void main() {
     // still there, since delete failed
     expect(await repo.getById('c1'), isNotNull);
   });
+
+  test('delete succeeds once the crediting dance is unlinked', () async {
+    await repo.upsert(Choreographer(id: 'c1', name: 'Credited'));
+    final dance = Dance(
+      id: 'd1',
+      title: 'Some Dance',
+      authorIds: const ['c1'],
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+    );
+    await dances.create(dance);
+    await dances.update(dance.copyWith(authorIds: const []));
+
+    await repo.delete('c1');
+    expect(await repo.getById('c1'), isNull);
+  });
 }

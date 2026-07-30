@@ -43,9 +43,12 @@ class PublishedSourceRepository {
 
   /// Throws if [id] is still referenced by any `dance_sources` row — callers
   /// must remove the citing dances' citations first (deleting a source out
-  /// from under credited dances would be a silent data-loss bug). Mirrors the
-  /// `ChoreographerRepository` delete guard.
-  Future<void> delete(String id) async {
+  /// from under credited dances would be a silent data-loss bug). The "still
+  /// cited?" check and the delete run inside a single transaction so no
+  /// dance can acquire a citation between the check and the delete (no
+  /// check-then-act race). Mirrors `VenueRepository.delete` /
+  /// `ChoreographerRepository.delete`.
+  Future<void> delete(String id) => _db.transaction(() async {
     final stillUsed = await (_db.select(
       _db.danceSources,
     )..where((t) => t.sourceId.equals(id))).get();
@@ -58,7 +61,7 @@ class PublishedSourceRepository {
     await (_db.delete(
       _db.publishedSources,
     )..where((t) => t.id.equals(id))).go();
-  }
+  });
 
   PublishedSource _toModel(PublishedSourceRow row) => PublishedSource(
     id: row.id,
