@@ -354,14 +354,16 @@ bool _eatAmpBalance(_Scan s) {
   return false;
 }
 
-/// Consumes a leading `balance` prefix and the `&` ContraDB renders after it,
+/// Consumes a leading `balance` prefix plus the `&` ContraDB renders after it,
 /// returning whether a balance was present. The `bal` param's forward renderer
 /// (`libfigure` `stringParamBalance`) always emits `balance & ` before the move
 /// (e.g. `balance & Rory O'More`, `balance & petronella`), so the `&` is a
-/// template token, not a leftover note — leaving it unconsumed would make the
+/// template token, not a leftover note — leaving it unconsumed made the
 /// recognizer decline and demote an otherwise-matchable figure to custom (#578).
-/// The `&` is only eaten when it immediately follows `balance`, so a bare
-/// `balance` (no ampersand) is left intact for its own recognizer.
+/// `balance` itself is always consumed (that is the prefix); the `&` is optional
+/// so lenient input rendered without it (e.g. hand-authored `balance petronella`)
+/// still recognises. A trailing `&` is only eaten when it immediately follows
+/// `balance`, never mid-figure.
 bool _eatBalanceAmp(_Scan s) {
   if (!s.eat('balance')) return false;
   s.eat('&');
