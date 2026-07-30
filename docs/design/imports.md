@@ -171,6 +171,16 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
     missing/empty `zk_Dance_ID`, or an orphan id matching no `Dance`, is dropped
     with a warning; duplicate keys are grouped. (`Elements` is not ingested yet —
     #563 — so nothing to harden there today.)
+- **Program-import parity (#611).** The #444/#561 `sanitizeImportedText`
+  defense originally only covered dance imports; program imports (this CC
+  `.USR` `Set`/`SetItem` → `Program` builder in `callers_companion_programs.dart`,
+  and the ContraDB program HTML parser in `contradb_program.dart`) now route
+  every imported free-text field through the same sanitizer at parse/build
+  time — single-line fields (title, venue, band, caller, dancer level, guest
+  caller, contributor) with `allowLineBreaks: false`, multi-line prose (notes,
+  break text, program notes) with the default — so a program title or note
+  can no longer carry bidi-override/zero-width spoofing characters into
+  storage, matching the dance path exactly.
 - **Shorthand seeding from `InsertCall` (#562).** After the dance/program commit,
   the review flow offers an **opt-in, previewed** step that turns CC's shipped
   default "call buttons" (`InsertCall`: label → call text + beats, with an ALT

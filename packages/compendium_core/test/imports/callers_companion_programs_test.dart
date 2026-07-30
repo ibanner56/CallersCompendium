@@ -210,4 +210,135 @@ void main() {
     expect(prov.sourceVersion, ccUsrSourceVersion);
     expect(prov.importedAt, DateTime.utc(2020));
   });
+
+  group('#611 bidi/zero-width sanitization', () {
+    // U+202E RIGHT-TO-LEFT OVERRIDE and U+200B ZERO WIDTH SPACE — the same
+    // spoofing characters #444 strips from the CC dance import path.
+    const rlo = '\u202E';
+    const zwsp = '\u200B';
+
+    test('strips bidi/zero-width characters from every single-line program '
+        'field', () {
+      final result = build(
+        _archive([
+          CcSet(
+            recordId: '1',
+            title: '${rlo}Evil${zwsp}Set',
+            location: '${rlo}Evil${zwsp}Hall',
+            band: '${rlo}Evil${zwsp}Band',
+            caller: '${rlo}Evil${zwsp}Caller',
+            dancerLevel: '${rlo}Evil${zwsp}Level',
+            items: [
+              CcSetItem(
+                order: 0,
+                danceRecordId: '7',
+                guestCaller: '${rlo}Evil${zwsp}Guest',
+              ),
+            ],
+          ),
+        ]),
+        danceIds: {'7': 'dance-uuid-7'},
+      );
+
+      final program = result.programs.single;
+      expect(program.title, 'EvilSet');
+      expect(program.venue, 'EvilHall');
+      expect(program.band, 'EvilBand');
+      expect(program.caller, 'EvilCaller');
+      expect(program.dancerLevel, 'EvilLevel');
+      expect(program.slots.single.guestCaller, 'EvilGuest');
+    });
+
+    test(
+      'strips bidi/zero-width characters from notes and break-text slots',
+      () {
+        final result = build(
+          _archive([
+            CcSet(
+              recordId: '1',
+              title: 'Set',
+              notes: '${rlo}Evil${zwsp}notes',
+              items: [CcSetItem(order: 0, breakText: '${rlo}Evil${zwsp}break')],
+            ),
+          ]),
+        );
+
+        final program = result.programs.single;
+        expect(program.notes, 'Evilnotes');
+        expect(program.slots.single.text, 'Evilbreak');
+      },
+    );
+
+    test(
+      'strips bidi/zero-width characters from the Location-derived title',
+      () {
+        final result = build(
+          _archive([
+            CcSet(
+              recordId: '1',
+              location: '${rlo}Evil${zwsp}Hall',
+              items: const [],
+            ),
+          ]),
+        );
+        expect(result.programs.single.title, 'EvilHall');
+      },
+    );
+
+    test('an unresolved-dance placeholder built from sanitized break text', () {
+      final result = build(
+        _archive([
+          CcSet(
+            recordId: '1',
+            title: 'Set',
+            items: [
+              CcSetItem(
+                order: 0,
+                danceRecordId: '999',
+                breakText: '${rlo}Evil${zwsp}note',
+              ),
+            ],
+          ),
+        ]),
+      );
+      expect(result.programs.single.slots.single.text, 'Evilnote');
+    });
+
+    test('clean input is unchanged (byte-stable)', () {
+      final result = build(
+        _archive([
+          CcSet(
+            recordId: '100',
+            title: 'Friday Contra',
+            eventDate: '3/14/2020',
+            location: 'Grange Hall',
+            band: 'The Band',
+            caller: 'Jane',
+            dancerLevel: 'B/A',
+            notes: 'Bring extra chairs.',
+            items: [
+              CcSetItem(
+                order: 0,
+                danceRecordId: '7',
+                minutes: 8,
+                guestCaller: 'Guest Caller',
+              ),
+              CcSetItem(order: 1, breakText: 'Waltz break'),
+            ],
+          ),
+        ]),
+        danceIds: {'7': 'dance-uuid-7'},
+      );
+
+      final program = result.programs.single;
+      expect(program.title, 'Friday Contra');
+      expect(program.venue, 'Grange Hall');
+      expect(program.band, 'The Band');
+      expect(program.caller, 'Jane');
+      expect(program.dancerLevel, 'B/A');
+      expect(program.notes, 'Bring extra chairs.');
+      expect(program.slots[0].guestCaller, 'Guest Caller');
+      expect(program.slots[1].text, 'Waltz break');
+    });
+  });
 }

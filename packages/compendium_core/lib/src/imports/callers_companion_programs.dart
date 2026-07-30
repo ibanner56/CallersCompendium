@@ -3,6 +3,7 @@ import 'package:meta/meta.dart';
 import '../model/enums.dart';
 import '../model/program.dart';
 import '../model/provenance.dart';
+import '../util/text_sanitizer.dart';
 import '../util/uuid.dart';
 import 'callers_companion_usr_archive.dart';
 import 'structured_draft.dart';
@@ -63,15 +64,16 @@ CcProgramsResult buildCcPrograms(
     for (final item in set.items) {
       String? danceId;
       String? text;
+      final cleanBreakText = _cleanNote(item.breakText);
       if (item.danceRecordId != null) {
         danceId = danceIdByCcRowId[item.danceRecordId];
         if (danceId == null) {
           // The referenced dance was not imported/committed; keep the slot as
           // a placeholder text note rather than dropping it silently.
-          text = (item.breakText ?? '').trim().isNotEmpty
-              ? item.breakText!.trim()
-              : 'Dance not imported (Caller\'s Companion dance '
-                    '#${item.danceRecordId})';
+          text =
+              cleanBreakText ??
+              'Dance not imported (Caller\'s Companion dance '
+                  '#${item.danceRecordId})';
           issues.add(
             ImportIssue(
               severity: ImportIssueSeverity.warning,
@@ -84,9 +86,7 @@ CcProgramsResult buildCcPrograms(
           );
         }
       } else {
-        text = (item.breakText ?? '').trim().isEmpty
-            ? null
-            : item.breakText!.trim();
+        text = cleanBreakText;
       }
 
       if (danceId == null && (text == null || text.isEmpty)) {
@@ -108,9 +108,7 @@ CcProgramsResult buildCcPrograms(
           danceId: danceId,
           text: text,
           isAlt: item.isAlt,
-          guestCaller: (item.guestCaller ?? '').trim().isEmpty
-              ? null
-              : item.guestCaller!.trim(),
+          guestCaller: _cleanLine(item.guestCaller),
           plannedMinutes: item.minutes,
         ),
       );
@@ -121,11 +119,11 @@ CcProgramsResult buildCcPrograms(
         id: mintId(),
         title: title,
         eventDate: eventDate,
-        venue: _clean(set.location),
-        band: _clean(set.band),
-        caller: _clean(set.caller),
-        dancerLevel: _clean(set.dancerLevel),
-        notes: _clean(set.notes) ?? '',
+        venue: _cleanLine(set.location),
+        band: _cleanLine(set.band),
+        caller: _cleanLine(set.caller),
+        dancerLevel: _cleanLine(set.dancerLevel),
+        notes: _cleanNote(set.notes) ?? '',
         slots: slots,
         createdAt: timestamp,
         updatedAt: timestamp,
@@ -147,13 +145,13 @@ CcProgramsResult buildCcPrograms(
 }
 
 String _titleFor(CcSet set) {
-  final title = (set.title ?? '').trim();
-  if (title.isNotEmpty) return title;
+  final title = _cleanLine(set.title);
+  if (title != null) return title;
   // CC Sets have no title field; the Location is the de-facto event name.
-  final location = (set.location ?? '').trim();
-  if (location.isNotEmpty) return location;
-  final date = (set.eventDate ?? '').trim();
-  if (date.isNotEmpty) return "Caller's Companion set — $date";
+  final location = _cleanLine(set.location);
+  if (location != null) return location;
+  final date = _cleanLine(set.eventDate);
+  if (date != null) return "Caller's Companion set — $date";
   return "Caller's Companion set #${set.recordId}";
 }
 
@@ -194,7 +192,26 @@ String _titleFor(CcSet set) {
   );
 }
 
-String? _clean(String? raw) {
-  final v = raw?.trim() ?? '';
-  return v.isEmpty ? null : v;
+/// Sanitizes a single-line imported field (title, venue, band, caller,
+/// dancer level, guest caller), stripping control, bidi-override and
+/// invisible/format characters plus any embedded tab/newline/CR (issue
+/// #444/#611, mirroring `callers_companion_mapping.dart`'s `_sanitizeLine`).
+/// Returns null for null/blank/all-stripped input.
+String? _cleanLine(String? raw) {
+  final trimmed = raw?.trim() ?? '';
+  if (trimmed.isEmpty) return null;
+  final clean = sanitizeImportedText(trimmed, allowLineBreaks: false).trim();
+  return clean.isEmpty ? null : clean;
+}
+
+/// Sanitizes a multi-line prose imported field (program notes, break text),
+/// stripping control/bidi/format spoofing characters while preserving
+/// legitimate newlines (issue #444/#611, mirroring
+/// `callers_companion_mapping.dart`'s `_joinNotes`). Returns null for
+/// null/blank/all-stripped input.
+String? _cleanNote(String? raw) {
+  final trimmed = raw?.trim() ?? '';
+  if (trimmed.isEmpty) return null;
+  final clean = sanitizeImportedText(trimmed).trim();
+  return clean.isEmpty ? null : clean;
 }
