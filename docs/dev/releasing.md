@@ -435,10 +435,13 @@ deploys it on any push to `main` under `site/**`, or on manual dispatch.
 
 The site publisher is the **mirror image** of the manifest publisher: it starts
 from the existing `gh-pages` content and rewrites only the site files, so it
-**preserves `beta.json` / `stable.json`**, and the manifest publisher preserves
-the site. The two therefore coexist on one branch without clobbering each other
-(proven offline by `tools/release/test_publish_pages_site.py`). This is why Pages
-stays on **Deploy from a branch → `gh-pages`** — do not switch it to the
+**preserves the channel manifests and their detached signatures** (`beta.json` /
+`stable.json` and `beta.json.sig` / `stable.json.sig`), and the manifest publisher
+preserves the site. The two therefore coexist on one branch without clobbering each
+other (proven offline by `tools/release/test_publish_pages_site.py`, whose
+`.sig`-survival case guards the release blocker in #607 — deleting a signature makes
+the in-app update client fail closed and silently stop offering updates). This is
+why Pages stays on **Deploy from a branch → `gh-pages`** — do not switch it to the
 GitHub-Actions Pages source.
 
 ### Keeping the landing page aligned

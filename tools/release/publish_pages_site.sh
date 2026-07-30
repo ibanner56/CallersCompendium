@@ -53,7 +53,14 @@ source_ref="${SOURCE_REF:-$(git rev-parse --short HEAD 2>/dev/null || echo unkno
 
 # Files on gh-pages that belong to OTHER writers and must never be touched here.
 # Anything else at the branch root is considered "site output" we own.
-preserve=(".git" ".nojekyll" "beta.json" "stable.json")
+#
+# The channel manifests AND their detached signatures (`<channel>.json.sig`, added
+# in #431) are published by tools/release/publish_pages_manifest.sh and must be
+# preserved TOGETHER: a manifest without its signature is as broken as the reverse
+# — the in-app update client fetches `<channel>.json.sig`, and a missing signature
+# makes it fail closed and silently stop offering updates (issue #607). Keep this
+# list in sync with every artifact the manifest publisher emits.
+preserve=(".git" ".nojekyll" "beta.json" "beta.json.sig" "stable.json" "stable.json.sig")
 
 cleanup() { git worktree remove --force "$worktree" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
