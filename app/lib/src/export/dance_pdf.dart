@@ -165,7 +165,7 @@ List<pw.Widget> _figureWidgets(
         pw.Padding(
           padding: const pw.EdgeInsets.only(left: 24, bottom: 1),
           child: pw.Text(
-            note,
+            renderer.renderFreeText(note, dialect),
             style: pw.TextStyle(
               fontSize: 10,
               fontStyle: pw.FontStyle.italic,

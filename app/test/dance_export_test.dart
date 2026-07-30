@@ -43,6 +43,21 @@ class _SpyRenderer extends FigureRenderer {
   }
 }
 
+/// A [FigureRenderer] spy that records every string passed to
+/// [renderFreeText] (issue #619 regression guard: the figure-note PDF path
+/// must call renderFreeText on the note, not print it verbatim).
+class _FreeTextSpyRenderer extends FigureRenderer {
+  _FreeTextSpyRenderer() : super(contraTaxonomy);
+
+  final List<String> freeTextCalls = [];
+
+  @override
+  String renderFreeText(String text, Dialect dialect) {
+    freeTextCalls.add(text);
+    return super.renderFreeText(text, dialect);
+  }
+}
+
 Dance _dance({
   String title = 'Rory O\'More',
   List<String> authorIds = const [],
@@ -528,6 +543,36 @@ void main() {
       final assumedLen = await pdfLen(assumed: true);
 
       expect(assumedLen, greaterThan(statedLen));
+    });
+
+    // Regression for issue #619: figure.note is the only free-text field not
+    // routed through renderFreeText, so a canonical role token leaked verbatim
+    // into the printed PDF instead of following the export's active dialect.
+    // The PDF text itself can't be grep'd (glyph-encoded + compressed), so a
+    // spy renderer asserts the note string actually reaches renderFreeText.
+    testWidgets('renders the figure note via renderFreeText (#619)', (
+      tester,
+    ) async {
+      final spy = _FreeTextSpyRenderer();
+      final bytes = await buildDancePdf(
+        _dance(
+          figures: [
+            Figure(
+              move: 'allemande',
+              params: {'who': 'role2s', 'turn': 1.0},
+              note: 'role2s scoop them up',
+            ),
+          ],
+        ),
+        dialect: Dialect.larksRobins,
+        authorNames: const [],
+        formationLabel: 'Duple improper',
+        statusLabel: 'Active',
+        renderer: spy,
+      );
+
+      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+      expect(spy.freeTextCalls, contains('role2s scoop them up'));
     });
   });
 }

@@ -265,4 +265,91 @@ void main() {
       expect(find.textContaining('ladies chain'), findsOneWidget);
     },
   );
+
+  // Regression for issue #619: a figure note is the only free-text field not
+  // routed through renderFreeText, so a canonical role token leaked verbatim
+  // into the performed figure row instead of following the active dialect.
+  testWidgets(
+    'figure note with a role token renders in the active dialect (issue #619)',
+    (tester) async {
+      final c = await _controllerWith(null);
+      final dance = _dance().copyWith(
+        figures: [
+          Figure(
+            move: 'allemande',
+            params: {'who': 'role2s', 'turn': 1.0},
+            note: 'role2s scoop them up',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: FormationColorsScope(
+              controller: c,
+              child: PerformCard(
+                dance: dance,
+                renderer: _renderer,
+                dialect: Dialect.larksRobins,
+                textScale: 1.0,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('robins scoop them up'), findsOneWidget);
+      expect(find.text('role2s scoop them up'), findsNothing);
+    },
+  );
+
+  // Regression for the review comment on #619: `Substitutor` treats `_` as a
+  // word character, so a role token immediately touching an emphasis
+  // delimiter (`_role2s_`) would not match a naive whole-string substitution.
+  // The note must be emphasis-parsed (delimiters stripped) BEFORE dialect
+  // substitution, exactly like the custom-figure `mainSpans` path, so
+  // substitution never depends on adjacent markup.
+  testWidgets(
+    'figure note substitutes a role token immediately touching emphasis '
+    'markup (issue #619 follow-up)',
+    (tester) async {
+      final c = await _controllerWith(null);
+      final dance = _dance().copyWith(
+        figures: [
+          Figure(
+            move: 'allemande',
+            params: {'who': 'role2s', 'turn': 1.0},
+            note: '_role2s_ scoop them up',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: FormationColorsScope(
+              controller: c,
+              child: PerformCard(
+                dance: dance,
+                renderer: _renderer,
+                dialect: Dialect.larksRobins,
+                textScale: 1.0,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // The rendered (delimiter-stripped) text run must read "robins", never
+      // the raw canonical token nor the markup-wrapped original.
+      expect(find.textContaining('robins scoop them up'), findsOneWidget);
+      expect(find.textContaining('role2s'), findsNothing);
+      expect(find.textContaining('_role2s_'), findsNothing);
+    },
+  );
 }
