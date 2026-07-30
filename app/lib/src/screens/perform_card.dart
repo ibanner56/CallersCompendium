@@ -989,6 +989,23 @@ class _Figures extends StatelessWidget {
           ];
         }
       }
+      // Figure notes may also carry inline emphasis markup, so apply the same
+      // parse-then-substitute-per-span treatment as [mainSpans] above (issue
+      // #619): substituting the whole raw note in one pass would leave a role
+      // token immediately touching a `_`/`*` delimiter unsubstituted, since the
+      // delimiter-stripping happens downstream in [_FigureRow].
+      List<EmphasisSpan>? noteSpans;
+      final rawNote = sf.figure.note?.trim();
+      if (rawNote != null && rawNote.isNotEmpty) {
+        noteSpans = [
+          for (final span in parseInlineEmphasis(rawNote))
+            EmphasisSpan(
+              text: renderer.renderFreeText(span.text, dialect),
+              bold: span.bold,
+              underline: span.underline,
+            ),
+        ];
+      }
       children.add(
         _FigureRow(
           text: renderer.renderSummary(sf.figure, dialect, decimals: decimals),
@@ -1000,9 +1017,7 @@ class _Figures extends StatelessWidget {
           ),
           beats: sf.figure.beats,
           progression: sf.figure.progression,
-          note: sf.figure.note == null
-              ? null
-              : renderer.renderFreeText(sf.figure.note!, dialect),
+          noteSpans: noteSpans,
           isImportGap:
               sf.figure.isCustom &&
               sf.figure.customOrigin == CustomOrigin.importGap,
@@ -1025,7 +1040,7 @@ class _FigureRow extends StatelessWidget {
     required this.verboseText,
     required this.beats,
     required this.progression,
-    required this.note,
+    required this.noteSpans,
     required this.isImportGap,
     this.chromeScale = 1.0,
   });
@@ -1042,7 +1057,10 @@ class _FigureRow extends StatelessWidget {
   final String verboseText;
   final int beats;
   final bool progression;
-  final String? note;
+
+  /// Pre-parsed, dialect-substituted emphasis spans for the figure note, or
+  /// null/empty when the figure has no note (issue #619).
+  final List<EmphasisSpan>? noteSpans;
 
   /// Whether this is a parser-gap custom figure ([CustomOrigin.importGap]),
   /// which gets a badge + subtle row shading.
@@ -1064,8 +1082,10 @@ class _FigureRow extends StatelessWidget {
     // For a custom line, use the already delimiter-stripped + dialect-
     // substituted [mainSpans] so the label matches the on-screen words (the
     // verbose rendering can leave role tokens unsubstituted when an underscore
-    // sits against them); otherwise strip the canonical verbose text.
-    final noteText = note?.trim() ?? '';
+    // sits against them); otherwise strip the canonical verbose text. [noteText]
+    // is built the same way from the pre-parsed [noteSpans], so it is already
+    // delimiter-stripped and dialect-substituted — no further stripping needed.
+    final noteText = noteSpans?.map((s) => s.text).join() ?? '';
     final mainSemantics = mainSpans != null
         ? mainSpans!.map((s) => s.text).join()
         : stripInlineEmphasis(verboseText);
@@ -1079,7 +1099,7 @@ class _FigureRow extends StatelessWidget {
       progression ? 'yes' : 'no',
       beats,
       noteText.isNotEmpty ? 'yes' : 'no',
-      noteText.isNotEmpty ? stripInlineEmphasis(noteText) : '',
+      noteText,
     );
     final textStyle = theme.textTheme.headlineSmall?.merge(
       AppTypography.performBody,
@@ -1123,10 +1143,7 @@ class _FigureRow extends StatelessWidget {
                   else
                     Text(text, style: textStyle),
                   if (noteText.isNotEmpty)
-                    Text.rich(
-                      _emphasisSpan(parseInlineEmphasis(noteText)),
-                      style: noteStyle,
-                    ),
+                    Text.rich(_emphasisSpan(noteSpans!), style: noteStyle),
                 ],
               ),
             ),
