@@ -51,6 +51,11 @@ TILE_RADIUS_RATIO = 28.4 / 128.0  # rounded-tile corner radius (~22.2%)
 
 # Small-mark crossover: at or below this pixel size use the simplified mark.
 SMALL_MAX = 32
+# At or below this pixel size, scale the small mark up so its content sits a
+# single pixel from the tile edge at the narrowest side (maximum legibility at
+# the tiniest icon slots — Windows .ico 16px, macOS 16pt).
+TIGHT_FIT_MAX = 16
+TIGHT_FIT_BORDER_PX = 1
 
 
 # --- brand source content ---------------------------------------------------
@@ -74,6 +79,40 @@ def content_for(size: int, light: bool = False) -> str:
 
 
 # --- rasterisation ----------------------------------------------------------
+_BBOX_CACHE: dict = {}
+
+
+def _content_bbox(content: str):
+    """Tight (x0, y0, x1, y1) alpha bounding box of `content`, in 2048 units."""
+    if content in _BBOX_CACHE:
+        return _BBOX_CACHE[content]
+    probe = 1024
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 2048" '
+        'width="%d" height="%d">%s</svg>' % (probe, probe, content)
+    )
+    box = rasterize(svg, probe).split()[3].getbbox()  # alpha channel bbox
+    scale = 2048.0 / probe
+    bbox = tuple(v * scale for v in box)
+    _BBOX_CACHE[content] = bbox
+    return bbox
+
+
+def _fit_transform(content: str, size: int, border_px: int) -> str:
+    """Wrap `content` so its bbox sits `border_px` from the edge at the narrowest
+    side of a `size`x`size` render (uniform scale, centred)."""
+    x0, y0, x1, y1 = _content_bbox(content)
+    w, h = x1 - x0, y1 - y0
+    border = 2048.0 * border_px / size  # border expressed in 2048 units
+    avail = 2048.0 - 2.0 * border
+    f = avail / max(w, h)
+    tx = (2048.0 - w * f) / 2.0 - x0 * f
+    ty = (2048.0 - h * f) / 2.0 - y0 * f
+    return '<g transform="translate(%.4f %.4f) scale(%.6f)">%s</g>' % (
+        tx, ty, f, content,
+    )
+
+
 def _compose_svg(size: int, content: str, bg, rounded: bool) -> str:
     tile = ""
     if bg is not None:
@@ -82,6 +121,8 @@ def _compose_svg(size: int, content: str, bg, rounded: bool) -> str:
             tile = '<rect width="2048" height="2048" rx="%.3f" fill="%s"/>' % (r, bg)
         else:
             tile = '<rect width="2048" height="2048" fill="%s"/>' % bg
+    if size <= TIGHT_FIT_MAX:
+        content = _fit_transform(content, size, TIGHT_FIT_BORDER_PX)
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 2048" '
         'width="%d" height="%d">%s%s</svg>' % (size, size, tile, content)
