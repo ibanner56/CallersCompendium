@@ -303,7 +303,7 @@ CcDanceRecord ccDanceRecordFromColumns(
       warnings?.add(
         '$overLongCount Caller\'s Companion figure line(s) exceeded the safe '
         'length (> ${limits.maxBodyLineLength} characters) and were dropped; '
-        'the rest of the dance was imported.',
+        'the rest was imported.',
       );
     }
     body = fallback;
@@ -497,7 +497,7 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
     warnings.add(
       '$overLongCount Caller\'s Companion figure line(s) exceeded the safe '
       'length (> ${limits.maxBodyLineLength} characters) and were dropped; the '
-      'rest of the dance was imported.',
+      'rest was imported.',
     );
   }
   return result;
