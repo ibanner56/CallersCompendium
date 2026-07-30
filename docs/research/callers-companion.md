@@ -157,10 +157,16 @@ calc/display/search helpers, prefixed `zc_`/`zi_`/`zk_`). Substantive user data:
   the `.USR` `Elements` **table** counted **45** rows — see § Phase 3 spike (#563);
   the "32" here is the per-dance checklist size, the 45 is the full tag-definition
   table.)
-- **InsertCall** buttons: label → `InsertButtonText` (+ `…Alt` gender-free
-  variant) + `InsertButtonBeats` (e.g. `B&S-N` → "Neighbor balance and swing",
-  alt "Neighbor gypsy and swing", 16). Confirms the per-user snippet model and
-  that CC's gender-free switch is a second stored string per snippet.
+- **InsertCall** buttons: label → `InsertButtonText` (+ `…Alt` variant) +
+  `InsertButtonBeats`. Confirms the per-user snippet model and that the alternate
+  slot is a second stored call string (often a *different* call, not merely a
+  gender re-phrasing) toggled by the same button. On `.USR` import these seed
+  figure shorthands (#420) via an **opt-in, previewed** step (#562): each button
+  whose text structures through the free-text fan-out to non-custom taxonomy
+  figure(s) becomes a `token → figures` candidate (label = token), the alt is
+  offered as a selectable alternate expansion for the same token, existing-token
+  conflicts are surfaced (never overwritten), and re-import is idempotent. See
+  `docs/design/imports.md` §2 and `packages/compendium_core/lib/src/imports/insert_call_shorthands.dart`.
 - **Set / SetItem**: `Set` carries `Date`, `Location`, `Band`, `Caller`,
   `DancerLevel`, `Notes`, `TimeStart`/`TimeElapsed`, `GenderFree`,
   `SetList_HideALT`; `SetItem` carries `Order`, `Break`, `AlternateDance`,

@@ -4826,6 +4826,56 @@ class AppLocalizationsNl extends AppLocalizations {
       'Voeg ten minste één figuur toe om deze afkorting naar uit te klappen.';
 
   @override
+  String get importShorthandSeedTitle => 'Seed figure shorthands';
+
+  @override
+  String get importShorthandSeedIntro =>
+      'Your Caller\'s Companion file\'s call buttons can become figure shorthands. Pick the ones you want; each expands to the figures shown. Nothing is added until you confirm, and your existing shorthands are never overwritten.';
+
+  @override
+  String get importShorthandSeedAvailableHeader => 'From your call buttons';
+
+  @override
+  String get importShorthandSeedUsePrimary => 'Primary';
+
+  @override
+  String get importShorthandSeedUseAlt => 'Alternate';
+
+  @override
+  String get importShorthandSeedConflictHeader => 'Already defined — skipped';
+
+  @override
+  String importShorthandSeedConflictNote(String token) {
+    return 'A shorthand named “$token” already exists, so this button was left as-is.';
+  }
+
+  @override
+  String get importShorthandSeedSkip => 'Skip';
+
+  @override
+  String importShorthandSeedConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Seed $count shorthands',
+      one: 'Seed 1 shorthand',
+      zero: 'Seed shorthands',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedComplete(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Seeded $count shorthands',
+      one: 'Seeded 1 shorthand',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get themeEditorTitle => 'Thema bewerken';
 
   @override

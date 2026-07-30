@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:compendium_core/src/imports/callers_companion_programs.dart';
 import 'package:compendium_core/src/imports/callers_companion_usr_archive.dart';
 import 'package:compendium_core/src/imports/fmp/fmp_reader.dart';
+import 'package:compendium_core/src/imports/insert_call_shorthands.dart';
+import 'package:compendium_core/src/taxonomy/contra_taxonomy.dart';
 import 'package:test/test.dart';
 
 /// End-to-end validation of the CC `.USR` path against a **real** Caller's
@@ -186,6 +188,34 @@ void main() {
           isTrue,
           reason: 'the Baby Rose slot (CC dance id 4) should resolve',
         );
+      },
+      skip: fixture.existsSync() ? false : 'no local CC .USR fixture present',
+    );
+
+    test(
+      'InsertCall seeds the expected shorthand candidates (#562)',
+      () {
+        // All 40 shipped default buttons are read.
+        expect(archive.insertCalls, hasLength(40));
+
+        final candidates = buildInsertCallShorthandCandidates(
+          archive.insertCalls,
+          taxonomy: contraTaxonomy,
+        );
+        // Ground-truth: 27/40 primary button texts structure to a non-custom
+        // taxonomy figure through the fan-out today (the other 13 are dialect
+        // gaps — RSR/Robins-Larks/Hey/Star Prom/Corners — that stay custom and
+        // are not seeded). Every candidate expands to only non-custom figures.
+        expect(candidates, hasLength(27));
+        expect(
+          candidates.every(
+            (c) => c.figures.isNotEmpty && !c.figures.any((f) => f.isCustom),
+          ),
+          isTrue,
+        );
+        // Tokens are unique (deduped on the normalized token).
+        final tokens = candidates.map((c) => c.normalizedToken).toList();
+        expect(tokens.toSet(), hasLength(tokens.length));
       },
       skip: fixture.existsSync() ? false : 'no local CC .USR fixture present',
     );

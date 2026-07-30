@@ -1,5 +1,7 @@
 import 'package:compendium_core/src/imports/callers_companion_usr_archive.dart';
 import 'package:compendium_core/src/imports/fmp/fmp_reader.dart';
+import 'package:compendium_core/src/imports/insert_call_shorthands.dart';
+import 'package:compendium_core/src/taxonomy/contra_taxonomy.dart';
 import 'package:test/test.dart';
 
 /// Tests for the CC-schema extraction layer ([extractCcUsrArchive] /
@@ -127,10 +129,53 @@ FmpDatabase _ccDatabase() {
     ],
   );
 
+  // CC's shipped default "call buttons" (issue #562). Column names are copied
+  // from the real `CallersCompanion2.USR` schema; the button LABELS and TEXT are
+  // OWN generic contra phrasing (never CC's proprietary default set). One row
+  // carries a distinct alt call, one has beats, one is deliberately unparseable
+  // gibberish, and one has a bidi-override control char in its label to prove
+  // sanitization at the ingestion boundary.
+  final insertCall = FmpTable(
+    5,
+    'InsertCall',
+    [
+      FmpColumn(1, 'InsertButtonLabel'),
+      FmpColumn(2, 'InsertButtonText'),
+      FmpColumn(3, 'zk_Constant'),
+      FmpColumn(4, 'InsertButtonBeats'),
+      FmpColumn(5, 'InsertButtonTextAlt'),
+      FmpColumn(6, 'InsertButtonBeatsAlt'),
+    ],
+    [
+      FmpRecord(900, {
+        1: 'B&S-N',
+        2: 'neighbor balance and swing',
+        3: '1',
+        4: '16',
+      }),
+      FmpRecord(901, {
+        1: 'Chain',
+        2: 'ladies chain',
+        3: '1',
+        4: '8',
+        5: 'gents chain',
+        6: '8',
+      }),
+      FmpRecord(902, {
+        1: 'Zzz',
+        2: 'qwxz not a real contra call zzzq',
+        3: '1',
+        4: '8',
+      }),
+      // Bidi-override (U+202E) embedded in the label — must be stripped.
+      FmpRecord(903, {1: 'Circle\u202e', 2: 'circle left 3/4', 3: '1', 4: '8'}),
+    ],
+  );
+
   return FmpDatabase(
     versionNum: 12,
     creator: 'Pro 12.0',
-    tables: [dance, set, setItem, phrase],
+    tables: [dance, set, setItem, phrase, insertCall],
     warnings: const [],
   );
 }
@@ -574,6 +619,110 @@ void main() {
         ]),
       );
       expect(bodyLinesOf(archive), ['(8) first A1 line', '(8) second A1 line']);
+    });
+  });
+
+  group('InsertCall extraction (#562)', () {
+    test('reads each button as a CcInsertCall (label, text, beats, alt)', () {
+      final archive = extractCcUsrArchive(_ccDatabase());
+      expect(archive.insertCalls, hasLength(4));
+
+      final bns = archive.insertCalls[0];
+      expect(bns.label, 'B&S-N');
+      expect(bns.text, 'neighbor balance and swing');
+      expect(bns.beats, 16);
+      expect(bns.altText, isNull);
+
+      final chain = archive.insertCalls[1];
+      expect(chain.label, 'Chain');
+      expect(chain.text, 'ladies chain');
+      expect(chain.beats, 8);
+      expect(chain.altText, 'gents chain');
+      expect(chain.altBeats, 8);
+    });
+
+    test('sanitizes a bidi-override control char out of the label', () {
+      final archive = extractCcUsrArchive(_ccDatabase());
+      final circle = archive.insertCalls[3];
+      expect(circle.label, 'Circle');
+      expect(circle.label.contains('\u202e'), isFalse);
+    });
+
+    test('a missing InsertCall table yields no buttons and no throw', () {
+      final db = FmpDatabase(
+        versionNum: 12,
+        creator: 'Pro 12.0',
+        tables: [
+          FmpTable(1, 'Dance', [FmpColumn(1, 'Name')], const []),
+        ],
+        warnings: const [],
+      );
+      final archive = extractCcUsrArchive(db);
+      expect(archive.insertCalls, isEmpty);
+    });
+
+    test('rows with an empty label or empty text are skipped', () {
+      final db = FmpDatabase(
+        versionNum: 12,
+        creator: 'Pro 12.0',
+        tables: [
+          FmpTable(
+            1,
+            'InsertCall',
+            [
+              FmpColumn(1, 'InsertButtonLabel'),
+              FmpColumn(2, 'InsertButtonText'),
+            ],
+            [
+              FmpRecord(1, {1: '  ', 2: 'neighbor swing'}), // empty label
+              FmpRecord(2, {1: 'Sw', 2: '   '}), // empty text
+              FmpRecord(3, {1: 'Sw', 2: 'neighbor swing'}), // kept
+            ],
+          ),
+        ],
+        warnings: const [],
+      );
+      final archive = extractCcUsrArchive(db);
+      expect(archive.insertCalls.map((b) => b.label), ['Sw']);
+    });
+
+    test(
+      'too many InsertCall rows fails closed with a resource-limit error',
+      () {
+        final rows = [
+          for (var i = 0; i < 5; i++)
+            FmpRecord(i, {1: 'Sw$i', 2: 'neighbor swing'}),
+        ];
+        final db = FmpDatabase(
+          versionNum: 12,
+          creator: 'Pro 12.0',
+          tables: [
+            FmpTable(1, 'InsertCall', [
+              FmpColumn(1, 'InsertButtonLabel'),
+              FmpColumn(2, 'InsertButtonText'),
+            ], rows),
+          ],
+          warnings: const [],
+        );
+        expect(
+          () => extractCcUsrArchive(
+            db,
+            limits: const FmpReadLimits(maxInsertCallRows: 3),
+          ),
+          throwsA(isA<FmpResourceLimitException>()),
+        );
+      },
+    );
+
+    test('end-to-end: archive buttons feed the candidate builder', () {
+      final archive = extractCcUsrArchive(_ccDatabase());
+      final candidates = buildInsertCallShorthandCandidates(
+        archive.insertCalls,
+        taxonomy: contraTaxonomy,
+      );
+      // The gibberish "Zzz" button drops out; the other three structure.
+      expect(candidates.map((c) => c.token), ['B&S-N', 'Chain', 'Circle']);
+      expect(candidates.firstWhere((c) => c.token == 'Chain').hasAlt, isTrue);
     });
   });
 }

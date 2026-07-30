@@ -97,6 +97,18 @@ const int kMaxCcPhraseRows = 20000;
 /// carries ~6 sections and a few dozen lines; 512 is generous while fail-closed.
 const int kMaxCcFiguresPerDance = 512;
 
+/// Maximum number of Caller's Companion `InsertCall` rows (shipped default
+/// "call buttons") the CC-schema layer will read when seeding shorthand
+/// candidates (issue #562).
+///
+/// A **CC-semantic** bound applied on top of [kMaxFmpRecords], for the same
+/// reason as [kMaxCcPhraseRows]: a hand-built [FmpDatabase] bypasses the raw
+/// byte reader, and a hostile file could aim its whole record budget at the
+/// `InsertCall` table. The real `CallersCompanion2.USR` has **40** rows; 20k is
+/// vast headroom while refusing a pathological table. Exceeding it **fails
+/// closed** with a [FmpResourceLimitException].
+const int kMaxCcInsertCallRows = 20000;
+
 /// Maximum character length of a single Caller's Companion body line (one
 /// newline-split `PhraseText` line) the CC-schema layer will accept.
 ///
@@ -115,7 +127,8 @@ const int kMaxCcBodyLineLength = 2000;
 ///
 /// [maxSectors]/[maxTables]/[maxRecords] bound the raw FileMaker container read;
 /// [maxPhraseRows]/[maxFiguresPerDance]/[maxBodyLineLength] bound the CC
-/// `Phrase`-table join layered on top (see the per-field dartdoc).
+/// `Phrase`-table join layered on top; [maxInsertCallRows] bounds the
+/// `InsertCall` shorthand-seeding scan (see the per-field dartdoc).
 class FmpReadLimits {
   const FmpReadLimits({
     this.maxSectors = kMaxFmpSectors,
@@ -124,6 +137,7 @@ class FmpReadLimits {
     this.maxPhraseRows = kMaxCcPhraseRows,
     this.maxFiguresPerDance = kMaxCcFiguresPerDance,
     this.maxBodyLineLength = kMaxCcBodyLineLength,
+    this.maxInsertCallRows = kMaxCcInsertCallRows,
   });
 
   final int maxSectors;
@@ -132,6 +146,7 @@ class FmpReadLimits {
   final int maxPhraseRows;
   final int maxFiguresPerDance;
   final int maxBodyLineLength;
+  final int maxInsertCallRows;
 }
 
 /// A column definition recovered from a table's schema.

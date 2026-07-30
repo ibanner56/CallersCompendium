@@ -41,6 +41,7 @@ export 'src/imports/fmp/fmp_reader.dart';
 export 'src/imports/generic_json_adapter.dart';
 export 'src/imports/import_error.dart';
 export 'src/imports/import_pipeline.dart';
+export 'src/imports/insert_call_shorthands.dart';
 export 'src/imports/program_import_marker.dart';
 export 'src/imports/raw_record.dart';
 export 'src/imports/reparse_custom_figures.dart';

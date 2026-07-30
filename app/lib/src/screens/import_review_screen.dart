@@ -8,8 +8,11 @@ import '../data/import_diagnostic_labels.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/repositories_scope.dart';
+import '../data/active_dialect_scope.dart';
+import '../data/shorthand_mappings_scope.dart';
 import '../utils/undo_snack_bar.dart';
 import 'dance_editor_screen.dart';
+import 'import_shorthand_seed_screen.dart';
 
 /// Soft threshold (issue #432) on the number of entities in a **shared** bundle
 /// (dances + choreographers + programs + venues, via
@@ -543,6 +546,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           onUndo: () => importer.undo(result),
           ccResult: result,
         );
+        if (!mounted) return;
+        // Opt-in, previewed step (#562): offer to seed figure shorthands from
+        // the file's InsertCall call buttons. Runs after the result dialog so
+        // it never blocks the dance/program import; declining seeds nothing.
+        await _maybeSeedShorthands(archive);
       } else {
         final session = await pipeline.commit(
           commitBatch,
@@ -573,6 +581,69 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
       );
     }
+  }
+
+  /// Opt-in, previewed shorthand seeding from a Caller's Companion file's
+  /// `InsertCall` call buttons (issue #562).
+  ///
+  /// Builds the parseable shorthand candidates from [archive], splits them
+  /// against the user's existing shorthands (conflicts are surfaced, never
+  /// overwritten), and — only when there is something to offer — pushes the
+  /// preview step. The user picks which to seed (and, for buttons with a
+  /// distinct alternate call, primary vs. alternate); each accepted candidate is
+  /// `upsert`ed. Declining seeds nothing, and because conflicts are skipped a
+  /// re-import of the same file adds no duplicates.
+  Future<void> _maybeSeedShorthands(CcUsrArchive archive) async {
+    final controller = ShorthandMappingsScope.maybeOf(context);
+    if (controller == null) return;
+
+    final candidates = buildInsertCallShorthandCandidates(
+      archive.insertCalls,
+      taxonomy: contraTaxonomy,
+    );
+    if (candidates.isEmpty) return;
+
+    final existing = {for (final m in controller.mappings) m.normalizedToken};
+    final partition = partitionInsertCallCandidates(candidates, existing);
+    // Nothing addable: every candidate already exists. Surfacing a screen with
+    // only skipped rows would be noise, so stay silent (the tokens are already
+    // defined — re-import idempotency needs no user action).
+    if (partition.seedable.isEmpty) return;
+
+    final dialect = ActiveDialectScope.of(context);
+    final chosen = await Navigator.of(context).push<List<ShorthandMapping>>(
+      MaterialPageRoute(
+        builder: (_) => ImportShorthandSeedScreen(
+          seedable: partition.seedable,
+          conflicting: partition.conflicting,
+          dialect: dialect,
+        ),
+      ),
+    );
+    if (chosen == null || chosen.isEmpty || !mounted) return;
+
+    var seeded = 0;
+    for (final mapping in chosen) {
+      // Defensive: another shorthand with this token could have appeared while
+      // the step was open. upsert throws on a duplicate; skip rather than abort
+      // the batch so one late collision can't drop the rest.
+      if (controller.hasToken(mapping.token)) continue;
+      try {
+        await controller.upsert(mapping);
+        seeded++;
+      } catch (_) {
+        // Bounds/duplicate backstop — never surface a raw error to the user.
+      }
+    }
+    if (!mounted || seeded == 0) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        key: const ValueKey('shorthand-seed-complete'),
+        content: Text(
+          AppLocalizations.of(context).importShorthandSeedComplete(seeded),
+        ),
+      ),
+    );
   }
 
   /// Commits a validated shared [bundle] (issue #432): dances + their author
