@@ -352,6 +352,36 @@ abstract class AppLocalizations {
   /// **'Month/day/year (07/15/2026)'**
   String get settingsDateFormatMdy;
 
+  /// Date-format option that reveals a text field where the user types their own date pattern (issue #584).
+  ///
+  /// In en, this message translates to:
+  /// **'Custom…'**
+  String get settingsDateFormatCustom;
+
+  /// Label for the text field where the user enters a custom date pattern.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom date pattern'**
+  String get settingsDateFormatCustomPatternLabel;
+
+  /// Placeholder shown in the custom date-pattern field as an example pattern. Keep the literal tokens (letters and separators); do not translate them.
+  ///
+  /// In en, this message translates to:
+  /// **'MM.DD.YY'**
+  String get settingsDateFormatCustomPatternHint;
+
+  /// Always-visible legend explaining the allowed custom date-pattern tokens and separators. The literal tokens (yyyy, yy, MM, dd) and separators (- / . space) must not be translated; translate only the surrounding words (Tokens, year, month, day, Separators, or, space).
+  ///
+  /// In en, this message translates to:
+  /// **'Tokens: yyyy or yy = year, MM = month, dd = day. Separators: - / . or space.'**
+  String get settingsDateFormatCustomLegend;
+
+  /// Inline warning shown beneath the custom date-pattern field when the entered pattern is empty, contains unknown tokens, or is otherwise unrecognized; the app falls back to the system default until corrected.
+  ///
+  /// In en, this message translates to:
+  /// **'Unrecognized pattern — using the system default until it\'s corrected.'**
+  String get settingsDateFormatCustomInvalid;
+
   /// Title of the control that chooses which day the week starts on.
   ///
   /// In en, this message translates to:

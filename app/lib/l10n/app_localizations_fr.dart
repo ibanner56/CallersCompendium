@@ -149,6 +149,24 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsDateFormatMdy => 'Mois/jour/année (07/15/2026)';
 
   @override
+  String get settingsDateFormatCustom => 'Personnalisé…';
+
+  @override
+  String get settingsDateFormatCustomPatternLabel =>
+      'Format de date personnalisé';
+
+  @override
+  String get settingsDateFormatCustomPatternHint => 'MM.DD.YY';
+
+  @override
+  String get settingsDateFormatCustomLegend =>
+      'Jetons : yyyy ou yy = année, MM = mois, dd = jour. Séparateurs : - / . ou espace.';
+
+  @override
+  String get settingsDateFormatCustomInvalid =>
+      'Format non reconnu — utilisation du format système par défaut jusqu\'à correction.';
+
+  @override
   String get settingsFirstDayOfWeekTitle => 'Premier jour de la semaine';
 
   @override

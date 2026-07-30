@@ -109,6 +109,14 @@ as `InheritedNotifier` scopes (mirroring `AppThemeScope`/`DateFormatScope`):
 | Date format       | `DateFormatScope`     | `kDateFormatKey`       | enum token           |
 | First day of week | `FirstDayOfWeekScope` | `kFirstDayOfWeekKey`   | enum token           |
 
+`DateFormatScope` carries a `DateFormatSetting` (the enum token plus, for the
+`custom` variant, a raw user-entered pattern persisted separately under
+`kDateFormatCustomPatternKey`). The custom pattern is validated at the point of
+use by `parseCustomDatePattern` (`custom_date_pattern.dart`); an
+invalid/empty/over-long value resolves to the system default everywhere it is
+consumed — on-screen rendering *and* ContraDB title date detection — while the
+settings screen surfaces an inline warning. See #584.
+
 Read a scope with `Scope.of(context)` (registers a rebuild); change it with
 `Scope.notifierOf(context)`. Changing `LocaleScope` updates `MaterialApp.locale`,
 so the whole app re-renders in the selected language live. The Language & region
@@ -130,6 +138,13 @@ startup or select an unsupported option:
 - **Enums** (`DateFormatPref`, `FirstDayOfWeekPref`) — resolved by token via
   `…PrefFromStored`, which falls back to the safe `system` default for `null`, a
   non-string, or an unknown token.
+- **Custom date pattern** (#584) — the raw pattern for `DateFormatPref.custom`
+  is untrusted free-form input. `parseCustomDatePattern` length-caps it
+  (`kMaxCustomDatePatternLength`), allowlists tokens (`yyyy`/`yy`, `MM`, `dd`)
+  and separators (`-` `/` `.` space), builds only bounded, backreference-free
+  matchers (ReDoS-safe), never surfaces raw error text, and validates produced
+  dates as real calendar dates within 1900–2100. Anything unrecognized resolves
+  to the system default via `DateFormatSetting.effectivePattern`.
 
 ## Key-naming convention
 

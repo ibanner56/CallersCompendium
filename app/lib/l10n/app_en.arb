@@ -199,6 +199,26 @@
   "@settingsDateFormatMdy": {
     "description": "Date-format option: month/day/year. The parenthetical is an illustrative sample date."
   },
+  "settingsDateFormatCustom": "Custom…",
+  "@settingsDateFormatCustom": {
+    "description": "Date-format option that reveals a text field where the user types their own date pattern (issue #584)."
+  },
+  "settingsDateFormatCustomPatternLabel": "Custom date pattern",
+  "@settingsDateFormatCustomPatternLabel": {
+    "description": "Label for the text field where the user enters a custom date pattern."
+  },
+  "settingsDateFormatCustomPatternHint": "MM.DD.YY",
+  "@settingsDateFormatCustomPatternHint": {
+    "description": "Placeholder shown in the custom date-pattern field as an example pattern. Keep the literal tokens (letters and separators); do not translate them."
+  },
+  "settingsDateFormatCustomLegend": "Tokens: yyyy or yy = year, MM = month, dd = day. Separators: - / . or space.",
+  "@settingsDateFormatCustomLegend": {
+    "description": "Always-visible legend explaining the allowed custom date-pattern tokens and separators. The literal tokens (yyyy, yy, MM, dd) and separators (- / . space) must not be translated; translate only the surrounding words (Tokens, year, month, day, Separators, or, space)."
+  },
+  "settingsDateFormatCustomInvalid": "Unrecognized pattern — using the system default until it's corrected.",
+  "@settingsDateFormatCustomInvalid": {
+    "description": "Inline warning shown beneath the custom date-pattern field when the entered pattern is empty, contains unknown tokens, or is otherwise unrecognized; the app falls back to the system default until corrected."
+  },
 
   "settingsFirstDayOfWeekTitle": "First day of week",
   "@settingsFirstDayOfWeekTitle": {

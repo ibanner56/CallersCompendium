@@ -275,8 +275,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<bool> _venueEntityModeNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _colourDanceThemeNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _setListColorCodingNotifier = ValueNotifier(true);
-  final ValueNotifier<DateFormatPref> _dateFormatNotifier = ValueNotifier(
-    DateFormatPref.system,
+  final ValueNotifier<DateFormatSetting> _dateFormatNotifier = ValueNotifier(
+    DateFormatSetting.system,
   );
   final ValueNotifier<FirstDayOfWeekPref> _firstDayOfWeekNotifier =
       ValueNotifier(FirstDayOfWeekPref.system);
@@ -736,11 +736,19 @@ class _CompendiumAppState extends State<CompendiumApp> {
     }
     // Load the regional-format preference (ROADMAP G.8), defaulting to System
     // when unset. Defensive: a read failure or garbage token resolves to the
-    // safe System default via the resolver.
+    // safe System default via the resolver. For the custom variant (#584) the
+    // raw pattern is loaded from a second key and validated on use; a
+    // missing/over-long/garbage pattern collapses back to System.
     final dateFormat = await _appData.repositories.settings
         .get(kDateFormatKey)
         .catchError((_) => null);
-    _dateFormatNotifier.value = dateFormatPrefFromStored(dateFormat);
+    final dateFormatCustom = await _appData.repositories.settings
+        .get(kDateFormatCustomPatternKey)
+        .catchError((_) => null);
+    _dateFormatNotifier.value = dateFormatSettingFromStored(
+      dateFormat,
+      dateFormatCustom,
+    );
     // Load the first-day-of-week preference (ROADMAP G.8), defaulting to System
     // when unset. Defensive: a read failure or garbage token resolves to the
     // safe System default via the resolver.
