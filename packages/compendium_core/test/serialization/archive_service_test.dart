@@ -110,6 +110,11 @@ Future<void> _seed(CompendiumRepositories repos) async {
       dancerLevel: 'intermediate',
       notes: 'notes',
       status: ProgramStatus.performed,
+      provenance: Provenance(
+        source: ProvenanceSource.callersCompanion,
+        externalId: 'usr-9921',
+        importedAt: DateTime.utc(2025, 4, 1, 8, 0, 0),
+      ),
       slots: [
         ProgramSlot(
           id: 'sl1',
@@ -197,6 +202,11 @@ void main() {
         expect(d1.figures, hasLength(2));
         expect(d1.customFields, hasLength(2));
         expect(d1.provenance?.rawPayload, '{"id":3418}');
+        // Program provenance round-trips too (issue #610: this was silently
+        // dropped by the archive codec).
+        final p1 = await targetRepos.programs.getById('p1');
+        expect(p1?.provenance?.source, ProvenanceSource.callersCompanion);
+        expect(p1?.provenance?.externalId, 'usr-9921');
         // Soft-deleted dances are carried through by default.
         final d3 = await targetRepos.dances.getById('d3', includeDeleted: true);
         expect(d3?.isDeleted, isTrue);

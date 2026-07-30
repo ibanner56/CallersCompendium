@@ -162,6 +162,12 @@ CompendiumArchive _sampleArchive() {
     notes: 'sound check at 6',
     status: ProgramStatus.performed,
     hideAlternates: true,
+    provenance: Provenance(
+      source: ProvenanceSource.callersCompanion,
+      externalId: 'usr-9921',
+      importedAt: DateTime.utc(2025, 4, 1, 8, 0, 0),
+      sourceVersion: '2.3',
+    ),
     slots: [
       ProgramSlot(
         id: 'sl1',
@@ -274,6 +280,14 @@ void main() {
       expect(p1.slots[0].plannedMinutes, 12);
       expect(p1.slots[1].isAlt, isTrue);
       expect(p1.slots[1].guestCaller, 'Bob');
+
+      // Provenance is excluded from Program's value equality, so assert it
+      // here (issue #610: this used to be silently dropped by the codec).
+      final pProv = p1.provenance!;
+      expect(pProv.source, ProvenanceSource.callersCompanion);
+      expect(pProv.externalId, 'usr-9921');
+      expect(pProv.importedAt, DateTime.utc(2025, 4, 1, 8, 0, 0));
+      expect(pProv.sourceVersion, '2.3');
     });
 
     test('an empty archive round-trips', () {
@@ -571,6 +585,77 @@ void main() {
       expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
       expect(result.isIncomplete, isFalse);
       expect(result.droppedEntities, isEmpty);
+    });
+  });
+
+  group('program provenance (issue #610)', () {
+    test('a program with provenance round-trips it byte-for-byte', () {
+      final json = encodeArchive(_sampleArchive());
+      final result = decodeArchive(json);
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+      final p1 = result.archive.programs.firstWhere((p) => p.id == 'p1');
+      expect(p1.provenance, isNotNull);
+      expect(p1.provenance!.source, ProvenanceSource.callersCompanion);
+      expect(p1.provenance!.externalId, 'usr-9921');
+
+      // Round-trip identity holds with a provenance-bearing program present.
+      expect(encodeArchive(result.archive), json);
+    });
+
+    test('a backup with no "provenance" key on a program restores cleanly '
+        '(backward compat with pre-#610 archives)', () {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final programs = (map['programs'] as List).cast<Map<String, Object?>>();
+      final p1 = programs.firstWhere((p) => p['id'] == 'p1');
+      expect(p1.containsKey('provenance'), isTrue);
+      p1.remove('provenance');
+
+      final result = decodeArchive(jsonEncode(map));
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      expect(result.warnings, isEmpty);
+      final restored = result.archive.programs.firstWhere((p) => p.id == 'p1');
+      expect(restored.provenance, isNull);
+    });
+
+    test('a program with an unknown provenance source is dropped as a tracked '
+        'drop, not an error (never bricks the rest of the restore)', () {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final programs = (map['programs'] as List).cast<Map<String, Object?>>();
+      final p1 = programs.firstWhere((p) => p['id'] == 'p1');
+      (p1['provenance'] as Map<String, Object?>)['source'] =
+          'some_future_source';
+
+      final result = decodeArchive(jsonEncode(map));
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      expect(result.warnings, isNotEmpty);
+      expect(result.isIncomplete, isTrue);
+      expect(result.droppedEntities.single, contains('p1'));
+      // Only p1 is dropped; the rest of the archive still loads.
+      expect(result.archive.programs.map((p) => p.id), isNot(contains('p1')));
+      expect(result.archive.programs, hasLength(1));
+      expect(result.archive.dances, hasLength(3));
+    });
+
+    test('an oversized provenance externalId is clamped on decode, not '
+        'rejected (OWASP: untrusted archive content)', () {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final programs = (map['programs'] as List).cast<Map<String, Object?>>();
+      final p1 = programs.firstWhere((p) => p['id'] == 'p1');
+      final overlong = 'x' * (kMaxExternalIdLength + 500);
+      (p1['provenance'] as Map<String, Object?>)['externalId'] = overlong;
+
+      final result = decodeArchive(jsonEncode(map));
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      final restored = result.archive.programs.firstWhere((p) => p.id == 'p1');
+      expect(restored.provenance!.externalId, hasLength(kMaxExternalIdLength));
+      expect(
+        restored.provenance!.externalId,
+        overlong.substring(0, kMaxExternalIdLength),
+      );
     });
   });
 
