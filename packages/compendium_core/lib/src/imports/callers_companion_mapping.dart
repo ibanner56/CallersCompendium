@@ -255,25 +255,28 @@ CcDanceMapping mapCallersCompanionDance(
             '${field.value.trim()}',
   ]);
 
-  // Body → figures (design §2). Each `(beats) text` line has its leading `(N)`
-  // beats prefix peeled off ([_splitBeats]) and is then routed through the
-  // shared free-text FAN-OUT ([parseFigureLinesFanOut]): the line is attempted
-  // against each source front-end in precedence order (ContraDB > TCB > CC) and
-  // the best structuring wins. Every line with content after scrubbing is
-  // retained — recognised moves structure into taxonomy figures, the rest as
-  // [CustomOrigin.importGap] customs (parse-never-fails); a line that is empty
-  // after scrubbing yields nothing (nothing to store). The fan-out applies the
-  // core `scrubFigureText` chokepoint internally, and the TCB attempt `;`-splits
-  // a compound line into multiple figures. Section labels are NOT embedded in
-  // the figure text (they derive from cumulative beats), so the section label is
-  // not prefixed.
+  // Body → figures (design §2). Each `(beats) text` line has its leading beats
+  // prefix peeled off ([splitCcBeatPrefix], which accepts a lone `(16)` or a
+  // compound `(4,12)`) and is then routed through the shared free-text FAN-OUT
+  // ([parseFigureLinesFanOut]): the line is attempted against each source
+  // front-end in precedence order (ContraDB > TCB > CC) and the best structuring
+  // wins. A compound prefix's total is applied per [_allocateCompoundBeats] —
+  // kept whole on a single figure, distributed across a clean split. Every line
+  // with content after scrubbing is retained — recognised moves structure into
+  // taxonomy figures, the rest as [CustomOrigin.importGap] customs
+  // (parse-never-fails); a line that is empty after scrubbing yields nothing
+  // (nothing to store). The fan-out applies the core `scrubFigureText`
+  // chokepoint internally, and the TCB attempt `;`-splits a compound line into
+  // multiple figures. Section labels are NOT embedded in the figure text (they
+  // derive from cumulative beats), so the section label is not prefixed.
   final figures = <Figure>[];
   for (final section in record.body) {
     for (final rawLine in section.lines) {
       final line = rawLine.trim();
       if (line.isEmpty) continue;
-      final (beats, text) = _splitBeats(line);
-      figures.addAll(parseFigureLinesFanOut(text, beats: beats));
+      final prefix = splitCcBeatPrefix(line);
+      final produced = parseFigureLinesFanOut(prefix.text, beats: prefix.beats);
+      figures.addAll(_allocateCompoundBeats(produced, prefix.parts));
     }
   }
 
@@ -297,16 +300,100 @@ CcDanceMapping mapCallersCompanionDance(
   return CcDanceMapping(dance: dance, issues: issues, authorNames: authorNames);
 }
 
-/// Splits a body line's leading `(N)` beats prefix from its text. A missing or
-/// malformed prefix yields `(0, wholeLine)` — never throws (parse-never-fails).
-(int, String) _splitBeats(String line) {
-  final match = RegExp(r'^\(\s*(\d+)\s*\)\s*(.*)$').firstMatch(line);
-  if (match == null) return (0, line);
-  final beats = int.tryParse(match.group(1)!) ?? 0;
+/// The parsed result of peeling a body line's leading beats prefix: the [beats]
+/// total, the ordered per-move [parts] the prefix stated, and the residual
+/// [text].
+///
+/// [parts] is empty for a bare/absent or malformed prefix and single-element for
+/// a lone `(16)`; it holds one entry per comma-separated group for a compound
+/// `(4,12)`. The allocation step ([_allocateCompoundBeats]) uses it to decide
+/// whether the total rides on one figure or is distributed across a clean split.
+typedef CcBeatPrefix = ({int beats, List<int> parts, String text});
+
+/// Longest digit run we will read for a single beat group. Mirrors the 4-digit
+/// inline-beat cap in `free_text_entry.dart` (`_maxInlineBeatDigits`): anything
+/// longer is not treated as a beat count, so a hostile/absurd value can never
+/// overflow an int or drive downstream duration math off the rails. Full OWASP
+/// limits for the CC tables are #561's job; this mirrors the existing spirit.
+const int _maxCcBeatDigits = 4;
+
+/// A leading beats prefix: a lone `(16)` or a compound `(4,12)` / `(4, 12)`
+/// (whitespace-tolerant), each group a bounded digit run. A prefix that is
+/// absent or malformed (`()`, `(x)`, `(4,)`, `(,12)`) simply does not match and
+/// is left as ordinary text.
+final RegExp _ccBeatPrefix = RegExp(
+  '^\\(\\s*(\\d{1,$_maxCcBeatDigits}(?:\\s*,\\s*\\d{1,$_maxCcBeatDigits})*)\\s*\\)'
+  '\\s*(.*)\$',
+);
+
+/// Splits a body line's leading beats prefix from its text.
+///
+/// Accepts a lone `(16)`, a **compound** `(4,12)` / `(4, 12)` (whitespace-
+/// tolerant, each group ≤ 4 digits), and a bare/absent prefix (beats `0`). A
+/// **malformed** prefix (`()`, `(x)`, `(4,)`, `(,12)`) does not match and is
+/// treated as ordinary text — the whole line is returned with beats `0` and no
+/// parts. Never throws (`parse-never-fails`).
+///
+/// The returned [CcBeatPrefix.beats] is the **sum** of a compound prefix's
+/// [CcBeatPrefix.parts] (`(4,12)` → `16`, parts `[4, 12]`); how that total is
+/// applied to the resulting figure(s) — kept whole for a single move or
+/// distributed across a clean split — is decided by [_allocateCompoundBeats].
+@visibleForTesting
+CcBeatPrefix splitCcBeatPrefix(String line) {
+  final match = _ccBeatPrefix.firstMatch(line);
+  if (match == null) return (beats: 0, parts: const <int>[], text: line);
+  final parts = [
+    for (final g in match.group(1)!.split(',')) int.parse(g.trim()),
+  ];
+  final total = parts.fold<int>(0, (sum, p) => sum + p);
   final text = match.group(2)!.trim();
   // An empty text after a lone "(16)" keeps the beats but stores the original
   // line so nothing is silently dropped.
-  return (beats, text.isEmpty ? line : text);
+  return (
+    beats: total,
+    parts: parts,
+    text: text.isEmpty ? line : text,
+  );
+}
+
+/// Applies a compound prefix's per-move [parts] to the [figures] the fan-out
+/// produced for one body line.
+///
+/// **Compound-beat semantics (#560).** A compound prefix `(a,b,…)` states the
+/// per-move beats of a single source line whose **sum** is the line's total:
+/// - a line that structures as a **single** figure (the common case — e.g.
+///   `(4,12) neighbors balance and swing` is one swing with a balance prefix)
+///   carries the **total** (the sum is already on that lone figure, so it is
+///   left untouched);
+/// - a line that the fan-out cleanly **splits** into exactly as many non-custom
+///   figures as there are parts has each part **distributed** to the
+///   corresponding figure, in order;
+/// - **any other case** (part-count ≠ figure-count, or a custom fallback) keeps
+///   the fan-out's own allocation, which rides the total on the first figure
+///   (the shared splitter's Option A). That is always lossless w.r.t. the
+///   cumulative total — it never invents an allocation the source did not state.
+List<Figure> _allocateCompoundBeats(List<Figure> figures, List<int> parts) {
+  if (parts.length < 2 ||
+      figures.length != parts.length ||
+      figures.any((f) => f.isCustom)) {
+    return figures;
+  }
+  return [
+    for (var i = 0; i < figures.length; i++)
+      _withBeats(figures[i], parts[i]),
+  ];
+}
+
+/// Returns [figure] with its beats set to [beats], preserving the convention
+/// that a `0` (absent) count is not stored in `params`.
+Figure _withBeats(Figure figure, int beats) {
+  final params = {...figure.params};
+  if (beats > 0) {
+    params['beats'] = beats;
+  } else {
+    params.remove('beats');
+  }
+  return figure.copyWith(params: params);
 }
 
 (DanceLevel?, bool) _mapLevel(String? raw, List<ImportIssue> issues) {
