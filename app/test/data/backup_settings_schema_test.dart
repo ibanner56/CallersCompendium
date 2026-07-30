@@ -31,16 +31,20 @@ void main() {
     });
 
     test(
-      'perform text scale accepts only finite positive numbers in range',
+      'perform text scale mirrors the reader: finite and >= minimum, no cap',
       () {
         expect(validateBackupSettingValue(kPerformTextScaleKey, 1.8), isTrue);
         expect(validateBackupSettingValue(kPerformTextScaleKey, 2), isTrue);
-        expect(validateBackupSettingValue(kPerformTextScaleKey, 0), isFalse);
-        expect(validateBackupSettingValue(kPerformTextScaleKey, -1.0), isFalse);
+        // Intentionally unbounded above — a large finite low-vision scale is a
+        // legitimate preference that must survive a restore.
         expect(
           validateBackupSettingValue(kPerformTextScaleKey, 1000.1),
-          isFalse,
+          isTrue,
         );
+        // Below the enforced minimum (kPerformMinScale == 1.0) is rejected.
+        expect(validateBackupSettingValue(kPerformTextScaleKey, 0), isFalse);
+        expect(validateBackupSettingValue(kPerformTextScaleKey, 0.5), isFalse);
+        expect(validateBackupSettingValue(kPerformTextScaleKey, -1.0), isFalse);
         expect(
           validateBackupSettingValue(kPerformTextScaleKey, double.nan),
           isFalse,

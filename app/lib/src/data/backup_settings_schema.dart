@@ -1,3 +1,4 @@
+import '../screens/perform_card.dart' show kPerformMinScale;
 import '../screens/settings/settings_keys.dart';
 import '../update/update_config.dart'
     show kUpdateAutoCheckKey, kUpdateBetaChannelKey, kUpdateDismissedVersionKey;
@@ -95,10 +96,14 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   ])
     key: _isString,
 
-  // Numbers with a bounded range. The in-Perform manual text scale is used for
-  // layout sizing, so a non-finite (NaN/Infinity) or non-positive/absurd value
-  // is rejected outright rather than flowing into a size calculation.
-  kPerformTextScaleKey: _isFinitePositiveScale,
+  // Numbers. The in-Perform manual text scale is used for layout sizing, so a
+  // non-finite (NaN/Infinity) value is rejected outright rather than flowing
+  // into a size calculation. It mirrors the live reader's contract exactly
+  // (`PerformA11yPrefs._readTextScale`): finite and at or above the enforced
+  // minimum, with NO upper cap — the in-view A+ control is intentionally
+  // unbounded, so a large-but-finite manual size is a legitimate low-vision
+  // preference that must survive a restore.
+  kPerformTextScaleKey: _isValidPerformScale,
   // Retention window is a non-negative day count (0 = "never auto-purge"). A
   // negative or non-int value is rejected so it can't silently alter purging.
   kSoftDeleteRetentionKey: _isNonNegativeInt,
@@ -116,8 +121,8 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
 bool _isBool(Object? v) => v is bool;
 bool _isString(Object? v) => v is String;
 bool _isNonNegativeInt(Object? v) => v is int && v >= 0;
-bool _isFinitePositiveScale(Object? v) =>
-    v is num && v.isFinite && v > 0 && v <= 100;
+bool _isValidPerformScale(Object? v) =>
+    v is num && v.isFinite && v >= kPerformMinScale;
 bool _isMap(Object? v) => v is Map;
 bool _isListOrString(Object? v) => v is List || v is String;
 
