@@ -15,14 +15,34 @@ import '../data/venue_label.dart';
 /// list would render as blank glyphs. Bundling a Unicode TrueType font keeps
 /// the app fully offline (no runtime font download) while rendering the same
 /// characters as the emailable text. The theme is cached after first load.
+///
+/// The `pdf` package (unlike the Flutter engine used for on-screen text)
+/// cannot resolve OpenType variable-font axes — it always renders whichever
+/// master is baked in as a font's default, regardless of the requested
+/// [pw.FontWeight]/[pw.FontStyle]. So PDF export loads **static**,
+/// single-instance Regular/Bold/Italic TTFs instead of the variable font used
+/// on-screen. These are pinned-axis instances of the exact same upstream
+/// Roboto (same family/copyright/license, see `Roboto-OFL.txt`), generated
+/// with `fonttools varLib.instancer`.
 pw.ThemeData? _cachedTheme;
 
 Future<pw.ThemeData> loadProgramPdfTheme() async {
   final cached = _cachedTheme;
   if (cached != null) return cached;
-  final data = await rootBundle.load('assets/fonts/Roboto-VariableFont.ttf');
-  final font = pw.Font.ttf(data);
-  return _cachedTheme = pw.ThemeData.withFont(base: font, bold: font);
+  final regular = pw.Font.ttf(
+    await rootBundle.load('assets/fonts/Roboto-Regular.ttf'),
+  );
+  final bold = pw.Font.ttf(
+    await rootBundle.load('assets/fonts/Roboto-Bold.ttf'),
+  );
+  final italic = pw.Font.ttf(
+    await rootBundle.load('assets/fonts/Roboto-Italic.ttf'),
+  );
+  return _cachedTheme = pw.ThemeData.withFont(
+    base: regular,
+    bold: bold,
+    italic: italic,
+  );
 }
 
 /// Builds a printable/saveable PDF of a [Program] set list (ROADMAP §4.3).
