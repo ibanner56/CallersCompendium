@@ -15,10 +15,11 @@ import 'regional_formats.dart';
 /// 2. **Month name** forms — `March 15 2024`, `March 15, 2024`,
 ///    `15 March 2024`, `Mar 15 2024` (full or 3-letter abbreviation, optional
 ///    `st`/`nd`/`rd`/`th` ordinal).
-/// 3. **The user's explicit custom pattern** (issue #584) — when [setting]
-///    selects a valid custom pattern, a numeric title date matching its declared
-///    field order/separators (including two-digit years) is read per that
-///    layout.
+/// 3. **The user's explicit custom pattern** (issue #584/#632) — when [setting]
+///    selects a valid custom pattern, a title date matching its declared field
+///    order/separators is read per that layout: numeric fields (including
+///    two-digit years) and written-out month tokens (`MMM`/`MMMM`), whose month
+///    names are matched against the same English allowlist as tier 2.
 /// 4. **Numeric with a 4-digit year LAST** — `MM/DD/YYYY` or `DD/MM/YYYY`
 ///    (`/`, `.`, or `-` separators). When exactly one of the two leading fields
 ///    is `> 12` the order is forced. When both are `<= 12` (genuinely
@@ -64,13 +65,15 @@ DateTime? detectEventDateFromTitle(String title, DateFormatSetting setting) {
     if (date != null) return date;
   }
 
-  // Tier 3: the user's explicit custom layout (adds two-digit-year support and
-  // uses the declared field ORDER; separator segments match any allowed
-  // separator run — see matchTitleWithCustomPattern — rather than the exact
-  // declared separators). Only when the custom pattern is valid; an
-  // invalid/absent pattern skips this tier and behaves like `system`.
+  // Tier 3: the user's explicit custom layout (adds two-digit-year support,
+  // written-out month tokens, and uses the declared field ORDER; separator
+  // segments match any allowed separator run — see matchTitleWithCustomPattern —
+  // rather than the exact declared separators). Month-name tokens are matched
+  // against the same English month allowlist used by the tiers above. Only when
+  // the custom pattern is valid; an invalid/absent pattern skips this tier and
+  // behaves like `system`.
   if (custom != null) {
-    final date = matchTitleWithCustomPattern(text, custom);
+    final date = matchTitleWithCustomPattern(text, custom, monthNames: _months);
     if (date != null) return date;
   }
 

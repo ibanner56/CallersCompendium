@@ -10,9 +10,23 @@ void main() {
         'dd.MM.yyyy',
         'MM.DD.YY', // case-insensitive letters
         'yy MM dd',
+        'dd MMM yyyy', // abbreviated month name (#632)
+        'MMMM dd yyyy', // full month name (#632)
+        'yyyy MMM dd',
+        'MMMM-dd-yyyy',
       ]) {
         expect(parseCustomDatePattern(pattern), isNotNull, reason: pattern);
       }
+    });
+
+    test('exposes the month style for numeric / abbreviated / full tokens', () {
+      MonthStyle styleOf(String raw) => parseCustomDatePattern(raw)!.monthStyle;
+
+      expect(styleOf('yyyy-MM-dd'), MonthStyle.numeric);
+      expect(styleOf('dd MMM yyyy'), MonthStyle.abbreviated);
+      expect(styleOf('MMMM dd yyyy'), MonthStyle.full);
+      // Case-insensitive, matching #584's token handling.
+      expect(styleOf('dd mmm yyyy'), MonthStyle.abbreviated);
     });
 
     test('exposes field order and month/day precedence', () {
@@ -53,6 +67,7 @@ void main() {
       expect(parseCustomDatePattern('yyyy-M-dd'), isNull); // single M
       expect(parseCustomDatePattern('yyyy-MM-d'), isNull); // single d
       expect(parseCustomDatePattern('yyyy-MM-ddd'), isNull); // 3 d's
+      expect(parseCustomDatePattern('yyyy-MMMMM-dd'), isNull); // 5 M's (#632)
     });
 
     test('rejects missing or duplicated fields', () {
@@ -60,6 +75,9 @@ void main() {
       expect(parseCustomDatePattern('yyyy/MM'), isNull); // no day
       expect(parseCustomDatePattern('MM/MM/yyyy'), isNull); // duplicate month
       expect(parseCustomDatePattern('yyyy/yy/MM'), isNull); // duplicate year
+      // A numeric and a written-out month together is still a duplicate month.
+      expect(parseCustomDatePattern('MMM MM yyyy dd'), isNull);
+      expect(parseCustomDatePattern('MMMM MMM dd yyyy'), isNull);
     });
   });
 
@@ -86,6 +104,36 @@ void main() {
       expect(
         formatWithCustomPattern(y2001, parseCustomDatePattern('yy.MM.dd')!),
         '01.01.01',
+      );
+    });
+
+    test('renders localized abbreviated / full month names (#632)', () {
+      expect(
+        formatWithCustomPattern(
+          DateTime.utc(2026, 6, 3),
+          parseCustomDatePattern('dd MMM yyyy')!,
+          monthNames: _enMonthNames,
+        ),
+        '03 Jun 2026',
+      );
+      expect(
+        formatWithCustomPattern(
+          DateTime.utc(2026, 6, 3),
+          parseCustomDatePattern('MMMM dd yyyy')!,
+          monthNames: _enMonthNames,
+        ),
+        'June 03 2026',
+      );
+    });
+
+    test('name-style month degrades to a number when names are absent', () {
+      // Never throws when a name-style token is present but no table is given.
+      expect(
+        formatWithCustomPattern(
+          DateTime.utc(2026, 6, 3),
+          parseCustomDatePattern('dd MMMM yyyy')!,
+        ),
+        '03 06 2026',
       );
     });
   });
@@ -127,5 +175,122 @@ void main() {
       expect(result, isNull);
       expect(sw.elapsedMilliseconds, lessThan(1000));
     });
+
+    group('written-out month tokens (#632)', () {
+      test('matches full and abbreviated month names in a title', () {
+        final p = parseCustomDatePattern('dd MMM yyyy')!;
+        expect(
+          matchTitleWithCustomPattern(
+            '12 May 2026 Contra',
+            p,
+            monthNames: _enMonthFullNames,
+          ),
+          DateTime.utc(2026, 5, 12),
+        );
+        // A full name is also accepted for an abbreviated token (and vice
+        // versa), mirroring the detector's existing month-name tiers.
+        expect(
+          matchTitleWithCustomPattern(
+            'Spring 15 March 2024',
+            p,
+            monthNames: _enMonthFullNames,
+          ),
+          DateTime.utc(2024, 3, 15),
+        );
+      });
+
+      test('MMMM renders/parses the full month, month-first layout', () {
+        final p = parseCustomDatePattern('MMMM dd yyyy')!;
+        expect(
+          matchTitleWithCustomPattern(
+            'June 03 2026 gig',
+            p,
+            monthNames: _enMonthFullNames,
+          ),
+          DateTime.utc(2026, 6, 3),
+        );
+      });
+
+      test('is case-insensitive on the month name', () {
+        final p = parseCustomDatePattern('dd MMMM yyyy')!;
+        expect(
+          matchTitleWithCustomPattern(
+            '01 DECEMBER 2025',
+            p,
+            monthNames: _enMonthFullNames,
+          ),
+          DateTime.utc(2025, 12, 1),
+        );
+      });
+
+      test('a name-style token cannot match without an allowlist', () {
+        final p = parseCustomDatePattern('dd MMM yyyy')!;
+        // No monthNames supplied ⇒ the name-style token has no allowlist ⇒ the
+        // whole pattern cannot match (no unbounded/free matching over text).
+        expect(matchTitleWithCustomPattern('12 May 2026', p), isNull);
+      });
+
+      test('rejects an unknown / non-allowlisted month word', () {
+        final p = parseCustomDatePattern('dd MMM yyyy')!;
+        expect(
+          matchTitleWithCustomPattern(
+            '12 Smarch 2026',
+            p,
+            monthNames: _enMonthFullNames,
+          ),
+          isNull,
+        );
+      });
+
+      test('rejects an impossible day with a valid month name', () {
+        final p = parseCustomDatePattern('MMMM dd yyyy')!;
+        expect(
+          matchTitleWithCustomPattern(
+            'February 30 2026',
+            p,
+            monthNames: _enMonthFullNames,
+          ),
+          isNull,
+        );
+      });
+
+      test('month-name matching stays fast on adversarial input (ReDoS)', () {
+        final p = parseCustomDatePattern('dd MMMM yyyy')!;
+        // A long run of letters/separators that never completes a date.
+        final hostile = '${'May ' * 10000}x';
+        final sw = Stopwatch()..start();
+        final result = matchTitleWithCustomPattern(
+          hostile,
+          p,
+          monthNames: _enMonthFullNames,
+        );
+        sw.stop();
+        expect(result, isNull);
+        expect(sw.elapsedMilliseconds, lessThan(1000));
+      });
+    });
   });
 }
+
+/// Full English month names (January first) — the allowlist the title-date
+/// detector reuses for written-out month tokens (#632).
+const List<String> _enMonthFullNames = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+/// A localized-name fixture for rendering tests (abbreviated + full).
+final MonthNames _enMonthNames = MonthNames(
+  abbreviated: [for (final name in _enMonthFullNames) name.substring(0, 3)],
+  full: _enMonthFullNames,
+);

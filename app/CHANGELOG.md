@@ -13,6 +13,22 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Write out the month in your custom date format.** The custom date-format
+  pattern (Settings ▸ Language & region ▸ Date format ▸ Custom) now understands
+  written-out month tokens alongside the numeric ones: `MMM` renders a short
+  month name (e.g. `12 May 2026` from `dd MMM yyyy`) and `MMMM` a full one
+  (e.g. `June 3, 2026` from `MMMM d, yyyy`). Month names are localized — they
+  reuse the app's existing translated short names, with English full names where
+  a translation isn't available yet. The token legend under the field documents
+  the new tokens, and the live example plus the inline "unrecognized pattern"
+  warning work with them too. When a ContraDB program title contains a written
+  month (e.g. `Spring Fling — 12 May 2026`), a custom pattern that uses `MMM`/
+  `MMMM` now reads that date on import. As before, the pattern is untrusted
+  input: it is length-capped, month names are matched against a fixed allowlist
+  (no catastrophic-backtracking risk), and anything unrecognized simply falls
+  back to the system default. Follow-up to the custom date format from the
+  previous release.
+
 - **Partial heys can name the dancer you run until you meet.** When a hey is set
   to **less than half** or **between half and full**, the editor now offers a
   **meet target** — the pair you weave until you meet (e.g. partners, neighbors,

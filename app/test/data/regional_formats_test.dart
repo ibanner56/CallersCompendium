@@ -1,3 +1,4 @@
+import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/data/custom_date_pattern.dart';
 import 'package:compendium_app/src/data/regional_formats.dart';
 import 'package:flutter/material.dart' show DefaultMaterialLocalizations;
@@ -98,20 +99,36 @@ void main() {
   });
 
   group('formatEventDate', () {
-    const l10n = DefaultMaterialLocalizations();
+    const material = DefaultMaterialLocalizations();
+    final l10n = AppLocalizationsEn();
 
     test('uses the fixed pattern for non-system prefs', () {
       final date = DateTime(2026, 7, 15);
       expect(
-        formatEventDate(date, DateFormatSetting(DateFormatPref.ymd), l10n),
+        formatEventDate(
+          date,
+          DateFormatSetting(DateFormatPref.ymd),
+          material,
+          l10n,
+        ),
         '2026-07-15',
       );
       expect(
-        formatEventDate(date, DateFormatSetting(DateFormatPref.dmy), l10n),
+        formatEventDate(
+          date,
+          DateFormatSetting(DateFormatPref.dmy),
+          material,
+          l10n,
+        ),
         '15/07/2026',
       );
       expect(
-        formatEventDate(date, DateFormatSetting(DateFormatPref.mdy), l10n),
+        formatEventDate(
+          date,
+          DateFormatSetting(DateFormatPref.mdy),
+          material,
+          l10n,
+        ),
         '07/15/2026',
       );
     });
@@ -122,17 +139,51 @@ void main() {
         formatEventDate(
           date,
           DateFormatSetting(DateFormatPref.custom, customPattern: 'MM.DD.YY'),
+          material,
           l10n,
         ),
         '07.15.26',
       );
     });
 
+    test('renders localized written-out month tokens (MMM / MMMM)', () {
+      final date = DateTime(2026, 7, 15);
+      expect(
+        formatEventDate(
+          date,
+          DateFormatSetting(
+            DateFormatPref.custom,
+            customPattern: 'dd MMM yyyy',
+          ),
+          material,
+          l10n,
+        ),
+        '15 Jul 2026',
+      );
+      expect(
+        formatEventDate(
+          date,
+          DateFormatSetting(
+            DateFormatPref.custom,
+            customPattern: 'MMMM dd yyyy',
+          ),
+          material,
+          l10n,
+        ),
+        'July 15 2026',
+      );
+    });
+
     test('defers to the localization medium date for system', () {
       final date = DateTime(2026, 7, 15);
       expect(
-        formatEventDate(date, DateFormatSetting(DateFormatPref.system), l10n),
-        l10n.formatMediumDate(date),
+        formatEventDate(
+          date,
+          DateFormatSetting(DateFormatPref.system),
+          material,
+          l10n,
+        ),
+        material.formatMediumDate(date),
       );
     });
 
@@ -142,9 +193,10 @@ void main() {
         formatEventDate(
           date,
           DateFormatSetting(DateFormatPref.custom, customPattern: 'bogus'),
+          material,
           l10n,
         ),
-        l10n.formatMediumDate(date),
+        material.formatMediumDate(date),
       );
     });
   });

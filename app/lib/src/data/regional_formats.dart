@@ -11,6 +11,7 @@ library;
 
 import 'package:flutter/material.dart' show MaterialLocalizations;
 
+import '../../l10n/app_localizations.dart';
 import 'custom_date_pattern.dart';
 
 /// Key used to persist the program-event-date format preference (ROADMAP G.8).
@@ -141,26 +142,78 @@ DateFormatSetting dateFormatSettingFromStored(
   return DateFormatSetting(DateFormatPref.custom, customPattern: patternStored);
 }
 
+/// Builds the localized [MonthNames] table used to render written-out month
+/// tokens (`MMM`/`MMMM`, issue #632).
+///
+/// Reuses the app's existing localized abbreviated month strings
+/// (`danceEditorMonth*`, already translated for every shipped locale) for the
+/// abbreviated (`MMM`) names, and the dedicated `monthFull*` strings for the
+/// full (`MMMM`) names. Both lists are January-first (index `0` = January).
+MonthNames monthNamesFromL10n(AppLocalizations l10n) => MonthNames(
+  abbreviated: [
+    l10n.danceEditorMonthJan,
+    l10n.danceEditorMonthFeb,
+    l10n.danceEditorMonthMar,
+    l10n.danceEditorMonthApr,
+    l10n.danceEditorMonthMay,
+    l10n.danceEditorMonthJun,
+    l10n.danceEditorMonthJul,
+    l10n.danceEditorMonthAug,
+    l10n.danceEditorMonthSep,
+    l10n.danceEditorMonthOct,
+    l10n.danceEditorMonthNov,
+    l10n.danceEditorMonthDec,
+  ],
+  full: [
+    l10n.monthFullJanuary,
+    l10n.monthFullFebruary,
+    l10n.monthFullMarch,
+    l10n.monthFullApril,
+    l10n.monthFullMay,
+    l10n.monthFullJune,
+    l10n.monthFullJuly,
+    l10n.monthFullAugust,
+    l10n.monthFullSeptember,
+    l10n.monthFullOctober,
+    l10n.monthFullNovember,
+    l10n.monthFullDecember,
+  ],
+);
+
 /// Formats a program event [date] for on-screen display per [setting].
 ///
 /// For [DateFormatPref.system] (and any invalid custom pattern) this defers to
-/// the platform locale via [l10n] (`formatMediumDate`). For the fixed tokens and
-/// a valid custom pattern it uses a dependency-free zero-padded pattern (no
-/// `intl`).
+/// the platform locale via [material] (`formatMediumDate`). For the fixed tokens
+/// and a valid custom pattern it uses a dependency-free zero-padded pattern (no
+/// `intl`); written-out month tokens (`MMM`/`MMMM`) render localized month names
+/// built from [l10n].
 String formatEventDate(
   DateTime date,
   DateFormatSetting setting,
-  MaterialLocalizations l10n,
+  MaterialLocalizations material,
+  AppLocalizations l10n,
 ) {
-  final fixed = formatDatePattern(date, setting);
-  return fixed ?? l10n.formatMediumDate(date);
+  final fixed = formatDatePattern(
+    date,
+    setting,
+    monthNames: monthNamesFromL10n(l10n),
+  );
+  return fixed ?? material.formatMediumDate(date);
 }
 
 /// Returns the fixed zero-padded pattern for [date] under [setting], or `null`
 /// for [DateFormatPref.system] and any invalid custom pattern (which have no
 /// fixed pattern and defer to the platform locale). Pure and Flutter-free so the
 /// fixed branches are directly unit-testable without a [MaterialLocalizations].
-String? formatDatePattern(DateTime date, DateFormatSetting setting) {
+///
+/// [monthNames] supplies localized names for written-out month tokens
+/// (`MMM`/`MMMM`); when omitted, such tokens degrade to their numeric value (see
+/// [formatWithCustomPattern]). The fixed numeric prefs never consult it.
+String? formatDatePattern(
+  DateTime date,
+  DateFormatSetting setting, {
+  MonthNames? monthNames,
+}) {
   final y = date.year.toString().padLeft(4, '0');
   final m = date.month.toString().padLeft(2, '0');
   final d = date.day.toString().padLeft(2, '0');
@@ -177,7 +230,9 @@ String? formatDatePattern(DateTime date, DateFormatSetting setting) {
       final pattern = setting.effectivePattern;
       // Invalid/unrecognized custom pattern ⇒ null ⇒ caller falls back to the
       // platform locale (system default), matching the documented contract.
-      return pattern == null ? null : formatWithCustomPattern(date, pattern);
+      return pattern == null
+          ? null
+          : formatWithCustomPattern(date, pattern, monthNames: monthNames);
   }
 }
 
