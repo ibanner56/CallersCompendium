@@ -653,6 +653,144 @@ void main() {
       expect(find.text('Courageous Soul'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'issue #586: importing a ContraDB program stores its id as provenance',
+    (tester) async {
+      final repos = openTestRepositories();
+      final contraDb = ContraDbOnline(
+        htmlFetcher: (url) async {
+          final id = RegExp(r'/dances/(\d+)').firstMatch(url)!.group(1)!;
+          return _danceHtml(id);
+        },
+      );
+
+      await _pump(
+        tester,
+        repos,
+        programFetcher: (_) async => _programHtml,
+        contraDb: contraDb,
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('contradb-program-url')),
+        'https://contradb.com/programs/33',
+      );
+      await tester.tap(find.byKey(const ValueKey('contradb-program-fetch')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+      await tester.pumpAndSettle();
+
+      final program = (await repos.programs.listAll()).single;
+      expect(program.provenance, isNotNull);
+      expect(program.provenance!.source, ProvenanceSource.contradb);
+      expect(program.provenance!.externalId, '33');
+    },
+  );
+
+  testWidgets(
+    'issue #586: an already-imported program shows the firm "Imported" marker '
+    'in the search list',
+    (tester) async {
+      const indexHtml = '''
+<html><body>
+  <a href="/programs/33">Barn Dance Night</a>
+  <a href="/programs/99">Spring Fling</a>
+</body></html>
+''';
+      final repos = openTestRepositories();
+      // Seed a local program imported from ContraDB program id 33.
+      await repos.programs.create(
+        Program(
+          id: uuidV4(),
+          title: 'Barn Dance Night',
+          createdAt: DateTime.utc(2026, 5, 3),
+          updatedAt: DateTime.utc(2026, 5, 3),
+          provenance: Provenance(
+            source: ProvenanceSource.contradb,
+            externalId: '33',
+            importedAt: DateTime.utc(2026, 5, 3),
+          ),
+        ),
+      );
+
+      await _pump(
+        tester,
+        repos,
+        programFetcher: (_) async => _programHtml,
+        contraDb: ContraDbOnline(htmlFetcher: (_) async => _danceHtml('1')),
+        programSearch: ContraDbProgramSearch(fetch: (_) async => indexHtml),
+      );
+
+      await tester.tap(find.text('Search by name'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('contradb-program-search-field')),
+        'a',
+      );
+      await tester.pumpAndSettle();
+
+      // Program 33 was imported → firm "Imported" marker; 99 was not.
+      expect(
+        find.byKey(const ValueKey('contradb-program-marker-imported')),
+        findsOneWidget,
+      );
+      expect(find.text('Imported'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('contradb-program-marker-possible')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'issue #586: a same-titled program with no ContraDB id shows the softer '
+    '"Possibly imported" marker',
+    (tester) async {
+      const indexHtml = '''
+<html><body>
+  <a href="/programs/33">Barn Dance Night</a>
+</body></html>
+''';
+      final repos = openTestRepositories();
+      // A local program with the same title but NO ContraDB provenance (e.g.
+      // hand-created, or imported before provenance capture).
+      await repos.programs.create(
+        Program(
+          id: uuidV4(),
+          title: 'Barn Dance Night',
+          createdAt: DateTime.utc(2026, 5, 3),
+          updatedAt: DateTime.utc(2026, 5, 3),
+        ),
+      );
+
+      await _pump(
+        tester,
+        repos,
+        programFetcher: (_) async => _programHtml,
+        contraDb: ContraDbOnline(htmlFetcher: (_) async => _danceHtml('1')),
+        programSearch: ContraDbProgramSearch(fetch: (_) async => indexHtml),
+      );
+
+      await tester.tap(find.text('Search by name'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('contradb-program-search-field')),
+        'barn',
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('contradb-program-marker-possible')),
+        findsOneWidget,
+      );
+      expect(find.text('Possibly imported'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('contradb-program-marker-imported')),
+        findsNothing,
+      );
+    },
+  );
 }
 
 /// Builds a minimal ContraDB program page with a configurable [title] and an

@@ -1013,6 +1013,39 @@ String buildContraDbProgramUrl(String input) {
   ).toString();
 }
 
+/// Upper bound on the number of digits accepted as a ContraDB program id when
+/// deriving import provenance. Real ids are short; a longer run of digits is
+/// untrusted noise and is rejected so a pathological value never reaches storage
+/// or the marker index (defense-in-depth on top of the numeric-only shape).
+const int _kMaxContraDbProgramIdDigits = 18;
+
+/// Extracts the **canonical numeric ContraDB program id** from what the user
+/// typed (a bare id or a `/programs/N` URL), for use as import provenance
+/// (`Provenance.externalId`). Returns `null` — never throws — when no valid,
+/// length-bounded numeric id can be found, so a failure to capture provenance
+/// degrades gracefully to a title-only "possibly imported" hint rather than
+/// blocking or corrupting the import.
+///
+/// The id is treated as untrusted input: only digits are accepted and the digit
+/// count is capped ([_kMaxContraDbProgramIdDigits]).
+String? contraDbProgramIdFromInput(String input) {
+  final trimmed = input.trim();
+  if (trimmed.isEmpty) return null;
+  String? candidate;
+  if (RegExp(r'^\d+$').hasMatch(trimmed)) {
+    candidate = trimmed;
+  } else {
+    final uri = Uri.tryParse(trimmed);
+    if (uri != null) {
+      candidate = RegExp(r'/programs/(\d+)').firstMatch(uri.path)?.group(1);
+    }
+  }
+  if (candidate == null || candidate.length > _kMaxContraDbProgramIdDigits) {
+    return null;
+  }
+  return candidate;
+}
+
 /// Hard cap on the length of a URL string shared into the app from the OS
 /// share sheet / an `ACTION_SEND` intent (issue #343).
 ///

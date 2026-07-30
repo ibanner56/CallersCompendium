@@ -71,6 +71,19 @@ same preview-before-you-keep flow:
 - **Search by name** — type part of a program's name and pick it from the
   results.
 
+When you search, the app marks programs you've likely already brought in, so
+repeat imports are easy to spot:
+
+- **Imported** — you already imported this exact ContraDB program before (matched
+  by its ContraDB program id). Hover or long-press for the date it was imported.
+- **Possibly imported** — a program with the same title already exists in your
+  collection, but nothing ties it to this ContraDB event (for example, you built
+  it by hand, or imported it before this marker existed).
+
+Each marker shows an icon and a label — never colour alone — and the same hint
+appears at the top of the preview once you open a program. It's only a hint:
+re-importing is always allowed if you want a fresh copy.
+
 Either way, the app reads the event's running order and lays it out as a program:
 each dance ContraDB lists is matched to your collection or imported for you, and
 anything it can't place is kept as a note, in the exact order of the event.
