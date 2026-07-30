@@ -454,6 +454,63 @@ void main() {
       );
     });
 
+    // Builds a DB with NO Phrase table and a Dance row carrying an `A1` value,
+    // so extraction takes the Dance-row `A1..C2` fallback path.
+    FmpDatabase dbWithDanceA1(String a1) {
+      final dance = FmpTable(
+        1,
+        'Dance',
+        [FmpColumn(3, 'zk_Dance_ID'), FmpColumn(1, 'Name'), FmpColumn(7, 'A1')],
+        [
+          FmpRecord(5430, {3: '4', 1: 'X', 7: a1}),
+        ],
+      );
+      return FmpDatabase(
+        versionNum: 12,
+        creator: 'Pro 12.0',
+        tables: [dance],
+        warnings: const [],
+      );
+    }
+
+    test(
+      'the Dance-row A1..C2 fallback is bounded too: an over-structured A1 value '
+      'fails closed (a hostile file cannot bypass the caps by omitting Phrase)',
+      () {
+        // A single A1 value with far more lines than the per-dance cap must fail
+        // closed even though there is no Phrase table — the fallback path shares
+        // the same incremental guard.
+        final many = List.generate(50, (i) => 'circle $i').join('\n');
+        expect(
+          () => extractCcUsrArchive(
+            dbWithDanceA1(many),
+            limits: const FmpReadLimits(maxFiguresPerDance: 8),
+          ),
+          throwsA(isA<FmpResourceLimitException>()),
+        );
+      },
+    );
+
+    test(
+      'the Dance-row A1..C2 fallback drops an over-long line with a warning and '
+      'imports the rest',
+      () {
+        final huge = '(8) ${'x' * 100}';
+        final archive = extractCcUsrArchive(
+          dbWithDanceA1('$huge\n(8) hey for four'),
+          limits: const FmpReadLimits(maxBodyLineLength: 20),
+        );
+        expect(bodyLinesOf(archive), ['(8) hey for four']);
+        expect(
+          archive.warnings.any(
+            (w) =>
+                w.contains('exceeded the safe length') && w.contains('dropped'),
+          ),
+          isTrue,
+        );
+      },
+    );
+
     test('the friendly default limits comfortably admit a normal file', () {
       // 162-row real sample is far under the 20k default; a handful of ordinary
       // lines must import with no limit exception.

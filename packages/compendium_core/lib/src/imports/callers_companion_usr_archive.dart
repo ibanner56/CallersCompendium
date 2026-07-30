@@ -152,7 +152,7 @@ CcUsrArchive extractCcUsrArchive(
 }) {
   final warnings = <String>[...db.warnings];
   final phraseBodies = _extractPhraseBodies(db, warnings, limits);
-  final dances = _extractDances(db, warnings, phraseBodies);
+  final dances = _extractDances(db, warnings, phraseBodies, limits);
   // Phrase rows whose `zk_Dance_ID` matches no `Dance` row are orphans: their
   // choreography can't be attached to any dance. Degrade gracefully — drop them
   // with a warning, never a throw (parse-never-fails; mirrors missingIdCount).
@@ -179,6 +179,7 @@ List<CcDanceEntry> _extractDances(
   FmpDatabase db,
   List<String> warnings,
   Map<String, List<CcBodySection>> phraseBodies,
+  FmpReadLimits limits,
 ) {
   final table = _findTable(db, _danceTableNames);
   if (table == null) {
@@ -213,6 +214,8 @@ List<CcDanceEntry> _extractDances(
         record: ccDanceRecordFromColumns(
           columns,
           bodyOverride: phraseBodies[recordId],
+          limits: limits,
+          warnings: warnings,
         ),
         rawColumns: columns,
       ),
@@ -243,6 +246,8 @@ List<CcDanceEntry> _extractDances(
 CcDanceRecord ccDanceRecordFromColumns(
   Map<String, String> columns, {
   List<CcBodySection>? bodyOverride,
+  FmpReadLimits limits = const FmpReadLimits(),
+  List<String>? warnings,
 }) {
   final lookup = _CiColumns(columns);
 
@@ -265,19 +270,41 @@ CcDanceRecord ccDanceRecordFromColumns(
   }
 
   // Prefer the joined Phrase body (the real figure source); fall back to the
-  // Dance-row A1..C2 columns only when no Phrase body was supplied.
+  // Dance-row A1..C2 columns only when no Phrase body was supplied. The fallback
+  // is untrusted free text too, so it is bounded by the SAME incremental caps as
+  // the Phrase join — otherwise a hostile `.USR` could bypass the Phrase-join
+  // guards by omitting the `Phrase` table and stuffing extreme values into
+  // `A1..C2`. The Phrase [bodyOverride] path is already capped upstream, so the
+  // caps here apply only to this fallback (no double-enforcement).
   final List<CcBodySection> body;
   if (bodyOverride != null && bodyOverride.isNotEmpty) {
     body = bodyOverride;
   } else {
     final fallback = <CcBodySection>[];
+    var lineCount = 0;
+    var overLongCount = 0;
     for (final label in _bodyLabels) {
       final raw = lookup.get(label);
       if (raw == null || raw.trim().isEmpty) continue;
-      final lines = _splitBodyLines(raw);
+      final lines = <String>[];
+      overLongCount += _appendCappedBodyLines(
+        raw,
+        lines,
+        maxLineLength: limits.maxBodyLineLength,
+        remaining: limits.maxFiguresPerDance - lineCount,
+        absoluteCap: limits.maxFiguresPerDance,
+      );
       if (lines.isNotEmpty) {
+        lineCount += lines.length;
         fallback.add(CcBodySection(label: label, lines: lines));
       }
+    }
+    if (overLongCount > 0) {
+      warnings?.add(
+        '$overLongCount Caller\'s Companion figure line(s) exceeded the safe '
+        'length (> ${limits.maxBodyLineLength} characters) and were dropped; '
+        'the rest of the dance was imported.',
+      );
     }
     body = fallback;
   }
@@ -341,7 +368,7 @@ const List<String> _phraseOrder = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 /// ## OWASP hardening (#561)
 /// The `Phrase` table is untrusted external free text. This layer:
 /// - **Sanitizes** every body line at the ingestion boundary (via
-///   [_splitBodyLines] → [sanitizeImportedText]) so control/bidi/format
+///   [_appendCappedBodyLines] → [sanitizeImportedText]) so control/bidi/format
 ///   spoofing characters can never reach the [CcBodySection], the adapter's
 ///   persisted JSON payload, or storage.
 /// - **Bounds** the join fail-closed against a pathological file: at most
@@ -450,36 +477,15 @@ Map<String, List<CcBodySection>> _extractPhraseBodies(
       // the OOM/DoS bound this change adds must precede the allocation it
       // guards, not follow it. Behavior is identical for well-formed input.
       final lines = <String>[];
-      _forEachBodyLine(e.value.text, (rawLine) {
-        final line = sanitizeImportedText(
-          rawLine,
-          allowLineBreaks: false,
-        ).trim();
-        // A line empty after sanitizing carries nothing to store — dropped.
-        if (line.isEmpty) return;
-        // A single over-long line is DROPPED with a warning, not fatal: it
-        // mirrors the local free-text-entry path (free_text_entry.dart drops a
-        // line past maxFreeTextEntryLength rather than throwing), so the same
-        // line reaching us via .USR import can't abort the whole file — worse
-        // availability for no extra safety. O(1), no unbounded work.
-        if (line.length > limits.maxBodyLineLength) {
-          overLongCount++;
-          return;
-        }
-        // Bound the total figure lines a single dance can accumulate, so a file
-        // that aims many Phrase rows at one zk_Dance_ID can't force an unbounded
-        // figure list. This aggregate cap FAILS CLOSED — checked here, before
-        // the line is retained, so `lines` never grows past the bound.
-        lineCount++;
-        if (lineCount > limits.maxFiguresPerDance) {
-          throw FmpResourceLimitException(
-            'A Caller\'s Companion dance has too many figure lines to import '
-            'safely (> ${limits.maxFiguresPerDance}).',
-          );
-        }
-        lines.add(line);
-      });
+      overLongCount += _appendCappedBodyLines(
+        e.value.text,
+        lines,
+        maxLineLength: limits.maxBodyLineLength,
+        remaining: limits.maxFiguresPerDance - lineCount,
+        absoluteCap: limits.maxFiguresPerDance,
+      );
       if (lines.isEmpty) continue;
+      lineCount += lines.length;
       final label = (e.value.number == null || e.value.number!.isEmpty)
           ? null
           : e.value.number;
@@ -526,27 +532,6 @@ String? _resolvePhraseTextColumn(FmpTable table) {
   return null;
 }
 
-/// Splits a raw body value on newlines, dropping blank lines (used by the
-/// Dance-row `A1..C2` fallback in [ccDanceRecordFromColumns]; the untrusted
-/// `Phrase` join walks lines incrementally via [_forEachBodyLine] so its caps
-/// bound allocation).
-///
-/// Each line is **sanitized at this ingestion boundary** (#561) via
-/// [sanitizeImportedText] (single-line mode) so control, bidi-override and
-/// invisible/format spoofing characters are stripped before the line can reach
-/// a [CcBodySection], the adapter's persisted JSON payload, or storage —
-/// defense in depth ahead of the parser's own `scrubFigureText` chokepoint
-/// (the transform is idempotent, so this never double-mangles legitimate text).
-/// A line that is empty after sanitizing is dropped.
-List<String> _splitBodyLines(String raw) {
-  final lines = <String>[];
-  _forEachBodyLine(raw, (rawLine) {
-    final line = sanitizeImportedText(rawLine, allowLineBreaks: false).trim();
-    if (line.isNotEmpty) lines.add(line);
-  });
-  return lines;
-}
-
 /// Walks [raw] one newline-delimited line at a time, invoking [emit] with each
 /// raw (pre-sanitize) line, **without materializing the full split list**.
 ///
@@ -575,6 +560,55 @@ void _forEachBodyLine(String raw, void Function(String line) emit) {
   // Trailing segment (raw not ending in a line break). A trailing break leaves
   // start == len, contributing nothing — matching the old blank-line filter.
   if (start < len) emit(raw.substring(start, len));
+}
+
+/// Sanitizes + appends the body lines of [raw] to [out], enforcing the CC
+/// ingestion caps INCREMENTALLY so allocation is bounded, and returns the number
+/// of over-long lines it dropped.
+///
+/// Walks [raw] one newline-delimited fragment at a time via [_forEachBodyLine]
+/// (no full split list is ever built), and for each fragment:
+///  - sanitizes it at this ingestion boundary (#444) via [sanitizeImportedText]
+///    so control/bidi-override/invisible format spoofing characters are stripped
+///    before the line can reach a [CcBodySection], the persisted JSON payload, or
+///    storage — and drops it if empty afterwards;
+///  - drops a line longer than [maxLineLength] (counted in the return value) —
+///    never fatal, mirroring the local free-text-entry path (which drops a line
+///    past `maxFreeTextEntryLength` rather than throwing) so a lone over-long
+///    line can't abort a whole import. The per-line cost is O(line length); the
+///    line is dropped before it can enlarge the retained set or the per-dance
+///    total;
+///  - throws [FmpResourceLimitException] (naming [absoluteCap]) the moment [out]
+///    would grow past [remaining] kept lines — the fail-closed aggregate guard,
+///    checked BEFORE the line is retained, so [out] never grows past the budget
+///    regardless of how many fragments remain in [raw].
+///
+/// Shared by BOTH untrusted body sources — the `Phrase` join and the Dance-row
+/// `A1..C2` fallback — so neither can bypass the caps.
+int _appendCappedBodyLines(
+  String raw,
+  List<String> out, {
+  required int maxLineLength,
+  required int remaining,
+  required int absoluteCap,
+}) {
+  var dropped = 0;
+  _forEachBodyLine(raw, (rawLine) {
+    final line = sanitizeImportedText(rawLine, allowLineBreaks: false).trim();
+    if (line.isEmpty) return;
+    if (line.length > maxLineLength) {
+      dropped++;
+      return;
+    }
+    if (out.length >= remaining) {
+      throw FmpResourceLimitException(
+        'A Caller\'s Companion dance has too many figure lines to import '
+        'safely (> $absoluteCap).',
+      );
+    }
+    out.add(line);
+  });
+  return dropped;
 }
 
 /// One CC `Phrase` row's ordering label + verbatim text (internal to

@@ -162,6 +162,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
     final record = ccDanceRecordFromColumns(
       columns,
       bodyOverride: bodyOverride,
+      limits: limits,
     );
     // Figure text is scrubbed + structured by the shared parser (the mapping's
     // default scrub is the core `scrubFigureText` chokepoint).
