@@ -29,19 +29,21 @@ pw.ThemeData? _cachedTheme;
 Future<pw.ThemeData> loadProgramPdfTheme() async {
   final cached = _cachedTheme;
   if (cached != null) return cached;
-  final regular = pw.Font.ttf(
-    await rootBundle.load('assets/fonts/Roboto-Regular.ttf'),
-  );
-  final bold = pw.Font.ttf(
-    await rootBundle.load('assets/fonts/Roboto-Bold.ttf'),
-  );
-  final italic = pw.Font.ttf(
-    await rootBundle.load('assets/fonts/Roboto-Italic.ttf'),
-  );
+  // The three faces are independent assets, so kick off all three loads
+  // before awaiting any of them, instead of paying three sequential I/O
+  // round-trips on the first export. (Deliberately *not* `Future.wait` here:
+  // under `flutter test`'s asset-loading shim, wrapping concurrent
+  // `rootBundle.load` calls in `Future.wait` reproducibly returns an empty
+  // result list even though each future resolves correctly on its own —
+  // starting the loads eagerly and awaiting them individually sidesteps
+  // that while still overlapping the I/O.)
+  final regularFuture = rootBundle.load('assets/fonts/Roboto-Regular.ttf');
+  final boldFuture = rootBundle.load('assets/fonts/Roboto-Bold.ttf');
+  final italicFuture = rootBundle.load('assets/fonts/Roboto-Italic.ttf');
   return _cachedTheme = pw.ThemeData.withFont(
-    base: regular,
-    bold: bold,
-    italic: italic,
+    base: pw.Font.ttf(await regularFuture),
+    bold: pw.Font.ttf(await boldFuture),
+    italic: pw.Font.ttf(await italicFuture),
   );
 }
 

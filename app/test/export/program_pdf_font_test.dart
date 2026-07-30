@@ -80,6 +80,40 @@ void main() {
               'italic text must use a distinct static Italic font, not '
               'reuse the regular face',
         );
+
+        // Distinct Font *objects* alone wouldn't catch loading the same
+        // Regular bytes into two separate Font instances, so also assert
+        // the underlying asset bytes actually differ pairwise — this is
+        // the real guard against the original "bold renders as regular"
+        // failure mode.
+        final regularBytes = await rootBundle.load(
+          'assets/fonts/Roboto-Regular.ttf',
+        );
+        final boldBytes = await rootBundle.load('assets/fonts/Roboto-Bold.ttf');
+        final italicBytes = await rootBundle.load(
+          'assets/fonts/Roboto-Italic.ttf',
+        );
+        expect(
+          regularBytes.buffer.asUint8List(),
+          isNot(equals(boldBytes.buffer.asUint8List())),
+          reason:
+              'Roboto-Regular.ttf and Roboto-Bold.ttf must be different '
+              'font files, not the same bytes registered twice',
+        );
+        expect(
+          regularBytes.buffer.asUint8List(),
+          isNot(equals(italicBytes.buffer.asUint8List())),
+          reason:
+              'Roboto-Regular.ttf and Roboto-Italic.ttf must be '
+              'different font files, not the same bytes registered twice',
+        );
+        expect(
+          boldBytes.buffer.asUint8List(),
+          isNot(equals(italicBytes.buffer.asUint8List())),
+          reason:
+              'Roboto-Bold.ttf and Roboto-Italic.ttf must be different '
+              'font files, not the same bytes registered twice',
+        );
       },
     );
   });
