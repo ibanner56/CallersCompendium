@@ -130,6 +130,44 @@ const String _realId1006 = '''
 }
 ''';
 
+/// The real id=10882 record ("Winter in Summerland", Jeff Spero & James Hutson),
+/// captured verbatim from `dance.php?id=10882&format=JSON` (trimmed to the fields
+/// the adapter reads). Its A2 `(4) Pass the ocean` / `(4) Balance wave of four
+/// (NR,WL)` is the #577 regression case: the trailing balance-wave must fold into
+/// the ocean's `balance: true` (beats 4 + 4 = 8) rather than emit as its own
+/// custom figure. B2's `(4) Partner balance` / `(12) Partner swing` must still
+/// fold the leading balance into the swing (Fold 1, unaffected).
+const String _realId10882 = '''
+{
+  "request": "http://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10882&format=JSON",
+  "download_date": "2026-07-30T08:00:59+00:00",
+  "ID": "10882",
+  "Name": "Winter in Summerland",
+  "Authors": ["Jeff Spero", "James Hutson"],
+  "InterpretedBy": [],
+  "Permission": "full",
+  "Status": "",
+  "BasedOn": [],
+  "FormationBase": "Duple Minor - Becket",
+  "FormationDetail": "",
+  "Progression": "Single",
+  "Direction": "CW",
+  "PhraseStructure": "",
+  "Music": [],
+  "Tunes": [],
+  "phrases": [
+    {"name": "A1", "figures": ["(8) Men allemande left 1 & 1/2", "(8) Neighbor swing"]},
+    {"name": "A2", "figures": ["(8) In long lines, go forward and back", "(4) Pass the ocean", "(4) Balance wave of four (NR,WL)"]},
+    {"name": "B1", "figures": ["(4) Walk forward to N2", "(12) Hey 3/4 (N2R;ML;PR;WL;N2R;ML)"]},
+    {"name": "B2", "figures": ["(4) Partner balance", "(12) Partner swing"]}
+  ],
+  "CallingNotes": [],
+  "Appearances": [{"source": "2012 RPDLW syllabus", "lo": "#page=31", "p": "29"}],
+  "OtherNames": []
+}
+''';
+
+
 void main() {
   group('CallersBoxAdapter', () {
     test('source is ProvenanceSource.callersbox', () {
@@ -941,6 +979,115 @@ void main() {
         expect(figures[1].params['prefix'], 'balance');
         expect(figures[1].params['beats'], 16);
       });
+
+      // Fold 4 (#577): a trailing balance-WAVE line folds into a preceding
+      // ocean/wave move, the REVERSE of the leading-balance folds above.
+      test(
+        'pass_the_ocean → trailing balance wave sets balance and sums beats',
+        () async {
+          final figures = await figuresFor([
+            '(4) Pass the ocean',
+            '(4) Balance wave of four (NR,WL)',
+          ]);
+          expect(figures, hasLength(1));
+          expect(figures.single.move, 'pass_the_ocean');
+          expect(figures.single.params['balance'], isTrue);
+          expect(figures.single.params['beats'], 8); // 4 + 4
+        },
+      );
+
+      test('form_a_short_wave → trailing balance wave folds', () async {
+        final figures = await figuresFor([
+          '(4) Form a wave',
+          '(4) Balance the wave',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'form_a_short_wave');
+        expect(figures.single.params['balance'], isTrue);
+        expect(figures.single.params['beats'], 8);
+      });
+
+      test('form_a_long_wave → trailing balance wave folds', () async {
+        final figures = await figuresFor([
+          '(4) Form a long wave',
+          '(4) Balance long wave',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'form_a_long_wave');
+        expect(figures.single.params['balance'], isTrue);
+        expect(figures.single.params['beats'], 8);
+      });
+
+      test(
+        'a trailing dancer balance is NOT stolen from a following swing',
+        () async {
+          // The balance is a bare dancer balance (not a balance-WAVE), so it
+          // belongs to the Partner swing via Fold 1 — the ocean must stay
+          // unbalanced rather than swallow it.
+          final figures = await figuresFor([
+            '(4) Pass the ocean',
+            '(4) Partner balance',
+            '(12) Partner swing',
+          ]);
+          expect(figures, hasLength(2));
+          expect(figures[0].move, 'pass_the_ocean');
+          expect(figures[0].params['balance'], isNot(isTrue));
+          expect(figures[1].move, 'swing');
+          expect(figures[1].params['prefix'], 'balance');
+          expect(figures[1].params['beats'], 16); // 4 + 12
+        },
+      );
+
+      test(
+        'form_long_waves does NOT fold a trailing balance wave (no param)',
+        () async {
+          // form_long_waves is a bare formation with no balance param, so the
+          // balance-wave stays a separate figure rather than fabricating one.
+          final figures = await figuresFor([
+            '(0) Form long waves',
+            '(4) Balance the wave',
+          ]);
+          expect(figures, hasLength(2));
+          expect(figures[0].move, 'form_long_waves');
+          expect(figures[0].params.containsKey('balance'), isFalse);
+          expect(figures[1].isCustom, isTrue);
+          expect(_text(figures[1]), 'Balance the wave');
+        },
+      );
+
+      test('pass_the_ocean with no trailing balance is unchanged', () async {
+        final figures = await figuresFor([
+          '(4) Pass the ocean',
+          '(4) Neighbor swing',
+        ]);
+        expect(figures, hasLength(2));
+        expect(figures[0].move, 'pass_the_ocean');
+        expect(figures[0].params.containsKey('balance'), isFalse);
+        expect(figures[0].params['beats'], 4);
+        expect(figures[1].move, 'swing');
+      });
+
+      test(
+        'a balance wave folds into an ocean but never crosses a phrase',
+        () async {
+          final draft = await _importOne(
+            jsonEncode(
+              _dance(
+                phrases: [
+                  _phrase('A2', ['(4) Pass the ocean']),
+                  _phrase('B1', ['(4) Balance wave of four']),
+                ],
+              ),
+            ),
+          );
+          // The ocean ends A2 and the balance wave opens B1 — different
+          // sections, so they stay two separate figures.
+          expect(draft.dance.figures, hasLength(2));
+          expect(draft.dance.figures[0].move, 'pass_the_ocean');
+          expect(draft.dance.figures[0].params.containsKey('balance'), isFalse);
+          expect(draft.dance.figures[1].isCustom, isTrue);
+        },
+      );
     });
 
     group('parse — permission tiers', () {
@@ -1060,6 +1207,54 @@ void main() {
         final draft = await _importOne(_realId1006);
         final hey = draft.dance.figures.firstWhere((f) => f.move == 'hey');
         expect(figureFromJson(figureToJson(hey)), hey);
+      });
+    });
+
+    group('real id=10882 fixture (#577)', () {
+      test('Winter in Summerland A2 folds the trailing balance wave', () async {
+        final draft = await _importOne(_realId10882);
+        expect(draft.dance.title, 'Winter in Summerland');
+        expect(draft.dance.formation.shape, FormationShape.becketCw);
+        expect(draft.authorNames, ['Jeff Spero', 'James Hutson']);
+
+        // The #577 regression: A2's `(4) Pass the ocean` / `(4) Balance wave of
+        // four (NR,WL)` must collapse to ONE balanced ocean (beats 4 + 4 = 8),
+        // not an ocean plus a standalone custom balance-wave figure.
+        final oceans = draft.dance.figures
+            .where((f) => f.move == 'pass_the_ocean')
+            .toList();
+        expect(oceans, hasLength(1));
+        final ocean = oceans.single;
+        expect(ocean.isCustom, isFalse);
+        expect(ocean.params['balance'], isTrue);
+        expect(ocean.params['beats'], 8);
+
+        // The balance-wave line was consumed — no leftover custom figure.
+        final leftoverBalanceWave = draft.dance.figures.where(
+          (f) => f.isCustom && _text(f).toLowerCase().startsWith('balance wave'),
+        );
+        expect(leftoverBalanceWave, isEmpty);
+      });
+
+      test('the leading-balance fold (B2) is unaffected', () async {
+        final draft = await _importOne(_realId10882);
+        // B2 `(4) Partner balance` / `(12) Partner swing` still folds via Fold 1
+        // into a balance-prefixed partner swing — the new trailing fold does not
+        // regress the existing behavior.
+        final swings =
+            draft.dance.figures.where((f) => f.move == 'swing').toList();
+        final partnerSwing = swings.firstWhere(
+          (f) => f.params['prefix'] == 'balance',
+        );
+        expect(partnerSwing.params['who'], 'partners');
+        expect(partnerSwing.params['beats'], 16); // 4 + 12
+      });
+
+      test('the folded ocean survives a JSON round-trip', () async {
+        final draft = await _importOne(_realId10882);
+        final ocean =
+            draft.dance.figures.firstWhere((f) => f.move == 'pass_the_ocean');
+        expect(figureFromJson(figureToJson(ocean)), ocean);
       });
     });
   });
