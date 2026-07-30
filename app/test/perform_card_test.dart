@@ -265,4 +265,44 @@ void main() {
       expect(find.textContaining('ladies chain'), findsOneWidget);
     },
   );
+
+  // Regression for issue #619: a figure note is the only free-text field not
+  // routed through renderFreeText, so a canonical role token leaked verbatim
+  // into the performed figure row instead of following the active dialect.
+  testWidgets(
+    'figure note with a role token renders in the active dialect (issue #619)',
+    (tester) async {
+      final c = await _controllerWith(null);
+      final dance = _dance().copyWith(
+        figures: [
+          Figure(
+            move: 'allemande',
+            params: {'who': 'role2s', 'turn': 1.0},
+            note: 'role2s scoop them up',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: FormationColorsScope(
+              controller: c,
+              child: PerformCard(
+                dance: dance,
+                renderer: _renderer,
+                dialect: Dialect.larksRobins,
+                textScale: 1.0,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('robins scoop them up'), findsOneWidget);
+      expect(find.text('role2s scoop them up'), findsNothing);
+    },
+  );
 }

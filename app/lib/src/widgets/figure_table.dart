@@ -67,7 +67,9 @@ class FigureTable extends StatelessWidget {
           showVerbose: verbose,
           beats: sf.figure.beats,
           progression: sf.figure.progression,
-          note: sf.figure.note,
+          note: sf.figure.note == null
+              ? null
+              : renderer.renderFreeText(sf.figure.note!, dialect),
           isImportGap:
               sf.figure.isCustom &&
               sf.figure.customOrigin == CustomOrigin.importGap,

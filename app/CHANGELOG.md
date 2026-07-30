@@ -85,6 +85,14 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Figure notes now follow your active dialect.** A figure's note is
+  free text alongside calling notes and the walkthrough, but it was the only
+  one of those fields displayed verbatim instead of through the same
+  dialect-aware renderer. A note authored with a role token (e.g. "role2s
+  scoop them up") now reads in your active dialect's terms (e.g. "robins
+  scoop them up") everywhere a figure note is shown — the figure table, the
+  large-print Perform view, and the exported PDF. (#619)
+
 - **A backup restore that saves your content but can't apply your settings now
   says so — and lets you retry.** Restoring writes two independent stores that
   can't share one transaction: your core content (dances, programs, everything
