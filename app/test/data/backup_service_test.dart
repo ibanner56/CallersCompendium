@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
@@ -13,7 +15,6 @@ import 'package:compendium_app/src/data/soft_delete_retention.dart'
 import 'package:compendium_app/src/data/window_service.dart'
     show kWindowFrameKey;
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart' show Brightness;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -48,42 +49,6 @@ Future<void> _seed(CompendiumRepositories repos) async {
   // Device-local / metadata keys that must NOT travel in a backup.
   await repos.settings.set(kWindowFrameKey, 'some-geometry');
   await repos.settings.set(kLastBackupAtKey, '2020-01-01T00:00:00.000Z');
-}
-
-/// A [SettingsRepository] that can be forced to fail its writes, used to
-/// simulate the settings store throwing / being unavailable during a restore's
-/// settings-apply step (issue #608). Reads and removes still delegate to the
-/// real repository so the test can inspect state and the retry can succeed once
-/// [failWrites] is cleared.
-class _FailingSettingsRepository extends SettingsRepository {
-  _FailingSettingsRepository(super.db);
-
-  /// When true, every [set] throws instead of writing.
-  bool failWrites = true;
-
-  @override
-  Future<void> set(String key, Object? value) {
-    if (failWrites) throw const _InjectedSettingsFailure();
-    return super.set(key, value);
-  }
-}
-
-class _InjectedSettingsFailure implements Exception {
-  const _InjectedSettingsFailure();
-  @override
-  String toString() => 'Injected settings-store failure';
-}
-
-/// Opens in-memory repositories whose settings store fails its writes until
-/// [_FailingSettingsRepository.failWrites] is cleared. The core repositories
-/// share the same database, so a core restore commits normally while the
-/// settings-apply step fails.
-({CompendiumRepositories repos, _FailingSettingsRepository settings})
-_openRepositoriesWithFailingSettings() {
-  final db = CompendiumDatabase(NativeDatabase.memory());
-  final settings = _FailingSettingsRepository(db);
-  final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
-  return (repos: repos, settings: settings);
 }
 
 void main() {
@@ -511,7 +476,7 @@ void main() {
       await _seed(source);
       final json = await BackupService(source).exportToJson();
 
-      final target = _openRepositoriesWithFailingSettings();
+      final target = openTestRepositoriesWithFailingSettings();
       // Stale core data to prove the core replace actually committed.
       await target.repos.dances.create(_dance('stale', 'Should Be Gone'));
 
@@ -534,7 +499,7 @@ void main() {
     await _seed(source);
     final json = await BackupService(source).exportToJson();
 
-    final target = _openRepositoriesWithFailingSettings();
+    final target = openTestRepositoriesWithFailingSettings();
     final failed = await BackupService(target.repos).restoreFromJson(json);
     expect(failed.settingsFailed, isTrue);
 
@@ -563,7 +528,7 @@ void main() {
     await _seed(source);
     final json = await BackupService(source).exportToJson();
 
-    final target = _openRepositoriesWithFailingSettings();
+    final target = openTestRepositoriesWithFailingSettings();
     await BackupService(target.repos).restoreFromJson(json);
     target.settings.failWrites = false;
 
@@ -626,4 +591,37 @@ void main() {
     // The existing live preference is left untouched.
     expect(await repos.settings.get(kSortIgnoreArticlesKey), true);
   });
+
+  test(
+    'retryApplySettings reports integrityFailed (applied:false, not a success) '
+    'for a tampered backup and applies nothing (#608)',
+    () async {
+      final source = openTestRepositories();
+      await source.dances.create(_dance('d1', 'Restored Dance'));
+      final json = await BackupService(source).exportToJson();
+
+      // Alter the payload without recomputing the checksum — the exact
+      // tamper/corruption the SHA-256 guard (#536) catches. This locks the
+      // defensive retry branch the UI maps to an integrity error rather than a
+      // false "Settings applied." (#644 review).
+      final envelope = jsonDecode(json) as Map<String, Object?>;
+      envelope['payload'] = (envelope['payload'] as String).replaceFirst(
+        'Restored Dance',
+        'Tampered Dance',
+      );
+      final tampered = jsonEncode(envelope);
+
+      final repos = openTestRepositories();
+      await repos.settings.set(kSortIgnoreArticlesKey, true);
+
+      final outcome = await BackupService(repos).retryApplySettings(tampered);
+
+      // Nothing applied, and this is NOT a settings-failure retry state — it's a
+      // clean integrity refusal the UI reports as an error, never a success.
+      expect(outcome.applied, isFalse);
+      expect(outcome.settingsFailed, isFalse);
+      expect(outcome.integrityFailed, isTrue);
+      expect(await repos.settings.get(kSortIgnoreArticlesKey), true);
+    },
+  );
 }

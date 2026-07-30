@@ -341,6 +341,61 @@ void main() {
     expect(dances.map((d) => d.id), ['stale']);
   });
 
+  testWidgets(
+    'a settings-apply failure after the core commit shows a retryable message '
+    '(not a false success), and Retry applies settings once the store recovers '
+    '(#608)',
+    (tester) async {
+      // A valid backup from a separate source.
+      final source = openTestRepositories();
+      await source.dances.create(_dance('d1', 'Restored Dance'));
+      final backupJson = await BackupService(source).exportToJson();
+
+      // Live repos whose settings store fails its writes: the core restore
+      // commits, but the SEPARATE settings apply throws.
+      final target = openTestRepositoriesWithFailingSettings();
+      await target.repos.dances.create(_dance('stale', 'Old Dance'));
+
+      var refreshCount = 0;
+      await _pumpGeneral(
+        tester,
+        target.repos,
+        onRestored: () async => refreshCount++,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('restore-paste-field')),
+        backupJson,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('restore-confirm')));
+      await tester.pumpAndSettle();
+
+      // Core committed and refreshed; the retryable settings message + action
+      // show; crucially NO false success is reported.
+      expect((await target.repos.dances.listAll()).map((d) => d.id), ['d1']);
+      expect(refreshCount, 1);
+      expect(
+        find.textContaining('applying your saved settings failed'),
+        findsOneWidget,
+      );
+      expect(find.text('Retry settings'), findsOneWidget);
+      expect(find.text('Backup restored.'), findsNothing);
+      expect(find.text('Settings applied.'), findsNothing);
+
+      // The store recovers; tapping Retry re-applies ONLY settings and now
+      // reports the success (and refreshes again).
+      target.settings.failWrites = false;
+      await tester.tap(find.text('Retry settings'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Settings applied.'), findsOneWidget);
+      expect(refreshCount, 2);
+    },
+  );
+
   testWidgets('changing the reminder cadence persists it', (tester) async {
     final repos = openTestRepositories();
     await _pumpGeneral(tester, repos, onRestored: () async {});

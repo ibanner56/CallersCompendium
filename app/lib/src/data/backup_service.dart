@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 
 import '../editor/editor_draft_codec.dart' show kDanceEditorDraftKeyPrefix;
 import '../editor/program_editor_draft_codec.dart'
@@ -267,9 +268,18 @@ class BackupService {
     // settings failure (#608). A single invalid VALUE does not reach here: #609
     // validates each value inside [_applyAppSettings] and skips it to its
     // default; this guard is for a genuine failure of the apply step itself.
+    //
+    // Catch [Exception], NOT bare [Object]: a genuine settings-store failure is
+    // an Exception (I/O / unavailable), whereas an [Error] signals a programming
+    // bug that must surface loudly rather than be silently downgraded to a
+    // routine "settings failed". Log the caught failure (guarded so it never
+    // reaches a release build, per #617) so the failure isn't invisible.
     try {
       await _applyAppSettings(doc, warnings);
-    } on Object {
+    } on Exception catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('Restore: settings-apply failed after core commit: $e\n$st');
+      }
       return BackupRestoreOutcome(
         errors: errors,
         warnings: warnings,
@@ -303,7 +313,9 @@ class BackupService {
   /// key), so running it once or several times converges to the same state.
   /// This makes the retry safe to invoke repeatedly, and a settings-apply
   /// failure that recurs is reported (again) as [BackupRestoreOutcome.applied]
-  /// `true` with [BackupRestoreOutcome.settingsFailed] `true` rather than thrown.
+  /// `true` with [BackupRestoreOutcome.settingsFailed] `true` rather than thrown
+  /// (an [Error], i.e. a programming bug, is deliberately NOT caught so it
+  /// surfaces; the caught [Exception] is logged in debug builds).
   Future<BackupRestoreOutcome> retryApplySettings(String json) async {
     final read = decodeBackup(json);
     final errors = <ArchiveError>[...read.errors];
@@ -323,7 +335,10 @@ class BackupService {
 
     try {
       await _applyAppSettings(read.document, warnings);
-    } on Object {
+    } on Exception catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('Restore: settings-apply retry failed: $e\n$st');
+      }
       return BackupRestoreOutcome(
         errors: errors,
         warnings: warnings,

@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -282,8 +283,8 @@ class _GeneralSectionState extends State<GeneralSection> {
       // retry that re-applies ONLY the settings. Use an indefinite-duration
       // snackbar with the retry action so the sole recovery affordance can't
       // vanish after the default few seconds. The message is clean and
-      // localized — the raw exception was logged inside the service, never
-      // shown here (CWE-209).
+      // localized — the raw exception is logged (debug-guarded) inside the
+      // service, never shown here (CWE-209).
       if (outcome.settingsFailed) {
         _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
         return;
@@ -333,8 +334,12 @@ class _GeneralSectionState extends State<GeneralSection> {
   }
 
   /// Re-applies ONLY the settings portion of the backup (#608 retry path). The
-  /// core is never touched. On success shows a confirmation; on a repeat failure
-  /// re-shows the retryable snackbar so the user can try again.
+  /// core is never touched. Shows the success confirmation ONLY when the retry
+  /// actually applied (`applied && !settingsFailed`); a recurring settings
+  /// failure re-shows the retryable snackbar, and an `applied: false` outcome
+  /// (a now-fatal/altered envelope — defensive: the captured JSON already
+  /// decoded once, so this is not normally reachable) surfaces the matching
+  /// integrity/invalid-file error rather than a false "Settings applied."
   Future<void> _retrySettingsRestore(
     ScaffoldMessengerState messenger,
     AppLocalizations l10n,
@@ -344,10 +349,26 @@ class _GeneralSectionState extends State<GeneralSection> {
   ) async {
     try {
       final outcome = await BackupService(repos).retryApplySettings(raw);
-      if (onRestored != null) await onRestored();
+      // Only refresh when something was actually applied.
+      if (outcome.applied && onRestored != null) await onRestored();
       if (!mounted) return;
       if (outcome.settingsFailed) {
         _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
+        return;
+      }
+      if (!outcome.applied) {
+        // Nothing was written (the backup no longer decodes / failed its
+        // integrity checksum). Report the specific error, never a success.
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              outcome.integrityFailed
+                  ? l10n.backupRestoreIntegrityFailed
+                  : l10n.backupRestoreInvalidFile,
+            ),
+          ),
+        );
         return;
       }
       messenger.clearSnackBars();
@@ -355,7 +376,7 @@ class _GeneralSectionState extends State<GeneralSection> {
         SnackBar(content: Text(l10n.backupRestoreSettingsRetried)),
       );
     } on Exception catch (e, st) {
-      debugPrint('Backup settings retry failed: $e\n$st');
+      if (kDebugMode) debugPrint('Backup settings retry failed: $e\n$st');
       if (!mounted) return;
       _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
     }
