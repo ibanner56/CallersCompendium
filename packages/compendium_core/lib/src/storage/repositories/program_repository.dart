@@ -430,8 +430,9 @@ class ProgramRepository {
   /// Maps dance id → the most recent `performedAt` timestamp across every
   /// slot of every non-deleted program, for dances that have actually been
   /// called at least once. Feeds Collection's "last-called" sort (see
-  /// `docs/design/ux.md` §1); dances absent from the map have never been
-  /// called.
+  /// `docs/design/ux.md` §1); a dance absent from the map has never been
+  /// called — or, when [callerFilter] is set, was never called in a program led
+  /// by that host caller (see [callingHistoryForDance]; issue #583).
   Future<Map<String, DateTime>> lastCalledByDance({
     String? callerFilter,
   }) async {
@@ -457,10 +458,11 @@ class ProgramRepository {
   }
 
   /// Maps dance id → its [DanceCallCounts] across every slot of every
-  /// non-deleted program, for dances that have been called at least once
-  /// (dances absent from the map have zero calls). One grouped query — the
-  /// bulk sibling of [lastCalledByDance] — so the Collection list can render a
-  /// per-dance "called ×N" count without an N+1 per-row fan-out.
+  /// non-deleted program, for dances that have been called at least once (a
+  /// dance absent from the map has zero calls — or, when [callerFilter] is set,
+  /// zero calls in programs led by that host caller; issue #583). One grouped
+  /// query — the bulk sibling of [lastCalledByDance] — so the Collection list
+  /// can render a per-dance "called ×N" count without an N+1 per-row fan-out.
   ///
   /// Surfaces BOTH the all-occurrences tally (`COUNT(*)`, one per matching
   /// slot) and the performed-only tally (`COUNT(performed_at)`, which counts
