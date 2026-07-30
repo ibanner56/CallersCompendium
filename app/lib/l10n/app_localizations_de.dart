@@ -2441,19 +2441,23 @@ class AppLocalizationsDe extends AppLocalizations {
     String debut,
     String first,
   ) {
-    String _temp0 = intl.Intl.selectLogic(debut, {
+    String _temp0 = intl.Intl.selectLogic(collision, {
+      'yes': ', wiederholt sich in derselben Phrase wie ein Nachbartanz',
+      'other': '',
+    });
+    String _temp1 = intl.Intl.selectLogic(debut, {
       'yes': ', hier eingeführt',
       'other': '',
     });
-    String _temp1 = intl.Intl.selectLogic(first, {
+    String _temp2 = intl.Intl.selectLogic(first, {
       'yes': ', erste Figur des Tanzes',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(present, {
+    String _temp3 = intl.Intl.selectLogic(present, {
       'no': 'nicht vorhanden',
-      'other': 'vorhanden$_temp0$_temp1',
+      'other': 'vorhanden$_temp0$_temp1$_temp2',
     });
-    return '$dance, $move: $_temp2';
+    return '$dance, $move: $_temp3';
   }
 
   @override
@@ -2517,7 +2521,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsMatrixLegendPresent => 'Vorhanden';
 
   @override
-  String get programsMatrixLegendCollision => 'Same phrase as adjacent dance';
+  String get programsMatrixLegendCollision => 'Gleiche Phrase wie Nachbartanz';
 
   @override
   String get programsMatrixEmptyTitle => 'Noch keine strukturierten Figuren';
@@ -2986,7 +2990,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportMatrixLegendPresent => 'Vorhanden';
 
   @override
-  String get exportMatrixLegendCollision => 'Same phrase as adjacent dance';
+  String get exportMatrixLegendCollision => 'Gleiche Phrase wie Nachbartanz';
 
   @override
   String exportMatrixOmittedCaption(int count) {

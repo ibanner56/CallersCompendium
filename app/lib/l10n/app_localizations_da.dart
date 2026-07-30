@@ -2421,19 +2421,23 @@ class AppLocalizationsDa extends AppLocalizations {
     String debut,
     String first,
   ) {
-    String _temp0 = intl.Intl.selectLogic(debut, {
+    String _temp0 = intl.Intl.selectLogic(collision, {
+      'yes': ', gentages i samme frase som en nabodans',
+      'other': '',
+    });
+    String _temp1 = intl.Intl.selectLogic(debut, {
       'yes': ', introduceret her',
       'other': '',
     });
-    String _temp1 = intl.Intl.selectLogic(first, {
+    String _temp2 = intl.Intl.selectLogic(first, {
       'yes': ', dansens første figur',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(present, {
+    String _temp3 = intl.Intl.selectLogic(present, {
       'no': 'ikke til stede',
-      'other': 'til stede$_temp0$_temp1',
+      'other': 'til stede$_temp0$_temp1$_temp2',
     });
-    return '$dance, $move: $_temp2';
+    return '$dance, $move: $_temp3';
   }
 
   @override
@@ -2497,7 +2501,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsMatrixLegendPresent => 'Til stede';
 
   @override
-  String get programsMatrixLegendCollision => 'Same phrase as adjacent dance';
+  String get programsMatrixLegendCollision => 'Samme frase som nabodans';
 
   @override
   String get programsMatrixEmptyTitle => 'Ingen strukturerede figurer endnu';
@@ -2959,7 +2963,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get exportMatrixLegendPresent => 'Til stede';
 
   @override
-  String get exportMatrixLegendCollision => 'Same phrase as adjacent dance';
+  String get exportMatrixLegendCollision => 'Samme frase som nabodans';
 
   @override
   String exportMatrixOmittedCaption(int count) {
