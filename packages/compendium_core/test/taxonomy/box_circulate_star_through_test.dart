@@ -10,13 +10,14 @@ import 'package:test/test.dart';
 /// split replacements remain), with stored figures migrated by schema v12.
 /// v15: adds the TCB rotation-gate figure kind `rotation_gate` (issue #294).
 /// v16: adds the additive `endFacing` param to `swing` (issue #543).
+/// v17: adds the additive `meetTarget` param to `hey` (issue #576).
 void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  test('contraTaxonomyVersion is 16', () {
-    expect(contraTaxonomyVersion, 16);
-    expect(tax.version, 16);
+  test('contraTaxonomyVersion is 17', () {
+    expect(contraTaxonomyVersion, 17);
+    expect(tax.version, 17);
   });
 
   group('box_circulate', () {

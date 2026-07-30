@@ -400,6 +400,19 @@ class FigureRenderer {
     return _singularDancerSets[token] ?? _humanize(token);
   }
 
+  /// DISPLAY-ONLY rendering of a dancer/role [token] as a PLURAL group noun,
+  /// for clauses whose verb agrees with the group (hey's `meetTarget`:
+  /// "until neighbors meet"). Like [_displayDancer] but WITHOUT the singular
+  /// subject collapse (`neighbors` stays `neighbors`, not `neighbor`), mirroring
+  /// ContraDB `dancerSubstitution` which keeps the plural term. Role tokens and
+  /// [Dialect.dancers] substitutions win first (both already plural).
+  String _displayGroup(String token, Dialect dialect) {
+    if (roleTokens.contains(token)) return _roleTerm(token, dialect);
+    final substitution = dialect.dancers[token];
+    if (substitution != null) return substitution;
+    return _humanize(token);
+  }
+
   /// DISPLAY-ONLY: renders a dancer/role subject [value] of any type for the
   /// [_displayBaseRenderers] base lines. A `String` routes through
   /// [_displayDancer]; a non-null non-`String` (which
@@ -1087,7 +1100,8 @@ class FigureRenderer {
     // ("rights"/"lefts") with the second the inverse of the first; the pair pass
     // is "in center", the other "on ends". `full`/`half` name the length inline;
     // `lessThanHalf`/`betweenHalfAndFull` instead append "- until someone meets
-    // [the second time]". A non-`across` dir prefixes the phrase. Ricochet flags
+    // [the second time]", or "- until <meetTarget> meet[ the second time]" when
+    // a partial hey names its `meetTarget` pair (issue #576). A non-`across` dir prefixes the phrase. Ricochet flags
     // add " - <who> ricochet[ first time| second time], …". Because the base
     // line now carries the length, [_summarySuffix] no longer appends "(half)".
     'hey': (r, def, params, dialect, verbose, decimals) {
@@ -1131,10 +1145,27 @@ class FigureRenderer {
         if (terse.isNotEmpty) '$terse $firstPlace',
         if (otherTerse.isNotEmpty) '$otherTerse $secondPlace',
       ].join(', ');
+      // issue #576: name WHICH pair you run until you meet, when a partial
+      // length has a set `meetTarget`. Allow-listed against the taxonomy spec's
+      // choices so a tolerantly-decoded/unknown token falls back to the generic
+      // "someone meets" wording rather than injecting arbitrary text. Mirrors
+      // ContraDB `stringParamHeyLength`: a named subject reads "until X meet[
+      // the second time]" (bare "meet"), the unspecified case "until someone
+      // meets[ the second time]".
+      final meetTarget = params['meetTarget'];
+      final meetChoices = def.params['meetTarget']?.choices;
+      final namedTarget =
+          meetTarget is String &&
+              meetTarget != 'unspecified' &&
+              (meetChoices == null || meetChoices.contains(meetTarget))
+          ? r._displayGroup(meetTarget, dialect)
+          : '';
+      final untilSubject = namedTarget.isNotEmpty ? namedTarget : 'someone';
+      final untilVerb = namedTarget.isNotEmpty ? 'meet' : 'meets';
       final untilClause = length == 'lessThanHalf'
-          ? 'until someone meets'
+          ? 'until $untilSubject $untilVerb'
           : length == 'betweenHalfAndFull'
-          ? 'until someone meets the second time'
+          ? 'until $untilSubject $untilVerb the second time'
           : '';
       // Ricochets: pick the pair pass as the ricochet subject; odd-index flags
       // reference the inverted (other) pair, matching ContraDB `heyWords`.

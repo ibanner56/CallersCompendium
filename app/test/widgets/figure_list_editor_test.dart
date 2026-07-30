@@ -380,6 +380,42 @@ void main() {
     );
   });
 
+  group('hey meetTarget (#576)', () {
+    testWidgets('meetTarget surfaces only for partial lengths and round-trips', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(move: 'hey', params: const {'length': 'half', 'beats': 8}),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+
+      // half (default): meetTarget is filtered out of the param list entirely
+      // — never inline, and not behind "More options" either.
+      expect(find.byKey(const ValueKey('figure-0-meetTarget')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('figure-0-meetTarget')), findsNothing);
+
+      // Switch to a partial length: meetTarget appears (inline, right after
+      // length).
+      await _selectDropdownOption(tester, 'figure-0-length', 'less than half');
+      expect(find.byKey(const ValueKey('figure-0-meetTarget')), findsOneWidget);
+
+      // Pick a target pair and confirm it lands on the draft.
+      await _selectDropdownOption(tester, 'figure-0-meetTarget', 'neighbors');
+      expect(drafts.single.params['meetTarget'], 'neighbors');
+
+      // Switching back to a non-partial length hides meetTarget AND clears the
+      // now-irrelevant stored value.
+      await _selectDropdownOption(tester, 'figure-0-length', 'half');
+      expect(find.byKey(const ValueKey('figure-0-meetTarget')), findsNothing);
+      expect(drafts.single.params.containsKey('meetTarget'), isFalse);
+    });
+  });
+
   group('per-move insert defaults (DD.3)', () {
     testWidgets('overlay overrides the taxonomy default on select', (
       tester,

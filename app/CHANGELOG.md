@@ -13,6 +13,15 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Partial heys can name the dancer you run until you meet.** When a hey is set
+  to **less than half** or **between half and full**, the editor now offers a
+  **meet target** — the pair you weave until you meet (e.g. partners, neighbors,
+  larks/robins). The dance then reads "…until neighbors meet" instead of the
+  generic "…until someone meets". Leave it **unspecified** (the default) and
+  everything renders exactly as before; the field only appears for those two
+  partial lengths, and clears itself if you switch the hey back to a half or full
+  hey. The target is an allow-listed set of pairs, so imported or hand-edited data
+  can never inject unexpected text. (#576)
 - **See which ContraDB programs you've already imported.** When you search or
   preview a program in **Import program ▸ From ContraDB**, rows you've likely
   already brought in are marked: a firm **Imported** badge (with the import date

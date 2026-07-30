@@ -83,7 +83,22 @@ import 'taxonomy.dart';
 ///     and does not feed the program-matrix swing column. Distinct from
 ///     CompendiumDatabase.schemaVersion — the param rides the existing
 ///     `figures_json` figure codec, so NO persisted-data migration is implied.
-const int contraTaxonomyVersion = 16;
+/// v17: adds a `meetTarget` param to `hey` (issue #576) — names WHICH pair you
+///     run a partial hey until you meet, finally encoding the `dancer%%N`
+///     meeting target that had been deferred as out of scope. A
+///     `ParamKind.dancerSet` over ContraDB's `chooser_pairz` pair vocabulary
+///     (`_heyMeetTargetChoices`), defaulting to `unspecified`. Derived directly
+///     from libfigure: ContraDB folds length+target into one `hey_length`
+///     (`pair%%1`/`pair%%2`); we already split the meeting *count* into `length`
+///     (`lessThanHalf`=%%1, `betweenHalfAndFull`=%%2), so `meetTarget` supplies
+///     only the WHO. Purely additive: the default `unspecified` renders exactly
+///     as today (the display renderer only names the target when non-default;
+///     `renderTemplate` is unchanged, so canonical/FTS/dedupe stay byte-stable),
+///     it carries no beat cost (absent from `paramBeats`; `goodBeats` unchanged,
+///     beats stay driven by `length`). Like `endFacing`, distinct from
+///     CompendiumDatabase.schemaVersion — the param rides the existing
+///     `figures_json` figure codec, so NO persisted-data migration is implied.
+const int contraTaxonomyVersion = 17;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -108,6 +123,31 @@ const _downTheHallEnders = [
 // chooser_pairz_or_unspecified). Built from the pair-level dancer sets so a
 // single-dancer identity can't be selected as a "pair".
 const _heyPass2Choices = [...ParamVocab.pairDancerSets, 'unspecified'];
+
+// hey's `meetTarget` (issue #576): which pair you run a partial hey until you
+// meet. ContraDB's `dancer%%N` meeting target is drawn from `chooser_pairz`
+// (pairs only — never single dancers, and NOT `everyone`/`centers`, which are
+// nonsensical as a hey meeting target), plus an `unspecified` sentinel default.
+// chooser_pairz = pairDancerSets minus {everyone, centers}, so we spell it out
+// rather than derive it, keeping the domain explicit and stable.
+const _heyMeetTargetChoices = [
+  'role1s',
+  'role2s',
+  'ones',
+  'twos',
+  'partners',
+  'neighbors',
+  'sameRoles',
+  'firstCorners',
+  'secondCorners',
+  'shadows',
+  'secondShadows',
+  'prevNeighbors',
+  'nextNeighbors',
+  'thirdNeighbors',
+  'fourthNeighbors',
+  'unspecified',
+];
 
 // The four single-dancer identities (ContraDB chooser_dancer: 1st/2nd couple x
 // role), for moves that name an individual dancer.
@@ -921,14 +961,28 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // Which pair starts in the center (ContraDB ladles -> role2s).
         'pass1': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
         // Full set of ContraDB named hey-length durations. The dynamic
-        // dancer%%N meeting encodings remain out of scope. Ordered ahead of
-        // `pass2` because callers almost always set the hey length, whereas
-        // `pass2` usually stays 'unspecified' — surfacing length in the inline
-        // (first-3) fields saves a trip into "More options".
+        // dancer%%N meeting *target* is now captured by `meetTarget` (issue
+        // #576); `length` retains only the meeting *count* (partial → 1st/2nd
+        // meeting). Ordered ahead of `pass2` because callers almost always set
+        // the hey length, whereas `pass2` usually stays 'unspecified' —
+        // surfacing length in the inline (first-3) fields saves a trip into
+        // "More options".
         'length': ParamSpec(
           ParamKind.choice,
           defaultValue: 'half',
           choices: ['lessThanHalf', 'half', 'betweenHalfAndFull', 'full'],
+        ),
+        // issue #576: which pair you run the hey until you meet, meaningful only
+        // for the two partial lengths (`lessThanHalf`/`betweenHalfAndFull`).
+        // ContraDB's `dancer%%N` meeting target (chooser_pairz); default
+        // `unspecified` keeps existing data + beat math byte-stable (the
+        // renderer only names the target when set; beats stay driven by
+        // `length`). Ordered right after `length` so the editor can surface it
+        // inline the moment a partial length is chosen.
+        'meetTarget': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: 'unspecified',
+          choices: _heyMeetTargetChoices,
         ),
         'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
         // The ends pair, or 'unspecified' (ContraDB chooser_pairz_or_unspecified).

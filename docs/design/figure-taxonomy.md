@@ -153,8 +153,9 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   structured for the verbose renderer + structural search.
 - **v6 (hey length expansion):** expanded `hey.length` from `full`/`half` to the
   full set of ContraDB named durations (`full`, `half`, `lessThanHalf`,
-  `betweenHalfAndFull`). The dynamic `dancer%%N` meeting encodings remain out of
-  scope. `length` is structured-only (not in the render template), so this is a
+  `betweenHalfAndFull`). The dynamic `dancer%%N` meeting *target* was deferred at
+  this point (later added as `meetTarget` in v17 — see below). `length` is
+  structured-only (not in the render template), so this is a
   validation/storage change only; canonical text is unaffected.
 - **v13 (ocean-wave split, issue #290):** split the overloaded
   `form_an_ocean_wave` — which conflated the default short-wave case with
@@ -186,6 +187,27 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   (`role2s`/`right`/`partners`) instead of the old `ones`/`left`/`neighbors` —
   a render/display change, not a stored-data change (no DB migration, and any
   figure that persisted explicit params is unaffected).
+- **v17 (hey `meetTarget`, issue #576):** added a `meetTarget` param
+  (`ParamKind.dancerSet`, default `unspecified`) to `hey`, finally encoding
+  ContraDB's deferred `dancer%%N` meeting *target* — WHICH pair you run a partial
+  hey until you meet. The value domain is ContraDB `chooser_pairz`
+  (`_heyMeetTargetChoices`: `role1s`/`role2s`/`ones`/`twos`/`partners`/
+  `neighbors`/`sameRoles`/`firstCorners`/`secondCorners`/`shadows`/
+  `secondShadows`/`prev`/`next`/`third`/`fourthNeighbors` + `unspecified`) —
+  **pairs only** (single dancers, `everyone`, and `centers` are excluded, as
+  ContraDB does). Our `length` already carries the meeting *count*
+  (`lessThanHalf`=first meeting/%%1, `betweenHalfAndFull`=second/%%2), so
+  `meetTarget` supplies only the WHO. The display renderer names the target only
+  for the two partial lengths — "until {target} meet[ the second time]" (bare
+  "meet", mirroring ContraDB `stringParamHeyLength`); `unspecified` keeps the
+  generic "until someone meets[…]" clause, and half/full ignore it entirely.
+  Allow-listed: an unknown/tolerantly-decoded token falls back to "someone"
+  rather than injecting text. The editor surfaces the field ONLY when
+  `length ∈ {lessThanHalf, betweenHalfAndFull}` (and clears a stale value when
+  length returns to half/full). Purely additive: default `unspecified` renders
+  and serializes exactly as before (canonical `renderTemplate` unchanged, no
+  `paramBeats`, beats stay driven by `length`) — distinct from `schemaVersion`,
+  the param rides the existing `figures_json` codec, so no DB migration.
 
 **The full ContraDB v1 contra move set is now modeled** (all five 2.4a slices
 landed). Exactly one new engine type was required across the whole build-out —
@@ -212,11 +234,12 @@ kinds:
   gate `face`, down-the-hall/zig-zag enders, hey length, all/center/outsides,
   figure-8 dir, left/right spins).
 - **`half_or_full`** — DONE (PR3): maps onto `fraction` (`half`/`full`).
-- **`hey`** (pass pairs, shoulder, length, dir, four ricochet flags, beats) and
-  the **ocean/long-wave family** — DONE (PR5 + v6): modeled with existing kinds
-  (no new `ParamKind`). The full set of ContraDB named hey-length durations
-  (`full`, `half`, `lessThanHalf`, `betweenHalfAndFull`) is now supported (v6).
-  Only the dynamic `dancer%%N` meeting encodings remain out of scope.
+- **`hey`** (pass pairs, shoulder, length, dir, four ricochet flags, beats,
+  `meetTarget`) and the **ocean/long-wave family** — DONE (PR5 + v6 + v17):
+  modeled with existing kinds (no new `ParamKind`). The full set of ContraDB
+  named hey-length durations (`full`, `half`, `lessThanHalf`,
+  `betweenHalfAndFull`) is supported (v6), and the dynamic `dancer%%N` meeting
+  target is now captured by the `meetTarget` dancerSet param (v17, issue #576).
 
 ## Validation & rendering
 
