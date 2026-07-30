@@ -126,9 +126,10 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
   each dance's body from it. The `Dance`-row `A1..C2` path is kept as a
   **fallback** for exports that carry it and for the CC text adapter. Each body
   line is routed through the **shared free-text fan-out**
-  (`parseFigureLinesFanOut`: ContraDB > TCB > CC) — recognised moves structure
-  into taxonomy figures, and anything unrecognised degrades to an
-  `importGap` custom (parse-never-fails; 0 lines dropped). Sets → Programs; user
+  (`parseFigureLinesFanOut`: ContraDB > TCB > CC) — every line with content
+  after scrubbing is retained: recognised moves structure into taxonomy
+  figures, the rest as `importGap` customs (parse-never-fails); a line that is
+  empty after scrubbing yields nothing (nothing to store). Sets → Programs; user
   fields → notes.
 - Adapter wiring note: the `.USR` adapter round-trips each dance through a JSON
   `columns` payload. The `Phrase` body is **not** in that per-dance column map,

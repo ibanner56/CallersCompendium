@@ -259,12 +259,14 @@ CcDanceMapping mapCallersCompanionDance(
   // beats prefix peeled off ([_splitBeats]) and is then routed through the
   // shared free-text FAN-OUT ([parseFigureLinesFanOut]): the line is attempted
   // against each source front-end in precedence order (ContraDB > TCB > CC) and
-  // the best structuring wins; anything unrecognised degrades to a
-  // [CustomOrigin.importGap] custom (parse-never-fails — 0 lines dropped). The
-  // fan-out applies the core `scrubFigureText` chokepoint internally, and the
-  // TCB attempt `;`-splits a compound line into multiple figures. Section labels
-  // are NOT embedded in the figure text (they derive from cumulative beats), so
-  // the section label is not prefixed.
+  // the best structuring wins. Every line with content after scrubbing is
+  // retained — recognised moves structure into taxonomy figures, the rest as
+  // [CustomOrigin.importGap] customs (parse-never-fails); a line that is empty
+  // after scrubbing yields nothing (nothing to store). The fan-out applies the
+  // core `scrubFigureText` chokepoint internally, and the TCB attempt `;`-splits
+  // a compound line into multiple figures. Section labels are NOT embedded in
+  // the figure text (they derive from cumulative beats), so the section label is
+  // not prefixed.
   final figures = <Figure>[];
   for (final section in record.body) {
     for (final rawLine in section.lines) {
