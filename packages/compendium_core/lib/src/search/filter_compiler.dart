@@ -16,6 +16,18 @@ class CompiledFilter {
   final List<Object?> binds;
 }
 
+/// Escapes SQLite `LIKE` metacharacters (`\`, `%`, `_`) in [term] so it can be
+/// embedded in a `'%' || ? || '%'` substring-match pattern and treated as a
+/// **literal**, not a wildcard. Every call site pairs this with a static
+/// `ESCAPE '\'` clause on the same `LIKE`.
+///
+/// The backslash is escaped first — otherwise the backslashes just added for
+/// `%`/`_` would themselves be re-escaped. Implemented as three linear
+/// `replaceAll` calls on literal strings (no regex), so this is ReDoS-safe
+/// and runs in O(n).
+String escapeLikePattern(String term) =>
+    term.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');
+
 /// Compiles a [DanceFilter] tree into a single parameterized `SELECT id FROM
 /// dances …` (`docs/design/search.md` "SQL compilation").
 ///
@@ -165,12 +177,13 @@ class FilterCompiler {
         // nullable — a NULL yields NULL (not-true) under LIKE, so the OR still
         // matches on title alone. Field-scoped counterpart to the bare
         // full-text search over the `dance_fts.sources` column.
-        binds.add(query);
-        binds.add(query);
+        final escaped = escapeLikePattern(query);
+        binds.add(escaped);
+        binds.add(escaped);
         return 'id IN (SELECT ds.dance_id FROM dance_sources ds '
             'JOIN published_sources ps ON ps.id = ds.source_id '
-            "WHERE ps.title LIKE '%' || ? || '%' "
-            "OR ps.author LIKE '%' || ? || '%')";
+            "WHERE ps.title LIKE '%' || ? || '%' ESCAPE '\\' "
+            "OR ps.author LIKE '%' || ? || '%' ESCAPE '\\')";
       case SourceIdFilter(:final sourceId):
         // Identity match on the cited source's id — the exact analog of
         // AuthorFilter's dance_authors subquery.
@@ -240,8 +253,8 @@ class FilterCompiler {
   String _customFieldOp(CustomFieldFilter f, List<Object?> binds) {
     switch (f.op) {
       case CustomFieldOp.contains:
-        binds.add(f.value);
-        return "v.value_text LIKE '%' || ? || '%'";
+        binds.add(escapeLikePattern(f.value as String));
+        return "v.value_text LIKE '%' || ? || '%' ESCAPE '\\'";
       case CustomFieldOp.equals:
         binds.add(f.value);
         return 'v.value_text = ?';

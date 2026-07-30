@@ -356,6 +356,42 @@ void main() {
     });
 
     test(
+      'Source: literal %, _ and \\ in the query do not act as SQL wildcards',
+      () async {
+        final sources = PublishedSourceRepository(db);
+        // A literal '%' in the title that a naive LIKE '%<query>%' would let
+        // an unescaped '%' or '_' query over-match against.
+        await sources.upsert(
+          PublishedSource(id: 's1', title: 'Save 100% Effort'),
+        );
+        await sources.upsert(PublishedSource(id: 's2', title: 'Unrelated'));
+        await dances.create(
+          _dance(
+            id: 'discount',
+            title: 'Discount',
+          ).copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
+        );
+        await dances.create(
+          _dance(
+            id: 'plain',
+            title: 'Plain',
+          ).copyWith(sourceCitations: [SourceCitation(sourceId: 's2')]),
+        );
+
+        // A literal '100%' query must match only the source that actually
+        // contains that literal substring, not every row (which an
+        // unescaped '%' wildcard would do).
+        expect(await dances.search(const SourceFilter('100%')), ['discount']);
+        // '_' must match a literal underscore, not "any single character" —
+        // there is no dance citing a source with an actual underscore.
+        expect(await dances.search(const SourceFilter('Sa_e')), isEmpty);
+        // A backslash in the query must not break the pattern or match
+        // everything.
+        expect(await dances.search(const SourceFilter(r'Sa\e')), isEmpty);
+      },
+    );
+
+    test(
       'SourceId: matches dances citing a source by its id, not by title',
       () async {
         final sources = PublishedSourceRepository(db);
@@ -771,6 +807,30 @@ void main() {
       expect(
         await dances.search(
           CustomFieldFilter(def, CustomFieldOp.equals, 'nope'),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('text contains treats %, _ and \\ in the query as literals', () async {
+      final def = CustomFieldDef(
+        id: 'f',
+        key: 'origin',
+        label: 'Origin',
+        type: CustomFieldType.text,
+      );
+      await seed(def, 'Save 100% Effort');
+      // Literal '%' in the query must not wildcard-match every row.
+      expect(
+        await dances.search(
+          CustomFieldFilter(def, CustomFieldOp.contains, '100%'),
+        ),
+        ['a'],
+      );
+      // '_' must match a literal underscore, not any single character.
+      expect(
+        await dances.search(
+          CustomFieldFilter(def, CustomFieldOp.contains, 'Sa_e'),
         ),
         isEmpty,
       );

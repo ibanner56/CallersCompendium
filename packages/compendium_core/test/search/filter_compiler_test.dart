@@ -82,10 +82,32 @@ void main() {
         pred(const SourceFilter('Zesty')),
         'id IN (SELECT ds.dance_id FROM dance_sources ds '
         'JOIN published_sources ps ON ps.id = ds.source_id '
-        "WHERE ps.title LIKE '%' || ? || '%' "
-        "OR ps.author LIKE '%' || ? || '%')",
+        "WHERE ps.title LIKE '%' || ? || '%' ESCAPE '\\' "
+        "OR ps.author LIKE '%' || ? || '%' ESCAPE '\\')",
       );
       // The query is bound once per LIKE clause (title, then author).
+      expect(compiler.compile(const SourceFilter('Zesty')).binds, [
+        'Zesty',
+        'Zesty',
+      ]);
+    });
+
+    test('Source escapes LIKE metacharacters in the bound value', () {
+      // `%`, `_` and `\` in the user's query must survive as literals, not
+      // be interpreted as SQL wildcards/escape by the static ESCAPE clause.
+      expect(compiler.compile(const SourceFilter('100%')).binds, [
+        r'100\%',
+        r'100\%',
+      ]);
+      expect(compiler.compile(const SourceFilter('do_si')).binds, [
+        r'do\_si',
+        r'do\_si',
+      ]);
+      expect(compiler.compile(const SourceFilter(r'back\slash')).binds, [
+        r'back\\slash',
+        r'back\\slash',
+      ]);
+      // Plain alphanumeric queries are unaffected (regression).
       expect(compiler.compile(const SourceFilter('Zesty')).binds, [
         'Zesty',
         'Zesty',
@@ -258,9 +280,18 @@ void main() {
         pred(f),
         "EXISTS (SELECT 1 FROM custom_field_values v "
         "WHERE v.dance_id = dances.id AND v.field_id = ? "
-        "AND v.value_text LIKE '%' || ? || '%')",
+        "AND v.value_text LIKE '%' || ? || '%' ESCAPE '\\')",
       );
       expect(compiler.compile(f).binds, ['fid', 'jig']);
+    });
+
+    test('contains escapes LIKE metacharacters in the bound value', () {
+      final f = CustomFieldFilter(
+        def(CustomFieldType.text),
+        CustomFieldOp.contains,
+        '50%_off',
+      );
+      expect(compiler.compile(f).binds, ['fid', r'50\%\_off']);
     });
 
     test('equals / number ops / between', () {
