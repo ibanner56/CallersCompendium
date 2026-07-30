@@ -129,8 +129,8 @@ void main() {
       expect(f.params['who'], 'role2s');
     });
 
-    test('balance petronella → balance true', () {
-      final f = _parse('balance petronella');
+    test('balance & petronella → balance true', () {
+      final f = _parse('balance & petronella');
       expect(f.move, 'petronella');
       expect(f.params['balance'], isTrue);
     });
@@ -273,7 +273,7 @@ void main() {
     });
 
     test("Rory O'More", () {
-      final f = _parse("balance rory o'more right");
+      final f = _parse("balance & rory o'more right");
       expect(f.move, 'rory_o_more');
       expect(f.params['balance'], isTrue);
       expect(f.params['slide'], 'right');
@@ -380,9 +380,9 @@ void main() {
       expect(f.params['dir'], 'above');
     });
 
-    test('square through', () {
+    test('square through with rendered "balance & " on the odd clause', () {
       final f = _parse(
-        'square through four - partners balance pull by right, then neighbors pull by left',
+        'square through four - partners balance & pull by right, then neighbors pull by left',
       );
       expect(f.move, 'square_through');
       expect(f.params['places'], 4);
@@ -576,6 +576,17 @@ void main() {
       final f = _parse('partners balance');
       expect(f.move, 'balance');
       expect(f.params['who'], 'partners');
+      expect(f.note, isNull);
+    });
+
+    test('bare "<who> balance" is not swallowed by a prefix recognizer', () {
+      // A subject that also opens the Rory O'More / petronella templates must
+      // still route to the plain `balance` move when no `& <move>` follows: the
+      // `balance &` prefix is only consumed as an adjacent pair.
+      final f = _parse('role1s balance');
+      expect(f.move, 'balance');
+      expect(f.params['who'], 'role1s');
+      expect(f.isCustom, isFalse);
       expect(f.note, isNull);
     });
   });

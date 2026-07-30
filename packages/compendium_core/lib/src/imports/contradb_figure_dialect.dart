@@ -354,20 +354,19 @@ bool _eatAmpBalance(_Scan s) {
   return false;
 }
 
-/// Consumes a leading `balance` prefix plus the `&` ContraDB renders after it,
-/// returning whether a balance was present. The `bal` param's forward renderer
-/// (`libfigure` `stringParamBalance`) always emits `balance & ` before the move
-/// (e.g. `balance & Rory O'More`, `balance & petronella`), so the `&` is a
-/// template token, not a leftover note — leaving it unconsumed made the
-/// recognizer decline and demote an otherwise-matchable figure to custom (#578).
-/// `balance` itself is always consumed (that is the prefix); the `&` is optional
-/// so lenient input rendered without it (e.g. hand-authored `balance petronella`)
-/// still recognises. A trailing `&` is only eaten when it immediately follows
-/// `balance`, never mid-figure.
+/// Consumes a leading `balance & ` prefix, returning whether it was present.
+/// ContraDB's `bal` param renders a balanced move as `balance & <move>`
+/// (libfigure `stringParamBalance` → "balance & "), so the prefix is exactly the
+/// two adjacent tokens `balance` `&`. A leftover `&` used to make the recognizer
+/// decline and demote an otherwise-matchable figure to custom (#578). A bare
+/// `balance` NOT followed by `&` is a plain balance move, so the scan is restored
+/// and `false` returned, leaving that case for [_balance] — a prefix recognizer
+/// never swallows a plain balance.
 bool _eatBalanceAmp(_Scan s) {
-  if (!s.eat('balance')) return false;
-  s.eat('&');
-  return true;
+  final save = s.pos;
+  if (s.eat('balance') && s.eat('&')) return true;
+  s.reset(save);
+  return false;
 }
 
 /// heyWords (common full/half form). Renders as: "PASS1 start a FULL|HALF hey -
