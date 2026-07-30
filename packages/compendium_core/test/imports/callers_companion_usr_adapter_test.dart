@@ -175,5 +175,44 @@ void main() {
       );
       expect(() => adapter.parse(raw), throwsA(isA<ImportError>()));
     });
+
+    test(
+      'a legacy payload with an over-structured A1..C2 body fails closed with '
+      'the friendly ImportError, not a raw resource-limit exception',
+      () {
+        // Legacy payload (no threaded `body`), so parse re-derives the body from
+        // A1..C2 — which is now bounded by the CC caps. An over-structured A1
+        // must surface the same user-safe "too large" message discover uses,
+        // never leak a raw FmpResourceLimitException out of parse.
+        final limited = CallersCompanionUsrAdapter(
+          limits: const FmpReadLimits(maxFiguresPerDance: 3),
+        );
+        final raw = RawRecord(
+          source: ProvenanceSource.callersCompanion,
+          externalId: '7',
+          sourceVersion: CallersCompanionUsrAdapter.sourceVersion,
+          payload: jsonEncode({
+            'rowId': '7',
+            'columns': {
+              'Name': 'X',
+              'A1': List.generate(20, (i) => 'circle $i').join('\n'),
+            },
+          }),
+          contentType: 'application/json',
+        );
+        expect(
+          () => limited.parse(raw),
+          throwsA(
+            isA<ImportError>()
+                .having((e) => e.stage, 'stage', ImportStage.parse)
+                .having(
+                  (e) => e.message,
+                  'message',
+                  'That file is too large to import.',
+                ),
+          ),
+        );
+      },
+    );
   });
 }

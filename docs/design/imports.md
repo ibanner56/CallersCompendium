@@ -152,8 +152,9 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
   the `Phrase` table is newly-surfaced untrusted free text + rows, so it is
   guarded consistently with the `.USR` reader's existing bounds.
   - **Sanitized at the ingestion boundary.** Every body line is scrubbed via
-    `sanitizeImportedText` (single-line, issue #444) inside `_splitBodyLines`
-    *before* it reaches a `CcBodySection`, so control/bidi-override/invisible
+    `sanitizeImportedText` (single-line, issue #444) during the incremental line
+    walk (`_appendCappedBodyLines`) *before* it reaches a `CcBodySection`, so
+    control/bidi-override/invisible
     format spoofing characters can never enter the joined body, the persisted
     JSON payload (`provenance.raw_payload`), or storage — defense in depth ahead
     of the parser's own `scrubFigureText` chokepoint (idempotent, no double-mangle).
