@@ -85,6 +85,20 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **A backup restore that saves your content but can't apply your settings now
+  says so — and lets you retry.** Restoring writes two independent stores that
+  can't share one transaction: your core content (dances, programs, everything
+  in the database) commits first, then your saved settings (dialects, themes,
+  preferences) are applied separately. If that second step genuinely failed —
+  the settings store was momentarily unavailable — the app used to report a
+  blanket "couldn't restore the backup," even though your dances and programs
+  had in fact been restored. Now that case is handled explicitly: the restored
+  content is kept (never rolled back or lost), and you get a clear message that
+  your content is safe but settings couldn't be applied, with a **Retry
+  settings** action that re-applies just the settings without re-importing
+  anything. The retry re-runs the same integrity check and per-setting
+  validation (from the previous release) every time, so it can't be used to slip
+  an unchecked value through, and it's safe to press more than once. (#608)
 - **The single-dance Perform view no longer exits on one stray tap or back
   gesture.** Exiting single-dance Perform mode used to pop the screen
   immediately on a single tap of the close control, with no `PopScope` to

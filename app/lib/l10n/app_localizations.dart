@@ -1394,6 +1394,24 @@ abstract class AppLocalizations {
   /// **'Couldn\'t restore the backup.'**
   String get backupRestoreFailed;
 
+  /// Snackbar shown when a backup restore committed the core content (dances/programs) successfully but the separate settings-apply step failed (issue #608). Reassures the user their restored content is intact and points to the retry action. Never contains raw error text.
+  ///
+  /// In en, this message translates to:
+  /// **'Your dances and programs were restored, but applying your saved settings failed. Your restored content is safe — you can retry applying settings.'**
+  String get backupRestoreSettingsFailed;
+
+  /// Action button on the settings-restore-failed snackbar that re-applies only the settings portion of the backup. Keep short (a SnackBar action label).
+  ///
+  /// In en, this message translates to:
+  /// **'Retry settings'**
+  String get backupRestoreSettingsRetryAction;
+
+  /// Snackbar confirming a successful retry of the settings-apply step after an earlier settings-restore failure.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings applied.'**
+  String get backupRestoreSettingsRetried;
+
   /// Title of the backup export row and export-options dialog.
   ///
   /// In en, this message translates to:

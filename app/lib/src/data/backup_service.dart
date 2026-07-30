@@ -68,6 +68,7 @@ class BackupRestoreOutcome {
     this.applied = false,
     this.incompleteCore = false,
     this.integrityFailed = false,
+    this.settingsFailed = false,
   });
 
   final List<ArchiveError> errors;
@@ -92,6 +93,27 @@ class BackupRestoreOutcome {
   /// checksum** (issue #536) — corrupt or altered file, nothing applied. Lets
   /// the UI say so specifically instead of a generic "invalid file".
   final bool integrityFailed;
+
+  /// Whether the **core** content restored and committed successfully but the
+  /// subsequent **app-settings** apply step failed (issue #608).
+  ///
+  /// The core (dances/programs/etc.) and app settings (SharedPreferences-style
+  /// `settings` table) live in two independent stores that cannot share one
+  /// transaction, so once the core has committed it CANNOT be part of a settings
+  /// rollback. When the settings-apply step genuinely fails (the settings store
+  /// throws / is unavailable — as opposed to a single invalid value, which #609
+  /// already degrades to its default), the owner-decided behavior is to KEEP the
+  /// successfully-restored core (no disproportionate pre-restore snapshot /
+  /// rollback) and surface a specific, retryable error rather than silently
+  /// accepting the partial state or misreporting a total failure.
+  ///
+  /// On this path [applied] is `true` — the core changed, so the UI should still
+  /// refresh — and the UI surfaces a clean, localized, actionable message with a
+  /// "retry settings" affordance that re-runs ONLY the settings apply via
+  /// [BackupService.retryApplySettings]. Distinct from [hasErrors] (some
+  /// entities skipped) and from an outright refusal ([applied] is `false`, where
+  /// nothing was written).
+  final bool settingsFailed;
 
   bool get hasErrors => errors.isNotEmpty;
 }
@@ -177,6 +199,13 @@ class BackupService {
   /// restore itself fails it is rolled back atomically and this method returns
   /// `applied: false` **without** mutating app settings (dialect/theme/prefs),
   /// so a failed replace never leaves core intact but preferences overwritten.
+  ///
+  /// If the core commits but the SEPARATE app-settings apply then fails (the
+  /// settings store throws / is unavailable — issue #608), the restored core is
+  /// KEPT (it cannot share the core's transaction, so it is not rolled back) and
+  /// this returns `applied: true` with [BackupRestoreOutcome.settingsFailed]
+  /// `true`. The caller surfaces a retryable error and can re-run only the
+  /// settings apply via [retryApplySettings]; the exception is never rethrown.
   Future<BackupRestoreOutcome> restoreFromJson(
     String json, {
     RestoreMode mode = RestoreMode.replace,
@@ -229,7 +258,79 @@ class BackupService {
       );
     }
 
-    await _applyAppSettings(doc, warnings);
+    // Core is committed and durable at this point. Applying app settings is a
+    // SEPARATE, non-transactional batch of writes into an independent store, so
+    // a failure here (the settings store throws / is unavailable) CANNOT roll
+    // the core back. Rather than let that exception propagate — which the UI
+    // would mislabel as a total "restore failed" even though the core is safely
+    // restored — keep the restored core and report a specific, retryable
+    // settings failure (#608). A single invalid VALUE does not reach here: #609
+    // validates each value inside [_applyAppSettings] and skips it to its
+    // default; this guard is for a genuine failure of the apply step itself.
+    try {
+      await _applyAppSettings(doc, warnings);
+    } on Object {
+      return BackupRestoreOutcome(
+        errors: errors,
+        warnings: warnings,
+        applied: true,
+        settingsFailed: true,
+      );
+    }
+
+    return BackupRestoreOutcome(
+      errors: errors,
+      warnings: warnings,
+      applied: true,
+    );
+  }
+
+  /// Re-applies ONLY the app-settings portion of [json] against data whose core
+  /// has already been restored — the retry path for issue #608's
+  /// core-restored-but-settings-failed state.
+  ///
+  /// The core is deliberately NOT touched: this method never runs
+  /// [ArchiveRestorer], so it cannot re-wipe or re-load the (already correct)
+  /// collection. It re-decodes [json] so the untrusted backup is re-validated
+  /// end-to-end every time — envelope well-formedness, the SHA-256 integrity
+  /// checksum (#536), and, inside [_applyAppSettings], the per-key type/range
+  /// schema (#609) — before any value is written. A fatal envelope (invalid
+  /// JSON / missing core / failed checksum) yields `applied: false` and nothing
+  /// is applied.
+  ///
+  /// Idempotent: [_applyAppSettings] is a full REPLACE of the backup-eligible
+  /// settings keys (it removes stale eligible keys, then re-sets each backed-up
+  /// key), so running it once or several times converges to the same state.
+  /// This makes the retry safe to invoke repeatedly, and a settings-apply
+  /// failure that recurs is reported (again) as [BackupRestoreOutcome.applied]
+  /// `true` with [BackupRestoreOutcome.settingsFailed] `true` rather than thrown.
+  Future<BackupRestoreOutcome> retryApplySettings(String json) async {
+    final read = decodeBackup(json);
+    final errors = <ArchiveError>[...read.errors];
+    final warnings = <String>[...read.warnings];
+
+    // Without a well-formed envelope there is no document to apply. Nothing was
+    // touched, so this is a clean refusal (applied: false), mirroring the
+    // pre-core-commit refusals in [restoreFromJson].
+    if (read.fatal) {
+      return BackupRestoreOutcome(
+        errors: errors,
+        warnings: warnings,
+        applied: false,
+        integrityFailed: read.integrityFailed,
+      );
+    }
+
+    try {
+      await _applyAppSettings(read.document, warnings);
+    } on Object {
+      return BackupRestoreOutcome(
+        errors: errors,
+        warnings: warnings,
+        applied: true,
+        settingsFailed: true,
+      );
+    }
 
     return BackupRestoreOutcome(
       errors: errors,

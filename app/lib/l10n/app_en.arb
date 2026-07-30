@@ -993,6 +993,18 @@
   "@backupRestoreFailed": {
     "description": "Snackbar shown when backup restore fails unexpectedly. The raw exception is logged separately, not shown in the UI."
   },
+  "backupRestoreSettingsFailed": "Your dances and programs were restored, but applying your saved settings failed. Your restored content is safe — you can retry applying settings.",
+  "@backupRestoreSettingsFailed": {
+    "description": "Snackbar shown when a backup restore committed the core content (dances/programs) successfully but the separate settings-apply step failed (issue #608). Reassures the user their restored content is intact and points to the retry action. Never contains raw error text."
+  },
+  "backupRestoreSettingsRetryAction": "Retry settings",
+  "@backupRestoreSettingsRetryAction": {
+    "description": "Action button on the settings-restore-failed snackbar that re-applies only the settings portion of the backup. Keep short (a SnackBar action label)."
+  },
+  "backupRestoreSettingsRetried": "Settings applied.",
+  "@backupRestoreSettingsRetried": {
+    "description": "Snackbar confirming a successful retry of the settings-apply step after an earlier settings-restore failure."
+  },
   "backupExportTitle": "Export a backup",
   "@backupExportTitle": {
     "description": "Title of the backup export row and export-options dialog."

@@ -13,6 +13,7 @@ import 'package:compendium_app/src/data/soft_delete_retention.dart'
 import 'package:compendium_app/src/data/window_service.dart'
     show kWindowFrameKey;
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart' show Brightness;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -47,6 +48,42 @@ Future<void> _seed(CompendiumRepositories repos) async {
   // Device-local / metadata keys that must NOT travel in a backup.
   await repos.settings.set(kWindowFrameKey, 'some-geometry');
   await repos.settings.set(kLastBackupAtKey, '2020-01-01T00:00:00.000Z');
+}
+
+/// A [SettingsRepository] that can be forced to fail its writes, used to
+/// simulate the settings store throwing / being unavailable during a restore's
+/// settings-apply step (issue #608). Reads and removes still delegate to the
+/// real repository so the test can inspect state and the retry can succeed once
+/// [failWrites] is cleared.
+class _FailingSettingsRepository extends SettingsRepository {
+  _FailingSettingsRepository(super.db);
+
+  /// When true, every [set] throws instead of writing.
+  bool failWrites = true;
+
+  @override
+  Future<void> set(String key, Object? value) {
+    if (failWrites) throw const _InjectedSettingsFailure();
+    return super.set(key, value);
+  }
+}
+
+class _InjectedSettingsFailure implements Exception {
+  const _InjectedSettingsFailure();
+  @override
+  String toString() => 'Injected settings-store failure';
+}
+
+/// Opens in-memory repositories whose settings store fails its writes until
+/// [_FailingSettingsRepository.failWrites] is cleared. The core repositories
+/// share the same database, so a core restore commits normally while the
+/// settings-apply step fails.
+({CompendiumRepositories repos, _FailingSettingsRepository settings})
+_openRepositoriesWithFailingSettings() {
+  final db = CompendiumDatabase(NativeDatabase.memory());
+  final settings = _FailingSettingsRepository(db);
+  final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
+  return (repos: repos, settings: settings);
 }
 
 void main() {
@@ -464,5 +501,129 @@ void main() {
     expect(dances.map((d) => d.id), ['live']);
     // App settings were NOT mutated — the preference keeps its live value.
     expect(await repos.settings.get(kSortIgnoreArticlesKey), false);
+  });
+
+  test(
+    'settings-apply failure after the core commit keeps the restored core and '
+    'reports a retryable settingsFailed instead of throwing (#608)',
+    () async {
+      final source = openTestRepositories();
+      await _seed(source);
+      final json = await BackupService(source).exportToJson();
+
+      final target = _openRepositoriesWithFailingSettings();
+      // Stale core data to prove the core replace actually committed.
+      await target.repos.dances.create(_dance('stale', 'Should Be Gone'));
+
+      // The settings store throws during _applyAppSettings, AFTER the core has
+      // already committed. This must NOT propagate as a total failure.
+      final outcome = await BackupService(target.repos).restoreFromJson(json);
+
+      // Core content committed and is kept (no rollback); the outcome reports a
+      // retryable settings failure — not a crash, not a silent success.
+      expect(outcome.applied, isTrue);
+      expect(outcome.settingsFailed, isTrue);
+      final dances = await target.repos.dances.listAll();
+      expect(dances.map((d) => d.id), ['d1']);
+    },
+  );
+
+  test('retryApplySettings re-applies settings successfully once the store '
+      'recovers, leaving the core intact (#608)', () async {
+    final source = openTestRepositories();
+    await _seed(source);
+    final json = await BackupService(source).exportToJson();
+
+    final target = _openRepositoriesWithFailingSettings();
+    final failed = await BackupService(target.repos).restoreFromJson(json);
+    expect(failed.settingsFailed, isTrue);
+
+    // The store recovers; retry re-applies ONLY the settings.
+    target.settings.failWrites = false;
+    final retried = await BackupService(target.repos).retryApplySettings(json);
+
+    expect(retried.applied, isTrue);
+    expect(retried.settingsFailed, isFalse);
+
+    // Settings are now applied — verify via the real controllers + a pref.
+    final dialects = DialectLibraryController(target.repos.settings);
+    await dialects.load();
+    expect(dialects.customDialects.single.name, 'My Dialect');
+    expect(dialects.activeName, 'My Dialect');
+    expect(await target.repos.settings.get(kSortIgnoreArticlesKey), false);
+
+    // Core was never touched by the retry — the restored dance remains.
+    final dances = await target.repos.dances.listAll();
+    expect(dances.map((d) => d.id), ['d1']);
+  });
+
+  test('retryApplySettings is idempotent — running it twice converges to the '
+      'same state (#608)', () async {
+    final source = openTestRepositories();
+    await _seed(source);
+    final json = await BackupService(source).exportToJson();
+
+    final target = _openRepositoriesWithFailingSettings();
+    await BackupService(target.repos).restoreFromJson(json);
+    target.settings.failWrites = false;
+
+    final first = await BackupService(target.repos).retryApplySettings(json);
+    final second = await BackupService(target.repos).retryApplySettings(json);
+
+    expect(first.settingsFailed, isFalse);
+    expect(second.settingsFailed, isFalse);
+
+    // No duplication or drift from the second apply.
+    final dialects = DialectLibraryController(target.repos.settings);
+    await dialects.load();
+    expect(dialects.customDialects.length, 1);
+    expect(dialects.customDialects.single.name, 'My Dialect');
+    final themes = CustomThemesController(target.repos.settings);
+    await themes.load();
+    expect(themes.themes.single.id, 'custom-1');
+    expect(await target.repos.settings.get(kSortIgnoreArticlesKey), false);
+  });
+
+  test(
+    'a fully successful restore reports settingsFailed:false (#608)',
+    () async {
+      final source = openTestRepositories();
+      await _seed(source);
+      final json = await BackupService(source).exportToJson();
+
+      final target = openTestRepositories();
+      final outcome = await BackupService(target).restoreFromJson(json);
+
+      expect(outcome.applied, isTrue);
+      expect(outcome.settingsFailed, isFalse);
+    },
+  );
+
+  test('a pre-core-commit refusal reports settingsFailed:false and applies '
+      'nothing (#608)', () async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('live', 'Live Dance'));
+    await repos.settings.set(kSortIgnoreArticlesKey, true);
+
+    final outcome = await BackupService(repos).restoreFromJson('garbage {');
+
+    expect(outcome.applied, isFalse);
+    expect(outcome.settingsFailed, isFalse);
+    // Nothing touched: live core and settings are unchanged.
+    expect((await repos.dances.listAll()).map((d) => d.id), ['live']);
+    expect(await repos.settings.get(kSortIgnoreArticlesKey), true);
+  });
+
+  test('retryApplySettings refuses a fatal envelope without touching settings '
+      '(#608)', () async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kSortIgnoreArticlesKey, true);
+
+    final outcome = await BackupService(repos).retryApplySettings('garbage {');
+
+    expect(outcome.applied, isFalse);
+    expect(outcome.settingsFailed, isFalse);
+    // The existing live preference is left untouched.
+    expect(await repos.settings.get(kSortIgnoreArticlesKey), true);
   });
 }
