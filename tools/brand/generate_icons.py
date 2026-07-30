@@ -15,8 +15,8 @@ committed):
 
 Policy (see app/assets/brand/README.md):
 
-* Full illustration is used at >= 48 px; the simplified two-dancers-on-a-book
-  "small mark" is used at <= 32 px so it stays legible.
+* Full illustration is used at >= 32 px; the simplified two-dancers-on-a-book
+  "small mark" is used at < 32 px (i.e. 16 and 24 px slots) so it stays legible.
 * The default tile everywhere is **Soft Dark** (``#1E2A38``). iOS additionally
   ships Dark and Tinted appearance variants (Any = Soft Dark).
 * Android keeps an adaptive icon (Soft Dark background + full-illustration
@@ -49,7 +49,9 @@ DARK = "#121A24"        # dark scheme surface (iOS Dark variant)
 LIGHT = "#F4F6FA"       # light scheme surface
 TILE_RADIUS_RATIO = 28.4 / 128.0  # rounded-tile corner radius (~22.2%)
 
-# Small-mark crossover: at or below this pixel size use the simplified mark.
+# Small-mark crossover: *below* this pixel size use the simplified mark; at this
+# size and above use the full illustration. So 16/24 px use the small mark and
+# 32 px and up use the full illustration.
 SMALL_MAX = 32
 # At or below this pixel size, scale the small mark up so its content sits a
 # single pixel from the tile edge at the narrowest side (maximum legibility at
@@ -73,7 +75,7 @@ SMALL_TAN = _inner("mark-small-light.svg")  # simplified mark, tan pages (light 
 
 
 def content_for(size: int, light: bool = False) -> str:
-    if size <= SMALL_MAX:
+    if size < SMALL_MAX:
         return SMALL_TAN if light else SMALL_CREAM
     return FULL
 
@@ -146,9 +148,19 @@ def rasterize(svg: str, size: int) -> Image.Image:
             os.unlink(path + ".png")
 
 
-def render_tile(size: int, bg, rounded: bool, light: bool = False) -> Image.Image:
-    """Composited tile: (optional) background + size-appropriate content."""
-    return rasterize(_compose_svg(size, content_for(size, light), bg, rounded), size)
+def render_tile(size: int, bg, rounded: bool, light: bool = False,
+                nominal: int = None) -> Image.Image:
+    """Composited tile: (optional) background + size-appropriate content.
+
+    ``size`` is the raster pixel size. ``nominal`` is the icon *slot* size that
+    drives the small-mark-vs-full crossover; it defaults to ``size`` but differs
+    on macOS, where the content is rendered into an inner square inside a ~10%
+    transparent margin (so a 32 px slot renders its content at ~26 px but should
+    still pick the full illustration).
+    """
+    slot = size if nominal is None else nominal
+    content = content_for(slot, light)
+    return rasterize(_compose_svg(size, content, bg, rounded), size)
 
 
 def write_png(path: str, img: Image.Image, rgb: bool = False) -> None:
@@ -305,7 +317,9 @@ def macos(root: str) -> None:
     for s in (16, 32, 64, 128, 256, 512, 1024):
         margin = round(s * 0.10)
         inner = s - 2 * margin
-        tile = render_tile(inner, SOFT_DARK, rounded=True)
+        # `nominal=s` so the small-mark/full crossover follows the icon slot,
+        # not the (smaller) inner render size left by the transparent margin.
+        tile = render_tile(inner, SOFT_DARK, rounded=True, nominal=s)
         canvas = Image.new("RGBA", (s, s), (0, 0, 0, 0))
         canvas.paste(tile, (margin, margin), tile)
         write_png(os.path.join(d, "app_icon_%d.png" % s), canvas)

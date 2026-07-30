@@ -33,8 +33,10 @@ Pulled verbatim from `app/lib/src/theme/color_schemes.dart` — do not eyeball.
 - **Android** keeps an adaptive icon (Soft Dark background + full-illustration
   foreground) plus a **monochrome** themed layer (the small-mark silhouette,
   tinted by the system on Android 13+).
-- **Small-mark crossover:** the full illustration is used at ≥ 48 px; at ≤ 32 px
-  a simplified **two-dancers-on-a-book** mark is used so it stays legible.
+- **Small-mark crossover:** the full illustration is used at ≥ 32 px; below that
+  (the 16 and 24 px slots) a simplified **two-dancers-on-a-book** mark is used so
+  it stays legible. At ≤ 16 px the small mark is scaled up to a 1 px border for
+  maximum legibility.
 
 ## Variants (this folder — SVG is the source of truth)
 
@@ -43,7 +45,7 @@ Pulled verbatim from `app/lib/src/theme/color_schemes.dart` — do not eyeball.
 | `icon.svg` | full-colour default tile (illustration on Soft Dark) |
 | `icon-dark.svg` | dark-tile variant (petrol `#121A24`) — iOS Dark reference |
 | `icon-light.svg` | light-ground tile |
-| `icon-small.svg` | simplified small mark on the Soft Dark tile (≤ 32 px) |
+| `icon-small.svg` | simplified small mark on the Soft Dark tile (16 / 24 px) |
 | `mark.svg` | full illustration, no tile, transparent — in-app + Android foreground source |
 | `mark-small.svg` | simplified small mark, no tile (cream pages) — in-app small / silhouette source |
 | `mark-small-light.svg` | simplified small mark, tan pages (for light grounds) |
