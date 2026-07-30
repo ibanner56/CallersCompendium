@@ -213,6 +213,19 @@ void main() {
       expect(activity.title, 'SpoofedTitle');
     });
 
+    test('a linked dance title that sanitizes down to nothing is null, not '
+        'an empty string', () {
+      // So `activity.title ?? <fallback>` call sites (the preview tile,
+      // resolveContraDbProgram) still fall back instead of rendering blank.
+      final html =
+          '<div class="activity-breakdown">'
+          '<h2 class="activity-breakdown-dance-title">'
+          '<a href="/dances/9">$rlo$zwsp</a></h2></div>';
+      final activity = parseContraDbProgram(html).activities.single;
+      expect(activity.danceId, '9');
+      expect(activity.title, isNull);
+    });
+
     test(
       'strips bidi/zero-width characters from a standalone note activity',
       () {

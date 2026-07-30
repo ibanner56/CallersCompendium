@@ -38,7 +38,9 @@ class ContraDbProgramActivity {
   /// prose (`sanitizeImportedText`, default) — the same #444 defense the dance
   /// import paths apply — so a hostile program page can't smuggle bidi
   /// overrides or invisible/zero-width characters into stored program text
-  /// (issue #611).
+  /// (issue #611). A [title] that sanitizes down to nothing is stored as
+  /// `null` rather than an empty string, so fallback display text still
+  /// triggers.
   factory ContraDbProgramActivity.dance({
     required String danceId,
     required String title,
@@ -47,10 +49,16 @@ class ContraDbProgramActivity {
     final cleanNote = (note != null && note.trim().isNotEmpty)
         ? sanitizeImportedText(note.trim()).trim()
         : null;
+    // Normalize a title that sanitizes down to nothing (e.g. one consisting
+    // only of bidi/zero-width spoofing characters) to null rather than an
+    // empty string, so `activity.title ?? <fallback>` call sites (the preview
+    // tile, `resolveContraDbProgram`) still show their fallback instead of a
+    // blank title (issue #611 review follow-up).
+    final cleanTitle = sanitizeImportedText(title, allowLineBreaks: false);
     return ContraDbProgramActivity._(
       isDance: true,
       danceId: danceId,
-      title: sanitizeImportedText(title, allowLineBreaks: false),
+      title: cleanTitle.isEmpty ? null : cleanTitle,
       text: (cleanNote != null && cleanNote.isNotEmpty) ? cleanNote : null,
     );
   }
@@ -73,7 +81,9 @@ class ContraDbProgramActivity {
   /// ContraDB dance id (numeric string) for a linked dance; null for a note.
   final String? danceId;
 
-  /// Dance title for a linked dance; null for a note.
+  /// Dance title for a linked dance (null when the source title sanitized
+  /// down to nothing, e.g. all bidi/zero-width spoofing characters); null for
+  /// a note.
   final String? title;
 
   /// For a linked dance: the optional attached note (null when none). For a
