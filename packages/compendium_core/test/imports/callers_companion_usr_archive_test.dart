@@ -298,4 +298,282 @@ void main() {
       expect(archive.warnings.any((w) => w.contains('"Set" table')), isTrue);
     });
   });
+
+  // OWASP hardening for the newly-surfaced `Phrase` ingestion (issue #561): the
+  // `Phrase` table is untrusted external free text, so it is sanitized at the
+  // ingestion boundary, bounded fail-closed against pathological files, and its
+  // `zk_Dance_ID` join degrades gracefully. Hand-built [FmpDatabase] fixtures
+  // (they bypass the raw byte reader) exercise the CC-schema layer hermetically.
+  group('OWASP hardening (#561)', () {
+    // Builds a minimal DB: one Dance (`zk_Dance_ID`=danceId, here '4') plus a
+    // Phrase table with the supplied rows, so extraction has something to join.
+    FmpDatabase dbWithPhrase(
+      List<FmpRecord> phraseRows, {
+      List<FmpRecord>? danceRows,
+    }) {
+      final dance = FmpTable(
+        1,
+        'Dance',
+        [FmpColumn(3, 'zk_Dance_ID'), FmpColumn(1, 'Name')],
+        danceRows ??
+            [
+              FmpRecord(5430, {3: '4', 1: 'Simplicity Swing'}),
+            ],
+      );
+      final phrase = FmpTable(4, 'Phrase', [
+        FmpColumn(1, 'zk_Dance_ID'),
+        FmpColumn(2, 'PhraseNumber'),
+        FmpColumn(3, 'PhraseText'),
+      ], phraseRows);
+      return FmpDatabase(
+        versionNum: 12,
+        creator: 'Pro 12.0',
+        tables: [dance, phrase],
+        warnings: const [],
+      );
+    }
+
+    List<String> bodyLinesOf(CcUsrArchive archive) => [
+      for (final section in archive.dances.single.record.body) ...section.lines,
+    ];
+
+    test(
+      'splits multi-line PhraseText on \\n, \\r\\n and \\r endings, dropping '
+      'blank lines',
+      () {
+        // The incremental line walker must treat all three endings (and a CRLF
+        // pair as one break) identically and drop empty segments.
+        final archive = extractCcUsrArchive(
+          dbWithPhrase([
+            FmpRecord(700, {
+              1: '4',
+              2: 'A1',
+              3: '(8) circle left\r\n(8) do si do\r(8) swing\n\n(8) balance',
+            }),
+          ]),
+        );
+        expect(bodyLinesOf(archive), [
+          '(8) circle left',
+          '(8) do si do',
+          '(8) swing',
+          '(8) balance',
+        ]);
+      },
+    );
+
+    test('sanitizes control/bidi/format chars out of a Phrase line, preserving '
+        'legitimate text', () {
+      // A line laced with: BELL (C0 control), RLO (bidi override), zero-width
+      // space, and a byte-order mark — all display-spoofing / injection vectors.
+      const dirty = '(8) circle\u0007 left\u202E four\u200B places\uFEFF';
+      final archive = extractCcUsrArchive(
+        dbWithPhrase([
+          FmpRecord(700, {1: '4', 2: 'A1', 3: dirty}),
+        ]),
+      );
+      final line = bodyLinesOf(archive).single;
+
+      // Legitimate content survives verbatim; every spoofing char is gone.
+      expect(line, '(8) circle left four places');
+      for (final cp in const [0x0007, 0x202E, 0x200B, 0xFEFF]) {
+        expect(line.contains(String.fromCharCode(cp)), isFalse);
+      }
+    });
+
+    test('a too-many-rows Phrase table fails closed with a resource-limit '
+        'exception', () {
+      final rows = [
+        for (var i = 0; i < 5; i++)
+          FmpRecord(700 + i, {1: '4', 2: 'A$i', 3: '(8) circle left'}),
+      ];
+      expect(
+        () => extractCcUsrArchive(
+          dbWithPhrase(rows),
+          limits: const FmpReadLimits(maxPhraseRows: 3),
+        ),
+        throwsA(isA<FmpResourceLimitException>()),
+      );
+    });
+
+    test(
+      'an over-structured single dance (too many figure lines) fails closed',
+      () {
+        // A single PhraseText with far more newline-delimited lines than the
+        // per-dance cap: the guard must trip during the incremental walk, before
+        // the whole list is materialized (the DoS bound precedes its allocation).
+        final text = List.generate(500, (i) => '(8) circle left $i').join('\n');
+        expect(
+          () => extractCcUsrArchive(
+            dbWithPhrase([
+              FmpRecord(700, {1: '4', 2: 'A1', 3: text}),
+            ]),
+            limits: const FmpReadLimits(maxFiguresPerDance: 3),
+          ),
+          throwsA(isA<FmpResourceLimitException>()),
+        );
+      },
+    );
+
+    test(
+      'the per-dance cap counts across sections and admits a dance exactly at '
+      'the cap',
+      () {
+        // Three sections × one line = 3 lines == maxFiguresPerDance: imports
+        // cleanly (boundary is inclusive). A 4th line would trip the cap.
+        final archive = extractCcUsrArchive(
+          dbWithPhrase([
+            FmpRecord(700, {1: '4', 2: 'A1', 3: '(8) circle left'}),
+            FmpRecord(701, {1: '4', 2: 'A2', 3: '(8) do si do'}),
+            FmpRecord(702, {1: '4', 2: 'B1', 3: '(8) swing'}),
+          ]),
+          limits: const FmpReadLimits(maxFiguresPerDance: 3),
+        );
+        expect(bodyLinesOf(archive), hasLength(3));
+      },
+    );
+
+    test('an over-long single Phrase line is dropped with a warning, and the '
+        'rest of the dance still imports', () {
+      final huge = '(8) ${'x' * 100}';
+      final archive = extractCcUsrArchive(
+        dbWithPhrase([
+          // Over-length line (dropped + warned) alongside a normal one (kept).
+          FmpRecord(700, {1: '4', 2: 'A1', 3: huge}),
+          FmpRecord(701, {1: '4', 2: 'B1', 3: '(8) hey for four'}),
+        ]),
+        limits: const FmpReadLimits(maxBodyLineLength: 20),
+      );
+      // The over-long line is gone; the safe line still imported — no throw.
+      expect(bodyLinesOf(archive), ['(8) hey for four']);
+      expect(
+        archive.warnings.any(
+          (w) =>
+              w.contains('exceeded the safe length') && w.contains('dropped'),
+        ),
+        isTrue,
+      );
+    });
+
+    // Builds a DB with NO Phrase table and a Dance row carrying an `A1` value,
+    // so extraction takes the Dance-row `A1..C2` fallback path.
+    FmpDatabase dbWithDanceA1(String a1) {
+      final dance = FmpTable(
+        1,
+        'Dance',
+        [FmpColumn(3, 'zk_Dance_ID'), FmpColumn(1, 'Name'), FmpColumn(7, 'A1')],
+        [
+          FmpRecord(5430, {3: '4', 1: 'X', 7: a1}),
+        ],
+      );
+      return FmpDatabase(
+        versionNum: 12,
+        creator: 'Pro 12.0',
+        tables: [dance],
+        warnings: const [],
+      );
+    }
+
+    test(
+      'the Dance-row A1..C2 fallback is bounded too: an over-structured A1 value '
+      'fails closed (a hostile file cannot bypass the caps by omitting Phrase)',
+      () {
+        // A single A1 value with far more lines than the per-dance cap must fail
+        // closed even though there is no Phrase table — the fallback path shares
+        // the same incremental guard.
+        final many = List.generate(50, (i) => 'circle $i').join('\n');
+        expect(
+          () => extractCcUsrArchive(
+            dbWithDanceA1(many),
+            limits: const FmpReadLimits(maxFiguresPerDance: 8),
+          ),
+          throwsA(isA<FmpResourceLimitException>()),
+        );
+      },
+    );
+
+    test(
+      'the Dance-row A1..C2 fallback drops an over-long line with a warning and '
+      'imports the rest',
+      () {
+        final huge = '(8) ${'x' * 100}';
+        final archive = extractCcUsrArchive(
+          dbWithDanceA1('$huge\n(8) hey for four'),
+          limits: const FmpReadLimits(maxBodyLineLength: 20),
+        );
+        expect(bodyLinesOf(archive), ['(8) hey for four']);
+        expect(
+          archive.warnings.any(
+            (w) =>
+                w.contains('exceeded the safe length') && w.contains('dropped'),
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test('the friendly default limits comfortably admit a normal file', () {
+      // 162-row real sample is far under the 20k default; a handful of ordinary
+      // lines must import with no limit exception.
+      final archive = extractCcUsrArchive(
+        dbWithPhrase([
+          FmpRecord(700, {
+            1: '4',
+            2: 'A1',
+            3: '(16) neighbors balance and swing',
+          }),
+          FmpRecord(701, {1: '4', 2: 'B1', 3: '(8) hey for four'}),
+        ]),
+      );
+      expect(bodyLinesOf(archive), hasLength(2));
+    });
+
+    test('a Phrase row with a missing zk_Dance_ID warns and still imports the '
+        'rest', () {
+      final archive = extractCcUsrArchive(
+        dbWithPhrase([
+          // Missing join key — can't be linked; must warn, not throw.
+          FmpRecord(700, {2: 'A1', 3: '(8) orphaned line'}),
+          FmpRecord(701, {1: '4', 2: 'B1', 3: '(8) hey for four'}),
+        ]),
+      );
+      // The valid row still imported.
+      expect(bodyLinesOf(archive), ['(8) hey for four']);
+      expect(
+        archive.warnings.any(
+          (w) => w.contains('no "zk_Dance_ID"') && w.contains('Phrase'),
+        ),
+        isTrue,
+      );
+    });
+
+    test('an orphan zk_Dance_ID (no matching dance) warns and drops only that '
+        'group', () {
+      final archive = extractCcUsrArchive(
+        dbWithPhrase([
+          // References dance '999', which does not exist.
+          FmpRecord(700, {1: '999', 2: 'A1', 3: '(8) orphaned figure'}),
+          FmpRecord(701, {1: '4', 2: 'B1', 3: '(8) hey for four'}),
+        ]),
+      );
+      // The real dance keeps its figure; the orphan group is gone.
+      expect(bodyLinesOf(archive), ['(8) hey for four']);
+      expect(
+        archive.warnings.any(
+          (w) => w.contains('no matching dance') && w.contains('Phrase'),
+        ),
+        isTrue,
+      );
+    });
+
+    test('duplicate (zk_Dance_ID, PhraseNumber) keys do not throw and both '
+        'lines are retained', () {
+      final archive = extractCcUsrArchive(
+        dbWithPhrase([
+          FmpRecord(700, {1: '4', 2: 'A1', 3: '(8) first A1 line'}),
+          FmpRecord(701, {1: '4', 2: 'A1', 3: '(8) second A1 line'}),
+        ]),
+      );
+      expect(bodyLinesOf(archive), ['(8) first A1 line', '(8) second A1 line']);
+    });
+  });
 }

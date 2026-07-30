@@ -159,10 +159,24 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
       );
     }
 
-    final record = ccDanceRecordFromColumns(
-      columns,
-      bodyOverride: bodyOverride,
-    );
+    final CcDanceRecord record;
+    try {
+      record = ccDanceRecordFromColumns(
+        columns,
+        bodyOverride: bodyOverride,
+        limits: limits,
+      );
+    } on FmpResourceLimitException {
+      // A legacy payload (no threaded body) re-derives its figure body from the
+      // A1..C2 columns, which is bounded by the same fail-closed CC caps; an
+      // over-structured value throws here. Map it to the same friendly message
+      // `discover` uses rather than letting a raw exception escape `parse`.
+      throw ImportError(
+        stage: ImportStage.parse,
+        source: source,
+        message: 'That file is too large to import.',
+      );
+    }
     // Figure text is scrubbed + structured by the shared parser (the mapping's
     // default scrub is the core `scrubFigureText` chokepoint).
     final mapping = mapCallersCompanionDance(record);

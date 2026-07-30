@@ -192,4 +192,62 @@ void main() {
       },
     );
   });
+
+  // OWASP hardening (#561) at the adapter boundary: an over-structured Phrase
+  // table must fail closed with the friendly "too large" ImportError (surfaced
+  // by discover), never OOM or a raw resource-limit throw-through. The
+  // sanitization + join-degradation guards are proven hermetically against
+  // hand-built FmpDatabase fixtures in callers_companion_usr_archive_test.dart
+  // (the byte fixture's SCSU text encoding can't faithfully carry raw
+  // control/bidi bytes, so those live at the archive layer).
+  group('OWASP hardening — adapter fail-closed (#561)', () {
+    // A fixture whose Phrase table has more rows than the injected cap.
+    Uint8List ccUsrWithManyPhrases() => buildFmp12Fixture([
+      FmpFixtureTable(
+        index: 1,
+        name: 'Dance',
+        columnNames: ['zk_Dance_ID', 'Name'],
+        rows: [
+          MapEntry(10, {1: '4', 2: 'Simplicity Swing'}),
+        ],
+      ),
+      FmpFixtureTable(
+        index: 2,
+        name: 'Phrase',
+        columnNames: ['zk_Dance_ID', 'PhraseNumber', 'PhraseText'],
+        rows: [
+          for (var i = 0; i < 4; i++)
+            MapEntry(100 + i, {1: '4', 2: 'A$i', 3: '(8) circle left'}),
+        ],
+      ),
+    ]);
+
+    test('an over-structured Phrase table fails closed with the friendly '
+        '"too large" error', () async {
+      final adapter = CallersCompanionUsrAdapter(
+        limits: const FmpReadLimits(maxPhraseRows: 2),
+      );
+      await expectLater(
+        adapter.discover(
+          ImportRequest(options: {'bytes': ccUsrWithManyPhrases()}),
+        ),
+        throwsA(
+          isA<ImportError>().having(
+            (e) => e.message,
+            'message',
+            'That file is too large to import.',
+          ),
+        ),
+      );
+    });
+
+    test('the same file imports cleanly under the default limits', () async {
+      final adapter = CallersCompanionUsrAdapter();
+      final discovered = await adapter.discover(
+        ImportRequest(options: {'bytes': ccUsrWithManyPhrases()}),
+      );
+      expect(discovered, hasLength(1));
+      expect(discovered.single.externalId, '4');
+    });
+  });
 }
