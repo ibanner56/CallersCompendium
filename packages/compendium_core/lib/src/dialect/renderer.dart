@@ -1153,11 +1153,17 @@ class FigureRenderer {
       // the second time]" (bare "meet"), the unspecified case "until someone
       // meets[ the second time]".
       final meetTarget = params['meetTarget'];
-      final meetChoices = def.params['meetTarget']?.choices;
+      // Allow-list the target: prefer the taxonomy spec's explicit `choices`,
+      // and — should a MoveDef ever omit them — fall back to the shared dancer
+      // vocabulary rather than accepting arbitrary strings, so an unknown /
+      // tolerantly-decoded token still degrades to the generic "someone"
+      // wording instead of being injected verbatim.
+      final meetChoices =
+          def.params['meetTarget']?.choices ?? ParamVocab.dancerSets;
       final namedTarget =
           meetTarget is String &&
               meetTarget != 'unspecified' &&
-              (meetChoices == null || meetChoices.contains(meetTarget))
+              meetChoices.contains(meetTarget)
           ? r._displayGroup(meetTarget, dialect)
           : '';
       final untilSubject = namedTarget.isNotEmpty ? namedTarget : 'someone';

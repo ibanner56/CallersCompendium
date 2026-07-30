@@ -193,9 +193,9 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   hey until you meet. The value domain is ContraDB `chooser_pairz`
   (`_heyMeetTargetChoices`: `role1s`/`role2s`/`ones`/`twos`/`partners`/
   `neighbors`/`sameRoles`/`firstCorners`/`secondCorners`/`shadows`/
-  `secondShadows`/`prev`/`next`/`third`/`fourthNeighbors` + `unspecified`) —
-  **pairs only** (single dancers, `everyone`, and `centers` are excluded, as
-  ContraDB does). Our `length` already carries the meeting *count*
+  `secondShadows`/`prevNeighbors`/`nextNeighbors`/`thirdNeighbors`/
+  `fourthNeighbors` + `unspecified`) — **pairs only** (single dancers,
+  `everyone`, and `centers` are excluded, as ContraDB does). Our `length` already carries the meeting *count*
   (`lessThanHalf`=first meeting/%%1, `betweenHalfAndFull`=second/%%2), so
   `meetTarget` supplies only the WHO. The display renderer names the target only
   for the two partial lengths — "until {target} meet[ the second time]" (bare
