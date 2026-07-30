@@ -84,7 +84,7 @@ def content_for(size: int, light: bool = False) -> str:
 _BBOX_CACHE: dict = {}
 
 
-def _content_bbox(content: str):
+def _content_bbox(content: str) -> Tuple[float, float, float, float]:
     """Tight (x0, y0, x1, y1) alpha bounding box of `content`, in 2048 units."""
     if content in _BBOX_CACHE:
         return _BBOX_CACHE[content]
