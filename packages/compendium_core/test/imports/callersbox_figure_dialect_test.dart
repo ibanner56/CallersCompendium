@@ -135,11 +135,27 @@ void main() {
           parseFigureLine('Hey 1/2 (WR;PL)', frontEnd: frontEnd)!.isCustom,
           isTrue,
         );
-        expect(
-          parseFigureLine('Pass through (NR)', frontEnd: frontEnd)!.isCustom,
-          isTrue,
-        );
       }
+      // The canonical/CallersCompanion front-end still leaves a bare
+      // `Pass through (NR)` unstructured (no ContraDB direction render).
+      expect(
+        parseFigureLine(
+          'Pass through (NR)',
+          frontEnd: callersCompanionFigureFrontEnd,
+        )!.isCustom,
+        isTrue,
+      );
+      // The ContraDB HTML front-end now recognises a bare `pass through` and
+      // keeps the trailing qualifier as a verbatim note (#585): programs render
+      // bare pass-throughs (e.g. The Hobbit, Sweet Vicki), so this is a modeled
+      // figure rather than custom.
+      final passThrough = parseFigureLine(
+        'Pass through (NR)',
+        frontEnd: contraDbHtmlFigureFrontEnd,
+      )!;
+      expect(passThrough.isCustom, isFalse);
+      expect(passThrough.move, 'pass_through');
+      expect(passThrough.note, '(NR)');
     });
   });
 }

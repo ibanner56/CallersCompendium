@@ -255,15 +255,31 @@ FigureMatch? _slideAlongSet(String text) {
   return FigureMatch('slide_along_set', params: {'slide': dir}, note: s.note());
 }
 
-/// chainWords (common case): `<role1s|role2s> chain`. The leading direction and
-/// `<hand>-hand` qualifiers render only for non-default values; the ubiquitous
-/// form is a bare `ladles chain`.
+/// chainWords: `[<left|right> diagonal] <role1s|role2s> chain`. The leading
+/// diagonal qualifier renders only for non-default values (real render: The
+/// Judge — `left diagonal ladles chain to shadow`) and maps to the `dir` param;
+/// the ubiquitous form is a bare `ladles chain`. A trailing positional qualifier
+/// (e.g. `to shadow`) survives verbatim as the note (Q2: shadow kept as a note,
+/// never fabricated into a dancer target).
 FigureMatch? _chain(String text) {
   final s = _Scan(text);
+  String? dir;
+  final diagSave = s.pos;
+  final diagSide = _leftRight(s.peek());
+  if (diagSide != null) {
+    s.take();
+    if (s.eat('diagonal')) {
+      dir = diagSide == 'left' ? 'leftDiagonal' : 'rightDiagonal';
+    } else {
+      s.reset(diagSave);
+    }
+  }
   final who = _subject(s);
   if (who != 'role1s' && who != 'role2s') return null;
   if (!s.eat('chain')) return null;
-  return FigureMatch('chain', params: {'who': who}, note: s.note());
+  final params = <String, Object?>{'who': who};
+  if (dir != null) params['dir'] = dir;
+  return FigureMatch('chain', params: params, note: s.note());
 }
 
 /// pass_the_ocean (ContraDB `form an ocean wave` with pass_through=true).
@@ -474,27 +490,51 @@ FigureMatch? _rightLeftThrough(String text) {
   return FigureMatch('right_left_through', params: params, note: s.note());
 }
 
-/// starWords (no-grip form): `star <hand> <n> places`. The grip form
-/// (`star <hand> - <grip> - <n> places`) is left to the shared recognizer.
+/// starWords: `star <hand> [- <grip> -] <n> places`. ContraDB renders the grip
+/// clause between the hand and the count for the modeled non-`none` grips
+/// (`- wrist grip -`, `- hands across -`; real renders: Al's Safeway Produce,
+/// Strange New Worlds, Sweet Vicki, Fun Dance for Marjorie). The grip is
+/// consumed into the `grip` param (the taxonomy models `{none, wristGrip,
+/// handsAcross}`); any text trailing the count survives verbatim as the note.
 FigureMatch? _star(String text) {
   final s = _Scan(text);
   if (!s.eat('star')) return null;
   final hand = _leftRight(s.peek());
   if (hand == null) return null;
   s.take();
+  final params = <String, Object?>{'hand': hand};
+  // Optional grip clause "- <grip> -"; only consumed as a complete unit so a
+  // stray leading dash never derails the count read.
+  final gripSave = s.pos;
+  if (s.eat('-')) {
+    final grip = _starGrip(s);
+    if (grip != null && s.eat('-')) {
+      params['grip'] = grip;
+    } else {
+      s.reset(gripSave);
+    }
+  }
   final n = int.tryParse(s.peek() ?? '');
-  if (n == null) return null; // grip form / no places → defer to shared _star
-  final save = s.pos;
+  if (n == null) return null; // no places → defer to shared _star
+  final placesSave = s.pos;
   s.take();
   if (!(s.eat('places') || s.eat('place'))) {
-    s.reset(save);
+    s.reset(placesSave);
     return null;
   }
-  return FigureMatch(
-    'star',
-    params: {'hand': hand, 'places': n},
-    note: s.note(),
-  );
+  params['places'] = n;
+  return FigureMatch('star', params: params, note: s.note());
+}
+
+/// Consumes a ContraDB star grip phrase (`wrist grip` / `hands across`) →
+/// `wristGrip`/`handsAcross`, leaving the cursor put when neither matches.
+String? _starGrip(_Scan s) {
+  final save = s.pos;
+  if (s.eatPhrase('wrist grip')) return 'wristGrip';
+  s.reset(save);
+  if (s.eatPhrase('hands across')) return 'handsAcross';
+  s.reset(save);
+  return null;
 }
 
 /// promenadeWords: `<who> promenade [<dir>] [<spin>]`.
@@ -512,13 +552,29 @@ FigureMatch? _promenade(String text) {
   return FigureMatch('promenade', params: params, note: s.note());
 }
 
-/// boxTheGnatWords (common form): `<who> box the gnat`.
+/// boxTheGnatWords: `<who> [<hand> hand balance &] box the gnat`. ContraDB
+/// renders a leading balance as `<hand> hand balance & ` before the move (real
+/// renders: 50/50, The Hobbit — `neighbors right hand balance & box the gnat`);
+/// the prefix sets `hand` + `balance` and is consumed as a unit so a plain
+/// `<who> box the gnat` still matches.
 FigureMatch? _boxTheGnat(String text) {
   final s = _Scan(text);
   final who = _subject(s);
   if (who == null) return null;
+  final params = <String, Object?>{'who': who};
+  final save = s.pos;
+  final hand = _leftRight(s.peek());
+  if (hand != null) {
+    s.take();
+    if (s.eat('hand') && _eatBalanceAmp(s)) {
+      params['hand'] = hand;
+      params['balance'] = true;
+    } else {
+      s.reset(save);
+    }
+  }
   if (!s.eatPhrase('box the gnat')) return null;
-  return FigureMatch('box_the_gnat', params: {'who': who}, note: s.note());
+  return FigureMatch('box_the_gnat', params: params, note: s.note());
 }
 
 /// California twirl (generic renderer): `<who> California twirl`.
@@ -699,9 +755,15 @@ FigureMatch? _passBy(String text) {
   return FigureMatch('pass_by', params: params, note: s.note());
 }
 
-/// passThroughWords: `pass through [<side> shoulders] <dir>`. ContraDB always
-/// renders a direction; a bare "pass through" (or a TCB annotation like "(NR)")
-/// is left to the canonical core / custom fallback.
+/// passThroughWords: `pass through [<side> shoulders] [<dir>]`. ContraDB usually
+/// renders a set direction (`across`/`along`), but real programs also render a
+/// bare `pass through` (Sweet Vicki, The Hobbit) and forms whose qualifier is
+/// positional rather than a direction (`by the left`, `past partners`,
+/// `to next neighbors`, `to form an ocean wave with shadows`; real renders:
+/// Barack Me Obamadeus, In Cahoots, Ad Vielle, The Young Adult Rose). The
+/// recognised template is just `pass through` plus an optional shoulder/dir; any
+/// remaining qualifier survives verbatim as the note (`dir` then defaults to the
+/// taxonomy `along`).
 FigureMatch? _passThrough(String text) {
   final s = _Scan(text);
   if (!s.eatPhrase('pass through')) return null;
@@ -709,9 +771,10 @@ FigureMatch? _passThrough(String text) {
   final side = _shoulderPhrase(s);
   if (side != null) params['shoulder'] = side;
   final dir = _direction(s.peek());
-  if (dir == null) return null;
-  s.take();
-  params['dir'] = dir;
+  if (dir != null) {
+    s.take();
+    params['dir'] = dir;
+  }
   return FigureMatch('pass_through', params: params, note: s.note());
 }
 
@@ -1170,6 +1233,10 @@ const List<MapEntry<String, String>> _subjectPhrases =
     <MapEntry<String, String>>[
       MapEntry('next neighbors', 'nextNeighbors'),
       MapEntry('previous neighbors', 'prevNeighbors'),
+      // ContraDB renders the previous-neighbors set as `prev neighbors`
+      // (libfigure abbreviation; real render: The Hobbit — `prev neighbors
+      // allemande left once`). Kept ahead of the bare `neighbors` entry.
+      MapEntry('prev neighbors', 'prevNeighbors'),
       MapEntry('neighbors', 'neighbors'),
       MapEntry('partners', 'partners'),
       MapEntry('role1s', 'role1s'),
