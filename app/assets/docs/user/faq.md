@@ -57,8 +57,9 @@ That's what a [dialect](./glossary.md#dialect) is for. Pick or build one under
 ### How do I make the text bigger for calling on stage?
 
 [Perform mode](./glossary.md#perform-mode) sizes text to be read at arm's length.
-Leave **Auto-size** on to fit each card to the screen, or turn it off and use
-**A−** / **A+** to set the size yourself. See [Perform mode](./perform.md), and
+Leave **Auto-size** on to fit each card to the screen, or use **A−** / **A+** to
+set the size yourself — which switches auto-size off and remembers your size for
+next time. See [Perform mode](./perform.md#set-the-stage), and
 [Accessibility](./accessibility.md) for more ways to adjust text, contrast, and
 input.
 
@@ -68,11 +69,19 @@ Open the dance or program and use its share/export options — you can share as
 text or export a PDF. A program also offers **Share (program + dances)**, which
 bundles the set list together with every dance it uses into one file — dances and
 all, not just a list of titles. The recipient can **open that file directly**
-(AirDrop, "Open with", or a share intent) and the app imports it and opens the
-program automatically, or they can import it from **Settings › Import**. This is
-separate from a full backup. See
-[Collection & search](./collection.md) for dances and
-[Programs & matrix](./programs.md#print-export-and-email-a-program) for programs.
+(AirDrop, "Open with", or a share intent), which takes them to the import review
+screen already loaded with it, or they can import it from **Settings › Import**.
+Either way nothing lands in their collection until they confirm. This is separate
+from a full backup. See [Share, print & export](./sharing.md).
+
+### Where can I read these guides on my phone at the gig?
+
+They're already in the app. **Guide** is one of the four destinations in the
+navigation, alongside **Collection**, **Programs**, and **Settings**, and it holds
+this whole set of guides — bundled in, so it works with no signal in a church
+hall. Links between guides work there just as they do here, and you can select
+text to copy. Images and the search box are the two things it doesn't have, so
+head for the guide list to find your way around.
 
 ### How do I get updates?
 

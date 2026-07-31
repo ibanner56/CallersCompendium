@@ -176,12 +176,12 @@ hasn't been tampered with, and hand it to your system's installer to finish. On
 **phones and tablets** it links you to the release so you can download it the
 usual way for your device.
 
-## Once it's installed
+## Where to go next
 
 You're ready to open the app and start calling.
 
 - **New here?** The [Getting started guide](./getting-started.md) walks you
-  through your first launch, the four main areas, and adding your first
+  through your first launch, a tour of the app, and adding your first
   [dance](./glossary.md#dance).
 - **Bringing your library along?** [Backup & portability](./backup-portability.md)
   covers moving your [collection](./glossary.md#collection) onto this device.

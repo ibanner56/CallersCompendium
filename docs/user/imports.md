@@ -7,6 +7,11 @@ dances from [The Caller's Box](./glossary.md#the-callers-box) and
 a whole library across from Caller's Companion, and backing up and restoring
 everything you own. Where a feature is still on the way, it says so plainly.
 
+> **Finding your way around these words.** On-screen buttons and screens are
+> written in **bold** — like **Settings**, **Import…**, and **Choose file…**. The
+> first time a dance term appears it links to the [Glossary](./glossary.md), so
+> you can get a plain-language definition without losing your place.
+
 ## Your data stays yours
 
 Caller's Compendium is **local-first**. Your [collection](./glossary.md#collection)
@@ -30,6 +35,17 @@ word-for-word as a plain-text figure instead of being dropped. A dance can
 arrive entirely as plain text and still land safely in your collection, still be
 searchable, and still be yours to tidy up later. You are never left wondering
 what the app quietly threw away, because it throws nothing away.
+
+The app also *shows* you where that happened. A figure kept word-for-word carries
+a small warning glyph beside it — on a dance card, in the editor, and in Perform.
+Hover it on a desktop, or select it on a touchscreen, and it explains itself:
+**Couldn't parse this call — kept verbatim as a custom figure.** It is a shape,
+not just a colour, and it is announced to screen readers, so you can find the
+lines worth tidying up whichever way you read.
+
+There is nothing wrong with leaving them as they are. A verbatim figure calls
+perfectly well; the badge just tells you the app cannot search or count beats for
+that line the way it can for a recognised move.
 
 ## Bring in single dances from an online archive
 
@@ -59,10 +75,6 @@ If the dance is already in your collection from an earlier import, the app tells
 you so and does not add a second copy — see
 [Avoiding duplicates](#avoiding-duplicates) below.
 
-> _Screenshot (added once packaged builds are available): the Collection screen
-> with the Online search switch turned on, an archive selector, and three
-> results listed below a search for a dance title._
-
 ### Import a dance by link or ID
 
 If you already have a dance's web address — or even its number — you can import
@@ -87,6 +99,27 @@ A few honest notes about these online imports:
 - Figures come in as recognised moves where the app can read them and as
   plain-text figures otherwise, the same as every other import.
 
+### What the app will and won't fetch
+
+Anything you paste is treated as untrusted, because a link can point anywhere.
+When you give the app a web address to fetch:
+
+- **It must be `https`.** A plain `http` address is refused rather than fetched
+  over an unencrypted connection, and a redirect that tries to drop back to
+  `http` is refused too.
+- **It must be a real place on the internet.** Addresses that point back at your
+  own machine or your local network are turned away with *That URL points to a
+  network location that cannot be imported from.*
+- **It must belong to the source you chose.** A Caller's Box import accepts links
+  from `thecallersbox.com` or `ibiblio.org`; a ContraDB import accepts links from
+  `contradb.com`. Anything else gets a plain message naming the hosts that do
+  work — or you can skip the link entirely and type the dance's ID number.
+- **Redirects and size are capped**, so a link cannot bounce the app around
+  indefinitely or hand it an endless download.
+
+Refusals never echo the address back at you, so a link that happened to contain
+something private does not end up on your screen or in a log.
+
 ## Import a Caller's Compendium file
 
 Dances shared as a **Caller's Compendium** file (the app's own `.json` format)
@@ -108,23 +141,24 @@ below.
 
 If another caller shares a **program bundle** with you — the
 **Share (program + dances)** file described in
-[Programs & matrix](./programs.md#print-export-and-email-a-program) — you don't
+[Share, print & export](./sharing.md#share-a-program-with-its-dances) — you don't
 have to go through **Settings › Import** by hand. Caller's Compendium registers
 itself as a place that can open those files, so you can just **open the file**:
 AirDrop it (on a Mac, iPhone, or iPad), use your system's **Open with** /
-**Share** menu, or tap it wherever it arrives. The app launches, imports the
-program and every dance it references, and **opens the program for you**
-automatically.
+**Share** menu, or tap it wherever it arrives. The app launches and takes you
+straight to the same review screen a manual import uses, already loaded with what
+the file contains — the program, its dances, and its venue.
 
-This intake is deliberately safe: the file is treated as untrusted input (it's
-size-checked and validated against the expected format, and a bad file is turned
-away with a message rather than doing any harm), and it's **identity-first** —
-dances and programs you already have are matched and updated, never duplicated.
-Because it opens straight into the program, this path doesn't stop at the
-step-by-step review queue the way a manual import does. Nothing is ever deleted:
-dances and programs you already have are updated in place rather than
-duplicated, brand-new material is added, and if anything couldn't be matched the
-app tells you.
+Nothing is added until you confirm. You review the bundle exactly as you would any
+other import, decide what to bring in, and commit; an **Undo** is offered
+afterwards.
+
+This intake is deliberately safe. The file is treated as untrusted input: it is
+size-checked *before* being read, validated against the expected format, and a
+file that fails any check is turned away with a plain message and nothing is
+written. It is also **identity-first** — dances and programs you already have are
+matched and updated in place rather than duplicated, brand-new material is added,
+and nothing is ever deleted.
 
 ## Bring your library across from Caller's Companion
 
@@ -145,6 +179,21 @@ before are recognised and offered as updates rather than duplicated.
 A few things do not come across yet: saved **venues**, custom **glossary terms**,
 and **related-dance links** stay behind for now. Your dances, their figures and
 notes, and your programs are the parts that migrate today.
+
+### Bring your call buttons across as shorthands
+
+If your Caller's Companion file has **call buttons**, the import offers to turn
+them into [figure shorthands](./authoring.md#figure-shorthands) — short tokens you
+type during free-text entry that expand into whole figures.
+
+The **Seed figure shorthands** screen lists the buttons it found and what each
+one would expand to. Tick the ones you want and choose the confirm button, which
+counts what you picked (**Seed 3 shorthands**), or choose **Skip** to move on.
+Nothing is added until you confirm.
+
+Where a button offers two versions, you pick **Primary** or **Alternate**. And if
+a shorthand of that name already exists, the button is listed under **Already
+defined — skipped** and your existing one is left exactly as it is.
 
 ## Move your whole library: backup and restore
 
@@ -194,10 +243,6 @@ source you pick:
    everything that import added. This is the review-and-undo queue for
    bringing in more than one dance at a time.
 
-> _Screenshot (added once packaged builds are available): the import review
-> screen showing a source selector, a URL field, and a list of found dances each
-> with an action set to New, and an Undo button on the summary._
-
 ## Avoiding duplicates
 
 Re-importing the same dances should not clutter your collection, so the app
@@ -212,6 +257,22 @@ watches for matches:
   source, the app marks it as **unsure** and asks you to choose: **link** the two,
   keep both as a **duplicate**, or **skip** the new one. It never merges dances
   on its own.
+
+### Re-import to pick up a correction
+
+When the review screen recognises a dance you already imported, it offers
+**Re-import onto** that dance, naming the dance it would update, so there is no
+doubt which one it will touch. Choose it and the incoming version updates the
+dance you already have instead of adding a second copy, which is how you pick up a
+correction an archive has made since you first imported.
+
+Dances already in your collection are marked **Imported** in the review list, and
+the commit summary counts them separately — **Re-imported: 4** — so you can see at
+a glance how much of an import was new material and how much was an update.
+
+Re-importing overwrites that dance with the incoming version, so if you have
+edited your copy, look before you commit. The **Undo** on the summary reverses the
+whole import if it was not what you wanted.
 
 ## Importing whole programs
 
@@ -235,5 +296,6 @@ and [Build from a list of titles](./programs.md#build-from-a-list-of-titles).
   [Backup & portability](./backup-portability.md).
 - Want imported dances to read in your own words and role names? See
   [Dialect](./dialects.md).
+- Tidying up a dance after it lands: [Write & edit dances](./authoring.md).
 - Unsure about a term used here? The [Glossary](./glossary.md) has plain
   definitions.

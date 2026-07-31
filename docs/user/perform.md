@@ -47,24 +47,40 @@ flips right back without losing your place. Figure detail you recorded shows her
 too: when a swing ends facing somewhere other than the usual "in"/across — up or
 down the hall, or out of the set — the card notes that ending so you can cue it.
 
-## Size the text to fit
+## Set the stage
 
-Out of the box, **auto-size** is on: the card scales so the current dance's full
-text fits the screen without scrolling. It recomputes whenever you move to a new
-dance or slot, rotate the device, or resize the window — so the text is always as
-large as it can be while still fitting.
+A row of controls along the top shapes the calling view itself. On a tablet or a
+desktop they all sit there as buttons. On a phone, only the **Stage theme** toggle
+stays out — the rest tuck into a **More actions** menu so the toolbar can't crowd
+a narrow screen. Wherever a control lives it does the same thing, and every toggle
+says which state it is in rather than relying on how it looks.
 
-If you would rather set the size yourself, turn auto-size off in
-[Settings](./settings.md). Perform mode then uses a manual large-print
-control instead: **A−** and **A+** step the size down and up, starting large with
-no upper limit. The **A−/A+** controls stay on screen either way, so you can
-always nudge the size in the moment.
+**Stage theme.** Perform opens on a **high-contrast dark-stage theme** by default,
+built for strong legibility (a contrast ratio of at least 7 to 1) under stage
+lighting. Toggle it off to fall back to your usual app theme. Its tooltip reads
+*Stage theme on — tap to use app theme* or *Stage theme off — tap for dark stage*,
+so there is no guessing, and it stays where you put it — next time too.
 
-## Call in high contrast
+**Auto-size text to screen.** Out of the box this is on: the card scales so the
+current dance's full text fits the screen without scrolling, recomputing whenever
+you move to a new dance or slot, rotate the device, or resize the window. So the
+text is always as large as it can be while still fitting. It starts however you
+set **Auto-size Perform cards** in [Settings › General](./settings.md#general),
+and the in-view toggle flips it for the night.
 
-Perform mode opens on a **high-contrast dark-stage theme** by default, built for
-strong legibility (a contrast ratio of at least 7 to 1) under stage lighting. An
-in-view toggle lets you fall back to your usual app theme if you prefer it.
+**A− and A+.** The **Decrease text size** and **Increase text size** controls step
+the size down and up, starting large with no upper limit. Using either one
+switches auto-size off, because you have just told the app what size you want —
+and that size is remembered for next time.
+
+**Show canonical terms.** Flips the card between your
+[dialect](./glossary.md#dialect) and the shared wording without changing your
+active dialect, and is remembered too. It appears only when you are using a
+dialect other than the shared wording. See
+[Dialect](./dialects.md#peek-at-the-canonical-wording).
+
+**Tap tempo** opens the metronome sheet, and **Show walkthrough** — which appears
+when the dance has a walkthrough written — overlays it on the card.
 
 ## The screen stays awake
 
@@ -102,8 +118,9 @@ your program or your dances.
 
 ## Adjust on the fly
 
-Plans change mid-gig. The **adjust** sheet lets you make changes without
-disturbing the card you are reading. From it you can:
+*Calling a program.* Plans change mid-gig. **Adjust program** opens a sheet that
+lets you make changes without disturbing the card you are reading. From it you
+can:
 
 - **reorder the remaining slots** (with a drag handle or move up / move down
   buttons);
@@ -114,31 +131,48 @@ disturbing the card you are reading. From it you can:
 An inserted dance and an ad-hoc note both land right after the current slot, so
 "play this next" is one action away. Every change is undoable, and for a saved
 program the changes persist. Marking a slot performed is what feeds a dance's
-calling history — see [Programs & matrix](./programs.md#track-what-you-have-called).
+calling history — see
+[Programs & matrix](./programs.md#track-what-you-have-called).
+
+This sheet belongs to program Perform. Performing a single dance has nothing to
+reorder, so it has no adjust sheet.
 
 ## Screen readers and verbose figures
 
-For screen-reader users, Perform mode announces each figure in an expanded,
-spoken-friendly form — clearer to hear than the terse text shown on the card. If
-you would like that fuller wording everywhere, not only through assistive
-technology, turn on always-verbose rendering in
-[Settings](./settings.md). The
+For screen-reader users, Perform mode always announces each figure in an
+expanded, spoken-friendly form — clearer to hear than the terse text shown on the
+card. You don't need to turn anything on for that; it is how Perform always
+behaves.
+
+The **Always show verbose figure text** setting is a different thing: it puts that
+fuller wording on screen in the *dance view*, not in Perform. The
 [Accessibility guide](./accessibility.md) covers this and the app's other
 accessibility options.
+
+## Leaving Perform
+
+Choose **Exit performance view** and the app checks first:
+
+> **Exit Perform?** — Leave the performance view? Your place and the running clock
+> are kept, so you can resume where you left off.
+
+**Keep performing** returns you to the card; **Exit** leaves. Because your place
+and your clock are kept, stepping out to check something is safe.
 
 ## Print or share a single dance
 
 You do not have to be on stage to hand someone a dance. From a dance's detail
-view you can also export or print a single dance card as a PDF or as shareable
-text, and the export follows your dialect. See
-[what you can do with a dance](./collection.md#what-you-can-do-with-a-dance) in
-the Collection guide.
+view you can export or print a single dance card as a PDF or as shareable text,
+and the export follows your active dialect. See
+[Share, print & export](./sharing.md#share-a-dance).
 
 ## Where to go next
 
 - **Build the program you will call:** [Programs & matrix](./programs.md)
 - **Find and prepare dances:** [Collection & search](./collection.md)
 - **Call in your own words:** [Dialect](./dialects.md)
+- **Hand a dance or set list to someone:**
+  [Share, print & export](./sharing.md)
 - **Large text, high contrast, screen readers, keyboard:** the
   [Accessibility guide](./accessibility.md) and
   [Settings](./settings.md)

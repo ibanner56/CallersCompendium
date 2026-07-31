@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show AssetManifest, rootBundle;
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/screens/user_guide/user_guide_screen.dart';
 import 'package:compendium_app/src/screens/user_guide/user_guide_doc_view.dart';
 
@@ -128,7 +129,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Navigated to the Imports guide; an in-content back affordance appears.
-    expect(_title(tester), 'Imports');
+    // The header takes the guide's own H1, not a name derived from the file.
+    expect(_title(tester), 'Imports & migration');
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('user-guide-back')),
@@ -173,13 +175,13 @@ void main() {
       // Build in-panel history on the (visible but inactive) guide.
       _tapLink(tester, 'imports.md');
       await tester.pumpAndSettle();
-      expect(_title(tester), 'Imports');
+      expect(_title(tester), 'Imports & migration');
 
       // A system back press is blocked by the sibling PopScope; the inactive
       // guide keeps its stack rather than rewinding to the hub.
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
-      expect(_title(tester), 'Imports');
+      expect(_title(tester), 'Imports & migration');
     },
   );
 
@@ -205,6 +207,148 @@ void main() {
     expect(find.textContaining("isn't available yet"), findsOneWidget);
     // Still on the hub — no navigation happened.
     expect(_title(tester), 'User guide');
+  });
+
+  testWidgets(
+    'the header titles a guide by its own heading, not its file name',
+    (tester) async {
+      // `faq.md` would read as "Faq" if the title came from the file name; the
+      // header takes the guide's H1 instead so it reads the way the guide does.
+      await _pumpGuide(tester);
+
+      _tapLink(tester, 'faq.md');
+      await tester.pumpAndSettle();
+
+      expect(_title(tester), 'FAQ & troubleshooting');
+    },
+  );
+
+  testWidgets('an in-page anchor link scrolls to that heading', (tester) async {
+    // A guide with enough prose that the target heading starts well below the
+    // fold, so a successful scroll is unambiguous.
+    const target = 'The far heading';
+    final source = StringBuffer('# A guide\n\n[Jump](#the-far-heading)\n\n');
+    for (var i = 0; i < 60; i++) {
+      source.writeln('Filler paragraph $i.\n');
+    }
+    source.writeln('## $target\n\nYou made it.\n');
+
+    Widget build(String? anchor) => MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+      home: Scaffold(
+        body: UserGuideDocView(
+          docId: 'demo.md',
+          data: source.toString(),
+          anchor: anchor,
+          onTapLink: (_) {},
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(build(null));
+    await tester.pumpAndSettle();
+
+    double offset() => tester
+        .widget<SingleChildScrollView>(find.byType(SingleChildScrollView))
+        .controller!
+        .offset;
+    final viewportHeight = tester.getSize(find.byType(UserGuideDocView)).height;
+    final heading = find.text(target);
+
+    // The heading is laid out even though it is off screen — that is what makes
+    // it reachable at all, since a lazy list would never have built it.
+    expect(offset(), 0);
+    expect(heading, findsOneWidget);
+    expect(tester.getTopLeft(heading).dy, greaterThan(viewportHeight));
+
+    // Following the link scrolls the heading into view.
+    await tester.pumpWidget(build('the-far-heading'));
+    await tester.pumpAndSettle();
+
+    expect(offset(), greaterThan(0));
+    expect(tester.getTopLeft(heading).dy, lessThan(viewportHeight));
+  });
+
+  testWidgets('anchor scrolling jumps instantly when Reduce motion is on', (
+    tester,
+  ) async {
+    // WCAG 2.3.3: a motion-sensitive reader following an "on this page" link
+    // should land on the heading rather than be flung there.
+    const target = 'The far heading';
+    final source = StringBuffer('# A guide\n\n[Jump](#the-far-heading)\n\n');
+    for (var i = 0; i < 60; i++) {
+      source.writeln('Filler paragraph $i.\n');
+    }
+    source.writeln('## $target\n\nYou made it.\n');
+
+    Widget build({required bool reduceMotion}) => MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+      home: ReduceMotionScope(
+        notifier: ValueNotifier<bool?>(reduceMotion),
+        child: Scaffold(
+          body: UserGuideDocView(
+            // A fresh key per case so each starts from a new, unscrolled state.
+            key: ValueKey('reduce-motion-$reduceMotion'),
+            docId: 'demo.md',
+            data: source.toString(),
+            anchor: 'the-far-heading',
+            onTapLink: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    double offset() => tester
+        .widget<SingleChildScrollView>(find.byType(SingleChildScrollView))
+        .controller!
+        .offset;
+
+    // Reduce motion on: the scroll has already landed on the frame after the
+    // one that laid the guide out — no animation to settle.
+    await tester.pumpWidget(build(reduceMotion: true));
+    await tester.pump();
+    final jumped = offset();
+    expect(jumped, greaterThan(0));
+
+    // Reduce motion off: the same frame is still at the top because the 250ms
+    // animation has yet to advance; it arrives at the same place once settled.
+    await tester.pumpWidget(build(reduceMotion: false));
+    await tester.pump();
+    expect(offset(), 0);
+    await tester.pumpAndSettle();
+    expect(offset(), moreOrLessEquals(jumped, epsilon: 1));
+  });
+
+  testWidgets('an anchor that matches no heading leaves the guide at the top', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: UserGuideDocView(
+            docId: 'demo.md',
+            data: '# A guide\n\n## Real heading\n\nBody.\n',
+            anchor: 'no-such-heading',
+            onTapLink: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // No exception, and the reader simply starts where the guide starts.
+    expect(find.text('Real heading'), findsOneWidget);
+    expect(
+      tester
+          .widget<SingleChildScrollView>(find.byType(SingleChildScrollView))
+          .controller!
+          .offset,
+      0,
+    );
   });
 
   testWidgets('an external link opens in the browser', (tester) async {

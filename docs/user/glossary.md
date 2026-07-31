@@ -18,6 +18,20 @@ single file. **Restore** loads such a file back in, replacing what's currently i
 the app. Together they're how you keep a safety copy and move your data between
 devices.
 
+## Beats
+
+The unit a contra dance is counted in. Each [figure](#figure) takes a number of
+beats, and the app adds them up as you build a dance so you can see the total
+against what the dance's [phrase structure](#phrase-structure) expects.
+
+## Bundle
+
+A single file holding a [program](#program) together with every [dance](#dance)
+it uses, and its [venue](#venue) — made with **Share (program + dances)**. Handing
+someone a bundle gives them the whole evening, not just a list of titles. Opening
+one takes you to the [import](#import) review screen, so nothing is added until
+you confirm. See [Share, print & export](./sharing.md).
+
 ## Caller's Compendium
 
 The full name of the app — a free, open-source, local-first organizer for
@@ -27,6 +41,14 @@ contra-dance callers. "The app" is a fine shorthand once you know what it means.
 
 A community archive of contra dances (by Chris Page and Michael Dyck) that the
 app can [import](#import) from, either by online search or by pasting a link.
+
+## Choreographer
+
+The person who wrote a [dance](#dance). In the app a choreographer is a shared
+record rather than a line of text, so the details you add — website, bio,
+permissions, and so on — follow every dance credited to them. Their **email** and
+**location** are private: kept on your device and never included in anything you
+export or share.
 
 ## Collection
 
@@ -77,6 +99,14 @@ The figures-by-dances grid inside a [program](#program). It shows which
 [moves](#move) appear in which dances at a glance, so you can check the variety of
 an evening.
 
+## Meanwhile
+
+Two or more [figures](#figure) that happen at the same time, danced by different
+people — for example, ones circle left while twos swing. In the dance editor these
+are grouped as a **Meanwhile**, with one side per simultaneous figure, sharing a
+single beat count instead of adding up. See
+[Write & edit dances](./authoring.md#meanwhile-figures).
+
 ## Move
 
 The underlying named action behind a [figure](#figure) — for example a swing, a
@@ -93,16 +123,39 @@ An ordered set list for one event — a Saturday dance, a weekend, or a one-off
 gig. Its individual entries are [slots](#slot), and a backup choice on a slot is
 an [alt](#alt).
 
+## Phrase structure
+
+How a dance's [beats](#beats) are grouped — the familiar A1 A2 B1 B2 of most
+contras, or something else. The app assumes the standard structure unless you
+write your own in the dance editor, and it uses whatever you set to tell you
+whether a dance's beats add up.
+
 ## Progression
 
 How dancers move on to the next couple as a dance repeats. Like
 [formation](#formation), it's a plain contra term used here in the usual way.
+
+## Shorthand
+
+A short token you type during free-text figure entry that expands into one or more
+whole [figures](#figure) you have set up in advance. Shorthands are yours to
+define in **Settings › Defaults**, and an import from Caller's Companion can offer
+to seed them from your old call buttons. See
+[Write & edit dances](./authoring.md#figure-shorthands).
 
 ## Slot
 
 A single position in a [program](#program) — usually one [dance](#dance), but it
 can also hold free text (a break, an announcement) or carry an [alt](#alt) as a
 backup choice.
+
+## Snippet
+
+A saved sentence describing how you teach one particular [figure](#figure). Write
+one while editing a dance and the app remembers it, so **Fill from snippets** can
+pre-fill a [walkthrough](#walkthrough) for any dance using that figure. Your saved
+snippets live in **Settings › Defaults**. See
+[Write & edit dances](./authoring.md#walkthrough).
 
 ## Venue
 
@@ -113,6 +166,13 @@ address, contacts, schedule, sponsor, website, and price, edited in one place.
 Turn on **Use reusable venue records** in [Settings](./settings.md#venues) to
 link programs to saved venues; the free-text label and any linked record coexist
 losslessly.
+
+## Walkthrough
+
+The teaching pass — how you talk a hall through a [dance](#dance) before the music
+starts. A dance can carry its own walkthrough text, which you can write yourself
+or pre-fill from your saved [snippets](#snippet), and show as an overlay in
+[Perform mode](#perform-mode).
 
 ## Where to go next
 

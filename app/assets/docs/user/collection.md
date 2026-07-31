@@ -46,9 +46,9 @@ sort by:
 - **Recently added** — newest additions first, handy just after an
   [import](./glossary.md#import).
 - **Last called** — the dances you have programmed most recently, first.
-- **Relevance** — how well each dance matches your words. This one appears only
+- **Best match** — how well each dance matches your words. This one appears only
   while you have a plain-text search active (see below), and it is the order the
-  app uses to put the best matches at the top.
+  app uses to put the strongest matches at the top.
 
 To open a dance, select it. Its full detail view opens — on a phone as a new
 screen, and on a tablet or desktop in the pane beside the list. The
@@ -197,8 +197,9 @@ From the detail view you can:
 - **Edit** the dance.
 - **Duplicate** it as a starting point for a variation.
 - **Add to program** — drop it into a [program](./programs.md) you are building.
-- **Print/Share** it as a PDF or as plain text. The export follows your
-  dialect, so what you hand someone matches how they speak.
+- **Print/Share** it as a PDF or as plain text. The export follows your active
+  dialect, so what you hand someone matches how they speak — see
+  [Share, print & export](./sharing.md#share-a-dance).
 - **Perform this dance** — open it in [Perform mode](./perform.md), the
   large-print calling view, to call it on its own.
 
@@ -208,16 +209,14 @@ To put in a dance by hand, choose **New dance**. This opens the editor, where th
 **title** is the only required field. Figure entry is keyboard-first: start
 typing a move and accept a match from the type-ahead, with a running beat count
 keeping you honest as you go. If a move is unusual and nothing matches, type it in
-as free text — it is still recorded as a figure. Some moves carry extra options: a
-**swing**, for example, can record which way dancers **end facing** — up or down
-the hall, or out of the set — for the times a dance ends a swing somewhere other
-than the usual "in"/across; that ending then shows on cards, in Perform, and in
-exports.
+as free text — it is still recorded as a figure.
 
-The [Getting started guide](./getting-started.md#add-your-first-dance) walks
-through your first dance step by step, so this guide keeps it brief. And if you
-already keep dances elsewhere, you will usually want to bring them in rather than
-retype them — see [Imports & migration](./imports.md).
+**[Write & edit dances](./authoring.md)** is the full guide to the editor:
+figures, meanwhile groups, walkthroughs, credits, drafts, and undo. The
+[Getting started guide](./getting-started.md#add-your-first-dance) walks through
+your first dance step by step. And if you already keep dances elsewhere, you will
+usually want to bring them in rather than retype them — see
+[Imports & migration](./imports.md).
 
 ## Make your own fields
 
@@ -258,20 +257,44 @@ change reversible.
   after a retention window, which you can lengthen or switch off in
   [Settings](./settings.md).
 
-### Tag many dances at once
+### Change many dances at once
 
-To organize in bulk, enter selection mode: choose **Select**, or long-press a
-row on a touchscreen. Tick as many dances as you like, then **add or remove tags**
-across all of them in one go. As with single dances, the change is announced to
-screen readers and can be undone. Selected rows are marked with a checkmark and a
-highlight — never color alone — so the selection is clear however you are reading
-the screen.
+To organize in bulk, enter selection mode: choose **Select dances**, or long-press
+a row on a touchscreen. Tick as many dances as you like, then apply one change
+across all of them. Tags are on the toolbar; the rest are under **More batch
+actions**:
+
+- **Add tags** or **remove tags**.
+- **Set level**, or clear it with **Unspecified (clear)**.
+- **Set rating**, or clear it with **Unrated (clear)**.
+- **Add tunes** — build a short list and add it to every selected dance — or
+  **clear tunes**, which asks you to confirm first.
+- **Set a custom field** to a value, or **Clear this field**.
+
+Every batch change is announced to screen readers and can be undone, and the app
+tells you plainly when a change would affect nothing. Selected rows are marked
+with a checkmark and a highlight — never colour alone — so the selection is clear
+however you are reading the screen.
+
+## Jump straight to a dance or program
+
+Anywhere in the app, the search affordance — the search box in the navigation rail
+on a wide screen, the search action in the app bar on a narrow one, or the
+keyboard shortcut **Ctrl-K** (**Cmd-K** on macOS) — opens a single search box over
+whatever you are doing. Type, and matching **Dances** and **Programs** are listed
+in groups; choose one and you go straight there.
+
+It searches titles across your collection and your programs, so it is the fastest
+way to reach a dance you can name. For searching *inside* dances — by move, by
+level, by tag — use the Collection search and filters above.
 
 ## Where to go next
 
+- **Write and edit dances:** [Write & edit dances](./authoring.md)
 - **Build an evening from your dances:** [Programs & matrix](./programs.md)
 - **Call a dance from the stage:** [Perform mode](./perform.md)
 - **Bring in dances you already have:** [Imports & migration](./imports.md)
+- **Hand a dance to someone else:** [Share, print & export](./sharing.md)
 - **Put the app in your own words:** [Dialect](./dialects.md)
 - **Keep your library safe and portable:**
   [Backup & portability](./backup-portability.md) ·

@@ -76,13 +76,17 @@ Two small things worth knowing on day one:
   can undo it, and deleted items can be restored later — so you can explore
   without worrying about losing work.
 
-## A tour of the four main areas
+## A tour of the app
 
-Caller's Compendium is organized around four areas. Three of them —
-**Collection**, **Programs**, and **Settings** — are always one step away in the
-navigation (a bottom bar on a phone, a left rail on a tablet or desktop). The
-fourth, **Perform**, is a *mode* you step into from a dance or a program when it
-is time to call, and step back out of when you are done.
+Four destinations are always one step away in the navigation (a bottom bar on a
+phone, a left rail on a tablet or desktop): **Collection**, **Programs**,
+**Settings**, and **Guide**.
+
+**Perform** is not a destination but a *mode* — you step into it from a dance or a
+program when it is time to call, and step back out when you are done.
+
+**Guide** is this documentation, bundled into the app so you have it on stage with
+no signal. It is the same set of pages you are reading now.
 
 ### Collection — your dance library
 
@@ -166,14 +170,16 @@ sections:
 
 - **General** — where you run [imports](./glossary.md#import) and manage your
   data, including [backup and restore](./backup-portability.md).
-- **Appearance** — themes (including light, dark, and high-contrast) and text
-  size.
+- **Appearance** — themes, including light, dark, and high-contrast, plus your
+  own custom themes.
 - **[Dialect](./glossary.md#dialect)** — your role names and wording (more on
   this next).
-- **Language & region** — regional preferences.
+- **Language & region** — app language and date formats.
 - **Defaults** — sensible starting values, such as a default caller or band, to
   save typing.
-- **About** — version and license information.
+- **Updates** — checking for and installing new versions.
+- **Diagnostics** — the local crash log, and how to send it with a bug report.
+- **About** — version, license information, and a link to this guide.
 
 The [Settings guide](./settings.md) covers each section in detail.
 
@@ -193,6 +199,10 @@ the dance editor, where you:
    still records it as a figure in your dance.
 4. Save when you are happy. Your dance now lives in your collection, ready to
    search, add to a program, or call.
+
+The editor does much more than this — meanwhile figures, shared author details,
+undo, and a draft that survives a crash. **[Write & edit dances](./authoring.md)**
+covers all of it.
 
 You do not have to build every dance by hand, though — most callers start by
 bringing in dances they already have.
@@ -236,6 +246,8 @@ editing individual moves, and live previews — see the
   [Collection & search](./collection.md)
 - **Build an evening:** [Programs & matrix](./programs.md)
 - **Call it:** [Perform mode](./perform.md)
+- **Write your own:** [Write & edit dances](./authoring.md)
+- **Hand it to someone else:** [Share, print & export](./sharing.md)
 - **Make it yours:** [Dialect](./dialects.md) ·
   [Settings](./settings.md) ·
   [Backup & portability](./backup-portability.md)

@@ -27,6 +27,25 @@ and the accessibility practices it describes.
   Skip filler like "simply," "just," and "obviously" — what is obvious to one
   person is a wall to another.
 
+## How these guides are organized
+
+The hub, [`README.md`](./README.md), is the front door — and, because the guides
+are bundled into the app, it is also the only navigation surface a reader has
+in-app. Keep it working hard:
+
+- **Group guides by what the reader wants to do**, not by app feature. The
+  current groups are *Start here*, *Build your collection*, *Plan and call an
+  event*, *Share and safeguard your work*, *Make it yours*, and *Look something
+  up*.
+- **Keep the "I want to…" table current.** Every row is a task in the reader's
+  words and a link that lands on the exact heading that answers it. When you add
+  a section that answers a common question, add a row.
+- **Every guide belongs to exactly one group.** If a new guide does not fit,
+  that is a signal the groups need rethinking — raise it rather than bolting on
+  a seventh.
+- **Don't add status columns or progress markers.** The hub describes what the
+  app does today; anything unfinished simply is not documented yet.
+
 ## Structure of a guide
 
 Keep guides skimmable — a stressed caller may be reading one the night before a
@@ -86,9 +105,9 @@ text zoom — the same audience the app itself is built for. Model good practice
 - **Write descriptive link text.** Link the words that describe the destination
   ("see the [import guide](./imports.md)"), never "click here"
   or a bare URL.
-- **Don't rely on color or symbols alone.** The status legend in the hub pairs
-  every emoji with a word (✅ done, ✍️ drafting, 🔒 blocked); do the same anywhere
-  you use an icon.
+- **Don't rely on color or symbols alone.** Wherever a guide describes an icon or
+  a coloured marker, name it in words too — "a star, labelled *Introduced here*"
+  — so the meaning survives for a reader who cannot see it.
 - **Spell out abbreviations** on first use.
 - **Keep tables simple** with a header row; avoid merged cells and layout tables.
 - **Write for zoom and narrow screens** — short paragraphs and lists survive
@@ -127,9 +146,15 @@ Every image in the user docs **must** have alt text. This is not optional.
 
 ## Screenshots and images
 
-- **When to capture:** real screenshots come after packaging (Phase 7.1). Until
-  then, use the wireframe SVGs under
-  [`../design/wireframes/`](../design/wireframes/) as interim illustrations.
+**The user guide is text-only today.** The guides are bundled into the app and
+the in-app reader does not render images — it shows the alt text as a caption
+instead. So an illustration only ever reaches readers on GitHub, and a guide that
+*needs* a picture to make sense is broken for everyone reading it on stage.
+
+Write every explanation so it stands on its own words. If you do add an image,
+treat it as an enhancement, never as a load-bearing part of a procedure, and
+follow the rules below.
+
 - **Naming:** lowercase, hyphen-separated, `screen-topic.png` — for example
   `perform-mode-dark.png`, `programs-matrix.png`. Group a series with a shared
   prefix.
@@ -164,8 +189,35 @@ so that a reader on any platform feels the docs are for them.
 
 ## Markdown conventions
 
-- One H1 (`#`) per file, matching the guide's title.
+- One H1 (`#`) per file, matching the guide's title. **The in-app reader uses
+  this H1 as the panel title**, so it must read well on its own.
+- **Keep headings plain text.** No bold, links, or code spans inside a heading —
+  the in-app reader renders headings as plain, selectable text and would drop the
+  markup.
 - Wrap prose at a reasonable width for readable diffs; don't hard-wrap tables.
 - Use relative links between docs so they work on GitHub and in a local checkout.
+- **Link to headings, not just to pages.** A cross-reference like
+  `./settings.md#diagnostics` lands the reader on the answer. Anchors follow
+  GitHub's rules — lowercase, spaces become hyphens, anything that is not a
+  letter, number, hyphen, or underscore is dropped — so "Collection & search"
+  becomes `#collection--search`. The in-app reader uses the same rules, so a link
+  that works on GitHub works on stage.
+- End each guide with a **Where to go next** section of onward links.
 - Fenced code blocks only for literal input the reader types or file contents —
   not for UI labels (bold those instead).
+
+## Publishing: the docs are inside the app
+
+`docs/user/` is the source of truth, and `tools/ci/sync_user_docs.py` mirrors it
+into the app bundle so the guides ship offline. Two things follow from that:
+
+- **After editing any guide, run the sync and commit the result:**
+
+  ```sh
+  python3 tools/ci/sync_user_docs.py --write
+  ```
+
+  A CI check fails the build if the bundled copies drift from the source.
+- **New guides need no registration** — the app discovers whatever is bundled.
+  This style guide is deliberately excluded from the bundle, because it is for
+  contributors rather than callers.
