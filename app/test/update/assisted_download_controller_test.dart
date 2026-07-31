@@ -233,22 +233,44 @@ void main() {
     expect(c.handoffResult, HandoffResult.launched);
   });
 
-  test('a failed handoff surfaces an error but keeps the file', () async {
-    final repos = openTestRepositories();
-    final c = controller(
-      repos,
-      manifestBody: _manifest(),
-      handoff: (file, platform) async => HandoffResult.failed,
-    );
-    addTearDown(c.dispose);
-    await c.load();
-    await c.checkNow();
+  test(
+    'a failed handoff surfaces an error and cleans up the temp download dir',
+    () async {
+      final repos = openTestRepositories();
+      File? captured;
+      final c = controller(
+        repos,
+        manifestBody: _manifest(),
+        downloader:
+            (
+              artifact, {
+              required destination,
+              client,
+              onProgress,
+              cancelToken,
+            }) async {
+              captured = destination;
+              await destination.writeAsString('artifact-bytes');
+              return DownloadOutcome.success(destination);
+            },
+        handoff: (file, platform) async => HandoffResult.failed,
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
 
-    await c.startAssistedDownload();
+      await c.startAssistedDownload();
 
-    expect(c.downloadStatus, AssistedDownloadStatus.failed);
-    expect(c.downloadError, contains('View release'));
-  });
+      expect(c.downloadStatus, AssistedDownloadStatus.failed);
+      expect(c.downloadError, contains('View release'));
+      // The per-attempt temp subdirectory (and its artifact) must be cleaned
+      // up on a handoff failure — nothing is left behind for a subsequent
+      // download attempt to collide with (issue #626 follow-up).
+      expect(await captured!.exists(), isFalse);
+      expect(await captured!.parent.exists(), isFalse);
+      expect(tempDir.listSync(), isEmpty);
+    },
+  );
 
   test('cancel during download aborts to cancelled', () async {
     final repos = openTestRepositories();
@@ -269,9 +291,13 @@ void main() {
 
     final pending = c.startAssistedDownload();
     expect(c.downloadStatus, AssistedDownloadStatus.downloading);
-    // Let the (async) temp-dir resolution run so the downloader is invoked and
-    // captures the cancel token before we cancel.
-    await Future<void>.delayed(Duration.zero);
+    // Let the (async) temp-dir resolution + per-attempt subdirectory creation
+    // run so the downloader is invoked and captures the cancel token before we
+    // cancel. Both are real (if fast) I/O ops, so poll briefly rather than
+    // assuming a single event-loop turn suffices.
+    for (var i = 0; i < 50 && captured == null; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
 
     c.cancelDownload();
     expect(captured, isNotNull);

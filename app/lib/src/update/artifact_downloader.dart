@@ -137,7 +137,18 @@ typedef ArtifactDownloader =
 /// body cannot fill the disk. After the stream ends, the written byte count is
 /// validated against the manifest `size`; a mismatch is a
 /// [DownloadResultKind.sizeMismatch]. Every non-success path deletes the
-/// partial file so no truncated artifact is ever handed to verification.
+/// partial file — but only one this call itself created — so no truncated
+/// artifact is ever handed to verification.
+///
+/// [destination] is refused if anything already sits at that path — checked
+/// **without following a symlink** — before any byte is written (issue #626):
+/// a pre-existing file, directory, or symlink (dangling or not) fails the
+/// download closed rather than being written through. A `create(exclusive:
+/// true)` immediately follows as defense-in-depth against a TOCTOU race
+/// between the check and the create. Together these close a local
+/// symlink/predictable-path attack (CWE-59/377). Callers should additionally
+/// route [destination] through an unpredictable directory (e.g.
+/// `Directory.createTemp`) so neither guard here is the sole line of defense.
 Future<DownloadOutcome> downloadArtifact(
   UpdateArtifact artifact, {
   required File destination,
@@ -158,6 +169,11 @@ Future<DownloadOutcome> downloadArtifact(
   var received = 0;
   var succeeded = false;
   var sinkClosed = false;
+  // Only ever delete a file this call itself created — never a pre-existing
+  // entity found at [destination] (see the `create(exclusive: true)` call
+  // below), so a symlink an attacker pre-planted at a predictable path is
+  // never touched, let alone followed.
+  var createdDestination = false;
 
   try {
     if (cancelToken != null && cancelToken.isCancelled) {
@@ -192,6 +208,45 @@ Future<DownloadOutcome> downloadArtifact(
     final maxBytes = artifact.size > 0
         ? artifact.size
         : kMaxArtifactDownloadBytes;
+
+    // Refuse if anything already sits at [destination] — checked WITHOUT
+    // following a symlink (`FileSystemEntity.type(..., followLinks: false)`).
+    // This closes a residual gap in relying on `create(exclusive: true)`
+    // alone: an exclusive create can still race with, or (per platform/FS
+    // nuance) proceed through, a pre-existing symlink whose *target* does not
+    // (yet) exist, creating the target through the link. Rejecting any
+    // existing entity at the raw path — file, directory, or link, dangling or
+    // not — means we never open, never write, and never delete a pre-existing
+    // entity (the cleanup in `finally` below only ever removes a file *this
+    // call* created).
+    final existingType = await FileSystemEntity.type(
+      destination.path,
+      followLinks: false,
+    );
+    if (existingType != FileSystemEntityType.notFound) {
+      return DownloadOutcome.networkError(
+        'refusing to write: something already exists at the destination path',
+      );
+    }
+
+    // Create the destination **exclusively** (`O_EXCL`-equivalent) as
+    // defense-in-depth on top of the check above: this fails closed if
+    // anything appears at [destination] between the check and this call
+    // (TOCTOU), instead of writing through it. That defeats a local symlink
+    // attack (CWE-59) where an attacker pre-plants a symlink at a predictable
+    // path to redirect the write at a target of their choosing: `openWrite()`
+    // alone would happily follow it. Callers additionally pair this with an
+    // unpredictable destination path (see
+    // `UpdateController.startAssistedDownload`), so neither guard here is the
+    // sole line of defense.
+    try {
+      await destination.create(exclusive: true);
+      createdDestination = true;
+    } on Object catch (e) {
+      return DownloadOutcome.networkError(
+        'could not create destination file securely: $e',
+      );
+    }
     sink = destination.openWrite();
 
     final done = Completer<DownloadOutcome>();
@@ -292,7 +347,7 @@ Future<DownloadOutcome> downloadArtifact(
         // ignore
       }
     }
-    if (!succeeded) {
+    if (!succeeded && createdDestination) {
       try {
         if (await destination.exists()) await destination.delete();
       } on Object {

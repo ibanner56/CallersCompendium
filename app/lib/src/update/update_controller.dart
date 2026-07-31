@@ -225,13 +225,23 @@ class UpdateController extends ChangeNotifier {
     notifyListeners();
 
     final Directory dir;
+    Directory? downloadDir;
     try {
       dir = await _temporaryDirectoryProvider();
+      // A fresh, randomly-named subdirectory per attempt (issue #626): the
+      // artifact is written under an unpredictable path so a local attacker
+      // cannot pre-plant a symlink at a guessable location to redirect the
+      // write (CWE-59/377). The downloader's own `create(exclusive: true)`
+      // guard is defense-in-depth on top of this.
+      downloadDir = await dir.createTemp('cc_update_');
     } on Object {
+      if (downloadDir != null) await _deleteDirQuietly(downloadDir);
       _failDownload('Could not prepare a place to download the update.');
       return;
     }
-    final destination = File('${dir.path}/${downloadFileName(artifact.url)}');
+    final destination = File(
+      '${downloadDir.path}/${downloadFileName(artifact.url)}',
+    );
 
     File? downloaded;
     try {
@@ -244,10 +254,12 @@ class UpdateController extends ChangeNotifier {
 
       if (token.isCancelled || outcome.kind == DownloadResultKind.cancelled) {
         _cancelDownloadState(outcome.file);
+        await _deleteDirQuietly(downloadDir);
         return;
       }
       if (!outcome.isSuccess || outcome.file == null) {
         _failDownload(_downloadFailureMessage(outcome.kind));
+        await _deleteDirQuietly(downloadDir);
         return;
       }
       final file = outcome.file!;
@@ -260,10 +272,12 @@ class UpdateController extends ChangeNotifier {
       final verified = await _verifier(file, artifact.sha256);
       if (token.isCancelled) {
         _cancelDownloadState(file);
+        await _deleteDirQuietly(downloadDir);
         return;
       }
       if (!verified) {
         await _deleteQuietly(file);
+        await _deleteDirQuietly(downloadDir);
         _failDownload(
           'The downloaded update failed its security (sha256) check and was '
           'deleted. Try again, or use "View release" to download it manually.',
@@ -276,6 +290,7 @@ class UpdateController extends ChangeNotifier {
 
       final handoff = await _handoff(file, _platform);
       if (handoff == HandoffResult.failed) {
+        await _deleteDirQuietly(downloadDir);
         _failDownload(
           'The update was downloaded and verified, but could not be opened '
           'automatically. Use "View release" to finish installing.',
@@ -293,6 +308,7 @@ class UpdateController extends ChangeNotifier {
       // Honour this method's "never throws" contract: delete any partial file
       // and surface a loud, actionable error instead of getting stuck in-flight.
       await _deleteQuietly(downloaded ?? destination);
+      await _deleteDirQuietly(downloadDir);
       _failDownload(
         'Something went wrong while installing the update. Try again, or use '
         '"View release" to download it manually.',
@@ -372,6 +388,19 @@ class UpdateController extends ChangeNotifier {
   Future<void> _deleteQuietly(File file) async {
     try {
       if (await file.exists()) await file.delete();
+    } on Object {
+      // Best-effort cleanup.
+    }
+  }
+
+  /// Best-effort recursive removal of the per-attempt temp directory created
+  /// in [startAssistedDownload] (issue #626). Only ever called on a
+  /// non-success path — the directory (and its file) are deliberately left in
+  /// place after [AssistedDownloadStatus.completed] so the user can still
+  /// reach the verified artifact.
+  Future<void> _deleteDirQuietly(Directory dir) async {
+    try {
+      if (await dir.exists()) await dir.delete(recursive: true);
     } on Object {
       // Best-effort cleanup.
     }
