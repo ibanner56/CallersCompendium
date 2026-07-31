@@ -43,10 +43,10 @@ void main() {
     // Plain placeholder message.
     expect(l10n.performSlotPosition(2, 8), 'Slot 2 of 8');
 
-    // Unpluralised matrix label (kept byte-identical to the pre-l10n code).
+    // moveCount is plural-aware (#669: hiding a column can bring it to 1).
     expect(
       l10n.programsMatrixSemanticLabel(2, 1),
-      'Programming matrix: 2 dances by 1 moves',
+      'Programming matrix: 2 dances by 1 move',
     );
 
     // Unpluralised matrix "used in" label: stays "dances" even at total == 1
