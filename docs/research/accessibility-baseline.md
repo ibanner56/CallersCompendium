@@ -105,8 +105,9 @@ a later phase promotes it.
   - VoiceOver (iOS) + TalkBack (Android) screen-reader smoke test across the
     core flows (Collection browse/search, Dance detail, Program builder,
     Performance mode).
-  - 200% OS text-scaling / reflow check on iOS and Android.
-  - 100% keyboard-only navigation check on desktop.
+  - Text-scaling / reflow check: Android font scale **2.0×**, iOS largest
+    Dynamic Type accessibility size.
+  - Keyboard-only navigation check on desktop.
 - **Advisory / not yet gating (still tracked here, still expected
   eventually, but won't block a tag today):**
   - NVDA, Narrator, and Orca full-task-coverage screen-reader passes (see
@@ -119,7 +120,8 @@ a later phase promotes it.
 This split exists so the gate is achievable and enforceable today without
 waiting for full AT-matrix tooling/testers across every platform; the
 advisory items are expected to graduate into the gate as the beta program
-matures (see "Recruit at least one AT-using tester" below).
+matures (see "Recruit at least one AT-using tester" in Process requirements,
+above).
 
 ## Open items
 

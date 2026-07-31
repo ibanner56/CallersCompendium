@@ -112,19 +112,22 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 > rationale and what's deliberately excluded.
 
 - [ ] **Screen-reader smoke (iOS/VoiceOver + Android/TalkBack) — Gate.** On a
- real device (or simulator/emulator with VoiceOver/TalkBack enabled), using
- only the screen reader (no sighted mouse/tap shortcuts), complete on **both**
+ **real iOS device** with VoiceOver enabled (the iOS Simulator does not give a
+ real VoiceOver experience — do not substitute it) and on Android (a real
+ device or an emulator with TalkBack enabled is fine there), using only the
+ screen reader (no sighted mouse/tap shortcuts), complete on **both**
  platforms: browse/search the Collection, open a Dance's detail/card, build
  or edit a Program, and enter Performance mode for one dance. **Pass**: every
  control the flow touches is reachable in a sensible order, has an
  announced name/role/state (no "button, button" or unlabeled-image style
  gaps), and no step is stuck in a trap or silently fails to announce a
  result (e.g. search count, save confirmation).
-- [ ] **200% text-scaling / reflow — Gate.** On **both** iOS and Android, set
- system text size to 200% (Dynamic Type / Android font scale) and repeat:
- Collection list, Dance detail/card, Program builder, Settings. **Pass**: no
- text is clipped, truncated without a way to reveal the rest, or overlapping
- other content; layouts reflow instead of overflowing off-screen.
+- [ ] **Text-scaling / reflow — Gate.** Set the platform's largest supported
+ text-scaling setting and repeat: Collection list, Dance detail/card, Program
+ builder, Settings. On **Android**, set font scale to **2.0×**; on **iOS**,
+ set Dynamic Type to its **largest accessibility size**. **Pass**: no text is
+ clipped, truncated without a way to reveal the rest, or overlapping other
+ content; layouts reflow instead of overflowing off-screen.
 - [ ] **Keyboard-only navigation (desktop) — Gate.** On a desktop build
  (macOS/Linux/Windows), unplug/ignore the mouse and complete the same core
  flows using Tab/Shift+Tab/Enter/Arrow keys only. **Pass**: every interactive
