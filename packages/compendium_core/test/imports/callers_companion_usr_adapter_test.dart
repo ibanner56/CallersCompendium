@@ -158,6 +158,18 @@ void main() {
       expect(draft.dance.rating, 4);
     });
 
+    // Issue #685: Author1/Author2 pass through verbatim to the shared
+    // mapping layer, which splits multi-author fields via the shared
+    // tokenizer — so a single Author1 field combining two names must still
+    // yield two distinct authorNames.
+    test('splits a multi-author Author1 field via the shared tokenizer '
+        '(issue #685)', () {
+      final draft = adapter.parse(
+        rawFor({'Name': 'Duet', 'Author1': 'Alice Smith and Bob Jones'}),
+      );
+      expect(draft.authorNames, ['Alice Smith', 'Bob Jones']);
+    });
+
     test('malformed payload JSON degrades to an ImportError', () {
       final raw = RawRecord(
         source: ProvenanceSource.callersCompanion,

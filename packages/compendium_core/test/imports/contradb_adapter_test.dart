@@ -114,6 +114,18 @@ void main() {
         expect(draft.authorNames, ['BobIsaacs']);
       });
 
+      // Issue #685: multi-author choreographer strings must be split via the
+      // one shared tokenizer, not left as a single opaque blob.
+      test('splits a multi-author choreographer string via the shared '
+          'tokenizer (issue #685)', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(choreographer: {'name': 'Alice Smith and Bob Jones'}),
+          ),
+        );
+        expect(draft.authorNames, ['Alice Smith', 'Bob Jones']);
+      });
+
       test('strips spoofing chars from formation detail', () async {
         final draft = await _importOne(
           jsonEncode(_dance(startType: 'spiral$zwsp galaxy$bel')),

@@ -6,6 +6,7 @@ import '../model/figure.dart';
 import '../model/formation.dart';
 import '../model/phrase_structure.dart';
 import '../util/text_sanitizer.dart';
+import 'author_tokenizer.dart';
 import 'callersbox_figure_dialect.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
@@ -246,7 +247,14 @@ class CallersBoxAdapter implements SourceAdapter {
       ),
       raw: raw,
       issues: issues,
-      authorNames: _sanitizeLineList(_asStringList(dance['Authors'])),
+      // The Caller's Box exposes `Authors` as an array, but each element can
+      // still carry an embedded conjunction (e.g. "Alice Smith & Bob Jones");
+      // route every element through the shared splitter (#685) rather than
+      // just sanitizing it verbatim.
+      authorNames: splitAuthorNames(
+        _asStringList(dance['Authors']),
+        issues: issues,
+      ),
     );
   }
 

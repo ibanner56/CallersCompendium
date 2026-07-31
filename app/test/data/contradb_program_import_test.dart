@@ -19,6 +19,7 @@ class _FakeService implements OnlineSearchService {
     this.source, {
     this.failLoadIds = const {},
     this.rowsByTitle = const {},
+    this.confidentTitles = const {},
   });
 
   @override
@@ -29,6 +30,10 @@ class _FakeService implements OnlineSearchService {
 
   /// Caller's Box search rows keyed by the lower-cased query title.
   final Map<String, List<OnlineSearchResultRow>> rowsByTitle;
+
+  /// (Lower-cased) titles for which [loadPreview] should return a plan whose
+  /// verdict is a confident local duplicate (issue #685).
+  final Set<String> confidentTitles;
 
   final loadedIds = <String>[];
   final searchedTitles = <String>[];
@@ -50,10 +55,13 @@ class _FakeService implements OnlineSearchService {
     if (failLoadIds.contains(result.id)) {
       throw Exception('This dance is not published.');
     }
+    final confident = confidentTitles.contains(
+      result.name.trim().toLowerCase(),
+    );
     return OnlinePreview(
       result: result,
       detail: _detail(result.name),
-      plan: _plan(result.name),
+      plan: _plan(result.name, confident: confident),
     );
   }
 
@@ -74,30 +82,39 @@ class _FakeService implements OnlineSearchService {
     );
   }
 
-  ImportRecordPlan _plan(String title) => ImportRecordPlan(
-    draft: StructuredDraft(
-      dance: Dance(
-        id: '',
-        title: title,
-        authorIds: const [],
-        tagIds: const [],
-        form: DanceForm.contra,
-        formation: const Formation(FormationShape.dupleImproper),
-        status: DanceStatus.active,
-        figures: const [],
-        customFields: const [],
-        hook: '',
-        createdAt: DateTime.utc(2026, 1, 1),
-        updatedAt: DateTime.utc(2026, 1, 1),
-      ),
-      raw: const RawRecord(
-        source: ProvenanceSource.contradb,
-        externalId: '1',
-        payload: '<html></html>',
-      ),
-    ),
-    verdict: DedupeVerdict.isNew(),
-  );
+  ImportRecordPlan _plan(String title, {bool confident = false}) =>
+      ImportRecordPlan(
+        draft: StructuredDraft(
+          dance: Dance(
+            id: '',
+            title: title,
+            authorIds: const [],
+            tagIds: const [],
+            form: DanceForm.contra,
+            formation: const Formation(FormationShape.dupleImproper),
+            status: DanceStatus.active,
+            figures: const [],
+            customFields: const [],
+            hook: '',
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+          raw: const RawRecord(
+            source: ProvenanceSource.contradb,
+            externalId: '1',
+            payload: '<html></html>',
+          ),
+        ),
+        verdict: confident
+            ? DedupeVerdict.ambiguous([
+                DedupeCandidate(
+                  danceId: 'local-existing',
+                  score: 0.8,
+                  confident: true,
+                ),
+              ])
+            : DedupeVerdict.isNew(),
+      );
 
   DanceDetailData _detail(String title) => DanceDetailData(
     dance: _plan(title).draft.dance,
@@ -214,6 +231,43 @@ void main() {
       expect(resolved.single.danceId, 'tcb-hidden gem');
     },
   );
+
+  test('Caller\'s Box fallback confident local duplicate (issue #685) is never '
+      'imported — falls to the verbatim note floor and service.import is '
+      'never called on that fallback path', () async {
+    final repos = openTestRepositories();
+    // The ContraDB dance (id 9) is unpublished → loadPreview throws, so
+    // resolution falls to the Caller's Box fallback by title.
+    final contraDb = _FakeService(OnlineSource.contraDb, failLoadIds: {'9'});
+    final callersBox = _FakeService(
+      OnlineSource.callersBox,
+      rowsByTitle: {
+        'hidden gem': [_tcbRow('Hidden Gem', id: '500')],
+      },
+      confidentTitles: {'hidden gem'},
+    );
+
+    final resolved = await resolveContraDbProgram(
+      _program([
+        ContraDbProgramActivity.dance(danceId: '9', title: 'Hidden Gem'),
+      ]),
+      contraDb: contraDb,
+      callersBox: callersBox,
+      repos: repos,
+    );
+
+    expect(contraDb.loadedIds, ['9']);
+    expect(callersBox.searchedTitles, ['Hidden Gem']);
+    // The preview is loaded (that's how the confident verdict is
+    // consulted)...
+    expect(callersBox.loadedIds, ['500']);
+    // ...but import must never be called on a confident match.
+    expect(callersBox.importedTitles, isEmpty);
+    // Falls through to the verbatim note floor, not a silent duplicate.
+    expect(resolved.single.resolution, ContraDbActivityResolution.note);
+    expect(resolved.single.text, 'Hidden Gem');
+    expect(resolved.single.danceId, isNull);
+  });
 
   test(
     'both paths fail → verbatim note floor keeps title + attached note',

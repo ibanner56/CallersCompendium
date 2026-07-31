@@ -1,5 +1,19 @@
 ## Unreleased
 
+### Fixed
+
+- **Silent duplicate dances on program import (#685).** Every author-name
+  field (a choreographer string, a Caller's Box `Authors[]` element, a
+  Caller's Companion "by" line, `Author1`/`Author2`) now routes through one
+  shared, ReDoS-safe `splitAuthorNames()` tokenizer instead of each adapter
+  splitting (or not splitting) multi-author strings differently. This makes
+  dedupe's author-overlap signal consistent across sources, and
+  `DedupeIndex.fuzzyMatches` now *guarantees* an exact-normalized-title match
+  with an overlapping tokenized author set is surfaced as a confident
+  candidate (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`)
+  regardless of score-threshold tuning — such a pair can no longer silently
+  resolve to `isNew`.
+
 ### Added
 
 - **`orbit` is now a first-class move (#295).** A standalone `orbit` move —

@@ -1,4 +1,5 @@
 import '../model/enums.dart';
+import 'author_tokenizer.dart';
 import 'callers_companion_mapping.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
@@ -46,8 +47,10 @@ import 'structured_draft.dart';
 ///
 /// Parsing rules:
 /// - The **first non-empty line** is the dance title.
-/// - An author line is `by <names>` or `Author: <names>`; names split on `,`,
-///   `&`, and the word `and`.
+/// - An author line is `by <names>` or `Author: <names>`; the names part is
+///   carried verbatim into [CcDanceRecord.authors] and split by the shared
+///   canonical [splitAuthorNames] tokenizer (#685) in the mapping layer, so
+///   this adapter and the `.usr` reader tokenize identically.
 /// - Header lines of the form `Key: Value` populate Type / Formation / Level /
 ///   Progression / Music / Composed / Revised (keys are case-insensitive). One
 ///   field per line. Unrecognized `Key: Value` lines are ignored.
@@ -299,8 +302,11 @@ class CallersCompanionTextAdapter implements SourceAdapter {
   static bool _looksLikeBodyLine(String line) =>
       RegExp(r'^\(\s*\d+\s*\)').hasMatch(line);
 
-  /// Parses an author line (`by X` / `Author: X`), splitting multiple names.
-  /// Returns `null` when the line is not an author line.
+  /// Parses an author line (`by X` / `Author: X`). Returns the names part
+  /// **verbatim as a single raw field** — splitting multiple names is owned
+  /// solely by the shared [splitAuthorNames] tokenizer in the mapping layer
+  /// (#685), so this adapter and the `.usr` reader can never tokenize
+  /// differently. Returns `null` when the line is not an author line.
   static List<String>? _parseAuthorLine(String line) {
     final byMatch = RegExp(
       r'^by\s+(.+)$',
@@ -316,12 +322,8 @@ class CallersCompanionTextAdapter implements SourceAdapter {
       }
       namesPart = field.$2;
     }
-    final names = namesPart
-        .split(RegExp(r'\s*(?:,|&|\band\b)\s*', caseSensitive: false))
-        .map((n) => n.trim())
-        .where((n) => n.isNotEmpty)
-        .toList();
-    return names.isEmpty ? null : names;
+    final trimmed = namesPart.trim();
+    return trimmed.isEmpty ? null : [trimmed];
   }
 
   /// Parses a `Key: Value` header line into a lowercased key + trimmed value,

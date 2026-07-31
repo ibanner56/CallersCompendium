@@ -6,6 +6,7 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../util/text_sanitizer.dart';
+import 'author_tokenizer.dart';
 import 'contradb_figure_dialect.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
@@ -230,9 +231,10 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       ),
       raw: raw,
       issues: issues,
-      authorNames: [
-        if (choreographer != null && choreographer.isNotEmpty) choreographer,
-      ],
+      // Split on the shared canonical delimiter set (#685) — the page's
+      // choreographer text is a single string that may combine multiple
+      // authors (e.g. "Alice Smith and Bob Jones").
+      authorNames: splitAuthorNames([choreographer], issues: issues),
     );
   }
 

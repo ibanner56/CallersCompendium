@@ -17,7 +17,7 @@ fetch → RawRecord → parse → StructuredDraft → canonicalize → dedupe �
 | **RawRecord** | Source-native payload preserved verbatim + source id/version → stored in `provenance.raw_payload`. Re-import/diff is always possible. |
 | **parse** | Adapter maps fields and parses figures into structured `Figure[]`. **Parsing never fails a dance**: any unparseable figure line becomes a `custom` figure carrying its beats and text. A dance can arrive 100% custom and still be searchable. |
 | **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; formation strings mapped to the enum (+detail). |
-| **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (normalized title + author) → user chooses link/duplicate/skip. Free-text imports feed their raw author names (see *Author resolution*) into this signal. |
+| **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (normalized title + author) → user chooses link/duplicate/skip. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers (e.g. program import) treat a confident match as a hard **skip**, never a silent duplicate (see *Multi-author tokenization*). |
 | **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Accept-all is one tap; nothing silently mutates existing user data. |
 | **commit** | Transactional; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo. |
 
@@ -32,6 +32,57 @@ carries those names verbatim on `StructuredDraft.authorNames` (in order, blanks
 dropped) and **never fabricates ids** — names are data, not a parse failure. The
 pipeline resolves them to real `Choreographer` associations (`Dance.authorIds`) at
 **commit**:
+
+### Multi-author tokenization (issue #685)
+
+Every adapter that can carry more than one name in a single field (a
+choreographer string, an `Authors[]` array element, a "by" line, `Author1`/
+`Author2`) routes through **one** canonical splitter,
+`splitAuthorNames()` (`packages/compendium_core/lib/src/imports/author_tokenizer.dart`),
+instead of each adapter doing its own ad hoc split. Before this fix, mismatched
+per-adapter tokenization (or no splitting at all) could make a re-imported
+dance's author set score `0` similarity against the same dance already in the
+collection — and combined with any title variance, that was enough to fall
+below the dedupe threshold and silently create a duplicate.
+
+`splitAuthorNames()` policy:
+
+1. **Comma pass with suffix protection** — plain (non-regex) comma split,
+   but a leading fragment that looks like a name suffix (`Jr`, `Sr`, `II`,
+   `III`, `IV`, case-insensitive, optional trailing `.`) is re-attached to the
+   previous name instead of starting a new author (`"Jane Doe, Jr."` stays one
+   name; `"Jane Doe, Jr. and Bob Smith"` → `["Jane Doe, Jr.", "Bob Smith"]`).
+   This is a deliberate trade-off: it protects the common suffix case at the
+   cost of never treating an *actual* two-name comma-list entry as ambiguous
+   with a suffix — accepted per the issue.
+2. **Other-delimiter pass** — each comma-fragment is further split on `/`,
+   `&`, `+`, `;`, or the whole words `and`/`with` (case-insensitive,
+   word-boundary — so `Andy Davis` or `Ann Withers` are not over-split). The
+   delimiter regex is a single fixed alternation with no repetition on
+   attacker-controlled input, so it is **linear-time / ReDoS-safe** by
+   construction (no nested or overlapping quantifiers).
+3. Each resulting token is trimmed, re-sanitized (`sanitizeImportedText`,
+   preserving the existing bidi/zero-width stripping from #444/#611 — a
+   hostile field can't hide a spoofing character inside what used to be one
+   opaque blob before splitting exposed the substring boundaries), and empty
+   tokens are dropped.
+4. Tokens are de-duplicated case/whitespace-insensitively within one call
+   (first-seen casing wins), preserving order.
+5. **Caps, never throws.** Each raw field is capped at `maxFieldLength`
+   (default 500) chars before splitting, and the combined author list per
+   record is capped at `maxAuthorsPerRecord` (default 20). Either cap firing
+   truncates (rather than raising) and appends a non-fatal `ImportIssue`
+   (`author_field_truncated` / `author_count_capped`) — untrusted remote
+   input can never crash or hang an import (OWASP: fail closed, no raw
+   parser detail surfaced to the UI).
+6. The **raw, unsplit** field is always retained verbatim in
+   `RawRecord.payload`/provenance — splitting only affects the derived
+   `authorNames`, nothing is lost for re-import/diff.
+
+Acceptance: the same multi-author dance imported from Caller's Box (an
+`Authors[]` array) and from ContraDB (a single combined string) now normalizes
+to the **same** author set, so dedupe's author-overlap signal is consistent
+across sources regardless of which adapter produced it.
 
 - **Matching policy — exact, normalized, conservative.** A name matches an existing
   `Choreographer` iff its normalized form (trim → collapse internal whitespace →
@@ -60,6 +111,50 @@ pipeline resolves them to real `Choreographer` associations (`Dance.authorIds`) 
   authorship now lives in `Dance.authorIds`. The per-record resolution outcome
   (matched vs created, per name) is surfaced structurally on
   `CommittedRecord.authorResolutions` for the review step.
+
+### Dedupe confident-match guarantee (issue #685)
+
+`DedupeIndex.fuzzyMatches` always includes a candidate whose normalized title
+is exactly equal to the incoming record's **and** whose tokenized author set
+intersects it (`DedupeCandidate.confident = true`), even when its combined
+score would otherwise fall under the active threshold. `DedupeVerdict.
+hasConfidentMatch` exposes this at the verdict level. This is a deliberate,
+future-proofed guarantee, not a threshold-tuning accident: an exact-title +
+shared-author pair can never resolve to `isNew` (and therefore never silently
+duplicate), regardless of how differently the two sides' author strings were
+formatted or tokenized upstream.
+
+- **Interactive path unchanged.** `verdictFor`'s `isNew`/`ambiguous` branching
+  and `ImportPipeline.commit`'s "no resolution supplied → skip" default are
+  untouched — a confident candidate is, by construction, always present in
+  the fuzzy list, so it can never fall through to `isNew` in the first place.
+  The interactive review screen still lets the user resolve it (link /
+  duplicate / skip) like any other `ambiguous` candidate.
+- **Non-interactive path defaults to skip (Option 2, locked).** Callers with
+  no user present to disambiguate (the program-import resolver, see below)
+  treat `hasConfidentMatch` as a hard skip rather than importing a fresh
+  dance or forcing a `duplicate()` resolution.
+- **Seam for #686.** `confident`/`hasConfidentMatch` is deliberately exposed
+  as plain data with no UI/behavior branching baked into `dedupe.dart` — issue
+  #686 will layer a richer resolution (a figure-diff "variation?" prompt) on
+  top of this same trigger without needing to touch this file's scoring
+  logic again.
+
+### Program-import path (issue #685)
+
+The non-interactive program-import resolver
+(`app/lib/src/data/program_import_online_resolver.dart`,
+`resolveConfidentOnlineDanceId`) already runs the previewed online dance
+through the full local `DedupeIndex` via `OnlineSearchService.loadPreview`
+(no second index build needed). Before calling `OnlineSearchService.import`,
+it now checks `preview.plan.verdict.hasConfidentMatch` and returns `null`
+(leaving the program line on the existing note-slot fallback) instead of
+importing. This is intentionally **not** the same as the interactive
+`CallersBoxOnline`/`ContraDbOnline.import` behavior, which forces a
+`duplicate()` resolution on any `ambiguous` verdict — that override is correct
+only for the genuinely interactive single-dance "search → tap Import" flow
+(an explicit user pick), and would otherwise force-import a confident local
+duplicate when reused from a batch/non-interactive path.
 
 ## Sources
 

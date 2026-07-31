@@ -305,6 +305,12 @@ CcDanceRecord ccDanceRecordFromColumns(
 }) {
   final lookup = _CiColumns(columns);
 
+  // Raw Author1/Author2 field values, passed through VERBATIM — each field
+  // may itself combine multiple authors (e.g. "Alice Smith & Bob Jones").
+  // Splitting is intentionally NOT done here: [mapCallersCompanionDance] runs
+  // every record's `authors` through the one shared [splitAuthorNames]
+  // tokenizer (#685), so this reader and the CC text adapter always
+  // tokenize identically.
   final authors = [
     lookup.get('Author1'),
     lookup.get('Author2'),
