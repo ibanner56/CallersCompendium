@@ -1,5 +1,4 @@
 import '../model/enums.dart';
-import 'author_tokenizer.dart';
 import 'callers_companion_mapping.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
