@@ -1,4 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/src/storage/database.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:test/test.dart';
 
 import 'test_database.dart';
@@ -212,5 +214,92 @@ void main() {
         expect(await repo.listUsedChoiceValues('f1'), {'easy', 'hard'});
       },
     );
+  });
+  group('tolerant decode of a corrupt stored choicesJson', () {
+    Future<void> writeRawRow({
+      required String id,
+      required String key,
+      required String type,
+      String? choicesJson,
+    }) => db
+        .into(db.customFieldDefs)
+        .insertOnConflictUpdate(
+          CustomFieldDefsCompanion.insert(
+            id: id,
+            key: key,
+            label: key,
+            type: CustomFieldType.values.byName(type),
+            choicesJson: Value(choicesJson),
+          ),
+        );
+
+    test('a malformed (non-JSON) choicesJson decodes to null instead of '
+        'throwing', () async {
+      await writeRawRow(
+        id: 'f1',
+        key: 'level',
+        type: 'choice',
+        choicesJson: '{not valid json',
+      );
+      expect(await repo.getById('f1'), isNull);
+      expect(await repo.listAll(), isEmpty);
+    });
+
+    test('a choicesJson holding a non-string element decodes to null instead '
+        'of throwing', () async {
+      await writeRawRow(
+        id: 'f1',
+        key: 'level',
+        type: 'choice',
+        choicesJson: '[1, 2, 3]',
+      );
+      expect(await repo.getById('f1'), isNull);
+    });
+
+    test('a choice field whose choicesJson decodes to an empty list decodes to '
+        'null instead of throwing the "must declare at least one choice" '
+        'invariant', () async {
+      await writeRawRow(
+        id: 'f1',
+        key: 'level',
+        type: 'choice',
+        choicesJson: '[]',
+      );
+      expect(await repo.getById('f1'), isNull);
+    });
+
+    test(
+      'one corrupt row does not prevent other, valid rows from loading',
+      () async {
+        await writeRawRow(
+          id: 'f1',
+          key: 'corrupt',
+          type: 'choice',
+          choicesJson: 'not json',
+        );
+        await repo.upsert(
+          CustomFieldDef(
+            id: 'f2',
+            key: 'level',
+            label: 'Level',
+            type: CustomFieldType.choice,
+            choices: const ['easy', 'hard'],
+          ),
+        );
+        final all = await repo.listAll();
+        expect(all.map((d) => d.id), ['f2']);
+      },
+    );
+
+    test('a valid choicesJson still round-trips correctly', () async {
+      await writeRawRow(
+        id: 'f1',
+        key: 'level',
+        type: 'choice',
+        choicesJson: '["easy","medium","hard"]',
+      );
+      final loaded = await repo.getById('f1');
+      expect(loaded!.choices, ['easy', 'medium', 'hard']);
+    });
   });
 }

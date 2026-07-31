@@ -192,10 +192,14 @@ class DanceRepository {
           '"${value.fieldId}"',
         );
       }
-      final (text, num) = encodeCustomFieldValue(
-        value,
-        CustomFieldDefRepository.toModel(def),
-      );
+      final fieldDef = CustomFieldDefRepository.toModel(def);
+      if (fieldDef == null) {
+        throw StateError(
+          'dance "${dance.id}" has a value for custom field '
+          '"${value.fieldId}" whose stored definition is corrupt',
+        );
+      }
+      final (text, num) = encodeCustomFieldValue(value, fieldDef);
       await _db
           .into(_db.customFieldValues)
           .insert(

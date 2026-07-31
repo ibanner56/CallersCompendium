@@ -540,4 +540,67 @@ void main() {
       );
     });
   });
+
+  group('commit reuses plan\'s choreographer snapshot (no double load)', () {
+    test('the choreographer collection is loaded once across plan + commit, '
+        'and dedupe/author-resolution results are unchanged (one matched, one '
+        'created, no duplicate rows)', () async {
+      final counter = ChoreographerSelectCounter();
+      final countingDb = openCountingTestDatabase(counter);
+      addTearDown(countingDb.close);
+      final countingDances = DanceRepository(countingDb, contraTaxonomy);
+      final countingChoreographers = ChoreographerRepository(countingDb);
+      final countingPipeline = ImportPipeline(
+        countingDances,
+        countingChoreographers,
+      );
+      await countingChoreographers.upsert(
+        Choreographer(id: 'gene', name: 'Gene Hubert'),
+      );
+      counter.reset();
+
+      final adapter = FakeSourceAdapter([
+        record('fake-1', 'A Dance', authorNames: ['Gene Hubert']),
+        record('fake-2', 'Another Dance', authorNames: ['New Author']),
+      ]);
+      final batch = await countingPipeline.plan(adapter, const ImportRequest());
+      expect(
+        counter.count,
+        1,
+        reason: 'plan() builds one DedupeIndex snapshot',
+      );
+
+      final session = await countingPipeline.commit(
+        batch,
+        now: now,
+        newId: nextId,
+      );
+      expect(
+        counter.count,
+        1,
+        reason:
+            'commit should reuse the DedupeIndex snapshot plan() already '
+            'built instead of reloading the full choreographer collection '
+            'a second time',
+      );
+
+      // Dedupe/author-resolution results are unchanged: both records
+      // import as new dances, the first matches the pre-existing
+      // "Gene Hubert" row (not created), the second creates exactly one
+      // new choreographer.
+      expect(session.committedCount, 2);
+      expect(
+        session.records.map((r) => r.action),
+        everyElement(CommitAction.create),
+      );
+      final resolutions = session.records
+          .expand((r) => r.authorResolutions)
+          .toList();
+      expect(resolutions[0].choreographerId, 'gene');
+      expect(resolutions[0].created, isFalse);
+      expect(resolutions[1].created, isTrue);
+      expect(session.createdChoreographerIds, hasLength(1));
+      expect(await countingChoreographers.listAll(), hasLength(2));
+    });
+  });
 }

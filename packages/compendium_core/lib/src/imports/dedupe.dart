@@ -130,8 +130,13 @@ class DedupeResolution {
 /// unit-testable without a database. The pipeline builds one from the live
 /// collection before a batch, then reuses it across the batch.
 class DedupeIndex {
-  DedupeIndex(Iterable<DedupeEntry> entries)
-    : _entries = List.unmodifiable(entries) {
+  DedupeIndex(
+    Iterable<DedupeEntry> entries, {
+    Map<String, String> choreographerIdByNormalizedName = const {},
+  }) : _entries = List.unmodifiable(entries),
+       choreographerIdByNormalizedName = Map.unmodifiable(
+         choreographerIdByNormalizedName,
+       ) {
     for (final e in _entries) {
       final ext = e.externalId;
       if (e.source != null && ext != null) {
@@ -142,6 +147,13 @@ class DedupeIndex {
 
   final List<DedupeEntry> _entries;
   final Map<String, String> _byExternalKey = {};
+
+  /// Snapshot of every choreographer at the time this index was built
+  /// (normalized name → id), incidentally captured from the same collection
+  /// load that produced [_entries]'s author names. Lets [ImportPipeline.commit]
+  /// reuse this instead of a second `listAll()` — see
+  /// [ImportPipeline.buildDedupeIndex] and [ImportPipeline.commit].
+  final Map<String, String> choreographerIdByNormalizedName;
 
   /// Default minimum combined similarity for a fuzzy match to be surfaced.
   static const double defaultThreshold = 0.72;
