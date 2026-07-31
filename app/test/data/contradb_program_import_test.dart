@@ -305,17 +305,28 @@ void main() {
     });
 
     // Bypass the builder entirely: construct the malicious URL directly, as
-    // if it had somehow reached fetchImportUrl by another path. The guarded
-    // fetch must still throw without ever touching the network.
-    const url = 'http://169.254.169.254/programs/1';
+    // if it had somehow reached fetchImportUrl by another path. Must be
+    // **https** so this actually exercises the blocked-host check rather than
+    // being rejected earlier for `insecureScheme` — otherwise the test would
+    // pass without ever reaching isBlockedImportHost, and a regression there
+    // would go uncaught. The guarded fetch must still throw (specifically for
+    // the blocked host, not any other reason) without ever touching the
+    // network.
+    const url = 'https://169.254.169.254/programs/1';
     await expectLater(
       () => fetchImportUrl(url, client: client),
       throwsA(
-        isA<UrlFetchException>().having(
-          (e) => e.toString(),
-          'toString',
-          allOf(isNot(contains('169.254.169.254')), isNot(contains(url))),
-        ),
+        isA<UrlFetchException>()
+            .having(
+              (e) => e.reason,
+              'reason',
+              UrlFetchFailureReason.blockedHost,
+            )
+            .having(
+              (e) => e.toString(),
+              'toString',
+              allOf(isNot(contains('169.254.169.254')), isNot(contains(url))),
+            ),
       ),
     );
     expect(requests, 0, reason: 'no request should be sent to a blocked host');
