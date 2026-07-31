@@ -3950,6 +3950,8 @@
   "@importErrorContraDbMissingProgramId": {"description": "Error shown when a ContraDB program URL has no program id path segment."},
   "importErrorContraDbInvalidProgramLink": "That doesn't look like a ContraDB program link.",
   "@importErrorContraDbInvalidProgramLink": {"description": "Error shown when a shared link is not a valid ContraDB program link."},
+  "importErrorContraDbUnsupportedHost": "That link isn't from a supported ContraDB host. Paste a link from contradb.com, or enter the dance's or program's numeric id.",
+  "@importErrorContraDbUnsupportedHost": {"description": "Error shown when a pasted ContraDB dance or program URL's host is not contradb.com (or www.contradb.com). Never echoes the pasted URL/host."},
   "importErrorContraDbUnreachable": "Couldn't reach ContraDB. Check your connection, then try again.",
   "@importErrorContraDbUnreachable": {"description": "Error shown when ContraDB could not be reached."},
   "importErrorContraDbHttpStatus": "ContraDB responded with HTTP {status}.",

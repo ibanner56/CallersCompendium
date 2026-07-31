@@ -83,6 +83,21 @@ each release so store builds and tags can be traced back to an entry.
   conveyed with a distinct shape plus a localized screen-reader announcement,
   never colour alone (WCAG 1.4.1). (#582)
 
+### Security
+
+- **ContraDB dance and program imports are now restricted to the official
+  ContraDB host.** `buildContraDbUrl` and `buildContraDbProgramUrl` used to
+  preserve whatever host a pasted URL carried, verbatim — trusting any public
+  host as "ContraDB" so long as the path looked like `/dances/N` or
+  `/programs/N`. Both builders now enforce the same host allowlist
+  (`contradb.com` / `www.contradb.com`) already used to auto-detect a pasted
+  ContraDB link, rejecting any other host before a URL is even built, and now
+  require `https` (a bare `http://` link is rejected as an insecure scheme).
+  This mirrors the Caller's Box host allowlist from the previous release
+  (#621) and intentionally drops self-hosted-ContraDB-mirror support — the
+  existing fetch-time SSRF guard (blocking loopback/private-IP targets)
+  remains independent defense-in-depth regardless of host. (#667)
+
 ### Fixed
 
 - **The program-matrix PDF export's ★ (program-debut), ▸ (dance's-first-figure),

@@ -219,6 +219,7 @@ enum UrlFetchFailureReason {
   contraDbInvalidProgramUrl,
   contraDbMissingProgramId,
   contraDbInvalidProgramLink,
+  contraDbUnsupportedHost,
   contraDbUnreachable,
   contraDbHttpStatus,
   contraDbEmptyResponse,
@@ -945,14 +946,21 @@ const String contraDbHost = 'contradb.com';
 /// ContraDB serves each dance as HTML at `contradb.com/dances/N`. This accepts
 /// either:
 /// - a **bare numeric id** (`"1"`) → `https://contradb.com/dances/1`;
-/// - a pasted **http(s) URL** whose path contains `/dances/N` (with or without
-///   a trailing slash, query string, or fragment) → the canonical
-///   `https://<host>/dances/N` (the pasted host is preserved so a self-hosted
-///   instance also works; the dance id is re-extracted so query/fragment cruft
-///   is dropped).
+/// - a pasted **https URL**, with a host in [_isContraDbUrl]'s allowlist
+///   (`contradb.com` or `www.contradb.com`), whose path contains `/dances/N`
+///   (with or without a trailing slash, query string, or fragment) → the
+///   canonical `https://<host>/dances/N` (the dance id is re-extracted so
+///   query/fragment cruft is dropped).
 ///
 /// Throws a [UrlFetchException] (message safe to show) for empty input, a
-/// non-http(s) URL, or a URL with no dance id.
+/// non-https URL, a URL whose host isn't a known ContraDB host, or a URL with
+/// no dance id. Only `https` is accepted (a bare `http://` URL is rejected as
+/// an insecure scheme, matching the transport-security guard every online-
+/// import fetch already enforces) and the host must be on the known allowlist
+/// (OWASP: never trust/fetch an arbitrary user-supplied host as "ContraDB" —
+/// see #667/#621; this intentionally drops self-hosted-ContraDB-mirror
+/// support, since the mirror's host can no longer be constructed via this
+/// builder).
 String buildContraDbUrl(String input) {
   final trimmed = input.trim();
   if (trimmed.isEmpty) {
@@ -974,15 +982,29 @@ String buildContraDbUrl(String input) {
       UrlFetchFailureReason.contraDbInvalidDanceUrl,
     );
   }
+  if (!uri.isScheme('https')) {
+    throw const UrlFetchException(UrlFetchFailureReason.insecureScheme);
+  }
+  // Reject before building anything: an arbitrary public host must never be
+  // trusted/fetched as "ContraDB" (#667/#621). Checked against the parsed
+  // `uri.host` (never a substring match), so a lookalike host or a userinfo
+  // (`user@host`) trick can't slip past this — `Uri.host` already resolves to
+  // the real authority.
+  if (!_isContraDbUrl(uri)) {
+    throw const UrlFetchException(
+      UrlFetchFailureReason.contraDbUnsupportedHost,
+    );
+  }
 
   final match = RegExp(r'/dances/(\d+)').firstMatch(uri.path);
   if (match == null) {
     throw const UrlFetchException(UrlFetchFailureReason.contraDbMissingDanceId);
   }
   final id = match.group(1)!;
-  // Preserve the pasted scheme/host/port; canonicalize the path and drop any
-  // query/fragment. User-info (credentials) is intentionally dropped — it is
-  // never needed to fetch /dances/N and could leak via logs or the UI.
+  // Preserve the pasted host/port (already allowlisted above); canonicalize
+  // the path and drop any query/fragment. User-info (credentials) is
+  // intentionally dropped — it is never needed to fetch /dances/N and could
+  // leak via logs or the UI.
   return Uri(
     scheme: uri.scheme,
     host: uri.host,
@@ -995,10 +1017,14 @@ String buildContraDbUrl(String input) {
 ///
 /// ContraDB serves each program (set list) as HTML at `contradb.com/programs/N`.
 /// Accepts either a bare numeric id (`"33"`) → `https://contradb.com/programs/33`,
-/// or a pasted http(s) URL whose path contains `/programs/N` (query/fragment and
-/// user-info are dropped; the pasted host is preserved so a self-hosted instance
-/// works). Throws a [UrlFetchException] (safe message) for empty input, a
-/// non-http(s) URL, or a URL with no program id.
+/// or a pasted **https URL**, with a host in [_isContraDbUrl]'s allowlist
+/// (`contradb.com` or `www.contradb.com`), whose path contains `/programs/N`
+/// (query/fragment and user-info are dropped). Throws a [UrlFetchException]
+/// (safe message) for empty input, a non-https URL, a URL whose host isn't a
+/// known ContraDB host, or a URL with no program id. Only `https` is accepted
+/// and the host must be on the known allowlist (OWASP: never trust/fetch an
+/// arbitrary user-supplied host as "ContraDB" — see #667/#621; this
+/// intentionally drops self-hosted-ContraDB-mirror support).
 String buildContraDbProgramUrl(String input) {
   final trimmed = input.trim();
   if (trimmed.isEmpty) {
@@ -1017,6 +1043,15 @@ String buildContraDbProgramUrl(String input) {
       (!uri.isScheme('http') && !uri.isScheme('https'))) {
     throw const UrlFetchException(
       UrlFetchFailureReason.contraDbInvalidProgramUrl,
+    );
+  }
+  if (!uri.isScheme('https')) {
+    throw const UrlFetchException(UrlFetchFailureReason.insecureScheme);
+  }
+  // Reject before building anything — see buildContraDbUrl above (#667/#621).
+  if (!_isContraDbUrl(uri)) {
+    throw const UrlFetchException(
+      UrlFetchFailureReason.contraDbUnsupportedHost,
     );
   }
 
@@ -1373,6 +1408,24 @@ bool _isCallersBoxUrl(Uri uri) {
   return segments.contains('thecallersbox');
 }
 
+/// Returns `true` if [uri] names a known ContraDB host ([_contraDbHosts]).
+///
+/// Compares the **parsed** `uri.host` against the allowlist by exact string
+/// equality (never substring/`contains`), so a lookalike host — e.g.
+/// `evilcontradb.com` or `contradb.com.evil.com` — never matches, and a
+/// userinfo trick (`https://contradb.com@evil.com/...`) can't slip through
+/// either: `Uri.host` already resolves to the real authority (`evil.com`),
+/// not the string before the `@`.
+///
+/// Shared by [ImportSource.matchesUrl] (UI auto-detection) and
+/// [buildContraDbUrl] / [buildContraDbProgramUrl] (the actual fetch-URL
+/// builders) so the three can never drift — a URL the UI recognizes as
+/// ContraDB is exactly the set of hosts the builders will ever fetch from.
+///
+/// #667/#621: this intentionally drops self-hosted-ContraDB-mirror support —
+/// only the official host set is trusted/fetched as "ContraDB".
+bool _isContraDbUrl(Uri uri) => _contraDbHosts.contains(uri.host.toLowerCase());
+
 /// The canonical, ordered list of selectable import sources
 /// (`docs/ROADMAP.md` Phase 6.3/6.4/6.5): the generic [GenericJsonAdapter]
 /// ("a Caller's Compendium JSON file", the default), the [CallersBoxAdapter]
@@ -1398,7 +1451,7 @@ List<ImportSource> defaultImportSources() => [
     kind: ImportSourceKind.contraDb,
     adapterFactory: ContraDbHtmlAdapter.new,
     urlBuilder: buildContraDbUrl,
-    matchesUrl: (uri) => _contraDbHosts.contains(uri.host.toLowerCase()),
+    matchesUrl: _isContraDbUrl,
   ),
   ImportSource(
     kind: ImportSourceKind.callersCompanionUsr,

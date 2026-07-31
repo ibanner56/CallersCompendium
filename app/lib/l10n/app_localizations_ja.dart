@@ -3417,6 +3417,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'ContraDBのプログラムリンクのように見えません。';
 
   @override
+  String get importErrorContraDbUnsupportedHost =>
+      'そのリンクはサポートされているContraDBのホストではありません。contradb.comのリンクを貼り付けるか、ダンスまたはプログラムの数値IDを入力してください。';
+
+  @override
   String get importErrorContraDbUnreachable =>
       'ContraDBに到達できませんでした。接続を確認して、もう一度お試しください。';
 

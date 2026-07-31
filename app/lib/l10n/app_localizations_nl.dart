@@ -3546,6 +3546,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dat ziet er niet uit als een ContraDB-programmalink.';
 
   @override
+  String get importErrorContraDbUnsupportedHost =>
+      'Die link is niet afkomstig van een ondersteunde ContraDB-host. Plak een link van contradb.com, of voer het numerieke dans- of programma-id in.';
+
+  @override
   String get importErrorContraDbUnreachable =>
       'ContraDB kon niet worden bereikt. Controleer je verbinding en probeer het opnieuw.';
 

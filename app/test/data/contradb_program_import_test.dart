@@ -276,29 +276,57 @@ void main() {
   // buildContraDbProgramUrl and fetches it through the shared, SSRF-hardened
   // fetchImportUrl. A crafted "program link" whose host is an internal/reserved
   // address (the shared-link attack: a victim pastes it and taps Fetch) must be
-  // rejected by the host guard BEFORE any network call, and the error must not
-  // echo the URL back.
-  test('a blocked-host program URL is rejected before any fetch', () async {
+  // rejected BEFORE any network call, and the error must not echo the URL back.
+  //
+  // #667/#621: buildContraDbProgramUrl now enforces its own host allowlist, so
+  // it rejects a blocked/arbitrary host itself (as contraDbUnsupportedHost, or
+  // insecureScheme for a bare http:// input) before a URL is ever built — it
+  // no longer "faithfully preserves" a malicious host the way it did pre-#667.
+  // The fetch-time SSRF guard (isBlockedImportHost / _guardFetchUri) remains
+  // independent defense-in-depth: this test exercises it directly against a
+  // raw malicious URL (bypassing the builder) so it stays proven even though
+  // the builder itself now blocks this specific input earlier.
+  test(
+    'buildContraDbProgramUrl itself now rejects a blocked-host program URL',
+    () {
+      expect(
+        () => buildContraDbProgramUrl('http://169.254.169.254/programs/1'),
+        throwsA(isA<UrlFetchException>()),
+      );
+    },
+  );
+
+  test('the fetch-time SSRF guard independently rejects a blocked-host program '
+      'URL before any network call, even if one were built directly', () async {
     var requests = 0;
     final client = MockClient((_) async {
       requests++;
       return http.Response('should never be reached', 200);
     });
 
-    // The builder faithfully preserves the pasted (malicious) host...
-    const pasted = 'http://169.254.169.254/programs/1';
-    final url = buildContraDbProgramUrl(pasted);
-    expect(url, 'http://169.254.169.254/programs/1');
-
-    // ...but the guarded fetch throws without ever touching the network.
+    // Bypass the builder entirely: construct the malicious URL directly, as
+    // if it had somehow reached fetchImportUrl by another path. Must be
+    // **https** so this actually exercises the blocked-host check rather than
+    // being rejected earlier for `insecureScheme` — otherwise the test would
+    // pass without ever reaching isBlockedImportHost, and a regression there
+    // would go uncaught. The guarded fetch must still throw (specifically for
+    // the blocked host, not any other reason) without ever touching the
+    // network.
+    const url = 'https://169.254.169.254/programs/1';
     await expectLater(
       () => fetchImportUrl(url, client: client),
       throwsA(
-        isA<UrlFetchException>().having(
-          (e) => e.toString(),
-          'toString',
-          allOf(isNot(contains('169.254.169.254')), isNot(contains(url))),
-        ),
+        isA<UrlFetchException>()
+            .having(
+              (e) => e.reason,
+              'reason',
+              UrlFetchFailureReason.blockedHost,
+            )
+            .having(
+              (e) => e.toString(),
+              'toString',
+              allOf(isNot(contains('169.254.169.254')), isNot(contains(url))),
+            ),
       ),
     );
     expect(requests, 0, reason: 'no request should be sent to a blocked host');

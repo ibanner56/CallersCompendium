@@ -3569,6 +3569,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cela ne ressemble pas à un lien de programme ContraDB.';
 
   @override
+  String get importErrorContraDbUnsupportedHost =>
+      'Ce lien ne provient pas d’un hébergeur ContraDB pris en charge. Collez un lien de contradb.com, ou saisissez l’identifiant numérique de la danse ou du programme.';
+
+  @override
   String get importErrorContraDbUnreachable =>
       'Impossible d’atteindre ContraDB. Vérifiez votre connexion, puis réessayez.';
 

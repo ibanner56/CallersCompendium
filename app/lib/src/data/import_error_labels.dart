@@ -77,6 +77,8 @@ String importErrorMessage(AppLocalizations l10n, UrlFetchException error) {
       l10n.importErrorContraDbMissingProgramId,
     UrlFetchFailureReason.contraDbInvalidProgramLink =>
       l10n.importErrorContraDbInvalidProgramLink,
+    UrlFetchFailureReason.contraDbUnsupportedHost =>
+      l10n.importErrorContraDbUnsupportedHost,
     UrlFetchFailureReason.contraDbUnreachable =>
       l10n.importErrorContraDbUnreachable,
     UrlFetchFailureReason.contraDbHttpStatus =>
