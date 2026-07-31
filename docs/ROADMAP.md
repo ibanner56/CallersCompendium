@@ -596,8 +596,9 @@ taxonomy are unchanged.
       match → mint, weak/absent or ambiguous fingerprint → fresh-mint (never
       guess). Mode OFF is unchanged (venue stays free text). A bare `.USR`
       location can't produce a strong fingerprint, so same-import duplicate
-      locations collapse via a this-commit-only normalized-location-text
-      collapse, while cross-import reuse stays intentionally rare (a
+      locations are merged into a single venue via a this-commit-only
+      normalized-location-text match, while cross-import reuse stays
+      intentionally rare (a
       deliberate never-mis-merge tradeoff). Original `venue` text is always
       kept as a fallback label; newly minted venues are tracked as
       `insertedVenueIds` and reverted on undo; re-importing an
