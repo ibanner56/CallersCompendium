@@ -83,6 +83,31 @@ void main() {
     );
   });
 
+  test('does not rewrite a `figures` param on a non-meanwhile figure', () {
+    // `figures` is only a reserved structural key for the meanwhile container.
+    // The sanitizer must scope its recursion/clamp to move == meanwhileMove so
+    // a different move (or external data) that happens to use a `figures` param
+    // for another purpose is preserved verbatim, not clamped to the side cap or
+    // scrubbed to [] (#590 review, thread 1).
+    final passengers = [
+      for (var i = 0; i < kMaxMeanwhileSides + 5; i++) {'seat': i},
+    ];
+    final archive = archiveWith({
+      'move': 'custom',
+      'params': {'text': 'ride', 'figures': passengers},
+    });
+
+    final result = decodeArchive(jsonEncode(archive));
+    expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+    final figure = result.archive.dances.single.figures.single;
+    expect(figure.isMeanwhile, isFalse);
+    final preserved = figure.params['figures'];
+    expect(preserved, isA<List<Object?>>());
+    // Untouched: neither clamped to the side cap nor emptied.
+    expect((preserved as List).length, kMaxMeanwhileSides + 5);
+  });
+
   test('a deeply-nested container is bounded, not stack-overflowing', () {
     // Build meanwhile nested inside meanwhile far past the depth cap.
     Map<String, Object?> nest(int depth) {

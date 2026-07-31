@@ -81,4 +81,42 @@ void main() {
     expect(await dances.searchText('petronella'), contains('mw'));
     expect(await dances.searchText('do si do'), contains('mw'));
   });
+
+  test(
+    'empty meanwhile container is not dropped — indexes a fallback row',
+    () async {
+      // A legacy/partial `{move:"meanwhile"}` decodes to zero sub-figures. The
+      // flatten loop must NOT emit zero rows (which would erase the figure from
+      // dance_figures + FTS, making the dance unsearchable by it, #590 review).
+      // It falls back to indexing the container itself.
+      final empty = figureFromJson({
+        'move': meanwhileMove,
+        'params': {'beats': 8},
+      });
+      expect(empty.isMeanwhile, isTrue);
+      expect(empty.subFigures, isEmpty);
+
+      final dance = sampleDance(
+        id: 'empty-mw',
+        figures: [
+          Figure(move: 'swing', params: const {'beats': 8}),
+          empty,
+        ],
+      );
+      await dances.create(dance);
+
+      final rows = await (db.select(
+        db.danceFigures,
+      )..where((t) => t.danceId.equals(dance.id))).get();
+      rows.sort((a, b) => a.idx.compareTo(b.idx));
+      // 1 (swing) + 1 (fallback container row) = 2 rows with contiguous idx.
+      expect(rows.map((r) => r.move), ['swing', meanwhileMove]);
+      expect(rows.map((r) => r.idx), [0, 1]);
+      // The container stays searchable by its move.
+      expect(
+        await dances.search(FigureFilter.leaf(meanwhileMove)),
+        contains('empty-mw'),
+      );
+    },
+  );
 }

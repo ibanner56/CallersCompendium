@@ -715,9 +715,12 @@ Map<String, Object?> _sanitizeFigureJson(
     };
     // Recurse into nested meanwhile sides (untrusted recursive structure):
     // scrub each side's free text, cap the side count, and bound depth so a
-    // deeply-nested payload can't exhaust the stack.
+    // deeply-nested payload can't exhaust the stack. `figures` is only a
+    // reserved structural key for the meanwhile container, so scope the
+    // recursion to that move — a future taxonomy move (or external data) that
+    // uses a `figures` param for a different purpose must not be rewritten.
     final sides = sanitizedParams['figures'];
-    if (sides is List) {
+    if (out['move'] == meanwhileMove && sides is List) {
       if (depth >= kMaxMeanwhileDepth) {
         sanitizedParams['figures'] = const <Object?>[];
       } else {

@@ -287,8 +287,15 @@ class DanceRepository {
       // sequential to `Then` (false before/after adjacency) — accepted for
       // #590; concurrency-aware querying is deferred to #594. See
       // docs/design/search.md "Known limitation".
-      final constituents = figure.isMeanwhile
-          ? figure.subFigures
+      //
+      // Empty-container fallback (#590): a legacy/partial `{move:"meanwhile"}`
+      // that decodes to zero sub-figures must NOT vanish from the index
+      // ("nothing dropped"). When there are no constituents to flatten, index
+      // the container itself (move=meanwhile, its own canonical text/section/
+      // beats) so the dance stays searchable by that figure.
+      final subFigures = figure.subFigures;
+      final constituents = figure.isMeanwhile && subFigures.isNotEmpty
+          ? subFigures
           : <Figure>[figure];
       for (final part in constituents) {
         final canonicalText = _renderer.renderCanonical(part);
