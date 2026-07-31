@@ -138,4 +138,19 @@ class VenueFingerprintIndex {
     if (fingerprint == null) return null;
     return _idByFingerprint[fingerprint];
   }
+
+  /// Whether [venue]'s fingerprint is present but poisoned — i.e. it collided
+  /// with more than one distinct existing venue id — as opposed to simply
+  /// weak/absent ([venueFingerprint] returning `null`) or unmatched.
+  ///
+  /// A caller that wants to raise a non-fatal notice only for a *genuine*
+  /// collision (never for the far more common "too weakly described to score
+  /// at all" case, which would otherwise fire on every ordinary import) uses
+  /// this to distinguish the two: [matchFor] alone can't, since it returns
+  /// `null` for both.
+  bool isAmbiguous(Venue venue) {
+    final fingerprint = venueFingerprint(venue);
+    if (fingerprint == null) return false;
+    return _ambiguousFingerprints.contains(fingerprint);
+  }
 }

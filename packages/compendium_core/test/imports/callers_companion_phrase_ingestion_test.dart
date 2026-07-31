@@ -140,6 +140,7 @@ void main() {
     late DanceRepository dances;
     late ChoreographerRepository choreographers;
     late ProgramRepository programs;
+    late VenueRepository venues;
     late ImportPipeline pipeline;
     late CallersCompanionUsrImporter importer;
 
@@ -148,8 +149,9 @@ void main() {
       dances = DanceRepository(db, contraTaxonomy);
       choreographers = ChoreographerRepository(db);
       programs = ProgramRepository(db);
+      venues = VenueRepository(db);
       pipeline = ImportPipeline(dances, choreographers);
-      importer = CallersCompanionUsrImporter(pipeline, programs);
+      importer = CallersCompanionUsrImporter(pipeline, programs, venues);
     });
 
     tearDown(() => db.close());
@@ -161,6 +163,7 @@ void main() {
         final result = await importer.import(
           _ccUsrWithPhrases(),
           now: DateTime.utc(2026, 7, 15),
+          venueEntityMode: false,
           newId: () => 'dance-${++n}',
           newSlotId: () => 'slot-${++n}',
         );
