@@ -99,6 +99,16 @@
 
 ### Fixed
 
+- **A figure `note` leaked canonical role tokens (`role1s`/`role2s`) into
+  plain-text export instead of the reader's dialect terms (#715).**
+  `danceToPlainText` now routes the note through `FigureRenderer.renderFreeText`,
+  mirroring how `callingNotes`/`walkthrough` are already rendered. Audited
+  every other display/export path (dance detail, PDF export, perform mode) —
+  each already called `renderFreeText`, so this was the only raw emission.
+  `walkthroughOverride` (the per-figure walkthrough snippet override) was also
+  checked and is editor-only; it is never emitted by any export/display path,
+  so it stays out of scope.
+
 - **A TCB compound parent with a `(START-END)` beat span was not recognised as a
   compound, corrupting section beats (#295).** `_beatsPrefix` gained span
   support in #555, but `_compoundParent` did not, so a block like

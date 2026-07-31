@@ -384,6 +384,194 @@ void main() {
     expect(controller.dirty, isFalse);
   });
 
+  test('load renders a canonical figure note into the active dialect, and '
+      'buildDance canonicalizes it back (#715)', () async {
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+    final controller = DanceEditorController(
+      repositories: repos,
+      danceId: 'd1',
+      dialect: Dialect.larksRobins,
+    );
+    addTearDown(controller.dispose);
+
+    // Storage is canonical (as written by imports / a previous save).
+    final stored = sampleDance(id: 'd1').copyWith(
+      figures: [
+        Figure(
+          move: 'allemande',
+          params: const {'beats': 8},
+          note: 'Open role2s chain to neighbor',
+        ),
+      ],
+    );
+    await controller.load(dance: stored, fieldDefs: const []);
+
+    // The editor shows the caller's own dialect terms, not the canonical
+    // token — mirroring how hook/callingNotes/walkthrough already render.
+    expect(
+      controller.figureDrafts.single.note,
+      'Open robins chain to neighbor',
+    );
+
+    // Saving without edits round-trips back to the same canonical storage.
+    final rebuilt = controller.buildDance();
+    expect(rebuilt.figures.single.note, 'Open role2s chain to neighbor');
+  });
+
+  test('buildDance canonicalizes a typed figure note before persistence '
+      '(#715)', () async {
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+    final controller = await newDanceController(repos);
+    addTearDown(controller.dispose);
+
+    controller.addFigure();
+    final draft = controller.figureDrafts.last;
+    draft.move = 'allemande';
+    draft.note = 'Open Robins chain to neighbor';
+    controller.titleController.text = 'Some Dance';
+    controller.onTextEdited();
+
+    final dance = controller.buildDance();
+    expect(dance.figures.last.note, 'Open role2s chain to neighbor');
+  });
+
+  test('a figure note typed as a legacy synonym canonicalizes to the correct '
+      'role regardless of the active dialect (#715)', () async {
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+    // Active dialect is Leads/Follows (NOT Larks/Robins) while the user
+    // types the legacy synonym "Robins" — canonicalizeText's built-in
+    // legacy synonym map resolves it to role2s independent of which
+    // dialect is currently active.
+    final controller = DanceEditorController(
+      repositories: repos,
+      danceId: null,
+      dialect: Dialect.leadsFollows,
+    );
+    addTearDown(controller.dispose);
+    await controller.load(dance: null, fieldDefs: const []);
+
+    controller.addFigure();
+    final draft = controller.figureDrafts.last;
+    draft.move = 'allemande';
+    draft.note = 'Robins chain to neighbor';
+    controller.titleController.text = 'Some Dance';
+    controller.onTextEdited();
+
+    final dance = controller.buildDance();
+    expect(dance.figures.last.note, 'role2s chain to neighbor');
+  });
+
+  test('a figure note round-trips canonical -> render -> canonicalize '
+      'idempotently (#715)', () async {
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+    final controller = DanceEditorController(
+      repositories: repos,
+      danceId: 'd1',
+      dialect: Dialect.larksRobins,
+    );
+    addTearDown(controller.dispose);
+
+    const canonicalNote = 'role1s allemande, then role2s orbit';
+    final stored = sampleDance(id: 'd1').copyWith(
+      figures: [
+        Figure(
+          move: 'allemande',
+          params: const {'beats': 8},
+          note: canonicalNote,
+        ),
+      ],
+    );
+    await controller.load(dance: stored, fieldDefs: const []);
+    final rebuilt = controller.buildDance();
+    expect(rebuilt.figures.single.note, canonicalNote);
+  });
+
+  test(
+    'non-role figure note prose survives load/save byte-identical (#715)',
+    () async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+      );
+      addTearDown(controller.dispose);
+
+      const plainNote = 'end facing across, smooth swing';
+      final stored = sampleDance(id: 'd1').copyWith(
+        figures: [
+          Figure(move: 'swing', params: const {'beats': 16}, note: plainNote),
+        ],
+      );
+      await controller.load(dance: stored, fieldDefs: const []);
+      expect(controller.figureDrafts.single.note, plainNote);
+
+      final rebuilt = controller.buildDance();
+      expect(rebuilt.figures.single.note, plainNote);
+    },
+  );
+
+  test(
+    'a meanwhile group side note renders and canonicalizes too (#715)',
+    () async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+      );
+      addTearDown(controller.dispose);
+
+      final stored = sampleDance(id: 'd1').copyWith(
+        figures: [
+          Figure.meanwhile(
+            beats: 8,
+            figures: [
+              Figure(
+                move: 'allemande',
+                params: const {'beats': 8},
+                note: 'role2s lead',
+              ),
+              Figure(move: 'orbit', params: const {'beats': 8}),
+            ],
+          ),
+        ],
+      );
+      await controller.load(dance: stored, fieldDefs: const []);
+
+      final group = controller.figureDrafts.single;
+      expect(group.meanwhileSides!.first.note, 'robins lead');
+
+      final rebuilt = controller.buildDance();
+      expect(rebuilt.figures.single.subFigures.first.note, 'role2s lead');
+    },
+  );
+
+  test('insertFreeTextFigures renders an imported canonical note into the '
+      'active dialect (#715)', () async {
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+    final controller = await newDanceController(repos);
+    addTearDown(controller.dispose);
+
+    controller.insertFreeTextFigures([
+      Figure(
+        move: 'allemande',
+        params: const {'beats': 8},
+        note: 'role2s allemande right 1/2',
+        customOrigin: CustomOrigin.importGap,
+      ),
+    ]);
+
+    expect(controller.figureDrafts.last.note, 'robins allemande right 1/2');
+  });
+
   test('duplicateFigure preserves the assumed-subject marker on the copy '
       '(#460)', () async {
     final repos = openTestRepositories();

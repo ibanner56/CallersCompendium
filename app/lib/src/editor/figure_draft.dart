@@ -159,8 +159,12 @@ class FigureDraft {
   /// user's partial authoring the moment an autosave/undo snapshot fires —
   /// represent it as a [customMove] figure carrying whatever was entered so
   /// far. Never called for a side whose [toFigure] already succeeds.
-  Figure _bestEffortFigure() {
-    final trimmedNote = note.trim();
+  ///
+  /// [canonicalizeNote] mirrors the parameter of the same name on [toFigure]
+  /// — see its doc comment for why this is a callback rather than a direct
+  /// dialect dependency.
+  Figure _bestEffortFigure(String Function(String) canonicalizeNote) {
+    final trimmedNote = canonicalizeNote(note);
     return Figure(
       schemaVersion: schemaVersion,
       move: customMove,
@@ -177,7 +181,16 @@ class FigureDraft {
   /// for a meanwhile group, when fewer than 2 sides can be materialized —
   /// an in-progress group never corrupts the saved dance; it simply isn't
   /// written until it is ready).
-  Figure? toFigure() {
+  ///
+  /// [canonicalizeNote] is applied to [note] (after trimming, if the default
+  /// is used) before it is persisted onto the built [Figure]. This model is
+  /// pure data with no [Dialect] dependency (see the file header), so the
+  /// canonicalization chokepoint itself lives with the caller — the dance
+  /// editor controller passes its own dialect-aware canonicalizer (mirroring
+  /// how `hook`/`callingNotes`/`walkthrough` are canonicalized at the same
+  /// `buildDance` boundary, issue #613/#715) while the default keeps today's
+  /// plain-trim behavior for any other caller.
+  Figure? toFigure({String Function(String) canonicalizeNote = _trimNote}) {
     final sides = meanwhileSides;
     if (sides != null) {
       // Never silently drop a side that the user has started authoring
@@ -189,10 +202,10 @@ class FigureDraft {
       // under the user on autosave/undo.
       final readySides = [
         for (final side in sides)
-          if (side.toFigure() case final fig?)
+          if (side.toFigure(canonicalizeNote: canonicalizeNote) case final fig?)
             fig
           else if (side._hasUnsavedContent)
-            side._bestEffortFigure(),
+            side._bestEffortFigure(canonicalizeNote),
       ];
       if (readySides.length < 2) return null;
       // Defensive clamp mirroring the codec's untrusted-input behavior: the
@@ -201,7 +214,7 @@ class FigureDraft {
       final cappedSides = readySides.length > kMaxMeanwhileSides
           ? readySides.sublist(0, kMaxMeanwhileSides)
           : readySides;
-      final trimmedNote = note.trim();
+      final trimmedNote = canonicalizeNote(note);
       return Figure.meanwhile(
         figures: cappedSides,
         beats: beats,
@@ -211,7 +224,7 @@ class FigureDraft {
     }
     final id = move;
     if (id == null) return null;
-    final trimmedNote = note.trim();
+    final trimmedNote = canonicalizeNote(note);
     final trimmedOverride = walkthroughOverride?.trim();
     return Figure(
       schemaVersion: schemaVersion,
@@ -227,3 +240,8 @@ class FigureDraft {
     );
   }
 }
+
+/// Default [FigureDraft.toFigure]/[FigureDraft._bestEffortFigure] note
+/// transform: today's plain-trim behavior, used by any caller that doesn't
+/// supply a dialect-aware canonicalizer.
+String _trimNote(String note) => note.trim();
