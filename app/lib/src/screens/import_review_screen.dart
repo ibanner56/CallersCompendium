@@ -10,6 +10,7 @@ import '../data/import_io.dart';
 import '../data/repositories_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/shorthand_mappings_scope.dart';
+import '../data/venue_entity_mode_scope.dart';
 import '../utils/undo_snack_bar.dart';
 import 'dance_editor_screen.dart';
 import 'import_shorthand_seed_screen.dart';
@@ -529,12 +530,17 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           resolutions,
         );
       } else if (adapter is CallersCompanionUsrAdapter) {
-        final importer = CallersCompanionUsrImporter(pipeline, _repos.programs);
+        final importer = CallersCompanionUsrImporter(
+          pipeline,
+          _repos.programs,
+          _repos.venues,
+        );
         final archive = readCcUsrArchive(_payloadBytes!);
         final result = await importer.commit(
           commitBatch,
           archive,
           now: DateTime.now().toUtc(),
+          venueEntityMode: VenueEntityModeScope.of(context),
           newId: uuidV4,
           newSlotId: uuidV4,
           resolutions: resolutions,
