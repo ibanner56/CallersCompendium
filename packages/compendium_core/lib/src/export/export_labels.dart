@@ -100,6 +100,7 @@ class ProgramMatrixExportLabels {
   const ProgramMatrixExportLabels({
     this.defaultTitle = 'Programming matrix',
     this.danceColumn = 'Dance',
+    this.formationColumn = 'Formation',
     this.emptyState =
         'No structured figures yet — the matrix fills in automatically as '
         'the program’s dances gain structured figures.',
@@ -112,6 +113,7 @@ class ProgramMatrixExportLabels {
 
   final String defaultTitle;
   final String danceColumn;
+  final String formationColumn;
   final String emptyState;
   final String legendDebut;
   final String legendFirst;

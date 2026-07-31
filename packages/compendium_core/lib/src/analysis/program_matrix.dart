@@ -34,6 +34,7 @@ import '../dialect/renderer.dart';
 import '../model/dance.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
+import '../model/formation.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/taxonomy.dart';
 
@@ -202,6 +203,7 @@ class MatrixRow {
     required Set<String> presentMoveIds,
     Map<String, Set<String>> phraseLabelsByMove = const {},
     this.half,
+    this.formation = const Formation(FormationShape.dupleImproper),
   }) : presentMoveIds = Set.unmodifiable(presentMoveIds),
        phraseLabelsByMove = Map.unmodifiable({
          for (final entry in phraseLabelsByMove.entries)
@@ -237,6 +239,12 @@ class MatrixRow {
   /// happen to share a phrase must not read as the *same* figure repeating.
   final Map<String, Set<String>> phraseLabelsByMove;
 
+  /// The dance's formation (Becket, 4x4, triplet, …) — surfaced as its own
+  /// pinned column in the matrix (#663), never folded into [presentMoveIds]
+  /// since it's a per-dance attribute, not a move a dance either does or
+  /// doesn't contain.
+  final Formation formation;
+
   bool contains(MatrixColumn column) => presentMoveIds.contains(column.moveId);
 
   bool isFirst(MatrixColumn column) => firstMoveId == column.moveId;
@@ -248,6 +256,7 @@ class MatrixRow {
       other.title == title &&
       other.firstMoveId == firstMoveId &&
       other.half == half &&
+      other.formation == formation &&
       _setEq.equals(other.presentMoveIds, presentMoveIds) &&
       _phraseMapEq.equals(other.phraseLabelsByMove, phraseLabelsByMove);
 
@@ -257,6 +266,7 @@ class MatrixRow {
     title,
     firstMoveId,
     half,
+    formation,
     _setEq.hash(presentMoveIds),
     _phraseMapEq.hash(phraseLabelsByMove),
   );
@@ -446,6 +456,7 @@ ProgramMatrix buildProgramMatrix(
         presentMoveIds: rowMoves,
         phraseLabelsByMove: phraseLabels,
         half: halves == null ? null : halves[i],
+        formation: dance.formation,
       ),
     );
   }

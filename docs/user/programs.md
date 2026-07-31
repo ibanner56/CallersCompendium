@@ -168,6 +168,10 @@ sketch, not the finished app.*
 Here is how to read it:
 
 - **Dances are rows; moves are columns.**
+- **A pinned Formation column** next to each dance title shows its formation
+  (duple improper, Becket, triple minor, and so on), so you can spot too many
+  non-improper formations stacking up in a row without losing your place
+  while scrolling through moves.
 - **A ★ (star)** marks where a move is **first introduced** in the program — the
   first dance (top to bottom) whose choreography uses it, wherever it falls in
   that dance.

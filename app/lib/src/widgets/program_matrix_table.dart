@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../search/facet_labels.dart' show formationIcon, formationLabel;
 
 /// Read-only **programming matrix** (moves × dances) for the Program builder's
 /// Matrix tab (`docs/design/ux.md` §4).
@@ -46,6 +47,11 @@ class ProgramMatrixTable extends StatefulWidget {
   static const double rowHeight = 48;
   static const double rowHeaderWidth = 168;
   static const double columnHeaderHeight = 72;
+
+  /// Width of the pinned **formation** column (#663) — wide enough for
+  /// labels like "Becket (CCW)" without wrapping badly, but narrower than
+  /// [rowHeaderWidth] since it never carries the ALT/half badges.
+  static const double formationColumnWidth = 112;
 
   /// Width (logical pixels) below which the wide scrolling grid is replaced by
   /// the [_CompactMatrix] fallback. 600 mirrors Material 3's compact
@@ -181,10 +187,12 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Top strip: corner + horizontally-scrolling column headers.
+        // Top strip: corner + pinned formation column header + horizontally-
+        // scrolling move column headers.
         Row(
           children: [
             _Corner(),
+            const _FormationColumnHeader(),
             Expanded(
               child: Stack(
                 children: [
@@ -225,7 +233,8 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
           ],
         ),
         const Divider(height: 1, thickness: 1),
-        // Body strip: pinned row headers + two-axis scrolling cells.
+        // Body strip: pinned row headers + pinned formation column + two-axis
+        // scrolling cells.
         Expanded(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,12 +245,20 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                 child: Column(
                   children: [
                     for (var r = 0; r < matrix.rows.length; r++)
-                      _RowHeader(
-                        title: matrix.rows[r].title,
-                        isAlt: widget.altDanceIds.contains(
-                          matrix.rows[r].danceId,
-                        ),
-                        half: matrix.rows[r].half,
+                      Row(
+                        children: [
+                          _RowHeader(
+                            title: matrix.rows[r].title,
+                            isAlt: widget.altDanceIds.contains(
+                              matrix.rows[r].danceId,
+                            ),
+                            half: matrix.rows[r].half,
+                          ),
+                          _FormationCell(
+                            danceTitle: matrix.rows[r].title,
+                            formation: matrix.rows[r].formation,
+                          ),
+                        ],
                       ),
                   ],
                 ),
@@ -383,6 +400,40 @@ class _Corner extends StatelessWidget {
   );
 }
 
+/// Header for the pinned **formation** column (#663) — a fixed-width sibling
+/// of [_Corner], sitting before the horizontally-scrolling move-header strip
+/// so it never interacts with that strip's #662 scroll cues. Deliberately
+/// plain (no per-formation colour, `Semantics` label only, no `Tooltip`)
+/// matching the rest of the header row.
+class _FormationColumnHeader extends StatelessWidget {
+  const _FormationColumnHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Semantics(
+      header: true,
+      label: l10n.programsMatrixFormationColumnHeader,
+      excludeSemantics: true,
+      child: Container(
+        width: ProgramMatrixTable.formationColumnWidth,
+        height: ProgramMatrixTable.columnHeaderHeight,
+        alignment: Alignment.bottomCenter,
+        color: theme.colorScheme.surfaceContainerHighest,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Text(
+          l10n.programsMatrixFormationColumnHeader,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelSmall,
+        ),
+      ),
+    );
+  }
+}
+
 class _ColumnHeader extends StatelessWidget {
   const _ColumnHeader({required this.label});
 
@@ -464,6 +515,52 @@ class _RowHeader extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The pinned per-dance **formation** cell (#663) — a fixed-width sibling of
+/// [_RowHeader], always visible alongside the dance title regardless of how
+/// far the move columns are scrolled (the whole point: spotting too many
+/// non-improper formations in a row shouldn't require scrolling). Deliberately
+/// plain (icon + text, no [FormationColorsScope] tint) since the issue chose
+/// a dedicated column over colour-coding as the primary signal.
+class _FormationCell extends StatelessWidget {
+  const _FormationCell({required this.danceTitle, required this.formation});
+
+  final String danceTitle;
+  final Formation formation;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final label = formationLabel(l10n, formation);
+    return Semantics(
+      label: l10n.programsMatrixFormationSemantic(danceTitle, label),
+      excludeSemantics: true,
+      child: Container(
+        width: ProgramMatrixTable.formationColumnWidth,
+        height: ProgramMatrixTable.rowHeight,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        alignment: Alignment.centerLeft,
+        color: theme.colorScheme.surfaceContainerHighest,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(formationIcon, size: 15, color: theme.colorScheme.onSurface),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall,
               ),
             ),
           ],
@@ -633,6 +730,7 @@ class _CompactMatrix extends StatelessWidget {
               collision: matrix.isPhraseCollision(r, c),
               isAlt: altDanceIds.contains(matrix.rows[r].danceId),
               half: matrix.rows[r].half,
+              formation: matrix.rows[r].formation,
             ),
           );
         }
@@ -754,6 +852,7 @@ class _DanceUse {
     required this.programDebut,
     required this.collision,
     required this.isAlt,
+    required this.formation,
     this.half,
   });
 
@@ -763,6 +862,11 @@ class _DanceUse {
   final bool collision;
   final bool isAlt;
   final ProgramHalf? half;
+
+  /// The dance's formation (#663), mirrored from the wide grid's pinned
+  /// formation column since the compact view has no per-row slot to pin one
+  /// to — it rides on [_DanceChip] instead, like ALT/half already do.
+  final Formation formation;
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -853,6 +957,7 @@ class _MoveCard extends StatelessWidget {
                   collision: d.collision,
                   isAlt: d.isAlt,
                   half: d.half,
+                  formation: d.formation,
                 ),
             ],
           ),
@@ -870,6 +975,7 @@ class _DanceChip extends StatelessWidget {
     required this.programDebut,
     required this.collision,
     required this.isAlt,
+    required this.formation,
     this.half,
   });
 
@@ -880,6 +986,7 @@ class _DanceChip extends StatelessWidget {
   final bool collision;
   final bool isAlt;
   final ProgramHalf? half;
+  final Formation formation;
 
   @override
   Widget build(BuildContext context) {
@@ -895,6 +1002,14 @@ class _DanceChip extends StatelessWidget {
       danceTitle,
       isAlt ? 'yes' : 'no',
       halfSelect,
+    );
+    // Formation (#663) is announced as a standalone composed fragment rather
+    // than folding into `programsMatrixChipQualifiedTitle`, so that message
+    // stays untouched (shared-file caution around #662/#669).
+    final formationLbl = formationLabel(l10n, formation);
+    final whoWithFormation = l10n.programsMatrixFormationSemantic(
+      who,
+      formationLbl,
     );
     final IconData markIcon;
     final Color markColor;
@@ -915,7 +1030,7 @@ class _DanceChip extends StatelessWidget {
     }
     return Semantics(
       label: l10n.programsMatrixCellSemantic(
-        who,
+        whoWithFormation,
         moveLabel,
         'yes',
         collision ? 'yes' : 'no',
@@ -949,6 +1064,27 @@ class _DanceChip extends StatelessWidget {
             ],
             const SizedBox(width: 4),
             Text(danceTitle, style: theme.textTheme.labelMedium),
+            // The formation badge is shown only when it's NOT the common
+            // duple-improper default — surfacing exactly the atypical
+            // formations (Becket, 4x4, …) callers actually need to watch for,
+            // matching this feature's motivation, and keeping the common-case
+            // chip compact. Screen readers still always hear the formation
+            // (`whoWithFormation` above), regardless of this visual shortcut.
+            if (formation.shape != FormationShape.dupleImproper) ...[
+              const SizedBox(width: 4),
+              Icon(
+                formationIcon,
+                size: 13,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 2),
+              Text(
+                formationLbl,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
             if (half != null) ...[
               const SizedBox(width: 4),
               _HalfBadge(half: half!),

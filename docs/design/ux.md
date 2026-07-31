@@ -78,7 +78,13 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   row/column headers pinned, AT-navigable as a table. When columns overflow,
   the pinned header strip shows a gradient-plus-chevron edge cue on whichever
   side(s) have more content, so off-screen columns are discoverable without
-  relying on colour alone.
+  relying on colour alone. A pinned **Formation** column (icon + text, plain —
+  no colour tint) sits next to the dance-title column so each dance's
+  formation stays visible while scrolling through moves; the compact
+  (phone-width) view surfaces it on each dance chip instead, visually only for
+  non-default formations to avoid clutter, always via semantics for screen
+  readers. The programming-matrix PDF export mirrors the same pinned
+  formation column.
 - Header: event date/venue/notes; duplicate program; print/export (PDF, text);
   "mark performed" stamps performedAt on called slots (feeds calling history).
 

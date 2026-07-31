@@ -3196,6 +3196,18 @@
       "half": { "type": "String", "example": "first" }
     }
   },
+  "programsMatrixFormationColumnHeader": "Formation",
+  "@programsMatrixFormationColumnHeader": {
+    "description": "Header label for the matrix's pinned formation column (#663), naming what the column shows."
+  },
+  "programsMatrixFormationSemantic": "{dance}, formation: {label}",
+  "@programsMatrixFormationSemantic": {
+    "description": "Screen-reader label pairing a dance with its formation, used by the matrix's pinned formation cell and appended to the compact-view dance chip's identity so formation is announced without folding it into the existing qualified-title message.",
+    "placeholders": {
+      "dance": { "type": "String", "example": "Chorus Jig" },
+      "label": { "type": "String", "example": "Becket (clockwise)" }
+    }
+  },
   "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{not present} other{present{collision, select, yes{, repeats in the same phrase as an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance's first figure} other{}}}}",
   "@programsMatrixCellSemantic": {
     "description": "Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use collides with a strictly-adjacent dance (same figure in the same phrase), is the move's program debut, and/or the dance's opening figure.",
@@ -3691,6 +3703,8 @@
   "@exportMatrixDefaultTitle": {"description": "Fallback document title on the programming-matrix PDF when the program has no title."},
   "exportMatrixDanceColumn": "Dance",
   "@exportMatrixDanceColumn": {"description": "Header for the first (dance-title) column of the programming-matrix PDF table."},
+  "exportMatrixFormationColumn": "Formation",
+  "@exportMatrixFormationColumn": {"description": "Header for the pinned formation column of the programming-matrix PDF table (#663), matching the on-screen matrix's formation column."},
   "exportMatrixEmptyState": "No structured figures yet — the matrix fills in automatically as the program’s dances gain structured figures.",
   "@exportMatrixEmptyState": {"description": "Empty-state line on the programming-matrix PDF when no dances have structured figures yet."},
   "exportMatrixLegendDebut": "Introduced here",

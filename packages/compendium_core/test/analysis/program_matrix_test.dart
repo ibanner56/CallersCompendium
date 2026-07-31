@@ -4,12 +4,18 @@ import 'package:test/test.dart';
 void main() {
   final now = DateTime.utc(2026, 7, 13);
 
-  Dance dance(String id, String title, List<Figure> figures) => Dance(
+  Dance dance(
+    String id,
+    String title,
+    List<Figure> figures, {
+    Formation? formation,
+  }) => Dance(
     id: id,
     title: title,
     figures: figures,
     createdAt: now,
     updatedAt: now,
+    formation: formation ?? const Formation(FormationShape.dupleImproper),
   );
 
   Figure move(String id) => Figure(move: id);
@@ -411,6 +417,66 @@ void main() {
         ),
         throwsArgumentError,
       );
+    });
+  });
+
+  group('buildProgramMatrix — formation', () {
+    test('rows carry the dance\'s formation', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [
+          move('balance'),
+        ], formation: const Formation(FormationShape.becketCw)),
+        dance('d2', 'B', [move('balance')]),
+      ]);
+      expect(matrix.rows[0].formation.shape, FormationShape.becketCw);
+      expect(matrix.rows[1].formation.shape, FormationShape.dupleImproper);
+    });
+
+    test('preserves free-text formation detail', () {
+      final matrix = buildProgramMatrix([
+        dance(
+          'd1',
+          'A',
+          [move('balance')],
+          formation: const Formation(
+            FormationShape.other,
+            detail: 'double progression variant',
+          ),
+        ),
+      ]);
+      expect(
+        matrix.rows[0].formation,
+        const Formation(
+          FormationShape.other,
+          detail: 'double progression variant',
+        ),
+      );
+    });
+
+    test('MatrixRow equality/hashCode include formation', () {
+      final base = MatrixRow(
+        danceId: 'd1',
+        title: 'A',
+        firstMoveId: null,
+        presentMoveIds: const {},
+      );
+      final sameFormation = MatrixRow(
+        danceId: 'd1',
+        title: 'A',
+        firstMoveId: null,
+        presentMoveIds: const {},
+        formation: const Formation(FormationShape.dupleImproper),
+      );
+      final differentFormation = MatrixRow(
+        danceId: 'd1',
+        title: 'A',
+        firstMoveId: null,
+        presentMoveIds: const {},
+        formation: const Formation(FormationShape.becketCw),
+      );
+      expect(base, sameFormation);
+      expect(base.hashCode, sameFormation.hashCode);
+      expect(base, isNot(differentFormation));
     });
   });
 
