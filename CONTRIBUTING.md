@@ -55,12 +55,24 @@ by opening a PR adding a `Proposed` ADR.
 
 ### User documentation
 The guides under [docs/user/](docs/user/) are the source of truth **and** ship
-inside the app, so they are code as much as prose. Two rules:
+inside the app **and** are published as the hosted
+[user guide](https://ibanner56.github.io/CallersCompendium/guide/), so they are
+code as much as prose. Two rules:
 
 - Follow the [user-docs style guide](docs/user/style-guide.md) — voice,
   terminology, accessibility, and the hub's structure.
 - After editing any guide, run `python3 tools/ci/sync_user_docs.py --write` and
   commit the regenerated `app/assets/docs/`. A CI check fails if they drift.
+
+The hosted pages are **generated at publish time** by
+`tools/site/render_user_docs.py` and never committed, so there is nothing to
+regenerate for them — but a broken cross-link, an `#anchor` with no matching
+heading, or two headings that collide on one anchor fails CI. Check your links
+locally with:
+
+```sh
+python3 tools/site/render_user_docs.py --check
+```
 
 Write only what the app actually does today. If a guide and the app disagree, one
 of them is a bug — say which in your PR.

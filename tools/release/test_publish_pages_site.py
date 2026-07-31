@@ -16,7 +16,10 @@ branch cleanly on first publish, and must no-op on unchanged content. It also
 proves the preserve logic is genuinely PATTERN-based (issue #640): a manifest +
 signature for a channel that was never added to any enumerated list (e.g. a
 hypothetical ``alpha.json`` / ``alpha.json.sig``) must survive a site republish
-too, purely by matching ``*.json`` / ``*.json.sig``.
+too, purely by matching ``*.json`` / ``*.json.sig``. Finally it covers the hosted
+**user guides** (issue #694), which ship as a ``guide/`` subtree of the same site
+payload: a guide publish must not erase a manifest, a manifest publish must not
+erase the guides, and a retired guide page must be pruned.
 """
 
 from __future__ import annotations
@@ -297,7 +300,70 @@ def _cases() -> None:
             assert _exists(origin, f"{REMOTE_BRANCH}:{channel}.json")
             assert _exists(origin, f"{REMOTE_BRANCH}:{channel}.json.sig")
 
-    # 7. Argument validation: a missing site dir and a valueless flag fail loudly.
+        # 7. ISSUE #694: the hosted user guides ship as a `guide/` subtree of the
+        #    SAME site payload, on the same branch as the manifests. Prove the
+        #    coexistence contract holds in BOTH directions for a nested tree —
+        #    publishing the guides must not erase a manifest or its signature,
+        #    publishing a manifest must not erase the guides, and a guide that
+        #    disappears from the source must be pruned from the branch.
+        site5 = tmp / "v5" / "site"
+        (site5 / "guide").mkdir(parents=True)
+        (site5 / "index.html").write_text(
+            "<!doctype html><title>v5</title>\n", encoding="utf-8")
+        (site5 / "guide" / "index.html").write_text(
+            "<!doctype html><title>guide hub v5</title>\n", encoding="utf-8")
+        (site5 / "guide" / "perform.html").write_text(
+            "<!doctype html><title>perform v5</title>\n", encoding="utf-8")
+        (site5 / "guide" / "retired.html").write_text(
+            "<!doctype html><title>retired v5</title>\n", encoding="utf-8")
+        r = _publish_site(checkout, tmp / "wt7", site5, source_ref="v5sha")
+        assert r.returncode == 0, f"guide publish failed:\n{r.stderr}\n{r.stdout}"
+        for page in ("index.html", "perform.html", "retired.html"):
+            assert _exists(origin, f"{REMOTE_BRANCH}:guide/{page}"), \
+                f"guide/{page} was not published"
+        for channel in ("beta", "stable", "alpha"):
+            assert _exists(origin, f"{REMOTE_BRANCH}:{channel}.json"), \
+                f"PRESERVATION FAILED (#694): publishing guides erased {channel}.json"
+            assert _exists(origin, f"{REMOTE_BRANCH}:{channel}.json.sig"), \
+                f"PRESERVATION FAILED (#694): publishing guides erased {channel}.json.sig"
+
+        # A release publishing a manifest must leave the hosted guides intact.
+        after_dir = tmp / "after-guides"
+        after_dir.mkdir(parents=True, exist_ok=True)
+        man_after = _manifest(after_dir, "stable", "0.2.0")
+        r = _publish_manifest(checkout, tmp / "wt8", man_after, "stable", "v0.2.0")
+        assert r.returncode == 0, f"manifest publish failed:\n{r.stderr}\n{r.stdout}"
+        assert json.loads(_show(origin, f"{REMOTE_BRANCH}:stable.json"))["version"] == "0.2.0"
+        for page in ("index.html", "perform.html"):
+            assert _exists(origin, f"{REMOTE_BRANCH}:guide/{page}"), \
+                f"PRESERVATION FAILED (#694): a manifest publish erased guide/{page}"
+
+        # Re-publishing refreshes changed guides and prunes retired ones, still
+        # without touching the manifests.
+        site6 = tmp / "v6" / "site"
+        (site6 / "guide").mkdir(parents=True)
+        (site6 / "index.html").write_text(
+            "<!doctype html><title>v6</title>\n", encoding="utf-8")
+        (site6 / "guide" / "index.html").write_text(
+            "<!doctype html><title>guide hub v6</title>\n", encoding="utf-8")
+        (site6 / "guide" / "perform.html").write_text(
+            "<!doctype html><title>perform v6</title>\n", encoding="utf-8")
+        # note: no guide/retired.html this time -> it should be pruned
+        r = _publish_site(checkout, tmp / "wt9", site6, source_ref="v6sha")
+        assert r.returncode == 0, f"guide republish failed:\n{r.stderr}\n{r.stdout}"
+        assert "perform v6" in _show(origin, f"{REMOTE_BRANCH}:guide/perform.html"), \
+            "guide page not updated"
+        assert not _exists(origin, f"{REMOTE_BRANCH}:guide/retired.html"), \
+            "a removed guide was not pruned from gh-pages"
+        assert _exists(origin, f"{REMOTE_BRANCH}:.nojekyll")
+        for channel in ("beta", "stable", "alpha"):
+            assert _exists(origin, f"{REMOTE_BRANCH}:{channel}.json"), \
+                f"PRESERVATION FAILED (#694): guide republish erased {channel}.json"
+            assert _exists(origin, f"{REMOTE_BRANCH}:{channel}.json.sig"), \
+                f"PRESERVATION FAILED (#694): guide republish erased {channel}.json.sig"
+        assert json.loads(_show(origin, f"{REMOTE_BRANCH}:stable.json"))["version"] == "0.2.0"
+
+    # 8. Argument validation: a missing site dir and a valueless flag fail loudly.
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         _, checkout = _setup(tmp)

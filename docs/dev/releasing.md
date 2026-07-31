@@ -432,13 +432,28 @@ clients — those clients would reject every new manifest (fail closed) until th
 update. If a private key is compromised, rotate immediately and treat any
 manifest signed by the old key as untrusted.
 
-## Landing page (GitHub Pages)
+## Landing page and user guides (GitHub Pages)
 
-The public landing page at <https://ibanner56.github.io/CallersCompendium/> lives
-in [`site/`](../../site/) (plain HTML/CSS/JS, no build step) and is published to
-the **same `gh-pages` branch** as the update manifests. Its own workflow
-(`.github/workflows/pages-site.yml` → `tools/release/publish_pages_site.sh`)
-deploys it on any push to `main` under `site/**`, or on manual dispatch.
+The public site at <https://ibanner56.github.io/CallersCompendium/> has two
+parts, published together to the **same `gh-pages` branch** as the update
+manifests by `.github/workflows/pages-site.yml`:
+
+- the **landing page** in [`site/`](../../site/) — plain HTML/CSS/JS, no build
+  step; and
+- the **hosted user guides** at `/guide/` — pre-rendered from
+  [`docs/user/`](../user/) by `tools/site/render_user_docs.py` (issue #694).
+
+The workflow renders the guides, stages a complete site into `build/site`
+(the contents of `site/` plus `guide/`), and hands that directory to
+`tools/release/publish_pages_site.sh --site build/site`. It runs on any push to
+`main` under `site/**`, `docs/user/**` or `tools/site/**`, or on manual dispatch.
+
+Guides are **pre-rendered** because `.nojekyll` (which makes the JSON manifests
+serve verbatim) also stops Jekyll rendering Markdown for us. The renderer is
+stdlib-only — the Pages job has no `pip install` step — escapes all content, and
+allow-lists link targets, so the site stays dependency-free. Its output is never
+committed; a broken cross-link or `#anchor` fails the build, and the same check
+runs on every PR via `docs-bundle-check.yml`.
 
 The site publisher is the **mirror image** of the manifest publisher: it starts
 from the existing `gh-pages` content and rewrites only the site files, so it
@@ -450,9 +465,10 @@ is automatically protected without editing the site publisher — the enumerated
 list this replaced is what let `.sig` preservation silently fall behind in #607.
 The two publishers therefore coexist on one branch without clobbering each other
 (proven offline by `tools/release/test_publish_pages_site.py`, whose `.sig`-
-survival case guards the release blocker in #607, and whose novel-channel case
-guards the pattern-based hardening in #640 — deleting a signature makes the
-in-app update client fail closed and silently stop offering updates). This is
+survival case guards the release blocker in #607, whose novel-channel case
+guards the pattern-based hardening in #640, and whose `guide/` case proves the
+hosted guides and the manifests survive each other — deleting a signature makes
+the in-app update client fail closed and silently stop offering updates). This is
 why Pages stays on **Deploy from a branch → `gh-pages`** — do not switch it to the
 GitHub-Actions Pages source.
 
