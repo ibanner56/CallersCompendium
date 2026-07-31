@@ -129,6 +129,20 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Off-screen program-matrix columns are now discoverable, and redundant
+  column-header tooltips are gone.** The matrix's pinned column-header strip
+  gave no visual cue when a program had more moves than fit on screen — a
+  hey or half-hey column sitting just off the right edge could go completely
+  unnoticed, requiring the caller to already know to scroll sideways. The
+  header strip now shows a gradient-fade-plus-chevron edge cue on whichever
+  side(s) still have hidden columns, purely decorative and driven by the same
+  scroll position as the body (which already has a visible scrollbar);
+  presence is conveyed with shape and gradient together, never colour alone
+  (WCAG 1.4.1). Separately, every column header's hover tooltip — which just
+  repeated the visible heading text — has been removed as pure noise; the
+  header's accessible name for screen readers came from an independent
+  semantics label all along, so nothing is lost for assistive tech. (#662)
+
 - **The program-matrix PDF export's ★ (program-debut), ▸ (dance's-first-figure),
   and ✓ (present) markers now actually render, instead of silently rendering
   blank.** The bundled Roboto font used for PDF export doesn't include those

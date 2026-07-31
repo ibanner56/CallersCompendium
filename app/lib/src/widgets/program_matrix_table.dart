@@ -74,6 +74,15 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
     super.initState();
     _bodyH.addListener(_syncH);
     _bodyV.addListener(_syncV);
+    // The scroll-edge cues (#662) read `_bodyH`'s metrics to decide whether
+    // more columns are off-screen, but `_bodyH` only attaches to its
+    // `Scrollable` partway through the very first build — too late for that
+    // same build's `AnimatedBuilder`s to see it. Force one extra rebuild
+    // right after the first frame so the cues pick up accurate metrics as
+    // soon as they're available.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   void _syncH() {
@@ -177,16 +186,40 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
           children: [
             _Corner(),
             Expanded(
-              child: SingleChildScrollView(
-                controller: _headerH,
-                scrollDirection: Axis.horizontal,
-                physics: const NeverScrollableScrollPhysics(),
-                child: Row(
-                  children: [
-                    for (var c = 0; c < matrix.columns.length; c++)
-                      _ColumnHeader(label: labels[c]),
-                  ],
-                ),
+              child: Stack(
+                children: [
+                  SingleChildScrollView(
+                    controller: _headerH,
+                    scrollDirection: Axis.horizontal,
+                    physics: const NeverScrollableScrollPhysics(),
+                    child: Row(
+                      children: [
+                        for (var c = 0; c < matrix.columns.length; c++)
+                          _ColumnHeader(label: labels[c]),
+                      ],
+                    ),
+                  ),
+                  // Decorative edge cues so callers can tell there are more
+                  // columns off-screen (#662) — the pinned header strip has
+                  // no scrollbar of its own (it's `NeverScrollableScrollPhysics`,
+                  // mirrored from the body via `_syncH`), unlike the body,
+                  // which already shows a native `Scrollbar`. Purely visual:
+                  // the semantic table structure (row/column `Semantics`
+                  // headers) already conveys the full column set to
+                  // assistive tech, so these are `ExcludeSemantics`.
+                  _HeaderScrollCue(
+                    controller: _bodyH,
+                    alignment: Alignment.centerLeft,
+                    cueKey: const ValueKey('program-matrix-header-scroll-left'),
+                  ),
+                  _HeaderScrollCue(
+                    controller: _bodyH,
+                    alignment: Alignment.centerRight,
+                    cueKey: const ValueKey(
+                      'program-matrix-header-scroll-right',
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -222,6 +255,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                     child: Scrollbar(
                       controller: _bodyH,
                       child: SingleChildScrollView(
+                        key: const ValueKey('program-matrix-body-h-scroll'),
                         controller: _bodyH,
                         scrollDirection: Axis.horizontal,
                         child: Column(
@@ -259,6 +293,87 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
   }
 }
 
+/// Decorative edge cue shown over the pinned column-header strip when there
+/// are more columns off-screen in [alignment]'s direction (#662): a gradient
+/// fade paired with a chevron, so the cue never relies on colour/opacity
+/// alone (WCAG 1.4.1).
+///
+/// The header strip itself is `NeverScrollableScrollPhysics` — it only
+/// mirrors the body's scroll offset (`_syncH`) — so [controller] is always
+/// the *body*'s horizontal `ScrollController`, the single source of truth
+/// for how much content is off to either side.
+class _HeaderScrollCue extends StatelessWidget {
+  const _HeaderScrollCue({
+    required this.controller,
+    required this.alignment,
+    required this.cueKey,
+  });
+
+  final ScrollController controller;
+
+  /// [Alignment.centerLeft] or [Alignment.centerRight].
+  final Alignment alignment;
+
+  /// Applied only to the visible (overflowing) subtree, so tests can assert
+  /// on presence/absence directly instead of on this wrapper widget (which
+  /// always exists, whether or not the cue is currently showing).
+  final Key cueKey;
+
+  static const double _width = 28;
+
+  bool get _isLeft => alignment == Alignment.centerLeft;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final visible =
+            controller.hasClients &&
+            (_isLeft
+                ? controller.position.extentBefore > 0.5
+                : controller.position.extentAfter > 0.5);
+        if (!visible) {
+          return const SizedBox.shrink();
+        }
+        final theme = Theme.of(context);
+        final base = theme.colorScheme.surfaceContainerHighest;
+        return Positioned(
+          left: _isLeft ? 0 : null,
+          right: _isLeft ? null : 0,
+          top: 0,
+          bottom: 0,
+          child: IgnorePointer(
+            child: ExcludeSemantics(
+              child: Container(
+                key: cueKey,
+                width: _width,
+                alignment: alignment,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: _isLeft
+                        ? Alignment.centerLeft
+                        : Alignment.centerRight,
+                    end: _isLeft ? Alignment.centerRight : Alignment.centerLeft,
+                    colors: [base, base.withValues(alpha: 0)],
+                  ),
+                ),
+                child: Icon(
+                  _isLeft ? Icons.chevron_left : Icons.chevron_right,
+                  size: 16,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.7,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _Corner extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
@@ -281,21 +396,18 @@ class _ColumnHeader extends StatelessWidget {
       header: true,
       label: l10n.programsMatrixMoveHeaderSemantic(label),
       excludeSemantics: true,
-      child: Tooltip(
-        message: label,
-        child: Container(
-          width: ProgramMatrixTable.columnWidth,
-          height: ProgramMatrixTable.columnHeaderHeight,
-          alignment: Alignment.bottomCenter,
-          color: theme.colorScheme.surfaceContainerHighest,
-          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelSmall,
-          ),
+      child: Container(
+        width: ProgramMatrixTable.columnWidth,
+        height: ProgramMatrixTable.columnHeaderHeight,
+        alignment: Alignment.bottomCenter,
+        color: theme.colorScheme.surfaceContainerHighest,
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelSmall,
         ),
       ),
     );
