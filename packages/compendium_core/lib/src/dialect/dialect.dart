@@ -4,17 +4,22 @@ import 'package:meta/meta.dart';
 import '../validation/validation.dart';
 
 /// A role display term: singular plus plural (plural derived with a basic
-/// y→ies / +s rule unless given explicitly — "Lady" → "Ladies").
+/// consonant+y→ies / +s rule unless given explicitly — "Lady" → "Ladies",
+/// but "Boy" → "Boys" since the `y` follows a vowel).
 @immutable
 class RoleTerm {
   // ignore: prefer_initializing_formals
   const RoleTerm(this.singular, {String? plural}) : _plural = plural;
 
+  static const _vowels = {'a', 'e', 'i', 'o', 'u'};
+
   final String singular;
   final String? _plural;
   String get plural {
     if (_plural != null) return _plural;
-    if (singular.endsWith('y')) {
+    if (singular.length > 1 &&
+        singular.endsWith('y') &&
+        !_vowels.contains(singular[singular.length - 2].toLowerCase())) {
       return '${singular.substring(0, singular.length - 1)}ies';
     }
     return '${singular}s';

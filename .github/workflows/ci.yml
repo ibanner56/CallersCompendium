@@ -105,4 +105,6 @@ jobs:
         with:
           fetch-depth: 0 # full history so we can diff against the PR base
       - name: Guard schemaVersion bumps ship a migration test/fixture
-        run: python3 tools/ci/check_schema_migration.py "${{ github.event.pull_request.base.sha }}"
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 tools/ci/check_schema_migration.py "$BASE_SHA"

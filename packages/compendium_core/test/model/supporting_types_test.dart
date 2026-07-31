@@ -228,6 +228,55 @@ void main() {
       );
       expect(def.choices, ['easy', 'hard']);
     });
+
+    test('value equality includes all fields', () {
+      CustomFieldDef make({
+        String id = 'f1',
+        String key = 'level',
+        String label = 'Level',
+        CustomFieldType type = CustomFieldType.choice,
+        List<String>? choices = const ['easy', 'hard'],
+        bool showInList = false,
+        bool searchable = true,
+      }) => CustomFieldDef(
+        id: id,
+        key: key,
+        label: label,
+        type: type,
+        choices: choices,
+        showInList: showInList,
+        searchable: searchable,
+      );
+
+      final a = make();
+      final b = make();
+      expect(a, b);
+      expect(a.hashCode, b.hashCode);
+
+      expect(a, isNot(make(id: 'f2')));
+      expect(a, isNot(make(key: 'tempo')));
+      expect(a, isNot(make(label: 'Difficulty')));
+      expect(a, isNot(make(type: CustomFieldType.text, choices: null)));
+      expect(a, isNot(make(choices: ['easy', 'medium'])));
+      expect(a, isNot(make(showInList: true)));
+      expect(a, isNot(make(searchable: false)));
+
+      // A null choices list is distinct from an empty/non-empty one.
+      final withNullChoices = CustomFieldDef(
+        id: 'f1',
+        key: 'note',
+        label: 'Note',
+        type: CustomFieldType.text,
+      );
+      final withEmptyChoices = CustomFieldDef(
+        id: 'f1',
+        key: 'note',
+        label: 'Note',
+        type: CustomFieldType.text,
+        choices: [],
+      );
+      expect(withNullChoices, isNot(withEmptyChoices));
+    });
   });
 
   group('CustomFieldValue.matchesType', () {

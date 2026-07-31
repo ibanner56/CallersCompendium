@@ -29,4 +29,26 @@ class Provenance {
   /// The record exactly as fetched from the source, for re-import/diff.
   final String? rawPayload;
   final String? sourceVersion;
+
+  @override
+  bool operator ==(Object other) =>
+      other is Provenance &&
+      other.source == source &&
+      other.externalId == externalId &&
+      other.importedAt == importedAt &&
+      other.permission == permission &&
+      other.license == license &&
+      other.rawPayload == rawPayload &&
+      other.sourceVersion == sourceVersion;
+
+  @override
+  int get hashCode => Object.hash(
+    source,
+    externalId,
+    importedAt,
+    permission,
+    license,
+    rawPayload,
+    sourceVersion,
+  );
 }

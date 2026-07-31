@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
 import 'enums.dart';
@@ -61,6 +62,30 @@ class CustomFieldDef {
   final List<String>? choices;
   final bool showInList;
   final bool searchable;
+
+  static const _choicesEquality = ListEquality<String>();
+
+  @override
+  bool operator ==(Object other) =>
+      other is CustomFieldDef &&
+      other.id == id &&
+      other.key == key &&
+      other.label == label &&
+      other.type == type &&
+      _choicesEquality.equals(other.choices, choices) &&
+      other.showInList == showInList &&
+      other.searchable == searchable;
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    key,
+    label,
+    type,
+    choices == null ? null : _choicesEquality.hash(choices),
+    showInList,
+    searchable,
+  );
 }
 
 /// A custom field value attached to a dance. The value's runtime type must
