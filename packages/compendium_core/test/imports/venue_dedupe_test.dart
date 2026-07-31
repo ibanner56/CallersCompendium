@@ -193,5 +193,36 @@ void main() {
       index.add('same', Venue(id: 'same', name: 'Grange'));
       expect(index.matchFor(v('incoming', city: 'Greenfield')), isNull);
     });
+
+    group('isAmbiguous', () {
+      test('false for a weak/absent fingerprint', () {
+        final index = VenueFingerprintIndex([v('existing', city: 'Amherst')]);
+        expect(
+          index.isAmbiguous(Venue(id: 'incoming', name: 'Grange')),
+          isFalse,
+        );
+      });
+
+      test('false for a unique (non-ambiguous) match', () {
+        final index = VenueFingerprintIndex([v('existing', city: 'Amherst')]);
+        expect(index.isAmbiguous(v('incoming', city: 'Amherst')), isFalse);
+      });
+
+      test('false when nothing matches at all', () {
+        final index = VenueFingerprintIndex([v('existing', city: 'Amherst')]);
+        expect(index.isAmbiguous(v('incoming', city: 'Greenfield')), isFalse);
+      });
+
+      test('true for a genuinely ambiguous (poisoned) fingerprint', () {
+        final index = VenueFingerprintIndex([
+          v('a', city: 'Amherst'),
+          v('b', city: 'Amherst'),
+        ]);
+        expect(index.isAmbiguous(v('incoming', city: 'Amherst')), isTrue);
+        // matchFor still returns null for the poisoned case (can't distinguish
+        // "weak" from "ambiguous" alone) — isAmbiguous is what tells them apart.
+        expect(index.matchFor(v('incoming', city: 'Amherst')), isNull);
+      });
+    });
   });
 }
