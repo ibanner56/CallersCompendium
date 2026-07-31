@@ -56,11 +56,14 @@ class MonthNames {
 /// A single recognized token in a validated custom pattern.
 ///
 /// [width] is the number of source characters (`2` or `4` for year, `2`/`3`/`4`
-/// for month, `1` or `2` for day) and drives zero-padded formatting and the
-/// parsing character class. A day width of `2` (`dd`) zero-pads; `1` (`d`)
-/// renders/expects the day with no leading zero. [monthStyle] is non-null only
-/// for [DateFieldKind.month] tokens and records whether the month is
-/// numeric/abbreviated/full.
+/// for month, `1` or `2` for day) and drives zero-padded **formatting** only. A
+/// day/year width of `2` (`dd`/`yy`) zero-pads on render; a day width of `1`
+/// (`d`) renders with no leading zero. Title **matching**
+/// ([matchTitleWithCustomPattern]) stays permissive for numeric month/day
+/// fields — it always accepts 1–2 digits regardless of the declared width, so
+/// a `d`-declared pattern still matches a zero-padded "03" in text. [monthStyle]
+/// is non-null only for [DateFieldKind.month] tokens and records whether the
+/// month is numeric/abbreviated/full.
 class _FieldToken {
   const _FieldToken(this.kind, this.width, {this.monthStyle});
 
