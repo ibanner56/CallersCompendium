@@ -607,7 +607,7 @@ void main() {
       // (the unused neighbor-swing baseline column is dropped), so the label
       // stays accurate for assistive tech.
       expect(
-        find.bySemanticsLabel('Programming matrix: 2 dances by 1 moves'),
+        find.bySemanticsLabel('Programming matrix: 2 dances by 1 move'),
         findsOneWidget,
       );
     });
@@ -1000,7 +1000,7 @@ void main() {
 
         expect(
           find.bySemanticsLabel(
-            RegExp('^Programming matrix: 2 dances by 1 moves'),
+            RegExp('^Programming matrix: 2 dances by 1 move\\b'),
           ),
           findsOneWidget,
         );

@@ -523,7 +523,10 @@ class _HideableColumnHeader extends StatefulWidget {
 }
 
 class _HideableColumnHeaderState extends State<_HideableColumnHeader> {
-  static const double _glyphSize = 22;
+  // 40dp keeps the tappable area close to Material's 48dp touch-target
+  // guidance while still fitting inside the 64dp column header without
+  // crowding out the label text beneath it.
+  static const double _glyphSize = 40;
 
   /// Resting (non-hovered, non-focused) opacity of the glyph. Non-zero so
   /// touch users — who never trigger [MouseRegion]'s hover — still have a
@@ -545,8 +548,8 @@ class _HideableColumnHeaderState extends State<_HideableColumnHeader> {
         children: [
           _ColumnHeader(label: widget.label),
           Positioned(
-            top: 2,
-            right: 2,
+            top: 0,
+            right: 0,
             child: Focus(
               onFocusChange: (hasFocus) => setState(() => _focused = hasFocus),
               child: AnimatedOpacity(

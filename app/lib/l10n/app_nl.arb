@@ -638,7 +638,7 @@
   "programsAlternateDanceTitle": "Alternatieve dans",
   "programsAlternateDanceSubtitle": "Wordt ingesprongen weergegeven onder het slot erboven.",
   "commonDone": "Klaar",
-  "programsMatrixSemanticLabel": "Programmeringsmatrix: {danceCount} dansen bij {moveCount} moves",
+  "programsMatrixSemanticLabel": "Programmeringsmatrix: {danceCount} dansen bij {moveCount, plural, =1{1 move} other{{moveCount} moves}}",
   "programsMatrixOmittedCaption": "{count, plural, =1{1 vrije-tekstslot} other{{count} vrije-tekstslots}} (pauzes, noten) weggelaten — de matrix toont alleen dansen.",
   "programsMatrixMoveHeaderSemantic": "Move: {label}",
   "programsMatrixHideColumnSemantic": "Kolom {label} verbergen",

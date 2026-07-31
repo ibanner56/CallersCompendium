@@ -638,7 +638,7 @@
   "programsAlternateDanceTitle": "Danse alternative",
   "programsAlternateDanceSubtitle": "Affichée en retrait sous le créneau qui la précède.",
   "commonDone": "Terminé",
-  "programsMatrixSemanticLabel": "Matrice de programmation : {danceCount} danses par {moveCount} mouvements",
+  "programsMatrixSemanticLabel": "Matrice de programmation : {danceCount} danses par {moveCount, plural, =1{1 mouvement} other{{moveCount} mouvements}}",
   "programsMatrixOmittedCaption": "{count, plural, =1{1 créneau texte libre} other{{count} créneaux texte libre}} (pauses, notes) omis — la matrice affiche uniquement les danses.",
   "programsMatrixMoveHeaderSemantic": "Mouvement : {label}",
   "programsMatrixHideColumnSemantic": "Masquer la colonne {label}",

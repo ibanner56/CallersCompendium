@@ -3972,10 +3972,10 @@ abstract class AppLocalizations {
   /// **'Done'**
   String get commonDone;
 
-  /// Container semantics label for the programming matrix, announcing its size (dances by moves).
+  /// Container semantics label for the programming matrix, announcing its size (dances by moves). moveCount is plural-aware since hiding columns (#669) can bring it down to 1.
   ///
   /// In en, this message translates to:
-  /// **'Programming matrix: {danceCount} dances by {moveCount} moves'**
+  /// **'Programming matrix: {danceCount} dances by {moveCount, plural, =1{1 move} other{{moveCount} moves}}'**
   String programsMatrixSemanticLabel(int danceCount, int moveCount);
 
   /// Caption noting free-text slots (breaks, notes) that are excluded from the dances-only matrix.

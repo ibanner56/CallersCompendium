@@ -638,7 +638,7 @@
   "programsAlternateDanceTitle": "Alternativer Tanz",
   "programsAlternateDanceSubtitle": "Wird eingerückt unter dem darüberliegenden Slot angezeigt.",
   "commonDone": "Fertig",
-  "programsMatrixSemanticLabel": "Programmiermatrix: {danceCount} Tänze nach {moveCount} Bewegungen",
+  "programsMatrixSemanticLabel": "Programmiermatrix: {danceCount} Tänze nach {moveCount, plural, =1{1 Bewegung} other{{moveCount} Bewegungen}}",
   "programsMatrixOmittedCaption": "{count, plural, =1{1 Freitext-Slot} other{{count} Freitext-Slots}} (Pausen, Notizen) ausgelassen — die Matrix zeigt nur Tänze.",
   "programsMatrixMoveHeaderSemantic": "Bewegung: {label}",
   "programsMatrixHideColumnSemantic": "Spalte „{label}“ ausblenden",

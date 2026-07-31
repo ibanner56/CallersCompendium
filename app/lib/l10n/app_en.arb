@@ -3170,9 +3170,9 @@
   "@commonDone": {
     "description": "Generic confirmation button label for finishing an edit dialog."
   },
-  "programsMatrixSemanticLabel": "Programming matrix: {danceCount} dances by {moveCount} moves",
+  "programsMatrixSemanticLabel": "Programming matrix: {danceCount} dances by {moveCount, plural, =1{1 move} other{{moveCount} moves}}",
   "@programsMatrixSemanticLabel": {
-    "description": "Container semantics label for the programming matrix, announcing its size (dances by moves).",
+    "description": "Container semantics label for the programming matrix, announcing its size (dances by moves). moveCount is plural-aware since hiding columns (#669) can bring it down to 1.",
     "placeholders": {
       "danceCount": { "type": "int", "example": "6" },
       "moveCount": { "type": "int", "example": "9" }

@@ -2419,7 +2419,13 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String programsMatrixSemanticLabel(int danceCount, int moveCount) {
-    return 'Programmeringsmatrix: $danceCount dansen bij $moveCount moves';
+    String _temp0 = intl.Intl.pluralLogic(
+      moveCount,
+      locale: localeName,
+      other: '$moveCount moves',
+      one: '1 move',
+    );
+    return 'Programmeringsmatrix: $danceCount dansen bij $_temp0';
   }
 
   @override

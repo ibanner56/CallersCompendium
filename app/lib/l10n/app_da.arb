@@ -638,7 +638,7 @@
   "programsAlternateDanceTitle": "Alternativ dans",
   "programsAlternateDanceSubtitle": "Vises indrykket under slottet ovenfor.",
   "commonDone": "Færdig",
-  "programsMatrixSemanticLabel": "Programmeringsmatrix: {danceCount} danse med {moveCount} bevægelser",
+  "programsMatrixSemanticLabel": "Programmeringsmatrix: {danceCount} danse med {moveCount, plural, =1{1 bevægelse} other{{moveCount} bevægelser}}",
   "programsMatrixOmittedCaption": "{count, plural, =1{1 fritekst-slot} other{{count} fritekst-slots}} (pauser, noter) udeladt – matrixen viser kun danse.",
   "programsMatrixMoveHeaderSemantic": "Bevægelse: {label}",
   "programsMatrixHideColumnSemantic": "Skjul kolonnen {label}",
