@@ -53,6 +53,8 @@ class FigureListEditor extends StatefulWidget {
     this.shorthandMappings,
     this.snippetLibraryDefaultFor,
     this.onSnippetCommitted,
+    this.onGroupWithNext,
+    this.onCollapseMeanwhileGroup,
   });
 
   final List<FigureDraft> drafts;
@@ -122,6 +124,22 @@ class FigureListEditor extends StatefulWidget {
   /// divergence-prompt flow (#411) and may update [draft.walkthroughOverride]
   /// and/or the global library. Only wired when [snippetLibraryDefaultFor] is.
   final void Function(FigureDraft draft)? onSnippetCommitted;
+
+  /// Groups [draft] with the figure immediately after it into a **meanwhile**
+  /// group (#590/#593): the caller replaces both top-level entries with one
+  /// group draft whose sides are the two originals. `null` (the default)
+  /// hides the "Group with next" row-menu affordance entirely, mirroring
+  /// [onDuplicate] — existing callers stay source-compatible.
+  final ValueChanged<FigureDraft>? onGroupWithNext;
+
+  /// Collapses a meanwhile group back to a plain figure (#593): called when a
+  /// 2-side group has one of its sides removed, leaving [remainingSide]. The
+  /// caller replaces [groupDraft]'s top-level list slot with [remainingSide].
+  /// `null` hides the remove-side affordance's collapse behavior (only
+  /// relevant when [onGroupWithNext] is also wired, since that's the only way
+  /// a group is created).
+  final void Function(FigureDraft groupDraft, FigureDraft remainingSide)?
+  onCollapseMeanwhileGroup;
 
   @override
   State<FigureListEditor> createState() => _FigureListEditorState();
@@ -523,6 +541,14 @@ class _FigureListEditorState extends State<FigureListEditor> {
         onCut: isCutCard ? null : () => _startCut(draft.id),
         snippetLibraryDefaultFor: widget.snippetLibraryDefaultFor,
         onSnippetCommitted: widget.onSnippetCommitted,
+        onGroupWithNext:
+            (widget.onGroupWithNext == null ||
+                draft.isMeanwhileGroup ||
+                i == drafts.length - 1 ||
+                drafts[i + 1].isMeanwhileGroup)
+            ? null
+            : () => widget.onGroupWithNext!(draft),
+        onCollapseMeanwhileGroup: widget.onCollapseMeanwhileGroup,
       );
     }
 
@@ -728,6 +754,8 @@ String _figureDisplayName(
   Taxonomy taxonomy,
   AppLocalizations l10n,
 ) {
+  final sides = draft.meanwhileSides;
+  if (sides != null) return l10n.danceEditorMeanwhileGroupLabel(sides.length);
   final move = draft.move;
   if (move == null) return l10n.danceEditorEmptyFigureName;
   if (move == customMove) {
@@ -806,6 +834,8 @@ class _FigureDraftCard extends StatefulWidget {
     this.onCut,
     this.snippetLibraryDefaultFor,
     this.onSnippetCommitted,
+    this.onGroupWithNext,
+    this.onCollapseMeanwhileGroup,
   });
 
   final int index;
@@ -871,6 +901,16 @@ class _FigureDraftCard extends StatefulWidget {
   /// Commit hook for a per-figure snippet edit (field blur). See
   /// [FigureListEditor.onSnippetCommitted].
   final void Function(FigureDraft draft)? onSnippetCommitted;
+
+  /// Resolved "group with next" action for THIS row (#590/#593), already
+  /// accounting for adjacency/flat-only conditions (see
+  /// [FigureListEditor.onGroupWithNext]). `null` hides the menu item.
+  final VoidCallback? onGroupWithNext;
+
+  /// Collapses [draft] (when it `isMeanwhileGroup`) back to a plain figure.
+  /// See [FigureListEditor.onCollapseMeanwhileGroup].
+  final void Function(FigureDraft groupDraft, FigureDraft remainingSide)?
+  onCollapseMeanwhileGroup;
 
   @override
   State<_FigureDraftCard> createState() => _FigureDraftCardState();
@@ -1380,6 +1420,13 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             leadingIcon: const Icon(Icons.copy, size: 18),
             child: Text(l10n.commonDuplicate),
           ),
+        if (widget.onGroupWithNext != null)
+          MenuItemButton(
+            key: ValueKey('figure-${widget.index}-group-with-next'),
+            onPressed: widget.onGroupWithNext,
+            leadingIcon: const Icon(Icons.call_split, size: 18),
+            child: Text(l10n.danceEditorGroupWithNext),
+          ),
         MenuItemButton(
           key: ValueKey('figure-${widget.index}-toggle-progression'),
           onPressed: _toggleProgression,
@@ -1414,6 +1461,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   Widget _buildEditor(BuildContext context) {
     final theme = Theme.of(context);
     final draft = widget.draft;
+    if (draft.isMeanwhileGroup) {
+      return _buildMeanwhileGroupEditor(context);
+    }
     final move = draft.move;
     final def = move == null ? null : widget.taxonomy.resolve(move);
     // A figure whose move is not in the active taxonomy (authored in a newer
@@ -1507,6 +1557,162 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         ),
       ),
     );
+  }
+
+  // --- Meanwhile group editor (#590/#593) -----------------------------------
+
+  /// Expanded editor for a **meanwhile group** draft: one shared Beats field
+  /// (the container's single count — never per-side) followed by each
+  /// concurrent side's own editor row, an add-side control (capped at
+  /// [kMaxMeanwhileSides]), and per-side move/remove controls. Structurally
+  /// enforces flat-only: [_MeanwhileSideEditor] offers no "group" affordance
+  /// of its own, so a side can never itself become a meanwhile group.
+  Widget _buildMeanwhileGroupEditor(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final draft = widget.draft;
+    final sides = draft.meanwhileSides!;
+    final keyPrefix = 'figure-${widget.index}';
+    return Focus(
+      canRequestFocus: false,
+      onKeyEvent: _handleEditorKey,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+            borderRadius: BorderRadius.circular(8),
+            color: theme.colorScheme.surfaceContainerLow,
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Semantics(
+            container: true,
+            label: l10n.danceEditorMeanwhileGroupSemantic(
+              sides.length,
+              draft.beats,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.call_split,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        l10n.danceEditorMeanwhileGroupLabel(sides.length),
+                        style: theme.textTheme.titleSmall,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // The SINGLE shared beats field — this is the container's own
+                // `params['beats']`, not any side's. Sides never show their
+                // own beats field (see [_MeanwhileSideEditor]), so there is
+                // only ever one beats control visible for the whole group.
+                FigureParamEditor(
+                  keyPrefix: '$keyPrefix-meanwhile',
+                  paramKey: 'beats',
+                  spec: const ParamSpec(ParamKind.beats, defaultValue: 0),
+                  dialect: widget.dialect,
+                  value: draft.beats,
+                  onChanged: (v) {
+                    draft.params['beats'] = v;
+                    draft.beatsTouched = true;
+                    widget.onChanged();
+                  },
+                ),
+                const SizedBox(height: 12),
+                for (var i = 0; i < sides.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _MeanwhileSideEditor(
+                      key: ValueKey('meanwhile-side-${sides[i].id}'),
+                      keyPrefix: '$keyPrefix-side-$i',
+                      sideNumber: i + 1,
+                      totalSides: sides.length,
+                      draft: sides[i],
+                      taxonomy: widget.taxonomy,
+                      dialect: widget.dialect,
+                      moveParamDefaults: widget.moveParamDefaults,
+                      onChanged: widget.onChanged,
+                      onMoveUp: i == 0 ? null : () => _reorderSide(i, i - 1),
+                      onMoveDown: i == sides.length - 1
+                          ? null
+                          : () => _reorderSide(i, i + 1),
+                      onRemove: () => _removeSide(i),
+                    ),
+                  ),
+                if (sides.length < kMaxMeanwhileSides)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      key: ValueKey('$keyPrefix-add-side'),
+                      onPressed: _addSide,
+                      icon: const Icon(Icons.add),
+                      label: Text(l10n.danceEditorAddMeanwhileSide),
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      l10n.danceEditorMeanwhileSidesCapReached(
+                        kMaxMeanwhileSides,
+                      ),
+                      key: ValueKey('$keyPrefix-meanwhile-cap'),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Appends a fresh blank side, capped at [kMaxMeanwhileSides] — the add-side
+  /// button is already hidden at the cap, so this is a defensive no-op guard.
+  void _addSide() {
+    final sides = widget.draft.meanwhileSides!;
+    if (sides.length >= kMaxMeanwhileSides) return;
+    sides.add(FigureDraft());
+    widget.onChanged();
+  }
+
+  /// Removes side [index]. When exactly 2 sides remain, removing one would
+  /// leave a single-side "group" — instead, the group **collapses** to a
+  /// plain figure via [FigureListEditor.onCollapseMeanwhileGroup] (acceptance
+  /// criterion: removing down to one side degrades gracefully).
+  void _removeSide(int index) {
+    final draft = widget.draft;
+    final sides = draft.meanwhileSides!;
+    if (index < 0 || index >= sides.length) return;
+    if (sides.length <= 2) {
+      final remaining = sides[index == 0 ? 1 : 0];
+      widget.onCollapseMeanwhileGroup?.call(draft, remaining);
+      return;
+    }
+    sides.removeAt(index);
+    widget.onChanged();
+  }
+
+  /// Reorders a side within the group (up/down buttons only — sides don't get
+  /// their own drag handle to avoid nesting a second reorderable region inside
+  /// the outer [ReorderableListView]).
+  void _reorderSide(int oldIndex, int newIndex) {
+    final sides = widget.draft.meanwhileSides!;
+    final side = sides.removeAt(oldIndex);
+    sides.insert(newIndex, side);
+    widget.onChanged();
   }
 
   /// Read-only editor panel for a figure whose move is unknown to the active
@@ -1834,6 +2040,278 @@ void wrapSelectionWith(TextEditingController controller, String delimiter) {
     text: newText,
     selection: TextSelection.collapsed(offset: caret),
   );
+}
+
+// ---------------------------------------------------------------------------
+// _MeanwhileSideEditor (#590/#593)
+// ---------------------------------------------------------------------------
+
+/// Editor for ONE concurrent side of a meanwhile group: an ordinary
+/// move-picker + param editors + note, reusing the same widgets
+/// [_FigureDraftCard] uses for a top-level figure, but with its own key
+/// namespace (so a group's sides never collide with the outer row's keys)
+/// and NO "group"/beats affordances of its own — a side is always flat (#590
+/// flat-only invariant) and its own `beats` param is display-only (the
+/// group's single shared beats field is authoritative), so both are omitted
+/// here at the UI boundary rather than relying on the model to reject them.
+class _MeanwhileSideEditor extends StatefulWidget {
+  const _MeanwhileSideEditor({
+    super.key,
+    required this.keyPrefix,
+    required this.sideNumber,
+    required this.totalSides,
+    required this.draft,
+    required this.taxonomy,
+    required this.dialect,
+    this.moveParamDefaults,
+    required this.onChanged,
+    this.onMoveUp,
+    this.onMoveDown,
+    required this.onRemove,
+  });
+
+  /// Stem for this side's widget keys (e.g. `figure-2-side-0`).
+  final String keyPrefix;
+
+  /// 1-based position among the group's sides (for labels/semantics).
+  final int sideNumber;
+  final int totalSides;
+  final FigureDraft draft;
+  final Taxonomy taxonomy;
+  final Dialect dialect;
+  final Map<String, Map<String, Object?>>? moveParamDefaults;
+  final VoidCallback onChanged;
+
+  /// Null when this side is already first/last within the group.
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
+  final VoidCallback onRemove;
+
+  @override
+  State<_MeanwhileSideEditor> createState() => _MeanwhileSideEditorState();
+}
+
+class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
+  bool _showNote = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _showNote = widget.draft.note.trim().isNotEmpty;
+  }
+
+  void _selectMove(String moveId) {
+    final draft = widget.draft;
+    if (draft.move == moveId) return;
+    draft.move = moveId;
+    draft.params
+      ..clear()
+      ..addAll(widget.taxonomy.effectiveParams(Figure(move: moveId)));
+    draft.assumedSubject = false;
+    draft.customOrigin = CustomOrigin.userEntered;
+    draft.beatsTouched = false;
+    _applyMoveParamDefaults(moveId);
+    widget.onChanged();
+  }
+
+  void _createCustom(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+    final draft = widget.draft;
+    draft.move = customMove;
+    draft.params
+      ..clear()
+      ..addAll(widget.taxonomy.effectiveParams(Figure(move: customMove)));
+    draft.beatsTouched = false;
+    draft.assumedSubject = false;
+    draft.customOrigin = CustomOrigin.userEntered;
+    _applyMoveParamDefaults(customMove);
+    draft.params['text'] = trimmed;
+    widget.onChanged();
+  }
+
+  void _applyMoveParamDefaults(String moveId) {
+    final overrides = widget.moveParamDefaults?[moveId];
+    if (overrides == null || overrides.isEmpty) return;
+    final schema = widget.taxonomy.resolve(moveId)?.params;
+    if (schema == null) return;
+    final draft = widget.draft;
+    for (final entry in overrides.entries) {
+      if (schema.containsKey(entry.key)) {
+        draft.params[entry.key] = entry.value;
+        if (entry.key == 'beats') draft.beatsTouched = true;
+      }
+    }
+  }
+
+  void _clearMove() {
+    final draft = widget.draft;
+    if (draft.move == null) return;
+    draft.move = null;
+    draft.params.clear();
+    draft.beatsTouched = false;
+    widget.onChanged();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final draft = widget.draft;
+    final move = draft.move;
+    final def = move == null ? null : widget.taxonomy.resolve(move);
+    final moveText = move == null
+        ? ''
+        : FigureRenderer(
+            widget.taxonomy,
+          ).displayMoveName(move, widget.dialect, params: draft.params);
+
+    return Semantics(
+      container: true,
+      label: l10n.danceEditorMeanwhileSideSemantic(
+        widget.sideNumber,
+        widget.totalSides,
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.danceEditorMeanwhileSideLabel(widget.sideNumber),
+                    style: theme.textTheme.labelLarge,
+                  ),
+                ),
+                IconButton(
+                  key: ValueKey('${widget.keyPrefix}-move-up'),
+                  tooltip: l10n.danceEditorMoveUp,
+                  icon: const Icon(Icons.arrow_upward, size: 18),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: widget.onMoveUp,
+                ),
+                IconButton(
+                  key: ValueKey('${widget.keyPrefix}-move-down'),
+                  tooltip: l10n.danceEditorMoveDown,
+                  icon: const Icon(Icons.arrow_downward, size: 18),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: widget.onMoveDown,
+                ),
+                IconButton(
+                  key: ValueKey('${widget.keyPrefix}-remove'),
+                  tooltip: l10n.danceEditorRemoveMeanwhileSide,
+                  icon: Icon(
+                    Icons.remove_circle_outline,
+                    size: 18,
+                    color: theme.colorScheme.error,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: widget.onRemove,
+                ),
+              ],
+            ),
+            MoveAutocomplete(
+              key: ValueKey('${widget.keyPrefix}-move'),
+              fieldKey: '${widget.keyPrefix}-move',
+              taxonomy: widget.taxonomy,
+              dialect: widget.dialect,
+              initialText: moveText,
+              autofocus: false,
+              onSelected: (option) => _selectMove(option.id),
+              onCustomSubmitted: _createCustom,
+              onCleared: _clearMove,
+            ),
+            if (def != null) ...[
+              const SizedBox(height: 8),
+              if (draft.move == customMove)
+                _LingoCustomTextField(
+                  key: ValueKey('${widget.keyPrefix}-text-${draft.id}'),
+                  fieldKey: '${widget.keyPrefix}-text',
+                  dialect: widget.dialect,
+                  taxonomy: widget.taxonomy,
+                  value: (draft.params['text'] as String?) ?? '',
+                  onChanged: (v) {
+                    draft.params['text'] = v;
+                    widget.onChanged();
+                  },
+                )
+              else if (def.params.isNotEmpty)
+                _buildSideParams(context, def),
+              const SizedBox(height: 8),
+              _buildSideNote(context),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Same param editors as a top-level figure, EXCEPT `beats` — a side's own
+  /// beats is display-only (the group's shared count is authoritative), so
+  /// showing an editable-but-ignored field here would be a confusing dead
+  /// control. Hidden rather than disabled.
+  Widget _buildSideParams(BuildContext context, MoveDef def) {
+    final draft = widget.draft;
+    final entries = def.params.entries
+        .where((e) => e.key != 'beats')
+        .toList(growable: false);
+    if (entries.isEmpty) return const SizedBox.shrink();
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        for (final entry in entries)
+          FigureParamEditor(
+            keyPrefix: widget.keyPrefix,
+            paramKey: entry.key,
+            spec: entry.value,
+            dialect: widget.dialect,
+            value: draft.params[entry.key] ?? entry.value.defaultValue,
+            onChanged: (v) {
+              if (entry.key == 'who') draft.assumedSubject = false;
+              draft.params[entry.key] = v;
+              widget.onChanged();
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSideNote(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final draft = widget.draft;
+    final showField = _showNote || draft.note.trim().isNotEmpty;
+    if (!showField) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          key: ValueKey('${widget.keyPrefix}-add-note'),
+          onPressed: () => setState(() => _showNote = true),
+          icon: const Icon(Icons.note_add_outlined, size: 18),
+          label: Text(l10n.danceEditorAddNote),
+          style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+        ),
+      );
+    }
+    return _NoteField(
+      key: ValueKey('${widget.keyPrefix}-note-${draft.id}'),
+      fieldKey: '${widget.keyPrefix}-note',
+      dialect: widget.dialect,
+      taxonomy: widget.taxonomy,
+      value: draft.note,
+      onChanged: (text) {
+        draft.note = text;
+        widget.onChanged();
+      },
+    );
+  }
 }
 
 /// A compact bold/underline button pair for marking up user-authored text.

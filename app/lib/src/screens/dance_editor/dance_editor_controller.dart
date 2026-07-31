@@ -1024,6 +1024,49 @@ class DanceEditorController extends ChangeNotifier {
     _notify();
   }
 
+  /// Merges [draft] (a top-level figure row) with the row immediately after
+  /// it into ONE new meanwhile group draft (#590/#593): both are demoted to
+  /// concurrent sides, seeded with the first side's beats (the user edits the
+  /// shared count afterward). No-op if [draft] isn't found or is already the
+  /// last row — [FigureListEditor] only ever offers this action when a valid
+  /// next row exists, but this guard keeps the mutator safe to call directly.
+  void groupFigureWithNext(FigureDraft draft) {
+    final index = figureDrafts.indexOf(draft);
+    if (index == -1 || index >= figureDrafts.length - 1) return;
+    final first = figureDrafts[index];
+    final second = figureDrafts[index + 1];
+    final group = FigureDraft(meanwhileSides: [first, second]);
+    group.params['beats'] = first.beats;
+    group.beatsTouched = first.beatsTouched;
+    figureDrafts
+      ..removeAt(index + 1)
+      ..removeAt(index)
+      ..insert(index, group);
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  /// Collapses a meanwhile group down to a single plain figure (#590/#593):
+  /// called when a group's side count drops to 1 (the last remove-side
+  /// action). Replaces [groupDraft]'s slot in the top-level list with
+  /// [remainingSide] directly — preserving that side's own identity/content
+  /// rather than re-wrapping it — so the group simply disappears and an
+  /// ordinary figure row takes its place. No-op if [groupDraft] isn't found.
+  void collapseMeanwhileGroup(
+    FigureDraft groupDraft,
+    FigureDraft remainingSide,
+  ) {
+    final index = figureDrafts.indexOf(groupDraft);
+    if (index == -1) return;
+    figureDrafts[index] = remainingSide;
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
   /// A figure row's inline field changed.
   void onFiguresChanged() {
     recomputeWarnings();

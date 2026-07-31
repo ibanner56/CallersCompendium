@@ -21,6 +21,7 @@ class _Host extends StatefulWidget {
     this.wireDuplicate = true,
     this.moveParamDefaults,
     this.freeTextEntry = false,
+    this.wireMeanwhile = true,
   });
 
   final List<FigureDraft> drafts;
@@ -28,6 +29,7 @@ class _Host extends StatefulWidget {
   final bool wireDuplicate;
   final Map<String, Map<String, Object?>>? moveParamDefaults;
   final bool freeTextEntry;
+  final bool wireMeanwhile;
 
   @override
   State<_Host> createState() => _HostState();
@@ -77,6 +79,30 @@ class _HostState extends State<_Host> {
               final draft = widget.drafts.removeAt(oldIndex);
               widget.drafts.insert(newIndex, draft);
             }),
+            onGroupWithNext: widget.wireMeanwhile
+                ? (draft) => setState(() {
+                    final index = widget.drafts.indexOf(draft);
+                    if (index == -1 || index >= widget.drafts.length - 1) {
+                      return;
+                    }
+                    final first = widget.drafts[index];
+                    final second = widget.drafts[index + 1];
+                    final group = FigureDraft(meanwhileSides: [first, second]);
+                    group.params['beats'] = first.beats;
+                    group.beatsTouched = first.beatsTouched;
+                    widget.drafts
+                      ..removeAt(index + 1)
+                      ..removeAt(index)
+                      ..insert(index, group);
+                  })
+                : null,
+            onCollapseMeanwhileGroup: widget.wireMeanwhile
+                ? (groupDraft, remainingSide) => setState(() {
+                    final index = widget.drafts.indexOf(groupDraft);
+                    if (index == -1) return;
+                    widget.drafts[index] = remainingSide;
+                  })
+                : null,
           ),
         ),
       ),
@@ -91,6 +117,7 @@ Future<void> _pump(
   bool wireDuplicate = true,
   Map<String, Map<String, Object?>>? moveParamDefaults,
   bool freeTextEntry = false,
+  bool wireMeanwhile = true,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -101,6 +128,7 @@ Future<void> _pump(
       wireDuplicate: wireDuplicate,
       moveParamDefaults: moveParamDefaults,
       freeTextEntry: freeTextEntry,
+      wireMeanwhile: wireMeanwhile,
     ),
   );
   await tester.pumpAndSettle();
@@ -2420,5 +2448,194 @@ void main() {
 
       expect(find.byType(ImportGapBadge), findsNothing);
     });
+  });
+
+  group('meanwhile authoring (#590/#593)', () {
+    testWidgets('group with next merges two figures into a meanwhile group '
+        'and the shared beats field edits the container beats', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(move: 'swing', params: {'beats': 8, 'who': 'partners'}),
+        FigureDraft(
+          move: 'allemande',
+          params: {'beats': 8, 'who': 'neighbors', 'hand': 'left'},
+        ),
+      ];
+      await _pump(tester, drafts);
+
+      await _tapMenuItem(tester, 0, 'group-with-next');
+
+      expect(drafts, hasLength(1));
+      expect(drafts.single.isMeanwhileGroup, isTrue);
+      expect(drafts.single.meanwhileSides, hasLength(2));
+      expect(drafts.single.meanwhileSides![0].move, 'swing');
+      expect(drafts.single.meanwhileSides![1].move, 'allemande');
+
+      // Expand the group and edit the single shared beats field.
+      await _openFigure(tester, 0);
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-meanwhile-beats')),
+        '16',
+      );
+      await tester.pumpAndSettle();
+      expect(drafts.single.beats, 16);
+
+      // Round-trips through toFigure() as a genuine Figure.meanwhile.
+      final figure = drafts.single.toFigure()!;
+      expect(figure.isMeanwhile, isTrue);
+      expect(figure.beats, 16);
+      expect(figure.subFigures, hasLength(2));
+    });
+
+    testWidgets('add side appends a 3rd concurrent figure', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          meanwhileSides: [
+            FigureDraft(move: 'swing', params: {'beats': 8}),
+            FigureDraft(move: 'allemande', params: {'beats': 8}),
+          ],
+        )..params['beats'] = 8,
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+
+      await tester.tap(find.byKey(const ValueKey('figure-0-add-side')));
+      await tester.pumpAndSettle();
+
+      expect(drafts.single.meanwhileSides, hasLength(3));
+      expect(drafts.single.meanwhileSides!.last.move, isNull);
+    });
+
+    testWidgets(
+      'remove side leaves the group intact when more than 2 sides remain',
+      (tester) async {
+        final drafts = <FigureDraft>[
+          FigureDraft(
+            meanwhileSides: [
+              FigureDraft(move: 'swing', params: {'beats': 8}),
+              FigureDraft(move: 'allemande', params: {'beats': 8}),
+              FigureDraft(move: 'balance', params: {'beats': 8}),
+            ],
+          )..params['beats'] = 8,
+        ];
+        await _pump(tester, drafts);
+        await _openFigure(tester, 0);
+
+        await tester.tap(find.byKey(const ValueKey('figure-0-side-1-remove')));
+        await tester.pumpAndSettle();
+
+        expect(drafts.single.isMeanwhileGroup, isTrue);
+        expect(drafts.single.meanwhileSides, hasLength(2));
+        expect(drafts.single.meanwhileSides![0].move, 'swing');
+        expect(drafts.single.meanwhileSides![1].move, 'balance');
+      },
+    );
+
+    testWidgets(
+      'removing a side down to 1 auto-collapses the group to a plain figure',
+      (tester) async {
+        final drafts = <FigureDraft>[
+          FigureDraft(
+            meanwhileSides: [
+              FigureDraft(move: 'swing', params: {'beats': 8}),
+              FigureDraft(move: 'allemande', params: {'beats': 8}),
+            ],
+          )..params['beats'] = 16,
+        ];
+        await _pump(tester, drafts);
+        await _openFigure(tester, 0);
+
+        await tester.tap(find.byKey(const ValueKey('figure-0-side-1-remove')));
+        await tester.pumpAndSettle();
+
+        expect(drafts, hasLength(1));
+        expect(drafts.single.isMeanwhileGroup, isFalse);
+        expect(drafts.single.move, 'swing');
+      },
+    );
+
+    testWidgets('cap enforcement: the add-side control disappears at 6 sides '
+        'in favor of an inline maximum message', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          meanwhileSides: [
+            for (var i = 0; i < 6; i++)
+              FigureDraft(move: 'swing', params: {'beats': 8}),
+          ],
+        )..params['beats'] = 8,
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+
+      expect(find.byKey(const ValueKey('figure-0-add-side')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('figure-0-meanwhile-cap')),
+        findsOneWidget,
+      );
+
+      // Defensive: toFigure() never throws even if state somehow exceeded
+      // the cap — the model boundary is a last resort, not the primary guard.
+      expect(drafts.single.toFigure()!.subFigures, hasLength(6));
+    });
+
+    testWidgets(
+      'flat-only: a meanwhile side never offers its own "group with next" '
+      'affordance',
+      (tester) async {
+        final drafts = <FigureDraft>[
+          FigureDraft(
+            meanwhileSides: [
+              FigureDraft(move: 'swing', params: {'beats': 8}),
+              FigureDraft(move: 'allemande', params: {'beats': 8}),
+            ],
+          )..params['beats'] = 8,
+        ];
+        await _pump(tester, drafts);
+        await _openFigure(tester, 0);
+
+        // A side has no overflow "⋮" menu at all — the grouping affordance
+        // only ever exists on the top-level `_FigureDraftCard` overflow menu.
+        expect(
+          find.byKey(const ValueKey('figure-0-side-0-group-with-next')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('figure-0-side-1-group-with-next')),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'group-with-next is hidden on the last figure and when either row is '
+      'already a group',
+      (tester) async {
+        final drafts = <FigureDraft>[
+          FigureDraft(move: 'swing', params: {'beats': 8}),
+          FigureDraft(
+            meanwhileSides: [
+              FigureDraft(move: 'allemande', params: {'beats': 8}),
+              FigureDraft(move: 'balance', params: {'beats': 8}),
+            ],
+          )..params['beats'] = 8,
+        ];
+        await _pump(tester, drafts);
+
+        // Row 0's next row (1) is already a group: no "group with next".
+        await _openMenu(tester, 0);
+        expect(
+          find.byKey(const ValueKey('figure-0-group-with-next')),
+          findsNothing,
+        );
+        // Close the menu before opening the next one.
+        await _openMenu(tester, 0);
+
+        // Row 1 (the group itself) is the last row: no "group with next".
+        await _openMenu(tester, 1);
+        expect(
+          find.byKey(const ValueKey('figure-1-group-with-next')),
+          findsNothing,
+        );
+      },
+    );
   });
 }

@@ -19,6 +19,7 @@ class FigureDraft {
     this.assumedSubject = false,
     this.customOrigin = CustomOrigin.userEntered,
     this.walkthroughOverride,
+    this.meanwhileSides,
   }) : id = id ?? uuidV4(),
        params = params ?? <String, Object?>{};
 
@@ -34,6 +35,12 @@ class FigureDraft {
   /// parser DEFAULTED (#460) keeps its non-authoritative marker across an
   /// open/save round-trip; it is cleared the moment the user explicitly picks a
   /// move or edits the subject, which makes the subject a stated choice.
+  ///
+  /// When [figure] `isMeanwhile` (#590/#593), the draft becomes a **meanwhile
+  /// group**: [meanwhileSides] is seeded from [Figure.subFigures] (each side
+  /// recursively seeded via this same factory — flat only, so a side's own
+  /// `meanwhileSides` is always `null`), and `params['beats']` carries the
+  /// container's single SHARED beat count rather than any per-side count.
   factory FigureDraft.fromFigure(Figure figure) => FigureDraft(
     move: figure.move,
     params: Map<String, Object?>.of(figure.params),
@@ -44,6 +51,9 @@ class FigureDraft {
     assumedSubject: figure.assumedSubject,
     customOrigin: figure.customOrigin,
     walkthroughOverride: figure.walkthroughOverride,
+    meanwhileSides: figure.isMeanwhile
+        ? [for (final side in figure.subFigures) FigureDraft.fromFigure(side)]
+        : null,
   );
 
   /// Stable identity for widget keys across reorders/rebuilds.
@@ -92,6 +102,22 @@ class FigureDraft {
   /// update the library and leave this `null`.
   String? walkthroughOverride;
 
+  /// Non-`null` ⇒ this draft is a **meanwhile group** (#590/#593): the
+  /// concurrent sides being authored, in order. `move`/most `params` are
+  /// unused for a group — `params['beats']` instead holds the single SHARED
+  /// beat count for the whole group (read via [beats], same as any other
+  /// draft). `null` (the default) means an ordinary, non-grouped figure —
+  /// today's ubiquitous case.
+  ///
+  /// **Flat only**: a side's own [meanwhileSides] is always `null`. This is
+  /// enforced at the UI boundary (the editor never offers a "group" action on
+  /// a side's own row), not by this field alone, matching the core model's
+  /// flat-only invariant ([Figure.isMeanwhile] may not nest).
+  List<FigureDraft>? meanwhileSides;
+
+  /// Whether this draft is a meanwhile group. Mirrors [Figure.isMeanwhile].
+  bool get isMeanwhileGroup => meanwhileSides != null;
+
   int get beats => (params['beats'] as int?) ?? 0;
 
   /// Returns an independent copy with a FRESH [id] (the stable-identity
@@ -111,10 +137,34 @@ class FigureDraft {
     assumedSubject: assumedSubject,
     customOrigin: customOrigin,
     walkthroughOverride: walkthroughOverride,
+    meanwhileSides: meanwhileSides
+        ?.map((side) => side.clone())
+        .toList(growable: true),
   );
 
-  /// Builds the immutable figure, or `null` when no move is chosen yet.
+  /// Builds the immutable figure, or `null` when no move is chosen yet (or,
+  /// for a meanwhile group, when fewer than 2 sides have a move chosen yet —
+  /// an in-progress group never corrupts the saved dance; it simply isn't
+  /// written until it is ready).
   Figure? toFigure() {
+    final sides = meanwhileSides;
+    if (sides != null) {
+      final readySides = [for (final side in sides) ?side.toFigure()];
+      if (readySides.length < 2) return null;
+      // Defensive clamp mirroring the codec's untrusted-input behavior: the
+      // UI never lets the side count exceed the cap, but this keeps toFigure()
+      // from ever throwing even if that invariant is somehow violated.
+      final cappedSides = readySides.length > kMaxMeanwhileSides
+          ? readySides.sublist(0, kMaxMeanwhileSides)
+          : readySides;
+      final trimmedNote = note.trim();
+      return Figure.meanwhile(
+        figures: cappedSides,
+        beats: beats,
+        note: trimmedNote.isEmpty ? null : trimmedNote,
+        progression: progression,
+      );
+    }
     final id = move;
     if (id == null) return null;
     final trimmedNote = note.trim();

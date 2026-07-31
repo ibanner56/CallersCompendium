@@ -430,6 +430,101 @@ void main() {
     expect(dance.figures.every((f) => f.assumedSubject), isTrue);
   });
 
+  group('meanwhile grouping (#590/#593)', () {
+    test(
+      'groupFigureWithNext merges two adjacent figures into one group draft',
+      () async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+        final controller = DanceEditorController(
+          repositories: repos,
+          danceId: 'd1',
+          dialect: Dialect.larksRobins,
+        );
+        addTearDown(controller.dispose);
+        await controller.load(
+          dance: Dance(
+            id: 'd1',
+            title: 'My Dance',
+            figures: [
+              Figure(
+                move: 'swing',
+                params: const {'who': 'partners', 'beats': 8},
+              ),
+              Figure(
+                move: 'allemande',
+                params: const {'who': 'neighbors', 'hand': 'left', 'beats': 8},
+              ),
+              Figure(move: 'balance', params: const {'beats': 4}),
+            ],
+            createdAt: now,
+            updatedAt: now,
+          ),
+          fieldDefs: const [],
+        );
+        expect(controller.figureDrafts, hasLength(3));
+
+        controller.groupFigureWithNext(controller.figureDrafts[0]);
+
+        // Two sides merged into one group row; the third figure is untouched.
+        expect(controller.figureDrafts, hasLength(2));
+        final group = controller.figureDrafts[0];
+        expect(group.isMeanwhileGroup, isTrue);
+        expect(group.meanwhileSides, hasLength(2));
+        expect(group.meanwhileSides![0].move, 'swing');
+        expect(group.meanwhileSides![1].move, 'allemande');
+        expect(controller.figureDrafts[1].move, 'balance');
+
+        // Section/beat warnings count the group's beats exactly once — the
+        // existing `_figures` getter already flattens via toFigure(), so this
+        // falls out of the design without controller-side beat math.
+        final dance = controller.buildDance();
+        expect(dance.figures, hasLength(2));
+        expect(dance.figures[0].isMeanwhile, isTrue);
+      },
+    );
+
+    test(
+      'collapseMeanwhileGroup replaces the group with its remaining side',
+      () async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+        final controller = DanceEditorController(
+          repositories: repos,
+          danceId: 'd1',
+          dialect: Dialect.larksRobins,
+        );
+        addTearDown(controller.dispose);
+        await controller.load(
+          dance: Dance(
+            id: 'd1',
+            title: 'My Dance',
+            figures: [
+              Figure.meanwhile(
+                figures: [
+                  Figure(move: 'swing', params: const {'who': 'partners'}),
+                  Figure(move: 'allemande', params: const {'who': 'neighbors'}),
+                ],
+                beats: 16,
+              ),
+            ],
+            createdAt: now,
+            updatedAt: now,
+          ),
+          fieldDefs: const [],
+        );
+        final group = controller.figureDrafts.single;
+        final remaining = group.meanwhileSides!.first;
+
+        controller.collapseMeanwhileGroup(group, remaining);
+
+        expect(controller.figureDrafts, hasLength(1));
+        expect(controller.figureDrafts.single.isMeanwhileGroup, isFalse);
+        expect(controller.figureDrafts.single.move, 'swing');
+      },
+    );
+  });
+
   group('insertFreeTextFigures (#419)', () {
     /// A controller loaded from an EXISTING dance with no figures, so the
     /// figure list starts genuinely empty (a NEW dance would seed the default

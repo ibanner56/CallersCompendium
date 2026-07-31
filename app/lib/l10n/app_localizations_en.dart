@@ -4583,6 +4583,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorMarkProgression => 'Mark progression';
 
   @override
+  String get danceEditorGroupWithNext => 'Group with next as meanwhile';
+
+  @override
+  String danceEditorMeanwhileGroupLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Meanwhile ($count sides)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorMeanwhileGroupSemantic(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count concurrent figures',
+      one: '1 concurrent figure',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats shared beats',
+      one: '1 shared beat',
+    );
+    return 'Meanwhile group, $_temp0, $_temp1.';
+  }
+
+  @override
+  String danceEditorMeanwhileSideLabel(int number) {
+    return 'Side $number';
+  }
+
+  @override
+  String danceEditorMeanwhileSideSemantic(int number, int total) {
+    return 'Side $number of $total.';
+  }
+
+  @override
+  String get danceEditorAddMeanwhileSide => 'Add side';
+
+  @override
+  String get danceEditorRemoveMeanwhileSide => 'Remove this side';
+
+  @override
+  String danceEditorMeanwhileSidesCapReached(int max) {
+    return 'Maximum of $max concurrent figures.';
+  }
+
+  @override
   String danceEditorUnrecognizedMoveReadOnly(String move) {
     return 'Unrecognized move \"$move\" — not in this version\'s taxonomy. Shown read-only so its data is preserved; it will edit normally again if the move becomes known. You can still reorder or delete it.';
   }

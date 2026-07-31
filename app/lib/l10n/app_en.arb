@@ -5019,6 +5019,76 @@
   "@danceEditorMarkProgression":   {
     "description": "Menu item label for marking a figure as carrying the progression."
   },
+  "danceEditorGroupWithNext": "Group with next as meanwhile",
+  "@danceEditorGroupWithNext":   {
+    "description": "Menu item label that groups this figure row with the one immediately after it into a meanwhile (concurrent) group (#593). Hidden when there is no next row or either row is already a meanwhile group."
+  },
+  "danceEditorMeanwhileGroupLabel": "{count, plural, other{Meanwhile ({count} sides)}}",
+  "@danceEditorMeanwhileGroupLabel":   {
+    "description": "Visible heading for a meanwhile group's expanded editor and its display name elsewhere (drag handle, cut banner, duplicate announcement).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorMeanwhileGroupSemantic": "Meanwhile group, {count, plural, =1{1 concurrent figure} other{{count} concurrent figures}}, {beats, plural, =1{1 shared beat} other{{beats} shared beats}}.",
+  "@danceEditorMeanwhileGroupSemantic":   {
+    "description": "Screen-reader label for a meanwhile group's expanded editor region, making explicit that the beat count is SHARED across all sides, not per side.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "beats": {
+        "type": "int",
+        "example": "16"
+      }
+    }
+  },
+  "danceEditorMeanwhileSideLabel": "Side {number}",
+  "@danceEditorMeanwhileSideLabel":   {
+    "description": "Compact heading for one concurrent side within a meanwhile group's editor.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "danceEditorMeanwhileSideSemantic": "Side {number} of {total}.",
+  "@danceEditorMeanwhileSideSemantic":   {
+    "description": "Screen-reader label identifying one side's position among the meanwhile group's concurrent sides.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorAddMeanwhileSide": "Add side",
+  "@danceEditorAddMeanwhileSide":   {
+    "description": "Button label that adds another concurrent side to a meanwhile group."
+  },
+  "danceEditorRemoveMeanwhileSide": "Remove this side",
+  "@danceEditorRemoveMeanwhileSide":   {
+    "description": "Icon button tooltip/semantics for removing one side from a meanwhile group. Removing down to one side collapses the group back to a plain figure."
+  },
+  "danceEditorMeanwhileSidesCapReached": "Maximum of {max} concurrent figures.",
+  "@danceEditorMeanwhileSidesCapReached":   {
+    "description": "Inline message shown in place of the add-side button once a meanwhile group has reached the maximum allowed number of concurrent sides.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "6"
+      }
+    }
+  },
   "danceEditorUnrecognizedMoveReadOnly": "Unrecognized move \"{move}\" — not in this version's taxonomy. Shown read-only so its data is preserved; it will edit normally again if the move becomes known. You can still reorder or delete it.",
   "@danceEditorUnrecognizedMoveReadOnly":   {
     "description": "Read-only explanation for a figure whose move id is not in the active taxonomy.",

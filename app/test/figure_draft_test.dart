@@ -113,4 +113,97 @@ void main() {
       expect(copy.toFigure()!.assumedSubject, isFalse);
     });
   });
+
+  group('FigureDraft meanwhile round-trip (#590/#593)', () {
+    test(
+      'fromFigure seeds meanwhileSides and shared beats from a container',
+      () {
+        final container = Figure.meanwhile(
+          figures: [
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+            Figure(move: 'allemande', params: const {'who': 'neighbors'}),
+          ],
+          beats: 16,
+        );
+        final draft = FigureDraft.fromFigure(container);
+        expect(draft.isMeanwhileGroup, isTrue);
+        expect(draft.meanwhileSides, hasLength(2));
+        expect(draft.meanwhileSides![0].move, 'swing');
+        expect(draft.meanwhileSides![1].move, 'allemande');
+        expect(draft.beats, 16);
+        // Sides are always flat — never themselves groups.
+        expect(draft.meanwhileSides![0].isMeanwhileGroup, isFalse);
+        expect(draft.meanwhileSides![1].isMeanwhileGroup, isFalse);
+      },
+    );
+
+    test('toFigure rebuilds an equivalent Figure.meanwhile container', () {
+      final draft = FigureDraft(
+        meanwhileSides: [
+          FigureDraft(move: 'swing', params: {'who': 'partners'}),
+          FigureDraft(move: 'allemande', params: {'who': 'neighbors'}),
+        ],
+      );
+      draft.params['beats'] = 16;
+      final figure = draft.toFigure()!;
+      expect(figure.isMeanwhile, isTrue);
+      expect(figure.beats, 16);
+      expect(figure.subFigures, hasLength(2));
+      expect(figure.subFigures[0].move, 'swing');
+      expect(figure.subFigures[1].move, 'allemande');
+    });
+
+    test('a fully round-tripped meanwhile is unchanged', () {
+      final original = Figure.meanwhile(
+        figures: [
+          Figure(move: 'swing', params: const {'who': 'partners', 'beats': 8}),
+          Figure(
+            move: 'allemande',
+            params: const {'who': 'neighbors', 'hand': 'left'},
+          ),
+        ],
+        beats: 16,
+        note: 'watch your spacing',
+      );
+      final roundTripped = FigureDraft.fromFigure(original).toFigure();
+      expect(roundTripped, original);
+    });
+
+    test('toFigure returns null while fewer than 2 sides are ready', () {
+      final draft = FigureDraft(
+        meanwhileSides: [
+          FigureDraft(move: 'swing'),
+          FigureDraft(),
+        ],
+      );
+      draft.params['beats'] = 8;
+      expect(draft.toFigure(), isNull);
+    });
+
+    test('clone deep-copies meanwhileSides with fresh ids', () {
+      final source = FigureDraft(
+        meanwhileSides: [
+          FigureDraft(move: 'swing', params: {'who': 'partners'}),
+          FigureDraft(move: 'allemande', params: {'who': 'neighbors'}),
+        ],
+      );
+      source.params['beats'] = 16;
+      final copy = source.clone();
+      expect(copy.id, isNot(source.id));
+      expect(copy.meanwhileSides![0].id, isNot(source.meanwhileSides![0].id));
+      copy.meanwhileSides![0].params['who'] = 'someone else';
+      expect(source.meanwhileSides![0].params['who'], 'partners');
+    });
+
+    test('defensively clamps an over-cap side list rather than throwing', () {
+      final draft = FigureDraft(
+        meanwhileSides: [
+          for (var i = 0; i < 8; i++) FigureDraft(move: 'swing'),
+        ],
+      );
+      draft.params['beats'] = 8;
+      final figure = draft.toFigure()!;
+      expect(figure.subFigures, hasLength(kMaxMeanwhileSides));
+    });
+  });
 }

@@ -56,6 +56,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   feedback (recognized terms underlined, discouraged struck) as you type.
 - Figure reordering: drag handle **plus** move-up/down buttons + cut/paste
   (WCAG 2.5.7).
+- **Meanwhile (simultaneous figures)**: a figure row's overflow menu can group
+  it with the next row into one 2–6-side concurrent group, each side authored
+  with the same figure editor and one shared beats field for the whole group;
+  removing down to 1 side auto-collapses back to a plain figure (#590/#593).
 - Metadata form with author autocomplete (choreographer table), formation
   picker, custom fields.
 - Autosave drafts; explicit save commits; undo history.
