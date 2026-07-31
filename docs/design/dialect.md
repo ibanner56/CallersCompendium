@@ -84,9 +84,14 @@ This chokepoint is wired at every free-text entry point:
   full-text index is built from the (now canonical) stored prose, so free-text
   search over typed prose is dialect-agnostic.
 
-> Not yet wired: **program-level prose** (`Program.notes`, free-text program
-> slots) is still stored and displayed verbatim — tracked as a follow-up to
-> #613.
+> Intentionally not wired: **program-level prose** (`Program.notes`, free-text
+> `ProgramSlot.text`) is stored and displayed verbatim — it is not
+> canonicalized. This text is predominantly logistical (venue notes, set
+> breaks, potluck/sound-check reminders) rather than role-bearing
+> choreography, and since `canonicalizeText` is roles-only and leaves non-role
+> text unchanged (byte-for-byte identical), wiring the chokepoint here would be
+> a no-op for the overwhelming majority of program prose. Tracked as issue #665,
+> closed as not planned.
 
 Edge rules:
 - Round-trip safety: `canonicalize(render(x)) == x` for all taxonomy terms in
@@ -108,7 +113,7 @@ Edge rules:
 |---|---|
 | Dance card, editor previews, performance mode | ✅ |
 | Free text: calling notes, hooks, walkthrough, custom figures | ✅ (canonical on save, rendered on read) |
-| Program notes / free-text slots | ❌ verbatim (follow-up to #613) |
+| Program notes / free-text slots | ❌ verbatim (intentional; #665 not planned) |
 | Search input | canonicalized before matching |
 | Stored data, snapshots, JSON export (canonical mode) | ❌ canonical |
 | Print/share | user choice, labeled |
