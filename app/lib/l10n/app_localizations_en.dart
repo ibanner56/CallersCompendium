@@ -157,7 +157,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDateFormatCustomLegend =>
-      'Tokens: yyyy or yy = year, MM = month (MMM = short name, MMMM = full name), dd = day. Separators: - / . or space.';
+      'Tokens: yyyy or yy = year, MM = month (MMM = short name, MMMM = full name), d or dd = day. Separators: - / . , or space.';
 
   @override
   String get settingsDateFormatCustomInvalid =>

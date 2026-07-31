@@ -56,9 +56,14 @@ class MonthNames {
 /// A single recognized token in a validated custom pattern.
 ///
 /// [width] is the number of source characters (`2` or `4` for year, `2`/`3`/`4`
-/// for month, `2` for day) and drives zero-padded formatting and the parsing
-/// character class. [monthStyle] is non-null only for [DateFieldKind.month]
-/// tokens and records whether the month is numeric/abbreviated/full.
+/// for month, `1` or `2` for day) and drives zero-padded **formatting** only. A
+/// day/year width of `2` (`dd`/`yy`) zero-pads on render; a day width of `1`
+/// (`d`) renders with no leading zero. Title **matching**
+/// ([matchTitleWithCustomPattern]) stays permissive for numeric month/day
+/// fields — it always accepts 1–2 digits regardless of the declared width, so
+/// a `d`-declared pattern still matches a zero-padded "03" in text. [monthStyle]
+/// is non-null only for [DateFieldKind.month] tokens and records whether the
+/// month is numeric/abbreviated/full.
 class _FieldToken {
   const _FieldToken(this.kind, this.width, {this.monthStyle});
 
@@ -67,7 +72,8 @@ class _FieldToken {
   final MonthStyle? monthStyle;
 }
 
-/// A literal separator run (e.g. `-`, `.`, `/`, or a space) between fields.
+/// A literal separator run (e.g. `-`, `.`, `/`, `,`, or a space) between
+/// fields.
 class _LiteralToken {
   const _LiteralToken(this.text);
 
@@ -119,7 +125,7 @@ class CustomDatePattern {
 
 /// Allowed separator characters between fields. A fixed set, so matching them
 /// introduces no backtracking risk.
-const Set<String> _allowedSeparatorChars = {'-', '/', '.', ' '};
+const Set<String> _allowedSeparatorChars = {'-', '/', '.', ' ', ','};
 
 /// Parses [raw] into a [CustomDatePattern], or returns `null` for any invalid
 /// input (never throws).
@@ -128,8 +134,10 @@ const Set<String> _allowedSeparatorChars = {'-', '/', '.', ' '};
 /// is a sequence of maximal same-character runs that are each either
 ///  * a recognized field token — `yyyy`/`yy` (year, case-insensitive), `mm`
 ///    (month numeric), `mmm` (month abbreviated name), `mmmm` (month full
-///    name), `dd` (day) — with exactly one of each kind present, or
-///  * a run of allowed separator characters (`-`, `/`, `.`, space).
+///    name), `d`/`dd` (day, non-zero-padded/zero-padded, issue #668) — with
+///    exactly one of each kind present, or
+///  * a run of allowed separator characters (`-`, `/`, `.`, space, `,`, issue
+///    #668).
 ///
 /// Any unknown character, an unrecognized token length (e.g. `yyy`, `m`,
 /// `mmmmm`, `ddd`), a duplicate field, or a missing field rejects the whole
@@ -181,9 +189,10 @@ CustomDatePattern? parseCustomDatePattern(String? raw) {
       );
     } else if (lower == 'd') {
       if (sawDay) return null;
-      if (runLength != 2) return null; // only dd
+      // d = non-zero-padded day, dd = zero-padded (issue #668).
+      if (runLength != 1 && runLength != 2) return null;
       sawDay = true;
-      segments.add(const _FieldToken(DateFieldKind.day, 2));
+      segments.add(_FieldToken(DateFieldKind.day, runLength));
     } else if (_allowedSeparatorChars.contains(ch)) {
       segments.add(_LiteralToken(raw.substring(i, j)));
     } else {
@@ -227,7 +236,13 @@ String formatWithCustomPattern(
             _formatMonth(date.month, segment.monthStyle, monthNames),
           );
         case DateFieldKind.day:
-          buffer.write(date.day.toString().padLeft(2, '0'));
+          // Zero-pad only for the declared dd width; d (width 1, issue #668)
+          // renders with no leading zero.
+          buffer.write(
+            segment.width == 2
+                ? date.day.toString().padLeft(2, '0')
+                : date.day.toString(),
+          );
       }
     }
   }
@@ -259,14 +274,14 @@ String _formatMonth(int month, MonthStyle? style, MonthNames? monthNames) {
 /// permissive-but-bounded: one or more of the allowed separator characters, so
 /// `MM.DD.YY` still matches `MM . DD . YY`-style spacing without introducing
 /// backtracking (single bounded quantifier, no nesting/backreferences).
-const String _separatorClass = r'[-/. ]';
+const String _separatorClass = r'[-/. ,]'; // comma added, issue #668
 
 /// Builds a [RegExp] from a validated [pattern] and, on the first match within
 /// [title], returns the corresponding UTC-midnight [DateTime] — or `null` when
 /// nothing matches or the fields don't form a real in-range date.
 ///
 /// Safety: the expression is assembled only from fixed literals and bounded
-/// character-class quantifiers (`\d{2}`, `\d{4}`, `\d{1,2}`, `[-/. ]+`) with no
+/// character-class quantifiers (`\d{2}`, `\d{4}`, `\d{1,2}`, `[-/. ,]+`) with no
 /// nesting or backreferences, so an adversarial title cannot trigger
 /// catastrophic backtracking (ReDoS). Two-digit years expand to `2000 + yy`.
 /// Builds a [RegExp] from a validated [pattern] and, on the first match within
@@ -281,7 +296,7 @@ const String _separatorClass = r'[-/. ]';
 /// not match (returns `null`) rather than falling back to a numeric field.
 ///
 /// Safety: the expression is assembled only from fixed literals, bounded
-/// character-class quantifiers (`\d{2}`, `\d{4}`, `\d{1,2}`, `[-/. ]+`), and a
+/// character-class quantifiers (`\d{2}`, `\d{4}`, `\d{1,2}`, `[-/. ,]+`), and a
 /// finite alternation of the **allowlisted, regex-escaped** month names — no
 /// nesting, backreferences, or user text — so an adversarial title cannot
 /// trigger catastrophic backtracking (ReDoS). Two-digit years expand to

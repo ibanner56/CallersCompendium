@@ -44,7 +44,7 @@
   "settingsDateFormatCustom": "Personnalisé…",
   "settingsDateFormatCustomPatternLabel": "Format de date personnalisé",
   "settingsDateFormatCustomPatternHint": "MM.DD.YY",
-  "settingsDateFormatCustomLegend": "Jetons : yyyy ou yy = année, MM = mois (MMM = nom abrégé, MMMM = nom complet), dd = jour. Séparateurs : - / . ou espace.",
+  "settingsDateFormatCustomLegend": "Jetons : yyyy ou yy = année, MM = mois (MMM = nom abrégé, MMMM = nom complet), d ou dd = jour. Séparateurs : - / . , ou espace.",
   "settingsDateFormatCustomInvalid": "Format non reconnu — utilisation du format système par défaut jusqu'à correction.",
   "settingsFirstDayOfWeekTitle": "Premier jour de la semaine",
   "settingsFirstDayOfWeekSubtitle": "Jour de début de la semaine dans les vues de date de l’application. Disponible dans une prochaine mise à jour.",

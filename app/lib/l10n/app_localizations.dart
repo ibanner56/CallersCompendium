@@ -370,10 +370,10 @@ abstract class AppLocalizations {
   /// **'MM.DD.YY'**
   String get settingsDateFormatCustomPatternHint;
 
-  /// Always-visible legend explaining the allowed custom date-pattern tokens and separators. The literal tokens (yyyy, yy, MM, MMM, MMMM, dd) and separators (- / . space) must not be translated; translate only the surrounding words (Tokens, year, month, short name, full name, day, Separators, or, space).
+  /// Always-visible legend explaining the allowed custom date-pattern tokens and separators. The literal tokens (yyyy, yy, MM, MMM, MMMM, d, dd) and separators (- / . , space) must not be translated; translate only the surrounding words (Tokens, year, month, short name, full name, day, Separators, or, space).
   ///
   /// In en, this message translates to:
-  /// **'Tokens: yyyy or yy = year, MM = month (MMM = short name, MMMM = full name), dd = day. Separators: - / . or space.'**
+  /// **'Tokens: yyyy or yy = year, MM = month (MMM = short name, MMMM = full name), d or dd = day. Separators: - / . , or space.'**
   String get settingsDateFormatCustomLegend;
 
   /// Inline warning shown beneath the custom date-pattern field when the entered pattern is empty, contains unknown tokens, or is otherwise unrecognized; the app falls back to the system default until corrected.

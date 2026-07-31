@@ -211,9 +211,9 @@
   "@settingsDateFormatCustomPatternHint": {
     "description": "Placeholder shown in the custom date-pattern field as an example pattern. Keep the literal tokens (letters and separators); do not translate them."
   },
-  "settingsDateFormatCustomLegend": "Tokens: yyyy or yy = year, MM = month (MMM = short name, MMMM = full name), dd = day. Separators: - / . or space.",
+  "settingsDateFormatCustomLegend": "Tokens: yyyy or yy = year, MM = month (MMM = short name, MMMM = full name), d or dd = day. Separators: - / . , or space.",
   "@settingsDateFormatCustomLegend": {
-    "description": "Always-visible legend explaining the allowed custom date-pattern tokens and separators. The literal tokens (yyyy, yy, MM, MMM, MMMM, dd) and separators (- / . space) must not be translated; translate only the surrounding words (Tokens, year, month, short name, full name, day, Separators, or, space)."
+    "description": "Always-visible legend explaining the allowed custom date-pattern tokens and separators. The literal tokens (yyyy, yy, MM, MMM, MMMM, d, dd) and separators (- / . , space) must not be translated; translate only the surrounding words (Tokens, year, month, short name, full name, day, Separators, or, space)."
   },
   "settingsDateFormatCustomInvalid": "Unrecognized pattern — using the system default until it's corrected.",
   "@settingsDateFormatCustomInvalid": {

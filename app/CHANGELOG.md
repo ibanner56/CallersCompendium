@@ -13,6 +13,20 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Comma-separated dates and single-digit days in your custom date format.**
+  The custom date-format pattern (Settings ▸ Language & region ▸ Date format ▸
+  Custom) now accepts a comma as a separator and a single, non-zero-padded `d`
+  day token alongside the existing `dd` — so `MMMM d, yyyy` reads and renders
+  the natural "June 3, 2026" (previously only "June 03 2026", via `dd`, was
+  accepted). `d MMMM yyyy` similarly renders "3 June 2026". The comma also
+  works when reading the same layout from a ContraDB program title on import.
+  As before, the pattern stays an untrusted, strictly allowlisted input —
+  only these two well-scoped additions were made, no arbitrary format strings
+  are accepted, and every other rule (length cap, one field of each kind,
+  bounded ReDoS-safe matching, 1900–2100 calendar validation) is unchanged.
+  Follow-up to the written-out month support from the previous release.
+  Closes #668.
+
 - **Write out the month in your custom date format.** The custom date-format
   pattern (Settings ▸ Language & region ▸ Date format ▸ Custom) now understands
   written-out month tokens alongside the numeric ones: `MMM` renders a short

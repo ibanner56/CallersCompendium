@@ -145,16 +145,17 @@ startup or select an unsupported option:
 - **Enums** (`DateFormatPref`, `FirstDayOfWeekPref`) — resolved by token via
   `…PrefFromStored`, which falls back to the safe `system` default for `null`, a
   non-string, or an unknown token.
-- **Custom date pattern** (#584/#632) — the raw pattern for
+- **Custom date pattern** (#584/#632/#668) — the raw pattern for
   `DateFormatPref.custom` is untrusted free-form input. `parseCustomDatePattern`
   length-caps it (`kMaxCustomDatePatternLength`), allowlists tokens (`yyyy`/`yy`,
-  `MM`/`MMM`/`MMMM`, `dd`) and separators (`-` `/` `.` space), builds only
-  bounded, backreference-free matchers (ReDoS-safe), never surfaces raw error
-  text, and validates produced dates as real calendar dates within 1900–2100.
-  Written-out month tokens are matched against a **fixed allowlist** of the
-  known month names (a finite, regex-escaped alternation — never a free regex
-  over the title), so they add no backtracking risk. Anything unrecognized
-  resolves to the system default via `DateFormatSetting.effectivePattern`.
+  `MM`/`MMM`/`MMMM`, `d`/`dd`) and separators (`-` `/` `.` space `,`), builds
+  only bounded, backreference-free matchers (ReDoS-safe), never surfaces raw
+  error text, and validates produced dates as real calendar dates within
+  1900–2100. Written-out month tokens are matched against a **fixed allowlist**
+  of the known month names (a finite, regex-escaped alternation — never a free
+  regex over the title), so they add no backtracking risk. Anything
+  unrecognized resolves to the system default via
+  `DateFormatSetting.effectivePattern`.
 
 ## Key-naming convention
 
