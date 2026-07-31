@@ -737,7 +737,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                 if (dance.hook.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.md),
                   _CrossReferenceText(
-                    text: dance.hook,
+                    text: _renderer.renderFreeText(dance.hook, dialect),
                     style: theme.textTheme.bodyLarge,
                     linker: detail.crossRefLinker,
                     onOpenDance: _openDance,

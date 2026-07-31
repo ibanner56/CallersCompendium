@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../dialect/canonicalize.dart';
+import '../dialect/dialect.dart';
 import '../model/enums.dart';
 import '../model/formation.dart';
 import 'tables.dart';
@@ -112,7 +114,7 @@ const String purgeCorruptionRepairDoneKey = '__purge_corruption_repair_done__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 16;
+const int kCompendiumSchemaVersion = 17;
 
 /// The Caller's Compendium local database.
 ///
@@ -245,6 +247,16 @@ const int kCompendiumSchemaVersion = 16;
 ///   index. Pure DDL: no columns/tables added, no data rewritten, and the
 ///   derived `dance_fts`/`dance_figures` indexes are untouched, so no derived
 ///   rebuild is required.
+/// - v17 (2026-07-30): typed-prose canonicalization (issue #613, audit-3 F-4).
+///   A data-only migration (no schema shape change): retroactively routes the
+///   hand-typed prose columns (`hook`, `calling_notes`, `walkthrough`) through
+///   the `canonicalizeText` chokepoint so stored prose is dialect-agnostic,
+///   like imports/search already are. Best-effort — the per-record source
+///   dialect isn't recorded, so it assumes the current global active dialect
+///   (`active_dialect` setting; falls back to `Dialect.larksRobins`). Roles-
+///   only and conservative: non-role prose is byte-identical, and it is
+///   idempotent. `hook`/`calling_notes` feed `dance_fts`, so a rewrite schedules
+///   a derived rebuild (marker) — only when a row actually changed.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -491,6 +503,68 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // touched, no derived rebuild.
         await customStatement(programSlotsDanceIdIndexSql);
       }
+      if (from < 17) {
+        // Issue #613 (audit-3 F-4): hand-typed prose (`hook`, `calling_notes`,
+        // `walkthrough`) was persisted VERBATIM in whatever dialect the caller
+        // had active, instead of passing through the canonicalization
+        // chokepoint like imports and search already do. Retroactively
+        // canonicalize existing prose so storage/search stay dialect-agnostic
+        // and the prose re-renders under each reader's active dialect.
+        //
+        // The source dialect isn't recorded per record (the active dialect is a
+        // single global setting, changeable over time), so this is a
+        // best-effort migration that assumes the CURRENT global active dialect.
+        // It is low-risk and non-destructive because `canonicalizeText` is
+        // ROLES-ONLY and conservative: only exact word-boundary role terms are
+        // rewritten (and the built-in legacy synonyms — larks/robins/gents/
+        // ladies/… — map back to canonical tokens REGARDLESS of the assumed
+        // dialect), while all other prose passes through byte-for-byte. It is
+        // idempotent: canonical tokens are not themselves dialect terms, so a
+        // second run rewrites nothing.
+        final dialect = await _readActiveDialectForMigration();
+        final rows = await customSelect(
+          'SELECT id, hook, calling_notes, walkthrough FROM dances',
+        ).get();
+        var rewroteAny = false;
+        for (final row in rows) {
+          final id = row.data['id'];
+          if (id is! String) continue;
+          final hook = row.data['hook'];
+          final notes = row.data['calling_notes'];
+          final walkthrough = row.data['walkthrough'];
+          final newHook = hook is String
+              ? canonicalizeText(hook, dialect)
+              : hook;
+          final newNotes = notes is String
+              ? canonicalizeText(notes, dialect)
+              : notes;
+          final newWalkthrough = walkthrough is String
+              ? canonicalizeText(walkthrough, dialect)
+              : walkthrough;
+          if (newHook != hook ||
+              newNotes != notes ||
+              newWalkthrough != walkthrough) {
+            await customStatement(
+              'UPDATE dances SET hook = ?, calling_notes = ?, '
+              'walkthrough = ? WHERE id = ?',
+              [newHook, newNotes, newWalkthrough, id],
+            );
+            rewroteAny = true;
+          }
+        }
+        // `hook` and `calling_notes` feed `dance_fts`, so a rewrite changes the
+        // derived search text. The FTS rows can't be refilled here (that needs
+        // the taxonomy/renderer owned by the repository layer), so durably
+        // record that a derived rebuild is owed — exactly like the v2/v9/v12
+        // steps. `CompendiumRepositories.ensureMigrated()` then rebuilds every
+        // `dance_fts` row. Only schedule it when prose actually changed.
+        if (rewroteAny) {
+          await customStatement(
+            'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+            [derivedRebuildRequiredKey, 'true'],
+          );
+        }
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -514,6 +588,41 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   Future<bool> quickCheck() async {
     final rows = await customSelect('PRAGMA quick_check').get();
     return rows.length == 1 && rows.first.data.values.first == 'ok';
+  }
+
+  /// Reads the persisted global active dialect for the schema-v17 typed-prose
+  /// canonicalization migration (issue #613). Mirrors the app layer's
+  /// `kActiveDialectKey` (`'active_dialect'`), under which the resolved
+  /// dialect's full JSON blob is stored (see `ActiveDialectScope` /
+  /// `DialectLibraryController`). Parse-never-throw: any missing or malformed
+  /// value falls back to [Dialect.larksRobins] — the app's default dialect, and
+  /// the one a beta user without an explicit selection was already seeing.
+  /// [canonicalizeText]'s always-on legacy role synonyms cover the common
+  /// preset terms regardless of this choice, so the fallback is safe.
+  Future<Dialect> _readActiveDialectForMigration() async {
+    try {
+      final rows = await customSelect(
+        "SELECT value_json FROM settings WHERE key = 'active_dialect'",
+      ).get();
+      if (rows.isNotEmpty) {
+        final raw = rows.first.data['value_json'];
+        if (raw is String && raw.isNotEmpty) {
+          final decoded = jsonDecode(raw);
+          if (decoded is Map) {
+            return Dialect.fromJson(decoded.cast<String, Object?>());
+          }
+          if (decoded is String) {
+            // Legacy: a bare preset-name string rather than a full JSON blob.
+            final byName = Dialect.forName(decoded);
+            if (byName != null) return byName;
+          }
+        }
+      }
+    } catch (_) {
+      // Malformed settings row: fall back to the default below rather than
+      // aborting the whole migration.
+    }
+    return Dialect.larksRobins;
   }
 }
 

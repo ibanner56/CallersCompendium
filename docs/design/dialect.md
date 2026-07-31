@@ -66,6 +66,28 @@ known synonyms/legacy terms (gypsy → shoulder round) back to canonical
 vocabulary, and flags ambiguities inline ("lingo line" underlining: recognized
 terms underlined, discouraged terms struck through, unknown terms plain).
 
+This chokepoint is wired at every free-text entry point:
+
+- **Imports** canonicalize incoming prose (with `Dialect.canonical`, so the
+  always-on legacy synonyms resolve roles) before persistence.
+- **Hand-typed dance prose** — `hook`, `callingNotes`, `walkthrough` — is
+  canonicalized against the caller's **active** dialect in the dance editor's
+  save path (`buildDance`), so a caller's own role terms are stored as canonical
+  tokens. On load the editor renders those tokens back into the active dialect
+  via `renderFreeText`, and every display site (detail, perform, PDF/text
+  export) renders under the reader's active dialect — so stored prose is
+  dialect-agnostic and re-renders for each reader (issue #613). Because the
+  model is roles-only, a role term is normalized to its dialect-configured
+  casing on the round-trip (e.g. the Larks/Robins preset term is lowercase), the
+  same as imported prose; surrounding prose is preserved byte-for-byte.
+- **Search** canonicalizes the query at the compiler boundary, and the
+  full-text index is built from the (now canonical) stored prose, so free-text
+  search over typed prose is dialect-agnostic.
+
+> Not yet wired: **program-level prose** (`Program.notes`, free-text program
+> slots) is still stored and displayed verbatim — tracked as a follow-up to
+> #613.
+
 Edge rules:
 - Round-trip safety: `canonicalize(render(x)) == x` for all taxonomy terms in
   every shipped preset — property-tested.
@@ -73,13 +95,20 @@ Edge rules:
   dialect-edit time, since they'd make reversal ambiguous.
 - Canonicalization is conservative: unknown phrases are stored as typed; only
   exact dialect/synonym matches are rewritten.
+- Migration: existing beta prose typed before this chokepoint was wired is
+  canonicalized once by the schema-v17 migration. The per-record source dialect
+  isn't recorded, so it assumes the current global active dialect — safe because
+  canonicalization is roles-only and conservative (non-role prose is untouched)
+  and the built-in legacy synonyms resolve the common preset terms regardless.
+  The migration is idempotent.
 
 ## Scope of substitution
 
 | Surface | Dialect applied? |
 |---|---|
 | Dance card, editor previews, performance mode | ✅ |
-| Free text: calling notes, hooks, custom figures, program notes | ✅ (regex) |
+| Free text: calling notes, hooks, walkthrough, custom figures | ✅ (canonical on save, rendered on read) |
+| Program notes / free-text slots | ❌ verbatim (follow-up to #613) |
 | Search input | canonicalized before matching |
 | Stored data, snapshots, JSON export (canonical mode) | ❌ canonical |
 | Print/share | user choice, labeled |
