@@ -888,6 +888,7 @@
   "importErrorContraDbInvalidProgramUrl": "Det ligner ikke en ContraDB program-URL eller et numerisk id.",
   "importErrorContraDbMissingProgramId": "Den ContraDB-URL mangler et program-id (…/programs/N).",
   "importErrorContraDbInvalidProgramLink": "Det ligner ikke et ContraDB-programlink.",
+  "importErrorContraDbUnsupportedHost": "Det link er ikke fra en understøttet ContraDB-vært. Indsæt et link fra contradb.com, eller indtast dansens eller programmets numeriske id.",
   "importErrorContraDbUnreachable": "Kunne ikke nå ContraDB. Kontrollér din forbindelse, og prøv igen.",
   "importErrorContraDbHttpStatus": "ContraDB svarede med HTTP {status}.",
   "importErrorContraDbEmptyResponse": "ContraDB returnerede et tomt svar.",

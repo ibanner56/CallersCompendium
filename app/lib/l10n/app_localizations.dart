@@ -5528,6 +5528,12 @@ abstract class AppLocalizations {
   /// **'That doesn\'t look like a ContraDB program link.'**
   String get importErrorContraDbInvalidProgramLink;
 
+  /// Error shown when a pasted ContraDB dance or program URL's host is not contradb.com (or www.contradb.com). Never echoes the pasted URL/host.
+  ///
+  /// In en, this message translates to:
+  /// **'That link isn\'t from a supported ContraDB host. Paste a link from contradb.com, or enter the dance\'s or program\'s numeric id.'**
+  String get importErrorContraDbUnsupportedHost;
+
   /// Error shown when ContraDB could not be reached.
   ///
   /// In en, this message translates to:

@@ -1025,6 +1025,40 @@ void main() {
       expect(fetchCalls, 0);
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+      'a URL from a non-allowlisted host shows an inline error naming the '
+      'supported host, and is never fetched (#667/#621)',
+      (tester) async {
+        final repos = openTestRepositories();
+        var fetchCalls = 0;
+        await _pump(
+          tester,
+          repos,
+          payload: 'unused',
+          sources: sourcesFor(),
+          fetcher: (url) async {
+            fetchCalls++;
+            return contraDbPage;
+          },
+        );
+
+        await selectContraDb(tester);
+        // A lookalike host must be rejected before any URL is built/fetched.
+        await _fetch(tester, 'https://contradb.com.evil.com/dances/1');
+
+        expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('import-url-error')),
+            matching: find.textContaining('contradb.com'),
+          ),
+          findsOneWidget,
+        );
+        expect(fetchCalls, 0);
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 
   group('URL source auto-detection', () {

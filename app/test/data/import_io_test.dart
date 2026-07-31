@@ -242,18 +242,17 @@ void main() {
       );
     });
 
+    test('a bare www.contradb.com URL is accepted', () {
+      final url = buildContraDbUrl('https://www.contradb.com/dances/3');
+      expect(Uri.parse(url).host, 'www.contradb.com');
+      expect(Uri.parse(url).path, '/dances/3');
+    });
+
     test('a trailing slash, query, and fragment are dropped', () {
       expect(
         buildContraDbUrl('https://contradb.com/dances/7?foo=bar#notes'),
         'https://contradb.com/dances/7',
       );
-    });
-
-    test('a pasted URL keeps its own host (self-hosted instance)', () {
-      final uri = Uri.parse(buildContraDbUrl('http://localhost:3000/dances/9'));
-      expect(uri.host, 'localhost');
-      expect(uri.port, 3000);
-      expect(uri.path, '/dances/9');
     });
 
     test('user-info credentials are dropped from the canonical URL', () {
@@ -280,6 +279,247 @@ void main() {
       );
       expect(
         () => buildContraDbUrl('not a url or id'),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('a bare http:// (non-https) URL is rejected as an insecure scheme, '
+        'even on an allowlisted host', () {
+      expect(
+        () => buildContraDbUrl('http://contradb.com/dances/1'),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.insecureScheme,
+          ),
+        ),
+      );
+    });
+
+    test('a pasted URL to a non-allowlisted host (self-hosted mirror) is '
+        'rejected, not fetched (#667/#621)', () {
+      // Self-hosted-ContraDB-mirror support is intentionally dropped: the
+      // host must be on the fixed allowlist, so a pasted URL can no longer
+      // "keep its own host" the way it could before #667.
+      expect(
+        () => buildContraDbUrl('https://localhost:3000/dances/9'),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.contraDbUnsupportedHost,
+          ),
+        ),
+      );
+      expect(
+        () => buildContraDbUrl('https://my-contradb-mirror.example/dances/9'),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.contraDbUnsupportedHost,
+          ),
+        ),
+      );
+    });
+
+    test(
+      'lookalike hosts (suffix/prefix tricks) are rejected, not fetched',
+      () {
+        for (final host in [
+          'contradb.com.evil.com',
+          'evilcontradb.com',
+          'notcontradb.com',
+        ]) {
+          expect(
+            () => buildContraDbUrl('https://$host/dances/1'),
+            throwsA(
+              isA<UrlFetchException>().having(
+                (e) => e.reason,
+                'reason',
+                UrlFetchFailureReason.contraDbUnsupportedHost,
+              ),
+            ),
+            reason: 'expected $host to be rejected',
+          );
+        }
+      },
+    );
+
+    test('a userinfo ("@") trick does not smuggle an untrusted host past the '
+        'allowlist', () {
+      // Uri.host resolves to the real authority (evil.com) here, not the
+      // string before the "@" — this documents/regression-tests that the
+      // allowlist check is applied to the parsed host, not the raw string.
+      expect(
+        () => buildContraDbUrl('https://contradb.com@evil.com/dances/1'),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.contraDbUnsupportedHost,
+          ),
+        ),
+      );
+    });
+
+    test('a malformed URL is rejected cleanly, not thrown as a raw error', () {
+      expect(
+        () => buildContraDbUrl('https://[not-a-valid-host'),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+  });
+
+  group('buildContraDbProgramUrl', () {
+    test('a bare numeric id builds the canonical program page URL', () {
+      expect(buildContraDbProgramUrl('33'), 'https://contradb.com/programs/33');
+      // Surrounding whitespace is tolerated.
+      expect(
+        buildContraDbProgramUrl('  7 '),
+        'https://contradb.com/programs/7',
+      );
+    });
+
+    test('a pasted program URL is canonicalized to /programs/N', () {
+      expect(
+        buildContraDbProgramUrl('https://contradb.com/programs/12'),
+        'https://contradb.com/programs/12',
+      );
+    });
+
+    test('a bare www.contradb.com URL is accepted', () {
+      final url = buildContraDbProgramUrl(
+        'https://www.contradb.com/programs/3',
+      );
+      expect(Uri.parse(url).host, 'www.contradb.com');
+      expect(Uri.parse(url).path, '/programs/3');
+    });
+
+    test('a trailing slash, query, and fragment are dropped', () {
+      expect(
+        buildContraDbProgramUrl(
+          'https://contradb.com/programs/7?foo=bar#notes',
+        ),
+        'https://contradb.com/programs/7',
+      );
+    });
+
+    test('user-info credentials are dropped from the canonical URL', () {
+      final url = buildContraDbProgramUrl(
+        'https://user:pass@contradb.com/programs/5',
+      );
+      expect(url, 'https://contradb.com/programs/5');
+      expect(Uri.parse(url).userInfo, isEmpty);
+    });
+
+    test('empty input throws a UrlFetchException', () {
+      expect(
+        () => buildContraDbProgramUrl('   '),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('a URL with no program id throws a UrlFetchException', () {
+      expect(
+        () => buildContraDbProgramUrl('https://contradb.com/programs'),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('a non-http(s) / non-numeric input throws a UrlFetchException', () {
+      expect(
+        () => buildContraDbProgramUrl('ftp://contradb.com/programs/1'),
+        throwsA(isA<UrlFetchException>()),
+      );
+      expect(
+        () => buildContraDbProgramUrl('not a url or id'),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('a bare http:// (non-https) URL is rejected as an insecure scheme, '
+        'even on an allowlisted host', () {
+      expect(
+        () => buildContraDbProgramUrl('http://contradb.com/programs/1'),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.insecureScheme,
+          ),
+        ),
+      );
+    });
+
+    test('a pasted URL to a non-allowlisted host (self-hosted mirror) is '
+        'rejected, not fetched (#667/#621)', () {
+      expect(
+        () => buildContraDbProgramUrl('https://localhost:3000/programs/9'),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.contraDbUnsupportedHost,
+          ),
+        ),
+      );
+      expect(
+        () => buildContraDbProgramUrl(
+          'https://my-contradb-mirror.example/programs/9',
+        ),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.contraDbUnsupportedHost,
+          ),
+        ),
+      );
+    });
+
+    test(
+      'lookalike hosts (suffix/prefix tricks) are rejected, not fetched',
+      () {
+        for (final host in [
+          'contradb.com.evil.com',
+          'evilcontradb.com',
+          'notcontradb.com',
+        ]) {
+          expect(
+            () => buildContraDbProgramUrl('https://$host/programs/1'),
+            throwsA(
+              isA<UrlFetchException>().having(
+                (e) => e.reason,
+                'reason',
+                UrlFetchFailureReason.contraDbUnsupportedHost,
+              ),
+            ),
+            reason: 'expected $host to be rejected',
+          );
+        }
+      },
+    );
+
+    test('a userinfo ("@") trick does not smuggle an untrusted host past the '
+        'allowlist', () {
+      expect(
+        () =>
+            buildContraDbProgramUrl('https://contradb.com@evil.com/programs/1'),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.contraDbUnsupportedHost,
+          ),
+        ),
+      );
+    });
+
+    test('a malformed URL is rejected cleanly, not thrown as a raw error', () {
+      expect(
+        () => buildContraDbProgramUrl('https://[not-a-valid-host'),
         throwsA(isA<UrlFetchException>()),
       );
     });

@@ -888,6 +888,7 @@
   "importErrorContraDbInvalidProgramUrl": "ContraDBのプログラムURLまたは数値IDのように見えません。",
   "importErrorContraDbMissingProgramId": "そのContraDBのURLにはプログラムID（…/programs/N）がありません。",
   "importErrorContraDbInvalidProgramLink": "ContraDBのプログラムリンクのように見えません。",
+  "importErrorContraDbUnsupportedHost": "そのリンクはサポートされているContraDBのホストではありません。contradb.comのリンクを貼り付けるか、ダンスまたはプログラムの数値IDを入力してください。",
   "importErrorContraDbUnreachable": "ContraDBに到達できませんでした。接続を確認して、もう一度お試しください。",
   "importErrorContraDbHttpStatus": "ContraDBがHTTP {status}で応答しました。",
   "importErrorContraDbEmptyResponse": "ContraDBが空のレスポンスを返しました。",
