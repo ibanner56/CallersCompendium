@@ -580,13 +580,23 @@ taxonomy are unchanged.
       dances in the same review/commit flow and rolls them back on undo, and
       **program provenance dedupe** landed (#284) so re-importing updates existing
       programs instead of duplicating them.
+    - What now ships beyond dances + programs: `Author` rows resolve to
+      **Choreographers** through the shared import pipeline (resolve-or-create,
+      no fabricated ids — see the 6.2–6.5 author-resolution sub-note above), so
+      migrated dances carry their choreographer links. `UserDefined_*` fields
+      import as calling notes **by design** (not typed custom fields).
     - Honest caveats keeping 6.5 open: the free-text figure → `custom` scrub is
       **unvalidated against real figure data** (the sample library has no
-      `A1`–`B2`/`Moves` notation); and `Author`/`Term`/`Dance_Related`
-      tables are confirmed present in the real file but their entity resolution
-      is **deferred** (no models yet). The `Venue` entity now **exists**
-      (shipped, schema v14 — see Phase 4.2), but importing CC `Venue` rows into
-      it from a `.USR` file is still deferred (the #382 follow-up).
+      `A1`–`B2`/`Moves` notation). Three source tables are confirmed present in
+      the real file but not yet mapped:
+      - `Venue` → the venue **entity** now exists (shipped, schema v14 — see
+        Phase 4.2) and the native archive importer links venues by fingerprint,
+        but a `.USR` import still lands venue as free text only, with no entity
+        link. **Tracked in #687.**
+      - `Dance_Related` → the related-dance feature ships in-app, but `.USR`
+        import currently drops these relationships. **Tracked in #688.**
+      - `Term` → glossary import remains **blocked** on the glossary browser,
+        which is not yet built (post-GA "later" scope).
 - [x] 6.6 Generic import/export (JSON) for backup and inter-user sharing
   - Export/backup delivered under G.5 (whole-collection archive + restore/merge).
   - Inter-user-sharing **import** delivered: `GenericJsonAdapter` (pure-Dart CORE
