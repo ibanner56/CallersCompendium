@@ -388,11 +388,29 @@ abstract class AppLocalizations {
   /// **'First day of week'**
   String get settingsFirstDayOfWeekTitle;
 
-  /// Subtitle for the disabled, not-yet-available first-day-of-week row. Describes the future feature without implying it works today.
+  /// Subtitle for the live first-day-of-week control. Describes what it affects: date views the app draws itself (not the system date picker).
   ///
   /// In en, this message translates to:
-  /// **'Which day the week starts on in the app\'s date views. Coming in a future update.'**
+  /// **'Which day the week starts on in the app\'s own date views, such as the Programs list\'s this-week strip.'**
   String get settingsFirstDayOfWeekSubtitle;
+
+  /// First-day-of-week option: start the week on Sunday.
+  ///
+  /// In en, this message translates to:
+  /// **'Sunday'**
+  String get settingsFirstDayOfWeekSunday;
+
+  /// First-day-of-week option: start the week on Monday (ISO-8601).
+  ///
+  /// In en, this message translates to:
+  /// **'Monday'**
+  String get settingsFirstDayOfWeekMonday;
+
+  /// First-day-of-week option: start the week on Saturday.
+  ///
+  /// In en, this message translates to:
+  /// **'Saturday'**
+  String get settingsFirstDayOfWeekSaturday;
 
   /// Title of the control that chooses the language of the app's interface.
   ///

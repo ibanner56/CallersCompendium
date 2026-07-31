@@ -446,16 +446,14 @@ defaults) live in the **Defaults** pane section below.
   Two surfaces stay English by design for now — a small set of core service-layer
   messages (#528) and the diagnostics-log export body (a maintainer support
   artifact). Exported dance/program documents now follow the UI language (#529).
-  NOTE: Flutter's `showDatePicker` derives
-  its first day of week from the locale and can't be overridden per-call, and the
-  app draws no week/month grid of its own yet, so the first-day-of-week preference
-  has no consumer today. Its plumbing (pref/`FirstDayOfWeekScope`/storage, validated
-  on load) still ships for a future consumer, but the Settings control is presented
-  its first day of week from the locale and can't be overridden per-call, and the
-  app draws no week/month grid of its own yet, so the first-day-of-week preference
-  has no consumer today. Its plumbing (pref/`FirstDayOfWeekScope`/storage, validated
-  on load) still ships for a future consumer, but the Settings control is presented
-  as a disabled "Coming soon" row rather than a live control that changes nothing.
+  NOTE: the first-day-of-week preference is now live: the Programs list's "this
+  week" header strip (`WeekdayHeaderStrip`) honors it, ordering its weekday
+  columns from `FirstDayOfWeekScope`, and the Language & region settings
+  section's dropdown is a live control (mirroring the date-format dropdown's
+  instant-notifier-then-persist pattern). Flutter's `showDatePicker` still
+  derives its own first day of week from the locale and can't be overridden
+  per-call, so it's unaffected — that's an intentional, documented limitation
+  (see `docs/dev/localization.md`).
 
 ## Defaults (settings pane)
 

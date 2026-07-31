@@ -292,3 +292,27 @@ FirstDayOfWeekPref firstDayOfWeekPrefFromStored(Object? stored) {
   }
   return FirstDayOfWeekPref.system;
 }
+
+/// The seven [DateTime] weekday constants (Mon=1…Sun=7), in the order the week
+/// should be drawn under [pref] — the first entry is the week's first day.
+///
+/// For [FirstDayOfWeekPref.system] this defers to [material]'s
+/// `firstDayOfWeekIndex` (an index into `narrowWeekdays`, where `0` = Sunday),
+/// matching the fallback [FirstDayOfWeekPref.startWeekday] documents. This is
+/// the first real consumer of the preference (ROADMAP G.8): any week-aligned
+/// UI the app draws itself can call this instead of re-deriving the ordering.
+List<int> orderedWeekdays(
+  FirstDayOfWeekPref pref,
+  MaterialLocalizations material,
+) {
+  final start =
+      pref.startWeekday ??
+      _weekdayFromFirstDayIndex(material.firstDayOfWeekIndex);
+  return List<int>.generate(7, (i) => ((start - 1 + i) % 7) + 1);
+}
+
+/// Converts a [MaterialLocalizations.firstDayOfWeekIndex] (`0` = Sunday … `6` =
+/// Saturday, an index into `narrowWeekdays`) into the matching [DateTime]
+/// weekday constant (Mon=1…Sun=7).
+int _weekdayFromFirstDayIndex(int index) =>
+    index == 0 ? DateTime.sunday : index;

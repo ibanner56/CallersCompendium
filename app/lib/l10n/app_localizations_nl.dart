@@ -168,7 +168,16 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsFirstDayOfWeekSubtitle =>
-      'Welke dag de week begint in de datumweergaven van de app. Komt in een toekomstige update.';
+      'Welke dag de week begint in de eigen datumweergaven van de app, zoals de weekstrook van de programmalijst.';
+
+  @override
+  String get settingsFirstDayOfWeekSunday => 'Zondag';
+
+  @override
+  String get settingsFirstDayOfWeekMonday => 'Maandag';
+
+  @override
+  String get settingsFirstDayOfWeekSaturday => 'Zaterdag';
 
   @override
   String get settingsAppLanguageTitle => 'Apptaal';

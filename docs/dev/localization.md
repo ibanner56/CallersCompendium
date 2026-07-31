@@ -384,14 +384,15 @@ human translations.
 
 Flutter's `showDatePicker` derives its **first day of week from the active
 locale** and offers no per-call override, so the platform calendar picker — the
-app's current date-entry surface — always follows the locale. The app also draws
-no week/month grid of its own, so the first-day-of-week preference has **no
-consumer yet**. Its plumbing still ships — the value is persisted and exposed
-app-wide (via `FirstDayOfWeekScope`, with `FirstDayOfWeekPref.startWeekday` for
-consumers) and validated on load — so a future date surface can honor it without
-re-plumbing. Until then, rather than surface a live control that changes nothing
-observable, the Language & region settings section presents first-day-of-week as
-a **disabled "Coming soon" row** (matching the app's convention for not-yet-wired
-options). Overriding `showDatePicker`'s first day of week is intentionally avoided
-rather than hacked around. When a real consumer lands, flip the row back to a live
-control and re-add its option labels to `app_en.arb`.
+app's current date-entry surface — always follows the locale, regardless of the
+app's first-day-of-week preference. Overriding `showDatePicker`'s first day of
+week is intentionally avoided rather than hacked around.
+
+The first-day-of-week preference (ROADMAP G.8) does have a live consumer: the
+Programs list's "this week" header strip (`WeekdayHeaderStrip`) column-orders
+its seven day cells starting at `FirstDayOfWeekScope.of(context)` (falling back
+to the platform locale's `MaterialLocalizations.firstDayOfWeekIndex` for
+`FirstDayOfWeekPref.system`, via `orderedWeekdays()` in `regional_formats.dart`).
+The Language & region settings section's dropdown is live — changing it updates
+the strip immediately app-wide, the same instant-notifier-then-persist pattern
+as the date-format control.

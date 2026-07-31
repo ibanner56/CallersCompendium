@@ -168,7 +168,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsFirstDayOfWeekSubtitle =>
-      'Which day the week starts on in the app\'s date views. Coming in a future update.';
+      'Which day the week starts on in the app\'s own date views, such as the Programs list\'s this-week strip.';
+
+  @override
+  String get settingsFirstDayOfWeekSunday => 'Sunday';
+
+  @override
+  String get settingsFirstDayOfWeekMonday => 'Monday';
+
+  @override
+  String get settingsFirstDayOfWeekSaturday => 'Saturday';
 
   @override
   String get settingsAppLanguageTitle => 'App language';

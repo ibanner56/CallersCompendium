@@ -167,7 +167,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsFirstDayOfWeekSubtitle =>
-      'アプリの日付表示で週の始まる曜日を指定します。将来のアップデートで追加予定です。';
+      'アプリ自身が描画する日付表示(プログラム一覧の「今週」ストリップなど)で、週の始まる曜日を指定します。';
+
+  @override
+  String get settingsFirstDayOfWeekSunday => '日曜日';
+
+  @override
+  String get settingsFirstDayOfWeekMonday => '月曜日';
+
+  @override
+  String get settingsFirstDayOfWeekSaturday => '土曜日';
 
   @override
   String get settingsAppLanguageTitle => 'アプリの言語';

@@ -13,6 +13,12 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **First day of week is live.** The Language & region settings dropdown for
+  first day of week (System default / Sunday / Monday / Saturday) is no
+  longer disabled — it now has a real consumer, the Programs list's "this
+  week" header strip, which reorders its weekday columns to match your
+  choice (falling back to your app language's convention for System
+  default). Closes #636.
 - **The program matrix now shows each dance's formation.** A new pinned
   "Formation" column sits next to the dance title in the wide grid — always
   visible while scrolling through moves, so callers can spot too many
