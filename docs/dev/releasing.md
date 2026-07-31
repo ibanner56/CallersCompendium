@@ -442,12 +442,17 @@ deploys it on any push to `main` under `site/**`, or on manual dispatch.
 
 The site publisher is the **mirror image** of the manifest publisher: it starts
 from the existing `gh-pages` content and rewrites only the site files, so it
-**preserves the channel manifests and their detached signatures** (`beta.json` /
-`stable.json` and `beta.json.sig` / `stable.json.sig`), and the manifest publisher
-preserves the site. The two therefore coexist on one branch without clobbering each
-other (proven offline by `tools/release/test_publish_pages_site.py`, whose
-`.sig`-survival case guards the release blocker in #607 — deleting a signature makes
-the in-app update client fail closed and silently stop offering updates). This is
+**preserves the channel manifests and their detached signatures by pattern**
+(`*.json` / `*.json.sig`, issue #640) rather than an enumerated per-channel list,
+and the manifest publisher preserves the site. Preserving by pattern means any
+*future* channel or signed artifact (e.g. a new `alpha.json` / `alpha.json.sig`)
+is automatically protected without editing the site publisher — the enumerated
+list this replaced is what let `.sig` preservation silently fall behind in #607.
+The two publishers therefore coexist on one branch without clobbering each other
+(proven offline by `tools/release/test_publish_pages_site.py`, whose `.sig`-
+survival case guards the release blocker in #607, and whose novel-channel case
+guards the pattern-based hardening in #640 — deleting a signature makes the
+in-app update client fail closed and silently stop offering updates). This is
 why Pages stays on **Deploy from a branch → `gh-pages`** — do not switch it to the
 GitHub-Actions Pages source.
 
