@@ -47,9 +47,13 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
 ///   unstructurable formation/facing note (`…; form a wave of four`, `…; face
 ///   up`); structuring the move alone would drop the note, and structuring the
 ///   note would fabricate a move, so those correctly stay whole-custom.
-/// - **`||` (simultaneity) stays custom.** Any line containing a top-level `||`
-///   (`A || B`) is left whole-custom: the model cannot represent two moves at
-///   once, so structuring it would fabricate a relationship.
+/// - **`||` (simultaneity) fans into a `meanwhile` container (#591/#572).** A
+///   line containing a top-level `||` (`A || B`) is split into one side per
+///   `||`-clause and wrapped in [Figure.meanwhile] — see
+///   [meanwhileFromDoublePipe] for the fidelity rules (shared container
+///   beats, prefer-custom sides, side-count bound). Falls back to the
+///   pre-#591 whole-custom behaviour only for a malformed/degenerate `||` run
+///   or a hostile over-separated line (see [meanwhileFromDoublePipe]).
 /// - **Lossless beats.** [deriveSections] sums each figure's `beats`
 ///   cumulatively to place section labels, so a split MUST preserve the source
 ///   line's TOTAL beats exactly — no more (double-count) and no less (section
@@ -80,8 +84,22 @@ List<Figure> parseFigureLines(
     return f == null ? const [] : [f];
   }
 
-  // Simultaneity is not modelled → keep the whole line custom (never split).
-  if (hasTopLevelSeparator(rawText, '||')) return wholeAsList();
+  // Simultaneity (#591/#572): fan a top-level `||` line out into a
+  // `meanwhile` container instead of keeping it whole-custom. Declines (falls
+  // back to the pre-#591 whole-custom line) only for a malformed/degenerate
+  // `||` run or an over-separated hostile line — see
+  // `meanwhileFromDoublePipe` for the guards.
+  if (hasTopLevelSeparator(rawText, '||')) {
+    final meanwhile = meanwhileFromDoublePipe(
+      rawText,
+      beats: beats,
+      progression: progression,
+      taxonomy: taxonomy,
+      scrub: scrub,
+      frontEnd: frontEnd,
+    );
+    return meanwhile == null ? wholeAsList() : [meanwhile];
+  }
 
   final clauses = _splitTopLevel(rawText, ';');
   if (clauses.length < 2) return wholeAsList();
@@ -115,6 +133,80 @@ List<Figure> parseFigureLines(
     parsed.add(f);
   }
   return parsed;
+}
+
+/// Fans a top-level `||` (simultaneity) line out into a [Figure.meanwhile]
+/// container (#591, part of the #572 epic): one side per `||`-clause, each
+/// parsed independently via [parseFigureLine] and assembled into the
+/// container. Public (not `_`-private) because it is shared by both the
+/// PLURAL entry point above ([parseFigureLines]) and the SINGULAR reparse/
+/// free-text-entry fan-out (`figure_front_end_fan_out.dart`'s
+/// `parseFigureLineFanOut`), so an old whole-custom `||` figure gets the same
+/// upgrade path a freshly-imported one does. Returns `null` when the line
+/// should NOT fan out — the caller then falls back to its pre-#591
+/// whole-custom behaviour — for any of:
+/// - a malformed/degenerate `||` run (`A||`, `A||||B`) or a leading/trailing
+///   `||`, mirroring the `;`-splitter's identical guard just above;
+/// - more sides than [kMaxMeanwhileSides] allows — a **security bound**
+///   (OWASP #591): a hostile line with many `||` separators degrades safely
+///   to the unchanged whole-custom line rather than fanning out unboundedly
+///   or throwing;
+/// - a side that is empty after scrubbing (defensive; `_splitTopLevel`
+///   already trims, so this is a residual guard against a side that is
+///   entirely stripped by [scrubFigureText]'s sanitisation).
+///
+/// Fidelity rules for a successful fan-out:
+/// - **Prefer-custom (locked #572 behaviour).** Each side is parsed via the
+///   SAME per-side [parseFigureLine]/[frontEnd] used everywhere else, so a
+///   side that fails to structure becomes its own custom sub-figure (already
+///   scrubbed/sanitised — parity with #444/#611 is automatic, since
+///   [parseFigureLine] always scrubs first) — it is kept inside the
+///   container, never collapsed back to one whole-line custom.
+/// - **Shared container beats.** The source states ONE combined total for
+///   the whole `||` line (never per-side), so that total rides on the
+///   **container's** `beats` ([Figure.meanwhile]'s `beats` parameter); every
+///   side is beats-absent. This keeps [deriveSections]' cumulative beat total
+///   byte-identical to the pre-#591 whole-custom line (the container counts
+///   once, exactly like the single custom figure it replaces).
+/// - **Flat only.** Sides are ordinary (non-meanwhile) figures from
+///   [parseFigureLine], so [Figure.meanwhile]'s flat-only precondition can
+///   never fail here — no `try/catch` is needed around the factory call.
+Figure? meanwhileFromDoublePipe(
+  String rawText, {
+  required int beats,
+  required bool progression,
+  required Taxonomy? taxonomy,
+  required String Function(String)? scrub,
+  required FigureFrontEnd frontEnd,
+}) {
+  final sides = _splitTopLevel(rawText, '||');
+  if (sides.length < 2 ||
+      sides.length > kMaxMeanwhileSides ||
+      sides.any((s) => s.isEmpty)) {
+    return null;
+  }
+  final safeBeats = beats < 0 ? 0 : beats;
+  final figures = <Figure>[];
+  for (final side in sides) {
+    final f = parseFigureLine(
+      side,
+      taxonomy: taxonomy,
+      scrub: scrub,
+      frontEnd: frontEnd,
+    );
+    // `f` is only `null` when `side` is empty after scrubbing (defensive —
+    // decline the fan-out rather than drop a side; the caller's whole-line
+    // fallback still preserves the full source text).
+    if (f == null) return null;
+    figures.add(f);
+  }
+  // Progression is a whole-line marker; it rides on the container itself
+  // (there is no "last clause" — every side happens at once).
+  return Figure.meanwhile(
+    figures: figures,
+    beats: safeBeats,
+    progression: progression,
+  );
 }
 
 /// Whether [sep] occurs at bracket depth 0 in [t] (outside any `()`/`[]`). Used

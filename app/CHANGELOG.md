@@ -31,6 +31,17 @@ each release so store builds and tags can be traced back to an entry.
   export all show a simultaneity pair together on one row/line, joined by
   "while", with the shared beat count shown once — never split into two
   rows/lines and never double-counted.
+- **Importing a simultaneous-action line now keeps both sides instead of one
+  opaque blob (#591).** The Caller's Box `||` operator (e.g. "Women allemande
+  left 1 || Men orbit clockwise ½") and ContraDB free-text joined by
+  "while"/"whiles" (e.g. "ladles allemande left 1½ around while the
+  gentlespoons orbit clockwise ½ around") now import as a "meanwhile"
+  container with each side parsed independently, instead of the whole line
+  becoming a single unstructured custom figure. A side that isn't recognized
+  still imports safely as its own custom sub-figure — nothing is dropped or
+  invented — and the shared beat count is counted once. Re-syncing an
+  existing dance upgrades any older `||`/"while" line the same way. Part of
+  #572.
 - **Write out the month in your custom date format.** The custom date-format
   pattern (Settings ▸ Language & region ▸ Date format ▸ Custom) now understands
   written-out month tokens alongside the numeric ones: `MMM` renders a short

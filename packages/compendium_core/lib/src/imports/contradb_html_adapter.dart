@@ -267,15 +267,16 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       final beats = _parseBeats(_beatsCell(cells), index, issues);
 
       // Route the (already-scrubbed) text through the shared parser: recognised
-      // moves become structured figures, the rest fall back to custom. The
-      // section label is not embedded in the text (it derives from beats).
+      // moves become structured figures, an unrecognised `A while B` /
+      // `A whiles B` simultaneity line fans into a `meanwhile` container
+      // (#591/#572), and anything else falls back to custom. The section
+      // label is not embedded in the text (it derives from beats).
       // Non-null since `scrubbed` isn't empty.
-      final figure = parseFigureLine(
+      final figure = parseContraDbFigureLine(
         scrubbed,
         beats: beats,
         progression: hasProgression,
         scrub: (s) => s,
-        frontEnd: contraDbHtmlFigureFrontEnd,
       )!;
 
       // Ocean-wave balance split: ContraDB renders "form an ocean wave &

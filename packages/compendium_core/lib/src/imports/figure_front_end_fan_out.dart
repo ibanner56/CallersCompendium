@@ -83,9 +83,14 @@ _AttemptTier _classify(List<Figure> result) {
 /// CallersCompanion do NOT `;`-split, so only the [tcbFigureFrontEnd] attempt is
 /// routed through [parseFigureLines] — every other front-end (including any
 /// caller-injected one) attempts the WHOLE line as a single figure via
-/// [parseFigureLine]. An empty result means the line was empty after scrubbing
-/// (front-end-independent), which the plural fan-out treats as "nothing to
-/// insert".
+/// [parseFigureLine]. [contraDbHtmlFigureFrontEnd] is routed through
+/// [parseContraDbFigureLine] instead of a plain [parseFigureLine] call so a
+/// ContraDB `A while B`/`A whiles B` simultaneity line fans into a
+/// [Figure.meanwhile] container (#591/#572) with the same precedence
+/// guarantees as the dedicated ContraDB import adapter — [parseFigureLines]
+/// already gives [tcbFigureFrontEnd] the equivalent `||` fan-out for free. An
+/// empty result means the line was empty after scrubbing (front-end-
+/// independent), which the plural fan-out treats as "nothing to insert".
 List<Figure> _attemptLines(
   String rawText,
   FigureFrontEnd frontEnd, {
@@ -102,6 +107,15 @@ List<Figure> _attemptLines(
       frontEnd: frontEnd,
     );
   }
+  if (identical(frontEnd, contraDbHtmlFigureFrontEnd)) {
+    final figure = parseContraDbFigureLine(
+      rawText,
+      beats: beats,
+      progression: progression,
+      taxonomy: taxonomy,
+    );
+    return figure == null ? const [] : [figure];
+  }
   final figure = parseFigureLine(
     rawText,
     beats: beats,
@@ -112,14 +126,73 @@ List<Figure> _attemptLines(
   return figure == null ? const [] : [figure];
 }
 
+/// Runs one [frontEnd] over [rawText] for the SINGULAR (reparse/free-text
+/// single-line) path, returning the best single [Figure].
+///
+/// Mirrors [_attemptLines] but never `;`-splits (the singular path's
+/// historical single-line contract — see [parseFigureLineFanOut]). `||`/
+/// `while` simultaneity fan-out IS extended to this path (#591/#572,
+/// maintainer decision 2026-07-31): the reparse-upgrade mechanism exists
+/// precisely to upgrade an old whole-custom figure when recognition
+/// improves, so an old `||`/`while` whole-custom gets the SAME upgrade a
+/// freshly-imported line does. [tcbFigureFrontEnd] tries
+/// [meanwhileFromDoublePipe] first (falling back to a plain [parseFigureLine]
+/// attempt when it declines — no top-level `||`, or a malformed/oversized
+/// split); [contraDbHtmlFigureFrontEnd] is routed through
+/// [parseContraDbFigureLine], which already runs the full recognizer
+/// pipeline before attempting its own `while`/`whiles` fallback.
+Figure? _attemptLine(
+  String rawText,
+  FigureFrontEnd frontEnd, {
+  required int beats,
+  required bool progression,
+  required Taxonomy? taxonomy,
+}) {
+  if (identical(frontEnd, tcbFigureFrontEnd)) {
+    final meanwhile = meanwhileFromDoublePipe(
+      rawText,
+      beats: beats,
+      progression: progression,
+      taxonomy: taxonomy,
+      scrub: null,
+      frontEnd: frontEnd,
+    );
+    if (meanwhile != null) return meanwhile;
+    return parseFigureLine(
+      rawText,
+      beats: beats,
+      progression: progression,
+      taxonomy: taxonomy,
+      frontEnd: frontEnd,
+    );
+  }
+  if (identical(frontEnd, contraDbHtmlFigureFrontEnd)) {
+    return parseContraDbFigureLine(
+      rawText,
+      beats: beats,
+      progression: progression,
+      taxonomy: taxonomy,
+    );
+  }
+  return parseFigureLine(
+    rawText,
+    beats: beats,
+    progression: progression,
+    taxonomy: taxonomy,
+    frontEnd: frontEnd,
+  );
+}
+
 /// Parses a SINGLE free-text figure line by fanning OUT across [frontEnds] (the
 /// [figureFanOutFrontEnds] precedence list by default) and returning the
 /// best structured (non-custom) [Figure].
 ///
 /// This is the single-line orchestrator used by the reparse-customs upgrade
 /// path: it never `;`-splits (matching that path's historical single-line
-/// behaviour). Each front-end is tried in precedence order via [parseFigureLine]
-/// and its result is ranked with the [_AttemptTier] two-tier rule:
+/// behaviour), though it DOES fan a top-level `||`/`while` simultaneity line
+/// into a [Figure.meanwhile] container — see [_attemptLine]. Each front-end
+/// is tried in precedence order via [_attemptLine] and its result is ranked
+/// with the [_AttemptTier] two-tier rule:
 /// - the FIRST front-end that yields a CLEAN (noteless) structured figure wins
 ///   outright — a clean parse always beats a note-bearing one, so a
 ///   lower-precedence front-end that reads the whole line cleanly is preferred
@@ -157,12 +230,12 @@ Figure? parseFigureLineFanOut(
   Figure? noteWin;
   Figure? customFallback;
   for (final fe in fes) {
-    final parsed = parseFigureLine(
+    final parsed = _attemptLine(
       rawText,
+      fe,
       beats: beats,
       progression: progression,
       taxonomy: taxonomy,
-      frontEnd: fe,
     );
     // Empty after scrubbing is front-end-independent: nothing to store.
     if (parsed == null) return null;

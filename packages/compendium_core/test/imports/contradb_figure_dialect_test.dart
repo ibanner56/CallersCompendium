@@ -823,4 +823,172 @@ void main() {
       expect(f.params['turn'], 1.0);
     });
   });
+
+  group('parseContraDbFigureLine — `while`/`whiles` fan-out into `meanwhile` '
+      '(#591/#572)', () {
+    test('allemande orbit (dances/1717) resolves via its dedicated recognizer, '
+        'NOT a meanwhile fan-out (precedence regression)', () {
+      // Exact rendered text from ContraDB dance #1717 "Another Orbit for
+      // Liz" (A1, 8 beats). This is the literal allemandeOrbitWords
+      // template — the named combined move consumes the whole line
+      // (empty note), so `parseContraDbFigureLine` must return it
+      // completely unmodified: a top-level `while` inside a move that
+      // ALREADY structures the whole line never fans out.
+      final f = parseContraDbFigureLine(
+        'ladles allemande left 1½ around while the gentlespoons orbit '
+        'clockwise ½ around',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.move, 'allemande_orbit');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['inner'], 1.5);
+      expect(f.params['outer'], 0.5);
+    });
+
+    test('box circulate dual-clause (issue #585, Folklife Frolic A2/B1) '
+        'resolves via its dedicated recognizer, NOT a meanwhile fan-out '
+        '(precedence regression)', () {
+      final f = parseContraDbFigureLine(
+        'balance & box circulate - larks cross while robins loop right',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.move, 'box_circulate');
+      expect(f.params['balance'], isTrue);
+      expect(f.params['who'], 'role1s');
+      expect(f.params['hand'], 'right');
+    });
+
+    test('dances/1603 "Eye Of The Tiger" A1 — "whiles" spelling fans into '
+        'a meanwhile container (neither side is a ContraDB template)', () {
+      // Exact rendered text from ContraDB dance #1603 (A1 cont'd, 8 beats).
+      // Confirms the word-boundary splitter recognises "whiles" (a
+      // substring of which is "while") as its own connective, not a
+      // literal-substring cut mid-word. The first side happens to
+      // structure via the generic `_balance` recognizer; the second stays
+      // custom (prefer-custom) — the container is still built either way.
+      final f = parseContraDbFigureLine(
+        'balance Wave-gentlespoons move straight to next wave -- whiles '
+        'ladles slide left in center other to meet new neighbor',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isTrue);
+      expect(f.params['beats'], 8);
+      final sides = f.subFigures;
+      expect(sides, hasLength(2));
+      expect(sides[0].move, 'balance');
+      expect(sides[0].isCustom, isFalse);
+      expect(sides[1].isCustom, isTrue);
+      expect(
+        sides[1].params['text'],
+        'role2s slide left in center other to meet new neighbor',
+      );
+      // Shared beats ride on the container only.
+      expect(sides.every((s) => !s.params.containsKey('beats')), isTrue);
+    });
+
+    test('dances/326 "Snake in the Garden" A2 — "while" fans into a '
+        'meanwhile container (one side structures, one stays custom)', () {
+      // Exact rendered text from ContraDB dance #326 (A2, 8 beats).
+      final f = parseContraDbFigureLine(
+        'gentlespoons dance out while ladles dance in to a long wave in '
+        'the center - balance the wave',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isTrue);
+      expect(f.params['beats'], 8);
+      final sides = f.subFigures;
+      expect(sides, hasLength(2));
+      expect(sides[0].isCustom, isTrue);
+      expect(sides[0].params['text'], 'role1s dance out');
+      expect(sides[1].isCustom, isFalse);
+      expect(sides[1].move, 'form_a_long_wave');
+    });
+
+    test('issue #585 (Rock Creek Reel A1) — "while" fans into a meanwhile '
+        'container', () {
+      final f = parseContraDbFigureLine(
+        'larks dance out while robins dance in to a long wave in the '
+        'center - balance the wave',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isTrue);
+      expect(f.params['beats'], 8);
+      expect(f.subFigures[0].isCustom, isTrue);
+      expect(f.subFigures[0].params['text'], 'role1s dance out');
+      expect(f.subFigures[1].move, 'form_a_long_wave');
+    });
+
+    test('a note that swallowed the connective is treated like custom: the '
+        'fan-out still runs (mirrors `_noteSwallowedCompound`)', () {
+      // "balance" alone (no stated subject, no "the") greedily captures
+      // everything after it as a verbatim note — including a top-level
+      // "whiles" the recognizer has no business absorbing. Reusing
+      // dances/1603's exact text: without the note-swallow guard this
+      // would incorrectly return a structured `balance` figure whose note
+      // silently contains the whole second clause.
+      final f = parseContraDbFigureLine(
+        'balance Wave-gentlespoons move straight to next wave -- whiles '
+        'ladles slide left in center other to meet new neighbor',
+      );
+      expect(f!.isMeanwhile, isTrue);
+    });
+
+    test('no top-level `while`/`whiles` → unchanged (today\'s behaviour)', () {
+      final f = parseContraDbFigureLine('neighbors swing');
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.move, 'swing');
+    });
+
+    test('"whilex" is not a whole-word match (word-boundary correctness)', () {
+      final f = parseContraDbFigureLine(
+        'this word has whilex in it not a connective',
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.isCustom, isTrue);
+    });
+
+    test('a degenerate leading connective (`while B`, empty first side) '
+        'declines to fan out and stays custom', () {
+      final f = parseContraDbFigureLine('while robins loop');
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.isCustom, isTrue);
+    });
+
+    test('a degenerate trailing connective (`A while`, empty second side) '
+        'declines to fan out and stays custom', () {
+      final f = parseContraDbFigureLine('larks cross while');
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.isCustom, isTrue);
+    });
+
+    test('a security bound: only the FIRST top-level connective splits, so a '
+        'line with many `while`s never produces more than 2 sides', () {
+      final f = parseContraDbFigureLine(
+        'a while b while c while d while e while f while g',
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isTrue);
+      expect(f.subFigures, hasLength(2));
+      expect(f.subFigures[0].params['text'], 'a');
+      expect(
+        f.subFigures[1].params['text'],
+        'b while c while d while e while f while g',
+      );
+    });
+
+    test('empty after scrubbing yields null (front-end-independent)', () {
+      expect(parseContraDbFigureLine('   '), isNull);
+    });
+  });
 }

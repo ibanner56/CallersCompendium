@@ -1100,12 +1100,25 @@ void main() {
       },
     );
 
-    test('a top-level `||` (simultaneity) keeps the whole line custom, never '
-        'split', () {
+    test('a top-level `||` (simultaneity) fans into a `meanwhile` container '
+        '(#591/#572), never a whole-custom line', () {
       final fs = _parseLines('Balance the ring || California twirl', beats: 8);
       expect(fs, hasLength(1));
-      expect(fs.single.isCustom, isTrue);
-      expect(fs.single.params['text'], contains('||'));
+      final container = fs.single;
+      expect(container.isCustom, isFalse);
+      expect(container.isMeanwhile, isTrue);
+      expect(container.subFigures.map((f) => f.move), [
+        'balance_the_ring',
+        'california_twirl',
+      ]);
+      expect(container.subFigures.every((f) => !f.isCustom), isTrue);
+      // Shared beats ride on the container (byte-identical cumulative total
+      // to the pre-#591 whole-custom line); sides are beats-absent.
+      expect(container.params['beats'], 8);
+      expect(
+        container.subFigures.every((f) => !f.params.containsKey('beats')),
+        isTrue,
+      );
     });
 
     test('a `;` inside a parenthetical annotation does not split the line '
@@ -1217,6 +1230,72 @@ void main() {
       // The A2 clause figures sit inside the same section as the custom
       // compound did (startBeat 16 → A2).
       expect(sfFor(afterSections, 'circle').label, 'A2');
+    });
+
+    test('meanwhile invariant: a `||` container counts its shared beats ONCE '
+        'through deriveSections, byte-identical to the pre-#591 whole-custom '
+        'total (#591/#572)', () {
+      // A 64-beat dance whose second line is a `||` simultaneity. "before"
+      // carries it as one custom figure (beats 8, exactly like an old
+      // import-gap custom); "after" fans it into a meanwhile container.
+      final head = _parseLine('Neighbor swing', beats: 16)!; // A1 @ 0
+      final tailA = _parseLine('Partner swing', beats: 16)!; // @ 24
+      final tailB = _parseLine('Neighbor allemande right 1', beats: 24)!;
+
+      final before = <Figure>[
+        head,
+        customFigure('Balance the ring || California twirl', beats: 8),
+        tailA,
+        tailB,
+      ];
+      final after = <Figure>[
+        head,
+        ..._parseLines('Balance the ring || California twirl', beats: 8),
+        tailA,
+        tailB,
+      ];
+
+      // The fan-out still emits exactly ONE figure for the whole `||`
+      // line: the meanwhile container, carrying the full 8 beats — never
+      // one figure per side.
+      expect(after.length, before.length);
+      final container = after[1];
+      expect(container.isMeanwhile, isTrue);
+      expect(container.beats, 8);
+
+      final beforeIssues = <ValidationIssue>[];
+      final afterIssues = <ValidationIssue>[];
+      final beforeSections = deriveSections(
+        before,
+        PhraseStructure.standard,
+        issues: beforeIssues,
+      );
+      final afterSections = deriveSections(
+        after,
+        PhraseStructure.standard,
+        issues: afterIssues,
+      );
+
+      int total(List<Figure> fs) => fs.fold(0, (a, f) => a + f.beats);
+      // Cumulative total is byte-identical and still reconciles to 64 —
+      // the container is counted once, not per-side.
+      expect(total(after), total(before));
+      expect(total(after), 64);
+      expect(beforeIssues, isEmpty);
+      expect(afterIssues, isEmpty);
+
+      // The shared trailing figures land on the SAME startBeat + label —
+      // the fan-out neither shifts nor relabels anything downstream.
+      final beforeTail = beforeSections.last;
+      final afterTail = afterSections.last;
+      expect(afterTail.startBeat, beforeTail.startBeat);
+      expect(afterTail.label, beforeTail.label);
+      // The container itself sits at the same section/startBeat the whole
+      // custom line did.
+      final beforeContainerSf = beforeSections[1];
+      final afterContainerSf = afterSections[1];
+      expect(afterContainerSf.startBeat, beforeContainerSf.startBeat);
+      expect(afterContainerSf.label, beforeContainerSf.label);
     });
   });
 
