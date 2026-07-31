@@ -50,7 +50,9 @@ const int kMaxFigureDiffLines = 200;
 /// identity, so it keys on its own line text (`params['text']`), trimmed and
 /// with internal whitespace collapsed — there is no structure to hide
 /// dialect noise behind, so the text itself (once trivial formatting noise is
-/// removed) IS the identity.
+/// removed) IS the identity. `params['text']` is untrusted import content, so
+/// a malformed/non-`String` value is treated as empty rather than thrown —
+/// this must never crash the comparison.
 ///
 /// **Deliberately excluded from the key** (owner-locked, #686): `beats`,
 /// [Figure.progression], [Figure.note], [Figure.walkthroughOverride],
@@ -84,7 +86,8 @@ String figureCanonicalKey(Figure figure, Taxonomy taxonomy) {
     return 'meanwhile(${sideKeys.join('|')})';
   }
   if (figure.isCustom) {
-    final text = figure.params['text'] as String? ?? '';
+    final rawText = figure.params['text'];
+    final text = rawText is String ? rawText : '';
     return 'custom:${_collapseWhitespace(text)}';
   }
   final def = taxonomy.resolve(figure.move);
@@ -188,6 +191,29 @@ class FigureDiffResult {
 
 const ListEquality<String> _stringListEquality = ListEquality<String>();
 
+/// Cheap identical/differ check (issue #686): compares [oldFigures] and
+/// [newFigures] via [figureCanonicalKey] alone — an `O(n)` key computation
+/// plus a list-equality check, with **no** `O(n·m)` LCS pass and no
+/// rendering. Canonicalization-aware in exactly the same way [diffFigures]
+/// is (dialect wording, `beats`, and progression never count as a
+/// difference) since it uses the same per-figure key.
+///
+/// Non-interactive callers that only need to decide skip-vs-auto-import
+/// (issue #686's program-import resolver) and never inspect
+/// [FigureDiffResult.entries] should call this instead of [diffFigures] —
+/// paying for a full diff (and the [FigureRenderer] calls it requires) that
+/// is never rendered is wasted work, and on a large/hostile figure list it's
+/// needless `O(n·m)` cost for an answer this function gives in `O(n)`.
+bool figuresCanonicallyIdentical({
+  required List<Figure> oldFigures,
+  required List<Figure> newFigures,
+  required Taxonomy taxonomy,
+}) {
+  final oldKeys = [for (final f in oldFigures) figureCanonicalKey(f, taxonomy)];
+  final newKeys = [for (final f in newFigures) figureCanonicalKey(f, taxonomy)];
+  return _stringListEquality.equals(oldKeys, newKeys);
+}
+
 /// Compares [oldFigures] (an existing dance's figures, under [oldStructure])
 /// against [newFigures] (an incoming record's figures, under [newStructure])
 /// using [figureCanonicalKey] as the per-figure identity, and produces a
@@ -204,6 +230,10 @@ const ListEquality<String> _stringListEquality = ListEquality<String>();
 /// Bounded per the module doc of [kMaxFiguresForDiff] (comparison cost) and
 /// [kMaxFigureDiffLines] (rendered output size) — a hostile/huge import can
 /// never blow up this comparison or the prompt built from it.
+///
+/// A caller that only needs the identical/differ answer (never inspecting
+/// [FigureDiffResult.entries]) should call [figuresCanonicallyIdentical]
+/// instead — it never pays for the `O(n·m)` LCS pass or rendering below.
 FigureDiffResult diffFigures({
   required List<Figure> oldFigures,
   required PhraseStructure oldStructure,

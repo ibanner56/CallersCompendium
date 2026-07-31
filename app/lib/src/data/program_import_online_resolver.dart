@@ -96,9 +96,12 @@ Future<ParsedProgramLine> _resolveLine(
 /// blanket "always skip" rule left no room for a confident match that is
 /// actually a genuinely different choreography under the same/similar name —
 /// #686 narrows that by comparing the matched dance's figures against the
-/// previewed dance's figures (`figureCanonicalKey`/`diffFigures`,
-/// canonicalization-aware: dialect wording, beats, and progression never
-/// count as a difference):
+/// previewed dance's figures ([figuresCanonicallyIdentical], built on
+/// [figureCanonicalKey]). This non-interactive path only needs the
+/// identical/differ answer, never a rendered diff, so it deliberately avoids
+/// [diffFigures]'s `O(n·m)` LCS pass and rendering — the comparison stays
+/// canonicalization-aware either way: dialect wording, beats, and
+/// progression never count as a difference.
 ///
 /// - **Identical figures** → still returns `null` (#685's rule, UNCHANGED —
 ///   a true duplicate must never be silently created, non-interactively).
@@ -151,18 +154,12 @@ Future<String?> resolveConfidentOnlineDanceId(
         return null;
       }
       final draftDance = preview.plan.draft.dance;
-      final diff = diffFigures(
+      final identical = figuresCanonicallyIdentical(
         oldFigures: target.figures,
-        oldStructure: target.phraseStructure,
         newFigures: draftDance.figures,
-        newStructure: draftDance.phraseStructure,
         taxonomy: contraTaxonomy,
-        renderer: FigureRenderer(contraTaxonomy),
-        // Display text is unused on this non-interactive path (only
-        // `identical` is consulted); the dialect choice is immaterial.
-        dialect: Dialect.larksRobins,
       );
-      if (diff.identical) {
+      if (identical) {
         // #685, UNCHANGED: a true duplicate must never be silently created
         // non-interactively — skip, leaving the note-slot fallback (#312).
         return null;

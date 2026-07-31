@@ -82,6 +82,16 @@ void main() {
       expect(figureCanonicalKey(a, tax), isNot(figureCanonicalKey(b, tax)));
     });
 
+    test('malformed (non-String) custom text is treated as empty, never throws '
+        '(OWASP: params come from untrusted import content)', () {
+      final malformed = Figure(move: customMove, params: {'text': 42});
+      expect(() => figureCanonicalKey(malformed, tax), returnsNormally);
+      expect(
+        figureCanonicalKey(malformed, tax),
+        figureCanonicalKey(customFigure(''), tax),
+      );
+    });
+
     test('meanwhile container folds all sides into one key', () {
       final a = Figure.meanwhile(
         beats: 8,
@@ -301,6 +311,62 @@ void main() {
       expect(result.truncated, isTrue);
       expect(result.entries, isEmpty);
       expect(result.omittedCount, oldFigures.length + newFigures.length);
+    });
+  });
+
+  group('figuresCanonicallyIdentical', () {
+    bool identical(List<Figure> oldFigures, List<Figure> newFigures) =>
+        figuresCanonicallyIdentical(
+          oldFigures: oldFigures,
+          newFigures: newFigures,
+          taxonomy: tax,
+        );
+
+    test('agrees with diffFigures.identical on an identical sequence', () {
+      final figures = [
+        Figure(move: 'allemande', params: {'hand': 'left'}),
+        Figure(move: 'swing'),
+      ];
+      expect(identical(figures, figures), isTrue);
+      expect(diff(figures, figures).identical, isTrue);
+    });
+
+    test('agrees with diffFigures.identical on a differing sequence', () {
+      final oldFigures = [
+        Figure(move: 'allemande', params: {'hand': 'left'}),
+      ];
+      final newFigures = [
+        Figure(move: 'allemande', params: {'hand': 'right'}),
+      ];
+      expect(identical(oldFigures, newFigures), isFalse);
+      expect(diff(oldFigures, newFigures).identical, isFalse);
+    });
+
+    test('ignores dialect/annotation-only differences, same as diffFigures '
+        '(regression guard)', () {
+      final oldFigures = [
+        Figure(move: 'allemande', params: {'hand': 'left'}, note: 'gently'),
+      ];
+      final newFigures = [
+        Figure(
+          move: 'allemande',
+          params: {'hand': 'left', 'beats': 16},
+          walkthroughOverride: 'go left',
+        ),
+      ];
+      expect(identical(oldFigures, newFigures), isTrue);
+    });
+
+    test('never computes the O(n·m) LCS pass — no FigureRenderer/Dialect '
+        'required and no exception above kMaxFiguresForDiff', () {
+      final count = kMaxFiguresForDiff + 1;
+      final oldFigures = [
+        for (var i = 0; i < count; i++) Figure(move: 'swing'),
+      ];
+      final newFigures = [
+        for (var i = 0; i < count; i++) Figure(move: 'do_si_do'),
+      ];
+      expect(identical(oldFigures, newFigures), isFalse);
     });
   });
 }

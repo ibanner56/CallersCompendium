@@ -436,7 +436,13 @@ class ImportPipeline {
                 DanceLink(
                   id: newId(),
                   kind: LinkKind.relatedDance,
-                  targetDanceId: targetId,
+                  // `wantsLinkBack` is only true for `CommitAction.variation`,
+                  // which `_resolveAction` only ever produces alongside a
+                  // non-null `resolution.targetDanceId` (`targetId` here) —
+                  // `DedupeResolution.variation` requires one. The `!`
+                  // documents that invariant rather than silently accepting
+                  // a `String?` that could never actually be null here.
+                  targetDanceId: targetId!,
                 ),
               ],
             );
