@@ -523,6 +523,50 @@ void main() {
         expect(controller.figureDrafts.single.move, 'swing');
       },
     );
+
+    test(
+      'groupFigureWithNext is a no-op when either row is already a meanwhile '
+      'group, even if called directly without the menu guard (#679 review)',
+      () async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+        final controller = DanceEditorController(
+          repositories: repos,
+          danceId: 'd1',
+          dialect: Dialect.larksRobins,
+        );
+        addTearDown(controller.dispose);
+        await controller.load(
+          dance: Dance(
+            id: 'd1',
+            title: 'My Dance',
+            figures: [
+              Figure.meanwhile(
+                figures: [
+                  Figure(move: 'swing', params: const {'who': 'partners'}),
+                  Figure(move: 'allemande', params: const {'who': 'neighbors'}),
+                ],
+                beats: 16,
+              ),
+              Figure(move: 'balance', params: const {'beats': 4}),
+            ],
+            createdAt: now,
+            updatedAt: now,
+          ),
+          fieldDefs: const [],
+        );
+        expect(controller.figureDrafts, hasLength(2));
+        final before = List.of(controller.figureDrafts);
+
+        // The first row is already a group — grouping it with the next row
+        // would nest a meanwhile inside a meanwhile (flat-only violation).
+        controller.groupFigureWithNext(controller.figureDrafts[0]);
+
+        expect(controller.figureDrafts, equals(before));
+        expect(controller.figureDrafts[0].isMeanwhileGroup, isTrue);
+        expect(controller.figureDrafts[0].meanwhileSides, hasLength(2));
+      },
+    );
   });
 
   group('insertFreeTextFigures (#419)', () {

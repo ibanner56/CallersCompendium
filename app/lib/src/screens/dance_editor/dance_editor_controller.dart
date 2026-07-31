@@ -1027,14 +1027,19 @@ class DanceEditorController extends ChangeNotifier {
   /// Merges [draft] (a top-level figure row) with the row immediately after
   /// it into ONE new meanwhile group draft (#590/#593): both are demoted to
   /// concurrent sides, seeded with the first side's beats (the user edits the
-  /// shared count afterward). No-op if [draft] isn't found or is already the
-  /// last row — [FigureListEditor] only ever offers this action when a valid
-  /// next row exists, but this guard keeps the mutator safe to call directly.
+  /// shared count afterward). No-op if [draft] isn't found, is already the
+  /// last row, or either row is already a meanwhile group — [FigureListEditor]
+  /// only ever offers this action when neither condition holds, but the
+  /// flat-only invariant is enforced HERE too (#679 review) so it doesn't
+  /// depend solely on the menu item's visibility guard; a caller invoking this
+  /// directly (or a future UI path that forgets the check) can never nest a
+  /// meanwhile inside a meanwhile.
   void groupFigureWithNext(FigureDraft draft) {
     final index = figureDrafts.indexOf(draft);
     if (index == -1 || index >= figureDrafts.length - 1) return;
     final first = figureDrafts[index];
     final second = figureDrafts[index + 1];
+    if (first.isMeanwhileGroup || second.isMeanwhileGroup) return;
     final group = FigureDraft(meanwhileSides: [first, second]);
     group.params['beats'] = first.beats;
     group.beatsTouched = first.beatsTouched;

@@ -180,6 +180,38 @@ void main() {
       expect(draft.toFigure(), isNull);
     });
 
+    test('preserves an in-progress side (no move, but a note) as a best-effort '
+        'custom figure rather than silently dropping it (#679 review)', () {
+      final inProgress = FigureDraft()..note = 'still deciding the move';
+      final draft = FigureDraft(
+        meanwhileSides: [
+          FigureDraft(move: 'swing', params: {'who': 'partners'}),
+          FigureDraft(move: 'allemande', params: {'who': 'neighbors'}),
+          inProgress,
+        ],
+      );
+      draft.params['beats'] = 16;
+      final figure = draft.toFigure()!;
+      expect(figure.subFigures, hasLength(3));
+      final third = figure.subFigures[2];
+      expect(third.isCustom, isTrue);
+      expect(third.note, 'still deciding the move');
+    });
+
+    test('still drops a genuinely untouched blank side once at least 2 sides '
+        'are ready (#679 review)', () {
+      final draft = FigureDraft(
+        meanwhileSides: [
+          FigureDraft(move: 'swing'),
+          FigureDraft(move: 'allemande'),
+          FigureDraft(), // freshly added placeholder — nothing entered.
+        ],
+      );
+      draft.params['beats'] = 16;
+      final figure = draft.toFigure()!;
+      expect(figure.subFigures, hasLength(2));
+    });
+
     test('clone deep-copies meanwhileSides with fresh ids', () {
       final source = FigureDraft(
         meanwhileSides: [

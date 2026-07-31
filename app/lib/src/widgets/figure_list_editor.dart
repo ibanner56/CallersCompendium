@@ -1690,15 +1690,41 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
 
   /// Removes side [index]. When exactly 2 sides remain, removing one would
   /// leave a single-side "group" — instead, the group **collapses** to a
-  /// plain figure via [FigureListEditor.onCollapseMeanwhileGroup] (acceptance
-  /// criterion: removing down to one side degrades gracefully).
+  /// plain figure (acceptance criterion: removing down to one side degrades
+  /// gracefully). Prefers [FigureListEditor.onCollapseMeanwhileGroup] when the
+  /// host wired it (the dance editor does, so its undo/autosave pipeline runs
+  /// via the controller's own `collapseMeanwhileGroup`); when it's `null` —
+  /// [FigureListEditor] is reused by other screens (e.g. defaults/shorthand
+  /// editors) that don't opt into that callback — falls back to converting
+  /// `widget.draft` in place into the remaining side and calling
+  /// `widget.onChanged()` directly, the same way every other in-row edit here
+  /// (e.g. [_addSide], [_reorderSide]) updates state without a dedicated
+  /// controller callback. Without this fallback the remove control would
+  /// silently no-op on those hosts (#679 review).
   void _removeSide(int index) {
     final draft = widget.draft;
     final sides = draft.meanwhileSides!;
     if (index < 0 || index >= sides.length) return;
     if (sides.length <= 2) {
       final remaining = sides[index == 0 ? 1 : 0];
-      widget.onCollapseMeanwhileGroup?.call(draft, remaining);
+      final onCollapse = widget.onCollapseMeanwhileGroup;
+      if (onCollapse != null) {
+        onCollapse(draft, remaining);
+        return;
+      }
+      draft
+        ..move = remaining.move
+        ..note = remaining.note
+        ..progression = remaining.progression
+        ..beatsTouched = remaining.beatsTouched
+        ..assumedSubject = remaining.assumedSubject
+        ..customOrigin = remaining.customOrigin
+        ..walkthroughOverride = remaining.walkthroughOverride
+        ..meanwhileSides = null;
+      draft.params
+        ..clear()
+        ..addAll(remaining.params);
+      widget.onChanged();
       return;
     }
     sides.removeAt(index);

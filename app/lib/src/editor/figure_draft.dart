@@ -142,14 +142,58 @@ class FigureDraft {
         .toList(growable: true),
   );
 
+  /// Whether this draft holds any content worth preserving even though it
+  /// has no [move] chosen yet (used by [toFigure] to decide whether an
+  /// in-progress meanwhile side should be best-effort materialized rather
+  /// than silently dropped — see [_bestEffortFigure]). A freshly-added blank
+  /// placeholder side (no note, no params, no walkthrough override) has
+  /// nothing to lose and is the only case still skipped.
+  bool get _hasUnsavedContent =>
+      note.trim().isNotEmpty ||
+      params.isNotEmpty ||
+      walkthroughOverride != null;
+
+  /// Best-effort immutable figure for a meanwhile side that has no [move]
+  /// chosen yet but does have [_hasUnsavedContent] (#679 review): rather than
+  /// silently dropping the side out of the persisted container — losing the
+  /// user's partial authoring the moment an autosave/undo snapshot fires —
+  /// represent it as a [customMove] figure carrying whatever was entered so
+  /// far. Never called for a side whose [toFigure] already succeeds.
+  Figure _bestEffortFigure() {
+    final trimmedNote = note.trim();
+    return Figure(
+      schemaVersion: schemaVersion,
+      move: customMove,
+      params: Map<String, Object?>.of(params),
+      note: trimmedNote.isEmpty ? null : trimmedNote,
+      progression: progression,
+      customOrigin: customOrigin,
+      assumedSubject: false,
+      walkthroughOverride: walkthroughOverride,
+    );
+  }
+
   /// Builds the immutable figure, or `null` when no move is chosen yet (or,
-  /// for a meanwhile group, when fewer than 2 sides have a move chosen yet —
+  /// for a meanwhile group, when fewer than 2 sides can be materialized —
   /// an in-progress group never corrupts the saved dance; it simply isn't
   /// written until it is ready).
   Figure? toFigure() {
     final sides = meanwhileSides;
     if (sides != null) {
-      final readySides = [for (final side in sides) ?side.toFigure()];
+      // Never silently drop a side that the user has started authoring
+      // (#679 review): only a genuinely untouched placeholder side (no move,
+      // no note/params/walkthrough override) is skipped — mirroring how an
+      // untouched top-level draft isn't persisted either. A side with no
+      // move but SOME content is preserved via a best-effort custom figure
+      // instead, so an in-progress group can never lose a side out from
+      // under the user on autosave/undo.
+      final readySides = [
+        for (final side in sides)
+          if (side.toFigure() case final fig?)
+            fig
+          else if (side._hasUnsavedContent)
+            side._bestEffortFigure(),
+      ];
       if (readySides.length < 2) return null;
       // Defensive clamp mirroring the codec's untrusted-input behavior: the
       // UI never lets the side count exceed the cap, but this keeps toFigure()

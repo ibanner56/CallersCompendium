@@ -2553,6 +2553,34 @@ void main() {
       },
     );
 
+    testWidgets(
+      'removing a side down to 1 still collapses the group in place when '
+      'onCollapseMeanwhileGroup is not wired (#679 review)',
+      (tester) async {
+        final drafts = <FigureDraft>[
+          FigureDraft(
+            meanwhileSides: [
+              FigureDraft(move: 'swing', params: {'beats': 8}),
+              FigureDraft(move: 'allemande', params: {'beats': 8}),
+            ],
+          )..params['beats'] = 16,
+        ];
+        await _pump(tester, drafts, wireMeanwhile: false);
+        await _openFigure(tester, 0);
+
+        await tester.tap(find.byKey(const ValueKey('figure-0-side-1-remove')));
+        await tester.pumpAndSettle();
+
+        // No dedicated collapse callback wired — the widget falls back to
+        // converting the group draft in place into the remaining side rather
+        // than silently no-op-ing on the remove tap.
+        expect(drafts, hasLength(1));
+        expect(drafts.single.isMeanwhileGroup, isFalse);
+        expect(drafts.single.move, 'swing');
+        expect(drafts.single.meanwhileSides, isNull);
+      },
+    );
+
     testWidgets('cap enforcement: the add-side control disappears at 6 sides '
         'in favor of an inline maximum message', (tester) async {
       final drafts = <FigureDraft>[
