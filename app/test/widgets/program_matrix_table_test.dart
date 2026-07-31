@@ -250,7 +250,7 @@ void main() {
   });
 
   group('column-header tooltip removal (#662)', () {
-    testWidgets('headers have no tooltip — the label is the only text', (
+    testWidgets('column headers have no tooltip — the label is the only text', (
       tester,
     ) async {
       await pump(
@@ -260,8 +260,16 @@ void main() {
         ],
       );
 
-      // The redundant Tooltip wrapper is gone entirely.
-      expect(find.byType(Tooltip), findsNothing);
+      // Scoped to the column-header cells specifically (rather than a
+      // tree-wide `find.byType(Tooltip)`, which would also flag any
+      // Tooltip legitimately added elsewhere in the matrix later): each
+      // header label's own widget subtree has no Tooltip ancestor.
+      for (final label in ['partner swing', 'neighbor swing', 'balance']) {
+        expect(
+          find.ancestor(of: find.text(label), matching: find.byType(Tooltip)),
+          findsNothing,
+        );
+      }
     });
 
     testWidgets('header semantics label survives tooltip removal', (
