@@ -7,12 +7,18 @@ void main() {
 
   final now = DateTime.utc(2026, 7, 13);
 
-  Dance dance(String id, String title, List<Figure> figures) => Dance(
+  Dance dance(
+    String id,
+    String title,
+    List<Figure> figures, {
+    Formation? formation,
+  }) => Dance(
     id: id,
     title: title,
     figures: figures,
     createdAt: now,
     updatedAt: now,
+    formation: formation ?? const Formation(FormationShape.dupleImproper),
   );
 
   Figure move(String id) => Figure(move: id);
@@ -127,5 +133,63 @@ void main() {
         expect(bytes, isNotEmpty);
       },
     );
+
+    group('formation column (#663)', () {
+      test('defaults to an English fallback formation label', () async {
+        final matrix = buildProgramMatrix([
+          dance('d1', 'A', [
+            swing(),
+          ], formation: const Formation(FormationShape.becketCw)),
+          dance('d2', 'B', [swing()]),
+        ]);
+        expect(matrix.rows[0].formation.shape, FormationShape.becketCw);
+        expect(matrix.rows[1].formation.shape, FormationShape.dupleImproper);
+
+        // No formatFormation supplied: renders without needing a
+        // localization layer, matching the pure-Dart-caller contract the
+        // other export labels/renderers already follow.
+        final bytes = await buildProgramMatrixPdf(
+          matrix,
+          taxonomy: contraTaxonomy,
+          dialect: Dialect.canonical,
+          programTitle: 'Formation program',
+        );
+
+        expect(bytes, isNotEmpty);
+      });
+
+      test(
+        'invokes the caller-supplied formatFormation once per row',
+        () async {
+          final matrix = buildProgramMatrix([
+            dance(
+              'd1',
+              'A',
+              [swing()],
+              formation: const Formation(
+                FormationShape.other,
+                detail: 'square set',
+              ),
+            ),
+            dance('d2', 'B', [swing()]),
+          ]);
+
+          final seen = <Formation>[];
+          final bytes = await buildProgramMatrixPdf(
+            matrix,
+            taxonomy: contraTaxonomy,
+            dialect: Dialect.canonical,
+            programTitle: 'Formation program',
+            formatFormation: (formation) {
+              seen.add(formation);
+              return 'X';
+            },
+          );
+
+          expect(bytes, isNotEmpty);
+          expect(seen, matrix.rows.map((r) => r.formation).toList());
+        },
+      );
+    });
   });
 }

@@ -23,6 +23,7 @@ import '../editor/program_editor_draft_codec.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_matrix_pdf.dart';
 import '../search/collection_data.dart';
+import '../search/facet_labels.dart' show formationLabel;
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/safe_name.dart';
@@ -1238,6 +1239,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         omittedFreeTextCount: omittedFreeTextCount,
         formatDate: localizations.formatMediumDate,
         labels: programMatrixExportLabels(l10n),
+        formatFormation: (formation) => formationLabel(l10n, formation),
       ),
     );
   }

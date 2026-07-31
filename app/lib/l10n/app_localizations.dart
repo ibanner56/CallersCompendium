@@ -3984,6 +3984,18 @@ abstract class AppLocalizations {
   /// **'{half, select, first{1st} other{2nd}}'**
   String programsMatrixHalfShort(String half);
 
+  /// Header label for the matrix's pinned formation column (#663), naming what the column shows.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation'**
+  String get programsMatrixFormationColumnHeader;
+
+  /// Screen-reader label pairing a dance with its formation, used by the matrix's pinned formation cell and appended to the compact-view dance chip's identity so formation is announced without folding it into the existing qualified-title message.
+  ///
+  /// In en, this message translates to:
+  /// **'{dance}, formation: {label}'**
+  String programsMatrixFormationSemantic(String dance, String label);
+
   /// Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use collides with a strictly-adjacent dance (same figure in the same phrase), is the move's program debut, and/or the dance's opening figure.
   ///
   /// In en, this message translates to:
@@ -4771,6 +4783,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dance'**
   String get exportMatrixDanceColumn;
+
+  /// Header for the pinned formation column of the programming-matrix PDF table (#663), matching the on-screen matrix's formation column.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation'**
+  String get exportMatrixFormationColumn;
 
   /// Empty-state line on the programming-matrix PDF when no dances have structured figures yet.
   ///

@@ -43,6 +43,7 @@ ProgramMatrixExportLabels programMatrixExportLabels(AppLocalizations l10n) =>
     ProgramMatrixExportLabels(
       defaultTitle: l10n.exportMatrixDefaultTitle,
       danceColumn: l10n.exportMatrixDanceColumn,
+      formationColumn: l10n.exportMatrixFormationColumn,
       emptyState: l10n.exportMatrixEmptyState,
       legendDebut: l10n.exportMatrixLegendDebut,
       legendFirst: l10n.exportMatrixLegendFirst,

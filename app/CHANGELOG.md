@@ -13,6 +13,17 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **The program matrix now shows each dance's formation.** A new pinned
+  "Formation" column sits next to the dance title in the wide grid — always
+  visible while scrolling through moves, so callers can spot too many
+  non-improper formations (Becket, triple minor, 4x4, …) stacking up in a
+  row. The compact (phone-width) view announces the formation on every dance
+  chip for screen readers, and shows it visually only for the atypical,
+  non-duple-improper case, keeping the common-case chip uncluttered.
+  Deliberately plain (icon + text, no colour tint) — the issue chose a
+  dedicated column over colour-coding formations. The programming-matrix PDF
+  export gets the same pinned formation column, so the on-screen and printed
+  matrices stay in sync. Closes #663.
 - **Comma-separated dates and single-digit days in your custom date format.**
   The custom date-format pattern (Settings ▸ Language & region ▸ Date format ▸
   Custom) now accepts a comma as a separator and a single, non-zero-padded `d`

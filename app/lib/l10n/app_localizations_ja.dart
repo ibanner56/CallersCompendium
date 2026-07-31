@@ -2382,6 +2382,14 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get programsMatrixFormationColumnHeader => 'フォーメーション';
+
+  @override
+  String programsMatrixFormationSemantic(String dance, String label) {
+    return '$dance、フォーメーション: $label';
+  }
+
+  @override
   String programsMatrixCellSemantic(
     String dance,
     String move,
@@ -2903,6 +2911,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get exportMatrixDanceColumn => 'ダンス';
+
+  @override
+  String get exportMatrixFormationColumn => 'フォーメーション';
 
   @override
   String get exportMatrixEmptyState =>

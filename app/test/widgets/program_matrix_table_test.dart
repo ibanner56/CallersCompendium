@@ -7,12 +7,18 @@ import '../support/l10n_harness.dart';
 void main() {
   final now = DateTime.utc(2026, 7, 13);
 
-  Dance dance(String id, String title, List<Figure> figures) => Dance(
+  Dance dance(
+    String id,
+    String title,
+    List<Figure> figures, {
+    Formation? formation,
+  }) => Dance(
     id: id,
     title: title,
     figures: figures,
     createdAt: now,
     updatedAt: now,
+    formation: formation ?? const Formation(FormationShape.dupleImproper),
   );
 
   // Figures carry realistic beats so phrase derivation (A1/A2/B1/B2…) is
@@ -249,6 +255,58 @@ void main() {
     expect(find.text('partner swing'), findsNothing);
   });
 
+  group('formation column (#663)', () {
+    testWidgets('pinned formation column shows each dance\'s formation', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        dances: [
+          dance('d1', 'A', [
+            swing(),
+          ], formation: const Formation(FormationShape.becketCw)),
+          dance('d2', 'B', [swing()]),
+        ],
+      );
+
+      // Static header (no tooltip, matching #662's removal).
+      expect(find.text('Formation'), findsOneWidget);
+      // Per-row formation labels.
+      expect(find.text('Becket (CW)'), findsOneWidget);
+      expect(find.text('Duple improper'), findsOneWidget);
+      // Each cell carries its own semantics label, independent of the
+      // adjacent row header.
+      expect(
+        find.bySemanticsLabel('A, formation: Becket (CW)'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel('B, formation: Duple improper'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('formation free-text detail is appended to the label', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        dances: [
+          dance(
+            'd1',
+            'A',
+            [swing()],
+            formation: const Formation(
+              FormationShape.other,
+              detail: 'square set',
+            ),
+          ),
+        ],
+      );
+      expect(find.textContaining('square set'), findsOneWidget);
+    });
+  });
+
   group('column-header tooltip removal (#662)', () {
     testWidgets('column headers have no tooltip — the label is the only text', (
       tester,
@@ -442,15 +500,16 @@ void main() {
       // that move is also a same-figure-same-phrase collision (#582).
       expect(
         find.bySemanticsLabel(
-          "A, partner swing: present, repeats in the same phrase as an "
-          "adjacent dance, introduced here, dance's first figure",
+          "A, formation: Duple improper, partner swing: present, repeats in "
+          "the same phrase as an adjacent dance, introduced here, dance's "
+          "first figure",
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          "B, partner swing: present, repeats in the same phrase as an "
-          "adjacent dance, dance's first figure",
+          "B, formation: Duple improper, partner swing: present, repeats in "
+          "the same phrase as an adjacent dance, dance's first figure",
         ),
         findsOneWidget,
       );
@@ -458,15 +517,15 @@ void main() {
       // also in A2 in both dances, so it collides too.
       expect(
         find.bySemanticsLabel(
-          'A, balance: present, repeats in the same phrase as an adjacent '
-          'dance, introduced here',
+          'A, formation: Duple improper, balance: present, repeats in the '
+          'same phrase as an adjacent dance, introduced here',
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          'B, balance: present, repeats in the same phrase as an adjacent '
-          'dance',
+          'B, formation: Duple improper, balance: present, repeats in the '
+          'same phrase as an adjacent dance',
         ),
         findsOneWidget,
       );
@@ -489,12 +548,15 @@ void main() {
       expect(find.text('Repeated moves'), findsOneWidget);
       expect(
         find.bySemanticsLabel(
-          "A, partner swing: present, introduced here, dance's first figure",
+          "A, formation: Duple improper, partner swing: present, introduced "
+          "here, dance's first figure",
         ),
         findsOneWidget,
       );
       expect(
-        find.bySemanticsLabel('B, partner swing: present'),
+        find.bySemanticsLabel(
+          'B, formation: Duple improper, partner swing: present',
+        ),
         findsOneWidget,
       );
       // The program debut is a distinct shape (star), not colour alone.
@@ -561,19 +623,56 @@ void main() {
       // partner swing in the same phrase (A1), so it also collides (#582).
       expect(
         find.bySemanticsLabel(
-          "Alt Dance (alternate dance), partner swing: present, repeats in the "
-          "same phrase as an adjacent dance, dance's first figure",
+          "Alt Dance (alternate dance), formation: Duple improper, partner "
+          "swing: present, repeats in the same phrase as an adjacent dance, "
+          "dance's first figure",
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          "A, partner swing: present, repeats in the same phrase as an "
-          "adjacent dance, introduced here, dance's first figure",
+          "A, formation: Duple improper, partner swing: present, repeats in "
+          "the same phrase as an adjacent dance, introduced here, dance's "
+          "first figure",
         ),
         findsOneWidget,
       );
       expect(find.byIcon(Icons.alt_route), findsWidgets);
+    });
+
+    testWidgets('shows the formation badge only for non-default formations', (
+      tester,
+    ) async {
+      await pumpNarrow(
+        tester,
+        dances: [
+          dance('d1', 'A', [
+            swing(),
+          ], formation: const Formation(FormationShape.becketCw)),
+          dance('d2', 'B', [swing()]),
+        ],
+      );
+      // Visual badge appears only for the atypical (non-duple-improper)
+      // formation, keeping the common case's chip compact...
+      expect(find.text('Becket (CW)'), findsOneWidget);
+      expect(find.text('Duple improper'), findsNothing);
+      // ...but screen readers always hear both dances' formation via the
+      // chip's semantics, regardless of the visual shortcut.
+      expect(
+        find.bySemanticsLabel(
+          "A, formation: Becket (CW), partner swing: present, repeats in "
+          "the same phrase as an adjacent dance, introduced here, dance's "
+          "first figure",
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel(
+          "B, formation: Duple improper, partner swing: present, repeats "
+          "in the same phrase as an adjacent dance, dance's first figure",
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('handles dances with no comparable moves', (tester) async {
@@ -682,15 +781,17 @@ void main() {
       // is also a same-figure-same-phrase collision (#582).
       expect(
         find.bySemanticsLabel(
-          "A (first half), partner swing: present, repeats in the same phrase "
-          "as an adjacent dance, introduced here, dance's first figure",
+          "A (first half), formation: Duple improper, partner swing: "
+          "present, repeats in the same phrase as an adjacent dance, "
+          "introduced here, dance's first figure",
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          "B (second half), partner swing: present, repeats in the same phrase "
-          "as an adjacent dance, dance's first figure",
+          "B (second half), formation: Duple improper, partner swing: "
+          "present, repeats in the same phrase as an adjacent dance, "
+          "dance's first figure",
         ),
         findsOneWidget,
       );
@@ -796,15 +897,15 @@ void main() {
       expect(find.byIcon(Icons.report), findsWidgets);
       expect(
         find.bySemanticsLabel(
-          'A, balance: present, repeats in the same phrase as an adjacent '
-          'dance, introduced here',
+          'A, formation: Duple improper, balance: present, repeats in the '
+          'same phrase as an adjacent dance, introduced here',
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          'B, balance: present, repeats in the same phrase as an adjacent '
-          'dance',
+          'B, formation: Duple improper, balance: present, repeats in the '
+          'same phrase as an adjacent dance',
         ),
         findsOneWidget,
       );
