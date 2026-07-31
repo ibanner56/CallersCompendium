@@ -2343,7 +2343,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String programsMatrixSemanticLabel(int danceCount, int moveCount) {
-    return 'プログラミングマトリックス: $danceCount件のダンス × $moveCount件のムーブ';
+    String _temp0 = intl.Intl.pluralLogic(
+      moveCount,
+      locale: localeName,
+      other: '$moveCount件のムーブ',
+    );
+    return 'プログラミングマトリックス: $danceCount件のダンス × $_temp0';
   }
 
   @override
@@ -2360,6 +2365,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String programsMatrixMoveHeaderSemantic(String label) {
     return 'ムーブ: $label';
   }
+
+  @override
+  String programsMatrixHideColumnSemantic(String label) {
+    return '$label列を非表示にする';
+  }
+
+  @override
+  String get programsMatrixShowAllColumnsSemantic => 'すべての列を表示';
 
   @override
   String programsMatrixRowHeaderSemantic(

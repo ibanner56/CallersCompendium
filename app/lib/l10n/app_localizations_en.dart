@@ -2400,7 +2400,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String programsMatrixSemanticLabel(int danceCount, int moveCount) {
-    return 'Programming matrix: $danceCount dances by $moveCount moves';
+    String _temp0 = intl.Intl.pluralLogic(
+      moveCount,
+      locale: localeName,
+      other: '$moveCount moves',
+      one: '1 move',
+    );
+    return 'Programming matrix: $danceCount dances by $_temp0';
   }
 
   @override
@@ -2418,6 +2424,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String programsMatrixMoveHeaderSemantic(String label) {
     return 'Move: $label';
   }
+
+  @override
+  String programsMatrixHideColumnSemantic(String label) {
+    return 'Hide $label column';
+  }
+
+  @override
+  String get programsMatrixShowAllColumnsSemantic => 'Show all columns';
 
   @override
   String programsMatrixRowHeaderSemantic(

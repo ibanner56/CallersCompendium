@@ -3170,9 +3170,9 @@
   "@commonDone": {
     "description": "Generic confirmation button label for finishing an edit dialog."
   },
-  "programsMatrixSemanticLabel": "Programming matrix: {danceCount} dances by {moveCount} moves",
+  "programsMatrixSemanticLabel": "Programming matrix: {danceCount} dances by {moveCount, plural, =1{1 move} other{{moveCount} moves}}",
   "@programsMatrixSemanticLabel": {
-    "description": "Container semantics label for the programming matrix, announcing its size (dances by moves).",
+    "description": "Container semantics label for the programming matrix, announcing its size (dances by moves). moveCount is plural-aware since hiding columns (#669) can bring it down to 1.",
     "placeholders": {
       "danceCount": { "type": "int", "example": "6" },
       "moveCount": { "type": "int", "example": "9" }
@@ -3191,6 +3191,17 @@
     "placeholders": {
       "label": { "type": "String", "example": "partner swing" }
     }
+  },
+  "programsMatrixHideColumnSemantic": "Hide {label} column",
+  "@programsMatrixHideColumnSemantic": {
+    "description": "Accessible label/tooltip for the button on a matrix move column header that hides that column from the on-screen matrix (#669). Always focusable/hit-testable, not hover-only.",
+    "placeholders": {
+      "label": { "type": "String", "example": "partner swing" }
+    }
+  },
+  "programsMatrixShowAllColumnsSemantic": "Show all columns",
+  "@programsMatrixShowAllColumnsSemantic": {
+    "description": "Accessible label/tooltip for the control (next to the matrix PDF-export button) that restores every column hidden via the per-column hide glyph (#669)."
   },
   "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Alternate dance: {title}, first half} second{Alternate dance: {title}, second half} other{Alternate dance: {title}}}} other{{half, select, first{Dance: {title}, first half} second{Dance: {title}, second half} other{Dance: {title}}}}}",
   "@programsMatrixRowHeaderSemantic": {

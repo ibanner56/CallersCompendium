@@ -3972,10 +3972,10 @@ abstract class AppLocalizations {
   /// **'Done'**
   String get commonDone;
 
-  /// Container semantics label for the programming matrix, announcing its size (dances by moves).
+  /// Container semantics label for the programming matrix, announcing its size (dances by moves). moveCount is plural-aware since hiding columns (#669) can bring it down to 1.
   ///
   /// In en, this message translates to:
-  /// **'Programming matrix: {danceCount} dances by {moveCount} moves'**
+  /// **'Programming matrix: {danceCount} dances by {moveCount, plural, =1{1 move} other{{moveCount} moves}}'**
   String programsMatrixSemanticLabel(int danceCount, int moveCount);
 
   /// Caption noting free-text slots (breaks, notes) that are excluded from the dances-only matrix.
@@ -3989,6 +3989,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Move: {label}'**
   String programsMatrixMoveHeaderSemantic(String label);
+
+  /// Accessible label/tooltip for the button on a matrix move column header that hides that column from the on-screen matrix (#669). Always focusable/hit-testable, not hover-only.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide {label} column'**
+  String programsMatrixHideColumnSemantic(String label);
+
+  /// Accessible label/tooltip for the control (next to the matrix PDF-export button) that restores every column hidden via the per-column hide glyph (#669).
+  ///
+  /// In en, this message translates to:
+  /// **'Show all columns'**
+  String get programsMatrixShowAllColumnsSemantic;
 
   /// Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.
   ///
