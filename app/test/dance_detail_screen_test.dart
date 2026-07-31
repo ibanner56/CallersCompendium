@@ -117,6 +117,26 @@ void main() {
     expect(find.text('smooth'), findsOneWidget);
   });
 
+  testWidgets('renders a canonical hook under the active dialect (#613)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        // Canonical storage (as written by the v17 migration / a save).
+        hook: 'role1s and role2s balance the ring',
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    // Default Larks/Robins preset re-renders the canonical role tokens as the
+    // reader's own terms; the raw tokens never leak to the UI.
+    expect(find.text('larks and robins balance the ring'), findsOneWidget);
+    expect(find.text('role1s and role2s balance the ring'), findsNothing);
+  });
+
   testWidgets('exposes a reachable export/share control on the app bar', (
     tester,
   ) async {

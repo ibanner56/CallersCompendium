@@ -103,6 +103,21 @@ each release so store builds and tags can be traced back to an entry.
   scoop them up") everywhere a figure note is shown — the figure table, the
   large-print Perform view, and the exported PDF. (#619)
 
+- **Your typed dialect terms are now stored dialect-agnostically and re-render
+  for every reader.** The design promises that all free text passes through a
+  single canonicalization chokepoint before it's saved, so prose is stored in
+  canonical terms and shown in each reader's active dialect — but for hand-typed
+  dance prose (the hook, calling notes, and walkthrough) that step wasn't wired:
+  your terms were saved verbatim, so a reader on another dialect saw your words
+  unchanged and free-text search wasn't dialect-agnostic. Now those fields are
+  canonicalized on save and rendered under the active dialect on read (the hook
+  was also the last of the three still shown verbatim on the detail screen — now
+  fixed), so switching dialects re-renders them and search over prose ignores
+  dialect. A one-time migration canonicalizes prose you already typed as a beta
+  user; it's conservative and roles-only, so only exact role terms are rewritten
+  and all other prose is preserved exactly. (Program notes and free-text program
+  slots are a separate, still-verbatim case tracked as a follow-up.) (#613)
+
 - **A backup restore that saves your content but can't apply your settings now
   says so — and lets you retry.** Restoring writes two independent stores that
   can't share one transaction: your core content (dances, programs, everything

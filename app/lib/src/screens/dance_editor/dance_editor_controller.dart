@@ -47,6 +47,25 @@ class DanceEditorController extends ChangeNotifier {
   final String? danceId;
   Dialect _activeDialect;
 
+  /// Renders canonical stored prose back into the active dialect for editing.
+  /// Only [FigureRenderer.renderFreeText] (roles-only, case-preserving) is used,
+  /// so the taxonomy is irrelevant here — any instance works.
+  static final FigureRenderer _proseRenderer = FigureRenderer(contraTaxonomy);
+
+  /// Renders canonical stored prose (`hook`/`callingNotes`/`walkthrough`) into
+  /// the active dialect so the editor field shows the caller's own terms rather
+  /// than canonical role tokens (issue #613). Inverse of [_canonicalizeProse].
+  String _renderProse(String stored) =>
+      _proseRenderer.renderFreeText(stored, _activeDialect);
+
+  /// Routes typed prose through the canonicalization chokepoint before
+  /// persistence (issue #613), so storage/search stay dialect-agnostic and the
+  /// prose re-renders under each reader's active dialect. Conservative and
+  /// roles-only: non-role prose is stored byte-for-byte as typed. Inverse of
+  /// [_renderProse]. Trims first, matching the prior verbatim save behaviour.
+  String _canonicalizeProse(String typed) =>
+      canonicalizeText(typed.trim(), _activeDialect);
+
   bool _disposed = false;
 
   // ---- Prose (lingo-styled) text controllers ----
@@ -209,9 +228,9 @@ class DanceEditorController extends ChangeNotifier {
     if (dance != null) {
       _original = dance;
       titleController.text = dance.title;
-      hookController.text = dance.hook;
-      notesController.text = dance.callingNotes;
-      walkthroughController.text = dance.walkthrough;
+      hookController.text = _renderProse(dance.hook);
+      notesController.text = _renderProse(dance.callingNotes);
+      walkthroughController.text = _renderProse(dance.walkthrough);
       phraseController.text = dance.phraseStructure.raw;
       formationDetailController.text = dance.formation.detail ?? '';
       _form = dance.form;
@@ -679,9 +698,9 @@ class DanceEditorController extends ChangeNotifier {
         formation: formation,
         progression: _progression,
         phraseStructure: phraseController.text.trim(),
-        hook: hookController.text.trim(),
-        callingNotes: notesController.text.trim(),
-        walkthrough: walkthroughController.text.trim(),
+        hook: _canonicalizeProse(hookController.text),
+        callingNotes: _canonicalizeProse(notesController.text),
+        walkthrough: _canonicalizeProse(walkthroughController.text),
         status: _status,
         level: _level,
         clearLevel: _level == null,
@@ -709,9 +728,9 @@ class DanceEditorController extends ChangeNotifier {
       formation: formation,
       progression: _progression,
       phraseStructure: phraseController.text.trim(),
-      hook: hookController.text.trim(),
-      callingNotes: notesController.text.trim(),
-      walkthrough: walkthroughController.text.trim(),
+      hook: _canonicalizeProse(hookController.text),
+      callingNotes: _canonicalizeProse(notesController.text),
+      walkthrough: _canonicalizeProse(walkthroughController.text),
       status: _status,
       level: _level,
       mixedLevel: _mixedLevel,

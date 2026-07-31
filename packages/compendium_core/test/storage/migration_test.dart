@@ -1722,7 +1722,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 16);
+      expect(db.schemaVersion, 17);
 
       await db.close();
     });
@@ -1828,7 +1828,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 16);
+      expect(db.schemaVersion, 17);
 
       await db.close();
     });
@@ -1950,7 +1950,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').get();
       expect(version.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 16);
+      expect(db.schemaVersion, 17);
 
       await db.close();
     });
@@ -2030,6 +2030,197 @@ void main() {
 
       await db.close();
     });
+  });
+
+  group('v16 -> v17 upgrade (typed-prose canonicalization, issue #613)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v17_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v16 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v16.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('the v16 fixture starts at v16 with VERBATIM dialect prose', () async {
+      // Guards the migration's premise: the fixture is a genuine pre-v17 DB
+      // whose prose still holds the caller's literal dialect terms, so the
+      // assertions below prove `onUpgrade` (not the generator) canonicalized it.
+      final raw = sqlite3.sqlite3.open(dbPath);
+      expect(raw.select('PRAGMA user_version').first.values.first, 16);
+      final row = raw
+          .select(
+            "SELECT hook, calling_notes, walkthrough FROM dances "
+            "WHERE id = 'dance-1'",
+          )
+          .first;
+      expect(row['hook'], 'Larks and Robins balance the ring.');
+      expect(
+        row['calling_notes'],
+        'Robins chain across, then Larks turn back.',
+      );
+      expect(row['walkthrough'], contains('Larks allemande left'));
+      raw.close();
+    });
+
+    test('canonicalizes role terms in typed prose, preserving other prose '
+        'and bumping the schema version', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final version = await db.customSelect('PRAGMA user_version').get();
+      expect(version.single.data.values.first, db.schemaVersion);
+      expect(db.schemaVersion, 17);
+
+      final dance = await repos.dances.getById('dance-1');
+      expect(dance, isNotNull);
+      // Role terms are rewritten to canonical tokens...
+      expect(dance!.hook, 'role1s and role2s balance the ring.');
+      expect(dance.callingNotes, 'role2s chain across, then role1s turn back.');
+      expect(
+        dance.walkthrough,
+        'A1: role1s allemande left once and a half. Balance the ring and '
+        'petronella.',
+      );
+      // ...and no literal dialect term survives in storage.
+      expect(dance.hook, isNot(contains('Lark')));
+      expect(dance.callingNotes, isNot(contains('Robin')));
+
+      await db.close();
+    });
+
+    test('leaves prose with no role terms byte-for-byte untouched', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final dance = await repos.dances.getById('dance-2');
+      expect(dance, isNotNull);
+      expect(dance!.hook, 'Balance and swing your partner.');
+      expect(
+        dance.callingNotes,
+        'Circle left three places, then pass through.',
+      );
+      expect(
+        dance.walkthrough,
+        'A1: Long lines forward and back. Star right once around.',
+      );
+
+      await db.close();
+    });
+
+    test('round-trips: rendering canonical storage under a dialect yields that '
+        'dialect\'s terms (dialect-agnostic re-rendering)', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final dance = await repos.dances.getById('dance-1');
+      final renderer = FigureRenderer(contraTaxonomy);
+      // Under the SOURCE dialect the caller's own terms come back. The
+      // roles-only canonical model normalizes role terms to the dialect's
+      // configured (here lowercase) term — the same behaviour imports already
+      // have — so the surrounding prose is intact and the terms round-trip.
+      expect(
+        renderer.renderFreeText(dance!.hook, Dialect.larksRobins),
+        'larks and robins balance the ring.',
+      );
+      // The whole point of canonical storage: a reader on a DIFFERENT dialect
+      // sees the equivalent terms without the prose ever being re-typed.
+      expect(
+        renderer.renderFreeText(dance.hook, Dialect.leadsFollows),
+        'leads and follows balance the ring.',
+      );
+
+      await db.close();
+    });
+
+    test(
+      'is idempotent: canonicalizing already-canonical prose is a no-op',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
+
+        final dance = await repos.dances.getById('dance-1');
+        // The migration transform applied to its own output changes nothing —
+        // canonical role tokens are not themselves dialect terms.
+        expect(canonicalizeText(dance!.hook, Dialect.larksRobins), dance.hook);
+        expect(
+          canonicalizeText(dance.walkthrough, Dialect.larksRobins),
+          dance.walkthrough,
+        );
+
+        await db.close();
+      },
+    );
+
+    test('rebuilds dance_fts so full-text search over prose is '
+        'dialect-agnostic', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      // The FTS index now holds canonical tokens, so a Larks/Robins reader's
+      // query (canonicalized to role tokens at the boundary) matches the prose
+      // they originally typed as "Robins".
+      final byDialectTerm = await repos.dances.search(
+        const FullTextFilter('Robins'),
+        dialect: Dialect.larksRobins,
+      );
+      expect(byDialectTerm, contains('dance-1'));
+
+      // Plain (non-role) prose stays searchable verbatim. `chain` is ordinary
+      // prose in calling_notes (which feeds `dance_fts`); the migration left it
+      // untouched.
+      final byPlainProse = await repos.dances.search(
+        const FullTextFilter('chain'),
+      );
+      expect(byPlainProse, contains('dance-1'));
+
+      // The rebuilt derived text is canonical, not verbatim.
+      final fts = await db
+          .customSelect(
+            "SELECT hook, notes FROM dance_fts WHERE dance_id = 'dance-1'",
+          )
+          .get();
+      expect(fts.single.read<String>('hook'), contains('role1s'));
+
+      await db.close();
+    });
+
+    test(
+      'is referentially intact after the migration (no dangling FKs)',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
+
+        final fkViolations = await db
+            .customSelect('PRAGMA foreign_key_check')
+            .get();
+        expect(
+          fkViolations,
+          isEmpty,
+          reason: 'the v17 migration must not leave any dangling foreign keys',
+        );
+
+        await db.close();
+      },
+    );
   });
 
   test(
