@@ -392,6 +392,41 @@ void main() {
     },
   );
 
+  testWidgets(
+    'auto-size becomes visible under Reduce motion even when the search '
+    'settles without ever changing the scale (issue #628 follow-up)',
+    (tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = await _controllerWith(null);
+
+      // A window too short for even the minimum auto scale (the #527 "never
+      // clipped" repro): the very first measurement overflows at `minScale`
+      // (the scale `_scale` already starts at), so `_settle` converges without
+      // ever changing `_scale`. Before the fix that meant `setState` was never
+      // called on this transition, leaving the content stuck at `Opacity: 0`
+      // under Reduce motion forever.
+      await pumpAutoSizedWithMotionSetting(
+        tester,
+        tallDance(),
+        const Size(420, 220),
+        c,
+        reduceMotion: true,
+      );
+
+      var revealed = false;
+      for (var i = 0; i < 10 && !revealed; i++) {
+        await tester.pump();
+        if (fitOpacity(tester).opacity == 1.0) revealed = true;
+      }
+
+      expect(revealed, isTrue);
+      expect(tester.takeException(), isNull);
+      // The scrollable fallback still keeps the (unshrinkable) content
+      // reachable, exactly as the motion-off #527 test asserts.
+      expect(scrollPosition(tester).maxScrollExtent, greaterThan(0.0));
+    },
+  );
+
   // Regression for issue #619: a figure note is the only free-text field not
   // routed through renderFreeText, so a canonical role token leaked verbatim
   // into the performed figure row instead of following the active dialect.
