@@ -44,28 +44,59 @@ class UserGuideScreen extends StatefulWidget {
 class _UserGuideScreenState extends State<UserGuideScreen> {
   late final Future<UserGuideDocs> _docsFuture;
   UserGuideDocs? _docs;
-  late final List<String> _stack;
+  late final List<_GuideRef> _stack;
+  Future<_GuideBody>? _bodyFuture;
+
+  /// Increments on every anchor request so following the *same* in-page link
+  /// twice scrolls again rather than being ignored as "no change".
+  int _anchorRequest = 0;
 
   @override
   void initState() {
     super.initState();
-    _stack = [widget.initialDoc ?? kUserGuideHomeDoc];
+    _stack = [_GuideRef(widget.initialDoc ?? kUserGuideHomeDoc)];
     _docsFuture = UserGuideDocs.load(widget.bundle).then((docs) {
       _docs = docs;
+      _loadCurrent();
       return docs;
     });
   }
 
-  String get _current => _stack.last;
+  _GuideRef get _currentRef => _stack.last;
+
+  String get _current => _currentRef.docId;
 
   bool get _canGoBackInPanel => _stack.length > 1;
+
+  /// Starts reading the guide at the top of the stack. Resolving the title from
+  /// the same read as the body keeps the header and the prose in step, so the
+  /// panel never shows one guide's title above another's text.
+  void _loadCurrent() {
+    final docs = _docs;
+    if (docs == null) return;
+    final docId = _current;
+    _bodyFuture = docs
+        .read(docId)
+        .then(
+          (data) => _GuideBody(
+            docId: docId,
+            data: data,
+            title:
+                UserGuideDocs.titleFromMarkdown(data) ??
+                UserGuideDocs.labelForDoc(docId),
+          ),
+        );
+  }
 
   /// Returns to the previous guide in the in-panel stack. Only reachable while
   /// there is history (the back affordance is hidden at the hub), so there is
   /// nothing to pop out to — the guide is a shell destination, not a route.
   void _handleBack() {
     if (_canGoBackInPanel) {
-      setState(() => _stack.removeLast());
+      setState(() {
+        _stack.removeLast();
+        _loadCurrent();
+      });
     }
   }
 
@@ -74,9 +105,22 @@ class _UserGuideScreenState extends State<UserGuideScreen> {
     if (docs == null) return;
     final target = docs.resolveLink(_current, href);
     switch (target) {
-      case GuideInternalLink(:final docId):
-        if (docId != _current) {
-          setState(() => _stack.add(docId));
+      case GuideInternalLink(:final docId, :final fragment):
+        if (docId == _current) {
+          // An in-page link: stay put and scroll to the heading rather than
+          // stacking the guide on top of itself.
+          if (fragment != null && fragment.isNotEmpty) {
+            setState(() {
+              _stack[_stack.length - 1] = _GuideRef(docId, anchor: fragment);
+              _anchorRequest++;
+            });
+          }
+        } else {
+          setState(() {
+            _stack.add(_GuideRef(docId, anchor: fragment));
+            _anchorRequest++;
+            _loadCurrent();
+          });
         }
       case GuideMissingLink(:final label):
         ScaffoldMessenger.of(context)
@@ -93,9 +137,14 @@ class _UserGuideScreenState extends State<UserGuideScreen> {
     }
   }
 
-  String _titleFor(AppLocalizations l10n) => _current == kUserGuideHomeDoc
-      ? l10n.userGuideTitle
-      : UserGuideDocs.labelForDoc(_current);
+  /// The header title: the hub keeps its localized name, and every other guide
+  /// is titled by its own first heading (falling back to a name derived from
+  /// the file if a guide somehow has none).
+  String _titleFor(AppLocalizations l10n, _GuideBody? body) {
+    if (_current == kUserGuideHomeDoc) return l10n.userGuideTitle;
+    if (body != null && body.docId == _current) return body.title;
+    return UserGuideDocs.labelForDoc(_current);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -110,7 +159,10 @@ class _UserGuideScreenState extends State<UserGuideScreen> {
         // offscreen (kept-alive) instance must ignore back presses handled by
         // another destination so it never mutates its stack while hidden.
         if (!didPop && widget.isActive && _canGoBackInPanel) {
-          setState(() => _stack.removeLast());
+          setState(() {
+            _stack.removeLast();
+            _loadCurrent();
+          });
         }
       },
       // Reserve the safe-area insets within the widget itself so the header
@@ -124,62 +176,99 @@ class _UserGuideScreenState extends State<UserGuideScreen> {
       // Making the embeddable guide self-inset keeps it consistent regardless of
       // where it is hosted, so callers don't need to wrap it in a SafeArea.
       child: SafeArea(
-        child: Column(
-          key: const ValueKey('user-guide-screen'),
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _GuideHeader(
-              title: _titleFor(l10n),
-              onBack: _canGoBackInPanel ? _handleBack : null,
-            ),
-            Expanded(
-              child: FutureBuilder<UserGuideDocs>(
-                future: _docsFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  final docs = snapshot.data;
-                  if (snapshot.hasError || docs == null || docs.isEmpty) {
-                    return _UnavailableState(
-                      onOpenOnline: () =>
-                          launchExternalUrl(context, kUserGuideOnlineUrl),
-                    );
-                  }
-                  return _buildDoc(docs);
-                },
-              ),
-            ),
-          ],
+        child: FutureBuilder<UserGuideDocs>(
+          future: _docsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return _frame(
+                l10n,
+                body: const Center(child: CircularProgressIndicator()),
+              );
+            }
+            final docs = snapshot.data;
+            if (snapshot.hasError || docs == null || docs.isEmpty) {
+              return _frame(l10n, body: _unavailable());
+            }
+            return _buildDoc();
+          },
         ),
       ),
     );
   }
 
-  Widget _buildDoc(UserGuideDocs docs) {
-    return FutureBuilder<String>(
+  /// The guide's chrome: the header (title + in-panel back) above [body].
+  Widget _frame(AppLocalizations l10n, {required Widget body, _GuideBody? doc}) {
+    return Column(
+      key: const ValueKey('user-guide-screen'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _GuideHeader(
+          title: _titleFor(l10n, doc),
+          onBack: _canGoBackInPanel ? _handleBack : null,
+        ),
+        Expanded(child: body),
+      ],
+    );
+  }
+
+  Widget _unavailable() => _UnavailableState(
+    onOpenOnline: () => launchExternalUrl(context, kUserGuideOnlineUrl),
+  );
+
+  Widget _buildDoc() {
+    final l10n = AppLocalizations.of(context);
+    return FutureBuilder<_GuideBody>(
       // Key the read on the current doc so navigation reloads (and the view's
-      // keyed ListView resets scroll to the top of the new guide).
+      // keyed scroll view resets to the top of the new guide).
       key: ValueKey('user-guide-body-$_current'),
-      future: docs.read(_current),
+      future: _bodyFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final data = snapshot.data;
-        if (snapshot.hasError || data == null) {
-          return _UnavailableState(
-            onOpenOnline: () => launchExternalUrl(context, kUserGuideOnlineUrl),
+          return _frame(
+            l10n,
+            body: const Center(child: CircularProgressIndicator()),
           );
         }
-        return UserGuideDocView(
-          docId: _current,
-          data: data,
-          onTapLink: _openLink,
+        final body = snapshot.data;
+        if (snapshot.hasError || body == null) {
+          return _frame(l10n, body: _unavailable());
+        }
+        return _frame(
+          l10n,
+          doc: body,
+          body: UserGuideDocView(
+            docId: body.docId,
+            data: body.data,
+            anchor: _currentRef.anchor,
+            anchorRequest: _anchorRequest,
+            onTapLink: _openLink,
+          ),
         );
       },
     );
   }
+}
+
+/// One entry in the panel's in-guide navigation stack: which guide, and which
+/// heading (if the link that got here named one).
+class _GuideRef {
+  const _GuideRef(this.docId, {this.anchor});
+
+  final String docId;
+  final String? anchor;
+}
+
+/// A loaded guide: its Markdown plus the title read from its first heading.
+class _GuideBody {
+  const _GuideBody({
+    required this.docId,
+    required this.data,
+    required this.title,
+  });
+
+  final String docId;
+  final String data;
+  final String title;
 }
 
 /// The slim in-content header for the embedded guide: the current guide's title

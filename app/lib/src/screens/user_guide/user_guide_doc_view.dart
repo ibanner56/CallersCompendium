@@ -1,28 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:markdown/markdown.dart' as md;
 
 import '../../theme/app_spacing.dart';
+import 'user_guide_docs.dart';
 
 /// Renders a single bundled user-guide document as Markdown.
 ///
 /// Headings, lists, tables, and fenced code come from
-/// `flutter_markdown_plus` (GitHub-flavored). Two seams are wired for the
+/// `flutter_markdown_plus` (GitHub-flavored). Three seams are wired for the
 /// offline, in-app experience:
 ///
 ///  * **Links** are handed to [onTapLink] verbatim; the panel
 ///    ([user_guide_screen.dart]) classifies them via `UserGuideDocs` and either
 ///    navigates within the panel, opens a browser, or reports a not-yet-written
 ///    guide.
+///  * **Anchors** resolve: every heading is tagged with the slug GitHub would
+///    give it, so a link ending in `#some-heading` scrolls this view to that
+///    heading — whether the link points at another guide or at a section of the
+///    guide already open. Without this, an "on this page" link would work on
+///    GitHub but silently do nothing in the app.
 ///  * **Images** are not bundled yet (the guide ships text-only). Each image
 ///    reference renders as a subtle italic caption of its alt text via
 ///    [_GuideImageCaption] — no asset lookup, no network, no broken-image icon —
 ///    so the prose reads cleanly until real screenshots are added.
-class UserGuideDocView extends StatelessWidget {
+///
+/// The Markdown lays out inside a [SingleChildScrollView] rather than letting
+/// the renderer own a lazy [ListView], so every heading is built and therefore
+/// reachable by [Scrollable.ensureVisible]. A guide is a few screens of prose,
+/// so laying one out in full is cheap.
+class UserGuideDocView extends StatefulWidget {
   const UserGuideDocView({
     super.key,
     required this.docId,
     required this.data,
     required this.onTapLink,
+    this.anchor,
+    this.anchorRequest = 0,
     this.controller,
   });
 
@@ -35,34 +49,166 @@ class UserGuideDocView extends StatelessWidget {
   /// Called with the raw `href` of any tapped link.
   final ValueChanged<String> onTapLink;
 
+  /// The heading slug to scroll to once laid out, if any.
+  final String? anchor;
+
+  /// Bumped by the panel each time a link asks for an anchor, so following the
+  /// same in-page link twice scrolls again instead of looking like no change.
+  final int anchorRequest;
+
   /// Optional scroll controller so the panel can reset scroll on navigation.
   final ScrollController? controller;
 
   @override
+  State<UserGuideDocView> createState() => _UserGuideDocViewState();
+}
+
+class _UserGuideDocViewState extends State<UserGuideDocView> {
+  /// Owned only when the caller supplies none, so we dispose only our own.
+  ScrollController? _ownedController;
+
+  /// One stable key per heading slug in the guide on screen, so a heading keeps
+  /// the same key across rebuilds and [_scheduleAnchorScroll] can find the
+  /// element it was attached to.
+  final Map<String, GlobalKey> _headingKeys = <String, GlobalKey>{};
+
+  ScrollController get _controller =>
+      widget.controller ?? (_ownedController ??= ScrollController());
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleAnchorScroll();
+  }
+
+  @override
+  void didUpdateWidget(UserGuideDocView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.docId != widget.docId || oldWidget.data != widget.data) {
+      // A different guide has different headings; start its key map clean so
+      // stale slugs can't resolve to the guide the reader just left.
+      _headingKeys.clear();
+    }
+    if (oldWidget.docId != widget.docId ||
+        oldWidget.anchor != widget.anchor ||
+        oldWidget.anchorRequest != widget.anchorRequest) {
+      _scheduleAnchorScroll();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ownedController?.dispose();
+    super.dispose();
+  }
+
+  /// Scrolls to [UserGuideDocView.anchor] after the frame that lays the guide
+  /// out, which is when the target heading's element first has a context.
+  void _scheduleAnchorScroll() {
+    final anchor = widget.anchor;
+    if (anchor == null || anchor.isEmpty) return;
+    final docId = widget.docId;
+    final request = widget.anchorRequest;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // A newer navigation may have superseded this request between frames.
+      if (!mounted ||
+          widget.docId != docId ||
+          widget.anchor != anchor ||
+          widget.anchorRequest != request) {
+        return;
+      }
+      final target = _headingKeys[anchor]?.currentContext;
+      // An anchor naming no heading in this guide leaves the reader at the top
+      // of the guide rather than failing — the guide still opened.
+      if (target == null) return;
+      Scrollable.ensureVisible(
+        target,
+        alignment: 0,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Markdown(
-      key: ValueKey('user-guide-doc-$docId'),
-      controller: controller,
-      data: data,
-      selectable: true,
+    final headings = _AnchoredHeadingBuilder(keyForSlug: _keyForSlug);
+    return SingleChildScrollView(
+      key: ValueKey('user-guide-scroll-${widget.docId}'),
+      controller: _controller,
       padding: const EdgeInsets.all(AppSpacing.md),
-      styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-        // Give tables a visible frame in both light and dark themes.
-        tableBorder: TableBorder.all(color: theme.colorScheme.outlineVariant),
-        tableCellsPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xs,
-          vertical: AppSpacing.xxs,
+      child: Markdown(
+        key: ValueKey('user-guide-doc-${widget.docId}'),
+        data: widget.data,
+        selectable: true,
+        // The enclosing scroll view does the scrolling; the renderer's own list
+        // must lay every block out so heading anchors are reachable.
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.zero,
+        builders: {
+          for (final tag in const ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+            tag: headings,
+        },
+        styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+          // Give tables a visible frame in both light and dark themes.
+          tableBorder: TableBorder.all(color: theme.colorScheme.outlineVariant),
+          tableCellsPadding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xs,
+            vertical: AppSpacing.xxs,
+          ),
+          blockquoteDecoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(4),
+          ),
         ),
-        blockquoteDecoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(4),
-        ),
+        onTapLink: (text, href, title) {
+          if (href != null) widget.onTapLink(href);
+        },
+        imageBuilder: (uri, title, alt) => _GuideImageCaption(alt: alt),
       ),
-      onTapLink: (text, href, title) {
-        if (href != null) onTapLink(href);
-      },
-      imageBuilder: (uri, title, alt) => _GuideImageCaption(alt: alt),
+    );
+  }
+
+  GlobalKey _keyForSlug(String slug) => _headingKeys.putIfAbsent(
+    slug,
+    () => GlobalKey(debugLabel: 'user guide heading #$slug'),
+  );
+}
+
+/// Tags each heading with the key its GitHub-style anchor slug maps to, so
+/// [Scrollable.ensureVisible] can bring it into view when a link's `#fragment`
+/// names it.
+///
+/// Guide headings are plain text by convention (see `docs/user/style-guide.md`),
+/// so rendering the heading's text in the stylesheet's heading style matches
+/// what the default renderer produces.
+class _AnchoredHeadingBuilder extends MarkdownElementBuilder {
+  _AnchoredHeadingBuilder({required this.keyForSlug});
+
+  /// Returns the stable key the view uses to locate a heading by slug.
+  final GlobalKey Function(String slug) keyForSlug;
+
+  /// How many headings have already claimed each slug in this render, so a
+  /// guide that repeats a heading gets `-1`, `-2`, … suffixes the way GitHub
+  /// does instead of tripping over duplicate global keys.
+  final Map<String, int> _slugUses = <String, int>{};
+
+  @override
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    final text = element.textContent;
+    final base = UserGuideDocs.slugify(text);
+    final uses = _slugUses.update(base, (n) => n + 1, ifAbsent: () => 0);
+    final slug = uses == 0 ? base : '$base-$uses';
+    return KeyedSubtree(
+      key: keyForSlug(slug),
+      child: SelectableText(text, style: preferredStyle),
     );
   }
 }

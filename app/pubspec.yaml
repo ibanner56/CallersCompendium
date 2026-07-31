@@ -52,6 +52,11 @@ dependencies:
   # successor to the discontinued `flutter_markdown` and exposes the
   # `onTapLink`/`imageBuilder` seams the guide's in-app navigation relies on.
   flutter_markdown_plus: ^1.0.12
+  # `flutter_markdown_plus` builds on the `markdown` package and exposes its AST
+  # in the `MarkdownElementBuilder` API. The guide implements one of those
+  # builders (to tag headings with anchors so `#fragment` links can scroll to
+  # them), so it needs `md.Element` directly rather than transitively.
+  markdown: ^7.3.1
   # Swipe-to-reveal row actions (issue #352): the dance/programs lists swipe left
   # to reveal a Delete button (tapping it is the confirmation), replacing the
   # old swipe-to-dismiss. Flutter's Dismissible deletes on drag and can't reveal

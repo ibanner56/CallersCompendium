@@ -91,4 +91,54 @@ void main() {
       );
     });
   });
+
+  group('titleFromMarkdown', () {
+    test('reads the guide\'s first level-one heading', () {
+      expect(
+        UserGuideDocs.titleFromMarkdown(
+          '# FAQ & troubleshooting\n\nSome prose.\n\n# Later heading\n',
+        ),
+        'FAQ & troubleshooting',
+      );
+    });
+
+    test('tolerates leading indent and a closing run of hashes', () {
+      expect(
+        UserGuideDocs.titleFromMarkdown('  # Getting started #\n'),
+        'Getting started',
+      );
+    });
+
+    test('ignores deeper headings', () {
+      expect(
+        UserGuideDocs.titleFromMarkdown('## Not the title\n\n# The title\n'),
+        'The title',
+      );
+    });
+
+    test('returns null when there is no level-one heading', () {
+      expect(UserGuideDocs.titleFromMarkdown('Just prose.\n'), isNull);
+    });
+  });
+
+  group('slugify', () {
+    test('matches the anchors GitHub generates for guide headings', () {
+      // Spot-checks against anchors the guides actually link to.
+      expect(UserGuideDocs.slugify("The Caller's Box"), 'the-callers-box');
+      expect(
+        UserGuideDocs.slugify('Print, export, and email a program'),
+        'print-export-and-email-a-program',
+      );
+      // GitHub drops `&` entirely, leaving the spaces on either side as
+      // hyphens — so this really is a double hyphen, not a typo.
+      expect(UserGuideDocs.slugify('Collection & search'), 'collection--search');
+    });
+
+    test('keeps hyphens and underscores, drops other punctuation', () {
+      expect(
+        UserGuideDocs.slugify('Re-check custom_figures (really!)'),
+        're-check-custom_figures-really',
+      );
+    });
+  });
 }

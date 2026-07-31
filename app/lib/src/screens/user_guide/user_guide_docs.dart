@@ -1,3 +1,5 @@
+import 'dart:convert' show LineSplitter;
+
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart'
     show AssetBundle, AssetManifest, rootBundle;
@@ -36,7 +38,8 @@ sealed class GuideLink {
 }
 
 /// A link to another bundled guide — navigate to it within the panel.
-/// [fragment] is the target anchor, if any (best-effort; may be unused).
+/// [fragment] is the target heading's anchor, if any; the doc view scrolls to
+/// the matching heading once the guide is laid out.
 class GuideInternalLink extends GuideLink {
   const GuideInternalLink(this.docId, {this.fragment});
 
@@ -193,9 +196,68 @@ class UserGuideDocs {
     return segments.join('/');
   }
 
+  /// The guide's own title: the text of its first level-one (`# …`) heading.
+  ///
+  /// Guides are authored with exactly one H1 matching the guide's title (see
+  /// `docs/user/style-guide.md`), so this is a better panel title than a name
+  /// derived from the file name — "FAQ & troubleshooting" rather than "Faq".
+  /// Returns `null` when [data] has no H1, so callers can fall back to
+  /// [labelForDoc].
+  static String? titleFromMarkdown(String data) {
+    for (final line in const LineSplitter().convert(data)) {
+      final match = _h1Pattern.firstMatch(line);
+      if (match != null) {
+        final title = match.group(1)!.trim();
+        if (title.isNotEmpty) return title;
+      }
+    }
+    return null;
+  }
+
+  /// Matches an ATX level-one heading (`# Title`), allowing the up-to-three
+  /// leading spaces Markdown permits and an optional closing run of `#`.
+  static final RegExp _h1Pattern = RegExp(r'^ {0,3}#\s+(.*?)\s*#*\s*$');
+
+  /// Converts a heading's text to the anchor slug GitHub would generate for it,
+  /// so a link like `./collection.md#group-by-category` resolves to the same
+  /// heading in the app as it does on GitHub: lower-cased, punctuation dropped,
+  /// spaces turned into hyphens.
+  static String slugify(String heading) {
+    final buffer = StringBuffer();
+    for (final rune in heading.toLowerCase().runes) {
+      final char = String.fromCharCode(rune);
+      if (char == ' ') {
+        buffer.write('-');
+      } else if (char == '-' || char == '_' || _isAlphanumeric(rune)) {
+        buffer.write(char);
+      }
+    }
+    return buffer.toString();
+  }
+
+  /// Whether [rune] is a letter or digit for slug purposes. Deliberately
+  /// includes non-ASCII letters (so a translated heading still slugs sensibly)
+  /// by treating anything above the ASCII range that isn't punctuation-like as
+  /// a letter, matching GitHub's Unicode-aware behaviour closely enough for
+  /// the guides' headings.
+  static bool _isAlphanumeric(int rune) {
+    if (rune >= 0x30 && rune <= 0x39) return true; // 0-9
+    if (rune >= 0x61 && rune <= 0x7a) return true; // a-z (already lower-cased)
+    if (rune < 0x80) return false;
+    // Above ASCII: keep letters and combining marks, drop punctuation, symbols,
+    // and separators (em dashes, curly quotes, arrows, …).
+    return !_nonWordAboveAscii.hasMatch(String.fromCharCode(rune));
+  }
+
+  static final RegExp _nonWordAboveAscii = RegExp(
+    r'[\p{P}\p{S}\p{Z}\p{C}]',
+    unicode: true,
+  );
+
   /// A human-friendly label for a guide file, e.g. `perform.md` → "Perform",
-  /// `backup-portability.md` → "Backup portability". Used for the panel title
-  /// and for "coming soon" messaging on not-yet-bundled guides.
+  /// `backup-portability.md` → "Backup portability". Used for "coming soon"
+  /// messaging on not-yet-bundled guides, and as the panel title fallback when
+  /// a guide has no H1 for [titleFromMarkdown] to read.
   static String labelForDoc(String docId) {
     final base = docId.split('/').last.replaceAll('.md', '');
     final words = base
