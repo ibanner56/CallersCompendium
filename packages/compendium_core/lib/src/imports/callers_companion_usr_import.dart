@@ -118,17 +118,20 @@ class CcUsrImportResult {
 /// (pure Dart + repositories) so it lives in the core and is trivially
 /// unit-testable; the app supplies the `.USR` bytes.
 class CallersCompanionUsrImporter {
-  CallersCompanionUsrImporter(
-    this._pipeline,
-    this._programs,
-    this._venues,
-    this._dances,
-  );
+  CallersCompanionUsrImporter(this._pipeline, this._programs, this._venues);
 
   final ImportPipeline _pipeline;
   final ProgramRepository _programs;
   final VenueRepository _venues;
-  final DanceRepository _dances;
+
+  /// The [DanceRepository] the related-dance-link step (issue #688) reads
+  /// and updates the just-committed dances through. Reused from [_pipeline]
+  /// itself — rather than taken as a separate constructor dependency — so
+  /// this importer can never be wired with a [DanceRepository] instance
+  /// different from the one [_pipeline] actually committed dances through
+  /// (which would risk updating a different DB/transaction than the commit
+  /// happened in).
+  DanceRepository get _dances => _pipeline.dances;
 
   final CallersCompanionUsrAdapter _adapter = CallersCompanionUsrAdapter();
 

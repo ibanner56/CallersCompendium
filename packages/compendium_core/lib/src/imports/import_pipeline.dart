@@ -188,6 +188,17 @@ class ImportPipeline {
   final DanceRepository _dances;
   final ChoreographerRepository _choreographers;
 
+  /// The [DanceRepository] this pipeline commits/undoes dances through.
+  ///
+  /// Exposed so callers that need to read/mutate dances *after* a commit in
+  /// the same transaction/DB scope (e.g. `CallersCompanionUsrImporter` wiring
+  /// `relatedDance` links post-commit, issue #688) can reuse the pipeline's
+  /// own repository instance instead of being separately constructed with
+  /// one — which would otherwise make it possible to accidentally wire in a
+  /// *different* [DanceRepository] (different DB instance/transaction) than
+  /// the one the pipeline actually committed dances through.
+  DanceRepository get dances => _dances;
+
   /// Builds a [DedupeIndex] snapshot of the current collection (title + author
   /// names + provenance key per dance). Call once before [plan]; reuse it for
   /// the batch. Also captures a normalized-name → id map of every

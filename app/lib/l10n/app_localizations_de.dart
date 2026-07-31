@@ -3746,6 +3746,10 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get importIssueRelatedDanceUnresolved =>
+      'Eine Verknüpfung zu einem verwandten Tanz verwies auf einen Tanz, der nicht importiert wurde; die Verknüpfung wurde übersprungen.';
+
+  @override
   String get importDateFieldComposed => 'komponiert';
 
   @override

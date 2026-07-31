@@ -932,6 +932,7 @@
   "importIssueParamUnmapped": "フィギュアのパラメーターをマッピングできませんでした。タクソノミーの既定値を使用しました。",
   "importIssueParamValueUnmapped": "パラメーター{param}を変換できませんでした。タクソノミーの既定値を使用しました。",
   "importIssueParamCountUnmapped": "フィギュアには{provided}個のパラメーター値がありましたが、マッピングされているのは{mapped}個のみです。余剰分は無視されました。",
+  "importIssueRelatedDanceUnresolved": "関連ダンスのリンクがインポートされていないダンスを参照していたため、リンクはスキップされました。",
   "importDateFieldComposed": "振付",
   "importDateFieldRevised": "改訂",
   "importRecordErrorDiscover": "このレコードが見つかりませんでした。",

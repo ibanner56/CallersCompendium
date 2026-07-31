@@ -932,6 +932,7 @@
   "importIssueParamUnmapped": "Ein Figurenparameter konnte nicht zugeordnet werden; ein Taxonomie-Standard wurde verwendet.",
   "importIssueParamValueUnmapped": "Der Parameter {param} konnte nicht konvertiert werden; ein Taxonomie-Standard wurde verwendet.",
   "importIssueParamCountUnmapped": "Eine Figur hatte {provided} Parameterwerte, aber nur {mapped} sind zugeordnet; die überzähligen wurden ignoriert.",
+  "importIssueRelatedDanceUnresolved": "Eine Verknüpfung zu einem verwandten Tanz verwies auf einen Tanz, der nicht importiert wurde; die Verknüpfung wurde übersprungen.",
   "importDateFieldComposed": "komponiert",
   "importDateFieldRevised": "überarbeitet",
   "importRecordErrorDiscover": "Dieser Datensatz konnte nicht gefunden werden.",

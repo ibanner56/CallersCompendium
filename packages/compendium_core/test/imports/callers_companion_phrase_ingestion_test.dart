@@ -151,12 +151,7 @@ void main() {
       programs = ProgramRepository(db);
       venues = VenueRepository(db);
       pipeline = ImportPipeline(dances, choreographers);
-      importer = CallersCompanionUsrImporter(
-        pipeline,
-        programs,
-        venues,
-        dances,
-      );
+      importer = CallersCompanionUsrImporter(pipeline, programs, venues);
     });
 
     tearDown(() => db.close());

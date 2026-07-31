@@ -932,6 +932,7 @@
   "importIssueParamUnmapped": "Een figuurparameter kon niet worden gekoppeld; een taxonomie-standaard is gebruikt.",
   "importIssueParamValueUnmapped": "De parameter {param} kon niet worden geconverteerd; een taxonomie-standaard is gebruikt.",
   "importIssueParamCountUnmapped": "Een figuur had {provided} parameterwaarden maar slechts {mapped} zijn toegewezen; de extra waarden zijn genegeerd.",
+  "importIssueRelatedDanceUnresolved": "Een link naar een verwante dans verwees naar een dans die niet is geïmporteerd; de link is overgeslagen.",
   "importDateFieldComposed": "gecomponeerd",
   "importDateFieldRevised": "herzien",
   "importRecordErrorDiscover": "Dit record kon niet worden gevonden.",

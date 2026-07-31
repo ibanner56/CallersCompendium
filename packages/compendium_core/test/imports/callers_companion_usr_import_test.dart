@@ -153,7 +153,7 @@ void main() {
     programs = ProgramRepository(db);
     venues = VenueRepository(db);
     pipeline = ImportPipeline(dances, choreographers);
-    importer = CallersCompanionUsrImporter(pipeline, programs, venues, dances);
+    importer = CallersCompanionUsrImporter(pipeline, programs, venues);
     nextId = sequentialIds();
   });
 
@@ -376,7 +376,6 @@ void main() {
           pipeline,
           failing,
           venues,
-          dances,
         );
 
         await expectLater(
@@ -584,7 +583,6 @@ void main() {
         pipeline,
         programs,
         countingVenues,
-        dances,
       );
 
       final result = await spiedImporter.import(

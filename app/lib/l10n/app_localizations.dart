@@ -5792,6 +5792,12 @@ abstract class AppLocalizations {
   /// **'A figure had {provided} parameter values but only {mapped} are mapped; the extras were ignored.'**
   String importIssueParamCountUnmapped(int provided, int mapped);
 
+  /// Import note: a Caller's Companion related-dance relationship referenced a dance that wasn't part of this import (not imported this session, or an unresolved/orphan id), so the link was skipped rather than created dangling.
+  ///
+  /// In en, this message translates to:
+  /// **'A related-dance link pointed at a dance that wasn\'t imported; the link was skipped.'**
+  String get importIssueRelatedDanceUnresolved;
+
   /// Lowercase name of the 'composed' dance date field, inserted into import notes such as 'The {field} date couldn't be read'. Matches the danceEditorComposedLabel term.
   ///
   /// In en, this message translates to:
