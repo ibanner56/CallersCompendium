@@ -215,9 +215,12 @@ class CallersCompanionUsrImporter {
     final persisted = <Program>[];
     final insertedVenueIds = <String>[];
     // Lazily-seeded fingerprint index over the receiver's existing venues
-    // (issue #687), built at most once per commit and only when a set
-    // actually needs one resolved — a mode-off import, or one whose sets are
-    // all location-less or already-linked re-imports, issues zero venue reads.
+    // (issue #687), built at most once per commit (memoized here) and only
+    // when a candidate actually produces a non-null [venueFingerprint] — a
+    // bare `.USR` location (name only) never does, so the ordinary all-
+    // location .USR import touches `_venues.listAll()` zero times; a mode-
+    // off import, or one whose sets are all location-less or already-linked
+    // re-imports, likewise issues zero venue reads.
     VenueFingerprintIndex? venueIndex;
     // This-commit-only collapse of *this archive's* locations — see the
     // "Same-import collapse" doc above.
@@ -241,35 +244,59 @@ class CallersCompanionUsrImporter {
             if (reused != null) {
               venueId = reused;
             } else {
-              final index = venueIndex ??= VenueFingerprintIndex(
-                await _venues.listAll(),
-              );
               final candidateVenue = Venue(
                 id: '_venue_dedupe_candidate',
                 name: cleanedLocation,
               );
-              final matchedId = index.matchFor(candidateVenue);
-              if (matchedId != null) {
-                venueId = matchedId;
-              } else {
-                if (index.isAmbiguous(candidateVenue)) {
-                  issues.add(
-                    ImportIssue(
-                      severity: ImportIssueSeverity.info,
-                      code: 'cc_program_ambiguous_venue',
-                      message:
-                          'Set location "$cleanedLocation" matches more than '
-                          'one existing venue; minted a new venue rather than '
-                          'guessing which to link.',
-                    ),
-                  );
-                }
+              // Compute the fingerprint BEFORE touching the venue repository.
+              // A bare `.USR` location (name only, no city/address1) always
+              // yields a null/weak fingerprint — see the doc above — so
+              // `matchFor` structurally can never succeed for it. Skip the
+              // `_venues.listAll()` read and index build entirely in that
+              // (overwhelmingly common) case and go straight to mint; only a
+              // candidate with a genuine (non-null) fingerprint needs the
+              // index consulted, and even then it's built at most once per
+              // commit (memoized in [venueIndex]), not once per set.
+              final fingerprint = venueFingerprint(candidateVenue);
+              if (fingerprint == null) {
                 final mintedId = mintId();
                 final mintedVenue = Venue(id: mintedId, name: cleanedLocation);
                 await _venues.upsert(mintedVenue);
                 insertedVenueIds.add(mintedId);
-                index.add(mintedId, mintedVenue);
+                // Keep an already-built index in sync so a later strong-
+                // fingerprint candidate this commit can't collide with it.
+                venueIndex?.add(mintedId, mintedVenue);
                 venueId = mintedId;
+              } else {
+                final index = venueIndex ??= VenueFingerprintIndex(
+                  await _venues.listAll(),
+                );
+                final matchedId = index.matchFor(candidateVenue);
+                if (matchedId != null) {
+                  venueId = matchedId;
+                } else {
+                  if (index.isAmbiguous(candidateVenue)) {
+                    issues.add(
+                      ImportIssue(
+                        severity: ImportIssueSeverity.info,
+                        code: 'cc_program_ambiguous_venue',
+                        message:
+                            'Set location "$cleanedLocation" matches more '
+                            'than one existing venue; minted a new venue '
+                            'rather than guessing which to link.',
+                      ),
+                    );
+                  }
+                  final mintedId = mintId();
+                  final mintedVenue = Venue(
+                    id: mintedId,
+                    name: cleanedLocation,
+                  );
+                  await _venues.upsert(mintedVenue);
+                  insertedVenueIds.add(mintedId);
+                  index.add(mintedId, mintedVenue);
+                  venueId = mintedId;
+                }
               }
               venueIdByLocationKey[locationKey] = venueId;
             }

@@ -502,6 +502,36 @@ void main() {
       },
     );
 
+    test('the ordinary bare-location .USR case never reads the venue '
+        'repository (lazy fingerprint index: a name-only candidate is always '
+        'weak-key, so the fingerprint index is never built/seeded)', () async {
+      final countingVenues = _CountingVenueRepository(db);
+      final spiedImporter = CallersCompanionUsrImporter(
+        pipeline,
+        programs,
+        countingVenues,
+      );
+
+      final result = await spiedImporter.import(
+        _ccUsrBytes(),
+        now: now,
+        venueEntityMode: true,
+        newId: sequentialIds(),
+        newSlotId: sequentialIds(),
+      );
+
+      // A venue is still minted (the mint path itself only ever writes),
+      // but resolving it must never have paid a listAll() read.
+      expect(result.insertedVenueIds, hasLength(1));
+      expect(
+        countingVenues.listAllCallCount,
+        0,
+        reason:
+            'a bare-name candidate is always weak-key; the fingerprint '
+            'index must never be built/seeded for it',
+      );
+    });
+
     test('two sets sharing the same location within one import collapse to '
         'one minted venue', () async {
       final archive = CcUsrArchive(
@@ -708,4 +738,21 @@ class _FailingProgramRepository extends ProgramRepository {
   @override
   Future<void> create(Program program, {Set<String>? knownVenueIds}) async =>
       throw StateError('simulated program persist failure');
+}
+
+/// A [VenueRepository] that counts [listAll] calls, to assert the venue-
+/// resolution path in [CallersCompanionUsrImporter.commit] never reads the
+/// venue table when every candidate's fingerprint is weak/absent (the
+/// ordinary `.USR` case — a bare `Location` string has only `name`, never a
+/// city/address1) — a lazy-index-build regression should be caught here.
+class _CountingVenueRepository extends VenueRepository {
+  _CountingVenueRepository(super.db);
+
+  int listAllCallCount = 0;
+
+  @override
+  Future<List<Venue>> listAll() {
+    listAllCallCount++;
+    return super.listAll();
+  }
 }
