@@ -248,6 +248,31 @@ void main() {
       },
     );
 
+    test(
+      'export runs its seven entity reads inside a single transaction',
+      () async {
+        // Regression test for #615: export() used to issue seven
+        // independently-snapshotted reads with no enclosing transaction, so a
+        // concurrent write between any two of them could produce a
+        // cross-entity-inconsistent archive. Asserting exactly one
+        // transaction is begun proves all the reads share one consistent
+        // snapshot, matching ArchiveRestorer's existing transactional
+        // guarantee.
+        final counter = TransactionCounter();
+        final db = openCountingTestDatabase(counter);
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await _seed(repos);
+        counter.reset();
+
+        await ArchiveExporter(
+          repos,
+        ).export(exportedAt: DateTime.utc(2026, 7, 15));
+
+        expect(counter.count, 1);
+      },
+    );
+
     test('merge layers the archive onto existing rows by id', () async {
       final db = openTestDatabase();
       addTearDown(db.close);

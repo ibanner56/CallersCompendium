@@ -20,19 +20,32 @@ class ArchiveExporter {
   /// [includeDeleted] carries soft-deleted dances/programs (default `true`) so a
   /// backup is a faithful, restorable snapshot including items still within the
   /// retention window.
+  ///
+  /// All seven reads run inside a single [CompendiumRepositories.db]
+  /// transaction so the export sees one consistent snapshot of the dataset —
+  /// without it, a write landing between two reads could produce a
+  /// cross-entity-inconsistent archive (e.g. a dance referencing a
+  /// choreographer removed by a concurrent edit), which then fails its own
+  /// restore (issue #615). The restore side is already transactional; this
+  /// closes the asymmetry.
   Future<CompendiumArchive> export({
     DateTime? exportedAt,
     bool includeDeleted = true,
-  }) async => CompendiumArchive(
-    exportedAt: (exportedAt ?? DateTime.now()).toUtc(),
-    dances: await _repos.dances.listAll(includeDeleted: includeDeleted),
-    programs: await _repos.programs.listAll(includeDeleted: includeDeleted),
-    choreographers: await _repos.choreographers.listAll(),
-    publishedSources: await _repos.publishedSources.listAll(),
-    customFields: await _repos.customFieldDefs.listAll(),
-    tags: await _repos.tags.listAll(),
-    venues: await _repos.venues.listAll(),
-  );
+  }) async {
+    final ts = (exportedAt ?? DateTime.now()).toUtc();
+    return _repos.db.transaction(
+      () async => CompendiumArchive(
+        exportedAt: ts,
+        dances: await _repos.dances.listAll(includeDeleted: includeDeleted),
+        programs: await _repos.programs.listAll(includeDeleted: includeDeleted),
+        choreographers: await _repos.choreographers.listAll(),
+        publishedSources: await _repos.publishedSources.listAll(),
+        customFields: await _repos.customFieldDefs.listAll(),
+        tags: await _repos.tags.listAll(),
+        venues: await _repos.venues.listAll(),
+      ),
+    );
+  }
 }
 
 /// Applies a [CompendiumArchive] to a live dataset — the restore/import half of
