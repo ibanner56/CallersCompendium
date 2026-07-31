@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdf/pdf.dart' show TtfParser;
+import 'package:pdf/widgets.dart' as pw;
 
 import 'package:compendium_app/src/export/program_pdf.dart';
 
@@ -114,6 +116,79 @@ void main() {
               'Roboto-Bold.ttf and Roboto-Italic.ttf must be different '
               'font files, not the same bytes registered twice',
         );
+      },
+    );
+  });
+
+  group('Program-matrix marker fallback font (#633)', () {
+    const asset = 'assets/fonts/ProgramMatrixMarkers-Regular.ttf';
+
+    test('$asset has no fvar (variable font) table', () async {
+      final bytes = await rootBundle.load(asset);
+      expect(
+        _sfntTableTags(bytes),
+        isNot(contains('fvar')),
+        reason:
+            '$asset must be a static, single-instance TTF, consistent with '
+            "#614's static-font decision for the other bundled PDF fonts — "
+            'the pdf package cannot resolve variable-font axes.',
+      );
+    });
+
+    test('$asset covers the ★ ▸ ✓ marker glyphs Roboto lacks', () async {
+      final bytes = await rootBundle.load(asset);
+      // Mirrors the exact glyph-lookup the `pdf` package itself performs
+      // (PdfTtfFont.isRuneSupported delegates to
+      // TtfParser.charToGlyphIndexMap.containsKey) — see
+      // `pdf/src/pdf/obj/ttffont.dart`.
+      final glyphs = TtfParser(bytes).charToGlyphIndexMap;
+      for (final MapEntry(key: name, value: codePoint) in const {
+        'star (★, U+2605)': 0x2605,
+        'triangle (▸, U+25B8)': 0x25B8,
+        'check (✓, U+2713)': 0x2713,
+      }.entries) {
+        expect(
+          glyphs.containsKey(codePoint),
+          isTrue,
+          reason: '$asset must map $name to a real glyph',
+        );
+      }
+
+      // Regression guard: the *bundled Roboto* still must NOT cover any of
+      // these three marks — if a future Roboto update ever added one, the
+      // fallback font (and this test) would be safe to drop for it, but
+      // until then the fallback is load-bearing for all three.
+      final robotoBytes = await rootBundle.load(
+        'assets/fonts/Roboto-Regular.ttf',
+      );
+      final robotoGlyphs = TtfParser(robotoBytes).charToGlyphIndexMap;
+      for (final MapEntry(key: name, value: codePoint) in const {
+        'star (★, U+2605)': 0x2605,
+        'triangle (▸, U+25B8)': 0x25B8,
+        'check (✓, U+2713)': 0x2713,
+      }.entries) {
+        expect(
+          robotoGlyphs.containsKey(codePoint),
+          isFalse,
+          reason:
+              'this test documents *why* the fallback font exists; if '
+              'Roboto gains a $name glyph, program_matrix_pdf.dart no '
+              'longer strictly needs the fallback for it',
+        );
+      }
+    });
+
+    test(
+      'loadProgramMatrixMarkerFont loads a font supporting all 3 marks',
+      () async {
+        final font = await loadProgramMatrixMarkerFont();
+        expect(font, isA<pw.Font>());
+
+        final bytes = await rootBundle.load(asset);
+        final glyphs = TtfParser(bytes).charToGlyphIndexMap;
+        expect(glyphs.containsKey(0x2605), isTrue);
+        expect(glyphs.containsKey(0x25B8), isTrue);
+        expect(glyphs.containsKey(0x2713), isTrue);
       },
     );
   });

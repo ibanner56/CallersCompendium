@@ -47,6 +47,34 @@ Future<pw.ThemeData> loadProgramPdfTheme() async {
   );
 }
 
+/// The program-matrix PDF's marker glyphs (★ ▸ ✓), cached after first load.
+pw.Font? _cachedMatrixMarkerFont;
+
+/// Loads the bundled marker-glyph fallback font used by the program-matrix
+/// PDF (see `program_matrix_pdf.dart`, #633).
+///
+/// The bundled Roboto TTFs above don't include ★ (U+2605), ▸ (U+25B8), or ✓
+/// (U+2713) — the `pdf` package silently drops glyphs missing from the active
+/// font, so those matrix markers rendered blank in exported PDFs. Rather than
+/// swap the documented marker glyphs (`docs/user/programs.md`,
+/// `docs/ROADMAP.md` both describe the matrix legend by these exact
+/// characters) for ones Roboto happens to have, this loads a single static
+/// TTF — `ProgramMatrixMarkers-Regular.ttf`, a hand-subsetted (`fonttools
+/// subset`) instance of Google's Noto Sans Symbols 2 (OFL 1.1) trimmed to
+/// just those three glyphs — and registers it as a `pw.TextStyle
+/// .fontFallback` only on the matrix's marker/legend text, so the `pdf`
+/// package falls back to it per-glyph instead of dropping the character (see
+/// `pdf`'s `Text._buildSpans` rune-fallback loop). Like the static Roboto
+/// faces above, this is a fixed-instance TTF, never a variable font.
+Future<pw.Font> loadProgramMatrixMarkerFont() async {
+  final cached = _cachedMatrixMarkerFont;
+  if (cached != null) return cached;
+  final bytes = await rootBundle.load(
+    'assets/fonts/ProgramMatrixMarkers-Regular.ttf',
+  );
+  return _cachedMatrixMarkerFont = pw.Font.ttf(bytes);
+}
+
 /// Builds a printable/saveable PDF of a [Program] set list (ROADMAP §4.3).
 ///
 /// The PDF mirrors the field ordering of [programToPlainText] — title,

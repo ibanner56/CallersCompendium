@@ -88,11 +88,19 @@ flutter:
     - assets/fonts/Roboto-Regular.ttf
     - assets/fonts/Roboto-Bold.ttf
     - assets/fonts/Roboto-Italic.ttf
+    # Static, hand-subsetted (`fonttools subset`) instance of Google's Noto
+    # Sans Symbols 2 (OFL), trimmed to just the three glyphs (★ ▸ ✓) the
+    # bundled Roboto lacks. Used only as a `pw.TextStyle.fontFallback` on the
+    # program-matrix PDF's marker/legend cells (see program_matrix_pdf.dart,
+    # #633) — not a variable font, and not registered as a Flutter `fonts:`
+    # family since it's loaded directly via `pw.Font.ttf` for PDF export only.
+    - assets/fonts/ProgramMatrixMarkers-Regular.ttf
     # Bundled font license texts, loaded at runtime via LicenseRegistry so
     # they appear in showLicensePage (Settings ▸ About ▸ View licenses).
     - assets/fonts/Fraunces-OFL.txt
     - assets/fonts/AtkinsonHyperlegible-OFL.txt
     - assets/fonts/Roboto-OFL.txt
+    - assets/fonts/NotoSansSymbols2-OFL.txt
     # In-app User Guide: the offline copy of the user documentation, mirrored
     # from /docs/user by tools/ci/sync_user_docs.py and kept in sync by a CI
     # drift-check. Rendered from these bundled assets so the guide works fully

@@ -17,11 +17,19 @@ class _BundledFontLicense {
 
 /// The bundled fonts and their license texts.
 ///
-/// All three are SIL Open Font License 1.1. Notably the bundled **Roboto**
+/// All four are SIL Open Font License 1.1. Notably the bundled **Roboto**
 /// (`Roboto-VariableFont.ttf`, v3.015 from googlefonts/roboto-classic) ships
 /// under the OFL — its own `name` table reads "…licensed under the SIL Open
 /// Font License, Version 1.1…" — *not* Apache-2.0, so there is no Apache NOTICE
 /// to convey; `Roboto-OFL.txt` is the corresponding license.
+///
+/// `ProgramMatrixMarkers-Regular.ttf` is a hand-subsetted (`fonttools
+/// subset`) instance of Google's **Noto Sans Symbols 2** (also OFL 1.1),
+/// trimmed to only the three glyphs (★ U+2605, ▸ U+25B8, ✓ U+2713) the
+/// bundled Roboto lacks — see `program_matrix_pdf.dart` (#633). It isn't a
+/// reading/UI font (not listed in the About section's typography credits
+/// alongside Fraunces/Roboto), but its license text is still bundled/
+/// registered here since it ships as a font asset under the OFL.
 const List<_BundledFontLicense> _bundledFontLicenses = [
   _BundledFontLicense(
     packages: ['Fraunces (OFL 1.1)'],
@@ -34,6 +42,10 @@ const List<_BundledFontLicense> _bundledFontLicenses = [
   _BundledFontLicense(
     packages: ['Roboto (OFL 1.1)'],
     assetPath: 'assets/fonts/Roboto-OFL.txt',
+  ),
+  _BundledFontLicense(
+    packages: ['Noto Sans Symbols 2 (OFL 1.1)'],
+    assetPath: 'assets/fonts/NotoSansSymbols2-OFL.txt',
   ),
 ];
 
