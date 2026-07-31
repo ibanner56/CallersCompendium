@@ -9,6 +9,7 @@ import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/program_list_tile.dart';
 import '../widgets/skeleton.dart';
+import '../widgets/weekday_header_strip.dart';
 import 'app_shell_search_scope.dart';
 import 'contradb_program_import_screen.dart';
 import 'plaintext_program_import_screen.dart';
@@ -137,6 +138,14 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       if (mounted) setState(() => _loadError = error);
     }
   }
+
+  /// Day-precision event dates (time-of-day dropped) for the "this week"
+  /// header strip's markers (ROADMAP G.8's first-day-of-week consumer).
+  static Set<DateTime> _programEventDates(List<Program> programs) => {
+    for (final program in programs)
+      if (program.eventDate case final date?)
+        DateTime(date.year, date.month, date.day),
+  };
 
   List<Program> get _sorted {
     final programs = [...?_programs];
@@ -440,6 +449,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     final sorted = _sorted;
     return Column(
       children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: WeekdayHeaderStrip(markedDates: _programEventDates(programs)),
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: Align(

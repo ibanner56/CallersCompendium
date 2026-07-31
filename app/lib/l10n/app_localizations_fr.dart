@@ -171,7 +171,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsFirstDayOfWeekSubtitle =>
-      'Jour de début de la semaine dans les vues de date de l’application. Disponible dans une prochaine mise à jour.';
+      'Jour de début de la semaine dans les vues de date propres à l\'application, comme le bandeau « cette semaine » de la liste des programmes.';
+
+  @override
+  String get settingsFirstDayOfWeekSunday => 'Dimanche';
+
+  @override
+  String get settingsFirstDayOfWeekMonday => 'Lundi';
+
+  @override
+  String get settingsFirstDayOfWeekSaturday => 'Samedi';
 
   @override
   String get settingsAppLanguageTitle => 'Langue de l’application';

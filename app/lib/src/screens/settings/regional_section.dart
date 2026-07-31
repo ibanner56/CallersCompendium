@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../../data/date_format_scope.dart';
 import '../../data/custom_date_pattern.dart';
+import '../../data/first_day_of_week_scope.dart';
 import '../../data/locale_scope.dart';
 import '../../data/regional_formats.dart';
 import '../../data/repositories_scope.dart';
@@ -9,13 +10,12 @@ import '../../../l10n/app_localizations.dart';
 import '../../widgets/section_header.dart';
 
 /// The Language & region settings section (ROADMAP G.8): the app-language
-/// selector plus the date-format preference.
+/// selector, the date-format preference, and the first-day-of-week preference.
 ///
-/// Owns the writes for the two live controls (app language, date format) and
-/// reads their live scopes so the UI (and the rest of the app) re-renders
-/// immediately when a value changes. The first-day-of-week preference has no
-/// active consumer yet, so it is shown as a disabled "Coming soon" row while
-/// its notifier/scope/storage still ship for a future consumer.
+/// Owns the writes for all three live controls and reads their live scopes so
+/// the UI (and the rest of the app) re-renders immediately when a value
+/// changes. First-day-of-week is honored by the "this week" header strip on
+/// the Programs list (`WeekdayHeaderStrip`) — see `docs/dev/localization.md`.
 class RegionalSection extends StatefulWidget {
   const RegionalSection({super.key});
 
@@ -103,42 +103,58 @@ class _RegionalSectionState extends State<RegionalSection> {
     await repos.settings.set(kLocaleKey, localeToTag(value));
   }
 
+  // Same instant-notifier-then-persist shape as date format / locale above:
+  // flip the live notifier first so FirstDayOfWeekScope dependents (e.g. the
+  // Programs list's WeekdayHeaderStrip) re-render immediately, then persist
+  // the stable token.
+  Future<void> _onFirstDayOfWeekPrefChanged(FirstDayOfWeekPref pref) async {
+    FirstDayOfWeekScope.notifierOf(context).value = pref;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kFirstDayOfWeekKey, pref.token);
+  }
+
   @override
   Widget build(BuildContext context) {
     return _RegionalView(
       dateFormat: DateFormatScope.of(context),
       customPatternController: _customPatternController,
       locale: LocaleScope.of(context),
+      firstDayOfWeek: FirstDayOfWeekScope.of(context),
       onDateFormatPrefChanged: _onDateFormatPrefChanged,
       onCustomPatternChanged: _onCustomPatternChanged,
       onLocaleChanged: _onLocaleChanged,
+      onFirstDayOfWeekPrefChanged: _onFirstDayOfWeekPrefChanged,
     );
   }
 }
 
 /// The Language & region section's presentational body (ROADMAP G.8).
 ///
-/// Ships two live controls — the app-language selector and the date-format
-/// preference (how program event dates render) — plus a disabled "Coming soon"
-/// first-day-of-week row (no active consumer yet). All strings come from
-/// [AppLocalizations] — this section is the extraction proof for the i18n
-/// foundation (PR 1).
+/// Ships three live controls — the app-language selector, the date-format
+/// preference (how program event dates render), and the first-day-of-week
+/// preference (honored by the Programs list's "this week" header strip). All
+/// strings come from [AppLocalizations] — this section is the extraction
+/// proof for the i18n foundation (PR 1).
 class _RegionalView extends StatelessWidget {
   const _RegionalView({
     required this.dateFormat,
     required this.customPatternController,
     required this.locale,
+    required this.firstDayOfWeek,
     required this.onDateFormatPrefChanged,
     required this.onCustomPatternChanged,
     required this.onLocaleChanged,
+    required this.onFirstDayOfWeekPrefChanged,
   });
 
   final DateFormatSetting dateFormat;
   final TextEditingController customPatternController;
   final Locale? locale;
+  final FirstDayOfWeekPref firstDayOfWeek;
   final ValueChanged<DateFormatPref> onDateFormatPrefChanged;
   final ValueChanged<String> onCustomPatternChanged;
   final ValueChanged<Locale?> onLocaleChanged;
+  final ValueChanged<FirstDayOfWeekPref> onFirstDayOfWeekPrefChanged;
 
   static String _dateFormatLabel(AppLocalizations l10n, DateFormatPref pref) {
     switch (pref) {
@@ -152,6 +168,22 @@ class _RegionalView extends StatelessWidget {
         return l10n.settingsDateFormatMdy;
       case DateFormatPref.custom:
         return l10n.settingsDateFormatCustom;
+    }
+  }
+
+  static String _firstDayOfWeekLabel(
+    AppLocalizations l10n,
+    FirstDayOfWeekPref pref,
+  ) {
+    switch (pref) {
+      case FirstDayOfWeekPref.system:
+        return l10n.commonSystemDefault;
+      case FirstDayOfWeekPref.sunday:
+        return l10n.settingsFirstDayOfWeekSunday;
+      case FirstDayOfWeekPref.monday:
+        return l10n.settingsFirstDayOfWeekMonday;
+      case FirstDayOfWeekPref.saturday:
+        return l10n.settingsFirstDayOfWeekSaturday;
     }
   }
 
@@ -256,18 +288,28 @@ class _RegionalView extends StatelessWidget {
               ],
             ),
           ),
-        // Plumbing (pref/scope/storage) ships, but there is no consumer yet:
-        // showDatePicker takes its first day of week from the locale, and the
-        // app draws no week/month grid of its own. Rather than surface a live
-        // control that changes nothing observable, show a disabled "Coming
-        // soon" row (matching the app's convention) until a real consumer lands.
+        // Live control (ROADMAP G.8): honored by the Programs list's "this
+        // week" header strip (WeekdayHeaderStrip), which reorders its columns
+        // to match the chosen first day of week.
         ListTile(
           key: const ValueKey('regional-first-day-of-week'),
-          enabled: false,
           title: Text(l10n.settingsFirstDayOfWeekTitle),
           subtitle: Text(l10n.settingsFirstDayOfWeekSubtitle),
           isThreeLine: true,
-          trailing: Text(l10n.commonComingSoon),
+          trailing: DropdownButton<FirstDayOfWeekPref>(
+            key: const ValueKey('regional-first-day-of-week-dropdown'),
+            value: firstDayOfWeek,
+            onChanged: (value) {
+              if (value != null) onFirstDayOfWeekPrefChanged(value);
+            },
+            items: [
+              for (final pref in FirstDayOfWeekPref.values)
+                DropdownMenuItem(
+                  value: pref,
+                  child: Text(_firstDayOfWeekLabel(l10n, pref)),
+                ),
+            ],
+          ),
         ),
       ],
     );

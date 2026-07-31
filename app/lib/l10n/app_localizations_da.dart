@@ -170,7 +170,16 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsFirstDayOfWeekSubtitle =>
-      'Hvilken dag ugen starter på i appens datovisninger. Kommer i en fremtidig opdatering.';
+      'Hvilken dag ugen starter på i appens egne datovisninger, f.eks. programlistens ugestribe.';
+
+  @override
+  String get settingsFirstDayOfWeekSunday => 'Søndag';
+
+  @override
+  String get settingsFirstDayOfWeekMonday => 'Mandag';
+
+  @override
+  String get settingsFirstDayOfWeekSaturday => 'Lørdag';
 
   @override
   String get settingsAppLanguageTitle => 'Appsprog';

@@ -100,7 +100,7 @@ This is just the entry point — see [Dialect](./dialects.md) for the full story
 The **Language & region** section handles formats and localization.
 
 - **Date format** — choose **System default**, **Year-month-day**, **Day/month/year**, or **Month/day/year**. A live example shows the result, and your choice controls how program event dates appear.
-- **First day of week** — shown as **Coming soon** and disabled for now. A future update will let you choose which day the week starts on in the app's own date views; today, date entry uses the system picker, which follows the app's active language.
+- **First day of week** — choose **System default**, **Sunday**, **Monday**, or **Saturday**. This controls which day starts the week in date views the app draws itself, such as the Programs list's "this week" strip; date entry still uses the system picker, which follows the app's active language.
 - **App language** — choose **System default** or one of the bundled languages (currently English, German, French, Japanese, Danish, and Dutch). Changing it re-renders the app immediately and is remembered next time you open the app. Your dance content — figure and call wording — is governed by your chosen [dialect](./dialects.md), independent of the interface language.
 
 ## Defaults

@@ -224,9 +224,21 @@
   "@settingsFirstDayOfWeekTitle": {
     "description": "Title of the control that chooses which day the week starts on."
   },
-  "settingsFirstDayOfWeekSubtitle": "Which day the week starts on in the app's date views. Coming in a future update.",
+  "settingsFirstDayOfWeekSubtitle": "Which day the week starts on in the app's own date views, such as the Programs list's this-week strip.",
   "@settingsFirstDayOfWeekSubtitle": {
-    "description": "Subtitle for the disabled, not-yet-available first-day-of-week row. Describes the future feature without implying it works today."
+    "description": "Subtitle for the live first-day-of-week control. Describes what it affects: date views the app draws itself (not the system date picker)."
+  },
+  "settingsFirstDayOfWeekSunday": "Sunday",
+  "@settingsFirstDayOfWeekSunday": {
+    "description": "First-day-of-week option: start the week on Sunday."
+  },
+  "settingsFirstDayOfWeekMonday": "Monday",
+  "@settingsFirstDayOfWeekMonday": {
+    "description": "First-day-of-week option: start the week on Monday (ISO-8601)."
+  },
+  "settingsFirstDayOfWeekSaturday": "Saturday",
+  "@settingsFirstDayOfWeekSaturday": {
+    "description": "First-day-of-week option: start the week on Saturday."
   },
 
   "settingsAppLanguageTitle": "App language",

@@ -107,22 +107,24 @@ Future<_RegionalNotifiers> _pumpRegional(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('renders two live controls and a disabled first-day-of-week row', (
-    tester,
-  ) async {
+  testWidgets('renders three live controls (language, date format, first '
+      'day of week)', (tester) async {
     final repos = openTestRepositories();
     await _pumpRegional(tester, repos);
 
-    // Language and date format are real, enabled controls.
     expect(find.byKey(const ValueKey('regional-language')), findsOneWidget);
     expect(find.byKey(const ValueKey('regional-date-format')), findsOneWidget);
-    // First day of week is present but disabled with a "Coming soon" badge: its
-    // plumbing ships, but no consumer applies it yet.
-    expect(
+    // First day of week is now a live dropdown (ROADMAP G.8: honored by the
+    // Programs list's "this week" header strip) rather than a disabled row.
+    final tile = tester.widget<ListTile>(
       find.byKey(const ValueKey('regional-first-day-of-week')),
+    );
+    expect(tile.enabled, isTrue);
+    expect(
+      find.byKey(const ValueKey('regional-first-day-of-week-dropdown')),
       findsOneWidget,
     );
-    expect(find.text('Coming soon'), findsOneWidget);
+    expect(find.text('Coming soon'), findsNothing);
   });
 
   testWidgets('the date-format dropdown shows the persisted value', (
@@ -356,26 +358,71 @@ void main() {
     expect(notifiers.locale.value, isNull);
   });
 
-  testWidgets('the first-day-of-week row is disabled and does not persist', (
+  testWidgets('the first-day-of-week dropdown shows the persisted value', (
     tester,
   ) async {
     final repos = openTestRepositories();
+    await repos.settings.set(
+      kFirstDayOfWeekKey,
+      FirstDayOfWeekPref.monday.token,
+    );
     final notifiers = await _pumpRegional(tester, repos);
 
-    // The row is a disabled ListTile (not an interactive control): tapping it
-    // opens no menu and writes nothing, and the notifier keeps its default.
-    final tile = tester.widget<ListTile>(
-      find.byKey(const ValueKey('regional-first-day-of-week')),
+    expect(
+      tester
+          .widget<DropdownButton<FirstDayOfWeekPref>>(
+            find.byKey(const ValueKey('regional-first-day-of-week-dropdown')),
+          )
+          .value,
+      FirstDayOfWeekPref.monday,
     );
-    expect(tile.enabled, isFalse);
+    expect(notifiers.firstDayOfWeek.value, FirstDayOfWeekPref.monday);
+  });
+
+  testWidgets('changing the first-day-of-week dropdown persists its key and '
+      'updates state live', (tester) async {
+    final repos = openTestRepositories();
+    final notifiers = await _pumpRegional(tester, repos);
+
+    // Defaults to System default until changed.
+    expect(notifiers.firstDayOfWeek.value, FirstDayOfWeekPref.system);
 
     await tester.tap(
-      find.byKey(const ValueKey('regional-first-day-of-week')),
-      warnIfMissed: false,
+      find.byKey(const ValueKey('regional-first-day-of-week-dropdown')),
     );
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Sunday').last);
+    await tester.pumpAndSettle();
 
-    expect(await repos.settings.get(kFirstDayOfWeekKey), isNull);
+    expect(
+      await repos.settings.get(kFirstDayOfWeekKey),
+      FirstDayOfWeekPref.sunday.token,
+    );
+    expect(notifiers.firstDayOfWeek.value, FirstDayOfWeekPref.sunday);
+    expect(
+      tester
+          .widget<DropdownButton<FirstDayOfWeekPref>>(
+            find.byKey(const ValueKey('regional-first-day-of-week-dropdown')),
+          )
+          .value,
+      FirstDayOfWeekPref.sunday,
+    );
+  });
+
+  testWidgets('a garbage persisted first-day-of-week token falls back to '
+      'System default', (tester) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kFirstDayOfWeekKey, 'not-a-real-day');
+    final notifiers = await _pumpRegional(tester, repos);
+
     expect(notifiers.firstDayOfWeek.value, FirstDayOfWeekPref.system);
+    expect(
+      tester
+          .widget<DropdownButton<FirstDayOfWeekPref>>(
+            find.byKey(const ValueKey('regional-first-day-of-week-dropdown')),
+          )
+          .value,
+      FirstDayOfWeekPref.system,
+    );
   });
 }

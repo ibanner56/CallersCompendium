@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
 import 'package:compendium_app/src/widgets/program_list_tile.dart';
+import 'package:compendium_app/src/widgets/weekday_header_strip.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
@@ -80,6 +81,23 @@ void main() {
     expect(find.byType(ProgramListTile), findsOneWidget);
     expect(find.text('1 program'), findsOneWidget);
   });
+
+  testWidgets(
+    'shows the "this week" header strip (ROADMAP G.8 first-day-of-week '
+    'consumer)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p1', title: 'Friday Night'));
+
+      await _pump(tester, repos);
+
+      expect(
+        find.byKey(const ValueKey('weekday-header-strip')),
+        findsOneWidget,
+      );
+      expect(find.byType(WeekdayHeaderStrip), findsOneWidget);
+    },
+  );
 
   testWidgets('sorts by title, recently updated, and event date', (
     tester,
