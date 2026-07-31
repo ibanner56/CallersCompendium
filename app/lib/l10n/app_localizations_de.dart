@@ -4727,10 +4727,6 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get danceEditorMoveCanCarryProgression =>
-      'Diese Bewegung kann die Progression tragen.';
-
-  @override
   String get danceEditorAddNote => 'Notiz hinzufügen';
 
   @override

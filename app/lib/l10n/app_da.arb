@@ -1154,7 +1154,6 @@
   "danceEditorUnrecognizedMoveReadOnly": "Ukendt bevægelse „{move}“ – ikke i denne versions taksonomi. Vist som skrivebeskyttet, så dens data er bevaret; den kan redigeres normalt igen, hvis bevægelsen kendes. Du kan stadig omarrangere eller slette den.",
   "danceEditorFewerOptions": "Færre muligheder",
   "danceEditorMoreOptions": "Flere muligheder ({count})",
-  "danceEditorMoveCanCarryProgression": "Denne bevægelse kan bære progressionen.",
   "danceEditorAddNote": "Tilføj note",
   "danceEditorBoldTooltip": "Fed (*tekst*)",
   "danceEditorUnderlineTooltip": "Understreget (_tekst_)",

@@ -1154,7 +1154,6 @@
   "danceEditorUnrecognizedMoveReadOnly": "Niet-herkende move “{move}” — niet in de taxonomie van deze versie. Alleen-lezen weergegeven zodat de gegevens bewaard blijven; de move kan weer normaal worden bewerkt als hij herkend wordt. Je kunt hem nog steeds herordenen of verwijderen.",
   "danceEditorFewerOptions": "Minder opties",
   "danceEditorMoreOptions": "Meer opties ({count})",
-  "danceEditorMoveCanCarryProgression": "Deze move kan de progressie dragen.",
   "danceEditorAddNote": "Noot toevoegen",
   "danceEditorBoldTooltip": "Vet (*tekst*)",
   "danceEditorUnderlineTooltip": "Onderstrepen (_tekst_)",

@@ -18,7 +18,6 @@ params:                    # NAMED, each with type + default
   hand:  {type: handedness, default: right}
   turn:  {type: rotation, default: 1.0}       # in full turns; 0.25 steps
   beats: {type: beats, default: 8}
-progressionCapable: true
 renderTemplate: "{who} allemande {hand} {turn}"   # canonical text rendering
 searchKeywords: [allemande, almond]
 ```
@@ -270,6 +269,14 @@ kinds:
   named hey-length durations (`full`, `half`, `lessThanHalf`,
   `betweenHalfAndFull`) is supported (v6), and the dynamic `dancer%%N` meeting
   target is now captured by the `meetTarget` dancerSet param (v17, issue #576).
+
+**`progressionCapable` removed (issue #551, 2026-07-31):** the `MoveDef.
+progressionCapable` flag (previously set on `swing`/`allemande`) and its sole
+consumer — an automatic info-icon/tooltip nudge in the figure editor's
+Progression toggle — were removed. The nudge over-complicated the model; the
+manual **Progression** toggle (unaffected) already lets a caller flag any
+figure as the progression. This is non-serialized taxonomy metadata, so no
+`contraTaxonomyVersion` bump or data migration was needed.
 
 ## Validation & rendering
 

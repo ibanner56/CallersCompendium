@@ -7259,12 +7259,6 @@ abstract class AppLocalizations {
   /// **'More options ({count})'**
   String danceEditorMoreOptions(int count);
 
-  /// Tooltip explaining that a move can carry the dance progression.
-  ///
-  /// In en, this message translates to:
-  /// **'This move can carry the progression.'**
-  String get danceEditorMoveCanCarryProgression;
-
   /// Button label for revealing a figure note field.
   ///
   /// In en, this message translates to:

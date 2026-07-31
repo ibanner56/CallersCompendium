@@ -1154,7 +1154,6 @@
   "danceEditorUnrecognizedMoveReadOnly": "Mouvement non reconnu « {move} » — absent de la taxonomie de cette version. Affiché en lecture seule pour préserver ses données ; il sera à nouveau modifiable si le mouvement devient connu. Vous pouvez toujours le réorganiser ou le supprimer.",
   "danceEditorFewerOptions": "Moins d’options",
   "danceEditorMoreOptions": "Plus d’options ({count})",
-  "danceEditorMoveCanCarryProgression": "Ce mouvement peut porter la progression.",
   "danceEditorAddNote": "Ajouter une note",
   "danceEditorBoldTooltip": "Gras (*texte*)",
   "danceEditorUnderlineTooltip": "Souligné (_texte_)",

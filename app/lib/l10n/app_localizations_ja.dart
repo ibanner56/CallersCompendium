@@ -4527,9 +4527,6 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get danceEditorMoveCanCarryProgression => 'このムーブはプログレッションを担えます。';
-
-  @override
   String get danceEditorAddNote => 'ノートを追加';
 
   @override
