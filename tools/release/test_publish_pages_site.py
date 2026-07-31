@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -139,6 +140,16 @@ def _push_files_to_branch(checkout: Path, worktree: Path, files: dict[str, str])
     """
     if worktree.exists():
         _git(checkout, "worktree", "remove", "--force", str(worktree), check=False)
+        if worktree.exists():
+            # `git worktree remove` can fail silently (check=False) and leave the
+            # directory in place, which would make the `worktree add` below fail
+            # with a confusing "already exists" error instead of the real cause.
+            # Fail loudly here instead.
+            shutil.rmtree(worktree, ignore_errors=True)
+            _git(checkout, "worktree", "prune", check=False)
+            assert not worktree.exists(), (
+                f"failed to remove stale worktree dir before reuse: {worktree}"
+            )
     _git(checkout, "fetch", "--quiet", "origin", REMOTE_BRANCH)
     _git(checkout, "worktree", "add", "--quiet", "-B", REMOTE_BRANCH, str(worktree),
          "FETCH_HEAD")
