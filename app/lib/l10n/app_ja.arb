@@ -638,7 +638,7 @@
   "programsAlternateDanceTitle": "代替ダンス",
   "programsAlternateDanceSubtitle": "その上のスロットの下にインデントして表示されます。",
   "commonDone": "完了",
-  "programsMatrixSemanticLabel": "プログラミングマトリックス: {danceCount}件のダンス × {moveCount}件のムーブ",
+  "programsMatrixSemanticLabel": "プログラミングマトリックス: {danceCount}件のダンス × {moveCount, plural, other{{moveCount}件のムーブ}}",
   "programsMatrixOmittedCaption": "{count, plural, other{{count}件のフリーテキストスロット（ブレイク、ノート）が省略されています — マトリックスはダンスのみ表示。}}",
   "programsMatrixMoveHeaderSemantic": "ムーブ: {label}",
   "programsMatrixHideColumnSemantic": "{label}列を非表示にする",
