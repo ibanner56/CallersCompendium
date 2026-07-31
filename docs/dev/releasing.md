@@ -234,6 +234,13 @@ python3 tools/release/gen_sbom.py \
 python3 tools/release/test_gen_sbom.py            # assert-based unit tests
 ```
 
+> **CI runs these too.** The release supply-chain suites
+> (`test_gen_sbom.py`, `test_gen_release_metadata.py`, `test_gen_release_notes.py`,
+> and `test_publish_pages_manifest.py`) also run on **every PR** via
+> `.github/workflows/_checks.yml`, so a regression in SBOM / `SHA256SUMS` /
+> update-manifest / `.sig`-preservation output fails the PR gate — not just the
+> release path.
+
 ### Verifying attestations
 
 Generating provenance proves nothing unless it's **verified**, so verification
