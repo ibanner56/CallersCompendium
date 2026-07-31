@@ -30,9 +30,12 @@ all three surfaces stay text-only (see ``docs/user/style-guide.md``).
 
 **Link integrity is enforced.** A relative link to a guide that doesn't exist,
 a ``#fragment`` with no matching heading, two headings in one guide that slug to
-the same anchor, a link to a repo path that isn't in the working tree, or a
-stale ``guide/…`` link on the landing page all fail the build, naming the source
-``.md`` file. The gate runs on every PR that touches the guides, so a broken
+the same anchor, or a stale ``guide/…`` link on the landing page all fail the
+build, naming the source ``.md`` file. On top of that, every GitHub repo URL in
+the **built** site — including the ones the page shell writes directly, which
+never pass through the link resolver — is checked against the working tree: the
+path must exist, and ``blob/`` must be a file while ``tree/`` must be a
+directory. The gate runs on every PR that touches the guides, so a broken
 cross-link can't reach ``main``.
 
 Usage::
@@ -438,7 +441,7 @@ _FOOTER = f"""  <footer class="site-footer">
     </div>
     <div class="wrap footer-fine">
       <p class="tiny">These pages are generated from
-        <a href="{REPO_BLOB_BASE}/docs/user/" rel="noopener">docs/user/</a> — the same
+        <a href="{REPO_TREE_BASE}/docs/user" rel="noopener">docs/user/</a> — the same
         Markdown the app reads offline. Spotted something wrong?
         <a href="{REPO_URL}/issues/new/choose" rel="noopener">Tell us</a>.</p>
     </div>
@@ -625,6 +628,53 @@ def check_guides(guides: list[Guide]) -> list[str]:
 
 _SITE_GUIDE_HREF = re.compile(r'href="(guide/[^"#]*)(#[^"]*)?"')
 
+# Any GitHub blob/tree URL for this repo, wherever it appears in the built site.
+_REPO_URL_RE = re.compile(re.escape(REPO_URL) + r"/(blob|tree)/main/([^\"'#\s>]*)")
+
+
+def check_repo_urls(out: Path, repo_root: Path = REPO_ROOT) -> list[str]:
+    """Every repo URL in the *built site* must match the working tree.
+
+    A corpus-level backstop over the rendered HTML rather than over the
+    resolver's return values, because the page shell (header, footer,
+    breadcrumb) writes repo links directly and never goes through
+    :class:`GuideLinkResolver` — so the ``tree/``-vs-``blob/`` rule and the
+    existence check would otherwise not apply to them. The landing and privacy
+    pages copied into the site are covered too.
+
+    Asserts the property, not examples: for every ``blob``/``tree`` URL, the
+    path exists, and ``blob`` means file while ``tree`` means directory.
+    """
+    seen: dict[tuple[str, str], str] = {}
+    for page in sorted(out.rglob("*.html")):
+        rel = page.relative_to(out).as_posix()
+        for kind, raw in _REPO_URL_RE.findall(page.read_text(encoding="utf-8")):
+            path = html_module.unescape(raw).rstrip("/")
+            if path:
+                seen.setdefault((kind, path), rel)
+
+    errors: list[str] = []
+    for (kind, path), page in sorted(seen.items()):
+        url = f"{REPO_URL}/{kind}/main/{path}"
+        target = repo_root / path
+        try:
+            inside = target.resolve().is_relative_to(repo_root.resolve())
+        except (OSError, ValueError):
+            inside = False
+        if path == ".." or path.startswith("../") or not inside:
+            errors.append(f"{page}: {url} does not resolve inside the repository")
+            continue
+        if not target.exists():
+            errors.append(
+                f"{page}: {url} points at {path}, which does not exist in the repository"
+            )
+            continue
+        if target.is_dir() and kind != "tree":
+            errors.append(f"{page}: {url} is a directory and must use tree/, not blob/")
+        elif target.is_file() and kind != "blob":
+            errors.append(f"{page}: {url} is a file and must use blob/, not tree/")
+    return errors
+
 
 def check_site_links(out: Path, guides: list[Guide]) -> list[str]:
     """Hand-written ``guide/…`` links on the rest of the site must resolve.
@@ -739,7 +789,11 @@ def main(argv: list[str] | None = None) -> int:
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "site"
             guides = build_site(out)
-            errors = check_guides(guides) + check_site_links(out, guides)
+            errors = (
+                check_guides(guides)
+                + check_site_links(out, guides)
+                + check_repo_urls(out)
+            )
             if errors:
                 report(errors)
                 return 1
@@ -747,7 +801,11 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
     guides = build_site(args.out)
-    errors = check_guides(guides) + check_site_links(args.out, guides)
+    errors = (
+        check_guides(guides)
+        + check_site_links(args.out, guides)
+        + check_repo_urls(args.out)
+    )
     if errors:
         report(errors)
         return 1

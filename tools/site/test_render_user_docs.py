@@ -17,6 +17,9 @@ What it proves:
   (``../design/serch.md``) fails the build rather than shipping as a live 404,
   and a link that escapes the repository is refused outright. Absolute URLs and
   ``mailto:`` are passed through untouched and never stat'ed.
+* **Repo URLs are re-checked over the built HTML**, so the page shell's own
+  links — which bypass the resolver entirely — are covered by the same
+  existence and ``blob``-vs-``tree`` rule.
 * **The real corpus builds clean.** Every guide under ``docs/user/`` renders,
   and every on-site link *and* ``#fragment`` resolves — this is the gate that
   keeps a cross-link from silently 404-ing on the site.
@@ -251,11 +254,70 @@ def test_repo_directories_get_tree_urls_and_files_get_blob_urls() -> None:
 
 
 def test_real_corpus_directory_links_use_tree_urls() -> None:
+    """Markdown-authored directory links. The site-wide rule is asserted by
+    `test_every_repo_url_in_the_staged_site_matches_the_working_tree`; this
+    pins the resolver's half of it."""
     bodies = "".join(guide.body for guide in rud.render_guides())
     assert f'href="{rud.REPO_TREE_BASE}/docs/design"' in bodies
     assert f'href="{rud.REPO_BLOB_BASE}/docs/design"' not in bodies
     # ...and a real file link still uses blob/.
     assert f'href="{rud.REPO_BLOB_BASE}/docs/design/ux.md"' in bodies
+
+
+def test_every_repo_url_in_the_staged_site_matches_the_working_tree() -> None:
+    """Property over the *built* site, not the resolver's return values.
+
+    The page shell writes repo links directly (the footer's `docs/user/`), so
+    they never pass through `GuideLinkResolver` and an example-shaped assertion
+    like "blob/main/docs/design is absent" happily passes while a different
+    directory sits on `blob/` a few lines away. Assert the rule instead: for
+    every blob/tree URL anywhere in the staged site — guide pages *and* the
+    copied landing and privacy pages — the path exists, `blob` means file and
+    `tree` means directory.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "site"
+        rud.build_site(out)
+        assert rud.check_repo_urls(out) == []
+        # Guard against the property passing vacuously on an empty match set.
+        urls = set()
+        for page in sorted(out.rglob("*.html")):
+            urls |= set(rud._REPO_URL_RE.findall(page.read_text(encoding="utf-8")))
+        kinds = {kind for kind, _ in urls}
+        assert len(urls) >= 12, urls
+        assert kinds == {"blob", "tree"}, kinds
+
+
+def test_chrome_links_are_covered_by_the_repo_url_gate() -> None:
+    """The footer's repo links are shell, not Markdown — they must be checked."""
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "site"
+        rud.build_site(out)
+        page = (out / "guide" / "perform.html").read_text(encoding="utf-8")
+        footer = page.split('<footer class="site-footer">')[1]
+        assert f'{rud.REPO_TREE_BASE}/docs/user"' in footer
+        assert f'{rud.REPO_BLOB_BASE}/docs/user' not in footer
+        assert f'{rud.REPO_BLOB_BASE}/LICENSE' in footer
+
+
+def test_repo_url_gate_flags_a_wrong_kind_or_missing_path() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "site"
+        rud.build_site(out)
+        (out / "index.html").write_text(
+            f'<a href="{rud.REPO_BLOB_BASE}/docs/design">dir as blob</a>'
+            f'<a href="{rud.REPO_TREE_BASE}/docs/ROADMAP.md">file as tree</a>'
+            f'<a href="{rud.REPO_BLOB_BASE}/docs/nope.md">missing</a>'
+            f'<a href="{rud.REPO_BLOB_BASE}/../outside.md">escaping</a>',
+            encoding="utf-8",
+        )
+        errors = rud.check_repo_urls(out)
+        assert len(errors) == 4, errors
+        joined = "\n".join(errors)
+        assert "must use tree/, not blob/" in joined
+        assert "must use blob/, not tree/" in joined
+        assert "does not exist in the repository" in joined
+        assert "does not resolve inside the repository" in joined
 
 
 def test_missing_repo_link_target_fails_the_build() -> None:
