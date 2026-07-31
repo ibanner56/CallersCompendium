@@ -1907,6 +1907,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
     return Row(
+      key: ValueKey('figure-${widget.index}-progression-row'),
       mainAxisSize: MainAxisSize.min,
       children: [
         Semantics(

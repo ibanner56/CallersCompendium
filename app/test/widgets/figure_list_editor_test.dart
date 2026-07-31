@@ -637,17 +637,34 @@ void main() {
     (tester) async {
       // swing and allemande formerly set progressionCapable, which drove an
       // automatic info-icon/tooltip nudge beside the Progression toggle.
-      // That nudge was removed; only the manual toggle remains.
+      // That nudge was removed; only the manual toggle remains. Scope the
+      // assertion to the toggle's own row so an unrelated info icon
+      // elsewhere in the editor can't mask a regression here.
       final drafts = <FigureDraft>[FigureDraft()];
       await _pump(tester, drafts);
       await _selectMove(tester, 0, 'sw', 'swing');
 
-      expect(find.byIcon(Icons.info_outline), findsNothing);
+      final progressionRow = find.byKey(
+        const ValueKey('figure-0-progression-row'),
+      );
+      expect(
+        find.descendant(
+          of: progressionRow,
+          matching: find.byIcon(Icons.info_outline),
+        ),
+        findsNothing,
+      );
 
       await tester.tap(find.byKey(const ValueKey('figure-0-progression')));
       await tester.pumpAndSettle();
       expect(drafts.single.progression, isTrue);
-      expect(find.byIcon(Icons.info_outline), findsNothing);
+      expect(
+        find.descendant(
+          of: progressionRow,
+          matching: find.byIcon(Icons.info_outline),
+        ),
+        findsNothing,
+      );
     },
   );
 
