@@ -282,7 +282,11 @@ class DanceRepository {
       // it only supplies their shared section placement. `idx` runs over the
       // FLATTENED constituent stream (the `dance_figures` PK is `{danceId, idx}`
       // and the `Then` operator relies on `a.idx < b.idx`), so sides occupy
-      // consecutive slots in order.
+      // consecutive slots in order. NOTE: concurrent sides are intentionally
+      // per-constituent matchable, but consecutive idx makes them look
+      // sequential to `Then` (false before/after adjacency) — accepted for
+      // #590; concurrency-aware querying is deferred to #594. See
+      // docs/design/search.md "Known limitation".
       final constituents = figure.isMeanwhile
           ? figure.subFigures
           : <Figure>[figure];

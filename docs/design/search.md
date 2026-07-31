@@ -204,6 +204,16 @@ either side's text. `idx` runs over the **flattened** constituent stream (the
 sides occupy consecutive slots in order; the container itself supplies their
 shared section/beat placement.
 
+**Known limitation (#590 → follow-up for #594).** Because concurrent sides get
+consecutive `idx` values, they are indistinguishable from a genuine sequence to
+the `Then` operator's `a.idx < b.idx` correlation: `Then(X, Y)` will match when
+`X` and `Y` are actually *simultaneous* sides of one `meanwhile`, not one after
+the other. This false "before/after" adjacency is accepted for #590 (the
+core-model/indexing child), whose goal is per-constituent matchability.
+Refining `Then` concurrency-vs-sequence semantics belongs to the render/query
+child (#594); if it proves to matter sooner, file a follow-up rather than
+widening #590.
+
 ### Sequence: `Then(before, after)`
 
 "A figure matching `before` occurs earlier in the dance than a figure matching
