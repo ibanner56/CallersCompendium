@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:compendium_app/src/update/artifact_downloader.dart';
+import 'package:compendium_app/src/update/artifact_handoff.dart';
 import 'package:compendium_app/src/update/semver.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_manifest.dart';
@@ -98,5 +101,62 @@ void main() {
     expect(controller.foundUpdate, isNotNull);
     expect(controller.foundUpdate!.version.toString(), '0.2.0');
     expect(controller.bannerUpdate, isNotNull);
+  });
+
+  test('routes the assisted-download destination through a fresh, '
+      'unpredictable subdirectory rather than a predictable temp-dir path '
+      '(issue #626)', () async {
+    final repos = openTestRepositories();
+    final rootTemp = Directory.systemTemp.createTempSync('controller_root_');
+    addTearDown(() => rootTemp.deleteSync(recursive: true));
+
+    File? capturedDestination;
+    final controller = UpdateController(
+      repos.settings,
+      service: UpdateService(
+        fetcher: (channel, {http.Client? client}) async =>
+            utf8.encode(_stableManifest),
+        signatureFetcher: (channel, {http.Client? client}) async => 'sig',
+        signatureVerifier: (bytes, sig) async => true,
+      ),
+      currentVersion: SemVer.tryParse('0.1.0'),
+      platform: UpdatePlatform.linux,
+      arch: UpdateArch.x64,
+      temporaryDirectoryProvider: () async => rootTemp,
+      downloader:
+          (
+            artifact, {
+            required File destination,
+            http.Client? client,
+            void Function(DownloadProgress)? onProgress,
+            DownloadCancelToken? cancelToken,
+          }) async {
+            capturedDestination = destination;
+            await destination.writeAsString('artifact-bytes');
+            return DownloadOutcome.success(destination);
+          },
+      verifier: (file, sha256) async => true,
+      handoff: (file, platform) async => HandoffResult.revealed,
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+    await controller.checkNow();
+    expect(controller.canAssistDownload, isTrue);
+
+    await controller.startAssistedDownload();
+
+    expect(controller.downloadStatus, AssistedDownloadStatus.completed);
+    final destination = capturedDestination;
+    expect(destination, isNotNull);
+    // The destination must NOT sit directly under the shared temp root at
+    // a name derived only from the artifact URL (the old predictable
+    // path a local attacker could pre-plant a symlink at) — it must be one
+    // level deeper, inside a per-attempt subdirectory.
+    expect(destination!.parent.path, isNot(rootTemp.path));
+    expect(destination.parent.parent.path, rootTemp.path);
+    expect(destination.path, endsWith('app-0.2.0-linux-x64.AppImage'));
+    // The verified artifact (and its containing directory) are kept after
+    // a successful handoff so the user can still reach it.
+    expect(await destination.exists(), isTrue);
   });
 }

@@ -269,9 +269,13 @@ void main() {
 
     final pending = c.startAssistedDownload();
     expect(c.downloadStatus, AssistedDownloadStatus.downloading);
-    // Let the (async) temp-dir resolution run so the downloader is invoked and
-    // captures the cancel token before we cancel.
-    await Future<void>.delayed(Duration.zero);
+    // Let the (async) temp-dir resolution + per-attempt subdirectory creation
+    // run so the downloader is invoked and captures the cancel token before we
+    // cancel. Both are real (if fast) I/O ops, so poll briefly rather than
+    // assuming a single event-loop turn suffices.
+    for (var i = 0; i < 50 && captured == null; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
 
     c.cancelDownload();
     expect(captured, isNotNull);

@@ -407,23 +407,69 @@ void main() {
     expect(await dest.exists(), isFalse);
   });
 
-  test(
-    'a file flush/close failure downgrades success to a network error',
-    () async {
-      // Point the destination at an existing *directory*: bytes buffer fine, but
-      // flush()/close() fails (EISDIR). A partial/corrupt file must never be
-      // reported as a successful download and handed on to sha256 verification.
-      final collide = Directory('${tempDir.path}/collide')..createSync();
+  test('a destination colliding with an existing directory is refused before '
+      'any bytes are written', () async {
+    // A directory already sits at the destination path: the exclusive
+    // create must fail closed (never buffer/write through it) rather than
+    // discovering the collision only at flush/close time.
+    final collide = Directory('${tempDir.path}/collide')..createSync();
 
-      final client = _streamingClient([utf8.encode('AB')], contentLength: 2);
+    final client = _streamingClient([utf8.encode('AB')], contentLength: 2);
+    final outcome = await downloadArtifact(
+      _artifact(size: 2),
+      destination: File(collide.path),
+      client: client,
+    );
+
+    expect(outcome.kind, DownloadResultKind.networkError);
+    expect(outcome.message, contains('could not create destination file'));
+    // The pre-existing directory must be left untouched, not deleted.
+    expect(await collide.exists(), isTrue);
+  });
+
+  test('a pre-planted symlink at the destination path is refused, never '
+      'followed or deleted (CWE-59)', () async {
+    // Simulate a local attacker who pre-plants a symlink at the predictable
+    // destination path, pointing at a file outside the download directory.
+    final secretDir = Directory('${tempDir.path}/outside')..createSync();
+    final secret = File('${secretDir.path}/secret.txt')
+      ..writeAsStringSync('do-not-touch');
+    final link = Link(dest.path)..createSync(secret.path);
+
+    final client = _streamingClient([utf8.encode('AB')], contentLength: 2);
+    final outcome = await downloadArtifact(
+      _artifact(size: 2),
+      destination: File(dest.path),
+      client: client,
+    );
+
+    expect(outcome.kind, DownloadResultKind.networkError);
+    expect(outcome.message, contains('could not create destination file'));
+    // The symlink must still exist, unmolested, and its target must be
+    // completely untouched — the write never followed it.
+    expect(await link.exists(), isTrue);
+    expect(await secret.readAsString(), 'do-not-touch');
+  });
+
+  test(
+    'a fresh destination is created exclusively and cleaned up on failure',
+    () async {
+      final client = _streamingClient([
+        utf8.encode('AAAA'),
+        utf8.encode('BBBB'),
+      ], contentLength: 100);
+
       final outcome = await downloadArtifact(
-        _artifact(size: 2),
-        destination: File(collide.path),
+        _artifact(size: 100),
+        destination: dest,
         client: client,
       );
 
-      expect(outcome.kind, DownloadResultKind.networkError);
-      expect(outcome.message, contains('could not finish writing'));
+      expect(outcome.kind, DownloadResultKind.sizeMismatch);
+      // The file this call created for its exclusive-create is cleaned up on
+      // a non-success outcome — never left behind for a retry to collide
+      // with.
+      expect(await dest.exists(), isFalse);
     },
   );
 }

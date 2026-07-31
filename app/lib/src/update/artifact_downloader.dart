@@ -137,7 +137,16 @@ typedef ArtifactDownloader =
 /// body cannot fill the disk. After the stream ends, the written byte count is
 /// validated against the manifest `size`; a mismatch is a
 /// [DownloadResultKind.sizeMismatch]. Every non-success path deletes the
-/// partial file so no truncated artifact is ever handed to verification.
+/// partial file — but only one this call itself created — so no truncated
+/// artifact is ever handed to verification.
+///
+/// [destination] is created with `exclusive: true` (issue #626) before any
+/// byte is written: this fails closed rather than writing through a
+/// pre-existing file *or symlink* at that path, closing a local
+/// symlink/predictable-path attack (CWE-59/377). Callers should additionally
+/// route [destination] through an unpredictable directory (e.g.
+/// `Directory.createTemp`) so the exclusive-create is defense-in-depth rather
+/// than the sole guard.
 Future<DownloadOutcome> downloadArtifact(
   UpdateArtifact artifact, {
   required File destination,
@@ -158,6 +167,11 @@ Future<DownloadOutcome> downloadArtifact(
   var received = 0;
   var succeeded = false;
   var sinkClosed = false;
+  // Only ever delete a file this call itself created — never a pre-existing
+  // entity found at [destination] (see the `create(exclusive: true)` call
+  // below), so a symlink an attacker pre-planted at a predictable path is
+  // never touched, let alone followed.
+  var createdDestination = false;
 
   try {
     if (cancelToken != null && cancelToken.isCancelled) {
@@ -192,6 +206,27 @@ Future<DownloadOutcome> downloadArtifact(
     final maxBytes = artifact.size > 0
         ? artifact.size
         : kMaxArtifactDownloadBytes;
+
+    // Create the destination **exclusively** (`O_EXCL`-equivalent): this
+    // fails closed if anything — a regular file, a directory, or a
+    // symlink — already sits at [destination], instead of writing through it.
+    // That defeats a local symlink attack (CWE-59) where an attacker
+    // pre-plants a symlink at a predictable path to redirect the write at a
+    // target of their choosing: `openWrite()`/`open()` alone would happily
+    // follow it, but a failed exclusive-create means we never open, never
+    // write, and never delete the pre-existing entity (the cleanup in
+    // `finally` below only ever removes a file *this call* created). Callers
+    // pair this with an unpredictable destination path (see
+    // `UpdateController.startAssistedDownload`) so the exclusive-create is
+    // defense-in-depth, not the only guard.
+    try {
+      await destination.create(exclusive: true);
+      createdDestination = true;
+    } on Object catch (e) {
+      return DownloadOutcome.networkError(
+        'could not create destination file securely: $e',
+      );
+    }
     sink = destination.openWrite();
 
     final done = Completer<DownloadOutcome>();
@@ -292,7 +327,7 @@ Future<DownloadOutcome> downloadArtifact(
         // ignore
       }
     }
-    if (!succeeded) {
+    if (!succeeded && createdDestination) {
       try {
         if (await destination.exists()) await destination.delete();
       } on Object {
