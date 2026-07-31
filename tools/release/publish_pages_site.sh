@@ -58,9 +58,17 @@ source_ref="${SOURCE_REF:-$(git rev-parse --short HEAD 2>/dev/null || echo unkno
 # in #431) are published by tools/release/publish_pages_manifest.sh and must be
 # preserved TOGETHER: a manifest without its signature is as broken as the reverse
 # — the in-app update client fetches `<channel>.json.sig`, and a missing signature
-# makes it fail closed and silently stop offering updates (issue #607). Keep this
-# list in sync with every artifact the manifest publisher emits.
-preserve=(".git" ".nojekyll" "beta.json" "beta.json.sig" "stable.json" "stable.json.sig")
+# makes it fail closed and silently stop offering updates (issue #607).
+#
+# Preserved BY PATTERN, not by enumerated channel name (issue #640): `*.json` and
+# `*.json.sig` cover every current and future channel manifest + signature (e.g. a
+# new `alpha.json`/`alpha.json.sig`) without ever needing an edit here. Each glob
+# is matched by `find -name` against the *basename only* of top-level gh-pages
+# entries (`-mindepth 1 -maxdepth 1` below), so it can't be widened by slashes or
+# path traversal in a crafted name, and `site/` ships no `*.json` of its own today
+# (verified: only html/css/js/svg), so this can't accidentally preserve a stale
+# site file instead of replacing it.
+preserve=(".git" ".nojekyll" "*.json" "*.json.sig")
 
 cleanup() { git worktree remove --force "$worktree" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
