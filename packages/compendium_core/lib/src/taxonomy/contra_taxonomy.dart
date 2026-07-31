@@ -211,7 +211,6 @@ final Taxonomy contraTaxonomy = Taxonomy(
           choices: ['in', 'out', 'up', 'down'],
         ),
       },
-      progressionCapable: true,
       renderTemplate: '{who} {prefix} {move}',
       goodBeats: [8, 16],
       // ContraDB swingChange: a prefixed swing (balance OR meltdown) with
@@ -249,7 +248,6 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'turn': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      progressionCapable: true,
       renderTemplate: '{who} {move} {hand} {turn}',
       goodBeats: [8],
     ),

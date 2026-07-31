@@ -1156,7 +1156,6 @@
   "danceEditorUnrecognizedMoveReadOnly": "Nicht erkannte Bewegung „{move}“ – nicht in der Taxonomie dieser Version. Schreibgeschützt angezeigt, damit die Daten erhalten bleiben; sie wird wieder normal bearbeitet, wenn die Bewegung bekannt wird. Sie können sie noch neu ordnen oder löschen.",
   "danceEditorFewerOptions": "Weniger Optionen",
   "danceEditorMoreOptions": "Mehr Optionen ({count})",
-  "danceEditorMoveCanCarryProgression": "Diese Bewegung kann die Progression tragen.",
   "danceEditorAddNote": "Notiz hinzufügen",
   "danceEditorBoldTooltip": "Fett (*text*)",
   "danceEditorUnderlineTooltip": "Unterstrichen (_text_)",

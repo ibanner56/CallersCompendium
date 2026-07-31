@@ -10,7 +10,6 @@ class MoveDef {
     required this.id,
     required this.displayName,
     this.params = const {},
-    this.progressionCapable = false,
     required this.renderTemplate,
     this.searchKeywords = const [],
     this.goodBeats,
@@ -26,9 +25,6 @@ class MoveDef {
 
   /// Named parameter specs, in canonical display order.
   final Map<String, ParamSpec> params;
-
-  /// Whether this move can carry the progression point.
-  final bool progressionCapable;
 
   /// Canonical text template with `{param}` placeholders (plus the implicit
   /// `{move}` for the display name), e.g. `"{who} allemande {hand} {turn}"`.

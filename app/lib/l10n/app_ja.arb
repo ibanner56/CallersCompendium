@@ -1156,7 +1156,6 @@
   "danceEditorUnrecognizedMoveReadOnly": "認識されないムーブ「{move}」— このバージョンのタクソノミーにありません。データを保持するために読み取り専用で表示されています。ムーブが認識されるようになると再び通常通り編集できます。並べ替えや削除はできます。",
   "danceEditorFewerOptions": "オプションを減らす",
   "danceEditorMoreOptions": "オプションをさらに表示 ({count})",
-  "danceEditorMoveCanCarryProgression": "このムーブはプログレッションを担えます。",
   "danceEditorAddNote": "ノートを追加",
   "danceEditorBoldTooltip": "太字 (*テキスト*)",
   "danceEditorUnderlineTooltip": "下線 (_テキスト_)",

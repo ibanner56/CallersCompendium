@@ -153,6 +153,15 @@ each release so store builds and tags can be traced back to an entry.
   conveyed with a distinct shape plus a localized screen-reader announcement,
   never colour alone (WCAG 1.4.1). (#582)
 
+### Removed
+
+- **The automatic "can carry progression" hint is gone from the figure
+  editor.** Swing and allemande no longer show an info-icon/tooltip nudge
+  beside the Progression toggle. The manual **Progression** toggle is
+  unaffected — you can still flag any figure as the progression yourself.
+  The underlying `progressionCapable` taxonomy flag (non-serialized static
+  metadata) was removed along with it. Closes #551.
+
 ### Security
 
 - **ContraDB dance and program imports are now restricted to the official

@@ -5150,10 +5150,6 @@
       }
     }
   },
-  "danceEditorMoveCanCarryProgression": "This move can carry the progression.",
-  "@danceEditorMoveCanCarryProgression":   {
-    "description": "Tooltip explaining that a move can carry the dance progression."
-  },
   "danceEditorAddNote": "Add note",
   "@danceEditorAddNote":   {
     "description": "Button label for revealing a figure note field."
