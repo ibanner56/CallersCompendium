@@ -21,6 +21,15 @@ each release so store builds and tags can be traced back to an entry.
   affects timing immediately recalculates its beat count, even overwriting a
   beat count you typed in by hand; the setting's subtitle states this
   explicitly so the trade-off is never a surprise. Closes #689.
+- **Mad robins and butterfly whirls import as real figures.** Caller's Box
+  dances that write "Mad robin clockwise around neighbor" or "Partner butterfly
+  whirl counterclockwise" used to land as unstructured custom text, because the
+  figure model had nowhere to put the direction or the dancer you go around.
+  Both moves now carry those details, so those lines import as proper figures —
+  searchable, editable in the figure editor (new **Direction** and **Whom**
+  fields), and rendered in your dialect. Nothing is invented: a line that
+  doesn't state both facts still imports verbatim as a custom figure, and
+  existing dances are untouched.
 - **First day of week is live.** The Language & region settings dropdown for
   first day of week (System default / Sunday / Monday / Saturday) is no
   longer disabled — it now has a real consumer, the Programs list's "this

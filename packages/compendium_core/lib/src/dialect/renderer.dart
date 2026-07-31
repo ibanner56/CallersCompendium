@@ -457,6 +457,17 @@ class FigureRenderer {
   static String _displayScalar(Object? value) =>
       value == null ? '' : _humanize(value.toString());
 
+  /// Whether [value] is the [ParamVocab.unspecified] sentinel — i.e. the source
+  /// stated nothing for this param (issue #295). Base lines drop the whole
+  /// clause in that case instead of writing the word "unspecified".
+  static bool _isUnspecified(Object? value) => value == ParamVocab.unspecified;
+
+  /// DISPLAY-ONLY: a `choice` param for the base lines, rendering the
+  /// [ParamVocab.unspecified] sentinel as nothing and otherwise humanizing
+  /// (so an unexpected imported value is still surfaced, never hidden).
+  static String _displayChoice(Object? value) =>
+      _isUnspecified(value) ? '' : _displayScalar(value);
+
   /// DISPLAY-ONLY: the "other pair" for a subject [value], mirroring ContraDB
   /// `dance.js` `invertPair` (`app/javascript/libfigure/dance.js` @13f38a5).
   /// ContraDB inverts only the four-dancer pairings it can name
@@ -556,6 +567,17 @@ class FigureRenderer {
     bool forCanonical,
   ) {
     if (value == null) return '';
+    // The `unspecified` sentinel means the SOURCE STATED NOTHING, so it renders
+    // as nothing — in the canonical render too. This is what lets an additive
+    // param sit in a `renderTemplate` (`mad_robin.direction`/`whom`,
+    // `butterfly_whirl.who`/`direction`; issue #295) while every figure that
+    // leaves it unset keeps a byte-identical canonical/FTS/dedupe key. Gated on
+    // the spec explicitly admitting the sentinel, so a free-`text` param whose
+    // value happens to be the word "unspecified" still renders verbatim.
+    if (value == ParamVocab.unspecified &&
+        (spec?.choices?.contains(ParamVocab.unspecified) ?? false)) {
+      return '';
+    }
     if (value is String && roleTokens.contains(value)) {
       return _roleTerm(value, dialect);
     }
@@ -874,17 +896,39 @@ class FigureRenderer {
     // (1.0 == 360° == once), so the "<turn> around" clause is shown only for a
     // non-default turn (formatted via our rotation vocabulary — an approximation
     // of ContraDB's degrees wording).
+    //
+    // v20 (#295) layers The Caller's Box's two extra facts on top, each shown
+    // only when the source stated it (the `unspecified` sentinel renders
+    // nothing, so a ContraDB import is unchanged): the rotation `direction`
+    // right after the move name, and the "around <whom>" target folded INTO the
+    // turn clause — so TCB's "Mad robin clockwise 1 & 1/2 around neighbor"
+    // reads back as "mad robin clockwise 1½ around neighbor, ones in front"
+    // rather than doubling the word "around".
     'mad_robin': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final dir = _displayChoice(params['direction']);
+      final dirWord = dir.isEmpty ? '' : ' $dir';
       final turn = params['turn'];
-      final around = (turn is num && turn != 1.0)
-          ? ' ${verbose ? _formatRotationVerbose(turn) : _formatRotation(turn, decimals: decimals)} around'
+      final turnWord = (turn is num && turn != 1.0)
+          ? (verbose
+                ? _formatRotationVerbose(turn)
+                : _formatRotation(turn, decimals: decimals))
           : '';
-      final swho = r._displaySubject(params['who'], dialect);
+      final swhom = _isUnspecified(params['whom'])
+          ? ''
+          : r._displaySubject(params['whom'], dialect);
+      // "<turn> around <whom>" — either side may be absent; when BOTH are the
+      // clause is dropped entirely (never a bare dangling "around").
+      final around = (turnWord.isEmpty && swhom.isEmpty)
+          ? ''
+          : ' ${[turnWord, 'around', swhom].where((p) => p.isNotEmpty).join(' ')}';
+      // Tag the subject so an import-assumed `who` (TCB never states the
+      // in-front role) is marked "(assumed)" rather than read as source fact.
+      final swho = r._subjectWho(params, dialect);
       // Only emit the comma + "<subject> in front" when the subject renders
       // non-empty (never "mad robin, " with nothing after it).
       final subject = swho.isEmpty ? '' : ', $swho in front';
-      return '$move$around$subject';
+      return '$move$dirWord$around$subject';
     },
     // ContraDB `revolvingDoorWords`: words(smove, " - ", ssubject, "take",
     // shand, "hands and drop off", sobject, "on other side"). The subject
@@ -1132,7 +1176,7 @@ class FigureRenderer {
           def.params['meetTarget']?.choices ?? ParamVocab.dancerSets;
       final namedTarget =
           meetTarget is String &&
-              meetTarget != 'unspecified' &&
+              meetTarget != ParamVocab.unspecified &&
               meetChoices.contains(meetTarget)
           ? r._displayGroup(meetTarget, dialect)
           : '';

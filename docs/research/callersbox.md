@@ -93,6 +93,44 @@ Pre-1900 historical transcriptions (special conventions, own FAQ section); free-
 `CallingNotes`/`FormationDetail`/variant descriptions; ad-hoc `[bracket]`
 clarifications; non-default phrase structures; encoding quirks.
 
+### Figure-line sample: mad robin & butterfly whirl (2026-07-31, issue #295)
+
+Method: 900 random dance ids fetched via `dance.php?id=N&format=JSON`
+(517 returned data — the rest are the documented ~16.5% id gaps), yielding
+**5,147 figure lines**. Used to source the taxonomy-v20 param enrichment.
+
+| move | lines | share | states a direction | states the other fact |
+|---|---|---|---|---|
+| `mad robin` | 24 | 0.47% | 24/24 | 24/24 state an "around `<target>`" (neighbor 17, partner 7) |
+| `butterfly whirl` | 18 | 0.35% | 18/18 | 18/18 name the pair (partner 13, neighbor 3, N2 neighbor 2) |
+
+Attested wordings: `Mad robin clockwise around neighbor`, `Mad robin
+counterclockwise around partner`, `Mad robin clockwise around neighbor N2`,
+`Mad robin clockwise 1 & 1/2 around neighbor`, `Partner butterfly whirl
+counterclockwise`, `N2 neighbor butterfly whirl clockwise`. A rotation amount
+appears on 2/24 mad robin and 4/18 butterfly whirl lines. Note both N-tag word
+orders occur — `around neighbor N2` and `N2 neighbor …` — for the same
+relationship.
+
+`Glossary.htm` is the controlled-vocabulary authority for what those words mean:
+
+- **Mad robin** — "A sideways do-si-do / seesaw… While facing one person, you
+  travel in an oval **around the person at your side**." · Notation: "**Who you
+  go around is listed.** A clockwise mad robin begins with the left-hand person
+  going in front, the right-hand person going behind." · Defaults: "The person
+  you face is across the set. You are travelling around the person on the side
+  of the set."
+- **Butterfly whirl** — "Two people face the same direction, with nearest arms
+  on each other's back, and **rotate clockwise or counterclockwise** about a
+  common center. One person is going backwards. This typically follows a star
+  promenade."
+
+Both facts are therefore TCB *notation*, not caller flourish — which is what
+justifies modeling them even though ContraDB's `libfigure` models neither (see
+the v20 note in `docs/design/figure-taxonomy.md`). Critically, TCB's "around
+`<X>`" is the pair you ORBIT, whereas ContraDB's mad robin `who` is the pair
+that steps IN FRONT: different concepts, so they map to different params.
+
 ## Search capabilities (hints at internal schema)
 
 Substring search on title/author; controlled formation + progression filters;

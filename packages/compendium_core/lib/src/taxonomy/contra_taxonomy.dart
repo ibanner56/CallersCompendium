@@ -125,7 +125,40 @@ import 'taxonomy.dart';
 ///     turn=direction derived from hand, amount=old outer}]`, carrying the
 ///     shared beat count. This is a DB migration (distinct from this taxonomy
 ///     version), the sanctioned canonical-changing exception (cf. v14).
-const int contraTaxonomyVersion = 19;
+/// v20: gives `mad_robin` a `direction` + `whom`, and `butterfly_whirl` a `who`
+///     + `direction` (issue #295), so The Caller's Box's normalized wordings
+///     stop falling to `custom`. Sourced from TCB, which models detail ContraDB
+///     does not:
+///     - TCB `Glossary.htm` "Mad robin": "While facing one person, you travel in
+///       an oval AROUND THE PERSON AT YOUR SIDE… **Who you go around is
+///       listed**… A clockwise mad robin begins with the left-hand person going
+///       in front." A 5,147-line TCB sample has 24/24 mad robin lines stating
+///       BOTH a direction and an "around `<whom>`" target.
+///     - TCB `Glossary.htm` "Butterfly whirl": "Two people face the same
+///       direction… and **rotate clockwise or counterclockwise** about a common
+///       center." The same sample has 18/18 lines stating both a subject and a
+///       direction.
+///     ContraDB models neither: `libfigure` defines `butterfly whirl` with
+///     `beats_4` alone, and mad robin's `circling` param is `once_around` — a
+///     `chooser_revolutions` ANGLE in degrees (default 360), already carried by
+///     our existing `mad_robin.turn`, NOT a direction. ContraDB's mad robin
+///     `who` is a THIRD concept again (`madRobinWords` renders "`<who>` in
+///     front" — which role steps in front first), so TCB's "around `<X>`" needs
+///     its own slot: folding it into `who` would invert the meaning of every
+///     ContraDB-imported mad robin. Precedent for a TCB-sourced param:
+///     `rotation_gate` (issue #294) and `down_the_hall.ender: bendTheLine` (v10).
+///     Deliberately NOT added: a `butterfly_whirl` rotation amount. TCB states
+///     one on 4/18 lines ("1 & 1/2", "2"), but neither ContraDB nor the TCB
+///     glossary models it, so per prefer-custom those lines stay `custom` and
+///     `goodBeats` stays `[4]`.
+///     Every new param defaults to the `unspecified` sentinel (cf. `hey.pass2`
+///     / `hey.meetTarget`, v17), which the renderer emits as the empty string.
+///     A figure that omits them therefore renders BYTE-IDENTICALLY to v19 —
+///     canonical/FTS/dedupe text is unchanged for all existing data, and a
+///     ContraDB import keeps asserting nothing about direction or target. The
+///     params ride the existing `figures_json` figure codec, so — distinct from
+///     CompendiumDatabase.schemaVersion — NO persisted-data migration is implied.
+const int contraTaxonomyVersion = 20;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -149,7 +182,7 @@ const _downTheHallEnders = [
 // hey's second pass may be any pair OR left unspecified (ContraDB
 // chooser_pairz_or_unspecified). Built from the pair-level dancer sets so a
 // single-dancer identity can't be selected as a "pair".
-const _heyPass2Choices = [...ParamVocab.pairDancerSets, 'unspecified'];
+const _heyPass2Choices = [...ParamVocab.pairDancerSets, ParamVocab.unspecified];
 
 // hey's `meetTarget` (issue #576): which pair you run a partial hey until you
 // meet. ContraDB's `dancer%%N` meeting target is drawn from `chooser_pairz`
@@ -173,12 +206,27 @@ const _heyMeetTargetChoices = [
   'nextNeighbors',
   'thirdNeighbors',
   'fourthNeighbors',
-  'unspecified',
+  ParamVocab.unspecified,
 ];
 
 // The four single-dancer identities (ContraDB chooser_dancer: 1st/2nd couple x
 // role), for moves that name an individual dancer.
 const _singleDancers = ParamVocab.singleDancers;
+
+// v20 (issue #295): the pair relationship named by a TCB line, or the
+// `unspecified` sentinel when the source states none. Exactly the
+// `_heyMeetTargetChoices` domain (ContraDB `chooser_pairz` + the sentinel) —
+// pairs only, never a single dancer, and never `everyone`/`centers`, neither of
+// which can be a mad-robin target or a butterfly-whirling pair.
+const _pairOrUnspecified = _heyMeetTargetChoices;
+
+// v20 (issue #295): the rotation direction TCB states for `mad_robin` and
+// `butterfly_whirl`. Modeled as a `choice` rather than
+// [ParamKind.spinDirection] ONLY so it can admit the `unspecified` sentinel;
+// the stated values are exactly [ParamVocab.spins], so this introduces no new
+// vocabulary. The sentinel is the default because ContraDB models no direction
+// for either move and a ContraDB import must keep asserting none.
+const _spinOrUnspecified = [...ParamVocab.spins, ParamVocab.unspecified];
 
 /// The seed contra move taxonomy.
 ///
@@ -424,8 +472,30 @@ final Taxonomy contraTaxonomy = Taxonomy(
     const MoveDef(
       id: 'butterfly_whirl',
       displayName: 'butterfly whirl',
-      params: {'beats': _beats4},
-      renderTemplate: '{move}',
+      params: {
+        // v20 (#295): the whirling pair. TCB names it on 18/18 sampled lines
+        // ("Partner butterfly whirl counterclockwise"; glossary: "TWO PEOPLE
+        // face the same direction…"), while ContraDB models `beats` alone — so
+        // the `unspecified` sentinel default keeps a ContraDB import, and every
+        // figure stored before v20, asserting nothing.
+        'who': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _pairOrUnspecified,
+        ),
+        // v20 (#295): TCB glossary — "…and ROTATE CLOCKWISE OR
+        // COUNTERCLOCKWISE about a common center"; stated on 18/18 sampled
+        // lines. No rotation AMOUNT param: TCB states one on only 4/18 lines
+        // and neither ContraDB nor the glossary models it, so those lines stay
+        // `custom` (prefer-custom) and `goodBeats` stays `[4]`.
+        'direction': ParamSpec(
+          ParamKind.choice,
+          defaultValue: ParamVocab.unspecified,
+          choices: _spinOrUnspecified,
+        ),
+        'beats': _beats4,
+      },
+      renderTemplate: '{who} {move} {direction}',
       goodBeats: [4],
     ),
     const MoveDef(
@@ -491,11 +561,32 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'mad_robin',
       displayName: 'mad robin',
       params: {
+        // ContraDB `subject_pair`: which pair steps IN FRONT first
+        // (`madRobinWords` renders "<who> in front"). A DIFFERENT concept from
+        // `whom` below — do not conflate them.
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        // ContraDB `once_around`/`circling`: how far you travel around
+        // (1.0 == 360°, ContraDB's default). TCB writes "1 & 1/2" / "1/2".
         'turn': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
+        // v20 (#295): TCB glossary — "a CLOCKWISE mad robin begins with the
+        // left-hand person going in front"; stated on 24/24 sampled lines.
+        'direction': ParamSpec(
+          ParamKind.choice,
+          defaultValue: ParamVocab.unspecified,
+          choices: _spinOrUnspecified,
+        ),
+        // v20 (#295): TCB's "around <whom>" — the pair you travel around. TCB
+        // glossary: "you travel in an oval AROUND THE PERSON AT YOUR SIDE…
+        // **Who you go around is listed**"; stated on 24/24 sampled lines.
+        // ContraDB has no slot for it, hence the `unspecified` sentinel.
+        'whom': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _pairOrUnspecified,
+        ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 6),
       },
-      renderTemplate: '{who} {move} {turn}',
+      renderTemplate: '{who} {move} {turn} {direction} {whom}',
       goodBeats: [6, 8],
     ),
     const MoveDef(
@@ -1028,14 +1119,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // inline the moment a partial length is chosen.
         'meetTarget': ParamSpec(
           ParamKind.dancerSet,
-          defaultValue: 'unspecified',
+          defaultValue: ParamVocab.unspecified,
           choices: _heyMeetTargetChoices,
         ),
         'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
         // The ends pair, or 'unspecified' (ContraDB chooser_pairz_or_unspecified).
         'pass2': ParamSpec(
           ParamKind.dancerSet,
-          defaultValue: 'unspecified',
+          defaultValue: ParamVocab.unspecified,
           choices: _heyPass2Choices,
         ),
         'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),

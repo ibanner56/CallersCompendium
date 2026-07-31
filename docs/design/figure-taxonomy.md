@@ -268,6 +268,50 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     the v14/schema-v12 ocean-wave removal): per-row/per-figure parse-never-throw
     — a figure with a wildcard hand or a non-invertible `who` is left
     byte-identical rather than fabricated.
+- **v20 (`mad_robin` + `butterfly_whirl` param enrichment, issue #295):** gives
+  two EXISTING moves the params The Caller's Box actually states, so its
+  normalized wordings stop falling to `custom`. Additive only — no new move id,
+  no new `ParamKind`, no DB migration.
+  - **`mad_robin`** gains `direction` (a `ParamKind.choice` over
+    `clockwise`/`counterclockwise`/`unspecified` — the existing
+    `ParamVocab.spins` tokens, so no new vocabulary) and `whom` (a
+    `ParamKind.dancerSet` over the pair relationships plus `unspecified`).
+    Canonical render: `{who} mad robin {turn} {direction} {whom}`.
+  - **`butterfly_whirl`** gains `who` (same pair-or-`unspecified` domain) and
+    the same `direction`. Canonical render: `{who} butterfly whirl {direction}`.
+    `goodBeats` stays `[4]`.
+  - **Source verification.** TCB's glossary defines both figures in these
+    terms — *"you travel in an oval around the person at your side… **who you
+    go around is listed**… a clockwise mad robin begins with the left-hand
+    person going in front"*, and *"two people … **rotate clockwise or
+    counterclockwise** about a common center"* — and a 900-dance / 5,147-line
+    TCB sample states the direction plus target on **24/24** mad robin lines and
+    the pair plus direction on **18/18** butterfly whirl lines. ContraDB models
+    neither: `libfigure` defines `butterfly whirl` as `[beats_4]` alone, and mad
+    robin's `circling` param is `once_around` — a `chooser_revolutions` **angle
+    in degrees**, which our existing `turn` already carries, *not* a direction.
+    (ContraDB choreographers write the missing facts into free text instead,
+    e.g. "mad robin, ladles in front, counterclockwise around neighbors".)
+  - **`whom` is NOT `who`.** ContraDB's mad robin `who` names which pair steps
+    IN FRONT (`madRobinWords` renders "`<who>` in front"); TCB's "around `<X>`"
+    names the pair you travel AROUND. Folding the latter into `who` would invert
+    the meaning of every ContraDB-imported mad robin, so it gets its own slot.
+    TCB never states the in-front role, so an imported TCB mad robin leaves
+    `who` at the taxonomy default and is flagged as an **assumed subject**.
+  - **Nothing is fabricated for existing data.** Every added param defaults to
+    the `unspecified` sentinel (cf. `hey.pass2`/`hey.meetTarget`), which the
+    renderer emits as the empty string — in the canonical render too. A figure
+    that omits them is therefore **byte-identical** to its v19 canonical text
+    (test-enforced), so `dance_figures.canonicalText` / `dance_fts` / dedupe are
+    untouched and NO DB migration is implied; a figure that *does* state a
+    direction is distinguishable from its mirror image in search and dedupe.
+  - **Deliberately not modeled:** a `butterfly_whirl` rotation amount. TCB
+    states one on 4/18 lines ("… counterclockwise 1 & 1/2"), but no source
+    models it, so per prefer-custom those lines stay `custom` rather than have
+    the amount silently dropped from a structured figure.
+  - Conservative whole-line recognizers require BOTH stated facts; a bare "mad
+    robin" / "butterfly whirl" (ContraDB's own phrasing) or any leftover token
+    still degrades to a faithful custom figure.
 
 
 **The full ContraDB v1 contra move set is now modeled** (all five 2.4a slices
