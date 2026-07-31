@@ -373,11 +373,13 @@ class ProgramRepository {
     return rows.map(_slotFromRow).whereType<ProgramSlot>().toList();
   }
 
-  /// Batched sibling of [_slotsFor]: loads the slots for many programs in a
-  /// SINGLE `program_slots` query keyed by `programId IN (...)`, returning a
-  /// `programId → slots` map with each program's slots in position order.
-  /// Programs without slots are simply absent from the map. Used by [listAll]
-  /// to avoid the per-row `_slotsFor` N+1 fan-out. Mirrors [_provenanceForMany].
+  /// Batched sibling of [_slotsFor]: loads the slots for many programs via
+  /// `program_slots` queries keyed by `programId IN (...)`, chunking [ids] to
+  /// stay within SQLite's bound-variable limit (see [_chunkIds]) and merging
+  /// the per-chunk results, returning a `programId → slots` map with each
+  /// program's slots in position order. Programs without slots are simply
+  /// absent from the map. Used by [listAll] to avoid the per-row `_slotsFor`
+  /// N+1 fan-out. Mirrors [_provenanceForMany].
   Future<Map<String, List<ProgramSlot>>> _slotsForMany(
     Iterable<String> ids,
   ) async {
@@ -711,11 +713,12 @@ class ProgramRepository {
   }
 
   /// Batched sibling of [_provenanceFor]: resolves provenance for many programs
-  /// in a SINGLE `program_provenance` query keyed by `programId IN (...)`,
-  /// returning a `programId → Provenance` map. Programs without a provenance
-  /// row are simply absent from the map. Used by [listAll] to avoid the per-row
-  /// `_provenanceFor` N+1 fan-out. Mirrors the batched `IN (...)` lookup used by
-  /// the dance derived-index rebuild.
+  /// via `program_provenance` queries keyed by `programId IN (...)`, chunking
+  /// [ids] to stay within SQLite's bound-variable limit (see [_chunkIds]) and
+  /// merging the per-chunk results into a `programId → Provenance` map.
+  /// Programs without a provenance row are simply absent from the map. Used by
+  /// [listAll] to avoid the per-row `_provenanceFor` N+1 fan-out. Mirrors the
+  /// batched `IN (...)` lookup used by the dance derived-index rebuild.
   Future<Map<String, model.Provenance>> _provenanceForMany(
     Iterable<String> ids,
   ) async {
