@@ -216,24 +216,28 @@ class FigureRenderer {
     }
     if (figure.isMeanwhile) {
       // A meanwhile container (#590) renders its concurrent sides joined by a
-      // fixed structural separator. For `renderCanonical` (forCanonical) this
-      // MUST stay byte-stable across runs — it is the dedupe/FTS key — so the
-      // join order is the side order and the separator is a constant. Richer
-      // display phrasing ("A while B" / stacked) is Child D (#594); until then
-      // display shares this deterministic form.
+      // fixed structural separator. `renderCanonical` (forCanonical) MUST stay
+      // byte-stable across runs — it is the dedupe/FTS key — so it always
+      // joins with the structural move id (`' meanwhile '`), side order
+      // preserved, never varying with `dialect`.
+      //
+      // The human-facing display renders (`render`/`renderVerbose`/
+      // `renderSummary`, i.e. `!forCanonical`) instead use the caller-facing
+      // "A while B" idiom (#594) — the Caller's Box / ContraDB convention for
+      // simultaneity. 3+ sides chain the same separator ("A while B while
+      // C"): simple, deterministic, and matches the 2-side form.
       final sides = figure.subFigures;
       if (sides.isEmpty) return meanwhileMove;
-      return sides
-          .map(
-            (side) => _render(
-              side,
-              dialect,
-              verbose: verbose,
-              decimals: decimals,
-              forCanonical: forCanonical,
-            ),
-          )
-          .join(' $meanwhileMove ');
+      final rendered = sides.map(
+        (side) => _render(
+          side,
+          dialect,
+          verbose: verbose,
+          decimals: decimals,
+          forCanonical: forCanonical,
+        ),
+      );
+      return rendered.join(forCanonical ? ' $meanwhileMove ' : ' while ');
     }
     final def = taxonomy.resolve(figure.move);
     if (def == null) {

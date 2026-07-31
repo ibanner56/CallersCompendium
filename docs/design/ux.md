@@ -38,7 +38,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - Header: title, authors, formation, hook, tags, status banner (deprecated/
   broken), provenance line ("via The Caller's Box · CC-BY-NC").
 - Figure table grouped by derived section (A1…), beats column, progression ¶
-  marker; dialect applied. Toggle: canonical ⇄ dialect view.
+  marker; dialect applied. Toggle: canonical ⇄ dialect view. A `meanwhile`
+  container (#590/#594) renders its concurrent sides joined by "while" on one
+  row with a single shared beat count — never split, never double-counted.
 - Side panel/tabs: calling notes, links (source/video/related), calling
   history (from performed programs), custom fields.
 - Actions: edit, duplicate, add-to-program, print/share, Perform this dance.
@@ -75,7 +77,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 
 ### 5. Performance mode
 - Full-screen card: current dance, huge type (user-set size/weight/spacing,
-  no upper bound), 7:1 contrast themes (dark-stage default), wake-lock on.
+  no upper bound), 7:1 contrast themes (dark-stage default), wake-lock on. A
+  `meanwhile` container (#590/#594) shows both concurrent sides on one card
+  row joined by "while", on their single shared beat span; the screen-reader
+  announcement reads the pair as one continuous "A while B" phrase.
 - Navigation: giant next/prev hit zones at screen edges (44pt+), swipe,
   arrow keys/page keys, jump-to-slot overview. ALT dances one tap to swap.
 - Zero destructive actions reachable; exit via deliberate gesture/button with

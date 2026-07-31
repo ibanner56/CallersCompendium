@@ -121,6 +121,28 @@ void main() {
       expect(text, contains('A2  partner do si do once (8 beats)'));
     });
 
+    // #594: a `meanwhile` container (#590) exports as one figure line with
+    // both concurrent sides joined by "while" and the container's single
+    // shared beat count — never two lines, never double-counted.
+    test('renders a meanwhile container as one "A while B" line, one beat '
+        'count', () {
+      final container = Figure.meanwhile(
+        figures: [
+          Figure(move: 'allemande', params: const {'who': 'role1'}),
+          Figure(move: 'orbit', params: const {'who': 'role2'}),
+        ],
+        beats: 8,
+      );
+      final text = render(dance(figures: [container]));
+      final lines = text.split('\n');
+      final figureLines = lines.where((l) => l.startsWith('A1'));
+      expect(figureLines, hasLength(1));
+      expect(figureLines.single, contains(' while '));
+      expect(figureLines.single, endsWith('(8 beats)'));
+      // Not double-counted: no second beat entry from a sub-figure leaking in.
+      expect(text, isNot(contains('(16 beats)')));
+    });
+
     // Regression (#457): the export must render figures with the summary form,
     // not the terse [FigureRenderer.render], so on-screen modifiers (enders,
     // balance prefixes, long-lines direction) survive to the printed/shared

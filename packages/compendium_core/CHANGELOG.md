@@ -2,6 +2,13 @@
 
 ### Added
 
+- **`meanwhile` display rendering (#594).** Human-facing renders
+  (`FigureRenderer.render`/`renderVerbose`/`renderSummary`) now join a
+  `meanwhile` container's concurrent sides with the caller-facing word
+  "while" (e.g. "Larks allemande left 1 while Robins orbit clockwise ½"; 3+
+  sides chain the same separator). `renderCanonical` is unaffected — it keeps
+  joining sides with the structural `meanwhile` move id, so the dedupe/FTS key
+  stays byte-stable.
 - **`meanwhile` container figure (#590).** A first-class figure for simultaneous
   action: a single `meanwhile` container groups ≥2 concurrent sub-figures
   (nested in `params['figures']`, encoded recursively via the same figure codec)

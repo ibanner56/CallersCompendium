@@ -26,7 +26,11 @@ each release so store builds and tags can be traced back to an entry.
   bounded ReDoS-safe matching, 1900–2100 calendar validation) is unchanged.
   Follow-up to the written-out month support from the previous release.
   Closes #668.
-
+- **"Meanwhile" (simultaneous) figures now display as "A while B" (#594).**
+  The dance detail figure table, Perform view, plain-text export, and PDF
+  export all show a simultaneity pair together on one row/line, joined by
+  "while", with the shared beat count shown once — never split into two
+  rows/lines and never double-counted.
 - **Write out the month in your custom date format.** The custom date-format
   pattern (Settings ▸ Language & region ▸ Date format ▸ Custom) now understands
   written-out month tokens alongside the numeric ones: `MMM` renders a short
