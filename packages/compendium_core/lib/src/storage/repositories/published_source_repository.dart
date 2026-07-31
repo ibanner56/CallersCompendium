@@ -43,7 +43,7 @@ class PublishedSourceRepository {
 
   /// Throws if [id] is still referenced by any `dance_sources` row — callers
   /// must remove the citing dances' citations first (deleting a source out
-  /// from under credited dances would be a silent data-loss bug). The "still
+  /// from under citing dances would be a silent data-loss bug). The "still
   /// cited?" check and the delete run inside a single transaction so no
   /// dance can acquire a citation between the check and the delete (no
   /// check-then-act race). Mirrors `VenueRepository.delete` /
