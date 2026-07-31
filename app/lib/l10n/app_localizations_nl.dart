@@ -3934,6 +3934,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String importReviewSummaryVariation(int count) {
+    return 'Geïmporteerd als variatie: $count';
+  }
+
+  @override
   String importReviewSummarySkipped(int count) {
     return 'Overgeslagen: $count';
   }
@@ -3999,6 +4004,48 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importReviewImportError => 'De import kon niet worden voltooid.';
+
+  @override
+  String importReviewVariationTitle(String title) {
+    return 'Variatie van \"$title\"?';
+  }
+
+  @override
+  String importReviewVariationBody(String title) {
+    return 'De titel en caller van deze dans komen overeen met \"$title\", maar de figuren verschillen. Bekijk de verschillen en kies vervolgens hoe je hem wilt importeren.';
+  }
+
+  @override
+  String importReviewOptionVariation(String title) {
+    return 'Importeren als variatie van \"$title\"';
+  }
+
+  @override
+  String importReviewOptionSameDance(String title) {
+    return 'Dezelfde dans als \"$title\" (koppelen/bijwerken)';
+  }
+
+  @override
+  String importReviewOptionLinkBack(String title) {
+    return 'Ook terugkoppelen naar \"$title\" als gerelateerde dans';
+  }
+
+  @override
+  String get importReviewVariationAdded => 'Toegevoegd';
+
+  @override
+  String get importReviewVariationRemoved => 'Verwijderd';
+
+  @override
+  String importReviewVariationMoreDifferences(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count verschillen niet weergegeven',
+      one: '1 verschil niet weergegeven',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get danceEditorDetailsSection => 'Details';

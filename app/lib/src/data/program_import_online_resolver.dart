@@ -88,23 +88,41 @@ Future<ParsedProgramLine> _resolveLine(
 /// (#314). Performs a single search fetch plus, on a confident hit, a single
 /// import fetch — no crawling (import-fidelity rule).
 ///
-/// ### Confident-local-duplicate guard (issue #685, Option 2 — locked)
+/// ### Confident-match figure-variation handling (issue #686, owner-locked)
 ///
-/// This resolver is **non-interactive** (no user is present to disambiguate a
-/// program line), so it must never force an online-resolved dance to import
-/// as a fresh dance when it's actually a confident local duplicate — that
-/// would silently create a duplicate. [OnlineSearchService.loadPreview]
-/// already runs the previewed dance through the full local [DedupeIndex]
-/// (title + tokenized authors) to build `preview.plan.verdict`, so consulting
-/// [DedupeVerdict.hasConfidentMatch] here costs no extra index build. When it
-/// fires, this returns `null` (Option 2: non-interactive → skip) instead of
-/// calling [OnlineSearchService.import] — deliberately **not** reusing
+/// This resolver is **non-interactive** (no user is present to adjudicate a
+/// program line), so a confident title+author match ([DedupeVerdict.hasConfidentMatch])
+/// is never allowed to silently create an ordinary duplicate. But #685's
+/// blanket "always skip" rule left no room for a confident match that is
+/// actually a genuinely different choreography under the same/similar name —
+/// #686 narrows that by comparing the matched dance's figures against the
+/// previewed dance's figures (`figureCanonicalKey`/`diffFigures`,
+/// canonicalization-aware: dialect wording, beats, and progression never
+/// count as a difference):
+///
+/// - **Identical figures** → still returns `null` (#685's rule, UNCHANGED —
+///   a true duplicate must never be silently created, non-interactively).
+/// - **Differing figures** → auto-imports the previewed dance as a new,
+///   distinct **variation** dance (`DedupeResolution.variation`, symmetric
+///   `relatedDance` link-back on by default) and returns its id — the exact
+///   same outcome a user would get by picking "Import as a variation" in the
+///   interactive review prompt, just applied unattended. There is
+///   deliberately **no cap** on how many variations one batch may create
+///   (owner-declined; #686's narrow figure-key definition already keeps this
+///   trigger rare — timing/progression-only differences do NOT count).
+///
+/// **These two branches must stay explicit and distinct** — collapsing them
+/// back into one skip (or one auto-import) would either reintroduce #685's
+/// silent-duplicate bug (import path) or defeat #686's variation detection
+/// (skip path).
+///
+/// A missing/deleted target dance (fetched via `repos.dances.getById`) is
+/// treated the same as "cannot confirm identical": conservatively falls back
+/// to the pre-#686 skip, deliberately **not reusing**
 /// [CallersBoxOnline.import] / [ContraDbOnline.import]'s force-`duplicate()`
 /// override, since that override is only correct for the genuinely
 /// interactive single-dance "search → tap Import" flow (an explicit user
-/// pick), not for this batch/non-interactive path. The line falls back to the
-/// existing note-slot behavior (#312); a user can resolve it manually later
-/// (e.g. via the batch review screen or a manual link).
+/// pick), not for this batch/non-interactive path.
 Future<String?> resolveConfidentOnlineDanceId(
   String title, {
   required OnlineSearchService service,
@@ -120,11 +138,47 @@ Future<String?> resolveConfidentOnlineDanceId(
     if (exact.length != 1) return null;
 
     final preview = await service.loadPreview(repos, exact.single, now: now);
-    if (preview.plan.verdict.hasConfidentMatch) {
-      // Non-interactive path: never silently duplicate a confident local
-      // match (#685 Option 2). Leave the line unresolved (note-slot
-      // fallback) rather than force-importing or force-duplicating it.
-      return null;
+    final verdict = preview.plan.verdict;
+    if (verdict.hasConfidentMatch) {
+      final targetId = verdict.candidates
+          .firstWhere((c) => c.confident)
+          .danceId;
+      final target = await repos.dances.getById(targetId);
+      if (target == null) {
+        // Can't confirm identical vs. differing without the target's
+        // figures — the conservative (#685-consistent) choice is to skip,
+        // same as if it were identical.
+        return null;
+      }
+      final draftDance = preview.plan.draft.dance;
+      final diff = diffFigures(
+        oldFigures: target.figures,
+        oldStructure: target.phraseStructure,
+        newFigures: draftDance.figures,
+        newStructure: draftDance.phraseStructure,
+        taxonomy: contraTaxonomy,
+        renderer: FigureRenderer(contraTaxonomy),
+        // Display text is unused on this non-interactive path (only
+        // `identical` is consulted); the dialect choice is immaterial.
+        dialect: Dialect.larksRobins,
+      );
+      if (diff.identical) {
+        // #685, UNCHANGED: a true duplicate must never be silently created
+        // non-interactively — skip, leaving the note-slot fallback (#312).
+        return null;
+      }
+      // #686: figures genuinely differ — auto-import as a distinct
+      // variation, linked back to the matched dance, same outcome as the
+      // interactive "Import as a variation" choice, applied unattended.
+      final pipeline = ImportPipeline(repos.dances, repos.choreographers);
+      final session = await pipeline.commit(
+        ImportBatchResult(records: [preview.plan]),
+        now: now ?? DateTime.now().toUtc(),
+        newId: uuidV4,
+        resolutions: {0: DedupeResolution.variation(targetId)},
+      );
+      final record = session.records.first;
+      return record.succeeded ? record.danceId : null;
     }
     final result = await service.import(repos, preview.plan, now: now);
     return result.danceId;

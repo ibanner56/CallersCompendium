@@ -3,6 +3,8 @@ import 'package:meta/meta.dart';
 
 import '../model/choreographer.dart';
 import '../model/dance.dart';
+import '../model/dance_link.dart';
+import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/provenance.dart';
 import '../storage/repositories/choreographer_repository.dart';
@@ -35,6 +37,19 @@ enum CommitAction {
 
   /// Do not import (explicit skip, or an unresolved ambiguous record).
   skip,
+
+  /// Import as a new, distinct dance that is a **figure-level variation**
+  /// (issue #686) of [DedupeResolution.targetDanceId] — a confident
+  /// title+author match whose figures genuinely differ (see `figure_diff.dart`).
+  ///
+  /// Structurally this is an INSERT, exactly like [duplicate] — kept as its
+  /// own action (rather than reusing [duplicate]) so it is never conflated
+  /// with an ordinary caller-chosen duplicate for telemetry/undo clarity, and
+  /// so [commit] can attach the optional [DedupeResolution.linkBack]
+  /// `relatedDance` link pair. **Never** used for the confident+IDENTICAL
+  /// case — that case still resolves to [skip] (issue #685's rule, preserved
+  /// unchanged); see [commit]'s dedicated comment at the branch point.
+  variation,
 }
 
 /// One record's place in a planned batch: the parsed [draft] and the dedupe
@@ -401,10 +416,33 @@ class ImportPipeline {
             : [for (final r in authorResolutions) r.choreographerId];
 
         final prov = _provenanceFrom(plan.draft, now);
-        if (action == CommitAction.create || action == CommitAction.duplicate) {
+        if (action == CommitAction.create ||
+            action == CommitAction.duplicate ||
+            action == CommitAction.variation) {
           final id = newId();
+          // #686: a `.variation` commit with `linkBack` (the default) attaches
+          // a `relatedDance` link to the target BEFORE `_rebuildWithIdentity`
+          // — that helper copies `src.links` verbatim, so this is the one
+          // place the new dance's link list can be extended at creation time
+          // (no second write needed on the new-dance side).
+          var draftDance = plan.draft.dance;
+          final wantsLinkBack =
+              action == CommitAction.variation &&
+              (resolution?.linkBack ?? false);
+          if (wantsLinkBack) {
+            draftDance = draftDance.copyWith(
+              links: [
+                ...draftDance.links,
+                DanceLink(
+                  id: newId(),
+                  kind: LinkKind.relatedDance,
+                  targetDanceId: targetId,
+                ),
+              ],
+            );
+          }
           final dance = _rebuildWithIdentity(
-            plan.draft.dance,
+            draftDance,
             id: id,
             authorIds: authorIds,
             createdAt: now,
@@ -413,6 +451,37 @@ class ImportPipeline {
           );
           await _dances.create(dance);
           insertedIds.add(id);
+          if (wantsLinkBack) {
+            // Symmetric reciprocal link on the TARGET side, so the
+            // relationship is visible from either dance's detail screen.
+            // The prior state is captured BEFORE mutation and recorded into
+            // `priorStates` (the same bookkeeping the link/reimport branch
+            // below uses) so `undo()` reverts BOTH sides: the new dance via
+            // `insertedDanceIds`/`hardDelete`, and this reciprocal edit via
+            // `updatedDancePriorStates`. A missing target (deleted mid-batch)
+            // is tolerated — the new dance still imports, just without the
+            // back-link.
+            final target = await _dances.getById(
+              targetId!,
+              includeDeleted: true,
+            );
+            if (target != null) {
+              priorStates.add(target);
+              await _dances.update(
+                target.copyWith(
+                  links: [
+                    ...target.links,
+                    DanceLink(
+                      id: newId(),
+                      kind: LinkKind.relatedDance,
+                      targetDanceId: id,
+                    ),
+                  ],
+                  updatedAt: now,
+                ),
+              );
+            }
+          }
           committed.add(
             CommittedRecord(
               action: action,
@@ -659,6 +728,8 @@ class ImportPipeline {
             return (CommitAction.duplicate, null);
           case DedupeResolutionKind.skip:
             return (CommitAction.skip, null);
+          case DedupeResolutionKind.variation:
+            return (CommitAction.variation, resolution.targetDanceId);
         }
     }
   }

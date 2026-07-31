@@ -133,13 +133,29 @@ enum DedupeResolutionKind {
 
   /// Do not import this record.
   skip,
+
+  /// Import as a new, distinct dance that is a **figure-level variation**
+  /// of [DedupeResolution.targetDanceId] (issue #686): the confident
+  /// title+author match's figures differ from the incoming record's
+  /// figures (see `figureCanonicalKey`/`diffFigures` in `figure_diff.dart`),
+  /// so this is a genuinely different choreography under the same/similar
+  /// name rather than a duplicate. Distinct from [duplicate] (which carries
+  /// no relationship back to the near-match) so the pipeline can optionally
+  /// record a [DedupeResolution.linkBack] `relatedDance` link between the
+  /// two dances.
+  variation,
 }
 
 /// A caller's resolution for one ambiguous record. [targetDanceId] is required
-/// for [DedupeResolutionKind.link] and ignored otherwise.
+/// for [DedupeResolutionKind.link] and [DedupeResolutionKind.variation], and
+/// ignored otherwise. [linkBack] only applies to [DedupeResolutionKind.variation].
 @immutable
 class DedupeResolution {
-  const DedupeResolution._(this.kind, this.targetDanceId);
+  const DedupeResolution._(
+    this.kind,
+    this.targetDanceId, {
+    this.linkBack = false,
+  });
 
   factory DedupeResolution.link(String targetDanceId) =>
       DedupeResolution._(DedupeResolutionKind.link, targetDanceId);
@@ -150,8 +166,25 @@ class DedupeResolution {
   factory DedupeResolution.skip() =>
       const DedupeResolution._(DedupeResolutionKind.skip, null);
 
+  /// Import as a new dance that is a variation of [targetDanceId] (issue
+  /// #686). When [linkBack] is true (the default — both the interactive
+  /// "Import as a variation" prompt and the non-interactive program-import
+  /// auto-import path default it on), the pipeline creates a symmetric
+  /// [DanceLinkKind.relatedDance]-equivalent pair of links between the new
+  /// dance and [targetDanceId] so the relationship is visible from either
+  /// dance's detail screen.
+  factory DedupeResolution.variation(
+    String targetDanceId, {
+    bool linkBack = true,
+  }) => DedupeResolution._(
+    DedupeResolutionKind.variation,
+    targetDanceId,
+    linkBack: linkBack,
+  );
+
   final DedupeResolutionKind kind;
   final String? targetDanceId;
+  final bool linkBack;
 }
 
 /// An in-memory index of the existing collection that answers dedupe queries.
