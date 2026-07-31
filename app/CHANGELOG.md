@@ -13,6 +13,20 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Caller's Box imports now understand shorthand figures written as their
+  parts.** A grand right and left that lists its passes — e.g.
+  `Grand right and left (N1R;N2L)` — imports as the individual pull-bys it is
+  made of. And when The Caller's Box spells a named figure out into indented
+  sub-figures, those sub-figures are now imported instead of the whole block
+  landing in the unrecognized "custom" bucket — flutterwheel, interrupted square
+  through, modified right and left through, open ladies chain, Georgia rang
+  tang, hey along sides and many more. The figure's own name is kept as a note
+  on the first part, so nothing you'd search for is lost. Beat counts and
+  A1/A2/B1/B2 section placement are unchanged. Anything the app cannot represent
+  faithfully — a pass with a dancer we have no name for, extra wording on the
+  line, or a sub-figure we don't recognize — is still kept verbatim rather than
+  guessed at.
+
 - **Aggressively recompute figure beats (opt-in).** New Settings toggle under
   Defaults > Dance-authoring defaults: "Aggressively recompute figure beats".
   Off by default (today's behavior is unchanged) — a figure's beat count is
@@ -169,6 +183,14 @@ each release so store builds and tags can be traced back to an entry.
   export** and its legend, and — like the existing star/flag/check markers — is
   conveyed with a distinct shape plus a localized screen-reader announcement,
   never colour alone (WCAG 1.4.1). (#582)
+
+### Fixed
+
+- **Some Caller's Box dances imported with inflated beat counts.** When a
+  spelled-out figure's beat marker was written as a range (e.g. `(7-12)`), both
+  the figure and its sub-figures were counted, pushing later figures into the
+  wrong A1/A2/B1/B2 section. Those dances now import with the correct beats and
+  sections.
 
 ### Changed
 

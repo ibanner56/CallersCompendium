@@ -1,20 +1,56 @@
 ## Unreleased
 
-### Fixed
-
-- **Silent duplicate dances on program import (#685).** Every author-name
-  field (a choreographer string, a Caller's Box `Authors[]` element, a
-  Caller's Companion "by" line, `Author1`/`Author2`) now routes through one
-  shared, ReDoS-safe `splitAuthorNames()` tokenizer instead of each adapter
-  splitting (or not splitting) multi-author strings differently. This makes
-  dedupe's author-overlap signal consistent across sources, and
-  `DedupeIndex.fuzzyMatches` now *guarantees* an exact-normalized-title match
-  with an overlapping tokenized author set is surfaced as a confident
-  candidate (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`)
-  regardless of score-threshold tuning — such a pair can no longer silently
-  resolve to `isNew`.
-
 ### Added
+
+- **`Grand right and left` and `flutterwheel` now structure, with NO new
+  taxonomy moves (#295).** Both are compound shorthands, so instead of crowding
+  the taxonomy they are lowered onto moves that already exist —
+  `contraTaxonomyVersion` stays at 20 and no DB migration is implied.
+  - **`Grand right and left (<pass list>)` → one `pull_by_dancers` per stated
+    pass**, each carrying that pass's dancer (`who`) and hand.
+    `grandRightAndLeftFromPassList` runs on `parseFigureLines`'
+    no-top-level-separator fall-through and reuses the hey decoder's people-code
+    map (TCB writes one notation for both). Evidence: *334* by Diane Silver in
+    both databases — TCB #10042 A2 `(4) Grand right and left (N3R;N2L)` is
+    ContraDB #3403 A2 `[2] 3rd neighbors pull by right` + `[2] 2nd neighbors
+    pull by left`; ContraDB has no grand-right-and-left figure at all.
+  - **An unknown compound parent whose children ALL structure now emits the
+    CHILDREN**, each with its own source-stated beats, instead of one custom
+    parent. This is a **general** rule over TCB's `(beats) Name:` +
+    indented-children convention, not a single-figure special case: it covers
+    **877 compound blocks across 81 distinct parent names** in the full corpus —
+    `interrupted square through 2`/`… 4` (331), `modified right and left through
+    with partner/neighbor` (141), `flutterwheel` (135, e.g.
+    `(8) Neighbor flutterwheel:` == `(4) Women allemande right 1/2` +
+    `(4) Neighbor star promenade 1/2`), `open ladies/gents chain` (66),
+    `georgia rang tang` (47), `hey along sides` (34) and a long tail.
+    Known parents (`revolving_door`, …) still collapse to the single parent move
+    exactly as before, and a block with ANY unstructurable child still stays one
+    whole-custom figure — never a half-structured mix. **The parent's shorthand
+    name is preserved verbatim (post-scrub) as a note on the first child**, so a
+    meaningful qualifier — the "interrupted" in `Interrupted square through 2`,
+    the "modified" in `Modified right and left through with partner`, or a name
+    like `Georgia Rang Tang` — is never lost when the block is expressed as its
+    parts.
+  - **Beats are exact.** Grand right and left splits the source total evenly
+    across the passes and **declines to custom when it does not divide evenly**
+    (an uneven split would invent a per-pass duration the source never states);
+    compound children already sum to the parent by the existing exact-sum guard.
+    `deriveSections`' cumulative section placement is therefore unchanged.
+  - **Prefer-custom is preserved.** A pass code the taxonomy cannot faithfully
+    represent keeps the whole line custom rather than approximating it —
+    notably TCB's *square* corners `C1`-`C3`, which are a different relationship
+    from the ECD first/second corners `ParamVocab` models — as does any leftover
+    prose (`Progressive …`, `Same-role …`, `[with N2]`, a second parenthetical,
+    a trailing `;` clause). 128 of the corpus's 353 grand-right-and-left lines
+    decompose; whole-corpus structured share rises 75.09% → 76.24%.
+  - **Security (OWASP).** Imported text is untrusted: the pass-list fan-out is
+    bounded by the new `kMaxPassListCells` (12), mirroring `kMaxMeanwhileSides`;
+    over the cap, or on any malformed input, the line degrades to the unchanged
+    custom figure rather than fanning out unboundedly or throwing.
+  - The shared TCB people-code map gains glossary-backed `P1` (→ `partners`),
+    `S1` (→ `shadows`) and `S2` (→ `secondShadows`), so hey pass lists using
+    those codes now decode too.
 
 - **`mad_robin` and `butterfly_whirl` now carry the detail The Caller's Box
   states (#295).** `mad_robin` gains a rotation `direction`
@@ -60,6 +96,32 @@
   nested side (scrubbing free text) while enforcing the depth + side-count caps
   defensively (clamp/flatten, never throw). Non-fabricating: it records only
   "these happen at once," never a synthesized combined move.
+
+### Fixed
+
+- **A TCB compound parent with a `(START-END)` beat span was not recognised as a
+  compound, corrupting section beats (#295).** `_beatsPrefix` gained span
+  support in #555, but `_compoundParent` did not, so a block like
+  `(7-12) [Top two couples] Neighbor flutterwheel:` fell through to the ordinary
+  per-line path: the parent became its own figure **and** its indented children
+  were emitted alongside it, so the block contributed parent + children beats
+  (6 + 6 = 12 instead of 6) and every later section label drifted. The parent
+  and child patterns now accept a span with the same inclusive
+  `END - START + 1` rule the per-line beats prefix uses; a backwards span
+  (`(12-7)`) yields 0 beats and safely declines the collapse. Covered by its own
+  regression group.
+
+- **Silent duplicate dances on program import (#685).** Every author-name
+  field (a choreographer string, a Caller's Box `Authors[]` element, a
+  Caller's Companion "by" line, `Author1`/`Author2`) now routes through one
+  shared, ReDoS-safe `splitAuthorNames()` tokenizer instead of each adapter
+  splitting (or not splitting) multi-author strings differently. This makes
+  dedupe's author-overlap signal consistent across sources, and
+  `DedupeIndex.fuzzyMatches` now *guarantees* an exact-normalized-title match
+  with an overlapping tokenized author set is surfaced as a confident
+  candidate (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`)
+  regardless of score-threshold tuning — such a pair can no longer silently
+  resolve to `isNew`.
 
 ### Changed
 

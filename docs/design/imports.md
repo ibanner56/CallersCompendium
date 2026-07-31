@@ -195,15 +195,42 @@ line `(beats) Name:` (trailing colon) followed by **indented** child lines
 Parsing each line independently double-counts A1 (6 + 4 + 2 + 10 = 22 instead
 of the true 16). A **compound pre-pass** in `callersbox_adapter.dart` (which
 sees the raw, still-indented lines before `parseFigureLine` trims them) groups
-such a unit and collapses it to **exactly one** `Figure`:
+such a unit and reads it in one of three ways, in order:
 
 - **Known parent** (the parent name structures to a single taxonomy move, e.g.
-  `revolving_door`) → emit that structured figure carrying the **parent's**
-  beats; children are subsumed.
-- **Unknown parent** → one `customFigure` with the parent text (colon stripped)
-  and the parent's beats.
-- Children are **never** re-emitted as separate figures; their scrubbed source
-  decomposition is preserved in `Figure.note` so nothing is lost.
+  `revolving_door`) → emit that **one** structured figure carrying the
+  **parent's** beats; children are subsumed and their scrubbed decomposition is
+  preserved in `Figure.note`.
+- **Unknown parent whose children ALL structure (#295)** → emit the
+  **children**, each carrying its own source-stated beats. The parent is a
+  shorthand the taxonomy deliberately does not model but TCB decomposes itself
+  into moves we already have. The exact-sum guard already proves the children
+  total the parent, so section beats are byte-identical to the collapsed
+  reading.
+
+  This rule is **general, not figure-specific**: measured over the full corpus
+  it fires on **877 compound blocks across 81 distinct parent names**. The
+  largest families are `interrupted square through 2`/`… 4` (331 blocks),
+  `modified right and left through with partner/neighbor` (141),
+  `flutterwheel` (135 — `(8) Neighbor flutterwheel:` == `(4) Women allemande
+  right ½` + `(4) Neighbor star promenade ½ (WR)`), `open ladies/gents chain`
+  (66), `georgia rang tang` (47) and `hey along sides` (34), with a long tail
+  covering `allemande x`, `catch all eight`, `do paso`, `dixie style to a wave`,
+  `modified revolving door`, `vicious circle` and others.
+
+  **The parent's shorthand name is preserved as a `note` on the FIRST child**,
+  verbatim after scrubbing. That note is load-bearing at this breadth: it is
+  what keeps a choreographically meaningful qualifier — the "interrupted" in
+  `Interrupted square through 2`, the "modified" in `Modified right and left
+  through with partner`, or a whole name like `Georgia Rang Tang` — from
+  vanishing when the block is expressed as its parts. It is never truncated or
+  normalized away (only `scrubFigureText`'s repo-wide gendered-term
+  canonicalization applies, exactly as on any other stored text).
+- **Anything else** → one `customFigure` with the parent text (colon stripped)
+  and the parent's beats, the scrubbed decomposition in its `note`. This is the
+  fallback whenever **any** child fails to structure, so a block is never
+  emitted half-structured (e.g. `(12) Grand partner flutterwheel:`, whose
+  `(4) Women star right ½` child does not structure, stays whole-custom).
 
 **Confidence guard (tolerant / OWASP).** The collapse fires only when there is
 ≥1 indented child, the parent beats are numeric and > 0, and the children's
@@ -212,6 +239,17 @@ indentation is malformed or absent, or the sum doesn't match, the pre-pass
 **declines** and the lines flow through the ordinary per-line path unchanged.
 Grouping is single-level and bounded (deeper nesting simply fails the exact-sum
 guard → safe decline); the untrusted TCB payload can never crash the parse.
+
+Both the parent line and its children accept a `(START-END)` beat span (the same
+inclusive `END - START + 1` rule `_beatsPrefix` uses), because TCB writes
+positioned/simultaneous compounds that way — e.g. `(7-12) [Top two couples]
+Neighbor flutterwheel:`. `_beatsPrefix` gained span support in #555 but
+`_compoundParent` did not, so until #295 such a block was **not recognised as a
+compound at all**: the parent became its own figure *and* its children were
+emitted alongside it, so the block contributed parent + children beats
+(6 + 6 = 12 instead of 6) and every later section label drifted. Both patterns
+now share the one rule; a backwards span (`(12-7)`) yields 0 beats and safely
+declines the collapse.
 
 ### 2. Caller's Companion migration (6.5)
 - Input: user's `CallersCompanion2.USR` (FileMaker 12 container).
@@ -323,6 +361,70 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
   **`@Deprecated` and wired into no live path** — that JSON input is unobtainable
   from the site — and is retained only as reference prior art plus its unit tests.
 
+### Compound-shorthand fan-out: grand right and left (#295)
+
+Some source shorthands are best represented as a **sequence of moves we already
+have** rather than as a new taxonomy move. `Grand right and left` is the
+reference case, and the evidence is a single dance transcribed in **both**
+sources — *334* by Diane Silver:
+
+| | A1 | A2 |
+|---|---|---|
+| TCB #10042 | `(4) N1 neighbor balance (RH)` · **`(4) Grand right and left (N1R;N2L)`** · `(4) N3 neighbor balance (RH)` · `(4) N3 neighbor box the gnat` | **`(4) Grand right and left (N3R;N2L)`** · `(12) N1 neighbor swing` |
+| ContraDB #3403 | `[6] 1st neighbors balance & pull by right` · `[2] 2nd neighbors pull by left` · `[8] 3rd neighbors right hand balance & box the gnat` | `[2] 3rd neighbors pull by right` · `[2] 2nd neighbors pull by left` · `[12] 1st neighbors swing` |
+
+ContraDB carries **no** grand-right-and-left figure at all (its ~61-figure
+index), but it does carry `pull by dancers` / `pull by direction` — both already
+in our taxonomy. A2 settles the beats too: TCB's 4 beats over 2 passes is
+ContraDB's 2 + 2. So **no `grand_right_and_left` move is added**;
+`grandRightAndLeftFromPassList` (`imports/callersbox_figure_dialect.dart`)
+lowers the line onto one `pull_by_dancers` per stated pass, carrying that pass's
+`who` and `hand`.
+
+- **Where it runs.** `parseFigureLines`' no-top-level-separator fall-through,
+  i.e. after the `||` (meanwhile) and `;` (clause-split) branches decline. A
+  `FigureMatch` pre-recognizer can only return ONE move, so this cannot live in
+  `tcbFigureFrontEnd.preRecognizers`. Running it only on that fall-through is
+  deliberate: `Grand right and left (N1R;N2L); face across` keeps its
+  whole-custom reading instead of silently dropping the trailing clause. The
+  plural free-text fan-out (`parseFigureLinesFanOut`) inherits it; the
+  **singular** reparse path (`parseFigureLineFanOut`) returns one figure and so
+  cannot host an N-figure fan-out — the same limitation the `;`-splitter has.
+- **Pass codes** are decoded with the SAME people-code map the hey pass-list
+  decoder uses (one notation, one map). Glossary-backed:
+  `N`/`N1`→`neighbors`, `N0`→`prevNeighbors`, `N2`→`nextNeighbors`,
+  `N3`→`thirdNeighbors`, `N4`→`fourthNeighbors`, `P`/`P1`→`partners`,
+  `S`/`S1`→`shadows`, `S2`→`secondShadows`, `M`/`W`→`role1s`/`role2s`.
+- **Codes we deliberately do NOT map** (the line stays custom rather than being
+  approximated): `C1`–`C3` — TCB's *"Corners (square)"* ("the non-partner next
+  to you… the person across from you… the remaining person") are a **different
+  concept** from its separate *"First/second corners"* entry, which is what
+  `firstCorners`/`secondCorners` model; `P2`–`P6`/`P0`/`P-n` (a mixer's
+  future/previous partners); `N5`+/`N-1`/`N-2`, `S3`+/`S-n`; `Ph*` (phantoms),
+  `TB*` (trail buddy), `SR*`; and a bare `R`/`L` cell, which states a hand but
+  no dancer.
+- **Whole-line strictness.** The text outside the pass list must be exactly
+  `grand right and left` (modulo filler), so `Progressive grand right and left`
+  (its own glossary figure), `Same-role grand right and left`, `… to place`, a
+  `[with N2]` qualifier and any second parenthetical all stay custom.
+- **Beats: even split, or decline.** Each pass gets `beats ~/ passCount`, and a
+  line whose beats do **not** divide evenly stays custom — an uneven split would
+  invent a per-pass duration the source never states. The emitted figures
+  therefore sum **exactly** to the source total, so `deriveSections` is
+  unaffected. Exactly one corpus line hits the decline
+  (`(8) Grand right and left (N0L;N1R;N2L)`).
+- **Shorthand preserved.** The first emitted pass carries the note
+  `grand right and left`, so the caller-meaningful name stays searchable.
+- **Security (OWASP).** Imported text is untrusted: the fan-out is capped at
+  `kMaxPassListCells` (12; the corpus maximum is 8), mirroring
+  `kMaxMeanwhileSides`. Over the cap — or on any malformed input — the line
+  degrades to the unchanged whole-custom figure, never an unbounded fan-out or a
+  throw.
+- **Corpus outcome:** 128 of the 353 `grand right and left` lines decompose; the
+  rest decline honestly (163 on an unmappable code, 56 on leftover prose, 3 with
+  no pass list, 2 degenerate, 1 on non-divisible beats). Whole-corpus structured
+  share, with the compound-children change below: **75.09% → 76.24%**.
+
 ### 4. Generic JSON (6.6)
 - Our own canonical export format (full fidelity: figures, programs, custom
   fields, provenance, dialect definitions). Serves backup/restore and
@@ -431,6 +533,13 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
   structure. Each recognizer requires BOTH stated facts, so a bare "mad robin" /
   "butterfly whirl" (ContraDB's own phrasing), or a butterfly whirl carrying an
   unmodeled rotation amount ("… counterclockwise 1 & 1/2"), still stays custom.
+  **Grand right and left & flutterwheel (#295, NO taxonomy change):** both are
+  compound shorthands, so neither becomes a move — `Grand right and left
+  (<pass list>)` fans into one `pull_by_dancers` per stated pass (see
+  "Compound-shorthand fan-out" above) and `flutterwheel` emits the
+  `allemande` + `star promenade` children TCB itself writes (see "Compound
+  figures" above). A pass code the taxonomy cannot faithfully represent, any
+  leftover prose, or a child that fails to structure all keep the line custom.
   **Out (→ custom
   for now, tracked on #295):** balance-in-a-wave, cast off,
   two-hand turn & other ECD figures, promenade
