@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/native.dart';
 
@@ -45,6 +47,63 @@ class InjectedSettingsFailure implements Exception {
 openTestRepositoriesWithFailingSettings() {
   final db = CompendiumDatabase(NativeDatabase.memory());
   final settings = FailingSettingsRepository(db);
+  final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
+  return (repos: repos, settings: settings);
+}
+
+/// A [SettingsRepository] whose [set] can be held open indefinitely, used to
+/// deterministically reproduce the "autosave-in-flight while a draft cleanup
+/// runs" race (issue #616): a test calls [holdNextWrite], triggers an
+/// autosave, waits for [writeStarted] to confirm the write is in flight, runs
+/// the cleanup concurrently, then completes [releaseWrite] to let the write
+/// finish and asserts the cleanup — not the stale write — won.
+class DelayedSettingsRepository extends SettingsRepository {
+  DelayedSettingsRepository(super.db);
+
+  Completer<void>? _armedGate;
+  Completer<void>? _activeGate;
+  Completer<void>? _writeStarted;
+
+  /// Arms the gate: the next [set] call will complete [writeStarted] and then
+  /// suspend until [releaseWrite] is called.
+  void holdNextWrite() {
+    _armedGate = Completer<void>();
+    _writeStarted = Completer<void>();
+  }
+
+  /// Resolves once a gated [set] call has started (and is suspended awaiting
+  /// [releaseWrite]).
+  Future<void> get writeStarted =>
+      _writeStarted?.future ?? Future<void>.value();
+
+  /// Lets a write suspended by [holdNextWrite] proceed. Targets the gate for
+  /// the write that is *currently* suspended (kept separate from
+  /// [_armedGate] so calling this after the write has already started, but
+  /// before it's released, still works).
+  void releaseWrite() => _activeGate?.complete();
+
+  @override
+  Future<void> set(String key, Object? value) async {
+    final gate = _armedGate;
+    if (gate != null) {
+      _armedGate = null;
+      _activeGate = gate;
+      _writeStarted?.complete();
+      _writeStarted = null;
+      await gate.future;
+      _activeGate = null;
+    }
+    await super.set(key, value);
+  }
+}
+
+/// Opens in-memory repositories backed by a [DelayedSettingsRepository], so
+/// tests can hold an autosave write open while exercising a concurrent draft
+/// cleanup.
+({CompendiumRepositories repos, DelayedSettingsRepository settings})
+openTestRepositoriesWithDelayedSettings() {
+  final db = CompendiumDatabase(NativeDatabase.memory());
+  final settings = DelayedSettingsRepository(db);
   final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
   return (repos: repos, settings: settings);
 }

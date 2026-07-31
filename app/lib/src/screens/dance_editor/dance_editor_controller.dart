@@ -149,6 +149,18 @@ class DanceEditorController extends ChangeNotifier {
   Timer? _undoTimer;
   Timer? _autosaveTimer;
 
+  /// The currently-running [_saveDraft] write, if any. [clearDraft] awaits
+  /// this before removing the draft so an in-flight autosave can never
+  /// complete *after* the removal and resurrect a just-cleared draft
+  /// (issue #616).
+  Future<void>? _saveInFlight;
+
+  /// Bumped by every [clearDraft] call. A save started before the bump skips
+  /// its write if it observes a newer generation, so a cleanup that races a
+  /// save can never be undone by that save — without permanently disabling
+  /// autosave for the rest of the session.
+  int _draftGeneration = 0;
+
   bool _loaded = false;
   bool get loaded => _loaded;
 
@@ -568,16 +580,36 @@ class DanceEditorController extends ChangeNotifier {
     }
   }
 
-  Future<void> _saveDraft() async {
-    if (!_loaded || _disposed) return;
-    final encoded = encodeDraft(captureSnapshot());
-    await _repos.settings.set(draftKey, encoded);
+  Future<void> _saveDraft() {
+    if (!_loaded || _disposed) return Future<void>.value();
+    final generation = _draftGeneration;
+    final future = _writeDraft(generation);
+    _saveInFlight = future;
+    return future;
+  }
+
+  Future<void> _writeDraft(int generation) async {
+    try {
+      final encoded = encodeDraft(captureSnapshot());
+      // A clearDraft() ran since this save was scheduled — it will (or did)
+      // remove the draft itself, so skip the write rather than race it.
+      if (generation != _draftGeneration) return;
+      await _repos.settings.set(draftKey, encoded);
+    } finally {
+      _saveInFlight = null;
+    }
   }
 
   /// Cancels pending timers and removes the autosave draft from storage.
+  ///
+  /// Awaits any autosave write already in flight before removing so that
+  /// write can never complete *after* the removal and resurrect the draft
+  /// (issue #616).
   Future<void> clearDraft() async {
     _autosaveTimer?.cancel();
     _undoTimer?.cancel();
+    _draftGeneration++;
+    await _saveInFlight;
     await _repos.settings.remove(draftKey);
   }
 

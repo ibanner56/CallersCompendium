@@ -409,5 +409,43 @@ void main() {
       expect(_titleText(tester), 'Draft Override');
       expect(find.text('Reel of Eight'), findsOneWidget);
     });
+
+    testWidgets('explicit save awaits an in-flight autosave so it cannot be '
+        'resurrected afterwards (issue #616)', (tester) async {
+      final delayed = openTestRepositoriesWithDelayedSettings();
+      await _pumpEditor(tester, delayed.repos);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'To Save',
+      );
+
+      // Arm the gate so the debounced autosave's settings.set() suspends
+      // right after starting, simulating a write already "in flight" when
+      // Save runs.
+      delayed.settings.holdNextWrite();
+      await tester.pump(const Duration(milliseconds: 600));
+      await delayed.settings.writeStarted;
+
+      // Tap Save while the autosave write is still suspended: _save()
+      // starts, then _clearDraft() suspends awaiting that same in-flight
+      // write. Then release it. If _clearDraft() didn't await the
+      // in-flight write, the held write would land after the remove() and
+      // resurrect the "cleared" draft.
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pump();
+      delayed.settings.releaseWrite();
+      await tester.pumpAndSettle();
+
+      expect(
+        await delayed.repos.settings.contains('program_editor_draft:new'),
+        isFalse,
+        reason:
+            'the draft must stay removed even though an autosave write '
+            'was in flight when the explicit save ran',
+      );
+      final all = await delayed.repos.programs.listAll();
+      expect(all.single.title, 'To Save');
+    });
   });
 }

@@ -148,6 +148,56 @@ void main() {
     },
   );
 
+  test('clearDraft awaits an in-flight autosave so it cannot resurrect the '
+      'draft afterwards (issue #616)', () async {
+    final delayed = openTestRepositoriesWithDelayedSettings();
+    addTearDown(delayed.repos.db.close);
+    final controller = await newDanceController(delayed.repos);
+    addTearDown(controller.dispose);
+
+    controller.titleController.text = 'Racing Title';
+    controller.onTextEdited();
+
+    // Arm the gate so the debounced autosave's settings.set() suspends
+    // right after starting, simulating a write already "in flight" when
+    // cleanup runs.
+    delayed.settings.holdNextWrite();
+    await Future<void>.delayed(const Duration(milliseconds: 650));
+    await delayed.settings.writeStarted;
+
+    // Fire the cleanup while the autosave write is still suspended. If
+    // clearDraft() didn't wait for it, the held write would complete after
+    // the remove() below and resurrect the draft.
+    final clearFuture = controller.clearDraft();
+    delayed.settings.releaseWrite();
+    await clearFuture;
+
+    expect(
+      await delayed.repos.settings.contains('editor_draft:new'),
+      isFalse,
+      reason:
+          'the draft must stay removed even though an autosave write was '
+          'in flight when clearDraft ran',
+    );
+  });
+
+  test('a late autosave scheduled before clearDraft cannot resurrect the draft '
+      'once cleanup has started (issue #616)', () async {
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+    final controller = await newDanceController(repos);
+    addTearDown(controller.dispose);
+
+    controller.titleController.text = 'Discarded Title';
+    controller.onTextEdited();
+    await controller.clearDraft();
+
+    // Autosave was scheduled before the discard; clearDraft cancels the
+    // timer, so waiting past the debounce window must not resurrect it.
+    await settleDebounce();
+    expect(await repos.settings.contains('editor_draft:new'), isFalse);
+  });
+
   test('buildDance assembles a new Dance from the trimmed draft', () async {
     final repos = openTestRepositories();
     addTearDown(repos.db.close);

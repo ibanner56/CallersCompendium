@@ -120,6 +120,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// before an explicit Save no longer silently loses it.
   Timer? _autosaveTimer;
 
+  /// The currently-running [_saveDraft] write, if any. [_clearDraft] awaits
+  /// this before removing the draft so an in-flight autosave can never
+  /// complete *after* the removal and resurrect a just-cleared draft
+  /// (issue #616).
+  Future<void>? _saveInFlight;
+
+  /// Bumped by every [_clearDraft] call. A save started before the bump
+  /// skips its write if it observes a newer generation, so a cleanup that
+  /// races a save can never be undone by that save — without permanently
+  /// disabling autosave for the rest of the session (e.g. after the
+  /// corrupt-draft cleanup in [_maybeStageDraft]).
+  int _draftGeneration = 0;
+
   /// `true` while [_applyRestoredDraft] repopulates state from a restored draft,
   /// so [_scheduleAutosave] doesn't re-arm a write mid-restore.
   bool _restoringDraft = false;
@@ -354,20 +367,39 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
-  Future<void> _saveDraft() async {
-    if (!_loaded || !mounted || _restoringDraft) return;
+  Future<void> _saveDraft() {
+    if (!_loaded || !mounted || _restoringDraft) return Future<void>.value();
+    final generation = _draftGeneration;
+    final future = _writeDraft(generation);
+    _saveInFlight = future;
+    return future;
+  }
+
+  Future<void> _writeDraft(int generation) async {
     try {
-      await _repos.settings.set(_draftKey, encodeProgramDraft(_captureDraft()));
+      final encoded = encodeProgramDraft(_captureDraft());
+      // A _clearDraft() ran since this save was scheduled — it will (or
+      // did) remove the draft itself, so skip the write rather than race it.
+      if (generation != _draftGeneration) return;
+      await _repos.settings.set(_draftKey, encoded);
     } catch (_) {
       // A draft write failure must never disrupt editing; the next edit retries.
+    } finally {
+      _saveInFlight = null;
     }
   }
 
   /// Cancels the pending autosave and removes the draft from storage. Called on
   /// every terminal path (explicit save, delete, confirmed discard) so a
   /// committed or abandoned program never leaves a stale draft behind.
+  ///
+  /// Awaits any autosave write already in flight before removing so that
+  /// write can never complete *after* the removal and resurrect the draft
+  /// (issue #616).
   Future<void> _clearDraft() async {
     _autosaveTimer?.cancel();
+    _draftGeneration++;
+    await _saveInFlight;
     try {
       await _repos.settings.remove(_draftKey);
     } catch (_) {

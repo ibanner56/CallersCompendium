@@ -85,6 +85,16 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **A dance or program's autosave draft no longer resurrects itself after a
+  save, delete, or discard.** The debounced autosave and the draft cleanup it
+  triggers could race: if a save/discard/delete ran while an autosave write to
+  the settings store was still in flight, the write could land *after* the
+  cleanup removed the draft, silently recreating stale content that would then
+  prompt "restore your draft?" the next time you opened the editor — even
+  though you'd already saved or intentionally discarded it. Cleanup now waits
+  for any in-flight autosave write to finish before removing the draft, so the
+  removal always wins. (#616)
+
 - **Figure notes now follow your active dialect.** A figure's note is
   free text alongside calling notes and the walkthrough, but it was the only
   one of those fields displayed verbatim instead of through the same
