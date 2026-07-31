@@ -655,8 +655,13 @@ taxonomy are unchanged.
     - Triage label taxonomy (`.github/labels.yml` + `label-sync.yml`) and structured issue forms — general feedback, import-source problem, beta check-in, a **beta signup / "Join the beta"** form (#413), plus revised bug/feature reports — with a Discussions + private-email contact config (#221).
     - Beta docs: [beta guide](beta/beta-guide.md), [test charter](beta/test-charter.md), [triage rubric](beta/triage-rubric.md) (#227); a [beta-recruitment plan](product/beta-recruitment.md); and CONTRIBUTING/README feedback hooks.
     - **GitHub Discussions is enabled** (with categories), so the contact/community links resolve.
-  - **Remaining (maintainer ops)**
-    - Confirm the feedback email/alias (config currently routes to the maintainer's address).
+  - **Resolved (maintainer ops)**
+    - Project contact address is **`compendium@contra.dance`**, used consistently
+      across every public surface: the issue-form contact link
+      (`.github/ISSUE_TEMPLATE/config.yml`), `CODE_OF_CONDUCT.md`, `SECURITY.md`,
+      the [beta guide](beta/beta-guide.md), the landing page and privacy policy
+      (`site/`), and the store-submission listing/privacy docs. No personal
+      maintainer address remains in the repo.
   - **In progress**
     - Beta execution — recruit → run → interview → GA. Underway: builds ship for every platform (macOS signed + notarized and Android signed; Windows and Linux still unsigned; iPhone/iPad via TestFlight), the Getting Started guide is live, and invited callers are filing beta feedback against `v0.1.0-beta.x`. Remaining is the run → interview → GA arc with more real callers.
 
