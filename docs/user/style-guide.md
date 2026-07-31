@@ -146,10 +146,12 @@ Every image in the user docs **must** have alt text. This is not optional.
 
 ## Screenshots and images
 
-**The user guide is text-only today.** The guides are bundled into the app and
-the in-app reader does not render images — it shows the alt text as a caption
-instead. So an illustration only ever reaches readers on GitHub, and a guide that
-*needs* a picture to make sense is broken for everyone reading it on stage.
+**The user guide is text-only.** The guides are bundled into the app and the
+in-app reader does not render images — it shows the alt text as a caption
+instead. The hosted guides on the Pages site do the same, deliberately, so all
+three surfaces stay consistent. So an illustration only ever reaches readers on
+GitHub, and a guide that *needs* a picture to make sense is broken for everyone
+reading it on stage.
 
 Write every explanation so it stands on its own words. If you do add an image,
 treat it as an enhancement, never as a load-bearing part of a procedure, and
@@ -200,16 +202,30 @@ so that a reader on any platform feels the docs are for them.
   `./settings.md#diagnostics` lands the reader on the answer. Anchors follow
   GitHub's rules — lowercase, spaces become hyphens, anything that is not a
   letter, number, hyphen, or underscore is dropped — so "Collection & search"
-  becomes `#collection--search`. The in-app reader uses the same rules, so a link
-  that works on GitHub works on stage.
+  becomes `#collection--search`. The in-app reader and the website use the same
+  rules, so a link that works on GitHub works on stage and on the web.
+- **Keep every heading in a guide distinct.** Two headings that reduce to the
+  same anchor are ambiguous — GitHub would silently number them, the in-app
+  reader would jump to the last one, and the website build fails outright.
+  Reword one of them; a heading that needs its neighbour for context usually
+  reads better spelled out anyway.
 - End each guide with a **Where to go next** section of onward links.
 - Fenced code blocks only for literal input the reader types or file contents —
   not for UI labels (bold those instead).
 
-## Publishing: the docs are inside the app
+## Publishing: three readers, one source
 
-`docs/user/` is the source of truth, and `tools/ci/sync_user_docs.py` mirrors it
-into the app bundle so the guides ship offline. Two things follow from that:
+`docs/user/` is the source of truth, and it feeds **three** surfaces:
+
+1. **GitHub** renders the Markdown directly.
+2. **The app** ships it offline — `tools/ci/sync_user_docs.py` mirrors the
+   guides into the app bundle.
+3. **The website** serves it at
+   [/guide/](https://ibanner56.github.io/CallersCompendium/guide/) —
+   `tools/site/render_user_docs.py` pre-renders each guide to static HTML at
+   publish time (the pages are generated, never committed).
+
+Four things follow from that:
 
 - **After editing any guide, run the sync and commit the result:**
 
@@ -218,6 +234,21 @@ into the app bundle so the guides ship offline. Two things follow from that:
   ```
 
   A CI check fails the build if the bundled copies drift from the source.
-- **New guides need no registration** — the app discovers whatever is bundled.
-  This style guide is deliberately excluded from the bundle, because it is for
-  contributors rather than callers.
+- **Links and anchors must resolve.** The website build fails on a relative link
+  to a guide that doesn't exist, a `#anchor` with no matching heading, two
+  headings in one guide that collide on the same anchor, or a link to a repo
+  file or folder that isn't there (`../design/serch.md`) — and the check runs on
+  every PR. Links to a URL rather than a repo path are left alone. Verify
+  locally with:
+
+  ```sh
+  python3 tools/site/render_user_docs.py --check
+  ```
+
+- **Write for all three.** A guide must read correctly on GitHub, in the app's
+  panel, and on the web — which is why images are alt-text only and headings
+  stay plain text.
+- **New guides need no registration** — every consumer discovers whatever is in
+  `docs/user/`. This style guide is deliberately excluded from both the app
+  bundle and the website, because it is for contributors rather than callers;
+  links to it resolve to the copy on GitHub.

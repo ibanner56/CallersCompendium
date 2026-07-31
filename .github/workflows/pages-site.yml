@@ -1,6 +1,6 @@
-# Pages site: publish the static landing page in `site/` to the `gh-pages`
-# branch that also hosts the in-app update manifests
-# (https://ibanner56.github.io/CallersCompendium/).
+# Pages site: publish the static landing page in `site/` — plus the user guides
+# rendered from `docs/user/` — to the `gh-pages` branch that also hosts the
+# in-app update manifests (https://ibanner56.github.io/CallersCompendium/).
 #
 # WHY a branch push (not actions/deploy-pages): the GitHub-Actions Pages flow
 # replaces the WHOLE site each deploy, which would clobber `beta.json` /
@@ -10,6 +10,12 @@
 # the two coexist. Keep the Pages source on "Deploy from a branch -> gh-pages".
 # The preserve/prune/no-op contract is covered offline by
 # tools/release/test_publish_pages_site.py.
+#
+# WHY a build step: `.nojekyll` (needed so the JSON manifests serve verbatim)
+# also means Jekyll will not render Markdown for us, so
+# tools/site/render_user_docs.py pre-renders `docs/user/*.md` into `guide/` and
+# stages a complete site under `build/site`. The publisher is handed that
+# directory and needs no knowledge of the guides (issue #694).
 name: Pages site
 
 on:
@@ -17,6 +23,9 @@ on:
     branches: [main]
     paths:
       - site/**
+      - docs/user/**
+      - tools/site/**
+      - tools/ci/sync_user_docs.py
       - tools/release/publish_pages_site.sh
       - .github/workflows/pages-site.yml
   # Manual re-publish (e.g. after a release, to refresh editorial copy).
@@ -45,11 +54,23 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Guard: the offline preservation/prune/no-op contract must hold.
-      - name: Test the publisher (offline)
-        run: python3 tools/release/test_publish_pages_site.py
+      # Guard: the offline preservation/prune/no-op contract must hold, and the
+      # guide renderer's escaping / link-sanitisation contract with it. This is
+      # defence in depth only — the PR-time gates are _checks.yml (renderer +
+      # publisher unit tests) and docs-bundle-check.yml (render + link
+      # integrity), because this workflow never runs on a pull request.
+      - name: Test the publisher and the guide renderer (offline)
+        run: |
+          python3 tools/release/test_publish_pages_site.py
+          python3 tools/site/test_markdown_to_html.py
+          python3 tools/site/test_render_user_docs.py
 
-      - name: Publish the landing page to gh-pages
+      # Stage the complete site (site/ + guides rendered from docs/user/).
+      # Fails on a broken on-site link, so a bad cross-reference never ships.
+      - name: Render the user guides into the site
+        run: python3 tools/site/render_user_docs.py --out build/site
+
+      - name: Publish the landing page and guides to gh-pages
         env:
           SOURCE_REF: ${{ github.sha }}
-        run: bash tools/release/publish_pages_site.sh --site site
+        run: bash tools/release/publish_pages_site.sh --site build/site

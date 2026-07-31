@@ -644,11 +644,19 @@ taxonomy are unchanged.
 - [ ] 7.2 User documentation
   - **Delivered** — the [user-guide hub](user/README.md) + [style guide](user/style-guide.md), and the guides: Getting Started, Installation, Collection & search, Write & edit dances, Programs & matrix, Perform mode, Dialect (flagship), Settings, Accessibility, Imports & migration, Share/print & export, Backup & portability, FAQ & troubleshooting, and Glossary; plus an offline **in-app User Guide** (#233). (#219/#222/#223/#224/#229/#233/#239/#240/#243)
   - **Delivered — accuracy + structure pass:** the whole guide set was re-verified against shipped behaviour and reorganised into an intent-based hub (task index, six guide groups, no status column), with two new guides (**Write & edit dances**, **Share, print & export**). The in-app reader now titles a guide from its own H1 and honours same-page `#anchor` links.
+  - **Delivered — hosted docs site:** the guides are now rendered as a browsable
+    section of the Pages site at
+    [/guide/](https://ibanner56.github.io/CallersCompendium/guide/), so the
+    landing page's guide links resolve on-site instead of bouncing readers to
+    GitHub markdown. `tools/site/render_user_docs.py` pre-renders `docs/user/*.md`
+    to static HTML (stdlib-only, escaped, no third-party JS/CDN) and stages it
+    alongside `site/` for the existing non-destructive `gh-pages` publisher, so
+    the update manifests and the guides coexist on one branch. `docs/user/` now
+    feeds three consumers — GitHub, the offline in-app reader, and the web. (#694)
   - **Remaining (blocked on other work)**
     - Per-platform install page — the public landing page ([site/](../site/), #408) now surfaces per-platform downloads, and the [Installation guide](user/installation.md) covers first-launch steps; a dedicated install page is optional.
-    - Screenshots pass (#703) — needs a runnable branded build. Note the in-app reader does not render images, so guides must stay complete without them.
+    - Screenshots pass (#703) — needs a runnable branded build. Note neither the in-app reader nor the hosted guides render images, so guides must stay complete without them.
     - Beta-program page — tracked under 7.3.
-    - Optional hosted docs site — Pages is enabled; rendering the user guides as a browsable site (beyond the landing page) is still optional. **Tracked in #694** (today the landing page links out to GitHub markdown).
 - [ ] 7.3 Beta program with real callers; feedback triage
   - **Delivered**
     - Triage label taxonomy (`.github/labels.yml` + `label-sync.yml`) and structured issue forms — general feedback, import-source problem, beta check-in, a **beta signup / "Join the beta"** form (#413), plus revised bug/feature reports — with a Discussions + private-email contact config (#221).
