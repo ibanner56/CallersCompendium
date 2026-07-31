@@ -1,6 +1,9 @@
 import '../model/figure.dart';
+import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/taxonomy.dart';
+import '../validation/validation.dart';
 import 'figure_parser.dart';
+import 'figure_text_scrub.dart';
 
 /// The CallersBox / The Caller's Box (TCB) figure-text **front-end**: the
 /// source-specific grammar that lowers TCB's free-text dialect toward the
@@ -13,7 +16,11 @@ import 'figure_parser.dart';
 ///   bracket-depth guards ([hasTopLevelSeparator]/`_splitTopLevel`), which
 ///   protect a hey's `(PR;WL;NR)` pass list from the `;` splitter;
 /// - the hey pass-list decoder ([tcbFigureFrontEnd]'s pre-recognizer), TCB's
-///   `(WR;NL;MR)` notation; and
+///   `(WR;NL;MR)` notation;
+/// - the grand-right-and-left pass-list decoder
+///   ([grandRightAndLeftFromPassList]), which reads the SAME people-code
+///   notation and lowers TCB's compound shorthand onto a sequence of
+///   `pull_by_dancers` figures; and
 /// - the `()`/`[]` recognition-only annotation stripper (TCB appends `(NR)` /
 ///   `(W1-M2-W2-M1)` param/shoulder notes).
 ///
@@ -62,6 +69,12 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
 ///   and the remaining clauses are beats-absent. The cumulative beat total is
 ///   then byte-identical to the un-split compound, and nothing the source
 ///   actually stated is dropped or invented.
+/// - **`Grand right and left (<pass list>)` decomposes (#295).** A line with NO
+///   top-level separator is offered to [grandRightAndLeftFromPassList], which
+///   lowers TCB's compound shorthand into one `pull_by_dancers` figure per
+///   stated pass. It is attempted only on that no-separator fall-through, so a
+///   line like `Grand right and left (N1R;N2L); face across` keeps its
+///   whole-custom reading rather than silently dropping the trailing clause.
 List<Figure> parseFigureLines(
   String rawText, {
   int beats = 0,
@@ -102,7 +115,20 @@ List<Figure> parseFigureLines(
   }
 
   final clauses = _splitTopLevel(rawText, ';');
-  if (clauses.length < 2) return wholeAsList();
+  if (clauses.length < 2) {
+    // No top-level separator: this is the one place a single line may still fan
+    // out into several figures — TCB's `Grand right and left (<pass list>)`
+    // shorthand (#295). Declines (→ the ordinary whole-line reading) for any
+    // line that is not a fully decodable grand right and left.
+    final grandRightAndLeft = grandRightAndLeftFromPassList(
+      rawText,
+      beats: beats,
+      progression: progression,
+      taxonomy: taxonomy,
+      scrub: scrub,
+    );
+    return grandRightAndLeft ?? wholeAsList();
+  }
   // An empty clause means a malformed / degenerate separator run (`A;;B`,
   // `A; ;B`) or a leading/trailing `;` (`A;`). We do NOT silently drop it — that
   // would be a lossy split. Instead we decline to split and re-parse the whole
@@ -298,11 +324,33 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 
 /// TCB pass-list people codes -> canonical dancer set (TCB glossary, see
 /// docs/research/callersbox.md). Post-scrub these compact codes survive intact
-/// (they are not word-boundary role terms), so map them here.
-const Map<String, String> _heyPeople = {
+/// (they are not word-boundary role terms), so map them here. Shared by the hey
+/// decoder ([_hey]) and the grand-right-and-left decoder
+/// ([grandRightAndLeftFromPassList]) — TCB uses ONE people-code notation for
+/// both, so there is exactly one map.
+///
+/// A code with no entry here is NOT approximated: the decoder that reads it
+/// declines the whole line to custom (prefer-custom / never fabricate). The
+/// deliberate omissions, per `Glossary.htm`:
+/// - `C1`/`C2`/`C3` — the glossary's *"Corners (square)"* are a DIFFERENT
+///   concept from its separate *"First/second corners"* entry ("First corners
+///   are man one and woman two"), which is what [ParamVocab]'s
+///   `firstCorners`/`secondCorners` model. C1 is "the non-partner next to you",
+///   C2 "the person across from you", C3 "the remaining person" — a square/
+///   four-face-four relationship the taxonomy has no token for.
+/// - `P2`…`P6`, `P0`, `P-n` — a mixer's *future/previous* partners ("The next
+///   partner in your direction of progression is P2"); no vocabulary token.
+/// - `N5`+, `N-1`, `N-2`, `S3`+, `S-n` — beyond the modelled neighbor/shadow
+///   depth.
+/// - `Ph*` (phantoms), `TB*` (trail buddy), `SR*` (same-role), and bare `R`/`L`
+///   (states a hand but no dancer at all).
+const Map<String, String> _tcbPassPeople = {
   'm': 'role1s',
   'w': 'role2s',
   'p': 'partners',
+  // Glossary (Partners (mixers)): "Your current partner is P1." So `P1` is the
+  // same person the bare `P` names.
+  'p1': 'partners',
   'n': 'neighbors',
   'n0': 'prevNeighbors',
   // N1 is the current neighbor (glossary: callersbox.md L51; mirrors the
@@ -313,6 +361,11 @@ const Map<String, String> _heyPeople = {
   'n3': 'thirdNeighbors',
   'n4': 'fourthNeighbors',
   's': 'shadows',
+  // Glossary (Shadows): "Shadow S1 is the first shadow you encounter one
+  // hands-four away from your partner. S2 is one hands-four beyond that" — so
+  // `S1` is the bare `S`, and `S2` is the taxonomy's `secondShadows`.
+  's1': 'shadows',
+  's2': 'secondShadows',
   '1': 'ones',
   '2': 'twos',
 };
@@ -458,7 +511,7 @@ FigureMatch? _hey(String scrubbed) {
 
     if (cell.endsWith('ricochet')) {
       final people = cell.substring(0, cell.length - 'ricochet'.length).trim();
-      final who = _heyPeople[people];
+      final who = _tcbPassPeople[people];
       // Only center same-role dancers ricochet — never neighbor/partner/etc.
       if (who != 'role1s' && who != 'role2s') return null;
       // The same-role center passes are the odd pass-list positions; enumerate
@@ -482,7 +535,7 @@ FigureMatch? _hey(String scrubbed) {
         ? 'left'
         : null;
     if (shoulder == null) return null;
-    final who = _heyPeople[cell.substring(0, cell.length - 1)];
+    final who = _tcbPassPeople[cell.substring(0, cell.length - 1)];
     if (who == null) return null;
 
     // Shoulders alternate by position parity: odd positions share the base
@@ -508,3 +561,169 @@ FigureMatch? _hey(String scrubbed) {
   if (pass2 != null) params['pass2'] = pass2;
   return FigureMatch('hey', params: params);
 }
+
+// --- Grand right and left (TCB pass-list) decomposition (#295) ---------------
+
+/// Upper bound on the number of passes a `Grand right and left (<pass list>)`
+/// line may fan out into.
+///
+/// The longest attested pass list in the full TCB corpus is 8 passes, so this
+/// is generous for real choreography. It exists as a **security bound** (OWASP,
+/// mirroring [kMaxMeanwhileSides]): imported figure text is untrusted, and a
+/// hostile line carrying hundreds of `;`-separated cells must degrade to the
+/// unchanged whole-custom line rather than fanning out unboundedly.
+const int kMaxPassListCells = 12;
+
+/// The shorthand name preserved on the FIRST emitted pass. The decomposition
+/// represents every fact the pass list states, but "grand right and left" is
+/// itself the caller-meaningful name of the figure, so it is kept as a note
+/// rather than silently dropped (mirroring the compound-figure convention,
+/// which preserves the source decomposition in `Figure.note`).
+const String _grandRightAndLeftNote = 'grand right and left';
+
+/// Decomposes TCB's `Grand right and left (<pass list>)` shorthand into one
+/// [Figure] per stated pass — a `pull_by_dancers` carrying that pass's dancer
+/// (`who`) and stated `hand` — or returns `null` to leave the line alone
+/// (→ the caller's ordinary whole-line/custom reading).
+///
+/// **Why a sequence and not a move (#295).** ContraDB transcribes the SAME
+/// choreography as consecutive pull-bys and carries no grand-right-and-left
+/// figure at all. *334* by Diane Silver is the decisive side-by-side: TCB
+/// #10042 A2 writes `(4) Grand right and left (N3R;N2L)` where ContraDB #3403
+/// A2 writes `[2] 3rd neighbors pull by right` + `[2] 2nd neighbors pull by
+/// left`. So the shorthand is lowered onto the `pull_by_dancers` move the
+/// taxonomy already has — no new taxonomy move, no version bump.
+///
+/// **Strictness (conservative / prefer-custom).** Runs on the SCRUBBED text
+/// before the front-end's annotation strip, like the hey decoder, because the
+/// pass list is the structured payload rather than a droppable annotation.
+/// Declines — returning `null`, never a partial structuring — when:
+/// - there is no `(...)` pass list, or fewer than 2 / more than
+///   [kMaxPassListCells] non-empty cells;
+/// - the text OUTSIDE the pass list is not exactly the words `grand right and
+///   left` (modulo filler). This is what keeps the corpus's genuinely different
+///   figures custom: `Progressive grand right and left …` (its own glossary
+///   entry), `Same-role grand right and left …`, `… to place`, a `[with N2]`
+///   qualifier, a second parenthetical (`(ones and twos begin with neighbor…)`)
+///   or any other leftover prose;
+/// - any cell is not `<people-code><R|L>` with the people code present in
+///   [_tcbPassPeople] — square corners (`C1`..`C3`), mixer partner series
+///   (`P2`..`P6`), out-of-range neighbors/shadows, phantoms, trail buddies and
+///   bare `R`/`L` (a hand with no dancer) therefore all stay custom rather than
+///   being approximated onto a token that means something else;
+/// - [beats] does not divide evenly by the pass count. An even split is
+///   arithmetic the source corroborates (TCB's 4 beats over 2 passes == ContraDB's
+///   2 + 2); an UNEVEN split would invent a per-pass duration nothing states, so
+///   the line stays custom instead. Exactly one corpus line hits this
+///   (`(8) Grand right and left (N0L;N1R;N2L)`);
+/// - any emitted figure fails taxonomy validation (defensive).
+///
+/// **Lossless beats.** The per-pass share is `beats ~/ passCount` with an exact
+/// divisibility precondition, so the emitted figures' beats sum EXACTLY to the
+/// source line's total and [deriveSections]' cumulative section placement is
+/// unchanged. A beats-absent line (`beats == 0`) divides trivially and yields
+/// beats-absent figures.
+List<Figure>? grandRightAndLeftFromPassList(
+  String rawText, {
+  required int beats,
+  required bool progression,
+  required Taxonomy? taxonomy,
+  required String Function(String)? scrub,
+}) {
+  try {
+    final scrubbed = (scrub ?? scrubFigureText)(rawText);
+    if (scrubbed.isEmpty) return null;
+    final passes = _decodeGrandRightAndLeftPasses(scrubbed);
+    if (passes == null) return null;
+
+    final safeBeats = beats < 0 ? 0 : beats;
+    if (safeBeats % passes.length != 0) return null;
+    final share = safeBeats ~/ passes.length;
+
+    final tax = taxonomy ?? contraTaxonomy;
+    final figures = <Figure>[];
+    for (var i = 0; i < passes.length; i++) {
+      final figure = Figure(
+        move: 'pull_by_dancers',
+        params: {
+          'who': passes[i].who,
+          'hand': passes[i].hand,
+          if (share > 0) 'beats': share,
+        },
+        note: i == 0 ? _grandRightAndLeftNote : null,
+        // Progression is a whole-line marker; conventionally the dance
+        // progresses at the end of the sequence, so it rides on the last pass.
+        progression: progression && i == passes.length - 1,
+      );
+      final hasError = tax
+          .validateFigure(figure)
+          .any((issue) => issue.severity == ValidationSeverity.error);
+      if (hasError) return null;
+      figures.add(figure);
+    }
+    return figures;
+  } catch (_) {
+    // Parse-never-fails: any unexpected shape leaves the line to the caller's
+    // whole-line/custom reading.
+    return null;
+  }
+}
+
+/// One decoded pass: the dancer set met and the hand used.
+class _GrandRightAndLeftPass {
+  const _GrandRightAndLeftPass(this.who, this.hand);
+  final String who;
+  final String hand;
+}
+
+/// Decodes the pass list of a `Grand right and left (...)` line, or `null` when
+/// the line is not an exact, fully-mappable grand right and left. See
+/// [grandRightAndLeftFromPassList] for the rules.
+List<_GrandRightAndLeftPass>? _decodeGrandRightAndLeftPasses(String scrubbed) {
+  final lower = scrubbed.toLowerCase();
+  final open = lower.indexOf('(');
+  if (open == -1) return null;
+  final close = lower.indexOf(')', open + 1);
+  if (close == -1) return null;
+
+  // The non-paren remainder must be EXACTLY "grand right and left" (+ filler);
+  // a second parenthetical, a `[...]` qualifier or any other prose lands here
+  // as unexplained words and declines the whole line.
+  final outside = '${lower.substring(0, open)} ${lower.substring(close + 1)}';
+  final words = outside
+      .split(RegExp(r'\s+'))
+      .map(_stripEdgePunct)
+      .where((w) => w.isNotEmpty && !_filler.contains(w))
+      .toList();
+  if (words.length != _grandRightAndLeftWords.length) return null;
+  for (var i = 0; i < words.length; i++) {
+    if (words[i] != _grandRightAndLeftWords[i]) return null;
+  }
+
+  final cells = lower
+      .substring(open + 1, close)
+      .split(';')
+      .map((c) => c.trim())
+      .toList();
+  if (cells.length < 2 || cells.length > kMaxPassListCells) return null;
+
+  final passes = <_GrandRightAndLeftPass>[];
+  for (final cell in cells) {
+    if (cell.isEmpty) return null;
+    final handChar = cell[cell.length - 1];
+    final hand = handChar == 'r'
+        ? 'right'
+        : handChar == 'l'
+        ? 'left'
+        : null;
+    if (hand == null) return null;
+    // A bare `R`/`L` cell states a hand but no dancer, so there is nothing to
+    // put in `who` — the empty people code is absent from the map and declines.
+    final who = _tcbPassPeople[cell.substring(0, cell.length - 1)];
+    if (who == null) return null;
+    passes.add(_GrandRightAndLeftPass(who, hand));
+  }
+  return passes;
+}
+
+const List<String> _grandRightAndLeftWords = ['grand', 'right', 'and', 'left'];

@@ -312,6 +312,29 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   - Conservative whole-line recognizers require BOTH stated facts; a bare "mad
     robin" / "butterfly whirl" (ContraDB's own phrasing) or any leftover token
     still degrades to a faithful custom figure.
+- **No version change (`grand right and left` + `flutterwheel`, issue #295):**
+  both are **compound shorthands**, not moves, so the taxonomy is deliberately
+  left alone — no `grand_right_and_left` / `flutterwheel` `MoveDef`, no version
+  bump, no migration. Each is lowered onto moves that already exist:
+  - **`Grand right and left (<pass list>)` → one `pull_by_dancers` per pass.**
+    ContraDB carries no such figure at all; it transcribes the identical
+    choreography as consecutive pull-bys. The proof is one dance in both
+    databases — *334* by Diane Silver, TCB #10042 A2
+    `(4) Grand right and left (N3R;N2L)` == ContraDB #3403 A2
+    `[2] 3rd neighbors pull by right` + `[2] 2nd neighbors pull by left`.
+  - **`flutterwheel` → its own children.** TCB writes every one of its 143
+    corpus lines as a compound whose children are `allemande ½` +
+    `star promenade ½`; ContraDB models no flutterwheel either. The importer
+    now emits those children rather than a custom parent.
+  - **What is NOT modeled, and why.** The pass-list codes `C1`–`C3` are TCB's
+    *square* corners ("the non-partner next to you… your opposite… the
+    remaining person"), a different relationship from the ECD *first/second
+    corners* that `ParamVocab.firstCorners`/`secondCorners` model — so they are
+    left unmapped and such lines stay `custom` rather than being approximated
+    onto a token that means something else. The same holds for a mixer's
+    future partners (`P2`+), out-of-range neighbors/shadows, phantoms and trail
+    buddies. See `docs/design/imports.md` for the recognizer rules and
+    `docs/research/callersbox.md` for the glossary evidence and corpus counts.
 
 
 **The full ContraDB v1 contra move set is now modeled** (all five 2.4a slices

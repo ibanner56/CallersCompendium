@@ -13,6 +13,16 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Caller's Box imports now understand "grand right and left" and
+  "flutterwheel".** A grand right and left that lists its passes — e.g.
+  `Grand right and left (N1R;N2L)` — imports as the individual pull-bys it is
+  made of, and a flutterwheel imports as the allemande + star promenade The
+  Caller's Box itself writes it as, instead of both landing in the unrecognized
+  "custom" bucket. Beat counts and A1/A2/B1/B2 section placement are unchanged.
+  Anything the app cannot represent faithfully — a pass with a dancer we have no
+  name for, or extra wording on the line — is still kept verbatim rather than
+  guessed at.
+
 - **Aggressively recompute figure beats (opt-in).** New Settings toggle under
   Defaults > Dance-authoring defaults: "Aggressively recompute figure beats".
   Off by default (today's behavior is unchanged) — a figure's beat count is

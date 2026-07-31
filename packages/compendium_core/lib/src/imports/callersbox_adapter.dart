@@ -294,15 +294,15 @@ class CallersBoxAdapter implements SourceAdapter {
   }
 
   /// Parses one phrase's raw figure lines into figures, collapsing TCB's
-  /// compound convention ([_tryParseCompound]) into a single figure and routing
-  /// every other line through the per-line parser unchanged.
+  /// compound convention ([_tryParseCompound]) into one or more figures and
+  /// routing every other line through the per-line parser unchanged.
   List<Figure> _parsePhraseFigures(List<String> rawLines) {
     final out = <Figure>[];
     var i = 0;
     while (i < rawLines.length) {
       final compound = _tryParseCompound(rawLines, i);
       if (compound != null) {
-        out.add(compound.figure);
+        out.addAll(compound.figures);
         i = compound.nextIndex;
         continue;
       }
@@ -320,13 +320,23 @@ class CallersBoxAdapter implements SourceAdapter {
   /// promenade ½` + `(2) Women allemande right ½`); the children are the
   /// figure's *definition*, not additional choreography.
   ///
-  /// On a confident match returns a single figure carrying the PARENT's beats —
-  /// the parent name routed through [parseFigureLine], yielding the structured
-  /// taxonomy move when it maps (e.g. `revolving_door`) or a single
-  /// [customFigure] otherwise. The children are never emitted as separate
-  /// figures; their (scrubbed) decomposition rides along in the figure `note` so
-  /// nothing the source stated is dropped. Beats stay accurate: the collapsed
-  /// figure contributes exactly the parent's beat count to the section total.
+  /// On a confident match the block collapses to one of three readings, in
+  /// order:
+  /// - **Known parent** — the parent name structures to a single taxonomy move
+  ///   (e.g. `revolving_door`): emit that ONE structured figure carrying the
+  ///   PARENT's beats. The children are subsumed; their (scrubbed)
+  ///   decomposition rides along in the figure `note` so nothing the source
+  ///   stated is dropped. **Unchanged behaviour.**
+  /// - **Unknown parent whose children ALL structure (#295)** — the parent is a
+  ///   shorthand the taxonomy does not model but TCB decomposes itself into
+  ///   moves we DO have (`flutterwheel` == `allemande ½` + `star promenade ½`):
+  ///   emit the CHILDREN, each carrying its OWN stated beats. The exact-sum
+  ///   guard below already proves those sum to the parent's, so the section
+  ///   total is byte-identical to the collapsed reading. The parent's shorthand
+  ///   name is preserved as a `note` on the FIRST child rather than dropped.
+  /// - **Anything else** — one [customFigure] with the parent text and the
+  ///   parent's beats, children in the note. This is the fallback whenever ANY
+  ///   child fails to structure, so a block is never half-structured.
   ///
   /// Returns `null` when [start] is not a compound parent, so the caller parses
   /// the line normally. Tolerant of untrusted input: a missing/non-numeric beat,
@@ -336,9 +346,9 @@ class CallersBoxAdapter implements SourceAdapter {
     final parent = _compoundParent.firstMatch(lines[start]);
     if (parent == null) return null;
     final parentIndent = parent.group(1)!.length;
-    final parentBeats = int.tryParse(parent.group(2)!);
+    final parentBeats = _spanBeats(parent.group(2)!, parent.group(3));
     if (parentBeats == null || parentBeats <= 0) return null;
-    final parentText = parent.group(3)!.trim();
+    final parentText = parent.group(4)!.trim();
     if (parentText.isEmpty) return null;
 
     // Collect strictly-more-indented `(beats) text` children until the block
@@ -346,6 +356,7 @@ class CallersBoxAdapter implements SourceAdapter {
     // NOT recurse into deeper nesting — a nested grandchild would double-count
     // and fail the exact-sum guard below, declining the collapse safely.
     final childTexts = <String>[];
+    final childBeats = <int>[];
     var childBeatsSum = 0;
     var i = start + 1;
     while (i < lines.length) {
@@ -353,10 +364,11 @@ class CallersBoxAdapter implements SourceAdapter {
       if (child == null) break;
       final childIndent = child.group(1)!.length;
       if (childIndent <= parentIndent) break;
-      final childBeats = int.tryParse(child.group(2)!);
-      if (childBeats == null) break;
-      childBeatsSum += childBeats;
-      childTexts.add('($childBeats) ${child.group(3)!.trim()}');
+      final beats = _spanBeats(child.group(2)!, child.group(3));
+      if (beats == null) break;
+      childBeatsSum += beats;
+      childBeats.add(beats);
+      childTexts.add('($beats) ${child.group(4)!.trim()}');
       i += 1;
     }
 
@@ -384,6 +396,14 @@ class CallersBoxAdapter implements SourceAdapter {
         !hasTopLevelSeparator(parentText, ';')) {
       base = parsed; // known parent → structured taxonomy move (scrubbed)
     } else if (parsed != null && parsed.isCustom) {
+      // Unknown parent: prefer TCB's OWN decomposition when every child
+      // independently structures (#295) — the shorthand is expressible as moves
+      // the taxonomy already has, so emitting the children beats keeping a
+      // custom figure whose definition is stranded in a note.
+      final children = _structuredCompoundChildren(childTexts, childBeats);
+      if (children != null) {
+        return _Compound(_withParentShorthandNote(children, parsed), i);
+      }
       base = parsed; // unknown parent → already-scrubbed custom fallback
     } else {
       // A structured parent carrying a top-level `;` (would fan into clauses):
@@ -411,7 +431,56 @@ class CallersBoxAdapter implements SourceAdapter {
       decomposition,
     ].join(' — ');
 
-    return _Compound(base.copyWith(note: note), i);
+    return _Compound([base.copyWith(note: note)], i);
+  }
+
+  /// Parses a compound's children into structured figures, or `null` when ANY
+  /// child fails to structure — the all-or-nothing guard that keeps a block from
+  /// ever being emitted half-structured.
+  ///
+  /// Each child keeps its OWN source-stated beats (already proven by the
+  /// caller's exact-sum guard to total the parent's), and is routed through the
+  /// same [parseFigureLines] every other TCB line uses — so a child that is
+  /// itself a `;`-compound splits with the source total preserved on its first
+  /// clause, exactly as it would as a top-level line.
+  List<Figure>? _structuredCompoundChildren(
+    List<String> childTexts,
+    List<int> childBeats,
+  ) {
+    final out = <Figure>[];
+    for (var i = 0; i < childTexts.length; i++) {
+      final text = _beatsPrefix.firstMatch(childTexts[i])?.group(3) ?? '';
+      if (text.trim().isEmpty) return null;
+      final parsed = parseFigureLines(
+        text.trim(),
+        beats: childBeats[i],
+        frontEnd: tcbFigureFrontEnd,
+      );
+      if (parsed.isEmpty || parsed.any((f) => f.isCustom)) return null;
+      out.addAll(parsed);
+    }
+    return out.isEmpty ? null : out;
+  }
+
+  /// Preserves the parent shorthand's name (the scrubbed parent text carried by
+  /// its custom [parsed] figure) as a `note` on the FIRST emitted child, joined
+  /// to any note that child's own recognizer attached.
+  ///
+  /// The children express the choreography, but the shorthand ("flutterwheel")
+  /// is the caller-meaningful NAME of the figure and the only thing the
+  /// decomposition would otherwise drop, so it is kept rather than lost.
+  static List<Figure> _withParentShorthandNote(
+    List<Figure> children,
+    Figure parsed,
+  ) {
+    final shorthand = (parsed.params['text'] as String? ?? '').trim();
+    if (shorthand.isEmpty) return children;
+    final first = children.first;
+    final existing = first.note?.trim();
+    final note = (existing == null || existing.isEmpty)
+        ? shorthand
+        : '$existing — $shorthand';
+    return [first.copyWith(note: note), ...children.skip(1)];
   }
 
   /// Scrubs one `(beats) text` child line for storage in a compound's note,
@@ -1003,19 +1072,39 @@ class CallersBoxAdapter implements SourceAdapter {
 
   /// A TCB compound-figure PARENT line: `(beats) Name:` with a trailing colon.
   /// Group 1 is the leading indentation (used to scope the children), group 2
-  /// the beat count, group 3 the figure name (colon and surrounding space
-  /// stripped). Single-line (no `dotAll`) so the trailing-colon anchor is exact.
+  /// the beat count (or the START of a `(START-END)` span), group 3 the optional
+  /// span END, group 4 the figure name (colon and surrounding space stripped).
+  /// Single-line (no `dotAll`) so the trailing-colon anchor is exact.
+  ///
+  /// The `(START-END)` span is accepted for the same reason [_beatsPrefix]
+  /// accepts it — TCB uses it for positioned/simultaneous figures, and a
+  /// compound parent can carry one (`(7-12) [Top two couples] Neighbor
+  /// flutterwheel:`). Without it such a block was not recognised as a compound
+  /// at all, so the parent AND its children were both emitted and the section
+  /// beats were double-counted.
   static final RegExp _compoundParent = RegExp(
-    r'^(\s*)\((\d+)\)\s*(\S.*?):\s*$',
+    r'^(\s*)\((\d+)(?:-(\d+))?\)\s*(\S.*?):\s*$',
   );
 
   /// A `(beats) text` line with its leading indentation captured (group 1), used
-  /// to detect a compound's indented CHILD lines. Group 2 is the beat count,
-  /// group 3 the prose.
+  /// to detect a compound's indented CHILD lines. Group 2 is the beat count (or
+  /// span START), group 3 the optional span END, group 4 the prose.
   static final RegExp _indentedBeats = RegExp(
-    r'^(\s*)\((\d+)\)\s*(.*)$',
+    r'^(\s*)\((\d+)(?:-(\d+))?\)\s*(.*)$',
     dotAll: true,
   );
+
+  /// The duration a `(START)` / `(START-END)` beat prefix denotes: the plain
+  /// count, or the inclusive span `END - START + 1` (the same rule
+  /// [_parseFigureLine] applies). Returns `null` for an unparseable start, and
+  /// `0` for a backwards span (defensive: untrusted input, never a throw).
+  static int? _spanBeats(String startStr, String? endStr) {
+    final start = int.tryParse(startStr);
+    if (start == null) return null;
+    if (endStr == null) return start;
+    final end = int.tryParse(endStr) ?? start;
+    return end >= start ? end - start + 1 : 0;
+  }
 
   static final DateTime _epoch = DateTime.fromMillisecondsSinceEpoch(
     0,
@@ -1023,12 +1112,15 @@ class CallersBoxAdapter implements SourceAdapter {
   );
 }
 
-/// The result of collapsing a TCB compound figure: the single [figure] the
-/// parent + its indented children map to, and [nextIndex] — the index of the
-/// first line AFTER the consumed block, so the caller resumes there.
+/// The result of reading a TCB compound figure: the [figures] the parent + its
+/// indented children map to — exactly one when the block collapses to the
+/// parent (known parent, or an unstructurable decomposition), or the structured
+/// children when TCB's own decomposition is preferred (#295) — and [nextIndex],
+/// the index of the first line AFTER the consumed block, so the caller resumes
+/// there.
 class _Compound {
-  const _Compound(this.figure, this.nextIndex);
+  const _Compound(this.figures, this.nextIndex);
 
-  final Figure figure;
+  final List<Figure> figures;
   final int nextIndex;
 }

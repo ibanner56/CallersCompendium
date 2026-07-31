@@ -1,5 +1,56 @@
 ## Unreleased
 
+### Added
+
+- **`Grand right and left` and `flutterwheel` now structure, with NO new
+  taxonomy moves (#295).** Both are compound shorthands, so instead of crowding
+  the taxonomy they are lowered onto moves that already exist —
+  `contraTaxonomyVersion` stays at 20 and no DB migration is implied.
+  - **`Grand right and left (<pass list>)` → one `pull_by_dancers` per stated
+    pass**, each carrying that pass's dancer (`who`) and hand.
+    `grandRightAndLeftFromPassList` runs on `parseFigureLines`'
+    no-top-level-separator fall-through and reuses the hey decoder's people-code
+    map (TCB writes one notation for both). Evidence: *334* by Diane Silver in
+    both databases — TCB #10042 A2 `(4) Grand right and left (N3R;N2L)` is
+    ContraDB #3403 A2 `[2] 3rd neighbors pull by right` + `[2] 2nd neighbors
+    pull by left`; ContraDB has no grand-right-and-left figure at all.
+  - **An unknown compound parent whose children ALL structure now emits the
+    CHILDREN**, each with its own source-stated beats, instead of one custom
+    parent. `flutterwheel` is the reference case (`(8) Neighbor flutterwheel:`
+    == `(4) Women allemande right 1/2` + `(4) Neighbor star promenade 1/2`).
+    Known parents (`revolving_door`, …) still collapse to the single parent move
+    exactly as before, and a block with ANY unstructurable child still stays one
+    whole-custom figure — never a half-structured mix. The parent's shorthand
+    name is preserved as a note on the first child.
+  - **Beats are exact.** Grand right and left splits the source total evenly
+    across the passes and **declines to custom when it does not divide evenly**
+    (an uneven split would invent a per-pass duration the source never states);
+    compound children already sum to the parent by the existing exact-sum guard.
+    `deriveSections`' cumulative section placement is therefore unchanged.
+  - **Prefer-custom is preserved.** A pass code the taxonomy cannot faithfully
+    represent keeps the whole line custom rather than approximating it —
+    notably TCB's *square* corners `C1`-`C3`, which are a different relationship
+    from the ECD first/second corners `ParamVocab` models — as does any leftover
+    prose (`Progressive …`, `Same-role …`, `[with N2]`, a second parenthetical,
+    a trailing `;` clause). 128 of the corpus's 353 grand-right-and-left lines
+    decompose; whole-corpus structured share rises 75.09% → 76.24%.
+  - **Security (OWASP).** Imported text is untrusted: the pass-list fan-out is
+    bounded by the new `kMaxPassListCells` (12), mirroring `kMaxMeanwhileSides`;
+    over the cap, or on any malformed input, the line degrades to the unchanged
+    custom figure rather than fanning out unboundedly or throwing.
+  - The shared TCB people-code map gains glossary-backed `P1` (→ `partners`),
+    `S1` (→ `shadows`) and `S2` (→ `secondShadows`), so hey pass lists using
+    those codes now decode too.
+
+### Fixed
+
+- **A TCB compound parent with a `(START-END)` beat span was not recognised as a
+  compound (#295).** `(7-12) [Top two couples] Neighbor flutterwheel:` fell
+  through to the ordinary per-line path, so the parent AND its indented children
+  were both emitted and the section's beat total was double-counted. The parent
+  and child patterns now accept a span with the same inclusive
+  `END - START + 1` rule the per-line beats prefix uses.
+
 ### Fixed
 
 - **Silent duplicate dances on program import (#685).** Every author-name
