@@ -52,36 +52,6 @@
     `S1` (→ `shadows`) and `S2` (→ `secondShadows`), so hey pass lists using
     those codes now decode too.
 
-### Fixed
-
-- **A TCB compound parent with a `(START-END)` beat span was not recognised as a
-  compound, corrupting section beats (#295).** `_beatsPrefix` gained span
-  support in #555, but `_compoundParent` did not, so a block like
-  `(7-12) [Top two couples] Neighbor flutterwheel:` fell through to the ordinary
-  per-line path: the parent became its own figure **and** its indented children
-  were emitted alongside it, so the block contributed parent + children beats
-  (6 + 6 = 12 instead of 6) and every later section label drifted. The parent
-  and child patterns now accept a span with the same inclusive
-  `END - START + 1` rule the per-line beats prefix uses; a backwards span
-  (`(12-7)`) yields 0 beats and safely declines the collapse. Covered by its own
-  regression group.
-
-### Fixed
-
-- **Silent duplicate dances on program import (#685).** Every author-name
-  field (a choreographer string, a Caller's Box `Authors[]` element, a
-  Caller's Companion "by" line, `Author1`/`Author2`) now routes through one
-  shared, ReDoS-safe `splitAuthorNames()` tokenizer instead of each adapter
-  splitting (or not splitting) multi-author strings differently. This makes
-  dedupe's author-overlap signal consistent across sources, and
-  `DedupeIndex.fuzzyMatches` now *guarantees* an exact-normalized-title match
-  with an overlapping tokenized author set is surfaced as a confident
-  candidate (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`)
-  regardless of score-threshold tuning — such a pair can no longer silently
-  resolve to `isNew`.
-
-### Added
-
 - **`mad_robin` and `butterfly_whirl` now carry the detail The Caller's Box
   states (#295).** `mad_robin` gains a rotation `direction`
   (`clockwise`/`counterclockwise`) and `whom` — the pair you travel AROUND,
@@ -126,6 +96,32 @@
   nested side (scrubbing free text) while enforcing the depth + side-count caps
   defensively (clamp/flatten, never throw). Non-fabricating: it records only
   "these happen at once," never a synthesized combined move.
+
+### Fixed
+
+- **A TCB compound parent with a `(START-END)` beat span was not recognised as a
+  compound, corrupting section beats (#295).** `_beatsPrefix` gained span
+  support in #555, but `_compoundParent` did not, so a block like
+  `(7-12) [Top two couples] Neighbor flutterwheel:` fell through to the ordinary
+  per-line path: the parent became its own figure **and** its indented children
+  were emitted alongside it, so the block contributed parent + children beats
+  (6 + 6 = 12 instead of 6) and every later section label drifted. The parent
+  and child patterns now accept a span with the same inclusive
+  `END - START + 1` rule the per-line beats prefix uses; a backwards span
+  (`(12-7)`) yields 0 beats and safely declines the collapse. Covered by its own
+  regression group.
+
+- **Silent duplicate dances on program import (#685).** Every author-name
+  field (a choreographer string, a Caller's Box `Authors[]` element, a
+  Caller's Companion "by" line, `Author1`/`Author2`) now routes through one
+  shared, ReDoS-safe `splitAuthorNames()` tokenizer instead of each adapter
+  splitting (or not splitting) multi-author strings differently. This makes
+  dedupe's author-overlap signal consistent across sources, and
+  `DedupeIndex.fuzzyMatches` now *guarantees* an exact-normalized-title match
+  with an overlapping tokenized author set is surfaced as a confident
+  candidate (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`)
+  regardless of score-threshold tuning — such a pair can no longer silently
+  resolve to `isNew`.
 
 ### Changed
 
