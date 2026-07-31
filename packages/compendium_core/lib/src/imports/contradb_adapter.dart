@@ -4,6 +4,7 @@ import '../model/dance.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
+import '../taxonomy/param_types.dart';
 import '../util/text_sanitizer.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
@@ -410,6 +411,32 @@ class ContraDbAdapter implements SourceAdapter {
     // An explicit figure-level beats overrides any positional value.
     if (explicitBeats != null) params['beats'] = explicitBeats;
 
+    // Issue #295: the fused `allemande_orbit` move was retired; the ContraDB
+    // combined figure is now modeled as `meanwhile[allemande, orbit]`. The
+    // shorthand table above defines the positional order (who/hand/inner/outer/
+    // beats); here we decompose those converted params into the container using
+    // the SAME rules as the schema-v18 migration and the free-text importer:
+    // the fused `who` allemandes; the OTHER pair (invert(who)) orbits; the orbit
+    // direction is the opposite of the allemande hand (left → clockwise,
+    // right → counterclockwise); the shared beat total rides on the container.
+    // A hand with no clockwise/counterclockwise mapping, or a `who` with no
+    // pair-inverse, can't be decomposed without fabricating choreography, so it
+    // falls back to a faithful custom figure rather than an unregistered move.
+    if (mapping.move == 'allemande_orbit') {
+      final orbit = _allemandeOrbitContainer(
+        params,
+        note: (note != null && note.isNotEmpty) ? note : null,
+        progression: progression,
+      );
+      if (orbit != null) return orbit;
+      return customFigure(
+        sanitizeImportedText(_reconstructText(moveName, paramList, note)),
+        beats: explicitBeats ?? _trailingBeats(paramList) ?? 0,
+        progression: progression,
+        origin: CustomOrigin.importGap,
+      );
+    }
+
     return Figure(
       move: mapping.move,
       params: params,
@@ -419,6 +446,51 @@ class ContraDbAdapter implements SourceAdapter {
   }
 
   // --- Formation -------------------------------------------------------------
+
+  /// Decomposes the ContraDB fused-`allemande_orbit` params (who/hand/inner/
+  /// outer/beats) into a `meanwhile[allemande, orbit]` container (issue #295),
+  /// mirroring the schema-v18 migration and the free-text importer. Returns
+  /// null (so the caller falls back to a faithful custom figure) when the hand
+  /// has no clockwise/counterclockwise mapping or the `who` has no pair-inverse
+  /// — never fabricating a direction or an orbiting pair.
+  static Figure? _allemandeOrbitContainer(
+    Map<String, Object?> params, {
+    required String? note,
+    required bool progression,
+  }) {
+    final who = params['who'] is String ? params['who'] as String : 'ones';
+    final hand = params['hand'] is String ? params['hand'] as String : 'left';
+    final inner = params['inner'] is num ? params['inner'] : 1.5;
+    final outer = params['outer'] is num ? params['outer'] : 0.5;
+    final beats = params['beats'] is int ? params['beats'] as int : 8;
+
+    final String direction;
+    if (hand == 'left') {
+      direction = 'clockwise';
+    } else if (hand == 'right') {
+      direction = 'counterclockwise';
+    } else {
+      return null;
+    }
+    final orbitWho = invertPairDancerSet(who);
+    if (orbitWho == null) return null;
+
+    return Figure.meanwhile(
+      figures: [
+        Figure(
+          move: 'allemande',
+          params: {'who': who, 'hand': hand, 'turn': inner},
+        ),
+        Figure(
+          move: 'orbit',
+          params: {'who': orbitWho, 'turn': direction, 'amount': outer},
+        ),
+      ],
+      beats: beats,
+      note: note,
+      progression: progression,
+    );
+  }
 
   Formation _parseFormation(Object? startType, List<ImportIssue> issues) {
     final text = _sanitizeLine(_asString(startType));

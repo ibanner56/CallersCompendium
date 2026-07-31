@@ -113,7 +113,19 @@ import 'taxonomy.dart';
 ///     distinct from CompendiumDatabase.schemaVersion — the new flags ride the
 ///     existing `figures_json` figure codec, so NO persisted-data migration is
 ///     implied.
-const int contraTaxonomyVersion = 18;
+/// v19: splits the fused `allemande_orbit` (issue #295) into a first-class
+///     `orbit` move (`who`, `turn` reusing `ParamKind.spinDirection`, `amount`
+///     rotation default 0.5, `beats`). The combined "X allemande while Y orbits"
+///     figure is now modeled as `meanwhile[allemande, orbit]`: the TCB `||`
+///     fan-out and the ContraDB `while` fan-out both produce the container
+///     automatically once `orbit` is recognized standalone. The now-superseded
+///     `allemande_orbit` MoveDef is REMOVED; stored figures that reference it
+///     are rewritten by the schema migration (CompendiumDatabase schema v18) to
+///     `meanwhile[allemande{who,hand,turn=old inner}, orbit{who=invert(who),
+///     turn=direction derived from hand, amount=old outer}]`, carrying the
+///     shared beat count. This is a DB migration (distinct from this taxonomy
+///     version), the sanctioned canonical-changing exception (cf. v14).
+const int contraTaxonomyVersion = 19;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -518,18 +530,25 @@ final Taxonomy contraTaxonomy = Taxonomy(
       renderTemplate: '{who} {move} {hand} {turn}',
       goodBeats: [4],
     ),
+    // Issue #295: `orbit` is a first-class move. The fused `allemande_orbit`
+    // (X allemande while Y orbits) was RETIRED at taxonomy v19 and its stored
+    // figures migrated to `meanwhile[allemande, orbit]` (CompendiumDatabase
+    // schema v18). TCB writes the orbit side standalone, e.g. "Men orbit
+    // clockwise 1/2" / "Women orbit counterclockwise 1/2" (ContraDB has no
+    // standalone orbit — only the combined allemande orbit — so TCB is the
+    // source). `turn` reuses the EXISTING `ParamKind.spinDirection`
+    // (clockwise/counterclockwise); `amount` is the orbiter's turn fraction,
+    // defaulting to 0.5 to match the old fused `outer`.
     const MoveDef(
-      id: 'allemande_orbit',
-      displayName: 'allemande orbit',
+      id: 'orbit',
+      displayName: 'orbit',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
-        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
-        'inner': ParamSpec(ParamKind.rotation, defaultValue: 1.5),
-        'outer': ParamSpec(ParamKind.rotation, defaultValue: 0.5),
+        'turn': ParamSpec(ParamKind.spinDirection, defaultValue: 'clockwise'),
+        'amount': ParamSpec(ParamKind.rotation, defaultValue: 0.5),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{who} {move} {hand} {inner} {outer}',
-      searchKeywords: ['orbit'],
+      renderTemplate: '{who} {move} {turn} {amount}',
       goodBeats: [8],
     ),
     // --- Roadmap 2.4a: dancer-interaction moves (PR2) ---

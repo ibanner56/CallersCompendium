@@ -6,6 +6,7 @@ import '../dialect/canonicalize.dart';
 import '../dialect/dialect.dart';
 import '../model/enums.dart';
 import '../model/formation.dart';
+import '../taxonomy/param_types.dart';
 import 'tables.dart';
 
 part 'database.g.dart';
@@ -114,7 +115,7 @@ const String purgeCorruptionRepairDoneKey = '__purge_corruption_repair_done__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 17;
+const int kCompendiumSchemaVersion = 18;
 
 /// The Caller's Compendium local database.
 ///
@@ -257,6 +258,20 @@ const int kCompendiumSchemaVersion = 17;
 ///   only and conservative: non-role prose is byte-identical, and it is
 ///   idempotent. `hook`/`calling_notes` feed `dance_fts`, so a rewrite schedules
 ///   a derived rebuild (marker) — only when a row actually changed.
+/// - v18 (issue #295): fused-move retirement + figure rewrite. The
+///   `allemande_orbit` MoveDef was removed from the taxonomy (v19); its stored
+///   figures are rewritten in each `dances.figures_json` blob to a
+///   `meanwhile` container `[allemande{who, hand, turn=old inner},
+///   orbit{who=invert(who), turn=direction derived from hand, amount=old
+///   outer}]`, carrying the fused figure's `beats` as the shared container
+///   total. This is a SANCTIONED canonical-changing migration (cf. the v12
+///   ocean-wave rewrite): rewriting `figures_json` changes those figures'
+///   derived `canonicalText`/FTS, so it schedules a derived rebuild (marker),
+///   but only when a figure actually changed. Per-row and per-figure
+///   parse-never-throw: a blob or entry that can't be cleanly remapped (e.g. a
+///   wildcard `hand`, or a `who` with no pair-inverse) is left byte-identical,
+///   falling through to the #358 unknown-move path rather than being
+///   dropped/corrupted.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -565,6 +580,48 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           );
         }
       }
+      if (from < 18) {
+        // Issue #295: `allemande_orbit` was removed from the taxonomy (v19), so
+        // rewrite every stored figure that references it onto a `meanwhile`
+        // container [allemande{who, hand, turn=old inner}, orbit{who=invert(who),
+        // turn=direction derived from hand, amount=old outer}], carrying the
+        // fused figure's `beats` as the shared container total. This is the
+        // SANCTIONED canonical-changing migration (cf. v12): rewriting
+        // `figures_json` changes those figures' derived `canonicalText`/FTS.
+        // Per-row and per-figure parse-never-throw: a blob or entry that can't
+        // be cleanly remapped (a wildcard/absent `hand`, or a `who` with no
+        // pair-inverse) is left byte-identical, falling through to the #358
+        // unknown-move path rather than being dropped/corrupted.
+        final rows = await customSelect(
+          'SELECT id, figures_json FROM dances',
+        ).get();
+        var rewroteAny = false;
+        for (final row in rows) {
+          final id = row.data['id'];
+          final figuresJson = row.data['figures_json'];
+          if (id is! String || figuresJson is! String) continue;
+          final rewritten = _rewriteAllemandeOrbitFigures(figuresJson);
+          if (rewritten != null && rewritten != figuresJson) {
+            await customStatement(
+              'UPDATE dances SET figures_json = ? WHERE id = ?',
+              [rewritten, id],
+            );
+            rewroteAny = true;
+          }
+        }
+        // Only schedule a rebuild when a figure actually changed — a database
+        // that never held the fused move already has correct derived text. The
+        // rewritten figures' derived rows need the taxonomy/renderer, which
+        // `MigrationStrategy` can't reach, so durably record that a rebuild is
+        // owed (crash-safe); `CompendiumRepositories.ensureMigrated()` then
+        // regenerates `dance_figures` + `dance_fts` from `figures_json`.
+        if (rewroteAny) {
+          await customStatement(
+            'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+            [derivedRebuildRequiredKey, 'true'],
+          );
+        }
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -676,6 +733,117 @@ String? _rewriteOceanWaveFigures(String figuresJson) {
         figure['params'] = params;
       }
       out.add(figure);
+      changed = true;
+    } catch (_) {
+      out.add(entry); // per-figure failure: keep the original entry intact.
+    }
+  }
+  if (!changed) return null;
+  return jsonEncode(out);
+}
+
+/// Rewrites `allemande_orbit` figures in a `figures_json` string onto the issue
+/// #295 `meanwhile[allemande, orbit]` container for the schema-v18 migration.
+/// Returns the rewritten JSON, or `null` when nothing changed OR the blob can't
+/// be parsed as a figure array — in which case the caller leaves the stored
+/// `figures_json` byte-identical so any unmapped/malformed data falls through
+/// to the non-destructive unknown-move path (issue #358).
+///
+/// Operates on the raw decoded JSON (not the [Figure] model) so unknown keys —
+/// `schemaVersion`, `note`, `progression`, `customOrigin`, `assumedSubject`,
+/// `walkthroughOverride` — are preserved verbatim on the container. Parse-
+/// never-throw at both the blob and the individual-figure level.
+///
+/// Decomposition (mirrors the retired renderer and the ContraDB combined
+/// handler): the fused `who` allemandes; the OTHER pair — `invert(who)` —
+/// orbits. The orbit direction is the OPPOSITE of the allemande hand
+/// (left → clockwise, right → counterclockwise). The fused defaults (`who`
+/// ones, `hand` left, `inner` 1.5, `outer` 0.5, `beats` 8) are applied
+/// EXPLICITLY when a param is absent, so the rewritten container renders
+/// identically regardless of the new moves' own (different) defaults. An entry
+/// whose `hand` has no clockwise/counterclockwise mapping (a wildcard or other
+/// non-left/right value) or whose `who` has no pair-inverse is kept byte-
+/// identical rather than dropped or fabricated.
+String? _rewriteAllemandeOrbitFigures(String figuresJson) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(figuresJson);
+  } catch (_) {
+    return null; // malformed JSON: leave the row untouched.
+  }
+  if (decoded is! List) return null;
+  var changed = false;
+  final out = <Object?>[];
+  for (final entry in decoded) {
+    if (entry is! Map) {
+      out.add(entry); // preserve non-object entries verbatim.
+      continue;
+    }
+    try {
+      if (entry['move'] != 'allemande_orbit') {
+        out.add(entry);
+        continue;
+      }
+      final figure = Map<String, Object?>.from(entry);
+      final rawParams = figure['params'];
+      final params = rawParams is Map
+          ? Map<String, Object?>.from(rawParams)
+          : <String, Object?>{};
+
+      // Fused defaults applied when absent (see doc above).
+      final who = params['who'] is String ? params['who'] as String : 'ones';
+      final hand = params['hand'] is String ? params['hand'] as String : 'left';
+      final inner = params['inner'] is num ? params['inner'] : 1.5;
+      final outer = params['outer'] is num ? params['outer'] : 0.5;
+      final beats = params['beats'] is int ? params['beats'] as int : 8;
+
+      // Orbit direction is the OPPOSITE of the allemande hand. Bail (keep the
+      // entry as-is) on any hand we can't map, so no direction is fabricated.
+      final String direction;
+      if (hand == 'left') {
+        direction = 'clockwise';
+      } else if (hand == 'right') {
+        direction = 'counterclockwise';
+      } else {
+        out.add(entry);
+        continue;
+      }
+      // The orbiting pair is the OTHER pair. Bail on a `who` with no inverse.
+      final orbitWho = invertPairDancerSet(who);
+      if (orbitWho == null) {
+        out.add(entry);
+        continue;
+      }
+
+      out.add(<String, Object?>{
+        // Preserve every top-level key except the two we replace.
+        for (final e in figure.entries)
+          if (e.key != 'move' && e.key != 'params') e.key: e.value,
+        'move': 'meanwhile',
+        'params': <String, Object?>{
+          'beats': beats,
+          'figures': <Object?>[
+            <String, Object?>{
+              'schemaVersion': 1,
+              'move': 'allemande',
+              'params': <String, Object?>{
+                'who': who,
+                'hand': hand,
+                'turn': inner,
+              },
+            },
+            <String, Object?>{
+              'schemaVersion': 1,
+              'move': 'orbit',
+              'params': <String, Object?>{
+                'who': orbitWho,
+                'turn': direction,
+                'amount': outer,
+              },
+            },
+          ],
+        },
+      });
       changed = true;
     } catch (_) {
       out.add(entry); // per-figure failure: keep the original entry intact.

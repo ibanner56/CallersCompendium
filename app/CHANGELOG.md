@@ -153,6 +153,17 @@ each release so store builds and tags can be traced back to an entry.
   conveyed with a distinct shape plus a localized screen-reader announcement,
   never colour alone (WCAG 1.4.1). (#582)
 
+### Changed
+
+- **"Allemande orbit" figures are now stored as two concurrent moves.** The
+  combined "one couple allemandes while the other orbits" figure is no longer a
+  single fused move — it's now an allemande and a first-class *orbit* happening
+  at the same time (a "meanwhile"), matching how callers actually notate the
+  two sides. Existing collections are upgraded automatically on first launch: a
+  one-time database migration rewrites any stored allemande-orbit figures into
+  the new form, deriving each side faithfully from the saved values, so no
+  dance loses its choreography. (#295)
+
 ### Removed
 
 - **The automatic "can carry progression" hint is gone from the figure
