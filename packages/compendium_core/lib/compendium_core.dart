@@ -18,6 +18,7 @@ export 'src/export/export_labels.dart';
 export 'src/export/program_text.dart';
 export 'src/imports/callers_companion_mapping.dart';
 export 'src/imports/callers_companion_programs.dart';
+export 'src/imports/callers_companion_related_dances.dart';
 export 'src/imports/callers_companion_usr_adapter.dart';
 export 'src/imports/callers_companion_usr_archive.dart';
 export 'src/imports/callers_companion_usr_import.dart';

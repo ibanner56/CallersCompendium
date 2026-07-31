@@ -63,6 +63,79 @@ Uint8List _ccUsrBytes() => buildFmp12Fixture([
   ),
 ]);
 
+/// Same base fixture as [_ccUsrBytes], plus a `Dance_Related` table carrying
+/// [relatedRows] (each a `(zk_Dance1_ID, zk_Dance2_ID)` pair) — for issue #688
+/// related-dance import tests.
+Uint8List _ccUsrBytesWithRelated(List<(String, String)> relatedRows) =>
+    buildFmp12Fixture([
+      FmpFixtureTable(
+        index: 1,
+        name: 'Dance',
+        columnNames: ['zk_Dance_ID', 'Name', 'Author1'],
+        rows: [
+          MapEntry(10, {1: '4', 2: 'Simplicity Swing', 3: 'Becky Hill'}),
+          MapEntry(11, {1: '7', 2: 'Petronella', 3: 'Trad'}),
+        ],
+      ),
+      FmpFixtureTable(
+        index: 2,
+        name: 'Set',
+        columnNames: [
+          'zk_Set_ID',
+          'Date',
+          'Location',
+          'Band',
+          'Caller',
+          'Notes',
+        ],
+        rows: [
+          MapEntry(20, {
+            1: '1',
+            2: '3/14/2020',
+            3: 'Grange Hall',
+            4: 'The Band',
+            5: 'Jane',
+            6: 'a good night',
+          }),
+        ],
+      ),
+      FmpFixtureTable(
+        index: 3,
+        name: 'SetItem',
+        columnNames: [
+          'zk_Set_ID',
+          'zk_SetItem_ID',
+          'zk_Dance_ID',
+          'Order',
+          'Time',
+          'Break',
+        ],
+        rows: [
+          MapEntry(30, {1: '1', 2: '101', 3: '4', 4: '1', 5: '8'}),
+          MapEntry(31, {1: '1', 2: '102', 3: '7', 4: '2'}),
+        ],
+      ),
+      FmpFixtureTable(
+        index: 4,
+        name: 'Dance_Related',
+        columnNames: [
+          'zk_DanceRelatedID',
+          'zk_Dance1_ID',
+          'zk_Dance2_ID',
+          'zk_DanceRelatedID_PairID',
+        ],
+        rows: [
+          for (var i = 0; i < relatedRows.length; i++)
+            MapEntry(900 + i, {
+              1: '${i + 1}',
+              2: relatedRows[i].$1,
+              3: relatedRows[i].$2,
+              4: '${i + 1}',
+            }),
+        ],
+      ),
+    ]);
+
 void main() {
   late CompendiumDatabase db;
   late DanceRepository dances;
@@ -80,7 +153,7 @@ void main() {
     programs = ProgramRepository(db);
     venues = VenueRepository(db);
     pipeline = ImportPipeline(dances, choreographers);
-    importer = CallersCompanionUsrImporter(pipeline, programs, venues);
+    importer = CallersCompanionUsrImporter(pipeline, programs, venues, dances);
     nextId = sequentialIds();
   });
 
@@ -303,6 +376,7 @@ void main() {
           pipeline,
           failing,
           venues,
+          dances,
         );
 
         await expectLater(
@@ -510,6 +584,7 @@ void main() {
         pipeline,
         programs,
         countingVenues,
+        dances,
       );
 
       final result = await spiedImporter.import(
@@ -725,6 +800,201 @@ void main() {
       expect(await venues.getById(mintedVenueId), isNotNull);
       expect(await programs.getById(result.programs.single.id), isNull);
     });
+  });
+
+  group('related-dance links (issue #688)', () {
+    test('both endpoints imported: adds a directed relatedDance link on the '
+        'source dance, targeting the other new Compendium dance id', () async {
+      final result = await importer.import(
+        _ccUsrBytesWithRelated([('4', '7')]),
+        now: now,
+        venueEntityMode: false,
+        newId: sequentialIds(),
+      );
+
+      expect(result.relatedDanceLinkIssues, isEmpty);
+      final byExternal = await danceIdByExternalId(result.danceSession);
+      final source = await dances.getById(byExternal['4']!);
+      final target = await dances.getById(byExternal['7']!);
+
+      expect(source!.links, hasLength(1));
+      final link = source.links.single;
+      expect(link.kind, LinkKind.relatedDance);
+      expect(link.targetDanceId, byExternal['7']);
+      // Directional only: the target dance gets no reciprocal link.
+      expect(target!.links, isEmpty);
+    });
+
+    test('a mirrored pair of rows in the archive yields two independent '
+        'directed links (never synthesized by us)', () async {
+      final result = await importer.import(
+        _ccUsrBytesWithRelated([('4', '7'), ('7', '4')]),
+        now: now,
+        venueEntityMode: false,
+        newId: sequentialIds(),
+      );
+
+      expect(result.relatedDanceLinkIssues, isEmpty);
+      final byExternal = await danceIdByExternalId(result.danceSession);
+      final dance4 = await dances.getById(byExternal['4']!);
+      final dance7 = await dances.getById(byExternal['7']!);
+
+      expect(dance4!.links.single.targetDanceId, byExternal['7']);
+      expect(dance7!.links.single.targetDanceId, byExternal['4']);
+    });
+
+    test('a related row whose target dance was not imported is skipped with a '
+        'non-fatal warning and creates NO dangling targetDanceId', () async {
+      final result = await importer.import(
+        _ccUsrBytesWithRelated([('4', '999')]), // '999' is not in the file
+        now: now,
+        venueEntityMode: false,
+        newId: sequentialIds(),
+      );
+
+      expect(result.relatedDanceLinkIssues, hasLength(1));
+      expect(
+        result.relatedDanceLinkIssues.single.code,
+        'cc_related_dance_unresolved',
+      );
+      final byExternal = await danceIdByExternalId(result.danceSession);
+      final source = await dances.getById(byExternal['4']!);
+      expect(
+        source!.links,
+        isEmpty,
+        reason: 'never a link with an unresolved/dangling targetDanceId',
+      );
+    });
+
+    test('re-importing the same archive does not duplicate the link', () async {
+      final bytes = _ccUsrBytesWithRelated([('4', '7')]);
+      final first = await importer.import(
+        bytes,
+        now: now,
+        venueEntityMode: false,
+        newId: sequentialIds(),
+      );
+      final byExternal = await danceIdByExternalId(first.danceSession);
+
+      final second = await importer.import(
+        bytes,
+        now: DateTime.utc(2026, 8, 1),
+        venueEntityMode: false,
+        newId: sequentialIds(),
+      );
+      expect(second.relatedDanceLinkIssues, isEmpty);
+
+      // Dances deduped via the pipeline (same provenance) — still the two
+      // originals, same ids, and still exactly one relatedDance link.
+      final source = await dances.getById(byExternal['4']!);
+      expect(source!.links, hasLength(1));
+      expect(source.links.single.targetDanceId, byExternal['7']);
+    });
+
+    test('undo removes the created link (freshly-inserted dances vanish '
+        'entirely)', () async {
+      final result = await importer.import(
+        _ccUsrBytesWithRelated([('4', '7')]),
+        now: now,
+        venueEntityMode: false,
+        newId: sequentialIds(),
+      );
+
+      await importer.undo(result);
+
+      expect(await dances.listAll(includeDeleted: true), isEmpty);
+    });
+
+    test(
+      'regression: a dance matched via a "link" resolution (not inserted, not '
+      'field-updated by a straightforward reimport) still has its '
+      'related-dance link fully reverted on undo, alongside every other '
+      'field, because ImportPipeline.undo restores its full pre-commit '
+      'snapshot',
+      () async {
+        // Seed a pre-existing dance whose title fuzzy-matches (but does not
+        // exactly match) the incoming CC dance '4' — "The X" vs "X" is the
+        // same near-miss shape `import_pipeline_test.dart` uses to force an
+        // `ambiguous` verdict (never an automatic `reimport`, since this
+        // dance carries no provenance at all).
+        final priorLink = DanceLink(
+          id: 'prior-source-link',
+          kind: LinkKind.source,
+          url: 'https://example.com/prior',
+        );
+        final existing = Dance(
+          id: 'existing-dance',
+          title: 'The Simplicity Swing',
+          createdAt: DateTime.utc(2019),
+          updatedAt: DateTime.utc(2019),
+          links: [priorLink],
+        );
+        await dances.create(existing);
+
+        final bytes = _ccUsrBytesWithRelated([('4', '7')]);
+        final batch = await importer.plan(bytes);
+        expect(
+          batch.records[0].verdict.isAmbiguous,
+          isTrue,
+          reason:
+              'the fuzzy near-match must be ambiguous, not auto-resolved, '
+              'so the test actually exercises CommitAction.link',
+        );
+
+        final archive = readCcUsrArchive(bytes);
+        final result = await importer.commit(
+          batch,
+          archive,
+          now: now,
+          venueEntityMode: false,
+          newId: sequentialIds(),
+          resolutions: {0: DedupeResolution.link('existing-dance')},
+        );
+        expect(
+          result.danceSession.records[0].action,
+          CommitAction.link,
+          reason: 'sanity-check the resolution actually took the link path',
+        );
+
+        // The pipeline's `link`/`reimport` rebuild replaces dance CONTENT
+        // wholesale from the incoming draft (a CC `.USR` draft never carries
+        // links) — so the seeded prior link is gone the instant `commit`
+        // rebuilds the dance, same as every other field (title, etc.);
+        // that's pre-existing pipeline behavior, unrelated to #688. Our
+        // related-dance-link step then appends its ONE new link on top of
+        // that already-rebuilt (link-less) dance.
+        final afterCommit = await dances.getById('existing-dance');
+        expect(afterCommit!.links, hasLength(1));
+        expect(afterCommit.links.single.kind, LinkKind.relatedDance);
+        // The imported title overwrote the seeded one (link = update in
+        // place) — the interesting bit for undo to prove it reverts.
+        expect(afterCommit.title, 'Simplicity Swing');
+
+        await importer.undo(result);
+        expect(result.isUndone, isTrue);
+
+        // Not hard-deleted — this dance pre-existed the import.
+        final afterUndo = await dances.getById('existing-dance');
+        expect(afterUndo, isNotNull);
+        expect(
+          afterUndo!.title,
+          'The Simplicity Swing',
+          reason: 'full prior snapshot restored, not just the links',
+        );
+        expect(
+          afterUndo.links,
+          [priorLink],
+          reason:
+              'the related-dance link this commit appended is gone; the '
+              'pre-existing link is back — closing the "undo gap" '
+              'concern raised during planning (which further code-reading '
+              'showed does not actually exist: ImportPipeline.undo already '
+              'captures/restores a full pre-commit Dance snapshot for '
+              'link-matched dances, and DanceRepository fully replaces '
+              '`dance_links` on every update).',
+        );
+      },
+    );
   });
 }
 

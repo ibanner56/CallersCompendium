@@ -30,6 +30,7 @@ class CcUsrArchive {
     required this.dances,
     required this.sets,
     this.insertCalls = const [],
+    this.relatedDancePairs = const [],
     required this.warnings,
   });
 
@@ -45,8 +46,29 @@ class CcUsrArchive {
   /// no `InsertCall` table.
   final List<CcInsertCall> insertCalls;
 
+  /// One entry per CC `Dance_Related` row, still keyed by CC `zk_Dance_ID`
+  /// values (not yet resolved to Compendium dance ids — the importer resolves
+  /// both endpoints once dances are committed; issue #688). Empty when the
+  /// file has no `Dance_Related` table.
+  final List<CcRelatedDancePair> relatedDancePairs;
+
   /// Non-fatal notes (missing tables, guessed column names, reader warnings).
   final List<String> warnings;
+}
+
+/// One CC `Dance_Related` row: a directed pair of CC `zk_Dance_ID` values
+/// (still source-record ids — see [CcUsrArchive.relatedDancePairs]).
+class CcRelatedDancePair {
+  CcRelatedDancePair({
+    required this.sourceRecordId,
+    required this.targetRecordId,
+  });
+
+  /// The CC `zk_Dance1_ID` value — the dance the link is attached to.
+  final String sourceRecordId;
+
+  /// The CC `zk_Dance2_ID` value — the related dance it points at.
+  final String targetRecordId;
 }
 
 /// A single CC `InsertCall` row (a shipped default "call button"), reshaped into
@@ -216,10 +238,12 @@ CcUsrArchive extractCcUsrArchive(
   }
   final sets = _extractSets(db, warnings);
   final insertCalls = _extractInsertCalls(db, warnings, limits);
+  final relatedDancePairs = _extractRelatedDancePairs(db, warnings, limits);
   return CcUsrArchive(
     dances: dances,
     sets: sets,
     insertCalls: insertCalls,
+    relatedDancePairs: relatedDancePairs,
     warnings: warnings,
   );
 }
@@ -902,6 +926,148 @@ String _sanitizeButtonText(String? raw) =>
 int _parseBeats(String? raw) {
   final n = _parseInt(raw);
   return (n == null || n < 0) ? 0 : n;
+}
+
+// --- Dance_Related extraction (related-dance links, #688) -----------------
+
+const List<String> _relatedDanceTableNames = ['Dance_Related', 'DanceRelated'];
+
+/// Reads the CC **`Dance_Related`** table into directed
+/// [CcRelatedDancePair]s, still keyed by CC `zk_Dance_ID` values (the importer
+/// resolves both endpoints to committed Compendium dance ids after the dance
+/// import commits — mirrors how `SetItem.zk_Dance_ID` isn't resolved until
+/// `buildCcPrograms`).
+///
+/// ## Schema provenance
+/// The table **name** and its four columns — `zk_Dance1_ID` (source),
+/// `zk_Dance2_ID` (target), `zk_DanceRelatedID`, `zk_DanceRelatedID_PairID` —
+/// were read directly from a real `CallersCompanion2.USR` catalog, the same
+/// rigor as `Dance`/`Set`/`SetItem`/`Phrase`. **Unlike those tables, the real
+/// sample had zero populated `Dance_Related` rows**, so only the *schema*
+/// (table/column names) is confirmed — the *row shape* (e.g. whether CC always
+/// double-writes a mirrored pair via `zk_DanceRelatedID_PairID`) is not. This
+/// extractor deliberately makes **no assumption** about that shape: it reads
+/// each row as one directed `(zk_Dance1_ID → zk_Dance2_ID)` pair and nothing
+/// more. If CC does mirror pairs in real data, two rows naturally yield two
+/// directed pairs (one per direction) with no special-casing here — the
+/// importer never synthesizes a reverse link on its own (issue #688 decision:
+/// `RelatedDancesEditor`/`DanceLink` are directional per-dance app-side, with
+/// no auto-mirroring anywhere).
+///
+/// Because the row shape is unvalidated, this layer stays maximally
+/// defensive: a missing/renamed table, unresolvable columns, or a malformed
+/// row degrade to a non-fatal warning and zero/fewer pairs — **never** a
+/// crash, and never a pair with a missing/self-referential id.
+///
+/// ## OWASP hardening
+/// The `Dance_Related` table is untrusted external data. This layer:
+/// - **Bounds** the scan fail-closed: at most [FmpReadLimits.maxDanceRelatedRows]
+///   rows total, and at most [FmpReadLimits.maxRelatedDancesPerDance] pairs per
+///   source dance (a hand-built [FmpDatabase] bypasses the byte-level
+///   `maxRecords` guard, so both caps are enforced here) — exceeding either
+///   throws a [FmpResourceLimitException].
+/// - **Dedupes** identical `(source, target)` rows within the table itself
+///   before returning (defends against a malformed archive with literal
+///   duplicate rows; distinct from the importer's separate cross-import
+///   dedupe against already-persisted links).
+/// - Never resolves ids against `Dance` rows itself — the importer validates
+///   both endpoints resolve to dances **actually committed in this session**
+///   before ever constructing a link, so an unresolved/invalid id can never
+///   reach storage as a dangling `targetDanceId`.
+List<CcRelatedDancePair> _extractRelatedDancePairs(
+  FmpDatabase db,
+  List<String> warnings,
+  FmpReadLimits limits,
+) {
+  final table = _findTable(db, _relatedDanceTableNames);
+  if (table == null) {
+    // Not fatal — parse-never-fails — but still worth a warning: a real CC
+    // export is expected to carry this table, so its absence usually means a
+    // renamed/unrecognized schema variant silently dropped related-dance
+    // links, which is worth surfacing (unlike `InsertCall`, which many real
+    // exports legitimately lack).
+    warnings.add(
+      'No Caller\'s Companion "Dance_Related" table was found; no '
+      'related-dance links were imported.',
+    );
+    return const [];
+  }
+
+  final sourceCol = _resolveColumn(
+    table,
+    ['zk_Dance1_ID'],
+    [
+      ['dance1', 'id'],
+      ['related', 'dance1'],
+    ],
+  );
+  final targetCol = _resolveColumn(
+    table,
+    ['zk_Dance2_ID'],
+    [
+      ['dance2', 'id'],
+      ['related', 'dance2'],
+    ],
+  );
+  if (sourceCol == null || targetCol == null) {
+    warnings.add(
+      'The Caller\'s Companion "Dance_Related" table was found but its '
+      'zk_Dance1_ID/zk_Dance2_ID columns could not be resolved; no '
+      'related-dance links were imported.',
+    );
+    return const [];
+  }
+
+  final pairs = <CcRelatedDancePair>[];
+  final seenPairs = <String>{};
+  final perSourceCounts = <String, int>{};
+  var processedRows = 0;
+  var skippedCount = 0;
+  for (final rec in table.records) {
+    // Bound the rows this layer will process — fail closed before a
+    // pathological Dance_Related table can exhaust memory (a hand-built
+    // FmpDatabase bypasses the byte-level maxRecords guard).
+    if (processedRows >= limits.maxDanceRelatedRows) {
+      throw FmpResourceLimitException(
+        'The Caller\'s Companion "Dance_Related" table has too many rows to '
+        'import safely (> ${limits.maxDanceRelatedRows}).',
+      );
+    }
+    processedRows++;
+    final cols = _CiColumns(_rowColumns(table, rec));
+    final source = cols.get(sourceCol)?.trim();
+    final target = cols.get(targetCol)?.trim();
+    if (source == null ||
+        source.isEmpty ||
+        target == null ||
+        target.isEmpty ||
+        source == target) {
+      // Missing id or a self-referential row — never a valid link.
+      skippedCount++;
+      continue;
+    }
+    final pairKey = '$source\u0000$target';
+    if (!seenPairs.add(pairKey)) continue; // duplicate row in the table itself
+
+    final count = (perSourceCounts[source] ?? 0) + 1;
+    if (count > limits.maxRelatedDancesPerDance) {
+      throw FmpResourceLimitException(
+        'A Caller\'s Companion dance has too many related-dance links to '
+        'import safely (> ${limits.maxRelatedDancesPerDance}).',
+      );
+    }
+    perSourceCounts[source] = count;
+    pairs.add(
+      CcRelatedDancePair(sourceRecordId: source, targetRecordId: target),
+    );
+  }
+  if (skippedCount > 0) {
+    warnings.add(
+      '$skippedCount Caller\'s Companion "Dance_Related" row(s) had a '
+      'missing or self-referential dance id and were skipped.',
+    );
+  }
+  return pairs;
 }
 
 // --- Helpers ---------------------------------------------------------------

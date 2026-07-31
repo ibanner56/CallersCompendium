@@ -534,6 +534,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           pipeline,
           _repos.programs,
           _repos.venues,
+          _repos.dances,
         );
         final archive = readCcUsrArchive(_payloadBytes!);
         final result = await importer.commit(

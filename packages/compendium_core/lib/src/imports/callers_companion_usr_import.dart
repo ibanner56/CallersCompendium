@@ -1,12 +1,16 @@
 import 'dart:typed_data';
 
+import '../model/dance.dart';
+import '../model/dance_link.dart';
 import '../model/enums.dart';
 import '../model/program.dart';
 import '../model/venue.dart';
+import '../storage/repositories/dance_repository.dart';
 import '../storage/repositories/program_repository.dart';
 import '../storage/repositories/venue_repository.dart';
 import '../util/uuid.dart';
 import 'callers_companion_programs.dart';
+import 'callers_companion_related_dances.dart';
 import 'callers_companion_usr_adapter.dart';
 import 'callers_companion_usr_archive.dart';
 import 'dedupe.dart';
@@ -33,11 +37,13 @@ class CcUsrImportResult {
     List<String> insertedProgramIds = const [],
     List<Program> updatedProgramPriorStates = const [],
     List<String> insertedVenueIds = const [],
+    List<ImportIssue> relatedDanceLinkIssues = const [],
   }) : programs = List.unmodifiable(programs),
        programIssues = List.unmodifiable(programIssues),
        insertedProgramIds = List.unmodifiable(insertedProgramIds),
        updatedProgramPriorStates = List.unmodifiable(updatedProgramPriorStates),
-       insertedVenueIds = List.unmodifiable(insertedVenueIds);
+       insertedVenueIds = List.unmodifiable(insertedVenueIds),
+       relatedDanceLinkIssues = List.unmodifiable(relatedDanceLinkIssues);
 
   /// The dance-side session (inserted dance ids, updated-dance prior states,
   /// created choreographer ids) — reverted via [ImportPipeline.undo].
@@ -72,6 +78,13 @@ class CcUsrImportResult {
   /// references, unparseable dates, skipped empty slots) — never fatal.
   final List<ImportIssue> programIssues;
 
+  /// Non-fatal issues raised while resolving `Dance_Related` pairs into
+  /// `relatedDance` [DanceLink]s (issue #688) — e.g. a pair whose target dance
+  /// id was not committed in this import. **Not** the links themselves: the
+  /// created links live directly on the dances in [danceSession] (there is
+  /// nothing to revert independently on [undo] — see [undo]'s doc).
+  final List<ImportIssue> relatedDanceLinkIssues;
+
   /// Ids of the programs updated in place (re-imported) by this import.
   List<String> get updatedProgramIds => [
     for (final p in updatedProgramPriorStates) p.id,
@@ -93,21 +106,29 @@ class CcUsrImportResult {
 
 /// Drives a full Caller's Companion `.USR` migration through the **real import
 /// commit path**: it commits dances via the shared [ImportPipeline] (dedupe,
-/// provenance, author resolution, undo) and then builds the CC `Set`/`SetItem`
+/// provenance, author resolution, undo), builds the CC `Set`/`SetItem`
 /// programs with [buildCcPrograms] — resolving each slot's CC dance reference
 /// to the *new* Compendium dance id the commit just minted — and persists them
-/// via [ProgramRepository].
+/// via [ProgramRepository], then wires the CC `Dance_Related` table into
+/// `relatedDance` [DanceLink]s on the just-committed dances (issue #688) via
+/// [buildCcRelatedDanceLinks].
 ///
 /// This is the app-layer follow-up promised in [buildCcPrograms]'s doc: it is
 /// what actually calls that builder in production. It stays **Flutter-free**
 /// (pure Dart + repositories) so it lives in the core and is trivially
 /// unit-testable; the app supplies the `.USR` bytes.
 class CallersCompanionUsrImporter {
-  CallersCompanionUsrImporter(this._pipeline, this._programs, this._venues);
+  CallersCompanionUsrImporter(
+    this._pipeline,
+    this._programs,
+    this._venues,
+    this._dances,
+  );
 
   final ImportPipeline _pipeline;
   final ProgramRepository _programs;
   final VenueRepository _venues;
+  final DanceRepository _dances;
 
   final CallersCompanionUsrAdapter _adapter = CallersCompanionUsrAdapter();
 
@@ -168,6 +189,15 @@ class CallersCompanionUsrImporter {
   /// with), so resolving one here would go unused and simply mint an orphan
   /// venue on every re-import.
   ///
+  /// **Related dances (issue #688):** after the programs are persisted, each
+  /// archive `Dance_Related` pair is resolved via [_danceIdByCcRowId] and
+  /// turned into a directed `relatedDance` [DanceLink] on the source dance
+  /// (see [buildCcRelatedDanceLinks]'s doc for the full directionality,
+  /// dedupe and OWASP-hardening rationale). A pair with an unresolved
+  /// endpoint is skipped with a warning [ImportIssue] on
+  /// [CcUsrImportResult.relatedDanceLinkIssues] — never a dangling
+  /// `targetDanceId`.
+  ///
   /// Everything is recorded on the returned [CcUsrImportResult] so [undo]
   /// reverts dances, programs **and** venues.
   Future<CcUsrImportResult> commit(
@@ -214,6 +244,7 @@ class CallersCompanionUsrImporter {
     final priorStates = <Program>[];
     final persisted = <Program>[];
     final insertedVenueIds = <String>[];
+    final relatedDanceLinkIssues = <ImportIssue>[];
     // Lazily-seeded fingerprint index over the receiver's existing venues
     // (issue #687), built at most once per commit (memoized here) and only
     // when a candidate actually produces a non-null [venueFingerprint] — a
@@ -325,6 +356,54 @@ class CallersCompanionUsrImporter {
           persisted.add(target);
         }
       }
+
+      // Wire the CC `Dance_Related` table into `relatedDance` links on the
+      // just-committed dances (issue #688), inside this SAME try block so a
+      // failure here is compensated identically to a program-write failure
+      // (see the catch below).
+      //
+      // No new undo bookkeeping is needed for the links themselves: every
+      // candidate source dance here is, by construction, a dance
+      // [_danceIdByCcRowId] resolved from `danceSession.records` — and EVERY
+      // such dance is already tracked by [ImportPipeline.undo], either via
+      // `insertedDanceIds` (create/duplicate — hard-deleted wholesale) or via
+      // `updatedDancePriorStates` (reimport/link — the pipeline captures a
+      // full pre-commit snapshot of `_dances.getById(id)` **before any field
+      // is touched**, for BOTH actions). [DanceRepository]'s upsert fully
+      // replaces a dance's `dance_links` rows on every `update`, so restoring
+      // that prior snapshot on undo already reverts any related-dance link
+      // appended here, with zero additional tracking. See
+      // `callers_companion_related_dances.dart` and this method's `undo` doc
+      // for the full argument.
+      if (archive.relatedDancePairs.isNotEmpty) {
+        final candidateDanceIds = <String>{
+          for (final pair in archive.relatedDancePairs)
+            if (danceIdByCcRowId[pair.sourceRecordId] != null)
+              danceIdByCcRowId[pair.sourceRecordId]!,
+        };
+        final dancesById = <String, Dance>{};
+        for (final id in candidateDanceIds) {
+          final dance = await _dances.getById(id);
+          if (dance != null) dancesById[id] = dance;
+        }
+        final existingLinksByDanceId = <String, List<DanceLink>>{
+          for (final entry in dancesById.entries) entry.key: entry.value.links,
+        };
+        final linkResult = buildCcRelatedDanceLinks(
+          archive,
+          danceIdByCcRowId: danceIdByCcRowId,
+          existingLinksByDanceId: existingLinksByDanceId,
+          newId: mintId,
+        );
+        relatedDanceLinkIssues.addAll(linkResult.issues);
+        for (final entry in linkResult.newLinksByDanceId.entries) {
+          final dance = dancesById[entry.key];
+          if (dance == null) continue; // fetched dance vanished; skip safely
+          await _dances.update(
+            dance.copyWith(links: [...dance.links, ...entry.value]),
+          );
+        }
+      }
     } catch (_) {
       await _programs.hardDelete(insertedIds);
       for (final prior in priorStates) {
@@ -342,6 +421,7 @@ class CallersCompanionUsrImporter {
       insertedProgramIds: insertedIds,
       updatedProgramPriorStates: priorStates,
       insertedVenueIds: insertedVenueIds,
+      relatedDanceLinkIssues: relatedDanceLinkIssues,
     );
   }
 
@@ -391,6 +471,22 @@ class CallersCompanionUsrImporter {
   /// would orphan that program's `venueId`. Each inserted venue is deleted only
   /// when no program still references it; a still-referenced venue is
   /// retained.
+  ///
+  /// **Related-dance links (issue #688) need no dedicated revert step here** —
+  /// [ImportPipeline.undo] already fully reverts them as a side effect of its
+  /// own dance rollback. Every dance [commit] could have attached a
+  /// `relatedDance` link to is, by construction, a dance resolved through
+  /// `_danceIdByCcRowId(result.danceSession)`, which only ever names dances
+  /// appearing in `result.danceSession.records`. Every such dance is either
+  /// freshly **inserted** this commit (hard-deleted wholesale by the call
+  /// below — its links vanish with it) or was matched by **reimport/link**
+  /// (both actions capture a full pre-commit `Dance` snapshot — *including*
+  /// its pre-commit `links` — into `updatedDancePriorStates`, restored
+  /// verbatim below). Restoring a dance's prior snapshot fully replaces its
+  /// `dance_links` rows (a full delete-then-reinsert on every
+  /// `DanceRepository.update`), so any related-dance link [commit] appended
+  /// afterward is discarded along with the rest of the reverted state — with
+  /// zero additional bookkeeping.
   Future<void> undo(CcUsrImportResult result) async {
     if (result.isUndone) return;
     await _programs.hardDelete(result.insertedProgramIds);
