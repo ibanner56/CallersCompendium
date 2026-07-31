@@ -581,8 +581,13 @@ form figure is ever emitted.
    `intersecting`, `circular`) is refused here, exactly as the promotion refuses
    it: it is not a balance of the wave the previous line formed, and folding it
    would drop the qualifier from a structured figure that then asserts something
-   the source never said. The single corpus case is dance 2463 *Gypsy Star* B1,
-   `form long waves in center` / `Balance interlocking long waves in center`.
+   the source never said. **86** corpus lines carry such a qualifier, but that
+   is a census of the wording — **85** already fell to custom regardless, and
+   exactly **1** was actually being folded and losing the word: dance 2463
+   *Gypsy Star* B1, `form long waves in center` /
+   `Balance interlocking long waves in center`. (That one was a regression this
+   same change set introduced — recognizing `form long waves` is what made the
+   pair foldable.)
 3. **Promotion** — whatever is left becomes the form figure on its own. This is
    the implicit case (an allemande or shoulder round leaves the dancers in the
    wave the very next line balances): the forming is a fact the source implies,

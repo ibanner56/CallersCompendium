@@ -681,8 +681,17 @@ class CallersBoxAdapter implements SourceAdapter {
   /// formation — so neither the trailing-balance fold nor the balance-a-wave
   /// promotion may claim it (prefer-custom: the qualifier would be silently
   /// dropped from a structured figure that then asserts something the source
-  /// never said). 86 corpus lines carry one — `interlocking` 43, `circular` 27,
-  /// `intersecting` 16.
+  /// never said).
+  ///
+  /// Three DIFFERENT numbers, kept distinct on purpose: **86** corpus lines
+  /// carry one of these qualifiers (`interlocking` 43, `circular` 27,
+  /// `intersecting` 16) — that is a census of the wording, not of this guard's
+  /// effect. **85** of them already fell to custom on both paths and are
+  /// unaffected by it. Exactly **1** was being folded and losing the word
+  /// (dance 2463 *Gypsy Star* B1), and that was a regression introduced by this
+  /// same change set: teaching the recognizer `form long waves` is what made
+  /// the pair foldable in the first place. Measured end-to-end over the whole
+  /// mirror, the guard moves exactly one figure from structured to custom.
   static const _unmodeledWaveQualifiers = {
     'interlocking',
     'intersecting',

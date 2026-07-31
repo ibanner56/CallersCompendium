@@ -34,8 +34,10 @@
     opposite — verified on 2,560 of 2,764 corpus lines). Conservative: wave
     sizes we do not model, exotic formations (`intersecting`/`interlocking`/
     `circular` — refused on the trailing-balance FOLD path too, so a
-    formed-then-balanced wave never loses the qualifier either), two-hand-hold
-    annotations, people codes the shared
+    formed-then-balanced wave never loses the qualifier either; 86 corpus lines
+    carry such a qualifier, of which 85 already fell to custom and exactly 1 was
+    being folded and losing it), two-hand-hold annotations, people codes the
+    shared
     `tcbPassPeople` map deliberately omits (square corners, mixer partner
     series, phantoms, trail buddies) and `Balance long wave for all in center`
     all stay custom.

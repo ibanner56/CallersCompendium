@@ -343,7 +343,10 @@ singular "long wave" is the overwhelmingly dominant forming wording.
 86 balance lines name a formation the taxonomy has no model for
 (`interlocking` ×43, `circular` ×27, `intersecting` ×16). These stay `custom`
 on BOTH the promotion and the trailing-balance-fold paths, so the qualifier is
-never dropped from a structured figure.
+never dropped from a structured figure. Note that 86 is a census of the
+WORDING, not of anything that was previously mis-structured: 85 of those lines
+already fell to custom, and only **one** (dance 2463 *Gypsy Star* B1, the sole
+plural `form long waves` line) was ever folded into a wave figure.
 
 Effect of taxonomy v21 measured by running the real adapter over the whole
 mirror: custom figures 24,775 → 22,272, structured share 76.24% → **78.69%**,

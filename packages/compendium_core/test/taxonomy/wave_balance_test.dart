@@ -76,6 +76,46 @@ void main() {
       );
     });
 
+    test('who is narrowed to the pair tokens that have an inverse', () {
+      // The display line names the OTHER pair, so `who` must always be
+      // invertible — otherwise "{other} facing out" would assert a facing for
+      // an empty set. The domain is exactly ParamVocab.pairInverse's keys.
+      final choices = tax.resolve('form_long_waves')!.params['who']!.choices;
+      expect(choices, isNotNull);
+      expect(choices!.toSet(), ParamVocab.pairInverse.keys.toSet());
+      for (final who in choices) {
+        expect(
+          invertPairDancerSet(who),
+          isNotNull,
+          reason: '$who must have a nameable inverse',
+        );
+        expect(
+          tax.validateFigure(
+            Figure(move: 'form_long_waves', params: {'who': who}),
+          ),
+          isEmpty,
+        );
+      }
+    });
+
+    test('rejects a who with no nameable inverse', () {
+      // `neighbors` is all four dancers — there is no "other pair" to face out.
+      for (final who in const [
+        'neighbors',
+        'partners',
+        'everyone',
+        'onesRole1',
+      ]) {
+        expect(
+          tax.validateFigure(
+            Figure(move: 'form_long_waves', params: {'who': who}),
+          ),
+          isNotEmpty,
+          reason: '$who has no inverse and must not validate',
+        );
+      }
+    });
+
     test('rejects a hand outside right/left/unspecified', () {
       expect(
         tax.validateFigure(
@@ -199,6 +239,22 @@ void main() {
         ),
         isNot(contains('balance')),
       );
+    });
+
+    test('a non-invertible who still renders via the "others" fallback', () {
+      // Narrowing `who` makes this unreachable from the model, but a wildcard
+      // or out-of-domain imported value must still render without a dangling
+      // clause — the renderer's fallback is defence in depth, not dead code.
+      for (final who in const ['*', 'neighbors']) {
+        final out = renderer.render(
+          Figure(move: 'form_long_waves', params: {'who': who}),
+          d,
+        );
+        expect(out, contains('facing in'));
+        expect(out, contains('facing out'));
+        expect(out, isNot(contains('  ')));
+        expect(out, isNot(contains(', ,')));
+      }
     });
 
     test('a wildcard balance stays visible rather than being dropped', () {

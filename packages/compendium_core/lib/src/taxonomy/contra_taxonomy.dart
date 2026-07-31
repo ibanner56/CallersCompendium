@@ -177,11 +177,29 @@ import 'taxonomy.dart';
 ///       v20) and `balance` defaults false. `who` KEEPS its ContraDB meaning
 ///       (the role that faces IN) — TCB states the same fact, so no stored
 ///       figure's meaning changes.
-///     - `renderTemplate` is unchanged for both moves, so every existing
-///       figure's canonical/FTS/dedupe text is byte-identical; the new params
-///       and the balance suffix are surfaced only on the `!forCanonical`
-///       display path (that display work IS issue #296, whose own reference to
-///       `form_an_ocean_wave` is stale — that MoveDef was removed at v14).
+///     - Byte-stability is NOT uniform across the two changes, and the
+///       distinction is the whole reason this taxonomy bump needs a schema bump
+///       alongside it:
+///       * The new `whom`/`hand`/`balance` params ARE byte-stable. They default
+///         to the `unspecified` sentinel / `false`, and `renderTemplate` is
+///         untouched, so a figure that omits them renders exactly as it did at
+///         v20 — canonical/FTS/dedupe text is unchanged for all existing data.
+///       * The RENAME is NOT byte-stable, for two independent reasons. (a) The
+///         move **id** changed, so an unmigrated stored figure would stop
+///         resolving and fall through to the #358 raw-id fallback — this is what
+///         forces the CompendiumDatabase schema-v19 migration. (b) The
+///         **`displayName`** changed ("form a wave" → "form short waves"), and
+///         `renderTemplate` is `'{move}'`, whose `{move}` token expands the
+///         DISPLAY NAME (`FigureRenderer._renderMoveName` uses the id only as a
+///         dialect-substitution lookup key) — so those figures' canonical text
+///         changes too, which is what forces `derivedRebuildRequiredKey`.
+///         Renaming only the id and keeping the old `displayName` would have
+///         needed the migration but NOT the rebuild; both were changed
+///         deliberately.
+///     - The new params and the balance suffix are otherwise surfaced only on
+///       the `!forCanonical` display path (that display work IS issue #296,
+///       whose own reference to `form_an_ocean_wave` is stale — that MoveDef was
+///       removed at v14).
 ///     The taxonomy version bump is distinct from the schema bump: the params
 ///     ride the existing `figures_json` figure codec, and only the RENAME needs
 ///     the persisted-data migration.
@@ -261,6 +279,21 @@ const _spinOrUnspecified = [...ParamVocab.spins, ParamVocab.unspecified];
 // `_spinOrUnspecified` exists); the stated values are exactly
 // [ParamVocab.sides], so this introduces no new vocabulary.
 const _handOrUnspecified = [...ParamVocab.sides, ParamVocab.unspecified];
+
+// v21 (issue #295): the pair tokens that have a nameable INVERSE — exactly
+// `ParamVocab.pairInverse`'s keys, which is ContraDB's `chooser_pair` domain.
+// Used by params whose rendering names the OTHER pair (`form_long_waves.who` →
+// "{who} facing in, {other} facing out"), so the "other" can never resolve to
+// an empty set. Spelled out because `ParamSpec.choices` must be `const`;
+// `wave_balance_test.dart` asserts it stays in lockstep with `pairInverse`.
+const _invertiblePairs = [
+  'role1s',
+  'role2s',
+  'ones',
+  'twos',
+  'firstCorners',
+  'secondCorners',
+];
 
 /// The seed contra move taxonomy.
 ///
@@ -1214,7 +1247,20 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // other pair faces out). TCB states the same fact ("…, women face in"),
         // so v21's decoding writes the facing-IN role here — the meaning is
         // unchanged from v20.
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
+        //
+        // The domain is narrowed to ContraDB's `chooser_pair` — exactly the six
+        // tokens `ParamVocab.pairInverse` can invert. The display line names the
+        // OTHER pair ("{who} facing in, {other} facing out"), so an
+        // un-narrowed `who` could hold e.g. `neighbors` (all four dancers) and
+        // the clause would then assert a facing for an empty set. The
+        // renderer's `others` fallback stays as defence in depth (it is still
+        // right for a wildcard `*` or out-of-domain imported data); this makes
+        // the empty-set case unreachable from the model itself.
+        'who': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: 'role1s',
+          choices: _invertiblePairs,
+        ),
         // v21 (#295): TCB states which pair you hold and by which hand —
         // `Balance long wave (NR, women face in)` = neighbors by the right.
         // ContraDB models neither, so both take the `unspecified` sentinel
