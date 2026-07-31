@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
 
+import '../../data/reduce_motion_scope.dart';
 import '../../theme/app_spacing.dart';
 import 'user_guide_docs.dart';
 
@@ -121,10 +122,16 @@ class _UserGuideDocViewState extends State<UserGuideDocView> {
       // An anchor naming no heading in this guide leaves the reader at the top
       // of the guide rather than failing — the guide still opened.
       if (target == null) return;
+      // Respect "Reduce motion" (ROADMAP G.7, WCAG 2.3.3): jump instantly when
+      // it's on. Read here rather than in initState, which runs before this
+      // element may depend on an inherited widget.
+      final reduceMotion = ReduceMotionScope.of(context);
       Scrollable.ensureVisible(
         target,
         alignment: 0,
-        duration: const Duration(milliseconds: 250),
+        duration: reduceMotion
+            ? Duration.zero
+            : const Duration(milliseconds: 250),
         curve: Curves.easeOut,
       );
     });

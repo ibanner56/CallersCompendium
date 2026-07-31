@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show AssetManifest, rootBundle;
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/screens/user_guide/user_guide_screen.dart';
 import 'package:compendium_app/src/screens/user_guide/user_guide_doc_view.dart';
 
@@ -268,6 +269,57 @@ void main() {
 
     expect(offset(), greaterThan(0));
     expect(tester.getTopLeft(heading).dy, lessThan(viewportHeight));
+  });
+
+  testWidgets('anchor scrolling jumps instantly when Reduce motion is on', (
+    tester,
+  ) async {
+    // WCAG 2.3.3: a motion-sensitive reader following an "on this page" link
+    // should land on the heading rather than be flung there.
+    const target = 'The far heading';
+    final source = StringBuffer('# A guide\n\n[Jump](#the-far-heading)\n\n');
+    for (var i = 0; i < 60; i++) {
+      source.writeln('Filler paragraph $i.\n');
+    }
+    source.writeln('## $target\n\nYou made it.\n');
+
+    Widget build({required bool reduceMotion}) => MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+      home: ReduceMotionScope(
+        notifier: ValueNotifier<bool?>(reduceMotion),
+        child: Scaffold(
+          body: UserGuideDocView(
+            // A fresh key per case so each starts from a new, unscrolled state.
+            key: ValueKey('reduce-motion-$reduceMotion'),
+            docId: 'demo.md',
+            data: source.toString(),
+            anchor: 'the-far-heading',
+            onTapLink: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    double offset() => tester
+        .widget<SingleChildScrollView>(find.byType(SingleChildScrollView))
+        .controller!
+        .offset;
+
+    // Reduce motion on: the scroll has already landed on the frame after the
+    // one that laid the guide out — no animation to settle.
+    await tester.pumpWidget(build(reduceMotion: true));
+    await tester.pump();
+    final jumped = offset();
+    expect(jumped, greaterThan(0));
+
+    // Reduce motion off: the same frame is still at the top because the 250ms
+    // animation has yet to advance; it arrives at the same place once settled.
+    await tester.pumpWidget(build(reduceMotion: false));
+    await tester.pump();
+    expect(offset(), 0);
+    await tester.pumpAndSettle();
+    expect(offset(), moreOrLessEquals(jumped, epsilon: 1));
   });
 
   testWidgets('an anchor that matches no heading leaves the guide at the top', (
