@@ -187,6 +187,13 @@ Here is how to read it:
   is not in neighbouring dances, or lands in a different phrase, is left alone.
 - **Headers stay pinned** as you scroll, so you never lose track of which row or
   column you are looking at.
+- **Hide a column you don't need** by selecting the eye icon on its header —
+  it's always there (not just on hover), so it works with touch, mouse, or
+  keyboard alike. Hidden columns are a view preference for right now: they
+  reset the next time you open the program, and they never affect what
+  prints or exports (see below). To bring everything back, select **Show all
+  columns** next to the export button. The pinned Formation column can't be
+  hidden, since it's part of each dance's identity rather than a move.
 
 The matrix shows **presence, not counts** — whether a move is in a dance, not how
 many times, and not the order the moves come in. That is exactly what you want
@@ -204,7 +211,8 @@ A few practical notes:
   navigate it row by row and column by column.
 - **To take it with you**, print or export the matrix as its own landscape PDF,
   complete with a legend explaining the ★, ▸, ✓, and ‼ (adjacent same-phrase
-  repeat) markers.
+  repeat) markers. Any columns you've hidden on screen still print — export
+  always includes the full matrix.
 
 ## Print, export, and email a program
 

@@ -116,6 +116,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   bool _saving = false;
   bool _dirty = false;
 
+  /// Move-column indices the caller has hidden from the on-screen program
+  /// matrix via each column header's hide glyph (#669). Purely an ephemeral
+  /// view preference — session-only, not persisted with the program — and
+  /// scoped to this screen instance, so it naturally resets whenever a
+  /// different program is opened (each open creates a fresh
+  /// `ProgramEditorScreen`/state, never reuses this one for another
+  /// program id). Never affects the PDF export, which always renders every
+  /// column regardless of what's hidden on screen.
+  final Set<int> _hiddenMatrixColumns = {};
+
   /// Debounced autosave timer for the in-progress draft (issue #436). Persists
   /// the working set list to [SettingsRepository] so an OS background/kill
   /// before an explicit Save no longer silently loses it.
@@ -1184,6 +1194,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               IconButton(
+                key: const ValueKey('program-matrix-reset-hidden-columns'),
+                icon: const Icon(Icons.visibility),
+                tooltip: l10n.programsMatrixShowAllColumnsSemantic,
+                onPressed:
+                    _hiddenMatrixColumns.any((c) => c < matrix.columns.length)
+                    ? () => setState(_hiddenMatrixColumns.clear)
+                    : null,
+              ),
+              IconButton(
                 key: const ValueKey('program-matrix-export-pdf'),
                 icon: const Icon(Icons.picture_as_pdf_outlined),
                 tooltip: l10n.exportMatrixPdfTooltip,
@@ -1206,6 +1225,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             dialect: _dialect,
             omittedFreeTextCount: omittedFreeText,
             altDanceIds: altDanceIds,
+            hiddenColumns: _hiddenMatrixColumns,
+            onHideColumn: (c) => setState(() => _hiddenMatrixColumns.add(c)),
           ),
         ),
       ],

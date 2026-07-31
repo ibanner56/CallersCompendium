@@ -19,6 +19,16 @@ each release so store builds and tags can be traced back to an entry.
   week" header strip, which reorders its weekday columns to match your
   choice (falling back to your app language's convention for System
   default). Closes #636.
+- **Hide columns you don't need in the program matrix, with a one-tap
+  reset.** Each move column in the wide grid now has a small eye glyph — always
+  visible (not hover-only, so it works on touch and for keyboard/AT users too)
+  and focusable — that hides that column from view. A "Show all columns"
+  button next to the PDF-export button clears every hidden column at once; it's
+  disabled whenever nothing is hidden. Hiding is a session-only view
+  preference (it resets whenever you reopen the program) and only affects
+  what's on screen — the PDF/print export always includes every column,
+  hidden or not. The pinned Formation column isn't hideable, since it's part
+  of each dance's identity rather than a move. Closes #669.
 - **The program matrix now shows each dance's formation.** A new pinned
   "Formation" column sits next to the dance title in the wide grid — always
   visible while scrolling through moves, so callers can spot too many

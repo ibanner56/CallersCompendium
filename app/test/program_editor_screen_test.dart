@@ -844,6 +844,146 @@ void main() {
     expect(tester.widget<IconButton>(control).onPressed, isNull);
   });
 
+  group('hide/reset matrix columns (#669)', () {
+    Future<void> pumpMatrixTab(
+      WidgetTester tester,
+      CompendiumRepositories repos,
+    ) async {
+      await _pumpBuilder(tester, repos, programId: 'p1');
+      await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets(
+      'reset control starts disabled, enables once a column is hidden, and '
+      'restores it on tap',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(
+          _dance(
+            id: 'd1',
+            title: 'Matrix Dance',
+            figures: [
+              Figure(move: 'swing'),
+              Figure(move: 'balance'),
+            ],
+          ),
+        );
+        await repos.programs.create(
+          _program(
+            id: 'p1',
+            title: 'Night',
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+        );
+        await pumpMatrixTab(tester, repos);
+
+        final reset = find.byKey(
+          const ValueKey('program-matrix-reset-hidden-columns'),
+        );
+        expect(reset, findsOneWidget);
+        expect(find.byTooltip('Show all columns'), findsOneWidget);
+        expect(tester.widget<IconButton>(reset).onPressed, isNull);
+        expect(find.text('balance'), findsOneWidget);
+
+        await tester.tap(find.byTooltip('Hide balance column'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('balance'), findsNothing);
+        expect(tester.widget<IconButton>(reset).onPressed, isNotNull);
+
+        await tester.tap(reset);
+        await tester.pumpAndSettle();
+
+        expect(find.text('balance'), findsOneWidget);
+        expect(tester.widget<IconButton>(reset).onPressed, isNull);
+      },
+    );
+
+    testWidgets(
+      'the reset control is keyboard-reachable and its accessible label '
+      'matches its visible tooltip',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(
+          _dance(
+            id: 'd1',
+            title: 'Matrix Dance',
+            figures: [
+              Figure(move: 'swing'),
+              Figure(move: 'balance'),
+            ],
+          ),
+        );
+        await repos.programs.create(
+          _program(
+            id: 'p1',
+            title: 'Night',
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+        );
+        await pumpMatrixTab(tester, repos);
+
+        await tester.tap(find.byTooltip('Hide balance column'));
+        await tester.pumpAndSettle();
+
+        final reset = find.byKey(
+          const ValueKey('program-matrix-reset-hidden-columns'),
+        );
+        final handle = tester.ensureSemantics();
+        final semantics = tester.getSemantics(reset).getSemanticsData();
+        expect(semantics.hasAction(SemanticsAction.tap), isTrue);
+        expect(semantics.tooltip, 'Show all columns');
+        handle.dispose();
+
+        final iconContext = tester.element(
+          find.descendant(of: reset, matching: find.byIcon(Icons.visibility)),
+        );
+        final focusNode = Focus.of(iconContext, scopeOk: false);
+        expect(focusNode.canRequestFocus, isTrue);
+        focusNode.requestFocus();
+        await tester.pump();
+        expect(focusNode.hasPrimaryFocus, isTrue);
+      },
+    );
+
+    testWidgets(
+      'PDF/print export keeps the full matrix even while a column is hidden '
+      'on-screen',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(
+          _dance(
+            id: 'd1',
+            title: 'Matrix Dance',
+            figures: [
+              Figure(move: 'swing'),
+              Figure(move: 'balance'),
+            ],
+          ),
+        );
+        await repos.programs.create(
+          _program(
+            id: 'p1',
+            title: 'Night',
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+        );
+        await pumpMatrixTab(tester, repos);
+
+        await tester.tap(find.byTooltip('Hide balance column'));
+        await tester.pumpAndSettle();
+        expect(find.text('balance'), findsNothing);
+
+        // Export/print stays enabled and unaffected by the on-screen hide —
+        // the host always builds `_exportMatrixPdf` from the full,
+        // unfiltered matrix regardless of `_hiddenMatrixColumns` (#669).
+        final export = find.byKey(const ValueKey('program-matrix-export-pdf'));
+        expect(tester.widget<IconButton>(export).onPressed, isNotNull);
+      },
+    );
+  });
+
   testWidgets('G.3: new program prefills caller/band from saved defaults', (
     tester,
   ) async {

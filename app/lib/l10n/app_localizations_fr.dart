@@ -2454,6 +2454,15 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String programsMatrixHideColumnSemantic(String label) {
+    return 'Masquer la colonne $label';
+  }
+
+  @override
+  String get programsMatrixShowAllColumnsSemantic =>
+      'Afficher toutes les colonnes';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,

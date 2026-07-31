@@ -641,6 +641,8 @@
   "programsMatrixSemanticLabel": "Matrice de programmation : {danceCount} danses par {moveCount} mouvements",
   "programsMatrixOmittedCaption": "{count, plural, =1{1 créneau texte libre} other{{count} créneaux texte libre}} (pauses, notes) omis — la matrice affiche uniquement les danses.",
   "programsMatrixMoveHeaderSemantic": "Mouvement : {label}",
+  "programsMatrixHideColumnSemantic": "Masquer la colonne {label}",
+  "programsMatrixShowAllColumnsSemantic": "Afficher toutes les colonnes",
   "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Danse alternative : {title}, première partie} second{Danse alternative : {title}, deuxième partie} other{Danse alternative : {title}}}} other{{half, select, first{Danse : {title}, première partie} second{Danse : {title}, deuxième partie} other{Danse : {title}}}}}",
   "programsMatrixHalfShort": "{half, select, first{1ère} other{2ème}}",
   "programsMatrixFormationColumnHeader": "Formation",

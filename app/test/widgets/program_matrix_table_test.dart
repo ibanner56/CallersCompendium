@@ -1,5 +1,6 @@
 import 'package:compendium_app/src/widgets/program_matrix_table.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../support/l10n_harness.dart';
@@ -41,6 +42,8 @@ void main() {
     Set<String> altDanceIds = const {},
     Dialect? dialect,
     List<ProgramHalf?>? halves,
+    Set<int> hiddenColumns = const {},
+    ValueChanged<int>? onHideColumn,
   }) async {
     await tester.binding.setSurfaceSize(const Size(1400, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -56,6 +59,8 @@ void main() {
             dialect: dialect ?? Dialect.canonical,
             omittedFreeTextCount: omittedFreeTextCount,
             altDanceIds: altDanceIds,
+            hiddenColumns: hiddenColumns,
+            onHideColumn: onHideColumn,
           ),
         ),
       ),
@@ -446,6 +451,7 @@ void main() {
       Set<String> altDanceIds = const {},
       Dialect? dialect,
       List<ProgramHalf?>? halves,
+      Set<int> hiddenColumns = const {},
     }) async {
       // A 360dp phone: below ProgramMatrixTable.compactBreakpoint (600), so the
       // wide scrolling grid is replaced by the condensed by-move view.
@@ -463,6 +469,7 @@ void main() {
               dialect: dialect ?? Dialect.canonical,
               omittedFreeTextCount: omittedFreeTextCount,
               altDanceIds: altDanceIds,
+              hiddenColumns: hiddenColumns,
             ),
           ),
         ),
@@ -910,5 +917,208 @@ void main() {
         findsOneWidget,
       );
     });
+  });
+
+  group('hide columns (#669)', () {
+    testWidgets(
+      'tapping a column\'s hide glyph reports its index; hiding that index '
+      'removes only that column\'s header and cells, leaving the rest '
+      'correctly paired',
+      (tester) async {
+        int? hiddenIndex;
+        final dances = [
+          dance('d1', 'A', [swing(), move('balance')]),
+          dance('d2', 'B', [move('balance'), swing()]),
+        ];
+        await pump(
+          tester,
+          dances: dances,
+          onHideColumn: (c) => hiddenIndex = c,
+        );
+
+        await tester.tap(find.byTooltip('Hide balance column'));
+        await tester.pump();
+        expect(hiddenIndex, isNotNull);
+
+        // Re-pump with that index hidden — mirrors how the host screen reacts
+        // to `onHideColumn` by adding the reported index to its own state.
+        await pump(tester, dances: dances, hiddenColumns: {hiddenIndex!});
+
+        expect(find.text('balance'), findsNothing);
+        expect(
+          find.bySemanticsLabel('A, balance: present, introduced here'),
+          findsNothing,
+        );
+        // The other columns are unaffected and still correctly paired with
+        // their own data — confirms columns are skipped by identity, not by
+        // silently reindexing the remaining ones.
+        expect(find.text('partner swing'), findsOneWidget);
+        expect(find.text('neighbor swing'), findsOneWidget);
+        expect(
+          find.bySemanticsLabel(
+            "A, partner swing: present, introduced here, dance's first figure",
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.bySemanticsLabel('B, partner swing: present'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'the announced dances-by-moves count drops when a column is hidden',
+      (tester) async {
+        int? hiddenIndex;
+        final dances = [
+          dance('d1', 'A', [swing()]),
+          dance('d2', 'B', [swing()]),
+        ];
+        await pump(
+          tester,
+          dances: dances,
+          onHideColumn: (c) => hiddenIndex = c,
+        );
+
+        // Unlike the compact view, the wide grid counts every column
+        // (partner + the always-emitted neighbor baseline), not just present
+        // ones. The label's semantics node merges with the pinned Formation
+        // header's ("#663) label as a descendant, so match by prefix.
+        expect(
+          find.bySemanticsLabel(
+            RegExp('^Programming matrix: 2 dances by 2 moves'),
+          ),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.byTooltip('Hide neighbor swing column'));
+        await tester.pump();
+        expect(hiddenIndex, isNotNull);
+
+        await pump(tester, dances: dances, hiddenColumns: {hiddenIndex!});
+
+        expect(
+          find.bySemanticsLabel(
+            RegExp('^Programming matrix: 2 dances by 1 moves'),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'the compact (phone-width) view also respects an externally-supplied '
+      'hidden set, though it has no hide UI of its own',
+      (tester) async {
+        int? hiddenIndex;
+        final dances = [
+          dance('d1', 'A', [swing(), move('balance')]),
+          dance('d2', 'B', [move('balance')]),
+        ];
+        // Learn balance's stable column index from the wide view first —
+        // the compact view has no per-column hide glyph, but shares the same
+        // underlying column indices from the same `buildProgramMatrix` call.
+        await pump(
+          tester,
+          dances: dances,
+          onHideColumn: (c) => hiddenIndex = c,
+        );
+        await tester.tap(find.byTooltip('Hide balance column'));
+        await tester.pump();
+        expect(hiddenIndex, isNotNull);
+
+        await tester.binding.setSurfaceSize(const Size(360, 720));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              body: ProgramMatrixTable(
+                matrix: buildProgramMatrix(dances),
+                taxonomy: contraTaxonomy,
+                dialect: Dialect.canonical,
+                hiddenColumns: {hiddenIndex!},
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Balance repeats across both dances, so absent the hide it would
+        // show as a "repeated move" card — hidden, it shows nowhere.
+        expect(find.text('balance'), findsNothing);
+        expect(find.text('partner swing'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'the hide glyph is reachable without hovering: it is visible at rest '
+      '(not hover-gated) and hit-testable without any pointer hover',
+      (tester) async {
+        await pump(
+          tester,
+          dances: [
+            dance('d1', 'A', [swing()]),
+          ],
+          onHideColumn: (_) {},
+        );
+
+        final tooltipFinder = find.byTooltip('Hide partner swing column');
+        expect(tooltipFinder, findsOneWidget);
+
+        // Resting opacity is non-zero (touch users never trigger hover), so
+        // the glyph isn't invisible/undiscoverable without a mouse.
+        final restingOpacity = tester
+            .widget<AnimatedOpacity>(
+              find.ancestor(
+                of: tooltipFinder,
+                matching: find.byType(AnimatedOpacity),
+              ),
+            )
+            .opacity;
+        expect(restingOpacity, greaterThan(0));
+        expect(restingOpacity, lessThan(1));
+
+        // No hover was simulated above, yet the button is still tappable —
+        // proving the affordance isn't hover-gated for interaction.
+        await tester.tap(tooltipFinder);
+        await tester.pump();
+      },
+    );
+
+    testWidgets(
+      'hovering the column header reveals the glyph at full opacity',
+      (tester) async {
+        await pump(
+          tester,
+          dances: [
+            dance('d1', 'A', [swing()]),
+          ],
+          onHideColumn: (_) {},
+        );
+
+        final tooltipFinder = find.byTooltip('Hide partner swing column');
+        final gesture = await tester.createGesture(
+          kind: PointerDeviceKind.mouse,
+        );
+        addTearDown(gesture.removePointer);
+        await gesture.addPointer(location: Offset.zero);
+        await tester.pump();
+        await gesture.moveTo(tester.getCenter(find.text('partner swing')));
+        await tester.pumpAndSettle();
+
+        final hoveredOpacity = tester
+            .widget<AnimatedOpacity>(
+              find.ancestor(
+                of: tooltipFinder,
+                matching: find.byType(AnimatedOpacity),
+              ),
+            )
+            .opacity;
+        expect(hoveredOpacity, 1);
+      },
+    );
   });
 }

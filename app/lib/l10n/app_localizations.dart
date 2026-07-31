@@ -3990,6 +3990,18 @@ abstract class AppLocalizations {
   /// **'Move: {label}'**
   String programsMatrixMoveHeaderSemantic(String label);
 
+  /// Accessible label/tooltip for the button on a matrix move column header that hides that column from the on-screen matrix (#669). Always focusable/hit-testable, not hover-only.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide {label} column'**
+  String programsMatrixHideColumnSemantic(String label);
+
+  /// Accessible label/tooltip for the control (next to the matrix PDF-export button) that restores every column hidden via the per-column hide glyph (#669).
+  ///
+  /// In en, this message translates to:
+  /// **'Show all columns'**
+  String get programsMatrixShowAllColumnsSemantic;
+
   /// Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.
   ///
   /// In en, this message translates to:

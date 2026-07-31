@@ -641,6 +641,8 @@
   "programsMatrixSemanticLabel": "プログラミングマトリックス: {danceCount}件のダンス × {moveCount}件のムーブ",
   "programsMatrixOmittedCaption": "{count, plural, other{{count}件のフリーテキストスロット（ブレイク、ノート）が省略されています — マトリックスはダンスのみ表示。}}",
   "programsMatrixMoveHeaderSemantic": "ムーブ: {label}",
+  "programsMatrixHideColumnSemantic": "{label}列を非表示にする",
+  "programsMatrixShowAllColumnsSemantic": "すべての列を表示",
   "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{代替ダンス: {title}、前半} second{代替ダンス: {title}、後半} other{代替ダンス: {title}}}} other{{half, select, first{ダンス: {title}、前半} second{ダンス: {title}、後半} other{ダンス: {title}}}}}",
   "programsMatrixHalfShort": "{half, select, first{前半} other{後半}}",
   "programsMatrixFormationColumnHeader": "フォーメーション",
