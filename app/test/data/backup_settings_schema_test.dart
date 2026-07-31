@@ -1,3 +1,5 @@
+import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart'
+    show kAggressiveBeatsUpdateKey;
 import 'package:compendium_app/src/data/backup_settings_schema.dart';
 import 'package:compendium_app/src/data/soft_delete_retention.dart'
     show kSoftDeleteRetentionKey;
@@ -20,6 +22,26 @@ void main() {
       );
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, 1), isFalse);
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, null), isFalse);
+    });
+
+    test('aggressive beats update (#689) accepts only bools', () {
+      expect(
+        validateBackupSettingValue(kAggressiveBeatsUpdateKey, true),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kAggressiveBeatsUpdateKey, false),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kAggressiveBeatsUpdateKey, 'true'),
+        isFalse,
+      );
+      expect(validateBackupSettingValue(kAggressiveBeatsUpdateKey, 1), isFalse);
+      expect(
+        validateBackupSettingValue(kAggressiveBeatsUpdateKey, null),
+        isFalse,
+      );
     });
 
     test('string keys accept only strings', () {

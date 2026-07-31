@@ -698,6 +698,14 @@
   "@settingsDefaultsFreeTextEntrySubtitle": {
     "description": "Explanatory subtitle for the free-text-entry setting, describing what turning it on does."
   },
+  "settingsDefaultsAggressiveBeatsUpdateTitle": "Aggressively recompute figure beats",
+  "@settingsDefaultsAggressiveBeatsUpdateTitle": {
+    "description": "Title of the opt-in setting that makes the figure editor always recompute a figure's beat count from its move/params, even overriding a manually entered value (issue #689)."
+  },
+  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "When on, changing a figure's move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you've edited is never changed automatically.",
+  "@settingsDefaultsAggressiveBeatsUpdateSubtitle": {
+    "description": "Explanatory subtitle for the aggressive-beats-update setting, explicitly warning that a manually entered beat count can be overwritten when the toggle is on (issue #689 guardrail)."
+  },
   "settingsDefaultsFigureShorthandsTitle": "Figure shorthands",
   "@settingsDefaultsFigureShorthandsTitle": {
     "description": "Title of the Defaults settings row that opens the figure-shorthand mappings editor (#420)."

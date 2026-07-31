@@ -4,6 +4,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/aggressive_beats_update_scope.dart';
 import '../data/reduce_motion_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../editor/figure_draft.dart';
@@ -1042,7 +1043,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   /// A `beats` that is missing or non-int (older/partial data loaded without an
   /// explicit count) is still seeded to the canonical default, so an unowned
   /// figure never gets stuck at 0. A manual override
-  /// ([FigureDraft.beatsTouched]) is never overwritten.
+  /// ([FigureDraft.beatsTouched]) is never overwritten — UNLESS the opt-in
+  /// "Aggressively recompute figure beats" setting (issue #689) is on, in
+  /// which case the override is intentionally ignored and `beats` is
+  /// re-derived from the move's canonical default on every beats-affecting
+  /// param change. That setting defaults to off, so this method is
+  /// byte-identical to its pre-#689 behavior unless the user has opted in.
   void _applyNonBeatsParamChange(String key, Object? value) {
     final draft = widget.draft;
     // Explicitly editing the subject makes it a stated choice, so it is no
@@ -1060,7 +1066,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final oldDefault = _canonicalBeats(draft.params);
     draft.params[key] = value;
     final newDefault = _canonicalBeats(draft.params);
-    if (draft.beatsTouched || newDefault == null) return;
+    if (newDefault == null) return;
+    if (draft.beatsTouched) {
+      // #689: aggressive mode deliberately overrides a manual override (the
+      // owner-locked decision) — the user is explicitly opting into always-on
+      // recomputation, so re-derive unconditionally rather than only on a
+      // default-shifting change.
+      if (AggressiveBeatsUpdateScope.of(context)) {
+        draft.params['beats'] = newDefault;
+      }
+      return;
+    }
     final currentBeats = draft.params['beats'];
     if (currentBeats is! int || newDefault != oldDefault) {
       draft.params['beats'] = newDefault;

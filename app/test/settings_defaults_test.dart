@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
@@ -27,9 +28,13 @@ Future<void> _pumpDefaults(
   final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
   final customThemes = CustomThemesController(repos.settings);
   await customThemes.load();
+  final aggressiveBeatsUpdate = ValueNotifier<bool>(
+    await repos.settings.get(kAggressiveBeatsUpdateKey) == true,
+  );
   addTearDown(dialect.dispose);
   addTearDown(theme.dispose);
   addTearDown(customThemes.dispose);
+  addTearDown(aggressiveBeatsUpdate.dispose);
 
   await tester.pumpWidget(
     MaterialApp(
@@ -43,7 +48,10 @@ Future<void> _pumpDefaults(
             controller: customThemes,
             child: ActiveDialectScope(
               notifier: dialect,
-              child: const SettingsScreen(),
+              child: AggressiveBeatsUpdateScope(
+                notifier: aggressiveBeatsUpdate,
+                child: const SettingsScreen(),
+              ),
             ),
           ),
         ),
@@ -765,5 +773,68 @@ void main() {
       expect(stored, hasLength(1));
       expect(stored.single.move, 'swing');
     });
+  });
+
+  group('Aggressive beats update toggle (#689)', () {
+    const toggleKey = ValueKey('defaults-aggressive-beats-update');
+
+    testWidgets('renders in the Dance-authoring section, off by default', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+      await _scrollTo(tester, toggleKey);
+
+      expect(
+        tester.widget<SwitchListTile>(find.byKey(toggleKey)).value,
+        isFalse,
+      );
+    });
+
+    testWidgets('toggling it on persists the preference', (tester) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+      await _scrollTo(tester, toggleKey);
+
+      await tester.tap(find.byKey(toggleKey));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<SwitchListTile>(find.byKey(toggleKey)).value,
+        isTrue,
+      );
+      expect(await repos.settings.get(kAggressiveBeatsUpdateKey), isTrue);
+    });
+
+    testWidgets('a saved preference reflects on reload', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kAggressiveBeatsUpdateKey, true);
+
+      await _pumpDefaults(tester, repos);
+      await _scrollTo(tester, toggleKey);
+
+      expect(
+        tester.widget<SwitchListTile>(find.byKey(toggleKey)).value,
+        isTrue,
+      );
+    });
+
+    testWidgets(
+      'a corrupt (non-bool) stored value falls back to off, never crashes',
+      (tester) async {
+        final repos = openTestRepositories();
+        // Simulate a corrupted/foreign-typed stored value (OWASP: never trust
+        // stored input without validation).
+        await repos.settings.set(kAggressiveBeatsUpdateKey, 'not-a-bool');
+
+        await _pumpDefaults(tester, repos);
+        await _scrollTo(tester, toggleKey);
+
+        expect(
+          tester.widget<SwitchListTile>(find.byKey(toggleKey)).value,
+          isFalse,
+        );
+      },
+    );
   });
 }
