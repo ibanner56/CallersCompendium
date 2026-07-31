@@ -205,6 +205,18 @@ each release so store builds and tags can be traced back to an entry.
   default (with a non-fatal notice), while every valid setting still restores,
   and startup reads the theme defensively so a bad value degrades to the default
   theme instead of crashing. (#609)
+- **ContraDB import: single-file promenade, single-file circle, and "take
+  neighbors" now recognize instead of falling through to custom.** Deferred
+  from the #585 recognizer sweep: `single file promenade …` (e.g. `single
+  file promenade along major set to new neighbors`) now imports as
+  `promenade`, defaulting to everyone and keeping the trailing path as a note;
+  `promenade single file around the circle/ring [N places]` now imports as a
+  single-file `circle`; and a bare `<who> take <whom>` with no `give &` clause
+  (e.g. `ladles take neighbors`) now imports as `give_and_take` (take-only).
+  No new taxonomy moves were introduced — all three reuse existing `promenade`,
+  `circle`, and `give_and_take` moves with a new `singleFile` flag on the
+  first two. Any figure that doesn't match one of these patterns still falls
+  through to editable custom, unchanged. (#634)
 - **ContraDB import: figures with a `balance &` prefix now recognize instead of
   falling through to a plain custom figure.** ContraDB renders a balanced move as
   `balance & <move>` (e.g. `balance & Rory O'More right`), and the `&` was being

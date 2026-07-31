@@ -98,7 +98,22 @@ import 'taxonomy.dart';
 ///     beats stay driven by `length`). Like `endFacing`, distinct from
 ///     CompendiumDatabase.schemaVersion — the param rides the existing
 ///     `figures_json` figure codec, so NO persisted-data migration is implied.
-const int contraTaxonomyVersion = 17;
+/// v18: adds `singleFile` flags to `promenade` and `circle` (issue #634,
+///     deferred from #585) for ContraDB's "single file promenade along major
+///     set" and "promenade single file around the circle N places" free-text
+///     phrasings — both additive, default-`false` flags, not render tokens
+///     (cf. `star.grip`), so canonical text is byte-stable at the default.
+///     There is no separate `circle_left` move: the single existing `circle`
+///     move's `turn` param already covers left/right, so the single-file
+///     circle case reuses it with `turn` defaulted to `left` (the phrasing
+///     never states a direction). Also extends `give_and_take.goodBeats` to
+///     include `2` — real "take neighbors" renders (#570, #548) confirmed
+///     take-only beats at both ends of the already-documented 2-4 range.
+///     Purely additive: no existing figure's derived output changes, and
+///     distinct from CompendiumDatabase.schemaVersion — the new flags ride the
+///     existing `figures_json` figure codec, so NO persisted-data migration is
+///     implied.
+const int contraTaxonomyVersion = 18;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -366,6 +381,12 @@ final Taxonomy contraTaxonomy = Taxonomy(
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
         'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        // Issue #634: a true "single file promenade" travels the whole major
+        // set (no per-couple dancer relationship), vs. the ordinary partnered
+        // promenade. Additive, not a render token (cf. star.grip): canonical
+        // text stays byte-stable, and the flag is surfaced by structural
+        // search / the verbose renderer in a future pass.
+        'singleFile': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {move} {dir}',
@@ -596,9 +617,11 @@ final Taxonomy contraTaxonomy = Taxonomy(
       },
       renderTemplate: '{who} {move} {whom}',
       searchKeywords: ['give and take', 'take'],
-      // ContraDB range is give -> 4-8, take-only -> 2-4; the two canonical
-      // counts are 4 (take only) and 8 (give & take).
-      goodBeats: [4, 8],
+      // ContraDB range is give -> 4-8, take-only -> 2-4. Issue #634's
+      // real-render fixtures confirm take-only at BOTH ends of that range (2
+      // beats: The Erik Effect #570; 4 beats: Green Lake Twirl #548), so `2`
+      // joins the prior two canonical counts (4 = take only, 8 = give & take).
+      goodBeats: [2, 4, 8],
     ),
     const MoveDef(
       id: 'pull_by_dancers',
@@ -878,6 +901,13 @@ final Taxonomy contraTaxonomy = Taxonomy(
           choices: ['left', 'right'],
         ),
         'places': ParamSpec(ParamKind.places, defaultValue: 4),
+        // Issue #634: ContraDB free text occasionally renders a single-file
+        // circulation around the ring as "promenade single file around the
+        // circle N places" (real render: Travels with Rick and Kim #455) — a
+        // single-file circle, not the `promenade` move (no separate
+        // `circle_left` id exists in this taxonomy; `turn` already covers
+        // left/right). Additive, not a render token (cf. star.grip).
+        'singleFile': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{move} {turn} {places}',

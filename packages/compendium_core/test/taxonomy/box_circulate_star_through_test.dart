@@ -11,13 +11,15 @@ import 'package:test/test.dart';
 /// v15: adds the TCB rotation-gate figure kind `rotation_gate` (issue #294).
 /// v16: adds the additive `endFacing` param to `swing` (issue #543).
 /// v17: adds the additive `meetTarget` param to `hey` (issue #576).
+/// v18: adds the additive `singleFile` flag to `promenade` and `circle`, plus
+/// extends `give_and_take.goodBeats` with `2` (issue #634).
 void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  test('contraTaxonomyVersion is 17', () {
-    expect(contraTaxonomyVersion, 17);
-    expect(tax.version, 17);
+  test('contraTaxonomyVersion is 18', () {
+    expect(contraTaxonomyVersion, 18);
+    expect(tax.version, 18);
   });
 
   group('box_circulate', () {

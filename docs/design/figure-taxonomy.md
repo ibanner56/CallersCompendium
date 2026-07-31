@@ -208,6 +208,36 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   and serializes exactly as before (canonical `renderTemplate` unchanged, no
   `paramBeats`, beats stay driven by `length`) — distinct from `schemaVersion`,
   the param rides the existing `figures_json` codec, so no DB migration.
+- **v18 (single-file promenade/circle + take-only give_and_take, issue #634,
+  deferred from #585):** three ContraDB free-text constructs left unhandled by
+  the #585/#599 recognizer sweep, now modeled by reusing existing moves rather
+  than introducing new ones:
+  - **`promenade.singleFile`** (`ParamKind.flag`, default `false`) — ContraDB's
+    "single file promenade …" travels the whole set nose-to-tail rather than
+    couple-by-couple. The recognizer defaults `who` to `everyone` when no
+    subject precedes "single file" (mirroring the existing `turn_alone`
+    precedent) and treats everything after "promenade" as a verbatim note,
+    since single-file promenades in the wild describe an arbitrary path
+    ("along major set to new neighbors") rather than a fixed direction/distance.
+  - **`circle.singleFile`** (`ParamKind.flag`, default `false`) — ContraDB's
+    "promenade single file around the circle/ring [N places]" phrasing is a
+    single-file circulation, i.e. the `circle` move with the dancers processing
+    single file rather than in a joined-hands ring. The recognizer is anchored
+    on the fixed phrase and short-circuits before the generic `promenade`
+    recognizer runs (list order), so it can never be mis-attributed to
+    `promenade`. `turn` defaults to `left` (no direction is stated in the
+    source text); an optional trailing "N places" clause is still honored.
+  - **Take-only `give_and_take`** (`give: false`) — ContraDB also renders this
+    move as a bare "`<who> take <whom>`" with no "give &" clause at all. The
+    recognizer requires `whom` to resolve to a known dancerSet subject (unlike
+    the give-first branch, which is looser) so an unrelated "`<who> take
+    <noun>`" sentence safely falls through to custom rather than being
+    force-matched. `goodBeats` was widened from `[4, 8]` to `[2, 4, 8]` since
+    real dances render the take-only form in as few as 2 beats.
+  - No new `ParamKind` or move id was introduced; there is intentionally no
+    `circle_left` move — "left" is the `circle.turn` default. Neither flag is
+    surfaced by the verbose renderer yet (structural-only for now), matching
+    the existing precedent set by `star.grip`.
 
 **The full ContraDB v1 contra move set is now modeled** (all five 2.4a slices
 landed). Exactly one new engine type was required across the whole build-out —
