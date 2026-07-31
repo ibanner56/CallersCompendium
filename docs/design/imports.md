@@ -71,10 +71,14 @@ pipeline resolves them to real `Choreographer` associations (`Dance.authorIds`) 
   matching against taxonomy `searchKeywords`, parameter extraction for the
   high-frequency moves (swing, balance, allemande, circle, star, chain,
   long lines, right left through, promenade, petronella, do si do, hey…).
-  Long-tail/complex notation (per-pass hey lists, `||` simultaneity) falls to
-  custom figures — refined iteratively; parser coverage is measured against
-  the full corpus and reported (target: ≥80% of figure lines structured in
-  first release, improving over time).
+  Long-tail/complex notation (per-pass hey lists) falls to custom figures —
+  refined iteratively; parser coverage is measured against the full corpus and
+  reported (target: ≥80% of figure lines structured in first release,
+  improving over time). A top-level `||` (simultaneity — "Women allemande
+  left 1 || Men orbit clockwise ½") is no longer opaque custom text: it fans
+  out into a `meanwhile` container carrying the shared beat count, with each
+  side independently run back through the same per-side parser (#591; see
+  "Simultaneous-action fan-out (`meanwhile`)" below).
 - `Permission: search` stubs import as metadata-only with a link to TCB.
 - Attribution: TCB id + appearances retained; UI shows "via The Caller's Box".
 
@@ -229,6 +233,59 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
   fields, provenance, dialect definitions). Serves backup/restore and
   user-to-user sharing. Versioned schema; forward-compatible reader.
 
+### Simultaneous-action fan-out (`meanwhile`) (#591/#572)
+- Two source dialects write simultaneous action on one line instead of
+  splitting it into two: CallersBox's `||` operator (e.g. `(6) Women
+  allemande left 1 || Men orbit clockwise ½`) and ContraDB free-text prose
+  joined by `while`/`whiles` (e.g. dances #1717, #1603, #326: `"ladles
+  allemande left 1½ around while the gentlespoons orbit clockwise ½
+  around"`). Both fan into the core model's `Figure.meanwhile` container
+  (#590) instead of one opaque whole-custom figure.
+- **CallersBox `||`:** `meanwhileFromDoublePipe`
+  (`imports/callersbox_figure_dialect.dart`) splits the line on a top-level
+  `||` (bracket-depth aware, mirroring the existing `;`-compound splitter),
+  parses each side independently through the normal per-side `parseFigureLine`
+  front-end, and builds the container with the line's single combined beat
+  count. `parseFigureLines` calls it before falling back to the pre-#591
+  whole-custom behaviour.
+- **ContraDB `while`/`whiles`:** `parseContraDbFigureLine`
+  (`imports/contradb_figure_dialect.dart`) runs the FULL existing recognizer
+  pipeline first — so a line matching a dedicated named combined move (e.g.
+  `allemande_orbit`, `box_circulate`) is returned completely unmodified, with
+  named-recognizer precedence fully preserved (dances #1717 and the
+  box-circulate dual-clause form are regression cases, not fan-outs). Only
+  when the whole-line attempt degrades to custom — or its captured note
+  swallowed a top-level `while`/`whiles` connective (mirrors the pre-existing
+  `_noteSwallowedCompound` guard for `||`/`;`) — does it attempt a
+  word-boundary split (`\bwhiles?\b`, so "whiles" is never cut mid-word) and
+  build a `meanwhile` container from the two sides.
+- **Prefer-custom, never fabricate:** each side is independently parsed by the
+  same per-side front-end used for the whole line; a side that doesn't
+  recognize becomes its own custom sub-figure — nothing is dropped or
+  invented. The container itself is built with a direct `Figure.meanwhile(…)`
+  call in the import-layer wrapper, bypassing `parseFigureLine`'s taxonomy
+  `validateFigure` step entirely: `meanwhileMove` is a structural id (like
+  `customMove`) that is deliberately unregistered in the taxonomy, so routing
+  it through `validateFigure` would always reject it.
+- **Defensive bounds on untrusted input (OWASP):** side counts are clamped to
+  `2..kMaxMeanwhileSides` at the import layer — a hostile/malformed line with
+  more separators than the model allows safely degrades to the pre-#591
+  whole-custom fallback rather than throwing or silently truncating sides.
+  Sides are never themselves `meanwhile` (flat only), so the model's
+  recursive-nesting defenses stay reserved for the untrusted deserialization
+  path. Each side is scrubbed via the same `scrubFigureText` pass as any other
+  figure line, so bidi/zero-width sanitization parity (#444/#611) holds
+  per-side by construction.
+- **Shared beats, counted once:** the source states one combined beat total
+  for the whole line, never per-side — it lands on the container's `beats`
+  only (sides carry none), so `deriveSections` cumulative totals stay
+  byte-identical to the pre-#591 whole-custom line.
+- **Reparse upgrade:** the singular fan-out (`parseFigureLineFanOut`,
+  `imports/reparse_custom_figures.dart`) gets the same `||`/`while` fan-out,
+  so an old import-gap custom that predates #591 upgrades to a `meanwhile`
+  container the next time reparse runs — the same low-risk mechanism already
+  used to upgrade old customs when recognizer coverage improves.
+
 ### Shared free-text figure parser (cross-cutting)
 - All four free-text adapters (CallersBox, ContraDB-HTML, CC-text, CC-`.USR`)
   route their `(beats) text` figure lines through one pure-Dart core parser,
@@ -268,9 +325,12 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
   ones/twos single-dancer identities), and `(A-B)` beat ranges. **Out (→ custom
   for now, tracked on #295):** balance-in-a-wave, cast off, mad robin & butterfly
   whirl (need direction/who params), two-hand turn & other ECD figures, promenade
-  CW/CCW around the major set, `||` simultaneity, non-duple formations, and
+  CW/CCW around the major set, non-duple formations, and
   anything with leftover prose. Coverage improves iteratively — measured against
-  the full corpus (design target ≥80% of lines structured over time).
+  the full corpus (design target ≥80% of lines structured over time). (`||`
+  simultaneity is no longer in this list — see "Simultaneous-action fan-out
+  (`meanwhile`)" above; it fans into a `meanwhile` container one layer above
+  this per-move recognizer, #591.)
 
 ## Error handling & testing
 

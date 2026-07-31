@@ -160,6 +160,30 @@ void _assertWellFormed(Figure f, String raw, int iteration, String label) {
     if (text.isEmpty) {
       fail(_repro(raw, iteration, label, 'custom text was empty'));
     }
+  } else if (f.isMeanwhile) {
+    // A `meanwhile` container (#591/#572) is a STRUCTURAL id like `custom` —
+    // deliberately unregistered in the taxonomy, so it never validates and
+    // must not be run through it. Its structural invariants are checked
+    // directly instead, then each side is recursively asserted well-formed
+    // (a side is an ordinary structured-or-custom figure, never itself a
+    // meanwhile — flat-only).
+    if (f.subFigures.length < 2 || f.subFigures.length > kMaxMeanwhileSides) {
+      fail(
+        _repro(
+          raw,
+          iteration,
+          label,
+          'meanwhile container had ${f.subFigures.length} sides '
+          '(must be 2..$kMaxMeanwhileSides)',
+        ),
+      );
+    }
+    for (final side in f.subFigures) {
+      if (side.isMeanwhile) {
+        fail(_repro(raw, iteration, label, 'meanwhile nested a meanwhile'));
+      }
+      _assertWellFormed(side, raw, iteration, label);
+    }
   } else {
     // A STRUCTURED figure is only ever returned when it validates with no
     // error-severity issue (the parser falls back to custom otherwise), so this

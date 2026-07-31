@@ -100,13 +100,102 @@ void main() {
       expect(fs.single.move, 'swing');
     });
 
-    test('a top-level `||` (simultaneity) stays whole-custom', () {
+    test('a top-level `||` (simultaneity) fans into a `meanwhile` container '
+        '(#591/#572)', () {
+      // Both "Balance" and "swing" structure via the TCB front-end, so the
+      // line fans into one meanwhile container carrying both sides — no
+      // longer a single opaque whole-custom figure.
       final fs = parseFigureLines(
         'Balance || swing',
+        beats: 6,
+        frontEnd: tcbFigureFrontEnd,
+      );
+      expect(fs, hasLength(1));
+      final container = fs.single;
+      expect(container.isCustom, isFalse);
+      expect(container.isMeanwhile, isTrue);
+      expect(container.subFigures.map((f) => f.move), ['balance', 'swing']);
+      expect(container.subFigures.every((f) => !f.isCustom), isTrue);
+      // Shared beats ride on the container, never per-side.
+      expect(container.params['beats'], 6);
+      expect(
+        container.subFigures.every((f) => !f.params.containsKey('beats')),
+        isTrue,
+      );
+    });
+
+    test('issue #591\'s own example: "Women allemande left 1 || Men orbit '
+        'clockwise ½" fans into a meanwhile container', () {
+      // One side structures (allemande); the other stays custom (prefer-
+      // custom) — the container is still built either way, and neither
+      // subject text is dropped.
+      final fs = parseFigureLines(
+        'Women allemande left 1 || Men orbit clockwise ½',
+        beats: 6,
+        frontEnd: tcbFigureFrontEnd,
+      );
+      expect(fs, hasLength(1));
+      final container = fs.single;
+      expect(container.isMeanwhile, isTrue);
+      expect(container.params['beats'], 6);
+      final sides = container.subFigures;
+      expect(sides, hasLength(2));
+      expect(sides[0].move, 'allemande');
+      expect(sides[0].isCustom, isFalse);
+      expect(sides[0].params['who'], 'role2s');
+      expect(sides[1].isCustom, isTrue);
+      expect(sides[1].params['text'], 'role1s orbit clockwise ½');
+    });
+
+    test('a security bound: more than kMaxMeanwhileSides top-level `||` '
+        'separators safely degrades to the pre-#591 whole-custom fallback '
+        '(never throws, never truncates)', () {
+      // 7 sides: one more than kMaxMeanwhileSides (6). A hostile/malformed
+      // import line can't force an oversized meanwhile container or crash
+      // the factory's precondition — it just falls back to today's
+      // behaviour, unmodified and undropped.
+      final line = List.filled(7, 'Circle left').join(' || ');
+      final fs = parseFigureLines(line, beats: 8, frontEnd: tcbFigureFrontEnd);
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isTrue);
+      expect(fs.single.isMeanwhile, isFalse);
+      expect(fs.single.params['text'], line);
+    });
+
+    test('a degenerate leading `||` (empty first side) declines to fan out '
+        'and stays whole-custom', () {
+      final fs = parseFigureLines(
+        '|| swing',
+        beats: 4,
         frontEnd: tcbFigureFrontEnd,
       );
       expect(fs, hasLength(1));
       expect(fs.single.isCustom, isTrue);
+      expect(fs.single.isMeanwhile, isFalse);
+    });
+
+    test('a degenerate trailing `||` (empty last side) declines to fan out '
+        'and stays whole-custom', () {
+      final fs = parseFigureLines(
+        'Balance ||',
+        beats: 4,
+        frontEnd: tcbFigureFrontEnd,
+      );
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isTrue);
+      expect(fs.single.isMeanwhile, isFalse);
+    });
+
+    test('a degenerate empty middle side (`A|| ||B`) declines to fan out '
+        'and stays whole-custom', () {
+      final fs = parseFigureLines(
+        'Balance|| ||swing',
+        beats: 4,
+        frontEnd: tcbFigureFrontEnd,
+      );
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isTrue);
+      expect(fs.single.isMeanwhile, isFalse);
     });
   });
 

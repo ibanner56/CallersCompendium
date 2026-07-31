@@ -240,6 +240,43 @@ List<String> _normalize(
 String _stripEdgePunct(String w) =>
     w.replaceAll(RegExp(r'^[.,;:!]+'), '').replaceAll(RegExp(r'[.,;:!]+$'), '');
 
+/// Splits [t] on the FIRST top-level (bracket-depth-0, outside any `()`/`[]`)
+/// whole-word match of [word], returning exactly two trimmed pieces
+/// `[before, after]`, or `null` when [word] has no top-level match.
+///
+/// This is the word-boundary counterpart of `hasTopLevelSeparator`/
+/// `_splitTopLevel` in `callersbox_figure_dialect.dart` (which match a
+/// literal character run, e.g. `||`/`;`): a connective WORD — ContraDB's
+/// `while`/`whiles` (#591, part of the #572 "meanwhile" epic) — needs a word
+/// boundary rather than a literal-substring match, because `while` is itself
+/// a substring of `whiles` and a naive literal split would cut `whiles`
+/// mid-word. Shared here (rather than duplicating the bracket-depth scan a
+/// third time) since both dialect files already import this module.
+///
+/// Only the FIRST top-level match splits — a two-sided line is what every
+/// surveyed source phrasing produces (no dialect chains two "while"s in one
+/// line), so this always yields exactly 2 pieces when it returns non-null,
+/// which is exactly what [Figure.meanwhile] needs at minimum. `()`/`[]`
+/// content is treated as opaque, so a connective word inside an annotation
+/// is never treated as a clause boundary.
+List<String>? splitTopLevelOnWord(String t, RegExp word) {
+  for (final m in word.allMatches(t)) {
+    var depth = 0;
+    for (var i = 0; i < m.start; i++) {
+      final c = t.codeUnitAt(i);
+      if (c == 0x28 || c == 0x5B) {
+        depth++;
+      } else if ((c == 0x29 || c == 0x5D) && depth > 0) {
+        depth--;
+      }
+    }
+    if (depth == 0) {
+      return [t.substring(0, m.start).trim(), t.substring(m.end).trim()];
+    }
+  }
+  return null;
+}
+
 // --- Shared token vocabularies ----------------------------------------------
 
 /// Single words → canonical dancer-set token. Post-scrub, gendered terms are

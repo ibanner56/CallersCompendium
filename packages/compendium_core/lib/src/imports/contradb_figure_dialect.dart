@@ -1,3 +1,5 @@
+import '../model/figure.dart';
+import '../taxonomy/taxonomy.dart';
 import 'figure_parser.dart';
 
 /// The ContraDB-HTML figure front-end: a set of reverse-parsers that mirror
@@ -35,6 +37,119 @@ import 'figure_parser.dart';
 const FigureFrontEnd contraDbHtmlFigureFrontEnd = FigureFrontEnd(
   preRecognizers: _recognizers,
 );
+
+/// A "while"/"whiles" simultaneity connective, matched as a whole word
+/// (case-insensitive) rather than a literal substring — `while` is itself a
+/// substring of `whiles` (see ContraDB dance #1603, "Eye Of The Tiger": "…
+/// whiles ladles slide left …"), so a literal match would cut `whiles`
+/// mid-word.
+final RegExp _whileConnective = RegExp(r'\bwhiles?\b', caseSensitive: false);
+
+/// Parses one ContraDB free-text figure line, fanning a general `A while B` /
+/// `A whiles B` simultaneity connective out into a [Figure.meanwhile]
+/// container (#591, part of the #572 "meanwhile" epic) when — and only
+/// when — ordinary recognition does not already resolve the WHOLE line to a
+/// structured (non-custom) figure.
+///
+/// ## Precedence (locked #591 requirement)
+/// The named combined moves — `allemandeOrbitWords` ([_allemandeOrbit], e.g.
+/// ContraDB #1717 "…ladles allemande left 1½ around while the gentlespoons
+/// orbit clockwise ½ around") and `boxCirculateWords` ([_boxCirculate], "box
+/// circulate - WHO cross while OTHER loop …") — and every OTHER recognizer in
+/// [contraDbHtmlFigureFrontEnd] (plus the canonical shared recognizers) get
+/// their full, unmodified first attempt at the WHOLE line via the ordinary
+/// [parseFigureLine] call below. Only when that degrades to custom does this
+/// function look for a general top-level `while`/`whiles` connective, so a
+/// dedicated combined move ALWAYS wins and is never rerouted into a
+/// `meanwhile` container.
+///
+/// ## Why this can't be a [FigureMatch] pre-recognizer
+/// `meanwhileMove` is a *structural* id (like `customMove`) and is
+/// deliberately NOT registered in the ContraDB [Taxonomy], so
+/// [Taxonomy.validateFigure] would reject it as an `unknown_move` if it ever
+/// reached that check. [Figure.meanwhile] is therefore built DIRECTLY here,
+/// bypassing [parseFigureLine]'s validate step entirely — exactly how
+/// `customFigure` already bypasses it.
+///
+/// ## Fidelity rules (mirrors the CallersBox `||` fan-out in
+/// `callersbox_figure_dialect.dart`)
+/// - **Prefer-custom.** Each side is parsed via the SAME [parseFigureLine] +
+///   [contraDbHtmlFigureFrontEnd] used for the whole line, so a side that
+///   fails to structure becomes its own custom sub-figure (already
+///   scrubbed/sanitised — #444/#611 parity is automatic, since
+///   [parseFigureLine] always scrubs first) rather than collapsing the whole
+///   line back to one whole-line custom figure.
+/// - **Shared container beats.** The source states ONE combined total for
+///   the whole line, so it rides on the container's `beats`
+///   ([Figure.meanwhile]'s `beats` parameter); both sides are beats-absent —
+///   this keeps [deriveSections]' cumulative beat total byte-identical to the
+///   pre-#591 whole-custom line.
+/// - **Security bound.** [splitTopLevelOnWord] only ever splits on the FIRST
+///   top-level connective, so this always yields exactly 2 sides — always
+///   within [kMaxMeanwhileSides]. Sides are ordinary (non-meanwhile) figures,
+///   so [Figure.meanwhile]'s flat-only precondition can never fail here — no
+///   `try`/`catch` is needed around the factory call.
+Figure? parseContraDbFigureLine(
+  String rawText, {
+  int beats = 0,
+  bool progression = false,
+  Taxonomy? taxonomy,
+  String Function(String)? scrub,
+}) {
+  final whole = parseFigureLine(
+    rawText,
+    beats: beats,
+    progression: progression,
+    taxonomy: taxonomy,
+    scrub: scrub,
+    frontEnd: contraDbHtmlFigureFrontEnd,
+  );
+  if (whole == null) return null;
+  // A structured prefix-match recognizer (e.g. `_balance`) can capture
+  // everything after its own template as a verbatim NOTE — including a
+  // `while`/`whiles` connective it has no business absorbing. Trust a
+  // non-custom whole-line parse UNLESS its note swallowed that connective;
+  // this mirrors `_noteSwallowedCompound` in `figure_front_end_fan_out.dart`
+  // (the same guard for `||`/`;`) — a dedicated recognizer like
+  // `_allemandeOrbit`/`_boxCirculate` fully consumes its template (empty
+  // note), so this never rejects a genuine named-combined-move precedence
+  // win; it only rejects an unrelated recognizer greedily swallowing the
+  // rest of the line.
+  final noteSwallowedConnective =
+      whole.note != null &&
+      splitTopLevelOnWord(whole.note!, _whileConnective) != null;
+  // Nothing to fan out — return unchanged. This is the precedence guarantee
+  // above: every named recognizer keeps first crack at the whole line,
+  // completely unmodified.
+  if (!whole.isCustom && !noteSwallowedConnective) return whole;
+
+  final sides = splitTopLevelOnWord(rawText, _whileConnective);
+  // No top-level connective, or a degenerate split (`while B` / `A while`,
+  // i.e. one side empty) → decline the fan-out and keep the original
+  // whole-line result (today's unchanged behaviour).
+  if (sides == null || sides.any((s) => s.isEmpty)) return whole;
+
+  final safeBeats = beats < 0 ? 0 : beats;
+  final figures = <Figure>[];
+  for (final side in sides) {
+    final f = parseFigureLine(
+      side,
+      taxonomy: taxonomy,
+      scrub: scrub,
+      frontEnd: contraDbHtmlFigureFrontEnd,
+    );
+    // `f` is only `null` when `side` is empty after scrubbing (defensive —
+    // decline the fan-out rather than drop a side; `whole` still preserves
+    // the full source text).
+    if (f == null) return whole;
+    figures.add(f);
+  }
+  return Figure.meanwhile(
+    figures: figures,
+    beats: safeBeats,
+    progression: progression,
+  );
+}
 
 /// Order matters: the first non-null result wins. More specific templates that
 /// share a prefix with a broader one are listed first (e.g. a subject `balance

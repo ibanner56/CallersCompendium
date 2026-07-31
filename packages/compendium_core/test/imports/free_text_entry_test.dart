@@ -52,13 +52,20 @@ void main() {
       expect(fs.single.params['text'], contains('form wave of four'));
     });
 
-    test('a top-level `||` (simultaneity) stays whole-custom', () {
+    test('a top-level `||` (simultaneity) fans into a `meanwhile` container '
+        '(#591/#572)', () {
       final fs = parseFreeTextFigureEntry(
         'Balance the ring || California twirl',
       );
       expect(fs, hasLength(1));
-      expect(fs.single.isCustom, isTrue);
-      expect(fs.single.params['text'], contains('||'));
+      final container = fs.single;
+      expect(container.isCustom, isFalse);
+      expect(container.isMeanwhile, isTrue);
+      expect(container.subFigures.map((f) => f.move), [
+        'balance_the_ring',
+        'california_twirl',
+      ]);
+      expect(container.subFigures.every((f) => !f.isCustom), isTrue);
     });
   });
 

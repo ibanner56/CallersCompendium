@@ -238,6 +238,62 @@ void main() {
         expect(second.upgradedCount, 0);
         expect(identical(second.figures, first.figures), isTrue);
       });
+
+      test('upgrades an old TCB `||` whole-custom to a meanwhile container '
+          '(#591/#572)', () {
+        // Before #591, an import-gap custom stored the WHOLE `||` line
+        // verbatim (parse-never-fails, but simultaneity wasn't modeled).
+        // The reparse-upgrade mechanism now fans it into the same
+        // meanwhile container a fresh import produces, without the user
+        // deleting/re-importing.
+        final result = reparseImportGapFigures([
+          importGap('Balance || swing', beats: 6),
+        ]);
+        expect(result.upgradedCount, 1);
+        final f = result.figures.single;
+        expect(f.isCustom, isFalse);
+        expect(f.isMeanwhile, isTrue);
+        expect(f.params['beats'], 6);
+        expect(f.subFigures.map((s) => s.move), ['balance', 'swing']);
+      });
+
+      test('upgrades an old ContraDB `while` whole-custom to a meanwhile '
+          'container (#591/#572)', () {
+        final result = reparseImportGapFigures([
+          importGap(
+            'gentlespoons dance out while ladles dance in to a long wave '
+            'in the center - balance the wave',
+            beats: 8,
+          ),
+        ]);
+        expect(result.upgradedCount, 1);
+        final f = result.figures.single;
+        expect(f.isCustom, isFalse);
+        expect(f.isMeanwhile, isTrue);
+        expect(f.params['beats'], 8);
+        expect(f.subFigures[0].isCustom, isTrue);
+        expect(f.subFigures[1].move, 'form_a_long_wave');
+      });
+
+      test('a `||` line that still degrades entirely to custom (7+ sides) '
+          'stays import-gap, unchanged (idempotent safety net)', () {
+        final line = List.filled(7, 'Circle left').join(' || ');
+        final original = importGap(line, beats: 8);
+        final result = reparseImportGapFigures([original]);
+        expect(result.upgradedCount, 0);
+        expect(result.figures.single, same(original));
+      });
+
+      test('the `||` meanwhile upgrade is idempotent (a second run changes '
+          'nothing)', () {
+        final first = reparseImportGapFigures([
+          importGap('Balance || swing', beats: 6),
+        ]);
+        expect(first.upgradedCount, 1);
+        final second = reparseImportGapFigures(first.figures);
+        expect(second.upgradedCount, 0);
+        expect(identical(second.figures, first.figures), isTrue);
+      });
     });
   });
 }

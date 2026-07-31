@@ -299,13 +299,18 @@ void main() {
       expect(f.note, isNull);
     });
 
-    test('a note that swallowed a top-level `||` is rejected (stays custom)', () {
-      // ContraDB would structure "circle left || swing" as circle with a
-      // "|| swing" note; that note swallowed a simultaneity separator, so it is
-      // rejected and the single-line path keeps the line custom.
+    test('a top-level `||` fans into a `meanwhile` container even in the '
+        'SINGULAR (reparse) path (#591/#572)', () {
+      // Both "circle left" and "swing" structure via the TCB attempt's
+      // `meanwhileFromDoublePipe` fan-out, tried BEFORE ContraDB's
+      // note-swallowing whole-line attempt would otherwise win — the clean
+      // container beats the note-bearing single figure per the existing
+      // clean > note-bearing tier rule.
       final f = parseFigureLineFanOut('circle left || swing');
-      expect(f!.isCustom, isTrue);
-      expect(f.customOrigin, CustomOrigin.importGap);
+      expect(f!.isCustom, isFalse);
+      expect(f.isMeanwhile, isTrue);
+      expect(f.subFigures.map((s) => s.move), ['circle', 'swing']);
+      expect(f.subFigures.every((s) => !s.isCustom), isTrue);
     });
 
     test('the plural entry point also structures a ContraDB-only line', () {
@@ -365,10 +370,13 @@ void main() {
       },
     );
 
-    test('a top-level `||` stays whole-custom (simultaneity not modelled)', () {
+    test('a top-level `||` fans into a `meanwhile` container (#591/#572)', () {
       final fs = parseFigureLinesFanOut('circle left || swing');
       expect(fs, hasLength(1));
-      expect(fs.single.isCustom, isTrue);
+      final container = fs.single;
+      expect(container.isCustom, isFalse);
+      expect(container.isMeanwhile, isTrue);
+      expect(container.subFigures.map((f) => f.move), ['circle', 'swing']);
     });
 
     test('front-ends other than TCB do NOT `;`-split the line', () {
