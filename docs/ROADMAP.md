@@ -312,8 +312,8 @@ design/domain-model.md "CC parity backfill".*
   level/status) and section-grouped figures reusing the core `deriveSections` +
   `FigureRenderer` path, applies the active dialect with the same canonical ⇄
   dialect quick-toggle as the detail card, and adds an in-view large-print size
-  control (A-/A+, large default, no practical upper bound). In-view size state
-  only; cross-session persistence to settings is a later follow-up.
+  control (A-/A+, large default, no practical upper bound). The in-view size
+  state now **persists across sessions** (#449) — see 5.2.
 - [x] 5.2 Program navigation (next/prev, jump), screen-wake lock, high-contrast theme;
   optional per-slot / running **program timing** (CC `Set.TimeStart`/`TimeElapsed`,
   `SetItem.Time`) surfaced during an event
@@ -326,9 +326,14 @@ design/domain-model.md "CC parity backfill".*
     auto-sleep. High-contrast / 7:1 dark-stage theme delivered: both Perform
     views open in the outline-driven `AppTheme.highContrast` scheme by default
     with an in-view toggle (keyboard-reachable, on/off state exposed to AT) to
-    fall back to the app's inherited theme; in-view only, persistence to
-    Settings deferred as a later follow-up (mirrors the 5.1 size-control
-    decision). Program timing delivered: the program Perform view surfaces a
+    fall back to the app's inherited theme. **Perform preferences now persist
+    across sessions** (#449): the manual text scale, the dark-stage/high-contrast
+    mode, and the canonical-view toggle are stored via the existing
+    `SettingsRepository` key/value store (`PerformA11yPrefs` /
+    `PerformA11yPrefsStore`; keys `perform_text_scale`, `perform_stage_mode`,
+    `perform_canonical_view`), load defensively (invalid stored values fall back
+    to the historical in-view defaults), and travel with the settings backup
+    schema. Program timing delivered: the program Perform view surfaces a
     running program clock and a per-slot elapsed timer (the latter resets on
     every navigation — next/prev/jump/alt-swap) in the bottom status bar, shows a
     slot's `plannedMinutes` (CC `SetItem.Time`) as "planned N min" with a subtle
@@ -596,7 +601,7 @@ taxonomy are unchanged.
       - `Dance_Related` → the related-dance feature ships in-app, but `.USR`
         import currently drops these relationships. **Tracked in #688.**
       - `Term` → glossary import remains **blocked** on the glossary browser,
-        which is not yet built (post-GA "later" scope).
+        which is not yet built (post-GA "later" scope). **Tracked in #695.**
 - [x] 6.6 Generic import/export (JSON) for backup and inter-user sharing
   - Export/backup delivered under G.5 (whole-collection archive + restore/merge).
   - Inter-user-sharing **import** delivered: `GenericJsonAdapter` (pure-Dart CORE
@@ -633,9 +638,9 @@ taxonomy are unchanged.
     - iOS release signing + TestFlight leg **wired** (gated on the Apple API-key secrets, which are configured): a `release.yml` iOS leg (`macos-latest`) archives + signs an App Store `.ipa` using **automatic signing driven by an App Store Connect API key** (App Manager role — **no manual cert or provisioning profile**) and uploads it to **TestFlight** via `xcrun altool --upload-app`. The `CFBundleVersion` is a monotonic `GITHUB_RUN_NUMBER` (TestFlight rejects duplicates; `pubspec.yaml` untouched), and the upload is gated to **real `v*` tags** (a `workflow_dispatch` builds + signs for validation but never uploads). iOS is **store-delivered** — the `.ipa` is not a GitHub Release asset / `SHA256SUMS` / manifest entry. Targets **iPhone + iPad**; first channel is internal TestFlight (no Beta App Review). **Now live:** beta.2 was archived, signed, and uploaded to TestFlight, and invited testers are running the iOS/iPadOS build (bug reports have come in against `0.1.0` on iOS). See [releasing.md](dev/releasing.md#ios-testflight-via-app-store-connect-api).
     - **macOS Developer ID signing + notarization delivered** (#311, notarization wait bounded in #329): the `release.yml` macOS leg signs the universal build with an Apple Developer ID and notarizes it (gated on the configured Apple secrets), so the macOS `.dmg`/`.zip` now open without the Gatekeeper right-click workaround. Shipped in beta.2.
   - **Remaining (maintainer — one-time, $0)**
-    - Document Android upload-keystore custody (owner, secure backup, rotation policy) — the key is generated and wired into CI, so this is governance, not a build blocker (see [ADR-002](adr/002-distribution-and-update-channels.md) §6).
+    - Document Android upload-keystore custody (owner, secure backup, rotation policy) — the key is generated and wired into CI, so this is governance, not a build blocker (see [ADR-002](adr/002-distribution-and-update-channels.md) §6). **Tracked in #692**, which also records the sideload-vs-Play App Signing distinction (the sideload signing key is unrotatable; the Play upload key is resettable) and the cross-channel key decision that must be made before the first Play publication.
   - **Deferred** (later signing wave — needs paid developer accounts / a decision; see [ADR-002](adr/002-distribution-and-update-channels.md) §6)
-    - Windows Authenticode/Store (MSIX) signing — Windows and Linux desktop currently ship UNSIGNED, so users bypass OS trust prompts manually. (macOS is now signed + notarized and iOS is distributed via TestFlight — see **Delivered** above.)
+    - Windows Authenticode/Store (MSIX) signing — Windows and Linux desktop currently ship UNSIGNED, so users bypass OS trust prompts manually. The Windows half is a maintainer decision (OV vs EV cert vs ship-unsigned-for-GA) **tracked in #691**; the Linux half is decided in ADR-003 and tracked in #491. (macOS is now signed + notarized and iOS is distributed via TestFlight — see **Delivered** above.)
     - Store distribution (Google Play, F-Droid, Flathub). **Google Play submission is now in preparation:** a release-workflow leg builds and stages a **signed Android App Bundle (`.aab`)** for Play (#535), a store-distribution **license exception** to the AGPL was added so managed marketplaces are permitted (#534), and **App Store & Google Play submission guides** plus listing copy, a privacy policy, and a contact address landed under [docs/dev/store-submission/](dev/store-submission/) (#532, #534). Actual store listing/publication is still pending. For Linux, the post-beta channel evaluation is decided in [ADR-003](adr/003-linux-native-distribution-channel.md): **Flathub-first** (auto-update + desktop integration + trusted-publisher signing, no self-run infra), with Snap/Launchpad PPA secondary and a self-hosted apt repo only on clear demand.
     - Reconcile the bundle-id mismatch — **done**: all platforms now unify on the Apple form `org.callerscompendium.compendiumApp` (Android `applicationId`/namespace + Linux `APPLICATION_ID` updated to match; Apple was already the target and is the source of truth, since Apple bundle IDs disallow underscores).
 - [ ] 7.2 User documentation
@@ -644,7 +649,7 @@ taxonomy are unchanged.
     - Per-platform install page — the public landing page ([site/](../site/), #408) now surfaces per-platform downloads, and the [Installation guide](user/installation.md) covers first-launch steps; a dedicated install page is optional.
     - Screenshots pass — needs a runnable branded build.
     - Beta-program page — tracked under 7.3.
-    - Optional hosted docs site — Pages is enabled; rendering the user guides as a browsable site (beyond the landing page) is still optional.
+    - Optional hosted docs site — Pages is enabled; rendering the user guides as a browsable site (beyond the landing page) is still optional. **Tracked in #694** (today the landing page links out to GitHub markdown).
 - [ ] 7.3 Beta program with real callers; feedback triage
   - **Delivered**
     - Triage label taxonomy (`.github/labels.yml` + `label-sync.yml`) and structured issue forms — general feedback, import-source problem, beta check-in, a **beta signup / "Join the beta"** form (#413), plus revised bug/feature reports — with a Discussions + private-email contact config (#221).
@@ -660,7 +665,9 @@ taxonomy are unchanged.
 - ECD and Squares support
 - Optional device-to-device sync, beyond Apple-native AirDrop support.
 - **Glossary / terms** (CC `Term`: term + definition + source) — a browsable
-  reference of caller terminology, dialect-aware.
+  reference of caller terminology, dialect-aware. **Tracked in #695**; today the
+  app ships only the static `docs/user/glossary.md` guide (no glossary entity),
+  which is why the CC `Term` mapping in 6.5 stays blocked.
 - **User-defined quick-entry snippets** — CC's "Insert Call" buttons (per-user
   label → expansion text + beats + a gender-free alternate). **Accepted, reframed**
   over our structured model (see #401): a user shorthand maps to a fully-configured
