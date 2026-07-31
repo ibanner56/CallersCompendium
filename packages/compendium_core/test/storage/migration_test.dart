@@ -1722,7 +1722,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 15);
+      expect(db.schemaVersion, 16);
 
       await db.close();
     });
@@ -1828,7 +1828,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 15);
+      expect(db.schemaVersion, 16);
 
       await db.close();
     });
@@ -1875,6 +1875,189 @@ void main() {
       },
     );
   });
+
+  group('v15 -> v16 upgrade (program_slots dance_id index, issue #627)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v16_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v15 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v15.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('the v15 fixture starts WITHOUT the program_slots index', () async {
+      // Guards the migration's premise: the fixture is a genuine pre-v16 DB,
+      // so the assertions below prove `onUpgrade` created the index (not the
+      // fixture generator).
+      final raw = sqlite3.sqlite3.open(dbPath);
+      final before = raw
+          .select(
+            "SELECT name FROM sqlite_master WHERE type='index' "
+            "AND name='program_slots_dance_id'",
+          )
+          .toList();
+      expect(before, isEmpty, reason: 'fixture must predate the v16 index');
+      expect(raw.select('PRAGMA user_version').first.values.first, 15);
+      raw.close();
+    });
+
+    test('creates the program_slots_dance_id index and bumps the schema '
+        'version', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final indexes = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type='index' "
+            "AND name='program_slots_dance_id'",
+          )
+          .get();
+      expect(
+        indexes.map((r) => r.read<String>('name')),
+        contains('program_slots_dance_id'),
+      );
+
+      // The index is actually usable: a dance_id lookup plans as an index
+      // seek, not a full scan (the whole point of the migration).
+      final plan = await db
+          .customSelect(
+            'EXPLAIN QUERY PLAN '
+            "SELECT * FROM program_slots WHERE dance_id = 'dance-1'",
+          )
+          .get();
+      final planText = plan
+          .map((r) => r.data.values.map((v) => '$v').join(' '))
+          .join(' | ');
+      expect(
+        planText,
+        contains('USING INDEX program_slots_dance_id'),
+        reason: 'dance_id lookups must seek by index after v16',
+      );
+
+      final version = await db.customSelect('PRAGMA user_version').get();
+      expect(version.single.data.values.first, db.schemaVersion);
+      expect(db.schemaVersion, 16);
+
+      await db.close();
+    });
+
+    test(
+      'preserves program_slots rows and hydrates slots through listAll',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
+
+        // The seeded slot survived the migration byte-for-byte.
+        final slots = await db
+            .customSelect(
+              'SELECT id, program_id, dance_id FROM program_slots '
+              'ORDER BY id',
+            )
+            .get();
+        expect(slots, hasLength(1));
+        expect(slots.single.read<String>('id'), 'slot-1');
+        expect(slots.single.read<String>('dance_id'), 'dance-1');
+
+        // And it hydrates through the program repository.
+        final program = await repos.programs.getById('prog-1');
+        expect(program, isNotNull);
+        expect(program!.slots.single.danceId, 'dance-1');
+
+        // The migrated database is referentially intact: no dangling FKs.
+        final fkViolations = await db
+            .customSelect('PRAGMA foreign_key_check')
+            .get();
+        expect(
+          fkViolations,
+          isEmpty,
+          reason: 'the v16 migration must not leave any dangling foreign keys',
+        );
+
+        await db.close();
+      },
+    );
+
+    test('is a pure index migration — schedules no derived rebuild', () async {
+      // Stamp a sentinel into the derived table; a spurious rebuild would wipe
+      // it. v16 touches no figure text, so the derived rows must survive.
+      final raw = sqlite3.sqlite3.open(dbPath);
+      raw.execute(
+        "UPDATE dance_figures SET canonical_text = 'SENTINEL' "
+        "WHERE dance_id = 'dance-1'",
+      );
+      expect(raw.select('PRAGMA user_version').first.values.first, 15);
+      raw.close();
+
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(
+        marker,
+        isEmpty,
+        reason: 'an index-only migration rebuilds nothing',
+      );
+
+      final rows = await db
+          .customSelect(
+            'SELECT canonical_text FROM dance_figures '
+            "WHERE dance_id = 'dance-1'",
+          )
+          .get();
+      expect(rows, hasLength(1));
+      expect(rows.single.read<String?>('canonical_text'), 'SENTINEL');
+
+      await db.close();
+    });
+  });
+
+  test(
+    'a fresh database has the program_slots.dance_id lookup index',
+    () async {
+      final dir = await Directory.systemTemp.createTemp(
+        'compendium_core_slotidx_',
+      );
+      addTearDown(() => dir.delete(recursive: true));
+      final dbPath = p.join(dir.path, 'test.sqlite');
+
+      // onCreate builds every table; assert the raw program_slots dance_id
+      // lookup index is among them so fresh installs match a migrated database.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      await db.quickCheck();
+
+      final indexes = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type='index' "
+            "AND tbl_name='program_slots'",
+          )
+          .get();
+      final names = indexes.map((r) => r.read<String>('name')).toSet();
+      expect(names, contains('program_slots_dance_id'));
+
+      await db.close();
+    },
+  );
 
   test('a fresh database has the programs.venue_id lookup index', () async {
     final dir = await Directory.systemTemp.createTemp(

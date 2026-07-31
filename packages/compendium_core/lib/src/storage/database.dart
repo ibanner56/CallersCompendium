@@ -69,6 +69,19 @@ const List<String> venueLookupIndexSql = [
 const String danceLinksDanceIdIndexSql =
     'CREATE INDEX IF NOT EXISTS dance_links_dance_id ON dance_links(dance_id)';
 
+/// Lookup index for `dance_id` on `program_slots` (schema v16).
+///
+/// `program_slots` is keyed on its own `id` alone (not a `{danceId, ...}`
+/// composite), so every per-dance calling-history/stats lookup that filters
+/// `program_slots` by `dance_id` — `lastCalledByDance`, `countByDance`,
+/// `callingHistoryForDance`, `halfCallingStatsForDance`,
+/// `_sortByLastCalled`, and `_cleanupDanglingReferences` — full-scans the
+/// whole table. This mirrors the v13 `dance_links_dance_id` index: a plain
+/// lookup index (not covering) that turns those scans into index seeks.
+const String programSlotsDanceIdIndexSql =
+    'CREATE INDEX IF NOT EXISTS program_slots_dance_id '
+    'ON program_slots(dance_id)';
+
 /// Settings key marking that a schema migration touched the derived figure
 /// index and the `dance_figures` rows must be rebuilt from `figures_json`.
 ///
@@ -99,7 +112,7 @@ const String purgeCorruptionRepairDoneKey = '__purge_corruption_repair_done__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 15;
+const int kCompendiumSchemaVersion = 16;
 
 /// The Caller's Compendium local database.
 ///
@@ -223,6 +236,15 @@ const int kCompendiumSchemaVersion = 15;
 ///   stay valid. It is dance-scalar *content* (not figure text), so it does NOT
 ///   feed the derived `dance_fts`/`dance_figures` indexes and NO derived rebuild
 ///   is required.
+/// - v16 (2026-07-30): performance-only index (issue #627). Adds
+///   `program_slots_dance_id` (`program_slots(dance_id)`) so the per-dance
+///   calling-history/stats lookups (`lastCalledByDance`, `countByDance`,
+///   `callingHistoryForDance`, `halfCallingStatsForDance`,
+///   `_sortByLastCalled`, `_cleanupDanglingReferences`) seek by index instead
+///   of full-scanning `program_slots`. Mirrors the v13 `dance_links_dance_id`
+///   index. Pure DDL: no columns/tables added, no data rewritten, and the
+///   derived `dance_fts`/`dance_figures` indexes are untouched, so no derived
+///   rebuild is required.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -274,6 +296,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       for (final sql in venueLookupIndexSql) {
         await customStatement(sql);
       }
+      await customStatement(programSlotsDanceIdIndexSql);
     },
     onUpgrade: (m, from, to) async {
       // Belt-and-suspenders downgrade guard. drift is forward-only and has no
@@ -461,6 +484,12 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // NOT feed the derived `dance_fts`/`dance_figures` indexes and NO
         // derived rebuild is required.
         await m.addColumn(dances, dances.walkthrough);
+      }
+      if (from < 16) {
+        // Performance-only index on `program_slots(dance_id)` (issue #627),
+        // mirroring the v13 `dance_links_dance_id` index. Pure DDL — no data
+        // touched, no derived rebuild.
+        await customStatement(programSlotsDanceIdIndexSql);
       }
     },
     beforeOpen: (details) async {
