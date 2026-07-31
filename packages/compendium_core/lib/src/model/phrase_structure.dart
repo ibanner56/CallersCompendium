@@ -106,6 +106,11 @@ class SectionedFigure {
 /// the structure's total is appended to [issues] as a **warning**, never an
 /// error — real dances bend phrasing, and choreography validation proper is a
 /// later milestone.
+///
+/// A `meanwhile` container figure (#590) is a single flat list element, so it
+/// contributes its **shared** beats (`params['beats']`, read via [Figure.beats])
+/// exactly **once** — the loop never recurses into its concurrent sides, so a
+/// side's display-only beats can never leak into the cumulative total.
 List<SectionedFigure> deriveSections(
   List<Figure> figures,
   PhraseStructure structure, {
@@ -122,6 +127,8 @@ List<SectionedFigure> deriveSections(
         label: structure.labelAtBeat(beat),
       ),
     );
+    // One list element → one beat advance. For a meanwhile container this is
+    // the shared count, counted once (no double-count from its nested sides).
     beat += figures[i].beats;
   }
   if (issues != null && figures.isNotEmpty && beat != structure.totalBeats) {

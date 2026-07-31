@@ -683,7 +683,18 @@ List<Figure> _figuresFromJson(Object? raw) {
 /// display text (`params['text']`) or `note` carries control/bidi/format
 /// spoofing characters (issue #444). The structural `move` key and non-string
 /// params (e.g. numeric `beats`) are left untouched.
-Map<String, Object?> _sanitizeFigureJson(Map<String, Object?> m) {
+///
+/// For a `meanwhile` container (#590) this **recurses** into each nested
+/// sub-figure in `params['figures']` so a nested side cannot smuggle unsanitized
+/// free text past the one-level scrub, and enforces the structural caps
+/// defensively against untrusted recursive input (OWASP): the side count is
+/// clamped to [kMaxMeanwhileSides] and recursion is bounded by
+/// [kMaxMeanwhileDepth] (flat-only), with any pathologically deep remainder
+/// dropped. Parse-never-fails: it clamps/scrubs, it never throws.
+Map<String, Object?> _sanitizeFigureJson(
+  Map<String, Object?> m, [
+  int depth = 0,
+]) {
   final out = Map<String, Object?>.of(m);
   final note = out['note'];
   if (note is String) out['note'] = sanitizeImportedText(note);
@@ -696,12 +707,37 @@ Map<String, Object?> _sanitizeFigureJson(Map<String, Object?> m) {
   }
   final params = out['params'];
   if (params is Map) {
-    out['params'] = {
+    final sanitizedParams = <String, Object?>{
       for (final entry in params.entries)
         entry.key.toString(): entry.value is String
             ? sanitizeImportedText(entry.value as String)
             : entry.value,
     };
+    // Recurse into nested meanwhile sides (untrusted recursive structure):
+    // scrub each side's free text, cap the side count, and bound depth so a
+    // deeply-nested payload can't exhaust the stack. `figures` is only a
+    // reserved structural key for the meanwhile container, so scope the
+    // recursion to that move — a future taxonomy move (or external data) that
+    // uses a `figures` param for a different purpose must not be rewritten.
+    final sides = sanitizedParams['figures'];
+    if (out['move'] == meanwhileMove && sides is List) {
+      if (depth >= kMaxMeanwhileDepth) {
+        sanitizedParams['figures'] = const <Object?>[];
+      } else {
+        final scrubbed = <Object?>[];
+        for (final side in sides) {
+          if (scrubbed.length >= kMaxMeanwhileSides) break;
+          if (side is Map) {
+            scrubbed.add(
+              _sanitizeFigureJson(side.cast<String, Object?>(), depth + 1),
+            );
+          }
+          // non-object junk is dropped, never fabricated
+        }
+        sanitizedParams['figures'] = scrubbed;
+      }
+    }
+    out['params'] = sanitizedParams;
   }
   return out;
 }

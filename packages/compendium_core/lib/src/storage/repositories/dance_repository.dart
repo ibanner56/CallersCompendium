@@ -8,6 +8,7 @@ import '../../model/custom_field.dart';
 import '../../model/dance.dart';
 import '../../model/dance_link.dart';
 import '../../model/enums.dart';
+import '../../model/figure.dart';
 import '../../model/formation.dart';
 import '../../imports/reparse_custom_figures.dart';
 import '../../model/partial_date.dart';
@@ -270,24 +271,51 @@ class DanceRepository {
   }) async {
     final canonicalTexts = <String>[];
     final sectioned = dance.sectionedFigures;
+    var idx = 0;
     for (var i = 0; i < dance.figures.length; i++) {
       final figure = dance.figures[i];
-      final canonicalText = _renderer.renderCanonical(figure);
-      canonicalTexts.add(canonicalText);
-      await _db
-          .into(_db.danceFigures)
-          .insert(
-            DanceFiguresCompanion.insert(
-              danceId: dance.id,
-              idx: i,
-              move: figure.move,
-              beats: Value(figure.beats),
-              progression: Value(figure.progression),
-              paramsJson: Value(jsonEncode(figure.params)),
-              canonicalText: Value(canonicalText),
-              section: Value(sectioned[i].label),
-            ),
-          );
+      final section = sectioned[i].label;
+      // Flatten a meanwhile container (#590) so each concurrent side is indexed
+      // as its own `dance_figures` row: `filterByMove` then matches each
+      // constituent and each side's canonical text feeds FTS. The container is
+      // not itself a searchable move — its children are what get move-indexed;
+      // it only supplies their shared section placement. `idx` runs over the
+      // FLATTENED constituent stream (the `dance_figures` PK is `{danceId, idx}`
+      // and the `Then` operator relies on `a.idx < b.idx`), so sides occupy
+      // consecutive slots in order. NOTE: concurrent sides are intentionally
+      // per-constituent matchable, but consecutive idx makes them look
+      // sequential to `Then` (false before/after adjacency) — accepted for
+      // #590; concurrency-aware querying is deferred to #594. See
+      // docs/design/search.md "Known limitation".
+      //
+      // Empty-container fallback (#590): a legacy/partial `{move:"meanwhile"}`
+      // that decodes to zero sub-figures must NOT vanish from the index
+      // ("nothing dropped"). When there are no constituents to flatten, index
+      // the container itself (move=meanwhile, its own canonical text/section/
+      // beats) so the dance stays searchable by that figure.
+      final subFigures = figure.subFigures;
+      final constituents = figure.isMeanwhile && subFigures.isNotEmpty
+          ? subFigures
+          : <Figure>[figure];
+      for (final part in constituents) {
+        final canonicalText = _renderer.renderCanonical(part);
+        canonicalTexts.add(canonicalText);
+        await _db
+            .into(_db.danceFigures)
+            .insert(
+              DanceFiguresCompanion.insert(
+                danceId: dance.id,
+                idx: idx,
+                move: part.move,
+                beats: Value(part.beats),
+                progression: Value(part.progression),
+                paramsJson: Value(jsonEncode(part.params)),
+                canonicalText: Value(canonicalText),
+                section: Value(section),
+              ),
+            );
+        idx++;
+      }
     }
 
     final resolvedAuthors = await _resolveAuthorNames(dance, authorNames);

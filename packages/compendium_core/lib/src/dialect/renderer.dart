@@ -214,6 +214,27 @@ class FigureRenderer {
       final text = (figure.params['text'] as String?)?.trim() ?? '';
       return text.isEmpty ? customMove : renderFreeText(text, dialect);
     }
+    if (figure.isMeanwhile) {
+      // A meanwhile container (#590) renders its concurrent sides joined by a
+      // fixed structural separator. For `renderCanonical` (forCanonical) this
+      // MUST stay byte-stable across runs — it is the dedupe/FTS key — so the
+      // join order is the side order and the separator is a constant. Richer
+      // display phrasing ("A while B" / stacked) is Child D (#594); until then
+      // display shares this deterministic form.
+      final sides = figure.subFigures;
+      if (sides.isEmpty) return meanwhileMove;
+      return sides
+          .map(
+            (side) => _render(
+              side,
+              dialect,
+              verbose: verbose,
+              decimals: decimals,
+              forCanonical: forCanonical,
+            ),
+          )
+          .join(' $meanwhileMove ');
+    }
     final def = taxonomy.resolve(figure.move);
     if (def == null) {
       // Unknown move: fall back to the raw id so nothing is silently lost.
