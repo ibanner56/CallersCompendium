@@ -44,6 +44,9 @@ Usage::
     python3 tools/site/render_user_docs.py --out build/x   # explicit output
     python3 tools/site/render_user_docs.py --check         # temp dir, no writes
 
+``--out`` is erased and rewritten, so it must be a new or empty directory, or
+sit **below** ``build/`` or a temp directory — never one of those roots itself.
+
 Exit codes: 0 = rendered, 1 = broken links, 2 = bad input.
 """
 
@@ -710,27 +713,45 @@ def _guard_out_dir(out: Path) -> None:
     """Only ever delete a directory we can prove is disposable.
 
     ``build_site`` wipes ``out`` before writing, so this is an **allow-list**,
-    not a blocklist: the directory must not exist yet, be empty, or live under
-    ``build/`` or the system temp directory. Anything else — ``app/``,
-    ``tools/``, ``site/``, a home directory — is refused rather than removed.
-    Nothing about the check depends on enumerating the paths worth protecting.
+    not a blocklist: the directory must not exist yet, be empty, or sit
+    **strictly below** ``build/`` or the system temp directory.
+
+    Strictly below matters. Those two roots are *containers* of build outputs,
+    never outputs themselves: ``--out build`` would wipe every other build
+    product beside the site, and ``--out "$TMPDIR"`` would wipe the whole
+    per-user temp directory — on Linux CI ``tempfile.gettempdir()`` is literally
+    ``/tmp``, so that would take other processes' state with it. They are
+    refused explicitly, before the "empty directory" allowance, so the answer
+    doesn't depend on whether they happen to be empty right now.
     """
     resolved = out.resolve()
-    if resolved == Path(resolved.anchor) or resolved == REPO_ROOT.resolve():
-        _fail(f"refusing to use a protected path as --out: {resolved}")
+    safe_roots = (
+        (REPO_ROOT / "build").resolve(),
+        Path(tempfile.gettempdir()).resolve(),
+    )
+
+    if (
+        resolved == Path(resolved.anchor)
+        or resolved == REPO_ROOT.resolve()
+        or resolved in safe_roots
+    ):
+        _fail(
+            f"refusing to use a protected path as --out: {resolved} "
+            f"(use a subdirectory, e.g. build/site)"
+        )
     if not resolved.exists():
         return  # nothing to destroy
     if not resolved.is_dir():
         _fail(f"--out exists and is not a directory: {resolved}")
 
-    for root in ((REPO_ROOT / "build").resolve(), Path(tempfile.gettempdir()).resolve()):
-        if resolved == root or root in resolved.parents:
+    for root in safe_roots:
+        if root in resolved.parents:
             return
     if not any(resolved.iterdir()):
         return  # empty: safe to replace
     _fail(
         f"refusing to erase {resolved}: --out must be a new or empty "
-        f"directory, or live under build/ or a temp directory."
+        f"directory, or sit below build/ or a temp directory."
     )
 
 
@@ -768,7 +789,11 @@ def main(argv: list[str] | None = None) -> int:
         "--out",
         type=Path,
         default=DEFAULT_OUT,
-        help="directory to stage the complete site into (default: build/site).",
+        help=(
+            "directory to stage the complete site into (default: build/site). "
+            "It is erased and rewritten, so it must be new, empty, or sit below "
+            "build/ or a temp directory — never build/ or $TMPDIR themselves."
+        ),
     )
     parser.add_argument(
         "--check",

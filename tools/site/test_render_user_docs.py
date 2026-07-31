@@ -32,6 +32,7 @@ from __future__ import annotations
 import contextlib
 import io
 import re
+import shutil
 import sys
 import tempfile
 from html.parser import HTMLParser
@@ -181,6 +182,45 @@ def test_build_refuses_protected_output_directories() -> None:
             assert exc.code == 2, target
         else:  # pragma: no cover - only on a regression
             raise AssertionError(f"protected path accepted as --out: {target}")
+
+
+def test_build_refuses_the_build_and_temp_roots_themselves() -> None:
+    """`--out build` or `--out "$TMPDIR"` would wipe a whole container dir.
+
+    `build_site` rmtree's `--out`, so accepting the roots means erasing every
+    other build product, or — on Linux CI, where `tempfile.gettempdir()` is
+    literally `/tmp` — other processes' state.
+
+    The roots MUST be computed the way the guard computes them. Hardcoding
+    `/tmp` passes vacuously on macOS, where `/tmp` resolves to `/private/tmp`
+    and is *not* `tempfile.gettempdir()` (`/var/folders/.../T`), so the path
+    falls through to the "not empty" refusal and the real defect stays hidden.
+    """
+    for target in (REPO_ROOT / "build", Path(tempfile.gettempdir())):
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                rud._guard_out_dir(target)
+        except SystemExit as exc:
+            assert exc.code == 2, target
+        else:  # pragma: no cover - only on a regression
+            raise AssertionError(f"container root accepted as --out: {target}")
+
+
+def test_build_allows_directories_strictly_below_build_and_temp() -> None:
+    """Non-empty is fine *below* a root — that is the whole allowance."""
+    with tempfile.TemporaryDirectory() as tmp:
+        below_temp = Path(tmp) / "staged"
+        below_temp.mkdir()
+        (below_temp / "index.html").write_text("x", encoding="utf-8")
+        rud._guard_out_dir(below_temp)
+
+    below_build = REPO_ROOT / "build" / "_guard_probe"
+    below_build.mkdir(parents=True, exist_ok=True)
+    try:
+        (below_build / "index.html").write_text("x", encoding="utf-8")
+        rud._guard_out_dir(below_build)
+    finally:
+        shutil.rmtree(below_build, ignore_errors=True)
 
 
 def test_build_allows_new_empty_build_and_temp_directories() -> None:
