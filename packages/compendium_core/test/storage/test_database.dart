@@ -122,6 +122,24 @@ class FtsDeleteByDanceCounter extends QueryInterceptor {
   }
 }
 
+/// A [QueryCounter] that only counts full-table SELECTs against
+/// `choreographers` (i.e. [ChoreographerRepository.listAll], which has no
+/// `WHERE` clause) — used to assert the import pipeline's `plan → commit`
+/// cycle loads the choreographer collection once (via a shared [DedupeIndex]
+/// snapshot) instead of a redundant second `listAll()` in `commit` (#625).
+/// Deliberately excludes the per-author `WHERE id = ?` lookups
+/// `DanceRepository` also issues against this table while writing a dance's
+/// searchable author text, which are unrelated to the load being counted.
+class ChoreographerSelectCounter extends QueryCounter {
+  @override
+  bool matches(String statement) {
+    final s = statement.toLowerCase();
+    return s.startsWith('select') &&
+        s.contains('choreographers') &&
+        !s.contains('where');
+  }
+}
+
 /// An in-memory [CompendiumDatabase] whose executor is wrapped with [counter],
 /// letting a test observe how many (matching) statements a repository issues.
 CompendiumDatabase openCountingTestDatabase(QueryInterceptor counter) =>

@@ -43,7 +43,7 @@ class CustomFieldDefRepository {
     final rows = await (_db.select(
       _db.customFieldDefs,
     )..orderBy([(t) => OrderingTerm(expression: t.label)])).get();
-    return rows.map(toModel).toList();
+    return [for (final row in rows) ?toModel(row)];
   }
 
   /// Returns `true` if any dance currently has a value for field [id].
@@ -92,17 +92,48 @@ class CustomFieldDefRepository {
     await (_db.delete(_db.customFieldDefs)..where((t) => t.id.equals(id))).go();
   });
 
-  static CustomFieldDef toModel(CustomFieldDefRow row) => CustomFieldDef(
-    id: row.id,
-    key: row.key,
-    label: row.label,
-    type: row.type,
-    choices: row.choicesJson == null
-        ? null
-        : (jsonDecode(row.choicesJson!) as List).cast<String>(),
-    showInList: row.showInList,
-    searchable: row.searchable,
-  );
+  /// Maps a row to a [CustomFieldDef], returning `null` for a row whose
+  /// stored data can't be reconstructed rather than throwing — a malformed or
+  /// non-string `choicesJson` (corruption, a bad import, or a future schema
+  /// change) would otherwise throw during a normal read and break loading any
+  /// dance/definition that references it. Tolerating it here means one
+  /// corrupt row can't fail the whole custom-fields load (`listAll`/
+  /// `getById`), mirroring `DanceRepository._linkFromRow` /
+  /// `ProgramRepository._slotFromRow`.
+  static CustomFieldDef? toModel(CustomFieldDefRow row) {
+    List<String>? choices;
+    if (row.choicesJson != null) {
+      try {
+        // `.cast<String>()` is lazy — force it eagerly with `.toList()` so a
+        // wrong-type element throws here, inside the try, rather than later
+        // (e.g. inside `List.unmodifiable` in the [CustomFieldDef]
+        // constructor, outside this catch).
+        choices = (jsonDecode(row.choicesJson!) as List)
+            .cast<String>()
+            .toList();
+      } catch (_) {
+        // Malformed JSON or a non-string element — can't recover a usable
+        // choice list for this row.
+        return null;
+      }
+    }
+    try {
+      return CustomFieldDef(
+        id: row.id,
+        key: row.key,
+        label: row.label,
+        type: row.type,
+        choices: choices,
+        showInList: row.showInList,
+        searchable: row.searchable,
+      );
+    } on ArgumentError {
+      // E.g. a `choice` field whose decoded list came back empty — the
+      // constructor's own invariant rejects that, so surface it the same way
+      // as an undecodable row rather than throwing out of a read.
+      return null;
+    }
+  }
 }
 
 /// Encodes a [CustomFieldValue] into the `(valueText, valueNum)` pair stored

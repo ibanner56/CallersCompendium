@@ -58,10 +58,18 @@ class ImportBatchResult {
   ImportBatchResult({
     required this.records,
     List<ImportError> errors = const [],
+    this.dedupeIndex,
   }) : errors = List.unmodifiable(errors);
 
   final List<ImportRecordPlan> records;
   final List<ImportError> errors;
+
+  /// The [DedupeIndex] snapshot [plan] used to build these [records], if any.
+  /// [ImportPipeline.commit] reuses its
+  /// [DedupeIndex.choreographerIdByNormalizedName] instead of reloading the
+  /// full choreographer collection a second time (the same snapshot [plan]
+  /// already loaded to compute dedupe author names).
+  final DedupeIndex? dedupeIndex;
 
   bool get hasErrors => errors.isNotEmpty;
   int get plannedCount => records.length;
@@ -182,24 +190,31 @@ class ImportPipeline {
 
   /// Builds a [DedupeIndex] snapshot of the current collection (title + author
   /// names + provenance key per dance). Call once before [plan]; reuse it for
-  /// the batch.
+  /// the batch. Also captures a normalized-name → id map of every
+  /// choreographer at this snapshot (`choreographerIdByNormalizedName`) so
+  /// [commit] can resolve authors without a second `listAll()` (see [commit]).
   Future<DedupeIndex> buildDedupeIndex() async {
     final authors = await _choreographers.listAll();
     final nameById = {for (final a in authors) a.id: a.name};
     final dances = await _dances.listAll();
-    return DedupeIndex([
-      for (final d in dances)
-        DedupeEntry(
-          danceId: d.id,
-          title: d.title,
-          authorNames: [
-            for (final id in d.authorIds)
-              if (nameById[id] != null) nameById[id]!,
-          ],
-          source: d.provenance?.source,
-          externalId: d.provenance?.externalId,
-        ),
-    ]);
+    return DedupeIndex(
+      [
+        for (final d in dances)
+          DedupeEntry(
+            danceId: d.id,
+            title: d.title,
+            authorNames: [
+              for (final id in d.authorIds)
+                if (nameById[id] != null) nameById[id]!,
+            ],
+            source: d.provenance?.source,
+            externalId: d.provenance?.externalId,
+          ),
+      ],
+      choreographerIdByNormalizedName: {
+        for (final a in authors) _normalizeName(a.name): a.id,
+      },
+    );
   }
 
   /// Runs discover → fetch → parse → dedupe over [request], producing a
@@ -294,7 +309,11 @@ class ImportPipeline {
         );
       }
     }
-    return ImportBatchResult(records: records, errors: errors);
+    return ImportBatchResult(
+      records: records,
+      errors: errors,
+      dedupeIndex: dedupe,
+    );
   }
 
   /// Commits a planned [batch] transactionally, writing each dance and its
@@ -316,13 +335,22 @@ class ImportPipeline {
     final insertedIds = <String>[];
     final priorStates = <Dance>[];
 
-    // Batch-scoped author resolution state. The map is seeded from the current
+    // Batch-scoped author resolution state. Seeded from the current
     // choreographers (normalized name → id) so imported names match existing
     // rows; newly-created ids are added live so two dances crediting the same
     // new author in one batch resolve to ONE created row (batch de-dup).
-    final nameToId = <String, String>{};
-    for (final c in await _choreographers.listAll()) {
-      nameToId[_normalizeName(c.name)] = c.id;
+    //
+    // [batch.dedupeIndex] (built by [plan]/[buildDedupeIndex]) already carries
+    // this same snapshot — reuse it instead of a second `listAll()`. Only
+    // reload when [batch] has no snapshot attached (e.g. a hand-built
+    // [ImportBatchResult] in a test).
+    final nameToId = <String, String>{
+      ...?batch.dedupeIndex?.choreographerIdByNormalizedName,
+    };
+    if (batch.dedupeIndex == null) {
+      for (final c in await _choreographers.listAll()) {
+        nameToId[_normalizeName(c.name)] = c.id;
+      }
     }
     final createdChoreographerIds = <String>[];
 
