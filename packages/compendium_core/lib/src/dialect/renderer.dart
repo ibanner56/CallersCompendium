@@ -1176,7 +1176,7 @@ class FigureRenderer {
           def.params['meetTarget']?.choices ?? ParamVocab.dancerSets;
       final namedTarget =
           meetTarget is String &&
-              meetTarget != 'unspecified' &&
+              meetTarget != ParamVocab.unspecified &&
               meetChoices.contains(meetTarget)
           ? r._displayGroup(meetTarget, dialect)
           : '';

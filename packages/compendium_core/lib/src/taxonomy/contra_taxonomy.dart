@@ -182,7 +182,7 @@ const _downTheHallEnders = [
 // hey's second pass may be any pair OR left unspecified (ContraDB
 // chooser_pairz_or_unspecified). Built from the pair-level dancer sets so a
 // single-dancer identity can't be selected as a "pair".
-const _heyPass2Choices = [...ParamVocab.pairDancerSets, 'unspecified'];
+const _heyPass2Choices = [...ParamVocab.pairDancerSets, ParamVocab.unspecified];
 
 // hey's `meetTarget` (issue #576): which pair you run a partial hey until you
 // meet. ContraDB's `dancer%%N` meeting target is drawn from `chooser_pairz`
@@ -206,7 +206,7 @@ const _heyMeetTargetChoices = [
   'nextNeighbors',
   'thirdNeighbors',
   'fourthNeighbors',
-  'unspecified',
+  ParamVocab.unspecified,
 ];
 
 // The four single-dancer identities (ContraDB chooser_dancer: 1st/2nd couple x
@@ -226,7 +226,7 @@ const _pairOrUnspecified = _heyMeetTargetChoices;
 // the stated values are exactly [ParamVocab.spins], so this introduces no new
 // vocabulary. The sentinel is the default because ContraDB models no direction
 // for either move and a ContraDB import must keep asserting none.
-const _spinOrUnspecified = [...ParamVocab.spins, 'unspecified'];
+const _spinOrUnspecified = [...ParamVocab.spins, ParamVocab.unspecified];
 
 /// The seed contra move taxonomy.
 ///
@@ -480,7 +480,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // figure stored before v20, asserting nothing.
         'who': ParamSpec(
           ParamKind.dancerSet,
-          defaultValue: 'unspecified',
+          defaultValue: ParamVocab.unspecified,
           choices: _pairOrUnspecified,
         ),
         // v20 (#295): TCB glossary — "…and ROTATE CLOCKWISE OR
@@ -490,7 +490,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // `custom` (prefer-custom) and `goodBeats` stays `[4]`.
         'direction': ParamSpec(
           ParamKind.choice,
-          defaultValue: 'unspecified',
+          defaultValue: ParamVocab.unspecified,
           choices: _spinOrUnspecified,
         ),
         'beats': _beats4,
@@ -572,7 +572,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // left-hand person going in front"; stated on 24/24 sampled lines.
         'direction': ParamSpec(
           ParamKind.choice,
-          defaultValue: 'unspecified',
+          defaultValue: ParamVocab.unspecified,
           choices: _spinOrUnspecified,
         ),
         // v20 (#295): TCB's "around <whom>" — the pair you travel around. TCB
@@ -581,7 +581,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // ContraDB has no slot for it, hence the `unspecified` sentinel.
         'whom': ParamSpec(
           ParamKind.dancerSet,
-          defaultValue: 'unspecified',
+          defaultValue: ParamVocab.unspecified,
           choices: _pairOrUnspecified,
         ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 6),
@@ -1119,14 +1119,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // inline the moment a partial length is chosen.
         'meetTarget': ParamSpec(
           ParamKind.dancerSet,
-          defaultValue: 'unspecified',
+          defaultValue: ParamVocab.unspecified,
           choices: _heyMeetTargetChoices,
         ),
         'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
         // The ends pair, or 'unspecified' (ContraDB chooser_pairz_or_unspecified).
         'pass2': ParamSpec(
           ParamKind.dancerSet,
-          defaultValue: 'unspecified',
+          defaultValue: ParamVocab.unspecified,
           choices: _heyPass2Choices,
         ),
         'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
