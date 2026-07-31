@@ -95,7 +95,7 @@ symlink you can point your editor/PATH at — see the FVM docs.)
 
    ```sh
    fvm dart format .                                   # format (CI fails on diffs)
-   fvm flutter analyze                                 # lint
+   fvm flutter analyze --fatal-infos                   # lint (CI treats infos as errors)
    (cd packages/compendium_core && fvm dart test)      # core unit tests
    (cd app && fvm flutter test)                        # app / widget tests
    ```

@@ -17,6 +17,14 @@ include:
   - package:flutter_lints/flutter.yaml
   - ../analysis_options.yaml
 
+analyzer:
+  errors:
+    # Using a BuildContext across an async gap is a real correctness/latent-crash
+    # hazard (the widget may be gone by the time the future resolves). The lint
+    # is enabled via flutter_lints and the code already honors it; escalate it to
+    # an error so a regression fails analysis instead of landing as a silent info.
+    use_build_context_synchronously: error
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`

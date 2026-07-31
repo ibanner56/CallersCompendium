@@ -45,6 +45,21 @@ jobs:
         run: python3 tools/ci/test_arb_translate.py
       - name: Validate translation ARBs (parity + content safety)
         run: python3 tools/ci/arb_translate.py validate --all
+      # Supply-chain release tooling: pure-stdlib, offline, and fast, so it runs
+      # before the (slower) Flutter setup and fails fast. These four assert-based
+      # suites cover SBOM generation, SHA256SUMS/update-manifest generation,
+      # release-notes bodies, and — critically — that the Pages publish step
+      # PRESERVES detached .sig signatures. They ship in tools/release/ but were
+      # previously never executed by any workflow (only the release path calls
+      # the tools they cover), so a regression in this security-relevant output
+      # could land unnoticed. Each test exits non-zero on failure (no `|| true`),
+      # so a broken suite fails this PR gate.
+      - name: Test release supply-chain tooling (SBOM / metadata / notes / pages-manifest)
+        run: |
+          python3 tools/release/test_gen_sbom.py
+          python3 tools/release/test_gen_release_metadata.py
+          python3 tools/release/test_gen_release_notes.py
+          python3 tools/release/test_publish_pages_manifest.py
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           # Single source of truth for the Flutter version (see .fvmrc).
@@ -61,7 +76,12 @@ jobs:
           python3 tools/ci/check_flutter_version.py "$version_banner"
       - run: flutter pub get --enforce-lockfile
       - run: dart format --output=none --set-exit-if-changed .
-      - run: flutter analyze
+      # --fatal-infos: the analysis_options here are deliberately strict
+      # (strict-casts/strict-inference/strict-raw-types + error escalations), but
+      # a bare `flutter analyze` still lets analyzer *infos* through. Treat infos
+      # as build failures so the CI gate matches the repo's own standard and can
+      # never silently regress below it.
+      - run: flutter analyze --fatal-infos
       # ADR-001: the domain core must stay free of Flutter. Resolution/dependency
       # based guard (replaces a brittle grep that false-positived on comments):
       #   1. no Flutter package is reachable in compendium_core's resolved
