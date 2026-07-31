@@ -402,7 +402,7 @@ void main() {
         );
         final figs = draft.dance.figures;
         expect(figs, hasLength(2));
-        expect(figs[0].move, 'form_a_short_wave');
+        expect(figs[0].move, 'form_short_waves');
         expect(figs[0].params['center'], 'role2s');
         expect(figs[0].params['sides'], 'neighbors');
         expect(figs[0].params['beats'], 0); // 4 total − 4 balance = formation
@@ -425,7 +425,7 @@ void main() {
         ),
       );
       expect(draft.dance.figures, hasLength(1));
-      expect(draft.dance.figures.single.move, 'form_a_short_wave');
+      expect(draft.dance.figures.single.move, 'form_short_waves');
     });
 
     test(
@@ -585,7 +585,7 @@ void main() {
       expect(f[5].params['turn'], 1.5);
       expect(f[5].note, "- don't let go");
       // Ocean-wave split: wave (formation, 0 beats) then a standalone balance.
-      expect(f[6].move, 'form_a_short_wave');
+      expect(f[6].move, 'form_short_waves');
       expect(f[6].params['center'], 'role2s');
       expect(_beats(f[6]), 0);
       expect(f[7].move, 'balance');

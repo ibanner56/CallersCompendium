@@ -50,8 +50,10 @@ void main() {
   // --- Part A: grand right and left ------------------------------------------
 
   group('grand right and left decomposes into pull_by_dancers (#295)', () {
-    test('adds NO taxonomy move and does not bump the taxonomy version', () {
-      expect(contraTaxonomyVersion, 20);
+    test('adds NO taxonomy move (the shorthands lower onto existing ones)', () {
+      // This change itself bumped nothing; the version has moved on since (v21
+      // is the unrelated wave-formation work, #295), so assert the invariant
+      // that matters here — neither shorthand became a move.
       expect(contraTaxonomy.moves.containsKey('grand_right_and_left'), isFalse);
       expect(contraTaxonomy.moves.containsKey('flutterwheel'), isFalse);
       // The moves both shorthands lower onto DO exist.

@@ -518,8 +518,9 @@ lowers the line onto one `pull_by_dancers` per stated pass, carrying that pass's
   (→ pass by), pass/cross-by left/right (→ pass by), lead down/up & go down/up
   outside (→ down/up the hall `moving`), circulate (→ box circulate, balance
   folded), hall + turn as couples (→ `ender: turnCouple`), pass the ocean +
-  trailing balance wave (→ `pass_the_ocean` / `form_a_short_wave` /
-  `form_a_long_wave` with `balance: true`, beats summed; #577), diagonal chain /
+  trailing balance wave (→ `pass_the_ocean` / `form_short_waves` /
+  `form_a_long_wave` / `form_long_waves` with `balance: true`, beats summed;
+  #577), diagonal chain /
   hey
   / right-&-left-through (→ `dir: left/rightDiagonal`), same-role right & left
   through (variant kept as a note), weave-the-line `with <dancer>`, relationship
@@ -540,8 +541,9 @@ lowers the line onto one `pull_by_dancers` per stated pass, carrying that pass's
   `allemande` + `star promenade` children TCB itself writes (see "Compound
   figures" above). A pass code the taxonomy cannot faithfully represent, any
   leftover prose, or a child that fails to structure all keep the line custom.
+  **Balance a wave (#295, taxonomy v21):** see *Balance-a-wave lines* below.
   **Out (→ custom
-  for now, tracked on #295):** balance-in-a-wave, cast off,
+  for now, tracked on #295):** cast off,
   two-hand turn & other ECD figures, promenade
   CW/CCW around the major set, non-duple formations, and
   anything with leftover prose. Coverage improves iteratively — measured against
@@ -549,6 +551,81 @@ lowers the line onto one `pull_by_dancers` per stated pass, carrying that pass's
   simultaneity is no longer in this list — see "Simultaneous-action fan-out
   (`meanwhile`)" above; it fans into a `meanwhile` container one layer above
   this per-move recognizer, #591.)
+
+### Balance-a-wave lines (CallersBox, #295 / taxonomy v21)
+
+The Caller's Box writes "balance an existing wave" as its own figure line —
+`(4) Balance wave of four (NR,WL)`, `(4) Balance long wave (NR, women face in)`
+— **4,613 lines** across the 24,107-dance corpus, formerly the single largest
+custom bucket. There is **no `balance_the_wave` move and none was added**: the
+taxonomy expresses "a wave exists and is balanced" as the wave-FORMATION move
+carrying its `balance` flag, so such a line maps onto that move. It is a
+**1 line → 1 figure** mapping — the line keeps its own beats and no extra 0-beat
+form figure is ever emitted.
+
+**Where it happens, and why nothing is stolen.** The line still parses to
+`custom`; the mapping is a FINAL pass of the CallersBox cross-line merge
+(`_promoteBalanceWaveLines`), so by construction it only ever sees leftovers:
+
+1. **Fold 1 (forward)** — a balance line immediately BEFORE a swing /
+   petronella / rory o'more / box the gnat / swat the flea / box circulate folds
+   into that move (`prefix: balance` / `balance: true`). ~44% of balance-wave
+   lines have such a successor and are claimed here, exactly as before.
+2. **Fold 4 (backward, #577)** — a balance-wave line immediately AFTER a
+   structured `pass_the_ocean` / `form_short_waves` / `form_a_long_wave` /
+   `form_long_waves` folds into that figure with the beats summed, so an
+   explicitly-formed-then-balanced wave yields exactly ONE form figure. The
+   balance line's annotation now also **enriches** the merged figure with any
+   hand/pair it states that the forming line did not, instead of being discarded.
+3. **Promotion** — whatever is left becomes the form figure on its own. This is
+   the implicit case (an allemande or shoulder round leaves the dancers in the
+   wave the very next line balances): the forming is a fact the source implies,
+   so representing it is inference from adjacent evidence, not fabrication.
+
+A promotion is additionally **skipped** when the preceding figure is a still-
+custom wave-FORMING line, so a form figure is never emitted beside an
+unstructured "form …" line.
+
+**Decoding TCB's annotation.** The parenthetical is the wave's payload, not a
+droppable note, so it is decoded rather than discarded (structuring the line
+without it would destroy detail the custom text preserved verbatim):
+
+| line shape | maps to |
+| --- | --- |
+| `Balance wave of four (<pair><H>, <role><H'>)` | `form_short_waves{balance, sides: <pair>, center: <role>, centerHand: <H'>}` |
+| `Balance wave of four` (no annotation) | `form_short_waves{balance}` (MoveDef defaults, as a bare "Form a wave" line already does) |
+| `Balance long wave (<pair><H>, <role> face in)` | `form_long_waves{balance, whom: <pair>, hand: <H>, who: <role>}` |
+
+The role pair is the wave's **centre** and the relationship pair its **sides**,
+with the two hands OPPOSITE — verified on the corpus (2,560 of 2,764 wave-of-four
+lines match that shape, and only one of the parsed pairs states the same hand
+twice), and the same centre/sides model ContraDB already uses. `who` on
+`form_long_waves` is the facing-IN role, matching ContraDB's own subject.
+Roles reach the decoder already canonicalized ("women face in" is stored as
+"role2s face in").
+
+**Deliberately still custom** (prefer-custom — the whole line must be accounted
+for): wave sizes we do not model (`wave of two/three/five/six/seven/eight`),
+exotic formations (`intersecting`, `interlocking`, `circular wave`), annotations
+naming two hand-holds at once (`(N2R,N1L, women face in)`), people codes with no
+taxonomy slot (`C2`, `1CC`, `O`, `TB`, `SRN…`, `?` — the omissions documented
+on `tcbPassPeople`, whose single map this decoder reuses), `someone face
+in`, and `Balance long wave for all in center`. The singular
+`form_a_long_wave` sense (ONE long wave in the centre formed by a subset) is
+never guessed at either — a line meaning that reaches it through Fold 4 from the
+preceding `form long wave in center` line.
+
+**Supporting recognizer change.** `form (a) wave of four [with <dancer>]` — TCB's
+dominant forming wording (~1,000 clauses) — now structures as `form_short_waves`
+(the `with` tail sets `sides`), so the explicit-forming merge can actually fire.
+`form new wave …`, `form diagonal/intersecting/interlocking …` and other wave
+sizes still degrade to custom.
+
+**Measured effect** (real adapter over the full mirror, 20,516 parseable dances):
+custom figures 24,775 → 22,271 (−2,504), structured share 76.24% → **78.69%**;
+every forward-merge move's count is unchanged or higher (none lost a balance);
+and **per-dance beat totals are byte-identical for all 20,515 dances**, so
+`deriveSections`' cumulative section placement cannot drift.
 
 ## Error handling & testing
 

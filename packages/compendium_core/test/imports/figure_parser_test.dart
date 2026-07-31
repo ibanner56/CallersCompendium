@@ -216,9 +216,9 @@ void main() {
       ),
       // Issue #290 — the default short-wave case renders "form a wave" and
       // accepts the common short-wave phrasings.
-      'Form a wave': (move: 'form_a_short_wave', params: {}),
-      'Form short waves': (move: 'form_a_short_wave', params: {}),
-      'Form a short wave': (move: 'form_a_short_wave', params: {}),
+      'Form a wave': (move: 'form_short_waves', params: {}),
+      'Form short waves': (move: 'form_short_waves', params: {}),
+      'Form a short wave': (move: 'form_short_waves', params: {}),
       // Issue #294 — TCB rotation-gate, the three corpus lines (verbatim from
       // ibiblio thecallersbox JSON). The `(ones forward)` parenthetical is
       // stripped for recognition; beats (8/6/4) are layered from the source, not
@@ -331,9 +331,9 @@ void main() {
 
     test('issue #290 — long-wave lines are not claimed by the short wave', () {
       // "form a long wave" / "form long waves" must not resolve to
-      // form_a_short_wave (tokens are never consecutive with its phrases).
-      expect(_parseLine('Form a long wave')!.move, isNot('form_a_short_wave'));
-      expect(_parseLine('Form long waves')!.move, isNot('form_a_short_wave'));
+      // form_short_waves (tokens are never consecutive with its phrases).
+      expect(_parseLine('Form a long wave')!.move, isNot('form_short_waves'));
+      expect(_parseLine('Form long waves')!.move, isNot('form_short_waves'));
     });
   });
 
@@ -1081,14 +1081,14 @@ void main() {
 
     test('all-or-nothing: a clause that cannot structure keeps the WHOLE line '
         'as a single custom figure with the full text + source beats', () {
-      final fs = _parseLines('Star right 3/4; form wave of four', beats: 8);
+      final fs = _parseLines('Star right 3/4; form new wave', beats: 8);
       expect(fs, hasLength(1));
       final only = fs.single;
       expect(only.isCustom, isTrue);
       expect(only.beats, 8);
       // Lossless: both clauses survive verbatim in the custom text.
       expect(only.params['text'], contains('Star right 3/4'));
-      expect(only.params['text'], contains('form wave of four'));
+      expect(only.params['text'], contains('form new wave'));
     });
 
     test(

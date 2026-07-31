@@ -327,7 +327,9 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 /// (they are not word-boundary role terms), so map them here. Shared by the hey
 /// decoder ([_hey]) and the grand-right-and-left decoder
 /// ([grandRightAndLeftFromPassList]) — TCB uses ONE people-code notation for
-/// both, so there is exactly one map.
+/// both — and by the CallersBox adapter's balance-a-wave decoder (#295), which
+/// reads the SAME codes out of a `(NR,WL)` wave annotation — so there is
+/// exactly one map. Public for that cross-file reuse; treat it as read-only.
 ///
 /// A code with no entry here is NOT approximated: the decoder that reads it
 /// declines the whole line to custom (prefer-custom / never fabricate). The
@@ -344,7 +346,7 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   depth.
 /// - `Ph*` (phantoms), `TB*` (trail buddy), `SR*` (same-role), and bare `R`/`L`
 ///   (states a hand but no dancer at all).
-const Map<String, String> _tcbPassPeople = {
+const Map<String, String> tcbPassPeople = {
   'm': 'role1s',
   'w': 'role2s',
   'p': 'partners',
@@ -511,7 +513,7 @@ FigureMatch? _hey(String scrubbed) {
 
     if (cell.endsWith('ricochet')) {
       final people = cell.substring(0, cell.length - 'ricochet'.length).trim();
-      final who = _tcbPassPeople[people];
+      final who = tcbPassPeople[people];
       // Only center same-role dancers ricochet — never neighbor/partner/etc.
       if (who != 'role1s' && who != 'role2s') return null;
       // The same-role center passes are the odd pass-list positions; enumerate
@@ -535,7 +537,7 @@ FigureMatch? _hey(String scrubbed) {
         ? 'left'
         : null;
     if (shoulder == null) return null;
-    final who = _tcbPassPeople[cell.substring(0, cell.length - 1)];
+    final who = tcbPassPeople[cell.substring(0, cell.length - 1)];
     if (who == null) return null;
 
     // Shoulders alternate by position parity: odd positions share the base
@@ -607,7 +609,7 @@ const String _grandRightAndLeftNote = 'grand right and left';
 ///   qualifier, a second parenthetical (`(ones and twos begin with neighbor…)`)
 ///   or any other leftover prose;
 /// - any cell is not `<people-code><R|L>` with the people code present in
-///   [_tcbPassPeople] — square corners (`C1`..`C3`), mixer partner series
+///   [tcbPassPeople] — square corners (`C1`..`C3`), mixer partner series
 ///   (`P2`..`P6`), out-of-range neighbors/shadows, phantoms, trail buddies and
 ///   bare `R`/`L` (a hand with no dancer) therefore all stay custom rather than
 ///   being approximated onto a token that means something else;
@@ -719,7 +721,7 @@ List<_GrandRightAndLeftPass>? _decodeGrandRightAndLeftPasses(String scrubbed) {
     if (hand == null) return null;
     // A bare `R`/`L` cell states a hand but no dancer, so there is nothing to
     // put in `who` — the empty people code is absent from the map and declines.
-    final who = _tcbPassPeople[cell.substring(0, cell.length - 1)];
+    final who = tcbPassPeople[cell.substring(0, cell.length - 1)];
     if (who == null) return null;
     passes.add(_GrandRightAndLeftPass(who, hand));
   }

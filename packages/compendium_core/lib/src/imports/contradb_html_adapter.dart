@@ -282,14 +282,17 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       )!;
 
       // Ocean-wave balance split: ContraDB renders "form an ocean wave &
-      // balance …" as ONE figure, but our taxonomy keeps the balance as a
-      // SEPARATE figure (the form_long_waves precedent) until a future release.
-      // The recognizer emits `form_a_short_wave` (no balance param); when the
+      // balance …" as ONE figure, but this ContraDB path keeps the balance as a
+      // SEPARATE figure until a future release. (Taxonomy v21 gave
+      // `form_long_waves` a `balance` flag for the CallersBox mapping, #295;
+      // changing ContraDB's split here would alter existing ContraDB imports,
+      // so it is deliberately left alone.)
+      // The recognizer emits `form_short_waves` (no balance param); when the
       // row carried the balance, split off a trailing standalone `balance`.
       // Beats: the balance takes 4, the wave formation takes the remainder (0
       // for the typical 4-beat row — a formation, like form_long_waves).
       // Progression rides the trailing balance (end of the phrase).
-      if (figure.move == 'form_a_short_wave' &&
+      if (figure.move == 'form_short_waves' &&
           _oceanWaveBalance.hasMatch(scrubbed)) {
         const balanceBeats = 4;
         final waveBeats = beats > balanceBeats ? beats - balanceBeats : 0;

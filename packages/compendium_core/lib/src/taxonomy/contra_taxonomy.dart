@@ -47,7 +47,8 @@ import 'taxonomy.dart';
 ///     (a bare `star_through` already rendered without balance) and is distinct
 ///     from schemaVersion — no DB migration is implied.
 /// v13: splits the overloaded `form_an_ocean_wave` (issue #290) into a default
-///     short-wave `form_a_short_wave` (renders "form a wave") and a distinct
+///     short-wave `form_a_short_wave` (renders "form a wave"; RENAMED to
+///     `form_short_waves` at v21) and a distinct
 ///     `pass_the_ocean` (renders "pass the ocean"). Both inherit the legacy
 ///     move's sourced params MINUS `passThru` (intrinsic to pass_the_ocean,
 ///     absent from the short wave) and mirror its unencoded, param-dependent
@@ -56,7 +57,8 @@ import 'taxonomy.dart';
 /// v14: removes the now-superseded `form_an_ocean_wave` MoveDef (issue #290
 ///     cleanup). Stored figures that reference it are rewritten by the schema
 ///     migration (CompendiumDatabase schema v12) to `pass_the_ocean` (when
-///     `passThru` is true — its default) or `form_a_short_wave` (when false),
+///     `passThru` is true — its default) or `form_a_short_wave` (when false;
+///     itself renamed `form_short_waves` at v21, migrated by schema v19),
 ///     carrying the remaining params. This is a DB migration (distinct from
 ///     this taxonomy version), the sanctioned canonical-changing exception.
 /// v15: adds the TCB rotation-gate figure kind `rotation_gate` (issue #294,
@@ -158,7 +160,32 @@ import 'taxonomy.dart';
 ///     ContraDB import keeps asserting nothing about direction or target. The
 ///     params ride the existing `figures_json` figure codec, so — distinct from
 ///     CompendiumDatabase.schemaVersion — NO persisted-data migration is implied.
-const int contraTaxonomyVersion = 20;
+/// v21: wave-formation balance (issue #295, subsuming #296). Three changes:
+///     - RENAMES `form_a_short_wave` to `form_short_waves` (display label
+///       "form short waves", not the old "form a wave"). The v13 split named it
+///       for a single wave, but the figure is the whole set's short waves —
+///       every TCB wording is "wave of four"/"short waves". A rename is a
+///       MIGRATION, not an additive change: stored figures carry the old id, so
+///       CompendiumDatabase schema v19 rewrites them (cf. the v14/v12 ocean-wave
+///       and v19/v18 `allemande_orbit` precedents). The old label survives as a
+///       `searchKeyword` so the picker still finds it.
+///     - gives `form_long_waves` a `whom` + `hand` (which pair you hold and by
+///       which hand) and a `balance` flag. TCB states all three on the line —
+///       `Balance long wave (NR, women face in)` — on ~1,350 corpus lines;
+///       ContraDB's `formLongWavesWords` models only the facing, so `whom`/
+///       `hand` take the `unspecified` sentinel default (cf. `mad_robin.whom`,
+///       v20) and `balance` defaults false. `who` KEEPS its ContraDB meaning
+///       (the role that faces IN) — TCB states the same fact, so no stored
+///       figure's meaning changes.
+///     - `renderTemplate` is unchanged for both moves, so every existing
+///       figure's canonical/FTS/dedupe text is byte-identical; the new params
+///       and the balance suffix are surfaced only on the `!forCanonical`
+///       display path (that display work IS issue #296, whose own reference to
+///       `form_an_ocean_wave` is stale — that MoveDef was removed at v14).
+///     The taxonomy version bump is distinct from the schema bump: the params
+///     ride the existing `figures_json` figure codec, and only the RENAME needs
+///     the persisted-data migration.
+const int contraTaxonomyVersion = 21;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -227,6 +254,13 @@ const _pairOrUnspecified = _heyMeetTargetChoices;
 // vocabulary. The sentinel is the default because ContraDB models no direction
 // for either move and a ContraDB import must keep asserting none.
 const _spinOrUnspecified = [...ParamVocab.spins, ParamVocab.unspecified];
+
+// v21 (issue #295): the hand a wave is held by, or the `unspecified` sentinel
+// when the source states none. Modeled as a `choice` rather than
+// [ParamKind.handedness] ONLY so it can admit the sentinel (the same reason
+// `_spinOrUnspecified` exists); the stated values are exactly
+// [ParamVocab.sides], so this introduces no new vocabulary.
+const _handOrUnspecified = [...ParamVocab.sides, ParamVocab.unspecified];
 
 /// The seed contra move taxonomy.
 ///
@@ -1176,13 +1210,42 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'form_long_waves',
       displayName: 'form long waves',
       params: {
+        // ContraDB `formLongWavesWords` subject: the pair that faces IN (the
+        // other pair faces out). TCB states the same fact ("…, women face in"),
+        // so v21's decoding writes the facing-IN role here — the meaning is
+        // unchanged from v20.
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
+        // v21 (#295): TCB states which pair you hold and by which hand —
+        // `Balance long wave (NR, women face in)` = neighbors by the right.
+        // ContraDB models neither, so both take the `unspecified` sentinel
+        // (cf. `mad_robin.whom`, v20) and a figure that omits them renders
+        // exactly as it did at v20.
+        'whom': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _pairOrUnspecified,
+        ),
+        'hand': ParamSpec(
+          ParamKind.choice,
+          defaultValue: ParamVocab.unspecified,
+          choices: _handOrUnspecified,
+        ),
+        // v21 (#295): TCB writes "balance an existing long wave" as its own
+        // line; the CallersBox importer maps such a line onto THIS move with
+        // the flag set (either by folding a trailing balance into a preceding
+        // form line, or by promoting the standalone balance line). Default
+        // false, so no existing figure's output changes.
+        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
         // A formation label: 0 beats is valid and typical.
         'beats': ParamSpec(ParamKind.beats, defaultValue: 0),
       },
       renderTemplate: '{who} {move}',
       searchKeywords: ['long waves'],
-      goodBeats: [0],
+      // 0 for the bare formation label; 4 for a TCB balance-a-long-wave line,
+      // which carries the balance's own beats (the balanced beat count comes
+      // from the source line / the merge sum, never a fabricated rule — cf.
+      // box_the_gnat, which likewise carries no `paramBeats`).
+      goodBeats: [0, 4],
     ),
     const MoveDef(
       id: 'form_a_long_wave',
@@ -1205,13 +1268,17 @@ final Taxonomy contraTaxonomy = Taxonomy(
     // with "pass the ocean" (the pass-through-to-a-wave figure). Both new moves
     // inherit `form_an_ocean_wave`'s sourced param set MINUS `passThru`: the
     // pass-through is intrinsic to `pass_the_ocean` and intrinsically absent
-    // from `form_a_short_wave`. Neither invents a beat count — they mirror the
+    // from the short wave. Neither invents a beat count — they mirror the
     // legacy move's flat, param-dependent (unencoded) beats exactly.
     // `form_an_ocean_wave` itself was REMOVED at taxonomy v14 (CompendiumDatabase
     // schema v12 migrates stored figures onto these two moves by `passThru`).
+    // v21 RENAMED this move from `form_a_short_wave` to `form_short_waves`
+    // (issue #295): the figure is the whole set's short waves, and TCB always
+    // writes "wave of four" / "short waves". Stored figures under the old id are
+    // rewritten by CompendiumDatabase schema v19.
     const MoveDef(
-      id: 'form_a_short_wave',
-      displayName: 'form a wave',
+      id: 'form_short_waves',
+      displayName: 'form short waves',
       params: {
         // ContraDB set_direction_acrossish (across/rightDiagonal/leftDiagonal);
         // all in our direction vocabulary.
@@ -1228,6 +1295,9 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'wavy line',
         'wave of four',
         'short waves',
+        // The pre-v21 display label, kept searchable so the picker still finds
+        // this move under the name it used to render with.
+        'form a wave',
       ],
       // Beats mirror form_an_ocean_wave: param-dependent (balance), not encoded.
     ),

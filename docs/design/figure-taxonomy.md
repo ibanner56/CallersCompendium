@@ -140,7 +140,8 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   structured, not a render token (cf. PR3 enders).
 - **PR5 (hey/wave family, no new vocab) — completes the 2.4a set:** added
   `pass_by`, `hey`, `dolphin_hey`, `form_long_waves`, `form_a_long_wave`,
-  `form_an_ocean_wave`. `hey` uses the approved structured model:
+  `form_an_ocean_wave` (split at v13, removed at v14; the short-wave half was
+  renamed `form_short_waves` at v21). `hey` uses the approved structured model:
   `pass1`/`pass2` (pass2 defaults to a hey-scoped `unspecified` sentinel),
   `shoulder`, `length` (`full`/`half` as shipped in PR5; expanded to the full
   set of ContraDB named durations in v6 — see below), `dir`, four ricochet
@@ -160,13 +161,14 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
 - **v13 (ocean-wave split, issue #290):** split the overloaded
   `form_an_ocean_wave` — which conflated the default short-wave case with
   "pass the ocean" — into `form_a_short_wave` (renders "form a wave", parallels
-  `form_a_long_wave`) and `pass_the_ocean` (renders "pass the ocean"). Both
+  `form_a_long_wave`; **renamed `form_short_waves` at v21**) and
+  `pass_the_ocean` (renders "pass the ocean"). Both
   inherit the legacy move's sourced params **minus `passThru`** (intrinsic to
   `pass_the_ocean`, absent from the short wave) and mirror its unencoded,
   param-dependent beats — no fabricated beat count. `form_an_ocean_wave` is
   **retained unchanged** (no alias, no data rewrite) so stored figures render
   byte-identically; hiding it from the authoring picker is an app-layer
-  follow-up. Import adds conservative `pass_the_ocean` / `form_a_short_wave`
+  follow-up. Import adds conservative `pass_the_ocean` / short-wave
   recognizers; the ContraDB adapter's "form an ocean wave" mapping is unchanged.
   Purely additive: distinct from `schemaVersion` — no DB migration or derived
   rebuild.
@@ -335,6 +337,50 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     future partners (`P2`+), out-of-range neighbors/shadows, phantoms and trail
     buddies. See `docs/design/imports.md` for the recognizer rules and
     `docs/research/callersbox.md` for the glossary evidence and corpus counts.
+- **v21 (wave-formation balance, issue #295 — subsumes #296):** models The
+  Caller's Box's largest custom bucket, the "balance an existing wave" line
+  (`Balance wave of four (NR,WL)`, `Balance long wave (NR, women face in)` —
+  **4,613 lines** across the 24,107-dance corpus). There is **no
+  `balance_the_wave` move and none was added**: a wave that is balanced IS the
+  wave-FORMATION move carrying its `balance` flag, so such a line maps onto that
+  move as ONE figure keeping its own beats — never an extra 0-beat form figure.
+  - **RENAME (a DB migration, not an additive change):** `form_a_short_wave` →
+    **`form_short_waves`**, display label **"form short waves"** (was "form a
+    wave"). The figure is the whole set's short waves and every TCB wording is
+    "wave of four" / "short waves". Because stored figures carry the old id this
+    ships `CompendiumDatabase` **schema v19**, which rewrites `move` in every
+    `dances.figures_json` blob — including sides nested inside a `meanwhile`
+    container — per-row/per-figure parse-never-throw, leaving anything
+    unmappable byte-identical (the #358 path). Precedent: the v14/schema-v12
+    ocean-wave removal and the v19/schema-v18 `allemande_orbit` rewrite. The
+    pre-rename label survives as a `searchKeyword`.
+  - **`form_long_waves` gains `whom` + `hand` + `balance`.** TCB states all
+    three on the line — `Balance long wave (NR, women face in)` is *neighbours
+    by the right, women facing in* — on ~1,500 corpus lines; ContraDB's
+    `formLongWavesWords` models only the facing. `whom`/`hand` therefore default
+    to the `unspecified` sentinel (cf. `mad_robin.whom`, v20) and `balance` to
+    `false`, so an existing figure is unchanged. **`who` keeps its ContraDB
+    meaning — the pair that faces IN** — because TCB states exactly the same
+    fact; nothing about stored data is reinterpreted. `goodBeats` widens to
+    `[0, 4]`: 0 for the bare formation label, 4 for a balance-a-wave line.
+  - **Display (this is issue #296).** `form_long_waves` renders
+    `form long waves - {whom} by the {hand}, {who} facing in, {other} facing
+    out{ - and balance}` (the hold clause appears only when BOTH `whom` and
+    `hand` are stated), and `form_short_waves` appends the same ` - and balance`
+    suffix. `form_a_long_wave` and `pass_the_ocean` already embedded their
+    balance, so the wave moves are deliberately absent from the generic
+    "balance &" prefix table — listing them would double it. All of this is
+    `!forCanonical`-gated: **`renderTemplate` is unchanged for both moves**, so
+    canonical / FTS / dedupe text is byte-stable for every existing figure.
+    (#296 also names `form_an_ocean_wave`; that reference is **stale** — the
+    MoveDef was split at v13 and removed at v14.)
+  - **`form_a_long_wave` is untouched** (it already carries a balance and means
+    something different: ONE long wave in the centre formed by a subset), and
+    **`form_rings` is explicitly out of scope** — only 38 TCB lines across 26
+    wordings, and ContraDB has no ring-formation figure.
+  - Import mapping, the annotation decoding, and what deliberately stays custom
+    are documented in `docs/design/imports.md`; the corpus measurements are in
+    `docs/research/callersbox.md`.
 
 
 **The full ContraDB v1 contra move set is now modeled** (all five 2.4a slices

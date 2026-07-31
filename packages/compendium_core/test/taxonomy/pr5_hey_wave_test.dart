@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 /// Roadmap 2.4a — PR5 "hey/wave family" (final slice): pass_by, hey,
 /// dolphin_hey, form_long_waves, form_a_long_wave. (The wave family also
 /// introduced `form_an_ocean_wave`, later split by #290 into
-/// `form_a_short_wave` / `pass_the_ocean` and removed from the taxonomy at v14
+/// `form_short_waves` / `pass_the_ocean` and removed from the taxonomy at v14
 /// — see ocean_wave_split_test.dart.) No new ParamKind; the reduced-but-
 /// structured hey model + wave formations.
 void main() {

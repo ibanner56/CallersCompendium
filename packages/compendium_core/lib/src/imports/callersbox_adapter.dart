@@ -559,12 +559,13 @@ class CallersBoxAdapter implements SourceAdapter {
   /// the fold sets `balance: true` and sums the beats (ocean 4 + balance 4 = 8),
   /// the same single-source-of-truth beat pattern the leading-balance folds use.
   ///
-  /// `form_long_waves` is intentionally EXCLUDED: it is a bare 0-beat formation
-  /// move with no `balance` param, so folding would fabricate an invalid param.
+  /// `form_long_waves` joined this set at taxonomy v21 (#295), which gave it the
+  /// `balance` flag whose absence had previously excluded it.
   static const _trailingBalanceMergeMoves = {
     'pass_the_ocean',
-    'form_a_short_wave',
+    'form_short_waves',
     'form_a_long_wave',
+    'form_long_waves',
   };
 
   /// Folds figures that The Caller's Box writes as separate lines into a single
@@ -576,9 +577,9 @@ class CallersBoxAdapter implements SourceAdapter {
   ///  - a bend-the-line LINE immediately following a structured down/up the hall
   ///    folds in as `ender: 'bendTheLine'` (upgrading the neutral `'none'`).
   ///  - a balance-WAVE LINE immediately following a `pass_the_ocean` /
-  ///    `form_a_short_wave` / `form_a_long_wave` folds into that move as
-  ///    `balance: true` with the summed beats (#577 — the reverse pattern of the
-  ///    leading-balance fold above).
+  ///    `form_short_waves` / `form_a_long_wave` / `form_long_waves` folds into
+  ///    that move as `balance: true` with the summed beats (#577 — the reverse
+  ///    pattern of the leading-balance fold above).
   ///
   /// Adjacency-consume: a single left-to-right walk that advances by two on a
   /// merge, so each line is consumed at most once, only immediately-adjacent
@@ -586,6 +587,12 @@ class CallersBoxAdapter implements SourceAdapter {
   /// its own figure (choreography is never dropped). Merged beats are the SUM of
   /// the two consumed lines (source timing preserved). The caller passes one
   /// phrase's figures, so folds never cross a section boundary.
+  ///
+  /// A FINAL pass ([_promoteBalanceWaveLines], #295) then maps the balance-wave
+  /// lines that NO fold claimed onto the wave-formation move they balance. It
+  /// deliberately runs last so it can only ever see leftovers: every balance
+  /// that belongs to a following action (Fold 1) or a preceding wave (Fold 4)
+  /// has already been consumed, so the promotion can never steal one.
   static List<Figure> _mergeCrossLineFigures(List<Figure> figures) {
     final merged = <Figure>[];
     var i = 0;
@@ -639,7 +646,7 @@ class CallersBoxAdapter implements SourceAdapter {
       merged.add(current);
       i += 1;
     }
-    return merged;
+    return _promoteBalanceWaveLines(merged);
   }
 
   /// A balance line: the structured `balance` / `balance_the_ring` moves, or a
@@ -655,9 +662,8 @@ class CallersBoxAdapter implements SourceAdapter {
   }
 
   /// A structured ocean/wave move that accepts a trailing balance-wave fold
-  /// (#577): `pass_the_ocean`, `form_a_short_wave`, `form_a_long_wave`. Each
-  /// carries a `balance` flag; `form_long_waves` is deliberately absent (no
-  /// balance param — see [_trailingBalanceMergeMoves]).
+  /// (#577): every id in [_trailingBalanceMergeMoves]. Each carries a `balance`
+  /// flag.
   static bool _isOceanWaveMove(Figure f) =>
       !f.isCustom && _trailingBalanceMergeMoves.contains(f.move);
 
@@ -740,12 +746,60 @@ class CallersBoxAdapter implements SourceAdapter {
   /// ([_isOceanWaveMove]) and [balance] a confirmed balance-wave line
   /// ([_isBalanceWaveLine]); no `who` guard is needed because a balance-wave
   /// names a formation, not dancers.
+  ///
+  /// The balance line often states hands the forming line did not
+  /// (`Pass the ocean` / `(4) Balance wave of four (NR,WL)`), so any param the
+  /// line's annotation decodes to ([_balanceWaveAsFormMove]) and the wave figure
+  /// does NOT already carry is folded in as well (#295) — otherwise the merge
+  /// would silently discard detail the source stated. Only param sets with an
+  /// identical meaning on both moves are transferred (see
+  /// [_compatibleFormParams]); an existing value is never overwritten.
   static Figure? _foldTrailingBalanceIntoWave(Figure wave, Figure balance) {
     if (wave.params['balance'] == true) return null;
     final beats = _sumBeats(wave, balance);
+    final decoded = _balanceWaveAsFormMove(balance);
+    final extra = decoded == null
+        ? const <String, Object?>{}
+        : _compatibleFormParams(wave.move, decoded);
     return wave.copyWith(
-      params: {...wave.params, 'balance': true, 'beats': ?beats},
+      params: {
+        ...wave.params,
+        for (final e in extra.entries)
+          if (!wave.params.containsKey(e.key)) e.key: e.value,
+        'balance': true,
+        'beats': ?beats,
+      },
     );
+  }
+
+  /// The params of a decoded balance-wave line that mean the same thing on
+  /// [waveMove], or empty when the two vocabularies do not line up.
+  ///
+  /// `form_short_waves` and `pass_the_ocean` share one param schema
+  /// (`center`/`centerHand`/`sides`), so a short-wave decode transfers to
+  /// either. A long-wave decode (`whom`/`hand`/`who`) transfers only to
+  /// `form_long_waves`; `form_a_long_wave`'s `who` means something different
+  /// (which pair dances IN to the centre), so nothing is transferred there.
+  static Map<String, Object?> _compatibleFormParams(
+    String waveMove,
+    Figure decoded,
+  ) {
+    const shortWaveKeys = {'center', 'centerHand', 'sides'};
+    const longWaveKeys = {'who', 'whom', 'hand'};
+    final Set<String> keys;
+    if (decoded.move == 'form_short_waves' &&
+        (waveMove == 'form_short_waves' || waveMove == 'pass_the_ocean')) {
+      keys = shortWaveKeys;
+    } else if (decoded.move == 'form_long_waves' &&
+        waveMove == 'form_long_waves') {
+      keys = longWaveKeys;
+    } else {
+      return const {};
+    }
+    return {
+      for (final e in decoded.params.entries)
+        if (keys.contains(e.key)) e.key: e.value,
+    };
   }
 
   static Figure _foldEnderIntoHall(
@@ -757,6 +811,220 @@ class CallersBoxAdapter implements SourceAdapter {
     return hall.copyWith(
       params: {...hall.params, 'ender': ender, 'beats': ?beats},
     );
+  }
+
+  // --- Balance-a-wave promotion (#295) ---------------------------------------
+  //
+  // The Caller's Box writes "balance an existing wave" as its own figure line
+  // (`(4) Balance wave of four (NR,WL)`, `(4) Balance long wave (NR, women face
+  // in)`) — 4,613 corpus lines, the single largest custom bucket. There is no
+  // `balance_the_wave` move and we are not adding one: per the ratified model, a
+  // wave that is balanced IS the wave-FORMATION move carrying its `balance`
+  // flag, so such a line maps onto that move. This is a 1-line → 1-figure
+  // mapping (the line keeps its own beats); no extra 0-beat form figure is ever
+  // emitted.
+  //
+  // Runs AFTER the fold walk, over leftovers only, so:
+  //  * a balance that belongs to a FOLLOWING action (`Balance wave of four` then
+  //    `Neighbor swing` / petronella / rory / box the gnat / box circulate) has
+  //    already been consumed by Fold 1 and is never seen here; and
+  //  * a balance that follows an explicitly-formed wave has already been folded
+  //    into that figure by Fold 4, so exactly one form figure results.
+  //
+  // Fidelity: the whole line must be accounted for. A wave size we do not model
+  // (`wave of two/three/six/…`), an exotic formation (`intersecting` /
+  // `interlocking` / `circular`), or an annotation we cannot fully decode leaves
+  // the line CUSTOM (prefer-custom) rather than dropping the detail TCB stated.
+
+  /// TCB people codes that name a ROLE/COUPLE pair — the dancers in the CENTRE
+  /// of a short wave (`M`/`W` roles, `1`/`2` the ones/twos). Everything ELSE in
+  /// [tcbPassPeople] names a pair RELATIONSHIP (the wave's sides): `N`,
+  /// `N0`–`N4`, `P`/`P1`, `S`/`S1`/`S2`. TCB uses one people-code notation
+  /// across heys, grand-right-and-lefts and wave annotations, so this reuses
+  /// that single map rather than duplicating it — and a code the map omits
+  /// (square corners, mixer partner series, phantoms, trail buddies, …) keeps
+  /// the line custom, exactly as it does everywhere else.
+  static const Map<String, String> _waveRoleCodes = {
+    'm': 'role1s',
+    'w': 'role2s',
+    '1': 'ones',
+    '2': 'twos',
+  };
+
+  /// The pair RELATIONSHIP a TCB people code names, or `null` when the code is
+  /// a role/couple pair ([_waveRoleCodes]) or is not modeled at all.
+  static String? _wavePairFor(String code) =>
+      _waveRoleCodes.containsKey(code) ? null : tcbPassPeople[code];
+
+  /// The ROLE/COUPLE pair a TCB people code names, or `null`.
+  static String? _waveRoleFor(String code) => _waveRoleCodes[code];
+
+  /// A TCB people code plus a trailing `R`/`L` hand, e.g. `NR`, `N2L`, `WL`.
+  /// Anchored and bounded (no unbounded repetition), per OWASP — imported text
+  /// is untrusted.
+  static final RegExp _waveCode = RegExp(r'^([a-z0-9]{1,3})([rl])$');
+
+  /// A `<role> face in` clause. Roles reach us already canonicalized by
+  /// `scrubFigureText` (TCB's "women face in" is stored as "role2s face in").
+  static final RegExp _waveFacing = RegExp(
+    r'^(role1s|role2s|ones|twos) face in$',
+  );
+
+  /// Maps the balance-wave lines no fold claimed onto their wave-formation move.
+  /// Every other figure passes through byte-identical (list identity is not
+  /// preserved — the caller always builds a fresh list anyway).
+  static List<Figure> _promoteBalanceWaveLines(List<Figure> figures) {
+    final out = <Figure>[];
+    for (final figure in figures) {
+      if (!_isBalanceWaveLine(figure)) {
+        out.add(figure);
+        continue;
+      }
+      // Never promote next to a wave-FORMING line we failed to structure: the
+      // source already states the forming, so emitting a form figure beside it
+      // would double the formation. Leave both custom instead.
+      final previous = out.isEmpty ? null : out.last;
+      if (previous != null && _isUnstructuredWaveFormingLine(previous)) {
+        out.add(figure);
+        continue;
+      }
+      final promoted = _balanceWaveAsFormMove(figure);
+      out.add(promoted ?? figure);
+    }
+    return out;
+  }
+
+  /// A custom figure whose text leads with "form" and names a wave — a
+  /// wave-forming line the recognizer could not structure (`form new wave, all
+  /// facing other direction`, `form diagonal wave of four`, …). Words are
+  /// compared with edge punctuation stripped, because [_figureWords] splits on
+  /// whitespace only ("wave," must still count as "wave").
+  static bool _isUnstructuredWaveFormingLine(Figure f) {
+    if (!f.isCustom) return false;
+    final words = _figureWords(f).map(_stripEdgePunctuation).toList();
+    return words.isNotEmpty &&
+        words.first == 'form' &&
+        words.any((w) => w == 'wave' || w == 'waves');
+  }
+
+  static final RegExp _edgePunctuation = RegExp(r'^[^a-z0-9]+|[^a-z0-9]+$');
+
+  static String _stripEdgePunctuation(String w) =>
+      w.replaceAll(_edgePunctuation, '');
+
+  /// The structured wave-formation figure for a balance-a-wave line, or `null`
+  /// when the line cannot be mapped with full confidence (then it stays custom).
+  ///
+  /// Recognised shapes, both carrying the line's OWN beats unchanged:
+  ///  * `Balance wave of four[ (<pair><H>, <role><H'>)]` →
+  ///    `form_short_waves{balance, sides, center, centerHand}`. The role pair is
+  ///    the wave's centre and the relationship pair its sides (verified on the
+  ///    corpus: 2,560 / 2,764 lines match `(<pair><H>, <role><H'>)` with the two
+  ///    hands OPPOSITE, mirroring ContraDB's own centre/sides model).
+  ///  * `Balance long wave (<pair><H>, <role> face in)` →
+  ///    `form_long_waves{balance, whom, hand, who}`. `who` is the facing-IN
+  ///    role, matching ContraDB's `form_long_waves` subject exactly.
+  ///
+  /// NOT mapped (stay custom): `form_a_long_wave`'s single-wave-in-the-centre
+  /// sense — a line meaning that reaches it through Fold 4 from the preceding
+  /// `form long wave in center` line, so it never needs guessing here.
+  static Figure? _balanceWaveAsFormMove(Figure f) {
+    final text = f.params['text'];
+    if (text is! String) return null;
+    final lower = text.toLowerCase();
+    // `[…]` is TCB's "who does it" annotation — a different payload we do not
+    // model here, so a line carrying one stays custom.
+    if (lower.contains('[')) return null;
+    final annotations = RegExp(
+      r'\(([^)]*)\)',
+    ).allMatches(lower).map((m) => m.group(1)!.trim()).toList();
+    if (annotations.length > 1) return null;
+    final head = lower
+        .replaceAll(RegExp(r'\([^)]*\)'), ' ')
+        .split(RegExp(r'[^a-z0-9]+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
+    final annotation = annotations.isEmpty ? null : annotations.first;
+
+    if (_sameWords(head, const ['balance', 'wave', 'of', 'four'])) {
+      if (annotation == null || annotation.isEmpty) {
+        // No stated hands: the MoveDef defaults describe the wave, exactly as a
+        // bare "Form a wave" line already does.
+        return _asFormFigure(f, 'form_short_waves', const {});
+      }
+      final parts = _splitAnnotation(annotation);
+      if (parts.length != 2) return null;
+      final sides = _decodeCode(parts[0], _wavePairFor);
+      final center = _decodeCode(parts[1], _waveRoleFor);
+      // Both codes must decode AND state opposite hands (the physical shape of
+      // a wave of four); anything else is not confidently mappable.
+      if (sides == null || center == null || sides.hand == center.hand) {
+        return null;
+      }
+      return _asFormFigure(f, 'form_short_waves', {
+        'sides': sides.who,
+        'center': center.who,
+        'centerHand': center.hand,
+      });
+    }
+
+    if (_sameWords(head, const ['balance', 'long', 'wave'])) {
+      if (annotation == null) return null;
+      final parts = _splitAnnotation(annotation);
+      if (parts.length != 2) return null;
+      final whom = _decodeCode(parts[0], _wavePairFor);
+      final facing = _waveFacing.firstMatch(parts[1]);
+      if (whom == null || facing == null) return null;
+      return _asFormFigure(f, 'form_long_waves', {
+        'whom': whom.who,
+        'hand': whom.hand,
+        'who': facing.group(1)!,
+      });
+    }
+    return null;
+  }
+
+  /// The comma-separated fields of a TCB annotation, lowercased and trimmed.
+  static List<String> _splitAnnotation(String annotation) => annotation
+      .split(',')
+      .map((p) => p.trim())
+      .where((p) => p.isNotEmpty)
+      .toList();
+
+  /// Decodes a `<people code><hand>` token (`NR`, `N2L`, `WL`) through
+  /// [lookUp], or `null` when either half is unknown.
+  static ({String who, String hand})? _decodeCode(
+    String token,
+    String? Function(String) lookUp,
+  ) {
+    final match = _waveCode.firstMatch(token);
+    if (match == null) return null;
+    final who = lookUp(match.group(1)!);
+    if (who == null) return null;
+    return (who: who, hand: match.group(2) == 'r' ? 'right' : 'left');
+  }
+
+  /// Replaces the custom balance line [f] with the structured formation figure,
+  /// keeping the line's OWN beats (no drift — `deriveSections` sums them) and
+  /// its `progression` / `note`, and always setting `balance: true`.
+  static Figure _asFormFigure(
+    Figure f,
+    String move,
+    Map<String, Object?> params,
+  ) => Figure(
+    move: move,
+    params: {...params, 'balance': true, 'beats': f.beats},
+    note: f.note,
+    progression: f.progression,
+    walkthroughOverride: f.walkthroughOverride,
+  );
+
+  static bool _sameWords(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   /// Sum of the two figures' beats, or `null` when neither carries beats (so a

@@ -533,7 +533,7 @@ FigureMatch? _passTheOcean(String text) {
   );
 }
 
-/// form_a_short_wave (ContraDB `form an ocean wave` with pass_through=false).
+/// form_short_waves (ContraDB `form an ocean wave` with pass_through=false).
 /// Renders as: "form an ocean wave [& balance] - CENTER by HAND hands and SIDES
 /// by HAND hands". The balance is NOT stored here — when present it is emitted
 /// as a SEPARATE balance figure by the adapter (the form_long_waves precedent);
@@ -563,7 +563,7 @@ FigureMatch? _formAShortWave(String text) {
   s.take();
   if (!s.eat('hands')) return null;
   return FigureMatch(
-    'form_a_short_wave',
+    'form_short_waves',
     params: {
       'dir': 'across',
       'center': center,

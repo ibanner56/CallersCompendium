@@ -295,6 +295,54 @@ time, so a snapshot can go stale legally as well as factually.
 - Community extensions exist (Caller's Box Configurator does Larks/Robins term
   swapping in-browser) — evidence of user demand for our dialect feature.
 
+### Wave-balance corpus census (2026-07-31, issue #295)
+
+Method: full local mirror of the TCB JSON export — **24,107 files**, of which
+20,516 carry redistributable figures. Counted every figure line whose text
+begins with `Balance` and names a wave.
+
+**4,613 such lines** across **296 distinct wordings** — the single largest
+`custom` bucket before taxonomy v21.
+
+| bucket | lines | disposition |
+| --- | --- | --- |
+| `Balance wave of four …` | 2,764 | → `form_short_waves{balance}` |
+| `Balance long wave …` | 1,595 | → `form_long_waves{balance}` (or custom) |
+| `Balance wave of two/three/five/six/seven/eight` | 181 | stays custom |
+| `Balance in­tersecting / interlocking waves` | 59 | stays custom |
+| other (`Balance circular wave`, `Balance wave across`) | 14 | stays custom |
+
+Top wordings: `Balance wave of four (NR,WL)` ×776, `Balance long wave (NR, women
+face in)` ×292, `Balance wave of four (PR,WL)` ×285, `Balance wave of four
+(NR,ML)` ×249, `Balance wave of four (NL,MR)` ×195, `Balance long wave (PR, men
+face in)` ×145.
+
+**The `()` detail is structured, not prose.** For a wave of four, **2,560 of the
+2,764 lines (92.6%)** match exactly `(<relationship-code><Hand>,
+<role-code><OppositeHand>)` — `(NR,WL)`, `(PR,ML)`, `(N2R,WL)`, `(SR,WL)` — and
+of every pair that parsed, only **one** states the same hand twice. The role
+pair (`M`/`W`/`1`/`2`) is the **centre** of the wave and the relationship pair
+(`N`/`N0`–`N4`, `P`/`P1`, `S`/`S1`/`S2` — the same `tcbPassPeople` map the hey
+and grand-right-and-left decoders use) its **sides**, which is the same
+centre/sides model ContraDB's ocean wave already uses. Long waves use
+`(<relationship-code><Hand>, <role> face in)`: 858 `women face in`, 568 `men face
+in`, 64 `twos face in`, 13 `ones face in`.
+
+Adjacency (why the mapping is safe): ~44% of these lines are followed by a move
+the existing forward balance-merge already claims (swing, petronella, rory,
+box the gnat, box circulate, slide); 1,091 are preceded by a wave-forming clause
+(`Pass the ocean` ×395, `form wave of four …` ×~480, `form long wave …` ×~130);
+the remainder is the implicit case, dominated by allemandes.
+
+Forming wordings in the same corpus: `form wave of four` ×632, `form long wave`
+×385, `form wave of four with N2` ×232, `form long wave in center` ×210,
+`form wave of four with shadow` ×58.
+
+Effect of taxonomy v21 measured by running the real adapter over the whole
+mirror: custom figures 24,775 → 22,271, structured share 76.24% → **78.69%**,
+with per-dance beat totals byte-identical for all 20,515 dances and no
+forward-merge move losing a balance.
+
 ## Open questions
 
 - Fraction of dances at each permission tier (only a crawl or the maintainers can

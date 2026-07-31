@@ -468,6 +468,18 @@ class FigureRenderer {
   static String _displayChoice(Object? value) =>
       _isUnspecified(value) ? '' : _displayScalar(value);
 
+  /// DISPLAY-ONLY: the trailing " - and balance" clause the wave-FORMATION base
+  /// lines append for a truthy `balance` (issue #296, product wording shared by
+  /// `form_long_waves` and `form_short_waves`). A wildcard `'*'` keeps the
+  /// clause visible rather than silently dropping the flag; anything else — the
+  /// default `false` included — renders nothing, so canonical/FTS text and every
+  /// unbalanced figure are unaffected.
+  static String _balanceSuffix(Object? balance) => balance == true
+      ? ' - and balance'
+      : balance == '*'
+      ? ' - and *'
+      : '';
+
   /// DISPLAY-ONLY: the "other pair" for a subject [value], mirroring ContraDB
   /// `dance.js` `invertPair` (`app/javascript/libfigure/dance.js` @13f38a5).
   /// ContraDB inverts only the four-dancer pairings it can name
@@ -1253,12 +1265,31 @@ class FigureRenderer {
       return buffer.toString();
     },
     // ContraDB `formLongWavesWords`: words(smove, "-", ssubject, "face in,",
-    // invertPair(subject), "face out").
+    // invertPair(subject), "face out"). v21 (#295) extends it with the pair and
+    // hand TCB states ("Balance long wave (NR, women face in)" = neighbors by
+    // the right) and the trailing balance clause (#296). `who` keeps ContraDB's
+    // meaning — the pair that faces IN — so no stored figure's meaning changes;
+    // the hand clause is emitted ONLY when both `whom` and `hand` are stated
+    // (they default to the `unspecified` sentinel, which renders as nothing),
+    // so a ContraDB import renders as it did at v20. Consulted only when
+    // `!forCanonical`, so `renderCanonical` stays byte-stable (dedupe/FTS).
     'form_long_waves': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final swho = r._displaySubject(params['who'], dialect);
       final other = r._invertPair(params['who'], dialect);
-      return '$move - $swho face in, $other face out';
+      final swhom = _isUnspecified(params['whom'])
+          ? ''
+          : r._displaySubject(params['whom'], dialect);
+      final hand = _displayChoice(params['hand']);
+      final holdClause = (swhom.isEmpty || hand.isEmpty)
+          ? ''
+          : '$swhom by the $hand';
+      final body = [
+        holdClause,
+        '$swho facing in',
+        '$other facing out',
+      ].where((s) => s.isNotEmpty).join(', ');
+      return '$move - $body${_balanceSuffix(params['balance'])}';
     },
     // ContraDB `formALongWaveWords`: branches on in/out/balance. in only ->
     // "<who> dance in to a long wave in the center"; out+in -> "<other> dance
@@ -1299,13 +1330,15 @@ class FigureRenderer {
     // with no ContraDB `words()` analog (see docs/research/parity-fix-decisions
     // "our extensions/splits — leave as-is"), so the leading phrase is fixed
     // PRODUCT wording that intentionally diverges from the byte-stable canonical
-    // (`form a wave` / `pass the ocean`). Center hand = the `centerHand` param
-    // (default 'right'); side hand = its OPPOSITE (right<->left), mirroring
+    // (`form short waves` / `pass the ocean`). Center hand = the `centerHand`
+    // param (default 'right'); side hand = its OPPOSITE (right<->left), mirroring
     // ContraDB's `sside_hand = stringParamHand(!center_hand)` derivation — never
     // hardcoded, so display tracks the data. Unknown/`*` centerHand best-effort
-    // humanizes (never blank-drops, no dangling connective). Consulted only when
+    // humanizes (never blank-drops, no dangling connective). v21 (#296) appends
+    // the same " - and balance" clause `form_long_waves` uses, so a balanced
+    // short wave no longer silently drops its balance. Consulted only when
     // `!forCanonical`, so `renderCanonical` stays byte-stable (dedupe/FTS).
-    'form_a_short_wave': (r, def, params, dialect, verbose, decimals) {
+    'form_short_waves': (r, def, params, dialect, verbose, decimals) {
       final scenter = r._displaySubject(params['center'], dialect);
       final ssides = r._displaySubject(params['sides'], dialect);
       final centerHandRaw = params['centerHand'];
@@ -1329,7 +1362,10 @@ class FigureRenderer {
         centerClause,
         sideClause,
       ].where((s) => s.isNotEmpty).join(', ');
-      return body.isEmpty ? 'form a short wave' : 'form a short wave - $body';
+      final balance = _balanceSuffix(params['balance']);
+      return body.isEmpty
+          ? 'form short waves$balance'
+          : 'form short waves - $body$balance';
     },
     // A non-default `dir` surfaces the diagonal word ("a right diagonal ocean
     // wave"), silent for the `across` default (ContraDB
@@ -1425,7 +1461,11 @@ class FigureRenderer {
   /// ContraDB moves appear; moves whose ContraDB rendering embeds balance
   /// elsewhere (`square_through`, the wave moves) or that ContraDB does not
   /// model (`star_through`, a CallersBox extension) are intentionally absent so
-  /// we never fabricate a prefix.
+  /// we never fabricate a prefix. The wave-formation moves in particular render
+  /// their own balance inside their display base line (`form_long_waves` /
+  /// `form_short_waves` append " - and balance"; `form_a_long_wave` and
+  /// `pass_the_ocean` have always embedded it), so listing them here would
+  /// double it — see [_balanceSuffix] and issue #296.
   static const Map<String, _BalancePlacement> _balancePlacement = {
     // `words(sbalance, smove)` / `words(sbal, smove, …)` — balance first.
     'petronella': _BalancePlacement.leading,

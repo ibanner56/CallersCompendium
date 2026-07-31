@@ -35,6 +35,23 @@ each release so store builds and tags can be traced back to an entry.
   affects timing immediately recalculates its beat count, even overwriting a
   beat count you typed in by hand; the setting's subtitle states this
   explicitly so the trade-off is never a surprise. Closes #689.
+- **Balanced waves from The Caller's Box import as real figures.** TCB writes
+  "Balance wave of four (NR,WL)" or "Balance long wave (NR, women face in)" as
+  its own line — 4,613 lines across the full Caller's Box corpus, and by far the
+  biggest reason an imported dance still showed rows of unstructured text. Those
+  lines now come in as a proper wave figure that carries its balance, with the
+  hands and roles TCB stated ("who's in the centre, by which hand") preserved
+  rather than dropped. A balanced wave now also *says* so on screen: figures
+  read "form short waves - … - and balance". Timing is untouched — every dance's
+  beat totals and A1/A2/B1/B2 placement are byte-identical to before. Lines we
+  can't model faithfully (waves of two or three, interlocking or intersecting
+  waves, annotations naming two hand-holds at once) deliberately stay as text
+  rather than being guessed at. Closes #296 and part of #295.
+- **"Form a wave" is now called "form short waves".** The figure covers the
+  whole set's short waves, which is how The Caller's Box always writes it, so
+  the picker and every rendered figure use the clearer name. Your existing
+  dances are updated automatically the first time you open the app after
+  updating; the old name still finds the move when you search.
 - **Mad robins and butterfly whirls import as real figures.** Caller's Box
   dances that write "Mad robin clockwise around neighbor" or "Partner butterfly
   whirl counterclockwise" used to land as unstructured custom text, because the

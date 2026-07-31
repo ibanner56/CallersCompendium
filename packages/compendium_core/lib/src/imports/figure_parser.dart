@@ -649,12 +649,12 @@ final List<_Recognizer> _recognizers = [
   // Order among these three is not correctness-critical: each recognizer runs on
   // its own copy of the word list, and "pass the ocean" contains no "through" so
   // _passThrough never matches (or partially consumes) it. They are placed
-  // together here purely for locality. _formAShortWave sits between the two
+  // together here purely for locality. _formShortWaves sits between the two
   // "pass …" recognizers and is independent of both (its lead word is "form").
   _passTheOcean,
-  _formAShortWave,
+  _formShortWaves,
   // Long-wave forms lead with "form … long wave(s)"; the "long" token keeps
-  // them disjoint from `_formAShortWave` ("form a wave" / "form short wave"),
+  // them disjoint from `_formShortWaves` ("form a wave" / "form short wave"),
   // so relative order is not correctness-critical.
   _formLongWave,
   _passThrough,
@@ -1121,13 +1121,23 @@ _Match? _passTheOcean(List<String> w) {
   return w.isEmpty ? _Match('pass_the_ocean', {'dir': ?dir}) : null;
 }
 
-// "form a wave" / "form short waves" / "form a short wave" — the default
-// short-wave case (issue #290). Conservative: only the move id (plus optional
-// direction) is emitted; balance/hands come from defaults. Does not match the
-// long-wave lines ("form a long wave", "form long waves") — their tokens are
-// never consecutive with these phrases — so it neither shadows nor is shadowed.
-_Match? _formAShortWave(List<String> w) {
-  if (!_consumePhrase(w, ['form', 'a', 'wave']) &&
+// "form a wave" / "form short waves" / "form a short wave" / "form (a) wave of
+// four" — the default short-wave case (issue #290; the "of four" wordings and
+// the `with <dancer>` tail added at #295, TCB's dominant phrasings at ~1,000
+// corpus clauses). Conservative: only the move id, an optional direction and an
+// explicitly-stated `sides` pair are emitted; the rest come from defaults.
+//
+// Does not match the long-wave lines ("form a long wave", "form long waves") —
+// their tokens are never consecutive with these phrases — so it neither shadows
+// nor is shadowed. Waves of a DIFFERENT size ("form wave of two/three/six"),
+// and the qualified formations TCB writes as "form NEW wave …", "form DIAGONAL
+// wave of four", "form INTERSECTING/INTERLOCKING waves" all leave an
+// unexplained token behind, so they still fall to custom (prefer-custom): the
+// leading qualifier is never consumed and "of two/three/…" never matches.
+_Match? _formShortWaves(List<String> w) {
+  if (!_consumePhrase(w, ['form', 'a', 'wave', 'of', 'four']) &&
+      !_consumePhrase(w, ['form', 'wave', 'of', 'four']) &&
+      !_consumePhrase(w, ['form', 'a', 'wave']) &&
       !_consumePhrase(w, ['form', 'wave']) &&
       !_consumePhrase(w, ['form', 'a', 'short', 'wave']) &&
       !_consumePhrase(w, ['form', 'short', 'wave']) &&
@@ -1138,8 +1148,18 @@ _Match? _formAShortWave(List<String> w) {
   if (_consumePhrase(w, ['across'])) {
     dir = 'across';
   }
+  // TCB names the pair on the ENDS of the wave as a "with <dancer>" tail
+  // ("form wave of four with N2" / "… with shadow") — that is the `sides` pair.
+  // Only consumed when the "with" is actually present, so no pair is invented.
+  String? sides;
+  if (_consumePhrase(w, ['with'])) {
+    sides = _takeDancer(w);
+    if (sides == null) return null; // "with <unknown>" -> custom.
+  }
   _dropFiller(w);
-  return w.isEmpty ? _Match('form_a_short_wave', {'dir': ?dir}) : null;
+  return w.isEmpty
+      ? _Match('form_short_waves', {'dir': ?dir, 'sides': ?sides})
+      : null;
 }
 
 _Match? _promenade(List<String> w) {
