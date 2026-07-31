@@ -108,9 +108,24 @@ class VenueRepository {
   Future<void> hardDelete(Iterable<String> ids) {
     final list = ids.toList();
     if (list.isEmpty) return Future.value();
-    return _db.transaction(
-      () => (_db.delete(_db.venues)..where((t) => t.id.isIn(list))).go(),
-    );
+    return _db.transaction(() async {
+      for (final chunk in _chunkIds(list)) {
+        await (_db.delete(_db.venues)..where((t) => t.id.isIn(chunk))).go();
+      }
+    });
+  }
+
+  /// Max ids per `IN (…)` clause. Kept well under SQLite's default
+  /// `SQLITE_MAX_VARIABLE_NUMBER` (999 on older builds) so a full-collection
+  /// delete stays correct no matter how large the library grows. Mirrors
+  /// `DanceRepository`'s `_idChunkSize`.
+  static const int _idChunkSize = 500;
+
+  Iterable<List<String>> _chunkIds(List<String> ids) sync* {
+    for (var i = 0; i < ids.length; i += _idChunkSize) {
+      final end = i + _idChunkSize;
+      yield ids.sublist(i, end > ids.length ? ids.length : end);
+    }
   }
 
   Venue _toModel(VenueRow row) => Venue(

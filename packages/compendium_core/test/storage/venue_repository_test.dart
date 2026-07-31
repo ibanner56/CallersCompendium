@@ -129,4 +129,41 @@ void main() {
       ),
     );
   });
+
+  group('hardDelete', () {
+    test('removes the named venues, ignoring unknown ids', () async {
+      await repo.upsert(Venue(id: 'v1', name: 'Old Hall'));
+      await repo.upsert(Venue(id: 'v2', name: 'Keep Hall'));
+
+      await repo.hardDelete(['v1', 'does-not-exist']);
+
+      expect(await repo.getById('v1'), isNull);
+      expect(await repo.getById('v2'), isNotNull);
+    });
+
+    test('an empty id list is a no-op', () async {
+      await repo.upsert(Venue(id: 'v1', name: 'Solo Hall'));
+      await repo.hardDelete(const []);
+      expect(await repo.getById('v1'), isNotNull);
+    });
+
+    test('spans an id chunk boundary (#624)', () async {
+      // More than one _idChunkSize (500) worth of venues, so the delete must
+      // chunk its isIn() batch rather than exceeding SQLite's bound variable
+      // limit in a single query.
+      const total = 501;
+      final ids = [
+        for (var i = 0; i < total; i++) 'v${i.toString().padLeft(4, '0')}',
+      ];
+      for (final id in ids) {
+        await repo.upsert(Venue(id: id, name: id));
+      }
+
+      await repo.hardDelete(ids);
+
+      for (final id in ids) {
+        expect(await repo.getById(id), isNull);
+      }
+    });
+  });
 }
