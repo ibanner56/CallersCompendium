@@ -1,10 +1,11 @@
 # Landing page (`site/`)
 
-Source for the public landing page at
+Source for the public site at
 <https://ibanner56.github.io/CallersCompendium/>.
 
 It's a dependency-free static site — plain HTML, CSS, and a little vanilla JS.
-There is **no build step**: what's in this folder is what gets served.
+The landing page itself has **no build step**: what's in this folder is what
+gets served. The **user guides** at `/guide/` are generated (see below).
 
 ```
 site/
@@ -14,6 +15,35 @@ site/
 └── assets/         # logo, favicon, social card, (future) screenshots
 ```
 
+## The user guides are generated
+
+`/guide/` is **not** in this folder — it is rendered from
+[`docs/user/*.md`](../docs/user/) by
+[`tools/site/render_user_docs.py`](../tools/site/render_user_docs.py) at publish
+time, and never committed. The same Markdown feeds three consumers: GitHub,
+the offline in-app reader, and this site.
+
+Why pre-rendered? `gh-pages` carries a `.nojekyll` marker so the update
+manifests serve verbatim — which also means Jekyll won't render Markdown for us.
+The renderer is stdlib-only (no `pip install` in the Pages job, no third-party
+JS or CSS on the site), escapes everything, and allow-lists link targets.
+
+The build stages a **complete site** — the contents of `site/` plus the rendered
+`guide/` tree — into `build/site`, and that directory is what gets published:
+
+```sh
+python3 tools/site/render_user_docs.py --out build/site
+```
+
+A broken cross-link, an `#anchor` with no matching heading, two headings that
+collide on one anchor, a stale `guide/…` link on the landing page, or any GitHub
+repo URL in the built site whose path is missing or has the wrong `blob`/`tree`
+form all **fail the build**; the same check runs on every PR that touches
+`docs/user/` via `.github/workflows/docs-bundle-check.yml`.
+
+The guide pages reuse `styles.css` (see the *Guide pages* block) and the same
+header/footer chrome as `privacy/index.html`, so they read as part of the site.
+
 ## How it's deployed
 
 The site is published to the **`gh-pages` branch** (the same branch that hosts
@@ -22,8 +52,8 @@ that branch, and they are designed to coexist without clobbering each other:
 
 | Writer | Trigger | Publishes | Preserves |
 | --- | --- | --- | --- |
-| `.github/workflows/pages-site.yml` → `tools/release/publish_pages_site.sh` | push to `main` touching `site/**`, or manual dispatch | everything in `site/` | the `*.json` manifests + `.nojekyll` |
-| `release.yml` `pages` job → `tools/release/publish_pages_manifest.sh` | tagged release | the current channel's `*.json` | the landing page + the other channel |
+| `.github/workflows/pages-site.yml` → `tools/site/render_user_docs.py` → `tools/release/publish_pages_site.sh` | push to `main` touching `site/**`, `docs/user/**` or `tools/site/**`, or manual dispatch | everything in `site/` **plus** the rendered `guide/` | the `*.json` manifests + `.nojekyll` |
+| `release.yml` `pages` job → `tools/release/publish_pages_manifest.sh` | tagged release | the current channel's `*.json` | the landing page, the guides + the other channel |
 
 Both scripts start from the existing `gh-pages` content and rewrite only their
 own files, so a site deploy never erases a manifest and a release never erases
@@ -79,11 +109,14 @@ real captures:
 ## Local preview
 
 ```sh
-cd site
+python3 tools/site/render_user_docs.py --out build/site
+cd build/site
 python3 -m http.server 8000
-# open http://localhost:8000
+# open http://localhost:8000  (guides at http://localhost:8000/guide/)
 ```
 
-The `beta.json` fetch is same-origin, so the live download cards only render
-when the page is served from the deployed site (or if you drop a `beta.json`
-next to `index.html` locally). Everything else previews fine offline.
+Serving `build/site` rather than `site/` is what makes `/guide/` resolve — it is
+the same tree the publisher pushes. The `beta.json` fetch is same-origin, so the
+live download cards only render when the page is served from the deployed site
+(or if you drop a `beta.json` next to `index.html` locally). Everything else
+previews fine offline.

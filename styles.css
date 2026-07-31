@@ -200,6 +200,106 @@ section { padding: 64px 0; }
 .guide-link:hover { transform: translateY(-2px); border-color: var(--brand); }
 .guide-link h3 { color: var(--brand-ink); }
 
+/* ---------- Guide pages (rendered from docs/user by tools/site) ---------- */
+/* A two-column reading layout: a sticky guide switcher beside the prose. The
+   prose column is capped at a comfortable measure; everything inherits the
+   colours, typography and dark-mode handling defined above, so the guides feel
+   like part of the site rather than a bolted-on docs tool. */
+.guide-layout {
+  display: grid;
+  gap: 40px;
+  grid-template-columns: 232px minmax(0, 1fr);
+  align-items: start;
+  padding-top: 40px;
+  padding-bottom: 56px;
+}
+@media (max-width: 900px) {
+  .guide-layout { grid-template-columns: 1fr; gap: 24px; }
+}
+
+.guide-nav {
+  position: sticky; top: 82px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); padding: 12px 18px 14px; box-shadow: var(--shadow);
+}
+@media (max-width: 900px) { .guide-nav { position: static; } }
+/* A <details> disclosure, so a narrow screen can fold the guide list away with
+   no JavaScript. It is rendered `open`, so the list is always there for a
+   reader with CSS or JS disabled, and for print. */
+.guide-nav summary {
+  margin: 0; padding: 4px 0; cursor: pointer; list-style: none;
+  font-size: .78rem; font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--ink-faint);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.guide-nav summary::-webkit-details-marker { display: none; }
+.guide-nav summary::after {
+  content: "▾"; font-size: .9rem; line-height: 1; color: var(--ink-faint);
+  transition: transform .12s ease;
+}
+@media (prefers-reduced-motion: reduce) { .guide-nav summary::after { transition: none; } }
+.guide-nav details:not([open]) > summary::after { transform: rotate(-90deg); }
+.guide-nav summary:hover { color: var(--brand-ink); }
+.guide-nav ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.guide-nav li { margin: 0; }
+.guide-nav a {
+  display: block; padding: 5px 0; font-size: .94rem; line-height: 1.4;
+  color: var(--ink-soft); text-decoration: none;
+}
+.guide-nav a:hover { color: var(--brand-ink); }
+.guide-nav a[aria-current="page"] { color: var(--brand-ink); font-weight: 700; }
+
+.guide-breadcrumb {
+  margin: 0 0 18px; font-size: .88rem; color: var(--ink-faint);
+}
+.guide-breadcrumb a { color: var(--ink-faint); text-decoration: none; }
+.guide-breadcrumb a:hover { color: var(--brand-ink); }
+.guide-breadcrumb span { margin: 0 6px; }
+
+.guide-body { max-width: 72ch; }
+.guide-body h1 { font-size: clamp(1.8rem, 4vw, 2.5rem); margin: 0 0 .6rem; letter-spacing: -.02em; }
+.guide-body h2 {
+  font-size: clamp(1.25rem, 2.6vw, 1.6rem); margin: 2.4rem 0 .6rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); letter-spacing: -.01em;
+}
+.guide-body h3 { font-size: 1.1rem; margin: 1.8rem 0 .4rem; }
+.guide-body h4 { font-size: 1rem; margin: 1.4rem 0 .4rem; color: var(--ink-soft); }
+.guide-body p, .guide-body li { color: var(--ink-soft); line-height: 1.7; }
+.guide-body > p:first-of-type { color: var(--ink); font-size: 1.08rem; }
+.guide-body ul, .guide-body ol { padding-left: 1.35rem; margin: .8rem 0; }
+.guide-body li { margin: .35rem 0; }
+.guide-body li > ul, .guide-body li > ol { margin: .35rem 0; }
+.guide-body a { text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.guide-body hr { border: 0; border-top: 1px solid var(--line); margin: 2.4rem 0; }
+.guide-body code {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: .88em; background: var(--bg-alt); border: 1px solid var(--line);
+  border-radius: 5px; padding: .1em .35em;
+}
+.guide-body pre {
+  background: var(--bg-alt); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 14px 16px; overflow-x: auto;
+}
+.guide-body pre code { background: none; border: 0; padding: 0; font-size: .86rem; }
+.guide-body blockquote {
+  margin: 1.2rem 0; padding: 2px 18px;
+  border-left: 4px solid var(--brand); background: var(--bg-alt);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.guide-body blockquote p { margin: .8rem 0; }
+
+/* Guides are text-only: an image renders as its alt text, matching the in-app
+   reader (see docs/user/style-guide.md). */
+.guide-figure { display: block; color: var(--ink-faint); font-size: .94rem; }
+
+.guide-table-wrap { overflow-x: auto; margin: 1.2rem 0; }
+.guide-body table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+.guide-body th, .guide-body td {
+  border: 1px solid var(--line); padding: 9px 12px; text-align: left;
+  vertical-align: top; color: var(--ink-soft);
+}
+.guide-body th { background: var(--bg-alt); color: var(--ink); font-weight: 700; }
+
 /* ---------- Footer ---------- */
 .site-footer { background: var(--surface); border-top: 1px solid var(--line); padding: 40px 0 28px; }
 .footer-inner { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
