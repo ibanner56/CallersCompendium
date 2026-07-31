@@ -211,10 +211,11 @@ The **Language & region** section handles formats and localization.
   recognised the app says so and falls back to the system default until you
   correct it.
 
-- **First day of week** — shown as **Coming soon** and disabled for now. A future
-  update will let you choose which day the week starts on in the app's own date
-  views; today, date entry uses the system picker, which follows the app's active
-  language.
+- **First day of week** — choose **System default**, **Sunday**, **Monday**, or
+  **Saturday**. This sets which day starts the week in the date views the app
+  draws for itself — today that is the "this week" strip at the top of the
+  Programs list, which reorders the moment you change the setting. Date *entry*
+  still uses the system picker, which follows the app's active language.
 
 ### Language
 

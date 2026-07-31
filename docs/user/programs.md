@@ -187,6 +187,14 @@ Here is how to read it:
   dances, or lands in a different phrase, is left alone.
 - **Headers stay pinned** as you scroll, so you never lose track of which row or
   column you are looking at.
+- **Hide a column you do not need** using the eye icon in its header. The icon is
+  always there rather than appearing on hover, so it works by touch, mouse, or
+  keyboard alike. Hiding is a view preference for right now: hidden columns come
+  back the next time you open the program, and they never change what prints or
+  exports. To restore them all at once, use **Show all columns** above the matrix,
+  beside the PDF button — it is available only while something is hidden. The
+  pinned **Formation** column cannot be hidden, since it is part of each dance's
+  identity rather than a move.
 
 The matrix shows **presence, not counts** — whether a move is in a dance, not how
 many times, and not the order the moves come in. That is exactly what you want
@@ -207,7 +215,8 @@ A few practical notes:
   menu, and it is unavailable while the matrix is empty. The PDF is landscape and
   carries its own legend — where the screen uses icons, the printed page uses the
   marks `★` (introduced here), `▸` (dance's first figure), `✓` (present), and `‼`
-  (same phrase as adjacent dance). See
+  (same phrase as adjacent dance). Columns you have hidden on screen still print:
+  the export always covers the full matrix. See
   [Share, print & export](./sharing.md#print-the-programming-matrix).
 
 ## Print, export, and email a program

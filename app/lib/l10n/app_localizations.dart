@@ -388,11 +388,29 @@ abstract class AppLocalizations {
   /// **'First day of week'**
   String get settingsFirstDayOfWeekTitle;
 
-  /// Subtitle for the disabled, not-yet-available first-day-of-week row. Describes the future feature without implying it works today.
+  /// Subtitle for the live first-day-of-week control. Describes what it affects: date views the app draws itself (not the system date picker).
   ///
   /// In en, this message translates to:
-  /// **'Which day the week starts on in the app\'s date views. Coming in a future update.'**
+  /// **'Which day the week starts on in the app\'s own date views, such as the Programs list\'s this-week strip.'**
   String get settingsFirstDayOfWeekSubtitle;
+
+  /// First-day-of-week option: start the week on Sunday.
+  ///
+  /// In en, this message translates to:
+  /// **'Sunday'**
+  String get settingsFirstDayOfWeekSunday;
+
+  /// First-day-of-week option: start the week on Monday (ISO-8601).
+  ///
+  /// In en, this message translates to:
+  /// **'Monday'**
+  String get settingsFirstDayOfWeekMonday;
+
+  /// First-day-of-week option: start the week on Saturday.
+  ///
+  /// In en, this message translates to:
+  /// **'Saturday'**
+  String get settingsFirstDayOfWeekSaturday;
 
   /// Title of the control that chooses the language of the app's interface.
   ///
@@ -3954,10 +3972,10 @@ abstract class AppLocalizations {
   /// **'Done'**
   String get commonDone;
 
-  /// Container semantics label for the programming matrix, announcing its size (dances by moves).
+  /// Container semantics label for the programming matrix, announcing its size (dances by moves). moveCount is plural-aware since hiding columns (#669) can bring it down to 1.
   ///
   /// In en, this message translates to:
-  /// **'Programming matrix: {danceCount} dances by {moveCount} moves'**
+  /// **'Programming matrix: {danceCount} dances by {moveCount, plural, =1{1 move} other{{moveCount} moves}}'**
   String programsMatrixSemanticLabel(int danceCount, int moveCount);
 
   /// Caption noting free-text slots (breaks, notes) that are excluded from the dances-only matrix.
@@ -3971,6 +3989,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Move: {label}'**
   String programsMatrixMoveHeaderSemantic(String label);
+
+  /// Accessible label/tooltip for the button on a matrix move column header that hides that column from the on-screen matrix (#669). Always focusable/hit-testable, not hover-only.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide {label} column'**
+  String programsMatrixHideColumnSemantic(String label);
+
+  /// Accessible label/tooltip for the control (next to the matrix PDF-export button) that restores every column hidden via the per-column hide glyph (#669).
+  ///
+  /// In en, this message translates to:
+  /// **'Show all columns'**
+  String get programsMatrixShowAllColumnsSemantic;
 
   /// Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.
   ///
@@ -7240,12 +7270,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'More options ({count})'**
   String danceEditorMoreOptions(int count);
-
-  /// Tooltip explaining that a move can carry the dance progression.
-  ///
-  /// In en, this message translates to:
-  /// **'This move can carry the progression.'**
-  String get danceEditorMoveCanCarryProgression;
 
   /// Button label for revealing a figure note field.
   ///

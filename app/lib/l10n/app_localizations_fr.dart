@@ -171,7 +171,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsFirstDayOfWeekSubtitle =>
-      'Jour de début de la semaine dans les vues de date de l’application. Disponible dans une prochaine mise à jour.';
+      'Jour de début de la semaine dans les vues de date propres à l\'application, comme le bandeau « cette semaine » de la liste des programmes.';
+
+  @override
+  String get settingsFirstDayOfWeekSunday => 'Dimanche';
+
+  @override
+  String get settingsFirstDayOfWeekMonday => 'Lundi';
+
+  @override
+  String get settingsFirstDayOfWeekSaturday => 'Samedi';
 
   @override
   String get settingsAppLanguageTitle => 'Langue de l’application';
@@ -2425,7 +2434,13 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String programsMatrixSemanticLabel(int danceCount, int moveCount) {
-    return 'Matrice de programmation : $danceCount danses par $moveCount mouvements';
+    String _temp0 = intl.Intl.pluralLogic(
+      moveCount,
+      locale: localeName,
+      other: '$moveCount mouvements',
+      one: '1 mouvement',
+    );
+    return 'Matrice de programmation : $danceCount danses par $_temp0';
   }
 
   @override
@@ -2443,6 +2458,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String programsMatrixMoveHeaderSemantic(String label) {
     return 'Mouvement : $label';
   }
+
+  @override
+  String programsMatrixHideColumnSemantic(String label) {
+    return 'Masquer la colonne $label';
+  }
+
+  @override
+  String get programsMatrixShowAllColumnsSemantic =>
+      'Afficher toutes les colonnes';
 
   @override
   String programsMatrixRowHeaderSemantic(
@@ -4723,10 +4747,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String danceEditorMoreOptions(int count) {
     return 'Plus d’options ($count)';
   }
-
-  @override
-  String get danceEditorMoveCanCarryProgression =>
-      'Ce mouvement peut porter la progression.';
 
   @override
   String get danceEditorAddNote => 'Ajouter une note';

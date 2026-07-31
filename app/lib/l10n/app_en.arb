@@ -224,9 +224,21 @@
   "@settingsFirstDayOfWeekTitle": {
     "description": "Title of the control that chooses which day the week starts on."
   },
-  "settingsFirstDayOfWeekSubtitle": "Which day the week starts on in the app's date views. Coming in a future update.",
+  "settingsFirstDayOfWeekSubtitle": "Which day the week starts on in the app's own date views, such as the Programs list's this-week strip.",
   "@settingsFirstDayOfWeekSubtitle": {
-    "description": "Subtitle for the disabled, not-yet-available first-day-of-week row. Describes the future feature without implying it works today."
+    "description": "Subtitle for the live first-day-of-week control. Describes what it affects: date views the app draws itself (not the system date picker)."
+  },
+  "settingsFirstDayOfWeekSunday": "Sunday",
+  "@settingsFirstDayOfWeekSunday": {
+    "description": "First-day-of-week option: start the week on Sunday."
+  },
+  "settingsFirstDayOfWeekMonday": "Monday",
+  "@settingsFirstDayOfWeekMonday": {
+    "description": "First-day-of-week option: start the week on Monday (ISO-8601)."
+  },
+  "settingsFirstDayOfWeekSaturday": "Saturday",
+  "@settingsFirstDayOfWeekSaturday": {
+    "description": "First-day-of-week option: start the week on Saturday."
   },
 
   "settingsAppLanguageTitle": "App language",
@@ -3158,9 +3170,9 @@
   "@commonDone": {
     "description": "Generic confirmation button label for finishing an edit dialog."
   },
-  "programsMatrixSemanticLabel": "Programming matrix: {danceCount} dances by {moveCount} moves",
+  "programsMatrixSemanticLabel": "Programming matrix: {danceCount} dances by {moveCount, plural, =1{1 move} other{{moveCount} moves}}",
   "@programsMatrixSemanticLabel": {
-    "description": "Container semantics label for the programming matrix, announcing its size (dances by moves).",
+    "description": "Container semantics label for the programming matrix, announcing its size (dances by moves). moveCount is plural-aware since hiding columns (#669) can bring it down to 1.",
     "placeholders": {
       "danceCount": { "type": "int", "example": "6" },
       "moveCount": { "type": "int", "example": "9" }
@@ -3179,6 +3191,17 @@
     "placeholders": {
       "label": { "type": "String", "example": "partner swing" }
     }
+  },
+  "programsMatrixHideColumnSemantic": "Hide {label} column",
+  "@programsMatrixHideColumnSemantic": {
+    "description": "Accessible label/tooltip for the button on a matrix move column header that hides that column from the on-screen matrix (#669). Always focusable/hit-testable, not hover-only.",
+    "placeholders": {
+      "label": { "type": "String", "example": "partner swing" }
+    }
+  },
+  "programsMatrixShowAllColumnsSemantic": "Show all columns",
+  "@programsMatrixShowAllColumnsSemantic": {
+    "description": "Accessible label/tooltip for the control (next to the matrix PDF-export button) that restores every column hidden via the per-column hide glyph (#669)."
   },
   "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Alternate dance: {title}, first half} second{Alternate dance: {title}, second half} other{Alternate dance: {title}}}} other{{half, select, first{Dance: {title}, first half} second{Dance: {title}, second half} other{Dance: {title}}}}}",
   "@programsMatrixRowHeaderSemantic": {
@@ -5126,10 +5149,6 @@
         "example": "2"
       }
     }
-  },
-  "danceEditorMoveCanCarryProgression": "This move can carry the progression.",
-  "@danceEditorMoveCanCarryProgression":   {
-    "description": "Tooltip explaining that a move can carry the dance progression."
   },
   "danceEditorAddNote": "Add note",
   "@danceEditorAddNote":   {

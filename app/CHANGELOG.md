@@ -13,6 +13,22 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **First day of week is live.** The Language & region settings dropdown for
+  first day of week (System default / Sunday / Monday / Saturday) is no
+  longer disabled — it now has a real consumer, the Programs list's "this
+  week" header strip, which reorders its weekday columns to match your
+  choice (falling back to your app language's convention for System
+  default). Closes #636.
+- **Hide columns you don't need in the program matrix, with a one-tap
+  reset.** Each move column in the wide grid now has a small eye glyph — always
+  visible (not hover-only, so it works on touch and for keyboard/AT users too)
+  and focusable — that hides that column from view. A "Show all columns"
+  button next to the PDF-export button clears every hidden column at once; it's
+  disabled whenever nothing is hidden. Hiding is a session-only view
+  preference (it resets whenever you reopen the program) and only affects
+  what's on screen — the PDF/print export always includes every column,
+  hidden or not. The pinned Formation column isn't hideable, since it's part
+  of each dance's identity rather than a move. Closes #669.
 - **The program matrix now shows each dance's formation.** A new pinned
   "Formation" column sits next to the dance title in the wide grid — always
   visible while scrolling through moves, so callers can spot too many
@@ -136,6 +152,15 @@ each release so store builds and tags can be traced back to an entry.
   export** and its legend, and — like the existing star/flag/check markers — is
   conveyed with a distinct shape plus a localized screen-reader announcement,
   never colour alone (WCAG 1.4.1). (#582)
+
+### Removed
+
+- **The automatic "can carry progression" hint is gone from the figure
+  editor.** Swing and allemande no longer show an info-icon/tooltip nudge
+  beside the Progression toggle. The manual **Progression** toggle is
+  unaffected — you can still flag any figure as the progression yourself.
+  The underlying `progressionCapable` taxonomy flag (non-serialized static
+  metadata) was removed along with it. Closes #551.
 
 ### Security
 

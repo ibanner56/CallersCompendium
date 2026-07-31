@@ -167,7 +167,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsFirstDayOfWeekSubtitle =>
-      'アプリの日付表示で週の始まる曜日を指定します。将来のアップデートで追加予定です。';
+      'アプリ自身が描画する日付表示(プログラム一覧の「今週」ストリップなど)で、週の始まる曜日を指定します。';
+
+  @override
+  String get settingsFirstDayOfWeekSunday => '日曜日';
+
+  @override
+  String get settingsFirstDayOfWeekMonday => '月曜日';
+
+  @override
+  String get settingsFirstDayOfWeekSaturday => '土曜日';
 
   @override
   String get settingsAppLanguageTitle => 'アプリの言語';
@@ -2334,7 +2343,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String programsMatrixSemanticLabel(int danceCount, int moveCount) {
-    return 'プログラミングマトリックス: $danceCount件のダンス × $moveCount件のムーブ';
+    String _temp0 = intl.Intl.pluralLogic(
+      moveCount,
+      locale: localeName,
+      other: '$moveCount件のムーブ',
+    );
+    return 'プログラミングマトリックス: $danceCount件のダンス × $_temp0';
   }
 
   @override
@@ -2351,6 +2365,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String programsMatrixMoveHeaderSemantic(String label) {
     return 'ムーブ: $label';
   }
+
+  @override
+  String programsMatrixHideColumnSemantic(String label) {
+    return '$label列を非表示にする';
+  }
+
+  @override
+  String get programsMatrixShowAllColumnsSemantic => 'すべての列を表示';
 
   @override
   String programsMatrixRowHeaderSemantic(
@@ -4516,9 +4538,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String danceEditorMoreOptions(int count) {
     return 'オプションをさらに表示 ($count)';
   }
-
-  @override
-  String get danceEditorMoveCanCarryProgression => 'このムーブはプログレッションを担えます。';
 
   @override
   String get danceEditorAddNote => 'ノートを追加';

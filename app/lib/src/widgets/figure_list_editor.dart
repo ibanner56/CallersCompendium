@@ -1547,7 +1547,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 else if (def.params.isNotEmpty)
                   _buildParams(context, def),
                 const SizedBox(height: 12),
-                _buildProgressionToggle(context, def),
+                _buildProgressionToggle(context),
                 const SizedBox(height: 8),
                 _buildNote(context),
                 _buildWalkthroughSnippet(context),
@@ -1798,7 +1798,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 ],
               ),
               const SizedBox(height: 12),
-              _buildProgressionToggle(context, null),
+              _buildProgressionToggle(context),
               const SizedBox(height: 8),
               _buildNote(context),
               _buildWalkthroughSnippet(context),
@@ -1902,11 +1902,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     );
   }
 
-  Widget _buildProgressionToggle(BuildContext context, MoveDef? def) {
+  Widget _buildProgressionToggle(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
     return Row(
+      key: ValueKey('figure-${widget.index}-progression-row'),
       mainAxisSize: MainAxisSize.min,
       children: [
         Semantics(
@@ -1923,18 +1924,6 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         ),
         const SizedBox(width: 8),
         Text(l10n.commonProgression, style: theme.textTheme.bodyMedium),
-        if (def != null && def.progressionCapable && !draft.progression)
-          Padding(
-            padding: const EdgeInsets.only(left: 4),
-            child: Tooltip(
-              message: l10n.danceEditorMoveCanCarryProgression,
-              child: Icon(
-                Icons.info_outline,
-                size: 14,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
       ],
     );
   }

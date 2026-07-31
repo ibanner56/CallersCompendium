@@ -336,4 +336,54 @@ void main() {
       expect(FirstDayOfWeekPref.saturday.token, 'saturday');
     });
   });
+
+  group('orderedWeekdays (ROADMAP G.8 consumer)', () {
+    const material = DefaultMaterialLocalizations();
+
+    test('starts at the preference for each fixed option', () {
+      expect(orderedWeekdays(FirstDayOfWeekPref.monday, material), [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+      ]);
+      expect(orderedWeekdays(FirstDayOfWeekPref.sunday, material), [
+        7,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+      ]);
+      expect(orderedWeekdays(FirstDayOfWeekPref.saturday, material), [
+        6,
+        7,
+        1,
+        2,
+        3,
+        4,
+        5,
+      ]);
+    });
+
+    test('system falls back to the locale (DefaultMaterialLocalizations is '
+        'Sunday-first)', () {
+      expect(
+        orderedWeekdays(FirstDayOfWeekPref.system, material),
+        orderedWeekdays(FirstDayOfWeekPref.sunday, material),
+      );
+    });
+
+    test('always returns all seven weekdays exactly once', () {
+      for (final pref in FirstDayOfWeekPref.values) {
+        final order = orderedWeekdays(pref, material);
+        expect(order.length, 7);
+        expect(order.toSet(), {1, 2, 3, 4, 5, 6, 7});
+      }
+    });
+  });
 }

@@ -170,7 +170,16 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsFirstDayOfWeekSubtitle =>
-      'Hvilken dag ugen starter på i appens datovisninger. Kommer i en fremtidig opdatering.';
+      'Hvilken dag ugen starter på i appens egne datovisninger, f.eks. programlistens ugestribe.';
+
+  @override
+  String get settingsFirstDayOfWeekSunday => 'Søndag';
+
+  @override
+  String get settingsFirstDayOfWeekMonday => 'Mandag';
+
+  @override
+  String get settingsFirstDayOfWeekSaturday => 'Lørdag';
 
   @override
   String get settingsAppLanguageTitle => 'Appsprog';
@@ -2400,7 +2409,13 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String programsMatrixSemanticLabel(int danceCount, int moveCount) {
-    return 'Programmeringsmatrix: $danceCount danse med $moveCount bevægelser';
+    String _temp0 = intl.Intl.pluralLogic(
+      moveCount,
+      locale: localeName,
+      other: '$moveCount bevægelser',
+      one: '1 bevægelse',
+    );
+    return 'Programmeringsmatrix: $danceCount danse med $_temp0';
   }
 
   @override
@@ -2418,6 +2433,14 @@ class AppLocalizationsDa extends AppLocalizations {
   String programsMatrixMoveHeaderSemantic(String label) {
     return 'Bevægelse: $label';
   }
+
+  @override
+  String programsMatrixHideColumnSemantic(String label) {
+    return 'Skjul kolonnen $label';
+  }
+
+  @override
+  String get programsMatrixShowAllColumnsSemantic => 'Vis alle kolonner';
 
   @override
   String programsMatrixRowHeaderSemantic(
@@ -4663,10 +4686,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String danceEditorMoreOptions(int count) {
     return 'Flere muligheder ($count)';
   }
-
-  @override
-  String get danceEditorMoveCanCarryProgression =>
-      'Denne bevægelse kan bære progressionen.';
 
   @override
   String get danceEditorAddNote => 'Tilføj note';

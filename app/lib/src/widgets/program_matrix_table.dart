@@ -30,6 +30,8 @@ class ProgramMatrixTable extends StatefulWidget {
     required this.dialect,
     this.omittedFreeTextCount = 0,
     this.altDanceIds = const {},
+    this.hiddenColumns = const {},
+    this.onHideColumn,
   });
 
   final ProgramMatrix matrix;
@@ -42,6 +44,19 @@ class ProgramMatrixTable extends StatefulWidget {
 
   /// Dance ids whose row is an alternate slot (badged "ALT").
   final Set<String> altDanceIds;
+
+  /// Indices into [matrix]'s columns (its move columns — the pinned
+  /// formation column is never hideable) that the caller has hidden from
+  /// view (#669). Purely a render-layer filter: [matrix] itself keeps
+  /// computing debut/collision analysis over every column, and this table
+  /// never mutates it — the host screen owns this set and is the only thing
+  /// that changes it (via [onHideColumn] and its own reset control).
+  final Set<int> hiddenColumns;
+
+  /// Called with a column's index when its hide glyph is activated. Null
+  /// (the default) disables the hide affordance's button — used by callers
+  /// that only need the read-only matrix (e.g. most existing tests/embeds).
+  final ValueChanged<int>? onHideColumn;
 
   static const double columnWidth = 64;
   static const double rowHeight = 48;
@@ -134,15 +149,18 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
         // The compact view drops columns no dance actually uses (e.g. the
         // always-emitted swing baseline), so its announced move count is the
         // number of columns actually shown — keeping the semantics label
-        // accurate for assistive tech.
+        // accurate for assistive tech. Both views also exclude columns the
+        // caller has hidden (#669): a hidden column isn't part of what's on
+        // screen, so it shouldn't be part of the announced count either.
         final moveCount = compact
-            ? _presentColumnCount(matrix)
-            : matrix.columns.length;
+            ? _presentColumnCount(matrix, widget.hiddenColumns)
+            : _visibleColumnCount(matrix, widget.hiddenColumns);
         final content = compact
             ? _CompactMatrix(
                 matrix: matrix,
                 labels: labels,
                 altDanceIds: widget.altDanceIds,
+                hiddenColumns: widget.hiddenColumns,
               )
             : _wideTable(labels);
         return Column(
@@ -203,7 +221,12 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                     child: Row(
                       children: [
                         for (var c = 0; c < matrix.columns.length; c++)
-                          _ColumnHeader(label: labels[c]),
+                          if (!widget.hiddenColumns.contains(c))
+                            _HideableColumnHeader(
+                              label: labels[c],
+                              columnIndex: c,
+                              onHide: widget.onHideColumn,
+                            ),
                       ],
                     ),
                   ),
@@ -285,14 +308,21 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                                     c < matrix.columns.length;
                                     c++
                                   )
-                                    _Cell(
-                                      danceTitle: matrix.rows[r].title,
-                                      moveLabel: labels[c],
-                                      present: matrix.isPresent(r, c),
-                                      first: matrix.isFirst(r, c),
-                                      programDebut: matrix.isProgramDebut(r, c),
-                                      collision: matrix.isPhraseCollision(r, c),
-                                    ),
+                                    if (!widget.hiddenColumns.contains(c))
+                                      _Cell(
+                                        danceTitle: matrix.rows[r].title,
+                                        moveLabel: labels[c],
+                                        present: matrix.isPresent(r, c),
+                                        first: matrix.isFirst(r, c),
+                                        programDebut: matrix.isProgramDebut(
+                                          r,
+                                          c,
+                                        ),
+                                        collision: matrix.isPhraseCollision(
+                                          r,
+                                          c,
+                                        ),
+                                      ),
                                 ],
                               ),
                           ],
@@ -460,6 +490,98 @@ class _ColumnHeader extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.labelSmall,
         ),
+      ),
+    );
+  }
+}
+
+/// Wraps a [_ColumnHeader] with a hide affordance (#669): a small eye glyph
+/// that hides the column from the matrix view (the underlying [matrix]
+/// analysis is untouched — see [ProgramMatrixTable.hiddenColumns]).
+///
+/// The glyph is never hover-only: it's always present, focusable, and
+/// hit-testable (`onHide` — when non-null — is wired regardless of hover
+/// state), and its opacity only *animates* between a dim "not focused" resting
+/// state (so touch users, who have no hover, can still see and reach it) and
+/// full opacity on mouse hover or keyboard focus. This mirrors #662's
+/// decision to keep `_ColumnHeader` itself tooltip-free — the button's own
+/// label comes from [AppLocalizations.programsMatrixHideColumnSemantic],
+/// exposed as its `Semantics`/tooltip text, not a second header tooltip.
+class _HideableColumnHeader extends StatefulWidget {
+  const _HideableColumnHeader({
+    required this.label,
+    required this.columnIndex,
+    required this.onHide,
+  });
+
+  final String label;
+  final int columnIndex;
+  final ValueChanged<int>? onHide;
+
+  @override
+  State<_HideableColumnHeader> createState() => _HideableColumnHeaderState();
+}
+
+class _HideableColumnHeaderState extends State<_HideableColumnHeader> {
+  // 40dp keeps the tappable area close to Material's 48dp touch-target
+  // guidance while still fitting inside the 64dp column header without
+  // crowding out the label text beneath it.
+  static const double _glyphSize = 40;
+
+  /// Resting (non-hovered, non-focused) opacity of the glyph. Non-zero so
+  /// touch users — who never trigger [MouseRegion]'s hover — still have a
+  /// visible, reachable affordance without a separate long-press gesture.
+  static const double _restingOpacity = 0.55;
+
+  bool _hovered = false;
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final revealed = _hovered || _focused;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          _ColumnHeader(label: widget.label),
+          Positioned(
+            top: 0,
+            right: 0,
+            child: Focus(
+              onFocusChange: (hasFocus) => setState(() => _focused = hasFocus),
+              child: AnimatedOpacity(
+                opacity: revealed ? 1 : _restingOpacity,
+                duration: const Duration(milliseconds: 120),
+                child: SizedBox(
+                  width: _glyphSize,
+                  height: _glyphSize,
+                  child: IconButton(
+                    key: ValueKey(
+                      'program-matrix-hide-column-${widget.columnIndex}',
+                    ),
+                    icon: const Icon(Icons.visibility_off_outlined),
+                    iconSize: 14,
+                    tooltip: l10n.programsMatrixHideColumnSemantic(
+                      widget.label,
+                    ),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    constraints: BoxConstraints.tightFor(
+                      width: _glyphSize,
+                      height: _glyphSize,
+                    ),
+                    onPressed: widget.onHide == null
+                        ? null
+                        : () => widget.onHide!(widget.columnIndex),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -700,11 +822,19 @@ class _CompactMatrix extends StatelessWidget {
     required this.matrix,
     required this.labels,
     required this.altDanceIds,
+    this.hiddenColumns = const {},
   });
 
   final ProgramMatrix matrix;
   final List<String> labels;
   final Set<String> altDanceIds;
+
+  /// Columns hidden by the caller (#669) — see
+  /// [ProgramMatrixTable.hiddenColumns]. The compact view has no per-column
+  /// hide UI of its own (no header row to hover/tap), but it still respects
+  /// a hidden set supplied from the wide view/host so a column stays hidden
+  /// consistently across breakpoints.
+  final Set<int> hiddenColumns;
 
   @override
   Widget build(BuildContext context) {
@@ -719,6 +849,7 @@ class _CompactMatrix extends StatelessWidget {
     final repeated = <_MoveSummary>[];
     final singles = <_MoveSummary>[];
     for (var c = 0; c < matrix.columns.length; c++) {
+      if (hiddenColumns.contains(c)) continue;
       final dances = <_DanceUse>[];
       for (var r = 0; r < matrix.rows.length; r++) {
         if (matrix.isPresent(r, c)) {
@@ -813,16 +944,31 @@ class _CompactMatrix extends StatelessWidget {
 }
 
 /// Number of matrix columns present in at least one dance — the move count the
-/// compact view actually renders (it drops columns no dance uses).
-int _presentColumnCount(ProgramMatrix matrix) {
+/// compact view actually renders (it drops columns no dance uses). Also
+/// excludes any [hiddenColumns] (#669), so the announced count matches what's
+/// actually rendered.
+int _presentColumnCount(ProgramMatrix matrix, Set<int> hiddenColumns) {
   var count = 0;
   for (var c = 0; c < matrix.columns.length; c++) {
+    if (hiddenColumns.contains(c)) continue;
     for (var r = 0; r < matrix.rows.length; r++) {
       if (matrix.isPresent(r, c)) {
         count++;
         break;
       }
     }
+  }
+  return count;
+}
+
+/// Number of matrix columns the wide grid actually renders — every column
+/// except those in [hiddenColumns] (#669). Unlike [_presentColumnCount], the
+/// wide grid shows every column regardless of whether any dance uses it, so
+/// this doesn't check presence — only the hidden set.
+int _visibleColumnCount(ProgramMatrix matrix, Set<int> hiddenColumns) {
+  var count = 0;
+  for (var c = 0; c < matrix.columns.length; c++) {
+    if (!hiddenColumns.contains(c)) count++;
   }
   return count;
 }

@@ -102,7 +102,8 @@ column headings, and prints a legend along the bottom:
 | `✓` | Present |
 
 The matrix covers dances only, so if your program includes notes or breaks the
-PDF says how many were left out.
+PDF says how many were left out. Hiding a column on screen is a viewing
+convenience and does not narrow the export — every move column prints.
 
 ## What stays private
 
