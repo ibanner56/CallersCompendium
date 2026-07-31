@@ -48,6 +48,17 @@ class _HostState extends State<_Host> {
   );
 
   @override
+  void didUpdateWidget(_Host oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Keep the scope's live notifier in sync when a test re-pumps this host
+    // with a different `aggressiveBeatsUpdate` value (mirrors how the other
+    // rebuildable test props are threaded straight through `widget.*`).
+    if (widget.aggressiveBeatsUpdate != oldWidget.aggressiveBeatsUpdate) {
+      _aggressiveBeatsUpdateNotifier.value = widget.aggressiveBeatsUpdate;
+    }
+  }
+
+  @override
   void dispose() {
     _aggressiveBeatsUpdateNotifier.dispose();
     super.dispose();
@@ -2253,8 +2264,8 @@ void main() {
       },
     );
 
-    testWidgets('ON: recomputes to the canonical default even on a '
-        'non-default-shifting param change', (tester) async {
+    testWidgets('ON: a non-default-shifting param change leaves a manual '
+        'beats override alone', (tester) async {
       final drafts = <FigureDraft>[FigureDraft()];
       await _pump(tester, drafts, aggressiveBeatsUpdate: true);
       await _selectMove(tester, 0, 'circle', 'circle');
@@ -2268,14 +2279,13 @@ void main() {
       expect(drafts.single.beatsTouched, isTrue);
 
       // Circle's turn direction carries no paramBeats, so the canonical
-      // default doesn't move (still 8) — but aggressive mode recomputes
-      // unconditionally on ANY param change whenever the move has a beats
-      // spec (owner-locked #689 decision: it ignores beatsTouched
-      // entirely rather than only reacting to a default-shifting change),
-      // so the manual 12 is overwritten back to the canonical 8.
+      // default doesn't move (still 8). Aggressive mode only overrides a
+      // manual override when the param change actually shifts the derived
+      // default — matching the "a param that affects timing" UI copy — so
+      // the manual 12 survives this change untouched.
       await _selectDropdownOption(tester, 'figure-0-turn', 'right');
       expect(drafts.single.params['turn'], 'right');
-      expect(drafts.single.beats, 8);
+      expect(drafts.single.beats, 12);
     });
 
     testWidgets(

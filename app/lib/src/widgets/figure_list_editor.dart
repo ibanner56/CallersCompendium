@@ -1069,10 +1069,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     if (newDefault == null) return;
     if (draft.beatsTouched) {
       // #689: aggressive mode deliberately overrides a manual override (the
-      // owner-locked decision) — the user is explicitly opting into always-on
-      // recomputation, so re-derive unconditionally rather than only on a
-      // default-shifting change.
-      if (AggressiveBeatsUpdateScope.of(context)) {
+      // owner-locked decision) — but only when this param change actually
+      // shifts the canonical default. A param that doesn't affect beats
+      // (e.g. circle's turn direction) must leave a manually-set value
+      // alone, matching the "a param that affects timing" UI copy.
+      if (AggressiveBeatsUpdateScope.of(context) && newDefault != oldDefault) {
         draft.params['beats'] = newDefault;
       }
       return;
