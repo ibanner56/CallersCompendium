@@ -3596,6 +3596,10 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get importIssueRelatedDanceUnresolved =>
+      '関連ダンスのリンクがインポートされていないダンスを参照していたため、リンクはスキップされました。';
+
+  @override
   String get importDateFieldComposed => '振付';
 
   @override

@@ -122,6 +122,7 @@ void main() {
       'contradb_html_no_figures_table',
       'contradb_move_fallback',
       'contradb_param_unmapped',
+      'cc_related_dance_unresolved',
     };
 
     test('every produced code is mapped (no silent English leak)', () {

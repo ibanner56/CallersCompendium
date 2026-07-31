@@ -109,6 +109,32 @@ const int kMaxCcFiguresPerDance = 512;
 /// closed** with a [FmpResourceLimitException].
 const int kMaxCcInsertCallRows = 20000;
 
+/// Maximum number of Caller's Companion `Dance_Related` rows the CC-schema
+/// layer (`extractCcUsrArchive`) will join into related-dance pairs (issue
+/// #688).
+///
+/// A **CC-semantic** bound applied on top of [kMaxFmpRecords], for the same
+/// reason as [kMaxCcPhraseRows]/[kMaxCcInsertCallRows]: a hand-built
+/// [FmpDatabase] bypasses the raw byte reader, and a hostile file could aim its
+/// whole record budget at the `Dance_Related` table. The real
+/// `CallersCompanion2.USR` sample has **0** populated rows (its row shape is
+/// therefore unconfirmed — see `_extractRelatedDancePairs`'s dartdoc); 20k stays
+/// a generous ceiling while refusing a pathological table. Exceeding it **fails
+/// closed** with a [FmpResourceLimitException].
+const int kMaxCcDanceRelatedRows = 20000;
+
+/// Maximum number of related-dance pairs the CC-schema layer will accumulate
+/// for a **single** source dance across the whole `Dance_Related` table (issue
+/// #688).
+///
+/// Bounds the per-dance related-links blow-up a hostile file could force by
+/// aiming many `Dance_Related` rows at one `zk_Dance1_ID`. A real dance would
+/// realistically carry a handful of related dances; 512 mirrors
+/// [kMaxCcFiguresPerDance]'s order of magnitude while refusing a pathological
+/// concentration. Exceeding it **fails closed** with a
+/// [FmpResourceLimitException].
+const int kMaxCcRelatedDancesPerDance = 512;
+
 /// Maximum character length of a single Caller's Companion body line (one
 /// newline-split `PhraseText` line) the CC-schema layer will accept.
 ///
@@ -128,7 +154,9 @@ const int kMaxCcBodyLineLength = 2000;
 /// [maxSectors]/[maxTables]/[maxRecords] bound the raw FileMaker container read;
 /// [maxPhraseRows]/[maxFiguresPerDance]/[maxBodyLineLength] bound the CC
 /// `Phrase`-table join layered on top; [maxInsertCallRows] bounds the
-/// `InsertCall` shorthand-seeding scan (see the per-field dartdoc).
+/// `InsertCall` shorthand-seeding scan; [maxDanceRelatedRows]/
+/// [maxRelatedDancesPerDance] bound the `Dance_Related` join (see the per-field
+/// dartdoc).
 class FmpReadLimits {
   const FmpReadLimits({
     this.maxSectors = kMaxFmpSectors,
@@ -138,6 +166,8 @@ class FmpReadLimits {
     this.maxFiguresPerDance = kMaxCcFiguresPerDance,
     this.maxBodyLineLength = kMaxCcBodyLineLength,
     this.maxInsertCallRows = kMaxCcInsertCallRows,
+    this.maxDanceRelatedRows = kMaxCcDanceRelatedRows,
+    this.maxRelatedDancesPerDance = kMaxCcRelatedDancesPerDance,
   });
 
   final int maxSectors;
@@ -147,6 +177,8 @@ class FmpReadLimits {
   final int maxFiguresPerDance;
   final int maxBodyLineLength;
   final int maxInsertCallRows;
+  final int maxDanceRelatedRows;
+  final int maxRelatedDancesPerDance;
 }
 
 /// A column definition recovered from a table's schema.

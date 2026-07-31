@@ -934,6 +934,7 @@
   "importIssueParamUnmapped": "Un paramètre de figure n'a pas pu être associé ; une valeur par défaut de la taxonomie a été utilisée.",
   "importIssueParamValueUnmapped": "Le paramètre {param} n'a pas pu être converti ; une valeur par défaut de la taxonomie a été utilisée.",
   "importIssueParamCountUnmapped": "Une figure avait {provided} valeurs de paramètre mais seulement {mapped} sont associées ; les valeurs en trop ont été ignorées.",
+  "importIssueRelatedDanceUnresolved": "Un lien vers une danse associée pointait vers une danse non importée ; le lien a été ignoré.",
   "importDateFieldComposed": "composée",
   "importDateFieldRevised": "révisée",
   "importRecordErrorDiscover": "Cet enregistrement est introuvable.",

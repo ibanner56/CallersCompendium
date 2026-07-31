@@ -3717,6 +3717,10 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get importIssueRelatedDanceUnresolved =>
+      'Et relateret-dans-link pegede på en dans, der ikke blev importeret; linket blev sprunget over.';
+
+  @override
   String get importDateFieldComposed => 'komponeret';
 
   @override

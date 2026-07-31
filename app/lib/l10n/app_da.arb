@@ -934,6 +934,7 @@
   "importIssueParamUnmapped": "En figurparameter kunne ikke tilknyttes; en taksonomistandard blev brugt.",
   "importIssueParamValueUnmapped": "Parameteren {param} kunne ikke konverteres; en taksonomistandard blev brugt.",
   "importIssueParamCountUnmapped": "En figur havde {provided} parameterværdier, men kun {mapped} er tilknyttet; de overskydende blev ignoreret.",
+  "importIssueRelatedDanceUnresolved": "Et relateret-dans-link pegede på en dans, der ikke blev importeret; linket blev sprunget over.",
   "importDateFieldComposed": "komponeret",
   "importDateFieldRevised": "revideret",
   "importRecordErrorDiscover": "Denne post kunne ikke findes.",

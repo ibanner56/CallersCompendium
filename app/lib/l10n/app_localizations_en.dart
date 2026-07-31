@@ -3714,6 +3714,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get importIssueRelatedDanceUnresolved =>
+      'A related-dance link pointed at a dance that wasn\'t imported; the link was skipped.';
+
+  @override
   String get importDateFieldComposed => 'composed';
 
   @override

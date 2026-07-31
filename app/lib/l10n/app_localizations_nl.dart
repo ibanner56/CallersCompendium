@@ -3738,6 +3738,10 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get importIssueRelatedDanceUnresolved =>
+      'Een link naar een verwante dans verwees naar een dans die niet is geïmporteerd; de link is overgeslagen.';
+
+  @override
   String get importDateFieldComposed => 'gecomponeerd';
 
   @override

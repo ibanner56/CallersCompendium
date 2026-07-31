@@ -4067,6 +4067,8 @@
   "@importIssueParamValueUnmapped": {"description": "Import note: a figure's value for the named taxonomy parameter couldn't be converted, so the taxonomy default was used. {param} is a taxonomy parameter name (a safe internal identifier, e.g. \u201chand\u201d), not untrusted external text.", "placeholders": {"param": {"type": "String", "example": "hand"}}},
   "importIssueParamCountUnmapped": "A figure had {provided} parameter values but only {mapped} are mapped; the extras were ignored.",
   "@importIssueParamCountUnmapped": {"description": "Import note: a figure supplied more positional parameter values than the taxonomy maps; the surplus was ignored. Both values are the app's own counts.", "placeholders": {"provided": {"type": "int", "example": "4"}, "mapped": {"type": "int", "example": "2"}}},
+  "importIssueRelatedDanceUnresolved": "A related-dance link pointed at a dance that wasn't imported; the link was skipped.",
+  "@importIssueRelatedDanceUnresolved": {"description": "Import note: a Caller's Companion related-dance relationship referenced a dance that wasn't part of this import (not imported this session, or an unresolved/orphan id), so the link was skipped rather than created dangling."},
   "importDateFieldComposed": "composed",
   "@importDateFieldComposed": {"description": "Lowercase name of the 'composed' dance date field, inserted into import notes such as 'The {field} date couldn't be read'. Matches the danceEditorComposedLabel term."},
   "importDateFieldRevised": "revised",

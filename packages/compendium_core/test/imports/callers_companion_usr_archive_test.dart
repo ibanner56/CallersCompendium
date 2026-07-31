@@ -725,4 +725,146 @@ void main() {
       expect(candidates.firstWhere((c) => c.token == 'Chain').hasAlt, isTrue);
     });
   });
+
+  group('Dance_Related extraction (#688)', () {
+    FmpDatabase dbWithDanceRelated(List<FmpRecord> rows) => FmpDatabase(
+      versionNum: 12,
+      creator: 'Pro 12.0',
+      tables: [
+        FmpTable(1, 'Dance', [FmpColumn(1, 'zk_Dance_ID')], const []),
+        FmpTable(2, 'Dance_Related', [
+          FmpColumn(1, 'zk_DanceRelatedID'),
+          FmpColumn(2, 'zk_Dance1_ID'),
+          FmpColumn(3, 'zk_Dance2_ID'),
+          FmpColumn(4, 'zk_DanceRelatedID_PairID'),
+        ], rows),
+      ],
+      warnings: const [],
+    );
+
+    test('extracts (zk_Dance1_ID, zk_Dance2_ID) pairs in file order', () {
+      final archive = extractCcUsrArchive(
+        dbWithDanceRelated([
+          FmpRecord(900, {1: '1', 2: '4', 3: '7', 4: '1'}),
+          FmpRecord(901, {1: '2', 2: '7', 3: '9', 4: '2'}),
+        ]),
+      );
+      expect(archive.relatedDancePairs, hasLength(2));
+      expect(archive.relatedDancePairs[0].sourceRecordId, '4');
+      expect(archive.relatedDancePairs[0].targetRecordId, '7');
+      expect(archive.relatedDancePairs[1].sourceRecordId, '7');
+      expect(archive.relatedDancePairs[1].targetRecordId, '9');
+    });
+
+    test('a missing Dance_Related table yields no pairs and a non-fatal '
+        'warning, never a throw', () {
+      final db = FmpDatabase(
+        versionNum: 12,
+        creator: 'Pro 12.0',
+        tables: [
+          FmpTable(1, 'Dance', [FmpColumn(1, 'zk_Dance_ID')], const []),
+        ],
+        warnings: const [],
+      );
+      final archive = extractCcUsrArchive(db);
+      expect(archive.relatedDancePairs, isEmpty);
+      expect(archive.warnings.any((w) => w.contains('Dance_Related')), isTrue);
+    });
+
+    test('a Dance_Related table with unresolvable columns yields no pairs and '
+        'a warning', () {
+      final db = FmpDatabase(
+        versionNum: 12,
+        creator: 'Pro 12.0',
+        tables: [
+          FmpTable(1, 'Dance', [FmpColumn(1, 'zk_Dance_ID')], const []),
+          FmpTable(
+            2,
+            'Dance_Related',
+            [FmpColumn(1, 'SomeUnrelatedColumn')],
+            [
+              FmpRecord(900, {1: 'x'}),
+            ],
+          ),
+        ],
+        warnings: const [],
+      );
+      final archive = extractCcUsrArchive(db);
+      expect(archive.relatedDancePairs, isEmpty);
+      expect(archive.warnings.any((w) => w.contains('Dance_Related')), isTrue);
+    });
+
+    test('rows with a missing/empty or self-referential id are skipped with an '
+        'aggregate warning', () {
+      final archive = extractCcUsrArchive(
+        dbWithDanceRelated([
+          FmpRecord(900, {1: '1', 2: '4', 3: '7'}), // kept
+          FmpRecord(901, {1: '2', 2: '', 3: '7'}), // missing source
+          FmpRecord(902, {1: '3', 2: '4', 3: ''}), // missing target
+          FmpRecord(903, {1: '4', 2: '5', 3: '5'}), // self-referential
+        ]),
+      );
+      expect(archive.relatedDancePairs, hasLength(1));
+      expect(archive.relatedDancePairs.single.sourceRecordId, '4');
+      expect(
+        archive.warnings.any(
+          (w) => w.contains('3') && w.contains('Dance_Related'),
+        ),
+        isTrue,
+      );
+    });
+
+    test('a duplicate (source, target) pair within the table is deduped', () {
+      final archive = extractCcUsrArchive(
+        dbWithDanceRelated([
+          FmpRecord(900, {1: '1', 2: '4', 3: '7'}),
+          FmpRecord(901, {1: '2', 2: '4', 3: '7'}), // exact duplicate
+        ]),
+      );
+      expect(archive.relatedDancePairs, hasLength(1));
+    });
+
+    test(
+      'too many Dance_Related rows fails closed with a resource-limit error',
+      () {
+        final rows = [
+          for (var i = 0; i < 5; i++)
+            FmpRecord(i, {1: '$i', 2: '$i', 3: '${i + 100}'}),
+        ];
+        final db = dbWithDanceRelated(rows);
+        expect(
+          () => extractCcUsrArchive(
+            db,
+            limits: const FmpReadLimits(maxDanceRelatedRows: 3),
+          ),
+          throwsA(isA<FmpResourceLimitException>()),
+        );
+      },
+    );
+
+    test('one source dance with too many related pairs fails closed with a '
+        'resource-limit error', () {
+      final rows = [
+        for (var i = 0; i < 5; i++)
+          FmpRecord(i, {1: '$i', 2: '4', 3: '${i + 100}'}),
+      ];
+      final db = dbWithDanceRelated(rows);
+      expect(
+        () => extractCcUsrArchive(
+          db,
+          limits: const FmpReadLimits(maxRelatedDancesPerDance: 3),
+        ),
+        throwsA(isA<FmpResourceLimitException>()),
+      );
+    });
+
+    test('friendly default limits comfortably admit a normal-sized file', () {
+      final rows = [
+        for (var i = 0; i < 50; i++)
+          FmpRecord(i, {1: '$i', 2: '${i % 10}', 3: '${100 + i}'}),
+      ];
+      final archive = extractCcUsrArchive(dbWithDanceRelated(rows));
+      expect(archive.relatedDancePairs, hasLength(50));
+    });
+  });
 }
