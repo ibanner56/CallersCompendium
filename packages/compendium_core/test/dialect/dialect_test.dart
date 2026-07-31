@@ -6,8 +6,15 @@ void main() {
     test('default +s', () {
       expect(const RoleTerm('Lark').plural, 'Larks');
     });
-    test('y -> ies', () {
+    test('consonant+y -> ies', () {
       expect(const RoleTerm('Lady').plural, 'Ladies');
+    });
+    test('vowel+y -> s (not ies)', () {
+      expect(const RoleTerm('Boy').plural, 'Boys');
+      expect(const RoleTerm('Day').plural, 'Days');
+    });
+    test('single-character y -> s', () {
+      expect(const RoleTerm('y').plural, 'ys');
     });
     test('explicit plural wins', () {
       expect(
