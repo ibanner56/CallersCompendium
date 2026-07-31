@@ -633,7 +633,7 @@ taxonomy are unchanged.
   - **Delivered — accuracy + structure pass:** the whole guide set was re-verified against shipped behaviour and reorganised into an intent-based hub (task index, six guide groups, no status column), with two new guides (**Write & edit dances**, **Share, print & export**). The in-app reader now titles a guide from its own H1 and honours same-page `#anchor` links.
   - **Remaining (blocked on other work)**
     - Per-platform install page — the public landing page ([site/](../site/), #408) now surfaces per-platform downloads, and the [Installation guide](user/installation.md) covers first-launch steps; a dedicated install page is optional.
-    - Screenshots pass — needs a runnable branded build. Note the in-app reader does not render images, so guides must stay complete without them.
+    - Screenshots pass (#703) — needs a runnable branded build. Note the in-app reader does not render images, so guides must stay complete without them.
     - Beta-program page — tracked under 7.3.
     - Optional hosted docs site — Pages is enabled; rendering the user guides as a browsable site (beyond the landing page) is still optional.
 - [ ] 7.3 Beta program with real callers; feedback triage
