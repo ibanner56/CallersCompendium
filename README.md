@@ -66,11 +66,12 @@ Squares) callers — on desktop, tablet, and phone.
   Japanese, Danish, and Dutch, selectable in Settings (or follow your device). Your
   dance terminology stays under your control via Dialects, independent of the
   interface language. _(built)_
-- **Backup & portability** — your library lives on your own device, so one
-  **Export a backup** in Settings writes your whole collection, programs, and
-  settings to a single dated file you can keep anywhere (cloud drive, USB stick,
-  email). Restore it on a new phone, tablet, or computer — and an optional
-  reminder nudges you to take a fresh copy. No cloud account, no lock-in.
+- **Backup & portability** — your library lives on your own device, so you keep
+  your own safety copy: choosing **Export a backup** in Settings writes your
+  whole collection, programs, and settings to a single dated file you can keep
+  anywhere (cloud drive, USB stick, email). Restore it on a new phone, tablet,
+  or computer — and an optional reminder nudges you to take a fresh copy. No
+  cloud account, no lock-in.
   _(built — see the [Backup & portability guide](docs/user/backup-portability.md))_
 - **Private by design** — everything is stored locally and the app is fully
   usable offline; there is **no analytics, tracking, or telemetry** — the app
