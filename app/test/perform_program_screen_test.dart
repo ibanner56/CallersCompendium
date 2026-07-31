@@ -571,6 +571,52 @@ void main() {
     expect(find.byType(PerformProgramScreen), findsOneWidget);
   });
 
+  testWidgets('rapid double-tap on the exit control shows only one dialog', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 2000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Editor Dance'));
+    await repos.programs.create(
+      _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
+    );
+    final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(notifier.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(notifier: notifier, child: child!),
+        ),
+        home: const ProgramEditorScreen(programId: 'p1'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PerformProgramScreen), findsOneWidget);
+
+    // Two rapid taps, before the first dialog has finished animating in
+    // (issue #666, parity with #612): the re-entrancy guard must ensure only
+    // one confirmation dialog is ever stacked.
+    await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+    await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('perform-exit-dialog')), findsOneWidget);
+
+    // Confirming pops exactly one screen — back to the editor, not past it
+    // into some other route a stacked second dialog might reach.
+    await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PerformProgramScreen), findsNothing);
+    expect(find.byType(ProgramEditorScreen), findsOneWidget);
+  });
+
   testWidgets('re-entry resumes at the last slot with the clock preserved', (
     tester,
   ) async {

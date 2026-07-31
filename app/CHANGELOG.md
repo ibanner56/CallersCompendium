@@ -141,6 +141,14 @@ each release so store builds and tags can be traced back to an entry.
   the same deliberate confirm dialog ("Exit performance view?" / Cancel /
   Exit) already used by the multi-dance program Perform view (#434), keeping
   the two Perform surfaces consistent. (#612)
+- **The program Perform exit dialog can no longer be stacked by rapid taps.**
+  A quick double-tap on the close control, or repeated back gestures while
+  the confirmation was already up, could open a second "Exit performance
+  view?" dialog on top of the first — confirming the top one could then pop
+  more than one screen. The exit confirmation is now guarded against
+  re-entrancy, matching the guard already added to the single-dance Perform
+  view (#612), so only one dialog is ever shown and exactly one screen is
+  popped. (#666)
 - **A corrupt backup can no longer brick startup.** Restoring a backup applied
   its saved preferences without checking them, and one startup read cast the
   theme preference with an unchecked cast — so a backup carrying a wrong-typed
