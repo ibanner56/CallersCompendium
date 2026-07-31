@@ -235,9 +235,11 @@ Four things follow from that:
 
   A CI check fails the build if the bundled copies drift from the source.
 - **Links and anchors must resolve.** The website build fails on a relative link
-  to a guide that doesn't exist, a `#anchor` with no matching heading, or two
-  headings in one guide that collide on the same anchor — and the check runs on
-  every PR. Verify locally with:
+  to a guide that doesn't exist, a `#anchor` with no matching heading, two
+  headings in one guide that collide on the same anchor, or a link to a repo
+  file or folder that isn't there (`../design/serch.md`) — and the check runs on
+  every PR. Links to a URL rather than a repo path are left alone. Verify
+  locally with:
 
   ```sh
   python3 tools/site/render_user_docs.py --check

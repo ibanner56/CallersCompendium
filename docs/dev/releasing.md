@@ -452,8 +452,8 @@ Guides are **pre-rendered** because `.nojekyll` (which makes the JSON manifests
 serve verbatim) also stops Jekyll rendering Markdown for us. The renderer is
 stdlib-only — the Pages job has no `pip install` step — escapes all content, and
 allow-lists link targets, so the site stays dependency-free. Its output is never
-committed; a broken cross-link or `#anchor` fails the build, and the same check
-runs on every PR via `docs-bundle-check.yml`.
+committed; a broken cross-link, `#anchor`, or repo-path link fails the build,
+and the same check runs on every PR via `docs-bundle-check.yml`.
 
 The site publisher is the **mirror image** of the manifest publisher: it starts
 from the existing `gh-pages` content and rewrites only the site files, so it

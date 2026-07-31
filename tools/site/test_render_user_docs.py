@@ -10,8 +10,13 @@ What it proves:
 
 * **Link classification matches the app.** A relative link to a published guide
   becomes its rendered page; a link that leaves ``docs/user/`` (or points at a
-  deliberately unpublished guide like ``style-guide.md``) becomes a GitHub blob
-  URL, mirroring ``UserGuideDocs.resolveLink``.
+  deliberately unpublished guide like ``style-guide.md``) becomes a GitHub URL —
+  ``tree/`` for a directory, ``blob/`` for a file — mirroring
+  ``UserGuideDocs.resolveLink``.
+* **Every repo-relative target is verified on disk.** A typo'd off-site path
+  (``../design/serch.md``) fails the build rather than shipping as a live 404,
+  and a link that escapes the repository is refused outright. Absolute URLs and
+  ``mailto:`` are passed through untouched and never stat'ed.
 * **The real corpus builds clean.** Every guide under ``docs/user/`` renders,
   and every on-site link *and* ``#fragment`` resolves — this is the gate that
   keeps a cross-link from silently 404-ing on the site.
@@ -71,10 +76,15 @@ def _assert_balanced(html: str, label: str) -> None:
 
 
 def _make_docs(root: Path) -> Path:
-    """A miniature docs/user tree exercising every link classification."""
+    """A miniature repo tree exercising every link classification."""
     user = root / "docs" / "user"
     user.mkdir(parents=True)
-    (root / "docs" / "design").mkdir(parents=True)
+    design = root / "docs" / "design"
+    design.mkdir(parents=True)
+    # Off-site link targets are now verified against the working tree, so the
+    # fixture has to contain the files (and directories) its guides point at.
+    (design / "ux.md").write_text("# UX\n", encoding="utf-8")
+    (root / "CONTRIBUTING.md").write_text("# Contributing\n", encoding="utf-8")
     (user / "README.md").write_text(
         "# User Guide\n\n"
         "Welcome to the guides.\n\n"
@@ -224,6 +234,100 @@ def test_links_that_leave_the_guides_go_to_github() -> None:
         assert f'href="{rud.REPO_BLOB_BASE}/CONTRIBUTING.md"' in body
 
 
+def test_repo_directories_get_tree_urls_and_files_get_blob_urls() -> None:
+    """`blob/<ref>/<dir>` only 301-redirects to `tree/`; point straight at it."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        user = _make_docs(root)
+        (user / "imports.md").write_text(
+            "# Imports\n\n## Bring dances in\n\n"
+            "The [design docs](../design/) and the [UX doc](../design/ux.md).\n",
+            encoding="utf-8",
+        )
+        body = _rendered(user)["imports.md"].body
+        assert f'href="{rud.REPO_TREE_BASE}/docs/design"' in body
+        assert f'href="{rud.REPO_BLOB_BASE}/docs/design/ux.md"' in body
+        assert f'href="{rud.REPO_BLOB_BASE}/docs/design"' not in body
+
+
+def test_real_corpus_directory_links_use_tree_urls() -> None:
+    bodies = "".join(guide.body for guide in rud.render_guides())
+    assert f'href="{rud.REPO_TREE_BASE}/docs/design"' in bodies
+    assert f'href="{rud.REPO_BLOB_BASE}/docs/design"' not in bodies
+    # ...and a real file link still uses blob/.
+    assert f'href="{rud.REPO_BLOB_BASE}/docs/design/ux.md"' in bodies
+
+
+def test_missing_repo_link_target_fails_the_build() -> None:
+    """A typo'd off-site path must fail, not ship as a live 404 on GitHub."""
+    with tempfile.TemporaryDirectory() as tmp:
+        user = _make_docs(Path(tmp))
+        (user / "imports.md").write_text(
+            "# Imports\n\n## Bring dances in\n\nSee the [search doc](../design/serch.md).\n",
+            encoding="utf-8",
+        )
+        errors = rud.check_guides(rud.render_guides(user))
+        assert len(errors) == 1, errors
+        assert errors[0].startswith("docs/user/imports.md:")
+        assert "../design/serch.md" in errors[0]
+        assert "docs/design/serch.md" in errors[0]
+        assert "does not exist" in errors[0]
+
+
+def test_link_escaping_the_repository_is_rejected_not_stated() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        user = _make_docs(Path(tmp))
+        (user / "imports.md").write_text(
+            "# Imports\n\n## Bring dances in\n\n"
+            "[secrets](../../../../etc/passwd) and [up](../../..).\n",
+            encoding="utf-8",
+        )
+        guides = rud.render_guides(user)
+        errors = rud.check_guides(guides)
+        assert len(errors) == 2, errors
+        assert all("resolves outside the repository" in e for e in errors), errors
+        # Nothing outside the tree may be linked at all.
+        body = {g.doc: g for g in guides}["imports.md"].body
+        assert "etc/passwd" not in body
+        assert "<a " not in body
+
+
+def test_absolute_urls_are_passed_through_and_never_treated_as_repo_paths() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        user = _make_docs(Path(tmp))
+        (user / "imports.md").write_text(
+            "# Imports\n\n## Bring dances in\n\n"
+            "[issues](https://github.com/ibanner56/CallersCompendium/issues), "
+            "[new](https://github.com/ibanner56/CallersCompendium/issues/new/choose), "
+            "[releases](https://github.com/ibanner56/CallersCompendium/releases), "
+            "[web](https://example.com/x) and [mail](mailto:compendium@contra.dance).\n",
+            encoding="utf-8",
+        )
+        guides = rud.render_guides(user)
+        body = {g.doc: g for g in guides}["imports.md"].body
+        for url in (
+            "https://github.com/ibanner56/CallersCompendium/issues",
+            "https://github.com/ibanner56/CallersCompendium/issues/new/choose",
+            "https://github.com/ibanner56/CallersCompendium/releases",
+            "https://example.com/x",
+            "mailto:compendium@contra.dance",
+        ):
+            assert f'href="{url}"' in body, url
+        assert rud.check_guides(guides) == []
+
+
+def test_an_unpublished_but_existing_guide_still_resolves() -> None:
+    """`style-guide.md` is excluded from the site but must exist in the repo."""
+    with tempfile.TemporaryDirectory() as tmp:
+        user = _make_docs(Path(tmp))
+        assert rud.check_guides(rud.render_guides(user)) == []
+        (user / "style-guide.md").unlink()
+        errors = rud.check_guides(rud.render_guides(user))
+        assert len(errors) == 1, errors
+        assert "docs/user/style-guide.md" in errors[0]
+        assert "does not exist" in errors[0]
+
+
 def test_unpublished_guide_links_go_to_github_not_a_dead_page() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         guides = _rendered(_make_docs(Path(tmp)))
@@ -343,20 +447,25 @@ def test_errors_name_the_markdown_source_not_the_html() -> None:
         assert "./imports.md#gone" in errors[0]
 
 
-def test_links_that_leave_the_site_are_never_link_checked() -> None:
-    """A blob/main link can't be verified offline and must not fail the build."""
+def test_links_that_leave_the_site_are_checked_on_disk_not_over_the_network() -> None:
+    """An off-site *repo* path is verified; a `#fragment` on it is not.
+
+    We can stat a repo-relative target, so a typo fails the build. We cannot
+    resolve an anchor inside a file we don't render, so those are left alone.
+    """
     with tempfile.TemporaryDirectory() as tmp:
         user = _make_docs(Path(tmp))
         (user / "imports.md").write_text(
             "# Imports\n\n## Bring dances in\n\n"
-            "See [design](../design/no-such-file.md#no-such-anchor) and "
+            "See [ux](../design/ux.md#any-anchor-at-all) and "
             "[style](style-guide.md#nope).\n",
             encoding="utf-8",
         )
         guides = rud.render_guides(user)
         assert rud.check_guides(guides) == []
         body = {g.doc: g for g in guides}["imports.md"].body
-        assert f'{rud.REPO_BLOB_BASE}/docs/design/no-such-file.md#no-such-anchor' in body
+        assert f'{rud.REPO_BLOB_BASE}/docs/design/ux.md#any-anchor-at-all' in body
+        assert f'{rud.REPO_BLOB_BASE}/docs/user/style-guide.md#nope' in body
 
 
 # ---------------------------------------------------------------------------

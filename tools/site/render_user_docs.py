@@ -24,15 +24,16 @@ concurrent manifest push, so hosting the guides needs **no change** to it.
 as ``UserGuideDocs.slugify``, relative ``*.md`` links are rewritten to their
 rendered ``.html`` counterparts, and links that leave ``docs/user/`` (design
 docs, ``CONTRIBUTING.md``, the contributor-only style guide) are rewritten to
-GitHub blob URLs — mirroring ``UserGuideDocs.resolveLink``. Images render as an
+GitHub URLs — mirroring ``UserGuideDocs.resolveLink``. Images render as an
 alt-text caption rather than an ``<img>``, exactly as the in-app reader does, so
 all three surfaces stay text-only (see ``docs/user/style-guide.md``).
 
 **Link integrity is enforced.** A relative link to a guide that doesn't exist,
 a ``#fragment`` with no matching heading, two headings in one guide that slug to
-the same anchor, or a stale ``guide/…`` link on the landing page all fail the
-build, naming the source ``.md`` file. The gate runs on every PR that touches
-the guides, so a broken cross-link can't reach ``main``.
+the same anchor, a link to a repo path that isn't in the working tree, or a
+stale ``guide/…`` link on the landing page all fail the build, naming the source
+``.md`` file. The gate runs on every PR that touches the guides, so a broken
+cross-link can't reach ``main``.
 
 Usage::
 
@@ -80,6 +81,7 @@ HUB_DOC = "README.md"
 SITE_URL = "https://ibanner56.github.io/CallersCompendium/"
 REPO_URL = "https://github.com/ibanner56/CallersCompendium"
 REPO_BLOB_BASE = f"{REPO_URL}/blob/main"
+REPO_TREE_BASE = f"{REPO_URL}/tree/main"
 CONTACT_EMAIL = "compendium@contra.dance"
 
 # Output file names must be plain, single-segment names. Anything else (a slash,
@@ -190,22 +192,11 @@ class LinkRef:
 
     source: str
     href: str
-    target_page: Optional[str]
-    fragment: Optional[str]
-    # Set when the link resolves to a `docs/user/*.md` that is NOT published —
-    # a broken cross-reference rather than a link off the site.
-    missing_doc: Optional[str] = None
-
-
-def _page_name_for(doc: str) -> str:
-    """The page name a guide *would* get, without validating it.
-
-    Used to describe a link target that doesn't exist, where
-    :func:`output_name`'s hard failure would be the wrong response.
-    """
-    if doc == HUB_DOC:
-        return "index.html"
-    return f"{doc[: -len('.md')]}.html" if doc.endswith(".md") else doc
+    target_page: Optional[str] = None
+    fragment: Optional[str] = None
+    # Set when the link is already known to be broken at resolve time — the
+    # phrase completes "link <href> …" in the reported error.
+    problem: Optional[str] = None
 
 
 class GuideLinkResolver:
@@ -214,17 +205,43 @@ class GuideLinkResolver:
     Mirrors ``UserGuideDocs.resolveLink``: a relative link that lands on another
     **published** guide becomes its rendered page; a link to a repo file outside
     the published set (design docs, ``CONTRIBUTING.md``, the deliberately
-    unpublished style guide) becomes a GitHub blob URL so it still works; and a
-    link to a ``docs/user/*.md`` that doesn't exist is recorded as broken — the
-    app surfaces that case as ``GuideMissingLink`` rather than pretending it is
-    an external link, and here it fails the build. Absolute URLs are left alone
-    for ``sanitize_href`` to vet.
+    unpublished style guide) becomes a GitHub URL so it still works; and a link
+    to a ``docs/user/*.md`` that doesn't exist is recorded as broken — the app
+    surfaces that case as ``GuideMissingLink`` rather than pretending it is an
+    external link, and here it fails the build.
+
+    Every link that resolves to a **path inside the repository** is verified
+    against the working tree: the target must exist, and a directory gets a
+    ``tree/`` URL while a file gets ``blob/``. GitHub 301-redirects
+    ``blob/<ref>/<dir>`` to ``tree/``, so the old blanket ``blob/`` was not
+    broken — but pointing straight at the right form skips the redirect, and
+    stat'ing the target is what catches a typo like ``../design/serch.md``
+    before it ships as a live 404.
+
+    Absolute URLs (``https://…/issues``, ``mailto:``) are not repo paths: they
+    are passed through untouched for ``sanitize_href`` to vet, never stat'ed.
     """
 
-    def __init__(self, source_doc: str, published: dict[str, str]) -> None:
+    def __init__(
+        self, source_doc: str, published: dict[str, str], repo_root: Path
+    ) -> None:
         self.source_doc = source_doc
         self.published = published
+        self.repo_root = repo_root
         self.refs: list[LinkRef] = []
+
+    def _repo_url(
+        self, repo_path: str, fragment: Optional[str], *, directory: bool
+    ) -> str:
+        if not repo_path:
+            url = REPO_URL
+        else:
+            base = REPO_TREE_BASE if directory else REPO_BLOB_BASE
+            url = f"{base}/{repo_path}"
+        return f"{url}#{fragment}" if fragment else url
+
+    def _note(self, href: str, problem: str) -> None:
+        self.refs.append(LinkRef(self.source_doc, href, problem=problem))
 
     def __call__(self, href: str) -> Optional[str]:
         trimmed = href.strip()
@@ -255,21 +272,40 @@ class GuideLinkResolver:
                 return f"{page}#{fragment}" if fragment else page
             if doc not in EXCLUDED_GUIDES:
                 # A guide that simply isn't there — almost always a typo or a
-                # rename. Record it so the integrity check fails the build; the
-                # GitHub URL below is emitted only so the page still renders.
-                self.refs.append(
-                    LinkRef(
-                        self.source_doc,
-                        trimmed,
-                        _page_name_for(doc),
-                        fragment,
-                        missing_doc=doc,
-                    )
+                # rename. Report it once here (rather than again as a missing
+                # repo path below) and still emit a URL so the page renders.
+                self._note(
+                    trimmed,
+                    f"points at docs/user/{doc}, which is not a published guide",
                 )
+                return self._repo_url(resolved, fragment, directory=False)
+            # An excluded guide (style-guide.md) still has to exist; fall
+            # through so a rename is caught like any other repo path.
 
-        # Everything else lives in the repo but not on this site.
-        blob = f"{REPO_BLOB_BASE}/{resolved}"
-        return f"{blob}#{fragment}" if fragment else blob
+        if not resolved:
+            return REPO_URL  # a link to the repository root
+
+        if resolved == ".." or resolved.startswith("../"):
+            self._note(trimmed, "resolves outside the repository")
+            return None
+
+        target = self.repo_root / resolved
+        try:
+            inside = target.resolve().is_relative_to(self.repo_root.resolve())
+        except (OSError, ValueError):
+            inside = False
+        if not inside:
+            # A symlink or an odd path that leaves the tree: never stat further.
+            self._note(trimmed, "resolves outside the repository")
+            return None
+
+        if target.is_dir():
+            return self._repo_url(resolved, fragment, directory=True)
+        if not target.exists():
+            self._note(
+                trimmed, f"points at {resolved}, which does not exist in the repository"
+            )
+        return self._repo_url(resolved, fragment, directory=False)
 
 
 # ---------------------------------------------------------------------------
@@ -485,6 +521,10 @@ def render_guides(user_docs: Path = USER_DOCS) -> list[Guide]:
     """Render every published guide to HTML (no files written)."""
     docs = discover_guides(user_docs)
     published = {doc: output_name(doc) for doc in docs}
+    # `docs/user` sits two levels under the repo root, in the real tree and in
+    # the synthetic ones the tests build. Repo-relative link targets are
+    # verified against this.
+    repo_root = user_docs.resolve().parents[1]
 
     # Two guides must never map to the same page. The obvious way to trip this
     # is adding `index.md` alongside the `README.md` hub: both want
@@ -505,7 +545,7 @@ def render_guides(user_docs: Path = USER_DOCS) -> list[Guide]:
     guides: list[Guide] = []
     for doc in docs:
         source = (user_docs / doc).read_text(encoding="utf-8")
-        resolver = GuideLinkResolver(doc, published)
+        resolver = GuideLinkResolver(doc, published, repo_root)
         result = render(source, link_resolver=resolver)
         title = result.title or doc[: -len(".md")].replace("-", " ").capitalize()
         guides.append(
@@ -545,26 +585,30 @@ def check_anchors(guides: list[Guide]) -> list[str]:
 
 
 def check_links(guides: list[Guide]) -> list[str]:
-    """Every on-site link target and ``#fragment`` must resolve. Returns errors.
+    """Every link a guide emits must resolve. Returns errors.
 
-    Only links that stay on this site are checkable: a link rewritten to a
-    GitHub blob URL leaves the published set and is deliberately not verified
-    (that would need the network). Errors name the source ``.md`` and the link
-    exactly as it was authored, because that is what the author will be looking
-    at.
+    Three kinds are checked, all naming the source ``.md`` and the link exactly
+    as it was authored:
+
+    * a link to another published guide, and its ``#fragment``;
+    * a link to a ``docs/user/*.md`` that isn't published (a typo or a rename);
+    * a link to any other path **inside the repository**, which must exist on
+      disk — so ``../design/serch.md`` fails here instead of shipping as a live
+      404 on GitHub.
+
+    Absolute URLs (``https://…/issues``, ``mailto:``) are not repo paths and are
+    deliberately left alone; verifying those would need the network.
     """
     anchors = {guide.page: guide.anchors for guide in guides}
     errors: list[str] = []
     for guide in guides:
         for ref in guide.refs:
-            if ref.target_page is None:
-                continue
-            if ref.missing_doc is not None or ref.target_page not in anchors:
-                target = ref.missing_doc or ref.target_page
+            if ref.problem is not None:
                 errors.append(
-                    f"docs/user/{guide.doc}: link {ref.href} points at "
-                    f"docs/user/{target}, which is not a published guide"
+                    f"docs/user/{guide.doc}: link {ref.href} {ref.problem}"
                 )
+                continue
+            if ref.target_page is None:
                 continue
             if ref.fragment and ref.fragment not in anchors[ref.target_page]:
                 errors.append(

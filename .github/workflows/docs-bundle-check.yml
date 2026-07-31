@@ -62,8 +62,9 @@ jobs:
       # Full dry-run render of the hosted guides. This is the gate that catches
       # a Markdown-only change breaking the site: a construct the renderer can't
       # handle, a cross-link to a guide that doesn't exist, a retitled heading
-      # that orphans an #anchor, or two headings that collide on one anchor.
-      # Errors name the source .md file and the offending link.
+      # that orphans an #anchor, two headings that collide on one anchor, or a
+      # link to a repo file/folder that isn't in the tree. Errors name the
+      # source .md file and the offending link.
       - name: Guard hosted user guides (render + link/anchor integrity)
         run: python3 tools/site/render_user_docs.py --check
       # The renderer's own unit tests also run in _checks.yml with the other

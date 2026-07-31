@@ -67,8 +67,8 @@ code as much as prose. Two rules:
 The hosted pages are **generated at publish time** by
 `tools/site/render_user_docs.py` and never committed, so there is nothing to
 regenerate for them — but a broken cross-link, an `#anchor` with no matching
-heading, or two headings that collide on one anchor fails CI. Check your links
-locally with:
+heading, two headings that collide on one anchor, or a link to a repo file that
+isn't in the tree all fail CI. Check your links locally with:
 
 ```sh
 python3 tools/site/render_user_docs.py --check

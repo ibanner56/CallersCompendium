@@ -36,8 +36,9 @@ python3 tools/site/render_user_docs.py --out build/site
 ```
 
 A broken cross-link, an `#anchor` with no matching heading, two headings that
-collide on one anchor, or a stale `guide/…` link on the landing page all **fail
-the build**; the same check runs on every PR that touches `docs/user/` via
+collide on one anchor, a link to a repo file or folder that isn't in the tree,
+or a stale `guide/…` link on the landing page all **fail the build**; the same
+check runs on every PR that touches `docs/user/` via
 `.github/workflows/docs-bundle-check.yml`.
 
 The guide pages reuse `styles.css` (see the *Guide pages* block) and the same
