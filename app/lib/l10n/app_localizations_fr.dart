@@ -3504,7 +3504,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxUnsupportedHost =>
-      'That link isn\'t from a supported Caller\'s Box host. Paste a link from thecallersbox.com or ibiblio.org, or enter the dance\'s numeric id.';
+      'Ce lien ne provient pas d\'un hébergeur Caller\'s Box pris en charge. Collez un lien de thecallersbox.com ou ibiblio.org, ou saisissez l\'identifiant numérique de la danse.';
 
   @override
   String get importErrorCallersBoxEmptySearch =>

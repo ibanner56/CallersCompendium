@@ -1352,15 +1352,25 @@ const Set<String> _contraDbHosts = {'contradb.com', 'www.contradb.com'};
 /// through either: `Uri.host` already resolves to the real authority
 /// (`evil.com`), not the string before the `@`.
 ///
+/// The ibiblio mirror check normalizes dot-segments (`.`/`..`) via
+/// [Uri.normalizePath] and then requires an **exact path segment** named
+/// `thecallersbox` (not a raw substring match on the joined path string), so
+/// neither a crafted `/contradance/thecallersbox/../someotherarchive/x` (which
+/// resolves away from the mirror directory) nor an unrelated path that merely
+/// contains the substring (e.g. `/notthecallersboxfeed/x`) can slip past it.
+///
 /// Shared by [ImportSource.matchesUrl] (UI auto-detection) and
 /// [buildCallersBoxJsonUrl] (the actual fetch-URL builder) so the two can
 /// never drift — a URL the UI recognizes as Caller's Box is exactly the set
 /// of hosts the builder will ever fetch from.
 bool _isCallersBoxUrl(Uri uri) {
   final host = uri.host.toLowerCase();
-  return _callersBoxHosts.contains(host) ||
-      (_ibiblioHosts.contains(host) &&
-          uri.path.toLowerCase().contains('/thecallersbox/'));
+  if (_callersBoxHosts.contains(host)) return true;
+  if (!_ibiblioHosts.contains(host)) return false;
+  final segments = uri.normalizePath().pathSegments.map(
+    (segment) => segment.toLowerCase(),
+  );
+  return segments.contains('thecallersbox');
 }
 
 /// The canonical, ordered list of selectable import sources

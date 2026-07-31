@@ -3460,7 +3460,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxUnsupportedHost =>
-      'That link isn\'t from a supported Caller\'s Box host. Paste a link from thecallersbox.com or ibiblio.org, or enter the dance\'s numeric id.';
+      'Det link er ikke fra en understøttet Caller\'s Box-vært. Indsæt et link fra thecallersbox.com eller ibiblio.org, eller indtast dansens numeriske id.';
 
   @override
   String get importErrorCallersBoxEmptySearch =>

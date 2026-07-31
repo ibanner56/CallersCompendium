@@ -113,6 +113,42 @@ void main() {
       },
     );
 
+    test('a dot-segment path trick that resolves away from the mirror '
+        'directory is rejected, not accepted via substring match', () {
+      // `/contradance/thecallersbox/../someotherarchive/...` contains the
+      // substring "/thecallersbox/" but normalizes (RFC 3986 dot-segment
+      // removal) to `/contradance/someotherarchive/...`, which is NOT the
+      // mirror path.
+      expect(
+        () => buildCallersBoxJsonUrl(
+          'https://www.ibiblio.org/contradance/thecallersbox/../someotherarchive/dance.php?id=1',
+        ),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.callersBoxUnsupportedHost,
+          ),
+        ),
+      );
+    });
+
+    test('an ibiblio.org path that merely contains the mirror substring '
+        '(not an exact path segment) is rejected', () {
+      expect(
+        () => buildCallersBoxJsonUrl(
+          'https://www.ibiblio.org/notthecallersboxfeed/dance.php?id=1',
+        ),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.callersBoxUnsupportedHost,
+          ),
+        ),
+      );
+    });
+
     test('an http:// (non-https) URL is rejected as an insecure scheme', () {
       expect(
         () => buildCallersBoxJsonUrl(
