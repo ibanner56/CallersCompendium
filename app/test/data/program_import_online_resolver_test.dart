@@ -11,11 +11,21 @@ import '../support/test_repositories.dart';
 /// Records calls and returns canned rows/previews/results so the resolver can be
 /// driven without touching the network or the real Caller's Box parse path.
 class _FakeOnlineService implements OnlineSearchService {
-  _FakeOnlineService({this.rowsByTitle = const {}, this.throwOnSearch = false});
+  _FakeOnlineService({
+    this.rowsByTitle = const {},
+    this.throwOnSearch = false,
+    this.confidentTitles = const {},
+  });
 
   /// Search rows keyed by the (lower-cased) query title.
   final Map<String, List<OnlineSearchResultRow>> rowsByTitle;
   final bool throwOnSearch;
+
+  /// (Lower-cased) titles for which [loadPreview] should return a plan whose
+  /// verdict is a confident local duplicate (issue #685) — simulates the
+  /// previewed online dance already existing locally under the same
+  /// (normalized) title with an overlapping tokenized author set.
+  final Set<String> confidentTitles;
 
   final searchedTitles = <String>[];
   final loadedIds = <String>[];
@@ -38,10 +48,13 @@ class _FakeOnlineService implements OnlineSearchService {
     DateTime? now,
   }) async {
     loadedIds.add(result.id);
+    final confident = confidentTitles.contains(
+      result.name.trim().toLowerCase(),
+    );
     return OnlinePreview(
       result: result,
       detail: _detail(result.name),
-      plan: _plan(result.name),
+      plan: _plan(result.name, confident: confident),
     );
   }
 
@@ -61,30 +74,39 @@ class _FakeOnlineService implements OnlineSearchService {
     );
   }
 
-  ImportRecordPlan _plan(String title) => ImportRecordPlan(
-    draft: StructuredDraft(
-      dance: Dance(
-        id: '',
-        title: title,
-        authorIds: const [],
-        tagIds: const [],
-        form: DanceForm.contra,
-        formation: const Formation(FormationShape.dupleImproper),
-        status: DanceStatus.active,
-        figures: const [],
-        customFields: const [],
-        hook: '',
-        createdAt: DateTime.utc(2026, 1, 1),
-        updatedAt: DateTime.utc(2026, 1, 1),
-      ),
-      raw: const RawRecord(
-        source: ProvenanceSource.callersbox,
-        externalId: '1',
-        payload: '{}',
-      ),
-    ),
-    verdict: DedupeVerdict.isNew(),
-  );
+  ImportRecordPlan _plan(String title, {bool confident = false}) =>
+      ImportRecordPlan(
+        draft: StructuredDraft(
+          dance: Dance(
+            id: '',
+            title: title,
+            authorIds: const [],
+            tagIds: const [],
+            form: DanceForm.contra,
+            formation: const Formation(FormationShape.dupleImproper),
+            status: DanceStatus.active,
+            figures: const [],
+            customFields: const [],
+            hook: '',
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+          raw: const RawRecord(
+            source: ProvenanceSource.callersbox,
+            externalId: '1',
+            payload: '{}',
+          ),
+        ),
+        verdict: confident
+            ? DedupeVerdict.ambiguous([
+                DedupeCandidate(
+                  danceId: 'local-existing',
+                  score: 0.8,
+                  confident: true,
+                ),
+              ])
+            : DedupeVerdict.isNew(),
+      );
 
   DanceDetailData _detail(String title) => DanceDetailData(
     dance: _plan(title).draft.dance,
@@ -213,6 +235,57 @@ void main() {
 
     expect(service.loadedIds, isEmpty);
     expect(resolved.single.resolution, PlaintextLineResolution.unmatched);
+  });
+
+  test(
+    'confident local duplicate (issue #685) is never imported — the line '
+    'falls back to the note-slot and service.import is never called',
+    () async {
+      final repos = openTestRepositories();
+      final service = _FakeOnlineService(
+        rowsByTitle: {
+          'money musk': [_row('Money Musk', id: '10600')],
+        },
+        confidentTitles: {'money musk'},
+      );
+
+      final resolved = await resolveUnmatchedOnline(
+        [_unmatched('Money Musk')],
+        service: service,
+        repos: repos,
+      );
+
+      expect(service.searchedTitles, ['Money Musk']);
+      // The preview is still loaded (that's how the verdict is consulted)...
+      expect(service.loadedIds, ['10600']);
+      // ...but import must never be called on a confident match.
+      expect(service.importedIds, isEmpty);
+
+      final line = resolved.single;
+      expect(line.resolution, PlaintextLineResolution.unmatched);
+      expect(line.importedOnline, isFalse);
+      expect(line.danceId, isNull);
+    },
+  );
+
+  test('resolveConfidentOnlineDanceId itself returns null on a confident local '
+      'duplicate without calling service.import', () async {
+    final repos = openTestRepositories();
+    final service = _FakeOnlineService(
+      rowsByTitle: {
+        'money musk': [_row('Money Musk', id: '10600')],
+      },
+      confidentTitles: {'money musk'},
+    );
+
+    final danceId = await resolveConfidentOnlineDanceId(
+      'Money Musk',
+      service: service,
+      repos: repos,
+    );
+
+    expect(danceId, isNull);
+    expect(service.importedIds, isEmpty);
   });
 
   test('a search error keeps the note fallback and does not throw', () async {

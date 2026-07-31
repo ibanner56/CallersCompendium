@@ -33,14 +33,31 @@ class DedupeEntry {
 /// record being imported (`0.0..1.0`).
 @immutable
 class DedupeCandidate {
-  const DedupeCandidate({required this.danceId, required this.score});
+  const DedupeCandidate({
+    required this.danceId,
+    required this.score,
+    this.confident = false,
+  });
 
   final String danceId;
   final double score;
 
+  /// Whether this candidate is a **confident match**: normalized titles are
+  /// exactly equal AND the tokenized author sets intersect (issue #685's
+  /// dedupe sanity check). A confident candidate is always included in
+  /// [DedupeIndex.fuzzyMatches] regardless of [DedupeIndex.defaultThreshold]
+  /// — inconsistent author-string tokenization across sources must never be
+  /// able to silently drop an exact-title, shared-author pair to [isNew].
+  ///
+  /// This is the seam issue #686 builds its figure-diff "variation?" prompt
+  /// on top of — it reads [confident]/[DedupeVerdict.hasConfidentMatch]
+  /// without needing to touch this file's scoring logic.
+  final bool confident;
+
   @override
   String toString() =>
-      'DedupeCandidate($danceId, ${(score * 100).toStringAsFixed(0)}%)';
+      'DedupeCandidate($danceId, ${(score * 100).toStringAsFixed(0)}%'
+      '${confident ? ', confident' : ''})';
 }
 
 /// What the deduplicator decided for a record. One of three shapes:
@@ -50,7 +67,9 @@ class DedupeCandidate {
 ///   pipeline acts on automatically.
 /// - [ambiguous]: fuzzy title/author matches found — the pipeline surfaces the
 ///   [candidates] and the caller must supply a [DedupeResolution]
-///   (link/duplicate/skip). Nothing is mutated without that resolution.
+///   (link/duplicate/skip). Nothing is mutated without that resolution. A
+///   candidate may be [DedupeCandidate.confident] — see
+///   [hasConfidentMatch].
 @immutable
 class DedupeVerdict {
   const DedupeVerdict._({
@@ -82,6 +101,17 @@ class DedupeVerdict {
   bool get isNewDance => kind == DedupeKind.isNew;
   bool get isReimport => kind == DedupeKind.reimport;
   bool get isAmbiguous => kind == DedupeKind.ambiguous;
+
+  /// Whether any [candidates] entry is a [DedupeCandidate.confident] match
+  /// (exact-title + shared-author, regardless of author-string formatting).
+  ///
+  /// Non-interactive callers (issue #685 Option 2 — e.g. the program-import
+  /// resolver) use this to guarantee they never silently duplicate a
+  /// confident match; #686 reuses it as the trigger for its figure-diff
+  /// "variation?" prompt. `false` for [isNew] (candidates is always empty
+  /// there — a confident candidate can never fail to be surfaced, see
+  /// [DedupeIndex.fuzzyMatches]) and for [reimport].
+  bool get hasConfidentMatch => candidates.any((c) => c.confident);
 
   @override
   String toString() => switch (kind) {
@@ -165,7 +195,11 @@ class DedupeIndex {
   }
 
   /// Fuzzy matches for a title + author name set, best first, filtered to
-  /// [threshold].
+  /// [threshold] — **plus** any confident match (see [DedupeCandidate.confident])
+  /// even when its score would otherwise fall under [threshold]. An
+  /// exact-normalized-title + overlapping-tokenized-author pair is therefore
+  /// *guaranteed* to be surfaced (never silently dropped to [isNew]),
+  /// independent of how [threshold] is tuned.
   List<DedupeCandidate> fuzzyMatches(
     String title,
     Iterable<String> authorNames, {
@@ -175,14 +209,23 @@ class DedupeIndex {
     final nAuthors = authorNames.map(normalizeAuthor).toSet()..remove('');
     final out = <DedupeCandidate>[];
     for (final e in _entries) {
-      final score = _combinedScore(
-        nTitle,
-        nAuthors,
-        normalizeTitle(e.title),
-        e.authorNames.map(normalizeAuthor).toSet()..remove(''),
-      );
-      if (score >= threshold) {
-        out.add(DedupeCandidate(danceId: e.danceId, score: score));
+      final eTitle = normalizeTitle(e.title);
+      final eAuthors = e.authorNames.map(normalizeAuthor).toSet()..remove('');
+      final score = _combinedScore(nTitle, nAuthors, eTitle, eAuthors);
+      final confident =
+          nTitle.isNotEmpty &&
+          nTitle == eTitle &&
+          nAuthors.isNotEmpty &&
+          eAuthors.isNotEmpty &&
+          nAuthors.intersection(eAuthors).isNotEmpty;
+      if (score >= threshold || confident) {
+        out.add(
+          DedupeCandidate(
+            danceId: e.danceId,
+            score: score,
+            confident: confident,
+          ),
+        );
       }
     }
     out.sort((a, b) => b.score.compareTo(a.score));

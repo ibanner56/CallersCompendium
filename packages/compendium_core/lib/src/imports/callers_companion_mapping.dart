@@ -7,6 +7,7 @@ import '../model/formation.dart';
 import '../model/partial_date.dart';
 import '../util/text_sanitizer.dart';
 import '../util/uuid.dart';
+import 'author_tokenizer.dart';
 import 'figure_front_end_fan_out.dart';
 import 'figure_parser.dart';
 import 'structured_draft.dart';
@@ -215,11 +216,13 @@ CcDanceMapping mapCallersCompanionDance(
   }
 
   // Authors — collected as display names for the pipeline to resolve to
-  // Choreographer associations (match-or-create) at commit. This mapping never
-  // fabricates ids; blank names are dropped.
-  final authorNames = [
-    for (final author in record.authors) ?_sanitizeLine(author),
-  ];
+  // Choreographer associations (match-or-create) at commit. This mapping
+  // routes every raw author field (whether it's the text adapter's single
+  // "by X" line or the .usr reader's Author1/Author2 columns) through the
+  // ONE shared canonical splitter (#685) so a combined "Alice and Bob" string
+  // and a pre-split ["Alice", "Bob"] array both normalize identically. Never
+  // fabricates ids; blank/duplicate names are dropped.
+  final authorNames = splitAuthorNames(record.authors, issues: issues);
 
   // Level → DanceLevel (+ mixedLevel), best-effort.
   final (level, mixedLevel) = _mapLevel(record.level, issues);

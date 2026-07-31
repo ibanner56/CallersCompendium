@@ -6,6 +6,7 @@ import '../model/figure.dart';
 import '../model/formation.dart';
 import '../taxonomy/param_types.dart';
 import '../util/text_sanitizer.dart';
+import 'author_tokenizer.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
@@ -211,9 +212,11 @@ class ContraDbAdapter implements SourceAdapter {
       ),
       raw: raw,
       issues: issues,
-      authorNames: [
-        if (choreographer != null && choreographer.isNotEmpty) choreographer,
-      ],
+      // Split on the shared canonical delimiter set (#685) — ContraDB stores
+      // multi-author dances as one combined string (e.g. "Alice Smith and
+      // Bob Jones"), so this is the ONLY place that string gets tokenized
+      // into individual author names for dedupe/authorship purposes.
+      authorNames: splitAuthorNames([choreographer], issues: issues),
     );
   }
 

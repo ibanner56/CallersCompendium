@@ -121,6 +121,22 @@ void main() {
       );
     });
 
+    // Issue #685: a multi-author "by" line must split via the shared
+    // tokenizer, not the adapter's own ad hoc split (now removed).
+    test('splits a multi-author "by" line via the shared tokenizer (issue '
+        '#685)', () async {
+      const text = '''
+Duet
+by Alice Smith and Bob Jones
+Type: Contra
+Formation: Improper
+
+A1   (8) Circle left
+''';
+      final draft = (await _importAll(adapter, text)).single;
+      expect(draft.authorNames, ['Alice Smith', 'Bob Jones']);
+    });
+
     test('a body line with no beats prefix imports with beats 0', () async {
       const text = '''
 No Beats Dance

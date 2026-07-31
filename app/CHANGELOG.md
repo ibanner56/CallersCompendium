@@ -190,6 +190,20 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Program import no longer silently duplicates a dance already in your
+  collection.** Multi-author strings (choreographer fields, Caller's Box
+  author arrays, Caller's Companion "by" lines) are now tokenized
+  consistently across every import source (see the `compendium_core`
+  changelog), so an already-owned dance's author set reliably overlaps on
+  re-import instead of scoring a spurious zero. On top of that, the
+  non-interactive program-import path (plaintext program import and the
+  ContraDB program import's Caller's Box fallback) now consults the local
+  dedupe index before importing an online-resolved dance: a confident
+  local-duplicate match (exact title + overlapping authors) is skipped
+  rather than force-imported, leaving the line on its existing note-slot
+  fallback instead of creating a silent duplicate. The interactive
+  search-and-tap-Import flow is unchanged. (#685)
+
 - **Off-screen program-matrix columns are now discoverable, and redundant
   column-header tooltips are gone.** The matrix's pinned column-header strip
   gave no visual cue when a program had more moves than fit on screen — a

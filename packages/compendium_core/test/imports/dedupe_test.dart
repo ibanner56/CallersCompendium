@@ -131,4 +131,89 @@ void main() {
       expect(DedupeResolution.skip().targetDanceId, isNull);
     });
   });
+
+  group('confident match (issue #685)', () {
+    // Simulates one source recording the pair as split into two authors
+    // (e.g. Caller's Box's Authors[] array) while an incoming record from a
+    // differently-tokenizing source (pre-#685 adapter behavior) only
+    // resolves a partial / non-identical author set — the sets still
+    // *intersect* even though they're not equal.
+    final index = DedupeIndex([
+      DedupeEntry(
+        danceId: 'd1',
+        title: 'The Nice Combination',
+        authorNames: ['Alice Smith', 'Bob Jones'],
+      ),
+    ]);
+
+    test('exact title + intersecting-but-not-identical author sets is '
+        'confident even at an artificially high threshold', () {
+      final matches = index.fuzzyMatches(
+        'The Nice Combination',
+        // Only partially overlapping: shares "Bob Jones", differs on the
+        // other author (simulating mismatched tokenization upstream).
+        ['Bob Jones', 'Robert Jones Jr.'],
+        threshold: 0.95,
+      );
+      expect(matches, isNotEmpty);
+      expect(matches.first.confident, isTrue);
+    });
+
+    test(
+      'verdictFor never resolves an exact-title+shared-author pair to '
+      'isNew, regardless of author-string formatting or threshold tuning',
+      () {
+        final v = index.verdictFor(
+          source: ProvenanceSource.json,
+          title: 'The Nice Combination',
+          authorNames: ['Bob Jones', 'Robert Jones Jr.'],
+          threshold: 0.95,
+        );
+        expect(v.isNewDance, isFalse);
+        expect(v.isAmbiguous, isTrue);
+        expect(v.hasConfidentMatch, isTrue);
+      },
+    );
+
+    test('exact title + fully disjoint author sets is NOT confident', () {
+      final matches = index.fuzzyMatches('The Nice Combination', ['Carol Lee']);
+      // Score alone still surfaces this at the default threshold (title-only
+      // weight dominates), but it must not be flagged confident.
+      expect(matches, isNotEmpty);
+      expect(matches.first.confident, isFalse);
+    });
+
+    test('no author overlap and no candidates at all means not confident', () {
+      final noOverlapIndex = DedupeIndex([
+        DedupeEntry(
+          danceId: 'd1',
+          title: 'Completely Different Title',
+          authorNames: ['Carol Lee'],
+        ),
+      ]);
+      final v = noOverlapIndex.verdictFor(
+        source: ProvenanceSource.json,
+        title: 'The Nice Combination',
+        authorNames: ['Alice Smith'],
+      );
+      expect(v.isNewDance, isTrue);
+      expect(v.hasConfidentMatch, isFalse);
+    });
+
+    test('title variance + author overlap is not "confident" (relies on the '
+        'existing weighted score, unchanged) but Part A tokenization rescues '
+        'it above threshold once authors correctly overlap', () {
+      // A punctuation/article variance ("The" dropped) with authors that
+      // now overlap post-tokenization: title similarity alone still clears
+      // the default threshold once the (fixed) author signal contributes
+      // positively rather than scoring a spurious 0.
+      final v = index.verdictFor(
+        source: ProvenanceSource.json,
+        title: 'Nice Combination',
+        authorNames: ['Alice Smith', 'Bob Jones'],
+      );
+      expect(v.isNewDance, isFalse);
+      expect(v.isAmbiguous, isTrue);
+    });
+  });
 }

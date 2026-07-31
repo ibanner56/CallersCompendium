@@ -565,6 +565,17 @@ void main() {
         },
       );
 
+      // Issue #685: a single Authors[] element can itself combine multiple
+      // names (e.g. "Alice Smith & Bob Jones") — each array element must be
+      // split via the shared tokenizer, not used verbatim.
+      test('splits a multi-author Authors[] element via the shared '
+          'tokenizer (issue #685)', () async {
+        final draft = await _importOne(
+          jsonEncode(_dance(authors: ['Alice Smith & Bob Jones'])),
+        );
+        expect(draft.authorNames, ['Alice Smith', 'Bob Jones']);
+      });
+
       test('OtherNames, Music, Tunes, Appearances fold as expected', () async {
         final draft = await _importOne(
           jsonEncode(
