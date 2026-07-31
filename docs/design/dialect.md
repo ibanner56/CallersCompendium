@@ -88,9 +88,9 @@ This chokepoint is wired at every free-text entry point:
 > `ProgramSlot.text`) is stored and displayed verbatim — it is not
 > canonicalized. This text is predominantly logistical (venue notes, set
 > breaks, potluck/sound-check reminders) rather than role-bearing
-> choreography, and since `canonicalizeText` is roles-only and passes
-> non-role text through byte-identical, wiring the chokepoint here would be a
-> no-op for the overwhelming majority of program prose. Tracked as issue #665,
+> choreography, and since `canonicalizeText` is roles-only and leaves non-role
+> text unchanged (byte-for-byte identical), wiring the chokepoint here would be
+> a no-op for the overwhelming majority of program prose. Tracked as issue #665,
 > closed as not planned.
 
 Edge rules:
