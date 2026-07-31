@@ -15,6 +15,7 @@ class _FakeOnlineService implements OnlineSearchService {
     this.rowsByTitle = const {},
     this.throwOnSearch = false,
     this.confidentTitles = const {},
+    this.previewFiguresByTitle = const {},
   });
 
   /// Search rows keyed by the (lower-cased) query title.
@@ -24,8 +25,16 @@ class _FakeOnlineService implements OnlineSearchService {
   /// (Lower-cased) titles for which [loadPreview] should return a plan whose
   /// verdict is a confident local duplicate (issue #685) — simulates the
   /// previewed online dance already existing locally under the same
-  /// (normalized) title with an overlapping tokenized author set.
+  /// (normalized) title with an overlapping tokenized author set. The
+  /// confident candidate's `danceId` is always `'local-existing'` — tests
+  /// that need to exercise the figure-comparison branch (issue #686) must
+  /// seed a real dance under that id via `repos.dances.create(...)`.
   final Set<String> confidentTitles;
+
+  /// (Lower-cased) titles → the previewed draft's figures, for tests
+  /// exercising issue #686's identical-vs-differing figure comparison. Titles
+  /// not present here preview with no figures.
+  final Map<String, List<Figure>> previewFiguresByTitle;
 
   final searchedTitles = <String>[];
   final loadedIds = <String>[];
@@ -54,7 +63,11 @@ class _FakeOnlineService implements OnlineSearchService {
     return OnlinePreview(
       result: result,
       detail: _detail(result.name),
-      plan: _plan(result.name, confident: confident),
+      plan: _plan(
+        result.name,
+        confident: confident,
+        figures: previewFiguresByTitle[result.name.trim().toLowerCase()],
+      ),
     );
   }
 
@@ -74,39 +87,42 @@ class _FakeOnlineService implements OnlineSearchService {
     );
   }
 
-  ImportRecordPlan _plan(String title, {bool confident = false}) =>
-      ImportRecordPlan(
-        draft: StructuredDraft(
-          dance: Dance(
-            id: '',
-            title: title,
-            authorIds: const [],
-            tagIds: const [],
-            form: DanceForm.contra,
-            formation: const Formation(FormationShape.dupleImproper),
-            status: DanceStatus.active,
-            figures: const [],
-            customFields: const [],
-            hook: '',
-            createdAt: DateTime.utc(2026, 1, 1),
-            updatedAt: DateTime.utc(2026, 1, 1),
-          ),
-          raw: const RawRecord(
-            source: ProvenanceSource.callersbox,
-            externalId: '1',
-            payload: '{}',
-          ),
-        ),
-        verdict: confident
-            ? DedupeVerdict.ambiguous([
-                DedupeCandidate(
-                  danceId: 'local-existing',
-                  score: 0.8,
-                  confident: true,
-                ),
-              ])
-            : DedupeVerdict.isNew(),
-      );
+  ImportRecordPlan _plan(
+    String title, {
+    bool confident = false,
+    List<Figure>? figures,
+  }) => ImportRecordPlan(
+    draft: StructuredDraft(
+      dance: Dance(
+        id: '',
+        title: title,
+        authorIds: const [],
+        tagIds: const [],
+        form: DanceForm.contra,
+        formation: const Formation(FormationShape.dupleImproper),
+        status: DanceStatus.active,
+        figures: figures ?? const [],
+        customFields: const [],
+        hook: '',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+      raw: const RawRecord(
+        source: ProvenanceSource.callersbox,
+        externalId: '1',
+        payload: '{}',
+      ),
+    ),
+    verdict: confident
+        ? DedupeVerdict.ambiguous([
+            DedupeCandidate(
+              danceId: 'local-existing',
+              score: 0.8,
+              confident: true,
+            ),
+          ])
+        : DedupeVerdict.isNew(),
+  );
 
   DanceDetailData _detail(String title) => DanceDetailData(
     dance: _plan(title).draft.dance,
@@ -132,6 +148,23 @@ OnlineSearchResultRow _row(String name, {String id = '1'}) =>
 ParsedProgramLine _unmatched(String text) => ParsedProgramLine(
   text: text,
   resolution: PlaintextLineResolution.unmatched,
+);
+
+/// A minimal persisted local dance for seeding the "confident match" target
+/// in issue #686 figure-comparison tests.
+Dance _localDance({required String id, required List<Figure> figures}) => Dance(
+  id: id,
+  title: 'Money Musk',
+  authorIds: const [],
+  tagIds: const [],
+  form: DanceForm.contra,
+  formation: const Formation(FormationShape.dupleImproper),
+  status: DanceStatus.active,
+  figures: figures,
+  customFields: const [],
+  hook: '',
+  createdAt: DateTime.utc(2026, 1, 1),
+  updatedAt: DateTime.utc(2026, 1, 1),
 );
 
 void main() {
@@ -237,45 +270,54 @@ void main() {
     expect(resolved.single.resolution, PlaintextLineResolution.unmatched);
   });
 
-  test(
-    'confident local duplicate (issue #685) is never imported — the line '
-    'falls back to the note-slot and service.import is never called',
-    () async {
-      final repos = openTestRepositories();
-      final service = _FakeOnlineService(
-        rowsByTitle: {
-          'money musk': [_row('Money Musk', id: '10600')],
-        },
-        confidentTitles: {'money musk'},
-      );
-
-      final resolved = await resolveUnmatchedOnline(
-        [_unmatched('Money Musk')],
-        service: service,
-        repos: repos,
-      );
-
-      expect(service.searchedTitles, ['Money Musk']);
-      // The preview is still loaded (that's how the verdict is consulted)...
-      expect(service.loadedIds, ['10600']);
-      // ...but import must never be called on a confident match.
-      expect(service.importedIds, isEmpty);
-
-      final line = resolved.single;
-      expect(line.resolution, PlaintextLineResolution.unmatched);
-      expect(line.importedOnline, isFalse);
-      expect(line.danceId, isNull);
-    },
-  );
-
-  test('resolveConfidentOnlineDanceId itself returns null on a confident local '
-      'duplicate without calling service.import', () async {
+  test('confident local duplicate whose target dance cannot be loaded '
+      'conservatively falls back to the note-slot (never imports)', () async {
+    // 'local-existing' is never seeded into `repos` — the resolver can't
+    // confirm identical vs. differing figures, so it must fall back to the
+    // pre-#686 skip rather than guessing.
     final repos = openTestRepositories();
     final service = _FakeOnlineService(
       rowsByTitle: {
         'money musk': [_row('Money Musk', id: '10600')],
       },
       confidentTitles: {'money musk'},
+    );
+
+    final resolved = await resolveUnmatchedOnline(
+      [_unmatched('Money Musk')],
+      service: service,
+      repos: repos,
+    );
+
+    expect(service.searchedTitles, ['Money Musk']);
+    // The preview is still loaded (that's how the verdict is consulted)...
+    expect(service.loadedIds, ['10600']);
+    // ...but import must never be called on a confident match whose target
+    // can't be confirmed.
+    expect(service.importedIds, isEmpty);
+
+    final line = resolved.single;
+    expect(line.resolution, PlaintextLineResolution.unmatched);
+    expect(line.importedOnline, isFalse);
+    expect(line.danceId, isNull);
+  });
+
+  test('confident match + IDENTICAL figures (issue #686) still skips — #685\'s '
+      'never-silently-duplicate rule is unchanged', () async {
+    final repos = openTestRepositories();
+    final sharedFigures = [
+      Figure(move: 'swing', params: {'who': 'partner', 'beats': 8}),
+      Figure(move: 'allemande', params: {'hand': 'left', 'beats': 8}),
+    ];
+    await repos.dances.create(
+      _localDance(id: 'local-existing', figures: sharedFigures),
+    );
+    final service = _FakeOnlineService(
+      rowsByTitle: {
+        'money musk': [_row('Money Musk', id: '10600')],
+      },
+      confidentTitles: {'money musk'},
+      previewFiguresByTitle: {'money musk': sharedFigures},
     );
 
     final danceId = await resolveConfidentOnlineDanceId(
@@ -286,7 +328,71 @@ void main() {
 
     expect(danceId, isNull);
     expect(service.importedIds, isEmpty);
+    // No new dance was created, and the existing one is untouched.
+    expect(await repos.dances.getById('local-existing'), isNotNull);
   });
+
+  test(
+    'confident match + DIFFERING figures (issue #686) auto-imports as a '
+    'variation with a symmetric relatedDance link-back, no user prompt',
+    () async {
+      final repos = openTestRepositories();
+      final targetFigures = [
+        Figure(move: 'swing', params: {'who': 'partner', 'beats': 8}),
+      ];
+      final previewFigures = [
+        Figure(move: 'swing', params: {'who': 'neighbor', 'beats': 8}),
+      ];
+      await repos.dances.create(
+        _localDance(id: 'local-existing', figures: targetFigures),
+      );
+      final service = _FakeOnlineService(
+        rowsByTitle: {
+          'money musk': [_row('Money Musk', id: '10600')],
+        },
+        confidentTitles: {'money musk'},
+        previewFiguresByTitle: {'money musk': previewFigures},
+      );
+
+      final danceId = await resolveConfidentOnlineDanceId(
+        'Money Musk',
+        service: service,
+        repos: repos,
+      );
+
+      expect(danceId, isNotNull);
+      expect(danceId, isNot('local-existing'));
+      // Never routed through the interactive/manual `service.import` path —
+      // the auto-variation commit goes straight through `ImportPipeline`.
+      expect(service.importedIds, isEmpty);
+
+      final created = await repos.dances.getById(danceId!);
+      expect(created, isNotNull);
+      expect(created!.title, 'Money Musk');
+      expect(
+        created.links,
+        contains(
+          isA<DanceLink>()
+              .having((l) => l.kind, 'kind', LinkKind.relatedDance)
+              .having(
+                (l) => l.targetDanceId,
+                'targetDanceId',
+                'local-existing',
+              ),
+        ),
+      );
+
+      final target = await repos.dances.getById('local-existing');
+      expect(
+        target!.links,
+        contains(
+          isA<DanceLink>()
+              .having((l) => l.kind, 'kind', LinkKind.relatedDance)
+              .having((l) => l.targetDanceId, 'targetDanceId', danceId),
+        ),
+      );
+    },
+  );
 
   test('a search error keeps the note fallback and does not throw', () async {
     final repos = openTestRepositories();

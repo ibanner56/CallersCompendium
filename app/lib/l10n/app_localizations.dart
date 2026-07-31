@@ -6068,6 +6068,12 @@ abstract class AppLocalizations {
   /// **'Duplicated: {count}'**
   String importReviewSummaryDuplicated(int count);
 
+  /// Import result summary line: number of records imported as a distinct figure-level variation of an existing dance (issue #686).
+  ///
+  /// In en, this message translates to:
+  /// **'Imported as a variation: {count}'**
+  String importReviewSummaryVariation(int count);
+
   /// Import result summary line: number of records skipped.
   ///
   /// In en, this message translates to:
@@ -6133,6 +6139,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t complete the import.'**
   String get importReviewImportError;
+
+  /// Heading of the inline figure-diff block shown when a confidently-matched candidate's figures differ from the incoming record (issue #686). The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Variation of \"{title}\"?'**
+  String importReviewVariationTitle(String title);
+
+  /// Explanatory body text under the issue #686 variation-diff heading. The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance\'s title and caller match \"{title}\", but its figures are different. Review how they differ, then choose how to import it.'**
+  String importReviewVariationBody(String title);
+
+  /// Per-record option: import this record as a new, distinct dance and (optionally) link it back to the matched dance as a related dance (issue #686). The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Import as a variation of \"{title}\"'**
+  String importReviewOptionVariation(String title);
+
+  /// Per-record option in the issue #686 variation block: treat this record as the same dance as the matched candidate (equivalent to the ordinary link option). The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Same dance as \"{title}\" (link/update)'**
+  String importReviewOptionSameDance(String title);
+
+  /// Checkbox label controlling whether choosing "import as a variation" also creates a symmetric relatedDance link back to the matched dance (issue #686). Defaults on. The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Also link back to \"{title}\" as a related dance'**
+  String importReviewOptionLinkBack(String title);
+
+  /// Section label above the figure lines present in the incoming record but not the matched dance, in the issue #686 inline diff.
+  ///
+  /// In en, this message translates to:
+  /// **'Added'**
+  String get importReviewVariationAdded;
+
+  /// Section label above the figure lines present in the matched dance but not the incoming record, in the issue #686 inline diff.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed'**
+  String get importReviewVariationRemoved;
+
+  /// Footer note in the issue #686 inline figure diff when the computed differences exceed the rendered cap (kMaxFigureDiffLines) or the comparison itself was too large to compute in full (kMaxFiguresForDiff).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 more difference not shown} other{{count} more differences not shown}}'**
+  String importReviewVariationMoreDifferences(int count);
 
   /// Section heading for the primary dance metadata fields in the dance editor.
   ///

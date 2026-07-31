@@ -12,6 +12,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/shorthand_mappings_scope.dart';
 import '../data/venue_entity_mode_scope.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/figure_diff_view.dart';
 import 'dance_editor_screen.dart';
 import 'import_shorthand_seed_screen.dart';
 
@@ -122,7 +123,7 @@ class ImportReviewScreen extends StatefulWidget {
 enum _Phase { input, planning, review, committing }
 
 /// The action the user chose (or that was defaulted) for one record.
-enum _ActionKind { create, reimport, link, duplicate, skip }
+enum _ActionKind { create, reimport, link, duplicate, skip, variation }
 
 /// One record's mutable review choice. Defaults are set from the verdict:
 /// new → create, reimport → skip (keep-local; never a silent overwrite),
@@ -132,8 +133,14 @@ class _RowChoice {
 
   _ActionKind kind;
 
-  /// The candidate dance id to link/reimport onto (for link/reimport).
+  /// The candidate dance id to link/reimport/variation-link onto.
   String? linkTargetId;
+
+  /// Whether choosing [_ActionKind.variation] should also create a symmetric
+  /// `relatedDance` link back to [linkTargetId] (issue #686). Defaults to
+  /// `true` to match [DedupeResolution.variation]'s own default, and only
+  /// applies when [kind] is [_ActionKind.variation].
+  bool linkBack = true;
 }
 
 class _ImportReviewScreenState extends State<ImportReviewScreen> {
@@ -185,6 +192,16 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   /// Existing dance id → title, for showing candidate/reimport target names.
   Map<String, String> _titlesById = const {};
+
+  /// Row index → the figure-level diff (issue #686) between that row's
+  /// confident candidate ([DedupeVerdict.hasConfidentMatch]) and the
+  /// previewed draft, computed once per plan in [_plan]. Only populated for
+  /// rows whose verdict has a confident match AND whose target dance could be
+  /// loaded; a row with no entry here falls back to the pre-#686 plain
+  /// ambiguous UI (either it has no confident match, or the target vanished
+  /// out from under the review — conservatively treated the same as any
+  /// other ambiguous candidate rather than guessed at).
+  Map<int, FigureDiffResult> _confidentDiffs = const {};
 
   Object? _planError;
 
@@ -337,10 +354,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       final titles = {
         for (final e in await _repos.dances.listIdsAndTitles()) e.id: e.title,
       };
+      final confidentDiffs = await _computeConfidentDiffs(batch);
       if (!mounted) return;
       setState(() {
         _batch = batch;
         _titlesById = titles;
+        _confidentDiffs = confidentDiffs;
         _choices = [for (final plan in batch.records) _defaultChoice(plan)];
         _committed.clear();
         _phase = _Phase.review;
@@ -352,6 +371,52 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         _phase = _Phase.review;
       });
     }
+  }
+
+  /// Computes the issue #686 figure-level diff for every row whose verdict
+  /// has a confident title+author match ([DedupeVerdict.hasConfidentMatch]),
+  /// against that candidate's stored [Dance]. Rows with no confident match,
+  /// or whose confident candidate's target dance can no longer be loaded
+  /// (deleted mid-review), are simply absent from the result — [_buildActions]
+  /// falls back to the plain (pre-#686) ambiguous UI for those.
+  ///
+  /// Reuses the app's own [contraTaxonomy] + a fresh [FigureRenderer] and the
+  /// currently active [Dialect] — the comparison itself never depends on the
+  /// dialect (see [diffFigures]'s doc comment); the dialect only shapes the
+  /// display text of any lines actually rendered.
+  Future<Map<int, FigureDiffResult>> _computeConfidentDiffs(
+    ImportBatchResult batch,
+  ) async {
+    // Only ever touch [ActiveDialectScope] when at least one row actually has
+    // a confident match to diff — a batch with none (the common case) never
+    // requires it as an ancestor. Read it synchronously, before any `await`
+    // below, so this never uses [context] across an async gap.
+    final hasConfidentMatch = batch.records.any(
+      (r) => r.verdict.hasConfidentMatch,
+    );
+    if (!hasConfidentMatch) return const {};
+    final dialect = ActiveDialectScope.of(context);
+    final renderer = FigureRenderer(contraTaxonomy);
+    final diffs = <int, FigureDiffResult>{};
+    for (var i = 0; i < batch.records.length; i++) {
+      if (!mounted) return diffs;
+      final verdict = batch.records[i].verdict;
+      if (!verdict.hasConfidentMatch) continue;
+      final candidate = verdict.candidates.firstWhere((c) => c.confident);
+      final target = await _repos.dances.getById(candidate.danceId);
+      if (target == null) continue;
+      final draftDance = batch.records[i].draft.dance;
+      diffs[i] = diffFigures(
+        oldFigures: target.figures,
+        oldStructure: target.phraseStructure,
+        newFigures: draftDance.figures,
+        newStructure: draftDance.phraseStructure,
+        taxonomy: contraTaxonomy,
+        renderer: renderer,
+        dialect: dialect,
+      );
+    }
+    return diffs;
   }
 
   _RowChoice _defaultChoice(ImportRecordPlan plan) {
@@ -408,6 +473,17 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             verdict: DedupeVerdict.ambiguous(const []),
           ),
           DedupeResolution.duplicate(),
+        );
+      case _ActionKind.variation:
+        return (
+          ImportRecordPlan(
+            draft: draft,
+            verdict: DedupeVerdict.ambiguous(record.verdict.candidates),
+          ),
+          DedupeResolution.variation(
+            choice.linkTargetId!,
+            linkBack: choice.linkBack,
+          ),
         );
       case _ActionKind.skip:
         return null;
@@ -745,7 +821,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     CcUsrImportResult? ccResult,
   }) async {
     final l10n = AppLocalizations.of(context);
-    var created = 0, reimported = 0, linked = 0, duplicated = 0;
+    var created = 0, reimported = 0, linked = 0, duplicated = 0, varied = 0;
     final errors = <ImportError>[];
     for (final r in session.records) {
       if (!r.succeeded) {
@@ -761,6 +837,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           linked++;
         case CommitAction.duplicate:
           duplicated++;
+        case CommitAction.variation:
+          varied++;
         case CommitAction.skip:
           break;
       }
@@ -795,6 +873,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               _summaryLine(
                 'Duplicated',
                 l10n.importReviewSummaryDuplicated(duplicated),
+              ),
+              _summaryLine(
+                'Variation',
+                l10n.importReviewSummaryVariation(varied),
               ),
               _summaryLine('Skipped', l10n.importReviewSummarySkipped(skipped)),
               if (ccResult != null) ...[
@@ -1543,6 +1625,57 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  /// Builds the "Variation?" inline-diff block for row [i]'s confident
+  /// candidate whose figures genuinely differ (issue #686): a heading naming
+  /// [targetTitle], the [FigureDiffView] itself, and the "also link back as
+  /// a related dance" checkbox (only meaningful when the row's choice ends up
+  /// being [_ActionKind.variation], but shown alongside it so the choice is
+  /// visible/adjustable before committing to that option).
+  Widget _buildVariationBlock(
+    BuildContext context,
+    int i,
+    FigureDiffResult diff,
+    String targetTitle,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final choice = _choices[i];
+    return Card(
+      key: ValueKey('import-row-$i-variation'),
+      margin: const EdgeInsets.only(bottom: 8),
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.importReviewVariationTitle(targetTitle),
+              style: theme.textTheme.titleSmall,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              l10n.importReviewVariationBody(targetTitle),
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 6),
+            FigureDiffView(result: diff),
+            CheckboxListTile(
+              key: ValueKey('import-row-$i-variation-linkback'),
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: choice.linkBack,
+              title: Text(l10n.importReviewOptionLinkBack(targetTitle)),
+              onChanged: (value) =>
+                  setState(() => choice.linkBack = value ?? true),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildActions(BuildContext context, int i, DedupeVerdict verdict) {
     final l10n = AppLocalizations.of(context);
     final choice = _choices[i];
@@ -1566,6 +1699,58 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           _option(i, l10n.importReviewOptionSkip, _ActionKind.skip),
         ]);
       case DedupeKind.ambiguous:
+        final confidentDiff = _confidentDiffs[i];
+        final options = <_Option>[];
+        Widget? variationBlock;
+        for (final c in verdict.candidates) {
+          final title = _titlesById[c.danceId] ?? c.danceId;
+          // A confident candidate (issue #685) whose figures genuinely
+          // differ (issue #686) gets the richer "Variation?" treatment
+          // instead of the plain link row: an inline diff plus a choice
+          // between importing as a distinct variation or treating it as the
+          // same dance. A confident candidate whose figures are IDENTICAL
+          // falls through to the plain link row below unchanged — that's
+          // #685 territory (a true duplicate), not #686's.
+          if (c.confident &&
+              confidentDiff != null &&
+              !confidentDiff.identical) {
+            variationBlock = _buildVariationBlock(
+              context,
+              i,
+              confidentDiff,
+              title,
+            );
+            options.add(
+              _option(
+                i,
+                l10n.importReviewOptionVariation(title),
+                _ActionKind.variation,
+                targetId: c.danceId,
+              ),
+            );
+            options.add(
+              _option(
+                i,
+                l10n.importReviewOptionSameDance(title),
+                _ActionKind.link,
+                targetId: c.danceId,
+              ),
+            );
+            continue;
+          }
+          options.add(
+            _option(
+              i,
+              l10n.importReviewOptionLink(title, (c.score * 100).round()),
+              _ActionKind.link,
+              targetId: c.danceId,
+            ),
+          );
+        }
+        options.add(
+          _option(i, l10n.importReviewOptionDuplicate, _ActionKind.duplicate),
+        );
+        options.add(_option(i, l10n.importReviewOptionSkip, _ActionKind.skip));
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1576,34 +1761,21 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 style: Theme.of(context).textTheme.labelMedium,
               ),
             ),
-            _radioGroup(i, choice, [
-              for (final c in verdict.candidates)
-                _option(
-                  i,
-                  l10n.importReviewOptionLink(
-                    _titlesById[c.danceId] ?? c.danceId,
-                    (c.score * 100).round(),
-                  ),
-                  _ActionKind.link,
-                  targetId: c.danceId,
-                ),
-              _option(
-                i,
-                l10n.importReviewOptionDuplicate,
-                _ActionKind.duplicate,
-              ),
-              _option(i, l10n.importReviewOptionSkip, _ActionKind.skip),
-            ]),
+            ?variationBlock,
+            _radioGroup(i, choice, options),
           ],
         );
     }
   }
 
   /// A stable identity string for the current selection, distinguishing link
-  /// rows by their target id (a row may offer several link candidates).
-  String _selectionValue(_RowChoice choice) => choice.kind == _ActionKind.link
-      ? 'link:${choice.linkTargetId}'
-      : choice.kind.name;
+  /// and variation rows by their target id (a row may offer several link
+  /// candidates, or a link and a variation option for the same candidate).
+  String _selectionValue(_RowChoice choice) => switch (choice.kind) {
+    _ActionKind.link => 'link:${choice.linkTargetId}',
+    _ActionKind.variation => 'variation:${choice.linkTargetId}',
+    _ => choice.kind.name,
+  };
 
   Widget _radioGroup(int i, _RowChoice choice, List<_Option> options) {
     return RadioGroup<String>(
@@ -1633,8 +1805,16 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   _Option _option(int i, String label, _ActionKind kind, {String? targetId}) {
-    final value = kind == _ActionKind.link ? 'link:$targetId' : kind.name;
-    final keySuffix = kind == _ActionKind.link ? 'link-$targetId' : kind.name;
+    final value = switch (kind) {
+      _ActionKind.link => 'link:$targetId',
+      _ActionKind.variation => 'variation:$targetId',
+      _ => kind.name,
+    };
+    final keySuffix = switch (kind) {
+      _ActionKind.link => 'link-$targetId',
+      _ActionKind.variation => 'variation-$targetId',
+      _ => kind.name,
+    };
     return _Option(
       value: value,
       keySuffix: keySuffix,

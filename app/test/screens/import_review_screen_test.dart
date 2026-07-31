@@ -7,6 +7,7 @@ import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
+import 'package:compendium_app/src/widgets/figure_diff_view.dart';
 import 'package:compendium_app/src/utils/undo_snack_bar.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
@@ -609,6 +610,314 @@ void main() {
     await _pump(tester, repos, payload: 'not json at all');
     await _toReview(tester);
     expect(find.text("Couldn't read the import"), findsOneWidget);
+  });
+
+  group('figure-variation diff prompt (issue #686)', () {
+    // A confident match (exact normalized title + an intersecting tokenized
+    // author set — issue #685) whose figures genuinely differ (issue #686's
+    // canonicalization-aware comparison) gets a richer "Variation?" block
+    // instead of the plain link row: an inline diff plus a choice between
+    // importing the incoming record as a distinct variation (with an
+    // optional relatedDance link back) or treating it as the same dance.
+
+    /// Encodes a self-contained archive whose only dance carries [authorName]
+    /// via an embedded [Choreographer] — [GenericJsonAdapter] turns this into
+    /// the draft's `authorNames`, matching a local dance's author by *name*
+    /// regardless of either side's id (see `generic_json_adapter.dart`).
+    String archivePayload(Dance dance, String authorName) => encodeArchive(
+      CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        dances: [dance],
+        choreographers: [Choreographer(id: 'archive-author', name: authorName)],
+      ),
+    );
+
+    testWidgets(
+      'confident match with differing figures shows the Variation? block',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.choreographers.upsert(
+          Choreographer(id: 'local-author', name: 'Bob Smith'),
+        );
+        await repos.dances.create(
+          Dance(
+            id: 'local-1',
+            title: 'Money Musk',
+            authorIds: const ['local-author'],
+            figures: [customFigure('Circle left once around')],
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        );
+
+        await _pumpForEdit(
+          tester,
+          repos,
+          payload: archivePayload(
+            Dance(
+              id: 'incoming-1',
+              title: 'Money Musk',
+              authorIds: const ['archive-author'],
+              figures: [customFigure('Circle right once around')],
+              createdAt: DateTime.utc(2026, 6, 1),
+              updatedAt: DateTime.utc(2026, 6, 1),
+            ),
+            'Bob Smith',
+          ),
+        );
+        await _toReview(tester);
+
+        expect(
+          find.byKey(const ValueKey('import-row-0-variation')),
+          findsOneWidget,
+        );
+        expect(find.byType(FigureDiffView), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('import-row-0-variation-local-1')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('import-row-0-link-local-1')),
+          findsOneWidget,
+        );
+        // The plain scored "Link to Money Musk (NN%)" row is NOT offered for
+        // a confident+differing candidate — it's replaced by the richer pair
+        // above.
+        expect(find.textContaining('Link to "Money Musk"'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'confident match with identical figures keeps the plain (#685) UI',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.choreographers.upsert(
+          Choreographer(id: 'local-author', name: 'Bob Smith'),
+        );
+        final sharedFigures = [customFigure('Circle left once around')];
+        await repos.dances.create(
+          Dance(
+            id: 'local-1',
+            title: 'Money Musk',
+            authorIds: const ['local-author'],
+            figures: sharedFigures,
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        );
+
+        await _pumpForEdit(
+          tester,
+          repos,
+          payload: archivePayload(
+            Dance(
+              id: 'incoming-1',
+              title: 'Money Musk',
+              authorIds: const ['archive-author'],
+              figures: sharedFigures,
+              createdAt: DateTime.utc(2026, 6, 1),
+              updatedAt: DateTime.utc(2026, 6, 1),
+            ),
+            'Bob Smith',
+          ),
+        );
+        await _toReview(tester);
+
+        expect(
+          find.byKey(const ValueKey('import-row-0-variation')),
+          findsNothing,
+        );
+        expect(find.byType(FigureDiffView), findsNothing);
+        // Falls through to the existing (#685) plain scored link row.
+        expect(
+          find.byKey(const ValueKey('import-row-0-link-local-1')),
+          findsOneWidget,
+        );
+        expect(find.textContaining('Link to "Money Musk"'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'choosing "Import as a variation" imports a new dance and links back',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.choreographers.upsert(
+          Choreographer(id: 'local-author', name: 'Bob Smith'),
+        );
+        await repos.dances.create(
+          Dance(
+            id: 'local-1',
+            title: 'Money Musk',
+            authorIds: const ['local-author'],
+            figures: [customFigure('Circle left once around')],
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        );
+
+        await _pumpForEdit(
+          tester,
+          repos,
+          payload: archivePayload(
+            Dance(
+              id: 'incoming-1',
+              title: 'Money Musk',
+              authorIds: const ['archive-author'],
+              figures: [customFigure('Circle right once around')],
+              createdAt: DateTime.utc(2026, 6, 1),
+              updatedAt: DateTime.utc(2026, 6, 1),
+            ),
+            'Bob Smith',
+          ),
+        );
+        await _toReview(tester);
+
+        await tester.tap(
+          find.byKey(const ValueKey('import-row-0-variation-local-1')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('1 of 1 will be imported'), findsOneWidget);
+
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        final all = await repos.dances.listAll();
+        expect(all.length, 2);
+        final imported = all.firstWhere((d) => d.id != 'local-1');
+        expect(imported.title, 'Money Musk');
+        expect(
+          imported.links.any(
+            (l) =>
+                l.kind == LinkKind.relatedDance && l.targetDanceId == 'local-1',
+          ),
+          isTrue,
+          reason: 'the new variation should link back to the original',
+        );
+        final original = all.firstWhere((d) => d.id == 'local-1');
+        expect(
+          original.links.any(
+            (l) =>
+                l.kind == LinkKind.relatedDance &&
+                l.targetDanceId == imported.id,
+          ),
+          isTrue,
+          reason: 'the original should gain a reciprocal relatedDance link',
+        );
+        expect(
+          find.byKey(const ValueKey('import-summary-Variation')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'unchecking "link back" imports the variation without a relatedDance '
+      'link',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.choreographers.upsert(
+          Choreographer(id: 'local-author', name: 'Bob Smith'),
+        );
+        await repos.dances.create(
+          Dance(
+            id: 'local-1',
+            title: 'Money Musk',
+            authorIds: const ['local-author'],
+            figures: [customFigure('Circle left once around')],
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        );
+
+        await _pumpForEdit(
+          tester,
+          repos,
+          payload: archivePayload(
+            Dance(
+              id: 'incoming-1',
+              title: 'Money Musk',
+              authorIds: const ['archive-author'],
+              figures: [customFigure('Circle right once around')],
+              createdAt: DateTime.utc(2026, 6, 1),
+              updatedAt: DateTime.utc(2026, 6, 1),
+            ),
+            'Bob Smith',
+          ),
+        );
+        await _toReview(tester);
+
+        await tester.tap(
+          find.byKey(const ValueKey('import-row-0-variation-local-1')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('import-row-0-variation-linkback')),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        final all = await repos.dances.listAll();
+        final imported = all.firstWhere((d) => d.id != 'local-1');
+        expect(imported.links, isEmpty);
+        final original = all.firstWhere((d) => d.id == 'local-1');
+        expect(original.links, isEmpty);
+      },
+    );
+
+    testWidgets(
+      'choosing "Same dance (link/update)" behaves like the existing link '
+      'option',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.choreographers.upsert(
+          Choreographer(id: 'local-author', name: 'Bob Smith'),
+        );
+        await repos.dances.create(
+          Dance(
+            id: 'local-1',
+            title: 'Money Musk',
+            authorIds: const ['local-author'],
+            figures: [customFigure('Circle left once around')],
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        );
+
+        await _pumpForEdit(
+          tester,
+          repos,
+          payload: archivePayload(
+            Dance(
+              id: 'incoming-1',
+              title: 'Money Musk',
+              authorIds: const ['archive-author'],
+              figures: [customFigure('Circle right once around')],
+              createdAt: DateTime.utc(2026, 6, 1),
+              updatedAt: DateTime.utc(2026, 6, 1),
+            ),
+            'Bob Smith',
+          ),
+        );
+        await _toReview(tester);
+
+        await tester.tap(
+          find.byKey(const ValueKey('import-row-0-link-local-1')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        final all = await repos.dances.listAll();
+        expect(all.length, 1);
+        expect(all.single.id, 'local-1');
+        expect(
+          find.byKey(const ValueKey('import-summary-Linked')),
+          findsOneWidget,
+        );
+      },
+    );
   });
 
   group('end-to-end through the real pipeline', () {

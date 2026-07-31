@@ -207,6 +207,103 @@ void main() {
     });
   });
 
+  group('variation resolution (issue #686)', () {
+    // #686: a confident title+author match whose figures DIFFER resolves to
+    // `.variation` — a distinct new dance, optionally linked back to the
+    // matched dance. Deliberately distinct from `.duplicate` (no link) and
+    // never used for the identical-figures case, which stays `.skip`/`.link`
+    // (#685, unchanged) — see `figure_diff.dart`/`program_import_online_resolver.dart`.
+    Future<String> seedExisting() async {
+      final adapter = FakeSourceAdapter([
+        record('fake-1', 'The Nice Combination'),
+      ]);
+      final s = await pipeline.commit(
+        await pipeline.plan(adapter, const ImportRequest()),
+        now: now,
+        newId: nextId,
+      );
+      return s.insertedDanceIds.single;
+    }
+
+    test('linkBack: true creates a new dance AND a symmetric relatedDance link '
+        'pair', () async {
+      final existingId = await seedExisting();
+      final incoming = FakeSourceAdapter([
+        record('fake-2', 'Nice Combination'),
+      ]);
+      final batch = await pipeline.plan(incoming, const ImportRequest());
+      final session = await pipeline.commit(
+        batch,
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.variation(existingId)},
+      );
+      expect(session.records.single.action, CommitAction.variation);
+      final newId = session.records.single.danceId!;
+      expect((await dances.listAll()).length, 2);
+
+      final newDance = (await dances.getById(newId))!;
+      expect(newDance.links, hasLength(1));
+      expect(newDance.links.single.kind, LinkKind.relatedDance);
+      expect(newDance.links.single.targetDanceId, existingId);
+
+      final target = (await dances.getById(existingId))!;
+      expect(target.links, hasLength(1));
+      expect(target.links.single.kind, LinkKind.relatedDance);
+      expect(target.links.single.targetDanceId, newId);
+    });
+
+    test(
+      'linkBack: false creates a new dance with no links either side',
+      () async {
+        final existingId = await seedExisting();
+        final incoming = FakeSourceAdapter([
+          record('fake-2', 'Nice Combination'),
+        ]);
+        final batch = await pipeline.plan(incoming, const ImportRequest());
+        final session = await pipeline.commit(
+          batch,
+          now: now,
+          newId: nextId,
+          resolutions: {
+            0: DedupeResolution.variation(existingId, linkBack: false),
+          },
+        );
+        expect(session.records.single.action, CommitAction.variation);
+        final newId = session.records.single.danceId!;
+
+        final newDance = (await dances.getById(newId))!;
+        expect(newDance.links, isEmpty);
+        final target = (await dances.getById(existingId))!;
+        expect(target.links, isEmpty);
+      },
+    );
+
+    test('undo fully reverts both sides: the new dance is deleted and the '
+        "target's prior (unlinked) state is restored", () async {
+      final existingId = await seedExisting();
+      final incoming = FakeSourceAdapter([
+        record('fake-2', 'Nice Combination'),
+      ]);
+      final batch = await pipeline.plan(incoming, const ImportRequest());
+      final session = await pipeline.commit(
+        batch,
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.variation(existingId)},
+      );
+      final newDanceId = session.records.single.danceId!;
+      expect((await dances.listAll()).length, 2);
+      expect((await dances.getById(existingId))!.links, isNotEmpty);
+
+      await pipeline.undo(session);
+
+      expect(await dances.getById(newDanceId), isNull);
+      final restoredTarget = (await dances.getById(existingId))!;
+      expect(restoredTarget.links, isEmpty);
+    });
+  });
+
   group('partial-batch tolerance & structured errors', () {
     test('a failed fetch is reported; the rest import', () async {
       final adapter = FakeSourceAdapter(

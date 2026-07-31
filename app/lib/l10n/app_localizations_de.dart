@@ -3953,6 +3953,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String importReviewSummaryVariation(int count) {
+    return 'Als Variante importiert: $count';
+  }
+
+  @override
   String importReviewSummarySkipped(int count) {
     return 'Übersprungen: $count';
   }
@@ -4019,6 +4024,48 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get importReviewImportError =>
       'Der Import konnte nicht abgeschlossen werden.';
+
+  @override
+  String importReviewVariationTitle(String title) {
+    return 'Variante von „$title“?';
+  }
+
+  @override
+  String importReviewVariationBody(String title) {
+    return 'Titel und Caller dieses Tanzes stimmen mit „$title“ überein, aber die Figuren unterscheiden sich. Sieh dir an, wie sie sich unterscheiden, und entscheide dann, wie er importiert werden soll.';
+  }
+
+  @override
+  String importReviewOptionVariation(String title) {
+    return 'Als Variante von „$title“ importieren';
+  }
+
+  @override
+  String importReviewOptionSameDance(String title) {
+    return 'Derselbe Tanz wie „$title“ (verknüpfen/aktualisieren)';
+  }
+
+  @override
+  String importReviewOptionLinkBack(String title) {
+    return 'Auch mit „$title“ als verwandten Tanz zurückverknüpfen';
+  }
+
+  @override
+  String get importReviewVariationAdded => 'Hinzugefügt';
+
+  @override
+  String get importReviewVariationRemoved => 'Entfernt';
+
+  @override
+  String importReviewVariationMoreDifferences(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count weitere Unterschiede nicht angezeigt',
+      one: '1 weiterer Unterschied nicht angezeigt',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get danceEditorDetailsSection => 'Details';

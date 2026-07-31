@@ -3959,6 +3959,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String importReviewSummaryVariation(int count) {
+    return 'Importé comme variante : $count';
+  }
+
+  @override
   String importReviewSummarySkipped(int count) {
     return 'Ignorés : $count';
   }
@@ -4024,6 +4029,48 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importReviewImportError => 'Impossible de terminer l’import.';
+
+  @override
+  String importReviewVariationTitle(String title) {
+    return 'Variante de « $title » ?';
+  }
+
+  @override
+  String importReviewVariationBody(String title) {
+    return 'Le titre et le caller de cette danse correspondent à « $title », mais les figures sont différentes. Consultez les différences, puis choisissez comment l\'importer.';
+  }
+
+  @override
+  String importReviewOptionVariation(String title) {
+    return 'Importer comme variante de « $title »';
+  }
+
+  @override
+  String importReviewOptionSameDance(String title) {
+    return 'Même danse que « $title » (lier/mettre à jour)';
+  }
+
+  @override
+  String importReviewOptionLinkBack(String title) {
+    return 'Aussi relier à « $title » comme danse associée';
+  }
+
+  @override
+  String get importReviewVariationAdded => 'Ajoutées';
+
+  @override
+  String get importReviewVariationRemoved => 'Supprimées';
+
+  @override
+  String importReviewVariationMoreDifferences(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count différences supplémentaires non affichées',
+      one: '1 différence supplémentaire non affichée',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get danceEditorDetailsSection => 'Détails';

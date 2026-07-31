@@ -130,6 +130,19 @@ void main() {
       expect(DedupeResolution.duplicate().targetDanceId, isNull);
       expect(DedupeResolution.skip().targetDanceId, isNull);
     });
+
+    test('variation carries a target id, kind, and defaults linkBack to true '
+        '(issue #686)', () {
+      final r = DedupeResolution.variation('d9');
+      expect(r.kind, DedupeResolutionKind.variation);
+      expect(r.targetDanceId, 'd9');
+      expect(r.linkBack, isTrue);
+    });
+
+    test('variation linkBack can be opted out', () {
+      final r = DedupeResolution.variation('d9', linkBack: false);
+      expect(r.linkBack, isFalse);
+    });
   });
 
   group('confident match (issue #685)', () {
