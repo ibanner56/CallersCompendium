@@ -368,6 +368,37 @@ void main() {
       // not one per program.
       expect(counter.count, 1);
     });
+
+    test('batched load spans an id chunk boundary (#624)', () async {
+      // More than one _idChunkSize (500) worth of programs, each with a slot
+      // and provenance, so _slotsForMany/_provenanceForMany must stitch
+      // results across chunks rather than exceeding SQLite's isIn() bound
+      // variable limit in a single query.
+      const total = 501;
+      for (var i = 0; i < total; i++) {
+        final id = 'p${i.toString().padLeft(4, '0')}';
+        await repo.create(
+          sampleProgram(
+            id: id,
+            title: 'Program ${i.toString().padLeft(4, '0')}',
+            slots: [ProgramSlot(id: '$id-s1', position: 0, text: 'Welcome')],
+          ).copyWith(
+            provenance: Provenance(
+              source: ProvenanceSource.callersCompanion,
+              externalId: 'ext-$id',
+              importedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ),
+        );
+      }
+
+      final all = await repo.listAll();
+      expect(all, hasLength(total));
+      // Every program keeps its slot + provenance regardless of which chunk
+      // it fell in (a merge bug would drop entries for later chunks).
+      expect(all.every((p) => p.slots.length == 1), isTrue);
+      expect(all.every((p) => p.provenance?.externalId != null), isTrue);
+    });
   });
 
   group('listIdsAndTitles', () {
@@ -475,6 +506,25 @@ void main() {
       await repo.create(sampleProgram(id: 'p1'));
       await repo.hardDelete(const []);
       expect(await repo.getById('p1'), isNotNull);
+    });
+
+    test('spans an id chunk boundary (#624)', () async {
+      // More than one _idChunkSize (500) worth of programs, so the delete
+      // must chunk its isIn() batch rather than exceeding SQLite's bound
+      // variable limit in a single query.
+      const total = 501;
+      final ids = [
+        for (var i = 0; i < total; i++) 'p${i.toString().padLeft(4, '0')}',
+      ];
+      for (final id in ids) {
+        await repo.create(sampleProgram(id: id, title: id));
+      }
+
+      await repo.hardDelete(ids);
+
+      for (final id in ids) {
+        expect(await repo.getById(id, includeDeleted: true), isNull);
+      }
     });
   });
 

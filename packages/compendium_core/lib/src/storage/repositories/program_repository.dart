@@ -373,32 +373,37 @@ class ProgramRepository {
     return rows.map(_slotFromRow).whereType<ProgramSlot>().toList();
   }
 
-  /// Batched sibling of [_slotsFor]: loads the slots for many programs in a
-  /// SINGLE `program_slots` query keyed by `programId IN (...)`, returning a
-  /// `programId → slots` map with each program's slots in position order.
-  /// Programs without slots are simply absent from the map. Used by [listAll]
-  /// to avoid the per-row `_slotsFor` N+1 fan-out. Mirrors [_provenanceForMany].
+  /// Batched sibling of [_slotsFor]: loads the slots for many programs via
+  /// `program_slots` queries keyed by `programId IN (...)`, chunking [ids] to
+  /// stay within SQLite's bound-variable limit (see [_chunkIds]) and merging
+  /// the per-chunk results, returning a `programId → slots` map with each
+  /// program's slots in position order. Programs without slots are simply
+  /// absent from the map. Used by [listAll] to avoid the per-row `_slotsFor`
+  /// N+1 fan-out. Mirrors [_provenanceForMany].
   Future<Map<String, List<ProgramSlot>>> _slotsForMany(
     Iterable<String> ids,
   ) async {
     final idList = ids.toList();
     if (idList.isEmpty) return const {};
+    final byProgram = <String, List<ProgramSlot>>{};
     // Order by programId then position so the in-memory grouping preserves
     // each program's position order (rows for a program arrive contiguously
-    // and already sorted).
-    final rows =
-        await (_db.select(_db.programSlots)
-              ..where((t) => t.programId.isIn(idList))
-              ..orderBy([
-                (t) => OrderingTerm(expression: t.programId),
-                (t) => OrderingTerm(expression: t.position),
-              ]))
-            .get();
-    final byProgram = <String, List<ProgramSlot>>{};
-    for (final row in rows) {
-      final slot = _slotFromRow(row);
-      if (slot == null) continue;
-      (byProgram[row.programId] ??= <ProgramSlot>[]).add(slot);
+    // and already sorted); chunking (see [_chunkIds]) doesn't disturb this
+    // since each chunk's rows are grouped separately before being merged.
+    for (final chunk in _chunkIds(idList)) {
+      final rows =
+          await (_db.select(_db.programSlots)
+                ..where((t) => t.programId.isIn(chunk))
+                ..orderBy([
+                  (t) => OrderingTerm(expression: t.programId),
+                  (t) => OrderingTerm(expression: t.position),
+                ]))
+              .get();
+      for (final row in rows) {
+        final slot = _slotFromRow(row);
+        if (slot == null) continue;
+        (byProgram[row.programId] ??= <ProgramSlot>[]).add(slot);
+      }
     }
     return byProgram;
   }
@@ -655,9 +660,11 @@ class ProgramRepository {
   Future<void> hardDelete(Iterable<String> ids) {
     final list = ids.toList();
     if (list.isEmpty) return Future.value();
-    return _db.transaction(
-      () => (_db.delete(_db.programs)..where((t) => t.id.isIn(list))).go(),
-    );
+    return _db.transaction(() async {
+      for (final chunk in _chunkIds(list)) {
+        await (_db.delete(_db.programs)..where((t) => t.id.isIn(chunk))).go();
+      }
+    });
   }
 
   /// Hard-deletes soft-deleted programs whose `deletedAt` is older than
@@ -706,20 +713,27 @@ class ProgramRepository {
   }
 
   /// Batched sibling of [_provenanceFor]: resolves provenance for many programs
-  /// in a SINGLE `program_provenance` query keyed by `programId IN (...)`,
-  /// returning a `programId → Provenance` map. Programs without a provenance
-  /// row are simply absent from the map. Used by [listAll] to avoid the per-row
-  /// `_provenanceFor` N+1 fan-out. Mirrors the batched `IN (...)` lookup used by
-  /// the dance derived-index rebuild.
+  /// via `program_provenance` queries keyed by `programId IN (...)`, chunking
+  /// [ids] to stay within SQLite's bound-variable limit (see [_chunkIds]) and
+  /// merging the per-chunk results into a `programId → Provenance` map.
+  /// Programs without a provenance row are simply absent from the map. Used by
+  /// [listAll] to avoid the per-row `_provenanceFor` N+1 fan-out. Mirrors the
+  /// batched `IN (...)` lookup used by the dance derived-index rebuild.
   Future<Map<String, model.Provenance>> _provenanceForMany(
     Iterable<String> ids,
   ) async {
     final idList = ids.toList();
     if (idList.isEmpty) return const {};
-    final rows = await (_db.select(
-      _db.programProvenance,
-    )..where((t) => t.programId.isIn(idList))).get();
-    return {for (final row in rows) row.programId: _provenanceFromRow(row)};
+    final result = <String, model.Provenance>{};
+    for (final chunk in _chunkIds(idList)) {
+      final rows = await (_db.select(
+        _db.programProvenance,
+      )..where((t) => t.programId.isIn(chunk))).get();
+      for (final row in rows) {
+        result[row.programId] = _provenanceFromRow(row);
+      }
+    }
+    return result;
   }
 
   model.Provenance _provenanceFromRow(ProgramProvenanceRow row) {
@@ -755,5 +769,19 @@ class ProgramRepository {
       if (ext != null && ext.isNotEmpty) map[ext] = row.programId;
     }
     return map;
+  }
+
+  /// Max ids per `IN (…)` clause. Kept well under SQLite's default
+  /// `SQLITE_MAX_VARIABLE_NUMBER` (999 on older builds) so a full-collection
+  /// load/delete stays correct no matter how large the library grows; the
+  /// batched queries above split their id list into chunks of this size.
+  /// Mirrors `DanceRepository`'s `_idChunkSize`.
+  static const int _idChunkSize = 500;
+
+  Iterable<List<String>> _chunkIds(List<String> ids) sync* {
+    for (var i = 0; i < ids.length; i += _idChunkSize) {
+      final end = i + _idChunkSize;
+      yield ids.sublist(i, end > ids.length ? ids.length : end);
+    }
   }
 }
