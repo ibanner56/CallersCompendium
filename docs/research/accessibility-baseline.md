@@ -93,6 +93,36 @@ program, and read a dance card end-to-end.
 - Accessibility acceptance criteria included in each UX design doc (1.11) per screen.
 - Recruit at least one AT-using tester in the beta program (7.3).
 
+## Release-blocking subset vs. full baseline
+
+Everything above is the full, aspirational baseline. As of the release gate
+added in `docs/dev/release-checklist.md` (§7, "Accessibility"), a **scoped
+subset** of it is release-blocking; the rest remains advisory/tracked until
+a later phase promotes it.
+
+- **Release-blocking (enforced, prospective from the next tagged release
+  onward — does not retroactively block a build already in progress):**
+  - VoiceOver (iOS) + TalkBack (Android) screen-reader smoke test across the
+    core flows (Collection browse/search, Dance detail, Program builder,
+    Performance mode).
+  - Text-scaling / reflow check: Android font scale **2.0×**, iOS largest
+    Dynamic Type accessibility size.
+  - Keyboard-only navigation check on desktop.
+- **Advisory / not yet gating (still tracked here, still expected
+  eventually, but won't block a tag today):**
+  - NVDA, Narrator, and Orca full-task-coverage screen-reader passes (see
+    the screen-reader support matrix above) — deferred to a later release
+    cycle.
+  - Contrast ratio audits, focus-order audits, and the rest of the
+    Perceivable/Operable/Understandable/Robust requirements not called out
+    as gating above.
+
+This split exists so the gate is achievable and enforceable today without
+waiting for full AT-matrix tooling/testers across every platform; the
+advisory items are expected to graduate into the gate as the beta program
+matures (see "Recruit at least one AT-using tester" in Process requirements,
+above).
+
 ## Open items
 
 - Validate WCAG2ICT mapping once the stack is chosen (some criteria shift).
