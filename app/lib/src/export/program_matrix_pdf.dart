@@ -63,13 +63,19 @@ Future<Uint8List> buildProgramMatrixPdf(
 }) async {
   final fmtDate = formatDate ?? _isoDate;
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
-  final resolvedMarkerFont = markerFont ?? await loadProgramMatrixMarkerFont();
   final title = programTitle.trim().isEmpty
       ? labels.defaultTitle
       : programTitle.trim();
   final doc = pw.Document(title: title, theme: resolvedTheme);
 
   final dateVenue = _dateVenue(eventDate, venue, fmtDate);
+
+  // The marker font is only used when the matrix actually has rows/columns
+  // to draw (the legend + marker cells), so it's loaded lazily rather than
+  // unconditionally — an empty matrix shouldn't pay for the extra asset I/O.
+  final resolvedMarkerFont = matrix.isEmpty
+      ? null
+      : (markerFont ?? await loadProgramMatrixMarkerFont());
 
   doc.addPage(
     pw.MultiPage(
@@ -88,7 +94,7 @@ Future<Uint8List> buildProgramMatrixPdf(
         if (matrix.isEmpty)
           pw.Text(labels.emptyState, style: const pw.TextStyle(fontSize: 12))
         else ...[
-          _legend(labels, resolvedMarkerFont),
+          _legend(labels, resolvedMarkerFont!),
           pw.SizedBox(height: 8),
           _matrixTable(matrix, taxonomy, dialect, labels, resolvedMarkerFont),
         ],
@@ -118,7 +124,11 @@ pw.Widget _matrixTable(
   ];
 
   final headerStyle = pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold);
-  final cellStyle = pw.TextStyle(fontSize: 12, fontFallback: [markerFont]);
+  // The dance-title column never contains marker glyphs, so it keeps the
+  // plain Roboto-only style; only the marker cells (below) get the fallback
+  // font, keeping its scope exactly to the ★/▸/✓/‼ marks (#633).
+  const titleStyle = pw.TextStyle(fontSize: 12);
+  final markerStyle = pw.TextStyle(fontSize: 12, fontFallback: [markerFont]);
 
   pw.Widget headerCell(String text, {pw.Alignment? align}) => pw.Padding(
     padding: const pw.EdgeInsets.all(4),
@@ -130,7 +140,7 @@ pw.Widget _matrixTable(
 
   pw.Widget markCell(String mark) => pw.Padding(
     padding: const pw.EdgeInsets.all(4),
-    child: pw.Center(child: pw.Text(mark, style: cellStyle)),
+    child: pw.Center(child: pw.Text(mark, style: markerStyle)),
   );
 
   final headerRow = pw.TableRow(
@@ -148,7 +158,7 @@ pw.Widget _matrixTable(
         children: [
           pw.Padding(
             padding: const pw.EdgeInsets.all(4),
-            child: pw.Text(matrix.rows[r].title, style: cellStyle),
+            child: pw.Text(matrix.rows[r].title, style: titleStyle),
           ),
           for (var c = 0; c < matrix.columns.length; c++)
             markCell(

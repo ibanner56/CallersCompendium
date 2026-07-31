@@ -154,22 +154,28 @@ void main() {
         );
       }
 
-      // Regression guard: the *bundled Roboto* still must NOT cover these
-      // — if a future Roboto update ever added them, the fallback font
-      // (and this test) would be safe to drop, but until then the
-      // fallback is load-bearing.
+      // Regression guard: the *bundled Roboto* still must NOT cover any of
+      // these three marks — if a future Roboto update ever added one, the
+      // fallback font (and this test) would be safe to drop for it, but
+      // until then the fallback is load-bearing for all three.
       final robotoBytes = await rootBundle.load(
         'assets/fonts/Roboto-Regular.ttf',
       );
       final robotoGlyphs = TtfParser(robotoBytes).charToGlyphIndexMap;
-      expect(
-        robotoGlyphs.containsKey(0x2605),
-        isFalse,
-        reason:
-            'this test documents *why* the fallback font exists; if '
-            'Roboto gains a ★ glyph, program_matrix_pdf.dart no longer '
-            'strictly needs the fallback for it',
-      );
+      for (final MapEntry(key: name, value: codePoint) in const {
+        'star (★, U+2605)': 0x2605,
+        'triangle (▸, U+25B8)': 0x25B8,
+        'check (✓, U+2713)': 0x2713,
+      }.entries) {
+        expect(
+          robotoGlyphs.containsKey(codePoint),
+          isFalse,
+          reason:
+              'this test documents *why* the fallback font exists; if '
+              'Roboto gains a $name glyph, program_matrix_pdf.dart no '
+              'longer strictly needs the fallback for it',
+        );
+      }
     });
 
     test(
