@@ -79,7 +79,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     SemanticsService.sendAnnouncement(
       View.of(context),
       AppLocalizations.of(context).programsSlotMoved,
-      TextDirection.ltr,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
 
@@ -261,7 +261,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     SemanticsService.sendAnnouncement(
       View.of(context),
       AppLocalizations.of(context).programsSlotMovedUp,
-      TextDirection.ltr,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
 
@@ -272,7 +272,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     SemanticsService.sendAnnouncement(
       View.of(context),
       AppLocalizations.of(context).programsSlotMovedDown,
-      TextDirection.ltr,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
 
@@ -283,7 +283,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     SemanticsService.sendAnnouncement(
       View.of(context),
       slot.isAlt ? l10n.programsMarkedPrimary : l10n.programsMarkedAlternate,
-      TextDirection.ltr,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
 
@@ -298,7 +298,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
       SemanticsService.sendAnnouncement(
         View.of(context),
         l10n.programsMarkedPerformed,
-        TextDirection.ltr,
+        Directionality.maybeOf(context) ?? TextDirection.ltr,
       );
     } else {
       // Rebuild without performedAt (copyWith can't clear it).
@@ -317,7 +317,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
       SemanticsService.sendAnnouncement(
         View.of(context),
         l10n.programsPerformedCleared,
-        TextDirection.ltr,
+        Directionality.maybeOf(context) ?? TextDirection.ltr,
       );
     }
   }
@@ -329,7 +329,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     SemanticsService.sendAnnouncement(
       View.of(context),
       l10n.programsRemovedSlot(name),
-      TextDirection.ltr,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
 

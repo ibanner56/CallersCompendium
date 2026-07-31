@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/formation_colors_scope.dart';
 import '../data/decimal_turns_scope.dart';
+import '../data/reduce_motion_scope.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
@@ -449,6 +450,15 @@ class _FitToHeightState extends State<_FitToHeight> {
     // must invalidate the cached converged scale and re-measure — otherwise an
     // enlargement would keep a stale (too-large) scale and overflow.
     final systemTextScale = MediaQuery.textScalerOf(context).scale(1);
+    // Reduce motion (ROADMAP G.7, issue #447): the fit search below is a real
+    // multi-frame binary search — each trial scale is actually rendered so it can
+    // be measured — which otherwise produces a visible "grow-in" on every reset.
+    // While reduced motion is on and the search hasn't converged yet, keep
+    // rendering (and measuring) it, but hide it with zero opacity so the user
+    // never sees the intermediate frames; once it settles, reveal the final size
+    // in one step. A cached scale converges immediately (see [_beginToken]) so
+    // there's nothing to hide in that case either way.
+    final reduceMotion = ReduceMotionScope.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewport = Size(constraints.maxWidth, constraints.maxHeight);
@@ -467,10 +477,13 @@ class _FitToHeightState extends State<_FitToHeight> {
             _measureAndStep(viewport, systemTextScale);
           });
         }
-        return SingleChildScrollView(
-          child: KeyedSubtree(
-            key: _contentKey,
-            child: widget.builder(context, _scale),
+        return Opacity(
+          opacity: reduceMotion && !_converged ? 0 : 1,
+          child: SingleChildScrollView(
+            child: KeyedSubtree(
+              key: _contentKey,
+              child: widget.builder(context, _scale),
+            ),
           ),
         );
       },

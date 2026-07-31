@@ -132,7 +132,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
     SemanticsService.sendAnnouncement(
       View.of(context),
       message,
-      TextDirection.ltr,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
 
