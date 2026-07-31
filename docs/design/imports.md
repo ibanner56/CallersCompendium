@@ -251,10 +251,15 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
 - **ContraDB `while`/`whiles`:** `parseContraDbFigureLine`
   (`imports/contradb_figure_dialect.dart`) runs the FULL existing recognizer
   pipeline first — so a line matching a dedicated named combined move (e.g.
-  `allemande_orbit`, `box_circulate`) is returned completely unmodified, with
-  named-recognizer precedence fully preserved (dances #1717 and the
-  box-circulate dual-clause form are regression cases, not fan-outs). Only
-  when the whole-line attempt degrades to custom — or its captured note
+  `box_circulate`) is returned completely unmodified, with named-recognizer
+  precedence fully preserved (the box-circulate dual-clause form is a
+  regression case, not a fan-out). The ContraDB combined
+  `allemandeOrbitWords` line (dance #1717) is the one exception: since the
+  fused `allemande_orbit` move was retired (issue #295), it is resolved by
+  `_allemandeOrbitMeanwhile` into a `meanwhile[allemande, orbit]` container —
+  handled right after the generic parse and preferred over it, so it keeps the
+  same first-crack precedence while emitting a container. Only when the
+  whole-line attempt degrades to custom — or its captured note
   swallowed a top-level `while`/`whiles` connective (mirrors the pre-existing
   `_noteSwallowedCompound` guard for `||`/`;`) — does it attempt a
   word-boundary split (`\bwhiles?\b`, so "whiles" is never cut mid-word) and

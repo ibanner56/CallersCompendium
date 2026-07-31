@@ -126,9 +126,8 @@ void main() {
 
     test('issue #591\'s own example: "Women allemande left 1 || Men orbit '
         'clockwise ½" fans into a meanwhile container', () {
-      // One side structures (allemande); the other stays custom (prefer-
-      // custom) — the container is still built either way, and neither
-      // subject text is dropped.
+      // Both sides structure: allemande and (issue #295) the now-first-class
+      // orbit. The container is built either way, and neither side is dropped.
       final fs = parseFigureLines(
         'Women allemande left 1 || Men orbit clockwise ½',
         beats: 6,
@@ -143,8 +142,11 @@ void main() {
       expect(sides[0].move, 'allemande');
       expect(sides[0].isCustom, isFalse);
       expect(sides[0].params['who'], 'role2s');
-      expect(sides[1].isCustom, isTrue);
-      expect(sides[1].params['text'], 'role1s orbit clockwise ½');
+      expect(sides[1].move, 'orbit');
+      expect(sides[1].isCustom, isFalse);
+      expect(sides[1].params['who'], 'role1s');
+      expect(sides[1].params['turn'], 'clockwise');
+      expect(sides[1].params['amount'], 0.5);
     });
 
     test('a security bound: more than kMaxMeanwhileSides top-level `||` '

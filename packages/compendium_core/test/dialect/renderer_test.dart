@@ -1423,7 +1423,6 @@ void main() {
       // byte-stable dedupe/FTS key — that the PR3 display reword replaces.
       final cases = <String, Figure>{
         'partners box circulate': Figure(move: 'box_circulate'),
-        'ones allemande orbit left 1½ ½': Figure(move: 'allemande_orbit'),
         'partners cross trails across neighbors': Figure(move: 'cross_trails'),
         'ones poussette neighbors half clockwise': Figure(move: 'poussette'),
         'ones facing star clockwise 3 places': Figure(move: 'facing_star'),
@@ -1434,10 +1433,6 @@ void main() {
         'role2s form a long wave': Figure(move: 'form_a_long_wave'),
         // Explicit-param variants prove the display reword never leaks into the
         // search/dedupe text.
-        'ones allemande orbit right 1½ ½': Figure(
-          move: 'allemande_orbit',
-          params: {'hand': 'right'},
-        ),
         'partners cross trails along neighbors': Figure(
           move: 'cross_trails',
           params: {'dir': 'along'},
@@ -1495,45 +1490,26 @@ void main() {
       },
     );
 
-    group('allemande_orbit (ContraDB allemandeOrbitWords)', () {
-      test('default: opposite orbit direction derived from the hand', () {
+    group('orbit (issue #295 first-class move)', () {
+      test('default renders who + direction + amount', () {
         expect(
-          renderer.render(Figure(move: 'allemande_orbit'), d),
-          'ones allemande left 1½ around while the twos orbit clockwise ½ around',
+          renderer.render(Figure(move: 'orbit'), d),
+          'ones orbit clockwise ½',
         );
       });
-      test('hand=right flips the orbit to counter clockwise', () {
+      test('counterclockwise direction', () {
         expect(
           renderer.render(
-            Figure(move: 'allemande_orbit', params: {'hand': 'right'}),
+            Figure(move: 'orbit', params: {'turn': 'counterclockwise'}),
             d,
           ),
-          'ones allemande right 1½ around while the twos orbit counter clockwise ½ around',
+          'ones orbit counterclockwise ½',
         );
       });
-      test('verbose spells the rotations out', () {
+      test('verbose spells the amount out', () {
         expect(
-          renderer.renderVerbose(Figure(move: 'allemande_orbit'), d),
-          'ones allemande left one and a half times around while the twos orbit clockwise halfway around',
-        );
-      });
-      test('hand=* surfaces the wildcard as the orbit direction', () {
-        // Must NOT invent "counter clockwise" for a non-left/right hand.
-        expect(
-          renderer.render(
-            Figure(move: 'allemande_orbit', params: {'hand': '*'}),
-            d,
-          ),
-          'ones allemande * 1½ around while the twos orbit * ½ around',
-        );
-      });
-      test('unexpected hand humanizes rather than inventing a direction', () {
-        expect(
-          renderer.render(
-            Figure(move: 'allemande_orbit', params: {'hand': 'sideways'}),
-            d,
-          ),
-          'ones allemande sideways 1½ around while the twos orbit sideways ½ around',
+          renderer.renderVerbose(Figure(move: 'orbit'), d),
+          'ones orbit clockwise halfway',
         );
       });
     });
@@ -1945,16 +1921,14 @@ void main() {
       expect(renderer.render(f, Dialect.canonical), endsWith('¾'));
     });
 
-    test('composes with allemande_orbit inner/outer turns', () {
-      // Display reorder: 'ones allemande left 1½ around while the twos orbit
-      // clockwise ½ around' — both rotations honor the flag.
+    test('composes with orbit amount', () {
       expect(
         renderer.render(
-          Figure(move: 'allemande_orbit'),
+          Figure(move: 'orbit'),
           Dialect.canonical,
           decimals: true,
         ),
-        'ones allemande left 1.5 around while the twos orbit clockwise 0.5 around',
+        'ones orbit clockwise 0.5',
       );
     });
 

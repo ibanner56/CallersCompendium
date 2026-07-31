@@ -922,53 +922,6 @@ class FigureRenderer {
       final hand = _displayScalar(params['hand']);
       return '$move - $swho cross while $other loop $hand';
     },
-    // ContraDB `allemandeOrbitWords`: words(swho, "allemande", sdir, sinner,
-    // "around", "while the", invertPair(who), "orbit", sopposite_dir, souter,
-    // "around"). The orbit direction is the opposite of the allemande hand
-    // (ContraDB: hand truthy/right -> "counter clockwise", left/false ->
-    // "clockwise"). "allemande"/"orbit" are fixed structural literals (not
-    // moveSubstitution). Rotations format through our rotation vocabulary.
-    'allemande_orbit': (r, def, params, dialect, verbose, decimals) {
-      final swho = r._displaySubject(params['who'], dialect);
-      final handRaw = params['hand'];
-      final hand = _displayScalar(handRaw);
-      // Orbit direction is the opposite of the allemande hand: left/null ->
-      // "clockwise", right -> "counter clockwise". Surface the wildcard ('*')
-      // and any unexpected value rather than inventing a concrete direction
-      // (mirrors facing_star `turn == '*'` and square_through `hand == '*'`).
-      final oppositeDir = (handRaw == 'left' || handRaw == null)
-          ? 'clockwise'
-          : handRaw == 'right'
-          ? 'counter clockwise'
-          : handRaw == '*'
-          ? '*'
-          : _humanize(handRaw.toString());
-      final other = r._invertPair(params['who'], dialect);
-      final innerRaw = params['inner'];
-      final outerRaw = params['outer'];
-      final inner = innerRaw is num
-          ? (verbose
-                ? _formatRotationVerbose(innerRaw)
-                : _formatRotation(innerRaw, decimals: decimals))
-          : _displayScalar(innerRaw);
-      final outer = outerRaw is num
-          ? (verbose
-                ? _formatRotationVerbose(outerRaw)
-                : _formatRotation(outerRaw, decimals: decimals))
-          : _displayScalar(outerRaw);
-      return [
-        swho,
-        'allemande',
-        hand,
-        inner,
-        'around while the',
-        other,
-        'orbit',
-        oppositeDir,
-        outer,
-        'around',
-      ].where((s) => s.isNotEmpty).join(' ');
-    },
     // ContraDB `crossTrailsWords`: words(smove, "-", sfirst_who, sfirst_dir,
     // sfirst_shoulder + ",", ssecond_who, ssecond_dir, ssecond_shoulder). The
     // second dir/shoulder are the fixed structural inverse of the first

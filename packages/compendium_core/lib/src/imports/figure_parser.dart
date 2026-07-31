@@ -622,6 +622,13 @@ final List<_Recognizer> _recognizers = [
   _contraCorners,
   _giveAndTake,
   _poussette,
+  // Issue #295: standalone `orbit` (TCB "Men orbit clockwise 1/2"). A distinct
+  // anchor word ("orbit"), so it neither shadows nor is shadowed by any other
+  // recognizer. Conservative: the rotation direction and amount must both be
+  // stated (never defaulted), so a bare "orbit" degrades to a custom figure.
+  // With this in place the TCB `||` and ContraDB `while` fan-outs represent the
+  // combined "X allemande while Y orbits" as meanwhile[allemande, orbit].
+  _orbit,
   // Additive TCB-attested moves (issue #553, Gap 1). Each is conservative
   // (leftover token → null → custom) and anchors on a distinct lead phrase, so
   // none shadows or is shadowed by the recognizers above.
@@ -1219,6 +1226,42 @@ _Match? _poussette(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('poussette', {'who': ?who2, 'turn': ?spin, 'half': ?frac});
+}
+
+/// Issue #295: standalone `orbit` — TCB writes "Men orbit clockwise 1/2" /
+/// "Women orbit counterclockwise 1/2". Conservative whole-line recognition:
+/// the rotation direction (`turn`, reusing `ParamKind.spinDirection`) and the
+/// turn amount (`amount`) must BOTH be stated; a bare "orbit", a missing
+/// direction or amount, or any leftover token yields null so the line degrades
+/// to a faithful custom figure. An optional trailing "around" (the ContraDB
+/// combined-side phrasing "… orbit clockwise ½ around") is consumed as filler
+/// so the recognizer still fully accounts for the line. Only `who` falls back
+/// to a default (flagged as an assumed subject), never the direction/amount.
+_Match? _orbit(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['orbit'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  String? spin;
+  if (_consumePhrase(w, ['clockwise']) || _consumePhrase(w, ['cw'])) {
+    spin = 'clockwise';
+  } else if (_consumePhrase(w, ['counterclockwise']) ||
+      _consumePhrase(w, ['counter', 'clockwise']) ||
+      _consumePhrase(w, ['anticlockwise']) ||
+      _consumePhrase(w, ['ccw'])) {
+    spin = 'counterclockwise';
+  }
+  if (spin == null) return null; // an orbit always states its direction
+  final amount = _takeRotation(w);
+  if (amount == null) return null; // the amount is never fabricated
+  _consumePhrase(w, ['around']); // optional ContraDB-side trailing token
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match(
+    'orbit',
+    {'who': who2 ?? 'ones', 'turn': spin, 'amount': amount},
+    null,
+    who2 == null,
+  );
 }
 
 /// Tier A: TCB writes "Partner California twirl" (dance id 11 "Hocus Pocus").

@@ -2,6 +2,13 @@
 
 ### Added
 
+- **`orbit` is now a first-class move (#295).** A standalone `orbit` move —
+  `who` (dancerSet), `turn` (`clockwise`/`counterclockwise`, reusing the
+  existing spin-direction vocabulary), `amount` (rotation, default ½), and
+  `beats` — recognized from The Caller's Box's standalone phrasing ("Men orbit
+  clockwise 1/2"). The recognizer is conservative: both the direction and the
+  amount must be stated, so a bare "orbit" stays a custom figure. Taxonomy
+  version → 19.
 - **`meanwhile` display rendering (#594).** Human-facing renders
   (`FigureRenderer.render`/`renderVerbose`/`renderSummary`) now join a
   `meanwhile` container's concurrent sides with the caller-facing word
@@ -22,6 +29,25 @@
   nested side (scrubbing free text) while enforcing the depth + side-count caps
   defensively (clamp/flatten, never throw). Non-fabricating: it records only
   "these happen at once," never a synthesized combined move.
+
+### Changed
+
+- **The fused `allemande_orbit` move is retired in favour of
+  `meanwhile[allemande, orbit]` (#295).** With `orbit` now recognized
+  standalone, the combined "X allemande while Y orbits" figure is modeled as a
+  `meanwhile` container: the CallersBox `||` fan-out and the ContraDB `while`
+  fan-out both produce it automatically, and the ContraDB combined-line
+  recognizer plus the ContraDB structured-import shorthand build it directly
+  (capturing the source's explicit orbit direction and orbiting pair). The
+  `allemande_orbit` MoveDef and its dialect renderer are removed. **Schema
+  migration v17 → v18:** stored `allemande_orbit` figures in `figures_json` are
+  rewritten into `meanwhile[allemande{who, hand, turn=old inner},
+  orbit{who=invert(who), turn=direction derived from hand, amount=old outer}]`,
+  carrying the fused figure's beats as the shared container total. The rewrite
+  is per-row/per-figure parse-never-throw — a figure with a wildcard hand or a
+  non-invertible `who` is left byte-identical (falling through to the
+  unknown-move path) rather than fabricated — and schedules a derived-index
+  rebuild only when a figure actually changed.
 
 ## 0.1.0
 

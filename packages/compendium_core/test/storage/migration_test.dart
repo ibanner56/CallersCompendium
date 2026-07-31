@@ -1722,7 +1722,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 17);
+      expect(db.schemaVersion, 18);
 
       await db.close();
     });
@@ -1828,7 +1828,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 17);
+      expect(db.schemaVersion, 18);
 
       await db.close();
     });
@@ -1950,7 +1950,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').get();
       expect(version.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 17);
+      expect(db.schemaVersion, 18);
 
       await db.close();
     });
@@ -2083,7 +2083,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').get();
       expect(version.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 17);
+      expect(db.schemaVersion, 18);
 
       final dance = await repos.dances.getById('dance-1');
       expect(dance, isNotNull);
@@ -2498,6 +2498,130 @@ void main() {
           .customSelect('SELECT id FROM program_slots ORDER BY id')
           .get();
       expect(slots.map((r) => r.read<String>('id')), ['s-bad', 's-ok']);
+    });
+  });
+
+  group('v17 -> v18 upgrade (issue #295 allemande_orbit -> meanwhile)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v18_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v17 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v17.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, db.schemaVersion);
+
+      await db.close();
+    });
+
+    test('rewrites stored allemande_orbit figures onto meanwhile[allemande, '
+        'orbit], deriving direction + orbiting pair', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final dance = await repos.dances.getById('dance-1');
+      expect(dance, isNotNull);
+      final figures = dance!.figures;
+      expect(figures, hasLength(5));
+
+      // [0] fully-specified + note/progression -> meanwhile carrying beats 8,
+      // note, and progression; sub-figures built from the fused params.
+      expect(figures[0].isMeanwhile, isTrue);
+      expect(figures[0].beats, 8);
+      expect(figures[0].note, 'scoop');
+      expect(figures[0].progression, isTrue);
+      final s0 = figures[0].subFigures;
+      expect(s0.map((f) => f.move), ['allemande', 'orbit']);
+      expect(s0[0].params['who'], 'ones');
+      expect(s0[0].params['hand'], 'left');
+      expect(s0[0].params['turn'], 1.5);
+      expect(s0[0].params.containsKey('beats'), isFalse);
+      expect(s0[1].params['who'], 'twos'); // invert(ones)
+      expect(s0[1].params['turn'], 'clockwise'); // opposite of left
+      expect(s0[1].params['amount'], 0.5);
+
+      // [1] hand:right -> orbit direction counterclockwise, orbiting pair
+      // role2s (invert of role1s); absent inner/outer filled from fused
+      // defaults (1.5 / 0.5).
+      expect(figures[1].isMeanwhile, isTrue);
+      final s1 = figures[1].subFigures;
+      expect(s1[0].params['who'], 'role1s');
+      expect(s1[0].params['hand'], 'right');
+      expect(s1[0].params['turn'], 1.5);
+      expect(s1[1].params['who'], 'role2s');
+      expect(s1[1].params['turn'], 'counterclockwise');
+      expect(s1[1].params['amount'], 0.5);
+
+      // [2] params-less -> all fused defaults apply.
+      expect(figures[2].isMeanwhile, isTrue);
+      expect(figures[2].beats, 8);
+      final s2 = figures[2].subFigures;
+      expect(s2[0].params['who'], 'ones');
+      expect(s2[0].params['hand'], 'left');
+      expect(s2[0].params['turn'], 1.5);
+      expect(s2[1].params['who'], 'twos');
+      expect(s2[1].params['turn'], 'clockwise');
+      expect(s2[1].params['amount'], 0.5);
+
+      // [3] control swing: byte-identical.
+      expect(figures[3].move, 'swing');
+      expect(figures[3].params['who'], 'partners');
+      expect(figures[3].params['beats'], 16);
+
+      // [4] wildcard hand: unmappable direction -> left byte-identical (the
+      // fused move is retained and rides the #358 unknown-move path).
+      expect(figures[4].isMeanwhile, isFalse);
+      expect(figures[4].move, 'allemande_orbit');
+      expect(figures[4].params['hand'], '*');
+
+      await db.close();
+    });
+
+    test('rebuilt dance_figures + FTS reflect the new orbit figures', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      // The derived-rebuild marker is cleared once the rebuild completes.
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(
+        marker.isEmpty || marker.single.data['value_json'] != 'true',
+        isTrue,
+        reason: 'the derived rebuild must clear its marker',
+      );
+
+      // The rewritten container's canonical text carries the orbit side, so a
+      // full-text search on "orbit" finds the dance.
+      final hits = await repos.dances.search(const FullTextFilter('orbit'));
+      expect(hits, contains('dance-1'));
+
+      await db.close();
     });
   });
 }

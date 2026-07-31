@@ -18,7 +18,6 @@ void main() {
     'mad_robin',
     'revolving_door',
     'star_promenade',
-    'allemande_orbit',
   ];
 
   group('registration & defaults', () {
@@ -44,7 +43,6 @@ void main() {
       'ones mad robin once': Figure(move: 'mad_robin'),
       'role2s revolving door right partners': Figure(move: 'revolving_door'),
       'role1s star promenade right ½': Figure(move: 'star_promenade'),
-      'ones allemande orbit left 1½ ½': Figure(move: 'allemande_orbit'),
     };
     cases.forEach((expected, figure) {
       test('"$expected"', () {

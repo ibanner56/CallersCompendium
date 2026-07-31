@@ -79,8 +79,12 @@ caller matches that default caller (trim + case-insensitive; issue #583).
   count (`params['beats']`, the authoritative total for section math — a
   sub-figure's own `beats` is display-only and never counted). It is
   **non-fabricating**: it records only "these happen at once," never a
-  synthesized combined move (named combined moves like `allemande_orbit` are a
-  separate path, #295). Structural caps: **flat only** (a `meanwhile` may not
+  synthesized combined move. Issue #295 took this further: the previously
+  fused `allemande_orbit` move was **retired** and its "X allemande while Y
+  orbits" figure is now modeled as exactly such a `meanwhile[allemande,
+  orbit]` container (with `orbit` promoted to a first-class move), so the
+  simultaneity is recorded structurally rather than as one synthesized move.
+  Structural caps: **flat only** (a `meanwhile` may not
   contain a `meanwhile`) and at most `kMaxMeanwhileSides` (**6**) sides. Rides
   `figures_json` **additively** (like `customOrigin` / `assumedSubject` /
   `walkthroughOverride`) — **no `figureSchemaVersion` bump**. Because it is one

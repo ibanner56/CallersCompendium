@@ -1,6 +1,7 @@
 import '../model/figure.dart';
 import '../taxonomy/taxonomy.dart';
 import 'figure_parser.dart';
+import 'figure_text_scrub.dart';
 
 /// The ContraDB-HTML figure front-end: a set of reverse-parsers that mirror
 /// ContraDB's `libfigure` `<move>Words` renderers (as observed in the
@@ -52,22 +53,30 @@ final RegExp _whileConnective = RegExp(r'\bwhiles?\b', caseSensitive: false);
 /// structured (non-custom) figure.
 ///
 /// ## Precedence (locked #591 requirement)
-/// The named combined moves — `allemandeOrbitWords` ([_allemandeOrbit], e.g.
-/// ContraDB #1717 "…ladles allemande left 1½ around while the gentlespoons
-/// orbit clockwise ½ around") and `boxCirculateWords` ([_boxCirculate], "box
+/// The named combined move `boxCirculateWords` ([_boxCirculate], "box
 /// circulate - WHO cross while OTHER loop …") — and every OTHER recognizer in
 /// [contraDbHtmlFigureFrontEnd] (plus the canonical shared recognizers) get
 /// their full, unmodified first attempt at the WHOLE line via the ordinary
 /// [parseFigureLine] call below. Only when that degrades to custom does this
 /// function look for a general top-level `while`/`whiles` connective, so a
-/// dedicated combined move ALWAYS wins and is never rerouted into a
-/// `meanwhile` container.
+/// dedicated combined move ALWAYS wins and is never rerouted into a generic
+/// `meanwhile` fan-out.
 ///
-/// ## Why this can't be a [FigureMatch] pre-recognizer
+/// The `allemandeOrbitWords` combined line (e.g. ContraDB #1717 "…ladles
+/// allemande left 1½ around while the gentlespoons orbit clockwise ½ around")
+/// is the ONE exception: the fused `allemande_orbit` move was retired (issue
+/// #295), so it is now resolved by [_allemandeOrbitMeanwhile] into a
+/// `meanwhile[allemande, orbit]` container. That check runs right after the
+/// generic parse (and is preferred over it) so the combined template keeps the
+/// same first-crack precedence it always had, while emitting a container
+/// instead of a fused figure.
+///
+/// ## Why the container can't be a [FigureMatch] pre-recognizer
 /// `meanwhileMove` is a *structural* id (like `customMove`) and is
 /// deliberately NOT registered in the ContraDB [Taxonomy], so
 /// [Taxonomy.validateFigure] would reject it as an `unknown_move` if it ever
-/// reached that check. [Figure.meanwhile] is therefore built DIRECTLY here,
+/// reached that check. [Figure.meanwhile] is therefore built DIRECTLY here
+/// (both for the general `while` fan-out and for [_allemandeOrbitMeanwhile]),
 /// bypassing [parseFigureLine]'s validate step entirely — exactly how
 /// `customFigure` already bypasses it.
 ///
@@ -105,6 +114,21 @@ Figure? parseContraDbFigureLine(
     frontEnd: contraDbHtmlFigureFrontEnd,
   );
   if (whole == null) return null;
+  // Issue #295: the combined `allemandeOrbitWords` line becomes
+  // `meanwhile[allemande, orbit]` (the fused `allemande_orbit` move was
+  // retired at taxonomy v19). Handled here — after the generic parse, but
+  // preferred over it when it resolves — so the named combined template keeps
+  // the SAME "first crack at the whole line" precedence the fused
+  // `_allemandeOrbit` recognizer previously held, while now emitting a
+  // container instead of one fused figure. It reads the scrubbed text (the
+  // same normalization the recognizers see) and builds the container directly,
+  // bypassing validate exactly like the `while` fan-out below.
+  final combinedOrbit = _allemandeOrbitMeanwhile(
+    (scrub ?? scrubFigureText)(rawText),
+    beats: beats,
+    progression: progression,
+  );
+  if (combinedOrbit != null) return combinedOrbit;
   // A structured prefix-match recognizer (e.g. `_balance`) can capture
   // everything after its own template as a verbatim NOTE — including a
   // `while`/`whiles` connective it has no business absorbing. Trust a
@@ -169,7 +193,6 @@ const List<FigureMatch? Function(String)> _recognizers =
       _pullByDirection,
       _balance,
       _doSiDo,
-      _allemandeOrbit,
       _allemande,
       _circle,
       _slideAlongSet,
@@ -288,10 +311,32 @@ FigureMatch? _doSiDo(String text) {
   return FigureMatch('do_si_do', params: params, note: s.note());
 }
 
-/// allemandeOrbitWords. Renders as: "WHO allemande HAND INNER around while the
-/// OTHER orbit clockwise|counter clockwise OUTER around". Ordered before the
-/// plain allemande so an orbit isn't read as an allemande with a trailing note.
-FigureMatch? _allemandeOrbit(String text) {
+/// Issue #295: the ContraDB `allemandeOrbitWords` combined line — e.g. #1717
+/// "…ladles allemande left 1½ around while the gentlespoons orbit clockwise ½
+/// around" — is modeled as `meanwhile[allemande, orbit]` (the fused
+/// `allemande_orbit` move was RETIRED at taxonomy v19). The source states BOTH
+/// the orbit direction AND the orbiting pair, so the container is built with
+/// full fidelity (no derivation): `allemande{who, hand, turn: inner}` +
+/// `orbit{who: who2, turn: direction, amount: outer}`, both sides beats-absent
+/// so the shared line total rides on the container's `beats` (keeping
+/// [deriveSections]' cumulative total byte-identical to the pre-split fused
+/// line). Returns null — declining to a plain allemande / custom — unless the
+/// whole "WHO allemande HAND INNER around while the WHO2 orbit DIR [OUTER]
+/// [around]" template resolves. Any trailing prose that still carries a
+/// top-level `while`/`whiles` is left for the general fan-out rather than
+/// swallowed into the container note.
+///
+/// `meanwhileMove` is a structural id (like `customMove`) that the ContraDB
+/// [Taxonomy] deliberately does not register, so the container is built
+/// DIRECTLY here — exactly like [parseContraDbFigureLine]'s `while` fan-out —
+/// bypassing [parseFigureLine]'s validate step. Sides are ordinary
+/// (non-meanwhile) figures, so [Figure.meanwhile]'s flat-only precondition
+/// cannot fail here.
+Figure? _allemandeOrbitMeanwhile(
+  String text, {
+  required int beats,
+  required bool progression,
+}) {
   final s = _Scan(text);
   final who = _subject(s);
   if (who == null) return null;
@@ -304,20 +349,44 @@ FigureMatch? _allemandeOrbit(String text) {
   s.take();
   if (!s.eat('around')) return null;
   if (!s.eatPhrase('while the')) return null;
-  if (_subject(s) == null) return null; // the orbiting pair
+  final who2 = _subject(s); // the orbiting pair
+  if (who2 == null) return null;
   if (!s.eat('orbit')) return null;
-  if (!(s.eatPhrase('counter clockwise') || s.eat('clockwise'))) {
-    // direction word is always rendered; if absent this isn't an orbit
+  final String direction;
+  if (s.eatPhrase('counter clockwise')) {
+    direction = 'counterclockwise';
+  } else if (s.eat('clockwise')) {
+    direction = 'clockwise';
+  } else {
+    // The direction word is always rendered; if absent this isn't an orbit.
     return null;
   }
-  final params = <String, Object?>{'who': who, 'hand': hand, 'inner': inner};
+  final orbitParams = <String, Object?>{'who': who2, 'turn': direction};
   final outer = _rotation(s.peek());
   if (outer != null) {
     s.take();
-    params['outer'] = outer;
+    orbitParams['amount'] = outer;
   }
   s.eat('around');
-  return FigureMatch('allemande_orbit', params: params, note: s.note());
+  // Leftover after the template is trailing prose. If it still carries a
+  // top-level while/whiles connective, decline so the general fan-out can
+  // represent that further simultaneity rather than dropping it into a note.
+  final note = s.note();
+  if (note != null && splitTopLevelOnWord(note, _whileConnective) != null) {
+    return null;
+  }
+  return Figure.meanwhile(
+    figures: [
+      Figure(
+        move: 'allemande',
+        params: {'who': who, 'hand': hand, 'turn': inner},
+      ),
+      Figure(move: 'orbit', params: orbitParams),
+    ],
+    beats: beats < 0 ? 0 : beats,
+    progression: progression,
+    note: note,
+  );
 }
 
 /// allemande (generic renderer): `<who> allemande <hand> <rotation>`.

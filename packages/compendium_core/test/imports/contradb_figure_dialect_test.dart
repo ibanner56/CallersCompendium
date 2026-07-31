@@ -357,15 +357,22 @@ void main() {
       expect(f.params['turn'], 0.5);
     });
 
-    test('allemande orbit (not read as a plain allemande)', () {
-      final f = _parse(
+    test('allemande orbit combined line -> meanwhile[allemande, orbit] '
+        '(issue #295: fused allemande_orbit retired)', () {
+      final f = parseContraDbFigureLine(
         'gentlespoons allemande left 1½ around while the ladles orbit clockwise ½ around',
+        beats: 8,
       );
-      expect(f.move, 'allemande_orbit');
-      expect(f.params['who'], 'role1s');
-      expect(f.params['hand'], 'left');
-      expect(f.params['inner'], 1.5);
-      expect(f.params['outer'], 0.5);
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isTrue);
+      final sides = f.subFigures;
+      expect(sides.map((s) => s.move), ['allemande', 'orbit']);
+      expect(sides[0].params['who'], 'role1s');
+      expect(sides[0].params['hand'], 'left');
+      expect(sides[0].params['turn'], 1.5);
+      expect(sides[1].params['who'], 'role2s');
+      expect(sides[1].params['turn'], 'clockwise');
+      expect(sides[1].params['amount'], 0.5);
     });
 
     test('zig zag', () {
@@ -826,25 +833,33 @@ void main() {
 
   group('parseContraDbFigureLine — `while`/`whiles` fan-out into `meanwhile` '
       '(#591/#572)', () {
-    test('allemande orbit (dances/1717) resolves via its dedicated recognizer, '
-        'NOT a meanwhile fan-out (precedence regression)', () {
+    test('allemande orbit (dances/1717) resolves to meanwhile[allemande, '
+        'orbit] via its dedicated combined handler (issue #295)', () {
       // Exact rendered text from ContraDB dance #1717 "Another Orbit for
       // Liz" (A1, 8 beats). This is the literal allemandeOrbitWords
-      // template — the named combined move consumes the whole line
-      // (empty note), so `parseContraDbFigureLine` must return it
-      // completely unmodified: a top-level `while` inside a move that
-      // ALREADY structures the whole line never fans out.
+      // template. The fused `allemande_orbit` move was RETIRED (#295); the
+      // combined line is now resolved by `_allemandeOrbitMeanwhile` into a
+      // `meanwhile[allemande, orbit]` container — preferred over the generic
+      // parse, so it keeps the same first-crack precedence the fused
+      // recognizer had, but emits a container instead of one fused figure.
+      // The source states both the direction and the orbiting pair, so both
+      // sides are built with full fidelity (no derivation).
       final f = parseContraDbFigureLine(
         'ladles allemande left 1½ around while the gentlespoons orbit '
         'clockwise ½ around',
         beats: 8,
       );
       expect(f, isNotNull);
-      expect(f!.isMeanwhile, isFalse);
-      expect(f.move, 'allemande_orbit');
-      expect(f.params['who'], 'role2s');
-      expect(f.params['inner'], 1.5);
-      expect(f.params['outer'], 0.5);
+      expect(f!.isMeanwhile, isTrue);
+      expect(f.beats, 8);
+      final sides = f.subFigures;
+      expect(sides.map((s) => s.move), ['allemande', 'orbit']);
+      expect(sides[0].params['who'], 'role2s');
+      expect(sides[0].params['hand'], 'left');
+      expect(sides[0].params['turn'], 1.5);
+      expect(sides[1].params['who'], 'role1s');
+      expect(sides[1].params['turn'], 'clockwise');
+      expect(sides[1].params['amount'], 0.5);
     });
 
     test('box circulate dual-clause (issue #585, Folklife Frolic A2/B1) '

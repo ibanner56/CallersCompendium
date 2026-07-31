@@ -62,14 +62,14 @@ gendered presets are deliberately not baked in.
 
 Adopted from ContraDB, with renames noted:
 
-allemande · allemande orbit · arch & dive · balance · balance the ring ·
+allemande · arch & dive · balance · balance the ring ·
 box circulate · box the gnat (alias: swat the flea) · butterfly whirl ·
 California twirl · chain (role-parameterized, not "ladies chain") · circle ·
 contra corners · cross trails · **custom** · do si do (alias: see saw) ·
 dolphin hey · down the hall · up the hall · facing star · figure 8 ·
 form long wave / ocean wave / long waves · gate · give & take ·
 **shoulder round** (was gyre/gypsy; keyword-searchable under old names) ·
-hey · long lines · mad robin · pass by · pass through · petronella ·
+hey · long lines · mad robin · orbit · pass by · pass through · petronella ·
 poussette · promenade · pull by (dancers/direction) · revolving door ·
 right left through · roll away · Rory O'More · slice · slide along set ·
 square through · stand still · star · star promenade · swing (alias:
@@ -99,7 +99,8 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
 **2.4a progress:**
 - **PR1 (simple moves, no new vocab):** added `butterfly_whirl`, `arch_and_dive`,
   `california_twirl`, `stand_still`, `slide_along_set`, `mad_robin`,
-  `revolving_door`, `star_promenade`, `allemande_orbit`. All fit the existing
+  `revolving_door`, `star_promenade` (and originally the fused `allemande_orbit`,
+  since retired — see v19). All fit the existing
   `ParamKind` set (no new vocabulary). ContraDB params with "no default" (which
   force a chooser selection there) take sensible community defaults here, since
   `ParamSpec.defaultValue` is required; rotations are stored in full turns.
@@ -237,6 +238,37 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     `circle_left` move — "left" is the `circle.turn` default. Neither flag is
     surfaced by the verbose renderer yet (structural-only for now), matching
     the existing precedent set by `star.grip`.
+- **v19 (`orbit` first-class + fused `allemande_orbit` retired, issue #295):**
+  splits the fused `allemande_orbit` (which modeled "X allemande while Y
+  orbits" as one combined move: `who`/`hand`/`inner`/`outer`/`beats`) into a
+  first-class **`orbit`** move plus a `meanwhile[allemande, orbit]` container.
+  - **`orbit`** params: `who` (dancerSet), `turn` (reuses the existing
+    `ParamKind.spinDirection` — `clockwise`/`counterclockwise`, so no new
+    vocab), `amount` (`ParamKind.rotation`, default `0.5`, matching the old
+    fused `outer`), and `beats`. Canonical render: `{who} orbit {turn}
+    {amount}` (e.g. "ones orbit clockwise ½"). Source-verified against The
+    Caller's Box, which writes the orbit side standalone ("Men orbit clockwise
+    1/2"); ContraDB has no standalone orbit figure (only the combined form), so
+    TCB is the source. A conservative whole-line recognizer requires BOTH the
+    direction and the amount to be stated (never fabricated); a bare "orbit"
+    degrades to a custom figure.
+  - The combined figure is now `meanwhile[allemande, orbit]`: once `orbit` is
+    recognized standalone, the TCB `||` fan-out and the ContraDB `while`
+    fan-out both produce the container automatically. The ContraDB combined
+    `allemandeOrbitWords` line (dance #1717) and the ContraDB structured-import
+    shorthand are redirected to build the container directly, capturing the
+    source's explicit orbit direction and orbiting pair.
+  - The fused **`allemande_orbit` MoveDef is REMOVED** (removal is cleaner than
+    a deprecated alias, and the migration is total and deterministic). Stored
+    figures are rewritten by the **schema-v18** DB migration into
+    `meanwhile[allemande{who, hand, turn=old inner}, orbit{who=invert(who),
+    turn=direction derived from hand (left→clockwise, right→counterclockwise),
+    amount=old outer}]`, carrying the fused figure's `beats` as the shared
+    container total. This is the sanctioned canonical-changing migration (cf.
+    the v14/schema-v12 ocean-wave removal): per-row/per-figure parse-never-throw
+    — a figure with a wildcard hand or a non-invertible `who` is left
+    byte-identical rather than fabricated.
+
 
 **The full ContraDB v1 contra move set is now modeled** (all five 2.4a slices
 landed). Exactly one new engine type was required across the whole build-out —

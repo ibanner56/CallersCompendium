@@ -13,13 +13,16 @@ import 'package:test/test.dart';
 /// v17: adds the additive `meetTarget` param to `hey` (issue #576).
 /// v18: adds the additive `singleFile` flag to `promenade` and `circle`, plus
 /// extends `give_and_take.goodBeats` with `2` (issue #634).
+/// v19: splits the fused `allemande_orbit` into a first-class `orbit` move; the
+/// combined figure is now modeled as `meanwhile[allemande, orbit]` and stored
+/// fused figures are migrated by schema v18 (issue #295).
 void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  test('contraTaxonomyVersion is 18', () {
-    expect(contraTaxonomyVersion, 18);
-    expect(tax.version, 18);
+  test('contraTaxonomyVersion is 19', () {
+    expect(contraTaxonomyVersion, 19);
+    expect(tax.version, 19);
   });
 
   group('box_circulate', () {
