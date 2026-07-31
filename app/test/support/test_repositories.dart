@@ -64,6 +64,15 @@ class DelayedSettingsRepository extends SettingsRepository {
   Completer<void>? _activeGate;
   Completer<void>? _writeStarted;
 
+  /// Total number of [set] calls that have begun executing (gated or not),
+  /// so a test can assert a later write hasn't started yet — e.g. because
+  /// it's queued behind an earlier one that's still suspended.
+  int writesStarted = 0;
+
+  /// `true` once a second [set] call has begun executing. Handy shorthand
+  /// for asserting an overlapping write hasn't started yet.
+  bool get secondWriteStarted => writesStarted >= 2;
+
   /// Arms the gate: the next [set] call will complete [writeStarted] and then
   /// suspend until [releaseWrite] is called.
   void holdNextWrite() {
@@ -79,11 +88,17 @@ class DelayedSettingsRepository extends SettingsRepository {
   /// Lets a write suspended by [holdNextWrite] proceed. Targets the gate for
   /// the write that is *currently* suspended (kept separate from
   /// [_armedGate] so calling this after the write has already started, but
-  /// before it's released, still works).
-  void releaseWrite() => _activeGate?.complete();
+  /// before it's released, still works). Idempotent — safe to call more than
+  /// once for the same gated write (a bare `Completer.complete()` would throw
+  /// on the second call).
+  void releaseWrite() {
+    final gate = _activeGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
 
   @override
   Future<void> set(String key, Object? value) async {
+    writesStarted++;
     final gate = _armedGate;
     if (gate != null) {
       _armedGate = null;

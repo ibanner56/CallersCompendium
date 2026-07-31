@@ -198,6 +198,50 @@ void main() {
     expect(await repos.settings.contains('editor_draft:new'), isFalse);
   });
 
+  test('clearDraft awaits every queued autosave, not just the most recently '
+      'scheduled one, when writes overlap (issue #616)', () async {
+    final delayed = openTestRepositoriesWithDelayedSettings();
+    addTearDown(delayed.repos.db.close);
+    final controller = await newDanceController(delayed.repos);
+    addTearDown(controller.dispose);
+
+    // First autosave: fire the debounce and hold its write open.
+    controller.titleController.text = 'First Edit';
+    controller.onTextEdited();
+    delayed.settings.holdNextWrite();
+    await Future<void>.delayed(const Duration(milliseconds: 650));
+    await delayed.settings.writeStarted;
+
+    // While the first write is still suspended, make a second edit. Its
+    // debounced autosave is scheduled (and later fires) while the first
+    // write is still in flight — an overlapping-writes scenario. Tracking
+    // only "the most recent" in-flight future would let clearDraft miss
+    // this still-earlier write.
+    controller.titleController.text = 'Second Edit';
+    controller.onTextEdited();
+    delayed.settings.holdNextWrite();
+    await Future<void>.delayed(const Duration(milliseconds: 650));
+
+    // The second write is queued behind the still-suspended first write,
+    // so it hasn't started yet.
+    expect(delayed.settings.secondWriteStarted, isFalse);
+
+    // Fire cleanup while both writes are outstanding (one in flight, one
+    // queued behind it), then release the first write so the queue can
+    // drain.
+    final clearFuture = controller.clearDraft();
+    delayed.settings.releaseWrite();
+    await clearFuture;
+
+    expect(
+      await delayed.repos.settings.contains('editor_draft:new'),
+      isFalse,
+      reason:
+          'the draft must stay removed even though an earlier autosave '
+          'was still queued behind an in-flight write when clearDraft ran',
+    );
+  });
+
   test('buildDance assembles a new Dance from the trimmed draft', () async {
     final repos = openTestRepositories();
     addTearDown(repos.db.close);

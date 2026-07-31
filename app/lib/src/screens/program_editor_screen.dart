@@ -120,11 +120,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// before an explicit Save no longer silently loses it.
   Timer? _autosaveTimer;
 
-  /// The currently-running [_saveDraft] write, if any. [_clearDraft] awaits
-  /// this before removing the draft so an in-flight autosave can never
-  /// complete *after* the removal and resurrect a just-cleared draft
-  /// (issue #616).
-  Future<void>? _saveInFlight;
+  /// Chains every [_saveDraft] write onto its predecessor so writes to
+  /// [_draftKey] never run concurrently. [_clearDraft] awaits the tail before
+  /// removing the draft; because each link only starts once the previous one
+  /// has finished, awaiting the *latest* tail transitively waits for *every*
+  /// write scheduled so far — not just the most recent one — so an in-flight
+  /// autosave (however many are queued) can never complete *after* the
+  /// removal and resurrect a just-cleared draft (issue #616).
+  Future<void> _saveQueueTail = Future<void>.value();
 
   /// Bumped by every [_clearDraft] call. A save started before the bump
   /// skips its write if it observes a newer generation, so a cleanup that
@@ -370,22 +373,25 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<void> _saveDraft() {
     if (!_loaded || !mounted || _restoringDraft) return Future<void>.value();
     final generation = _draftGeneration;
-    final future = _writeDraft(generation);
-    _saveInFlight = future;
+    // Chain onto the tail (rather than racing a fresh write) so overlapping
+    // autosaves never write concurrently, and so the tail always reflects
+    // every write scheduled so far.
+    final future = _saveQueueTail.then((_) => _writeDraft(generation));
+    _saveQueueTail = future;
     return future;
   }
 
   Future<void> _writeDraft(int generation) async {
+    if (!mounted) return;
     try {
-      final encoded = encodeProgramDraft(_captureDraft());
       // A _clearDraft() ran since this save was scheduled — it will (or
       // did) remove the draft itself, so skip the write rather than race it.
       if (generation != _draftGeneration) return;
+      final encoded = encodeProgramDraft(_captureDraft());
       await _repos.settings.set(_draftKey, encoded);
     } catch (_) {
-      // A draft write failure must never disrupt editing; the next edit retries.
-    } finally {
-      _saveInFlight = null;
+      // A draft write failure must never disrupt editing, nor permanently
+      // stall the save chain for later autosaves; the next edit retries.
     }
   }
 
@@ -393,13 +399,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// every terminal path (explicit save, delete, confirmed discard) so a
   /// committed or abandoned program never leaves a stale draft behind.
   ///
-  /// Awaits any autosave write already in flight before removing so that
-  /// write can never complete *after* the removal and resurrect the draft
-  /// (issue #616).
+  /// Awaits every autosave write scheduled so far (via the chained
+  /// [_saveQueueTail]) before removing, so none of them can complete *after*
+  /// the removal and resurrect the draft (issue #616).
   Future<void> _clearDraft() async {
     _autosaveTimer?.cancel();
     _draftGeneration++;
-    await _saveInFlight;
+    await _saveQueueTail;
     try {
       await _repos.settings.remove(_draftKey);
     } catch (_) {
