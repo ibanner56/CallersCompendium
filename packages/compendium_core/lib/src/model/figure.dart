@@ -23,6 +23,30 @@ const String customMove = 'custom';
 /// Canonical taxonomy id for the custom move (same value as [customMove]).
 const String customMoveId = customMove;
 
+/// Reserved structural move id for the **meanwhile** container figure (#590):
+/// a single figure that groups two or more concurrent sub-figures happening in
+/// the same beats. Mirrors [customMove] — it is a structural id, not a taxonomy
+/// move. Stable/serialized (permanent once written); never renamed.
+const String meanwhileMove = 'meanwhile';
+
+/// Maximum number of concurrent sides a [meanwhileMove] container may hold.
+///
+/// Real choreography never stacks more than a handful of simultaneous actions,
+/// so this is both a UX bound and a **security bound** on the untrusted archive
+/// / .ccshare import path: `params['figures']` is untrusted recursive structure,
+/// and an unbounded side count would allow a nested-payload DoS. The codec and
+/// the archive sanitizer both clamp defensively to this cap (parse-never-fails:
+/// clamp, never throw).
+const int kMaxMeanwhileSides = 6;
+
+/// Maximum meanwhile nesting depth honoured when decoding/sanitizing untrusted
+/// `params['figures']`. The container is **flat only** (a `meanwhile` may not
+/// contain a `meanwhile`), so legitimate data never nests; this small bound
+/// exists purely to stop adversarially deep nesting from exhausting the stack
+/// while decoding. Content deeper than this is flattened up to the cap and any
+/// pathological remainder is dropped defensively.
+const int kMaxMeanwhileDepth = 4;
+
 const DeepCollectionEquality _paramsEquality = DeepCollectionEquality();
 
 /// How a [customMove] [Figure] came to exist. Only meaningful when
@@ -72,6 +96,59 @@ class Figure {
         'must be a non-negative integer',
       );
     }
+  }
+
+  /// Builds a **meanwhile** container figure (#590): [figures] concurrent sides
+  /// sharing a single [beats] count (the authoritative beat total for section
+  /// math — a sub-figure's own `beats` is display-only and never counted).
+  ///
+  /// Enforces the structural caps for **programmatic** construction (the strict
+  /// path): at least 2 and at most [kMaxMeanwhileSides] sides, and **flat only**
+  /// (no side may itself be a meanwhile). The untrusted deserialization path is
+  /// intentionally lenient instead (clamp/flatten, parse-never-fails).
+  factory Figure.meanwhile({
+    required List<Figure> figures,
+    required int beats,
+    String? note,
+    bool progression = false,
+    Map<String, Object?> extraParams = const {},
+  }) {
+    if (figures.length < 2) {
+      throw ArgumentError.value(
+        figures.length,
+        'figures',
+        'a meanwhile needs at least 2 concurrent sides',
+      );
+    }
+    if (figures.length > kMaxMeanwhileSides) {
+      throw ArgumentError.value(
+        figures.length,
+        'figures',
+        'a meanwhile allows at most $kMaxMeanwhileSides sides',
+      );
+    }
+    for (final f in figures) {
+      if (f.isMeanwhile) {
+        throw ArgumentError.value(
+          f.move,
+          'figures',
+          'a meanwhile may not nest a meanwhile (flat only)',
+        );
+      }
+    }
+    if (beats < 0) {
+      throw ArgumentError.value(beats, 'beats', 'must be non-negative');
+    }
+    return Figure(
+      move: meanwhileMove,
+      params: {
+        ...extraParams,
+        'beats': beats,
+        'figures': List<Figure>.unmodifiable(figures),
+      },
+      note: note,
+      progression: progression,
+    );
   }
 
   final int schemaVersion;
@@ -130,6 +207,28 @@ class Figure {
   final String? walkthroughOverride;
 
   bool get isCustom => move == customMove;
+
+  /// Whether this is a **meanwhile** container figure (#590) — a group of
+  /// concurrent sub-figures sharing one beat count. Mirrors [isCustom].
+  bool get isMeanwhile => move == meanwhileMove;
+
+  /// The concurrent sides of a [isMeanwhile] container, in order; empty for any
+  /// other figure. Downstream surfaces read this instead of hand-parsing
+  /// `params['figures']`.
+  ///
+  /// The sides are the authoritative sub-figures; their individual `beats` are
+  /// display-only and MUST NOT be summed into section totals — the container's
+  /// own [beats] (`params['beats']`) is the single shared count.
+  List<Figure> get subFigures {
+    final raw = params['figures'];
+    if (raw is List) {
+      return List<Figure>.unmodifiable([
+        for (final f in raw)
+          if (f is Figure) f,
+      ]);
+    }
+    return const [];
+  }
 
   /// Duration in beats; 0 when unset (taxonomy defaults apply at a higher
   /// layer) — 0 is also legitimate for formation labels.

@@ -72,6 +72,24 @@ caller matches that default caller (trim + case-insensitive; issue #583).
 ```
 - `custom` move: `{move: "custom", params: {text: "...", beats: n}}` — the
   searchable free-text fallback; text is canonicalized on input.
+- `meanwhile` container (#590): `{move: "meanwhile", params: {beats: n,
+  figures: [<sub-figure>, …]}}` — a first-class **simultaneity** figure. It
+  groups **≥2** concurrent sub-figures (nested in `params['figures']`, each
+  encoded with the **same** figure codec, recursively) that share **one** beat
+  count (`params['beats']`, the authoritative total for section math — a
+  sub-figure's own `beats` is display-only and never counted). It is
+  **non-fabricating**: it records only "these happen at once," never a
+  synthesized combined move (named combined moves like `allemande_orbit` are a
+  separate path, #295). Structural caps: **flat only** (a `meanwhile` may not
+  contain a `meanwhile`) and at most `kMaxMeanwhileSides` (**6**) sides. Rides
+  `figures_json` **additively** (like `customOrigin` / `assumedSubject` /
+  `walkthroughOverride`) — **no `figureSchemaVersion` bump**. Because it is one
+  flat list element, `deriveSections` counts its shared beats exactly **once**,
+  and the search indexer **flattens** it so each concurrent side stays
+  individually matchable (`filterByMove` + FTS). Untrusted on the import path:
+  the archive/.ccshare sanitizer recurses into every nested side (scrubbing
+  free text) and enforces the depth + side-count caps defensively (clamp/flatten,
+  never throw).
 - Section labels (A1/B2…) are **derived** from cumulative beats +
   phraseStructure, not stored — keeps reordering/beat edits consistent.
 
