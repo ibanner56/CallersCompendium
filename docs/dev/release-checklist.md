@@ -101,14 +101,50 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] Search/filter with a non-default dialect; confirm enrichment resolves.
 - [ ] Navigate Collection ⇄ Programs; Settings reachable.
 
-## 7. Tag & publish
+## 7. Accessibility (Gate — prospective, see note)
+> **Prospective gate.** This section is first enforced for the release tagged
+> **after** it merges to `main`; it does not retroactively block whatever
+> build is already in progress when it lands. From that point on, every
+> release must pass the three checks below before tagging. This is a scoped,
+> release-blocking subset of the full baseline in
+> [`accessibility-baseline.md`](../research/accessibility-baseline.md) — see
+> that doc's "Release-blocking subset vs. full baseline" section for the
+> rationale and what's deliberately excluded.
+
+- [ ] **Screen-reader smoke (iOS/VoiceOver + Android/TalkBack) — Gate.** On a
+ real device (or simulator/emulator with VoiceOver/TalkBack enabled), using
+ only the screen reader (no sighted mouse/tap shortcuts), complete on **both**
+ platforms: browse/search the Collection, open a Dance's detail/card, build
+ or edit a Program, and enter Performance mode for one dance. **Pass**: every
+ control the flow touches is reachable in a sensible order, has an
+ announced name/role/state (no "button, button" or unlabeled-image style
+ gaps), and no step is stuck in a trap or silently fails to announce a
+ result (e.g. search count, save confirmation).
+- [ ] **200% text-scaling / reflow — Gate.** On **both** iOS and Android, set
+ system text size to 200% (Dynamic Type / Android font scale) and repeat:
+ Collection list, Dance detail/card, Program builder, Settings. **Pass**: no
+ text is clipped, truncated without a way to reveal the rest, or overlapping
+ other content; layouts reflow instead of overflowing off-screen.
+- [ ] **Keyboard-only navigation (desktop) — Gate.** On a desktop build
+ (macOS/Linux/Windows), unplug/ignore the mouse and complete the same core
+ flows using Tab/Shift+Tab/Enter/Arrow keys only. **Pass**: every interactive
+ element is reachable via Tab order, has a visible focus indicator at every
+ step, no keyboard trap exists, and fast dance entry (roadmap power-user
+ flow) is possible without the mouse.
+- [ ] **Deferred (advisory, not gating).** NVDA, Narrator, and Orca full
+ screen-reader passes remain tracked as aspirational in
+ [`accessibility-baseline.md`](../research/accessibility-baseline.md) but are
+ **not** part of this release-blocking gate yet; note any known issues found
+ informally in the known-issues list (§9) rather than blocking on them.
+
+## 8. Tag & publish
 - [ ] Release notes drafted (see the [first-beta](release-notes-first-beta.md) / [recurring &amp; stable](release-notes-recurring.md) guide) and reviewed.
 - [ ] Annotated tag created on the exact reviewed commit: `v0.1.0-beta.1`.
 - [ ] GitHub Release created from the tag, marked "Pre-release", artifacts attached.
 - [ ] Post-publish: download each artifact FROM the release and re-launch once
  (catches broken uploads).
 
-## 8. Post-release
+## 9. Post-release
 - [ ] Roadmap updated (what shipped, what's still open).
 - [ ] Known-issues list published with the release.
 - [ ] Feedback channel for testers is stated in the release notes.
