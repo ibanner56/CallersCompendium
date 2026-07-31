@@ -4,7 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'program_pdf.dart' show loadProgramPdfTheme;
+import 'program_pdf.dart' show loadProgramMatrixMarkerFont, loadProgramPdfTheme;
 
 /// Marker glyphs for the printed matrix. Deliberately distinct SHAPES + a
 /// legend (never colour alone) so the report matches the on-screen table's
@@ -14,10 +14,13 @@ import 'program_pdf.dart' show loadProgramPdfTheme;
 /// is a star, a dance's own first figure is a triangle, any other present move
 /// is a check, and an absent move is blank.
 ///
-/// The collision mark uses `‼` (U+203C) rather than a warning sign because it
-/// is present in the bundled Roboto font's glyph set, so it renders in the PDF
-/// (the `pdf` package silently drops glyphs the font lacks — see #582 notes on
-/// the existing star/triangle/check marks).
+/// The collision mark (`‼`, U+203C) is present in the bundled Roboto font's
+/// glyph set, so it renders without help. The star/triangle/check marks are
+/// not — the `pdf` package silently drops glyphs the active font lacks (#633)
+/// — so [buildProgramMatrixPdf] registers [loadProgramMatrixMarkerFont] as a
+/// `fontFallback` on the cell/legend text styles, letting `pdf` fall back to
+/// it per-glyph instead of swapping these documented marks
+/// (`docs/user/programs.md`) for different characters.
 const String _collisionMark = '‼';
 const String _debutMark = '★';
 const String _firstMark = '▸';
@@ -42,6 +45,9 @@ const String _presentMark = '✓';
 ///   (when any), and an empty-state line instead of a table.
 /// - [theme] supplies the bundled Unicode font; when omitted it is loaded via
 ///   [loadProgramPdfTheme].
+/// - [markerFont] supplies the fallback font for the ★/▸/✓ marker glyphs the
+///   bundled Roboto lacks (#633); when omitted it is loaded via
+///   [loadProgramMatrixMarkerFont].
 Future<Uint8List> buildProgramMatrixPdf(
   ProgramMatrix matrix, {
   required Taxonomy taxonomy,
@@ -53,9 +59,11 @@ Future<Uint8List> buildProgramMatrixPdf(
   int omittedFreeTextCount = 0,
   ProgramMatrixExportLabels labels = const ProgramMatrixExportLabels(),
   pw.ThemeData? theme,
+  pw.Font? markerFont,
 }) async {
   final fmtDate = formatDate ?? _isoDate;
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
+  final resolvedMarkerFont = markerFont ?? await loadProgramMatrixMarkerFont();
   final title = programTitle.trim().isEmpty
       ? labels.defaultTitle
       : programTitle.trim();
@@ -80,9 +88,9 @@ Future<Uint8List> buildProgramMatrixPdf(
         if (matrix.isEmpty)
           pw.Text(labels.emptyState, style: const pw.TextStyle(fontSize: 12))
         else ...[
-          _legend(labels),
+          _legend(labels, resolvedMarkerFont),
           pw.SizedBox(height: 8),
-          _matrixTable(matrix, taxonomy, dialect, labels),
+          _matrixTable(matrix, taxonomy, dialect, labels, resolvedMarkerFont),
         ],
         if (omittedFreeTextCount > 0) ...[
           pw.SizedBox(height: 12),
@@ -103,13 +111,14 @@ pw.Widget _matrixTable(
   Taxonomy taxonomy,
   Dialect dialect,
   ProgramMatrixExportLabels labels,
+  pw.Font markerFont,
 ) {
   final columnLabels = [
     for (final c in matrix.columns) matrixColumnLabel(c, taxonomy, dialect),
   ];
 
   final headerStyle = pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold);
-  final cellStyle = const pw.TextStyle(fontSize: 12);
+  final cellStyle = pw.TextStyle(fontSize: 12, fontFallback: [markerFont]);
 
   pw.Widget headerCell(String text, {pw.Alignment? align}) => pw.Padding(
     padding: const pw.EdgeInsets.all(4),
@@ -165,13 +174,18 @@ pw.Widget _matrixTable(
   );
 }
 
-pw.Widget _legend(ProgramMatrixExportLabels labels) => pw.Text(
-  '$_collisionMark  ${labels.legendCollision}      '
-  '$_debutMark  ${labels.legendDebut}      '
-  '$_firstMark  ${labels.legendFirst}      '
-  '$_presentMark  ${labels.legendPresent}',
-  style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
-);
+pw.Widget _legend(ProgramMatrixExportLabels labels, pw.Font markerFont) =>
+    pw.Text(
+      '$_collisionMark  ${labels.legendCollision}      '
+      '$_debutMark  ${labels.legendDebut}      '
+      '$_firstMark  ${labels.legendFirst}      '
+      '$_presentMark  ${labels.legendPresent}',
+      style: pw.TextStyle(
+        fontSize: 10,
+        color: PdfColors.grey700,
+        fontFallback: [markerFont],
+      ),
+    );
 
 String _dateVenue(
   DateTime? eventDate,

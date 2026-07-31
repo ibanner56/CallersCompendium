@@ -85,6 +85,21 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **The program-matrix PDF export's ★ (program-debut), ▸ (dance's-first-figure),
+  and ✓ (present) markers now actually render, instead of silently rendering
+  blank.** The bundled Roboto font used for PDF export doesn't include those
+  three glyphs, and the `pdf` package silently drops any glyph missing from
+  the active font — so exported/printed matrices lost their legend and cell
+  markers entirely, even though the on-screen matrix (which uses Material
+  icons, not these Unicode glyphs) looked correct. The alert marker (`‼`,
+  #582) was unaffected, since Roboto does include it. Rather than swap the
+  documented `★`/`▸`/`✓` marks for different characters, PDF export now
+  registers a small, static (non-variable, consistent with #614's
+  static-font decision), OFL-licensed fallback font — a hand-subsetted
+  instance of Google's Noto Sans Symbols 2, trimmed to just these three
+  glyphs — as a `fontFallback`, scoped only to the matrix's marker/legend
+  text. (#633)
+
 - **A dance or program's autosave draft no longer resurrects itself after a
   save, delete, or discard.** The debounced autosave and the draft cleanup it
   triggers could race: if a save/discard/delete ran while an autosave write to
