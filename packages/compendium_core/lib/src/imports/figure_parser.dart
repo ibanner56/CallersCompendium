@@ -259,19 +259,35 @@ String _stripEdgePunct(String w) =>
 /// which is exactly what [Figure.meanwhile] needs at minimum. `()`/`[]`
 /// content is treated as opaque, so a connective word inside an annotation
 /// is never treated as a clause boundary.
+///
+/// Linear in `t.length` (a single forward scan tracks bracket depth
+/// incrementally alongside the match stream), NOT per-match — [t] is
+/// untrusted import text (OWASP #591), and rescanning from the start of the
+/// string for every match would be O(length × matches), a CPU-cost lever an
+/// adversarial line with many repeated `while`/`whiles` occurrences could
+/// pull.
 List<String>? splitTopLevelOnWord(String t, RegExp word) {
-  for (final m in word.allMatches(t)) {
-    var depth = 0;
-    for (var i = 0; i < m.start; i++) {
-      final c = t.codeUnitAt(i);
-      if (c == 0x28 || c == 0x5B) {
-        depth++;
-      } else if ((c == 0x29 || c == 0x5D) && depth > 0) {
-        depth--;
+  final matches = word.allMatches(t).iterator;
+  if (!matches.moveNext()) return null;
+  var depth = 0;
+  for (var i = 0; i <= t.length; i++) {
+    // `allMatches` yields matches in ascending, non-overlapping start order,
+    // so once a match's start is behind the scan position it is resolved
+    // and the iterator advances — each character and each match is visited
+    // at most once.
+    while (matches.current.start == i) {
+      if (depth == 0) {
+        final m = matches.current;
+        return [t.substring(0, m.start).trim(), t.substring(m.end).trim()];
       }
+      if (!matches.moveNext()) return null;
     }
-    if (depth == 0) {
-      return [t.substring(0, m.start).trim(), t.substring(m.end).trim()];
+    if (i == t.length) break;
+    final c = t.codeUnitAt(i);
+    if (c == 0x28 || c == 0x5B) {
+      depth++;
+    } else if ((c == 0x29 || c == 0x5D) && depth > 0) {
+      depth--;
     }
   }
   return null;
