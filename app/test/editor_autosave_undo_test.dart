@@ -10,6 +10,7 @@ import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
 import 'package:compendium_app/src/editor/editor_snapshot.dart';
+import 'package:compendium_app/src/editor/figure_draft.dart';
 import 'package:compendium_app/src/editor/editor_undo_stack.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 
@@ -365,6 +366,30 @@ void main() {
         expect(draft.progression, isTrue);
       },
     );
+
+    test('FigureDraftSnapshot round-trips a meanwhile group losslessly '
+        '(#590/#593)', () {
+      final draft = FigureDraft(
+        meanwhileSides: [
+          FigureDraft(move: 'swing', params: {'who': 'partners'}),
+          FigureDraft(move: 'allemande', params: {'who': 'neighbors'}),
+        ],
+      );
+      draft.params['beats'] = 16;
+      draft.beatsTouched = true;
+
+      final snap = FigureDraftSnapshot.fromDraft(draft);
+      expect(snap.meanwhileSides, hasLength(2));
+
+      final restored = snap.toDraft();
+      expect(restored.id, draft.id);
+      expect(restored.isMeanwhileGroup, isTrue);
+      expect(restored.beats, 16);
+      expect(restored.meanwhileSides![0].id, draft.meanwhileSides![0].id);
+      expect(restored.meanwhileSides![0].move, 'swing');
+      expect(restored.meanwhileSides![1].move, 'allemande');
+      expect(restored.toFigure(), draft.toFigure());
+    });
   });
 
   // =========================================================================

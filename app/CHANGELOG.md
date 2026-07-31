@@ -42,6 +42,20 @@ each release so store builds and tags can be traced back to an entry.
   invented — and the shared beat count is counted once. Re-syncing an
   existing dance upgrades any older `||`/"while" line the same way. Part of
   #572.
+- **Author simultaneous ("meanwhile") figures in the figure editor.** A figure
+  row's overflow menu now offers **Group with next as meanwhile**, merging it
+  with the row right after into one editable group of 2–6 concurrent sides —
+  each authored with the same move-picker/param/note editor as any other
+  figure, plus a single **shared beats** field for the whole group (a side's
+  own beats is display-only and hidden to avoid a confusing dead control).
+  Add or remove a side with clear inline controls; removing down to 1 side
+  automatically collapses the group back to a plain figure. The group is
+  always **flat** — a side can never itself become a meanwhile group — and
+  the 2–6 side range is enforced right in the editor with a clear message at
+  the cap, not just a thrown error. Undo/redo and autosave carry a group
+  through losslessly. Builds on the `meanwhile` model container (#590).
+  (#593, part of #572)
+
 - **Write out the month in your custom date format.** The custom date-format
   pattern (Settings ▸ Language & region ▸ Date format ▸ Custom) now understands
   written-out month tokens alongside the numeric ones: `MMM` renders a short

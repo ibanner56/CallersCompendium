@@ -7157,6 +7157,54 @@ abstract class AppLocalizations {
   /// **'Mark progression'**
   String get danceEditorMarkProgression;
 
+  /// Menu item label that groups this figure row with the one immediately after it into a meanwhile (concurrent) group (#593). Hidden when there is no next row or either row is already a meanwhile group.
+  ///
+  /// In en, this message translates to:
+  /// **'Group with next as meanwhile'**
+  String get danceEditorGroupWithNext;
+
+  /// Visible heading for a meanwhile group's expanded editor and its display name elsewhere (drag handle, cut banner, duplicate announcement).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{Meanwhile ({count} sides)}}'**
+  String danceEditorMeanwhileGroupLabel(int count);
+
+  /// Screen-reader label for a meanwhile group's expanded editor region, making explicit that the beat count is SHARED across all sides, not per side.
+  ///
+  /// In en, this message translates to:
+  /// **'Meanwhile group, {count, plural, =1{1 concurrent figure} other{{count} concurrent figures}}, {beats, plural, =1{1 shared beat} other{{beats} shared beats}}.'**
+  String danceEditorMeanwhileGroupSemantic(int count, int beats);
+
+  /// Compact heading for one concurrent side within a meanwhile group's editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Side {number}'**
+  String danceEditorMeanwhileSideLabel(int number);
+
+  /// Screen-reader label identifying one side's position among the meanwhile group's concurrent sides.
+  ///
+  /// In en, this message translates to:
+  /// **'Side {number} of {total}.'**
+  String danceEditorMeanwhileSideSemantic(int number, int total);
+
+  /// Button label that adds another concurrent side to a meanwhile group.
+  ///
+  /// In en, this message translates to:
+  /// **'Add side'**
+  String get danceEditorAddMeanwhileSide;
+
+  /// Icon button tooltip/semantics for removing one side from a meanwhile group. Removing down to one side collapses the group back to a plain figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this side'**
+  String get danceEditorRemoveMeanwhileSide;
+
+  /// Inline message shown in place of the add-side button once a meanwhile group has reached the maximum allowed number of concurrent sides.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum of {max} concurrent figures.'**
+  String danceEditorMeanwhileSidesCapReached(int max);
+
   /// Read-only explanation for a figure whose move id is not in the active taxonomy.
   ///
   /// In en, this message translates to:

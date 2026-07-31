@@ -19,6 +19,7 @@ class FigureDraftSnapshot {
     this.assumedSubject = false,
     this.customOrigin = CustomOrigin.userEntered,
     this.walkthroughOverride,
+    this.meanwhileSides,
   });
 
   factory FigureDraftSnapshot.fromDraft(FigureDraft draft) =>
@@ -32,6 +33,11 @@ class FigureDraftSnapshot {
         assumedSubject: draft.assumedSubject,
         customOrigin: draft.customOrigin,
         walkthroughOverride: draft.walkthroughOverride,
+        meanwhileSides: draft.meanwhileSides == null
+            ? null
+            : List.unmodifiable(
+                draft.meanwhileSides!.map(FigureDraftSnapshot.fromDraft),
+              ),
       );
 
   final String id;
@@ -55,6 +61,12 @@ class FigureDraftSnapshot {
   /// undo/redo and autosave so an in-progress per-dance snippet is never lost.
   final String? walkthroughOverride;
 
+  /// Non-`null` ⇒ this snapshot is a **meanwhile group** (#590/#593): the
+  /// concurrent sides' own snapshots, preserved recursively so a group
+  /// round-trips losslessly through undo/redo and autosave. Mirrors
+  /// [FigureDraft.meanwhileSides].
+  final List<FigureDraftSnapshot>? meanwhileSides;
+
   FigureDraft toDraft() => FigureDraft(
     id: id,
     move: move,
@@ -65,6 +77,9 @@ class FigureDraftSnapshot {
     assumedSubject: assumedSubject,
     customOrigin: customOrigin,
     walkthroughOverride: walkthroughOverride,
+    meanwhileSides: meanwhileSides
+        ?.map((s) => s.toDraft())
+        .toList(growable: true),
   );
 }
 
