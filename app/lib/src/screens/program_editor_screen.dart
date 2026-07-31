@@ -648,7 +648,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     SemanticsService.sendAnnouncement(
       View.of(context),
       l10n.programsAddedDanceAnnounce(title),
-      TextDirection.ltr,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
 
@@ -669,7 +669,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     SemanticsService.sendAnnouncement(
       View.of(context),
       AppLocalizations.of(context).programsAddedNoteAnnounce,
-      TextDirection.ltr,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
 
@@ -689,7 +689,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     SemanticsService.sendAnnouncement(
       View.of(context),
       AppLocalizations.of(context).programsAddedBreakAnnounce,
-      TextDirection.ltr,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
 
@@ -739,7 +739,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     SemanticsService.sendAnnouncement(
       View.of(context),
       l10n.programsMarkedAllPerformed,
-      TextDirection.ltr,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
     ScaffoldMessenger.of(
       context,

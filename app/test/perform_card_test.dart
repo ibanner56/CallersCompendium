@@ -1,5 +1,6 @@
 import 'package:compendium_app/src/data/formation_colors_controller.dart';
 import 'package:compendium_app/src/data/formation_colors_scope.dart';
+import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/theme/set_list_accents.dart';
 import 'package:compendium_app/src/widgets/formation_color_badge.dart';
@@ -218,6 +219,53 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Like [pumpAutoSized] but wraps a [ReduceMotionScope] override and does
+  /// *not* settle, so the test can step frame-by-frame through the auto-fit
+  /// search (issue #628, F-L3).
+  Future<void> pumpAutoSizedWithMotionSetting(
+    WidgetTester tester,
+    Dance dance,
+    Size window,
+    FormationColorsController controller, {
+    required bool reduceMotion,
+  }) async {
+    await tester.binding.setSurfaceSize(window);
+    final notifier = ValueNotifier<bool>(reduceMotion);
+    addTearDown(notifier.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: ReduceMotionScope(
+          notifier: notifier,
+          child: Scaffold(
+            body: SafeArea(
+              child: FormationColorsScope(
+                controller: controller,
+                child: PerformCard(
+                  dance: dance,
+                  renderer: _renderer,
+                  dialect: Dialect.larksRobins,
+                  textScale: 1.0,
+                  autoSize: true,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The [Opacity] that gates the auto-fit search's visibility while it has
+  /// not yet converged (see `_FitToHeightState.build`).
+  Opacity fitOpacity(WidgetTester tester) => tester.widget<Opacity>(
+    find.ancestor(
+      of: find.byType(SingleChildScrollView),
+      matching: find.byType(Opacity),
+    ),
+  );
+
   ScrollPosition scrollPosition(WidgetTester tester) =>
       tester.state<ScrollableState>(find.byType(Scrollable).first).position;
 
@@ -263,6 +311,119 @@ void main() {
       pos.jumpTo(pos.maxScrollExtent);
       await tester.pump();
       expect(find.textContaining('ladies chain'), findsOneWidget);
+    },
+  );
+
+  // Regression for issue #628 (F-L3): the auto-fit search's multi-frame
+  // grow-in (see `_FitToHeightState._measureAndStep`) must honour Reduce
+  // motion — hidden while searching, the final size then appearing in one
+  // step — matching the pattern #447 established elsewhere (e.g. `Shimmer`).
+  testWidgets(
+    'auto-size hides the multi-frame grow-in search when Reduce motion is '
+    'on, then reveals the final size in one step (issue #628)',
+    (tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = await _controllerWith(null);
+
+      // Same window as the #527 "shrink to fit" repro: tall enough content
+      // that the search needs several frames to converge, so a stray visible
+      // frame would be caught.
+      await pumpAutoSizedWithMotionSetting(
+        tester,
+        tallDance(),
+        const Size(720, 620),
+        c,
+        reduceMotion: true,
+      );
+
+      var revealed = false;
+      var hiddenFrames = 0;
+      for (var i = 0; i < 40 && !revealed; i++) {
+        await tester.pump();
+        final opacity = fitOpacity(tester).opacity;
+        if (opacity == 1.0) {
+          revealed = true;
+        } else {
+          expect(opacity, 0.0);
+          hiddenFrames++;
+        }
+      }
+
+      // The search must actually have taken multiple (hidden) frames to
+      // converge — otherwise this test would pass vacuously even without the
+      // opacity gate (e.g. if the fit converged in a single frame).
+      expect(hiddenFrames, greaterThan(1));
+      // …and it must actually have converged (not just hit the frame cap) and
+      // reveal a correctly-sized, non-overflowing card.
+      expect(revealed, isTrue);
+      expect(tester.takeException(), isNull);
+      expect(scrollPosition(tester).maxScrollExtent, lessThan(1.0));
+      expect(find.textContaining('ladies chain'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'auto-size grow-in stays visible throughout when Reduce motion is off '
+    '(issue #628, unchanged behaviour)',
+    (tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = await _controllerWith(null);
+
+      await pumpAutoSizedWithMotionSetting(
+        tester,
+        tallDance(),
+        const Size(720, 620),
+        c,
+        reduceMotion: false,
+      );
+
+      // With motion allowed the fit is visible from the very first frame,
+      // throughout the search and after it settles.
+      expect(fitOpacity(tester).opacity, 1.0);
+      for (var i = 0; i < 10; i++) {
+        await tester.pump();
+        expect(fitOpacity(tester).opacity, 1.0);
+      }
+
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(fitOpacity(tester).opacity, 1.0);
+      expect(scrollPosition(tester).maxScrollExtent, lessThan(1.0));
+    },
+  );
+
+  testWidgets(
+    'auto-size becomes visible under Reduce motion even when the search '
+    'settles without ever changing the scale (issue #628 follow-up)',
+    (tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = await _controllerWith(null);
+
+      // A window too short for even the minimum auto scale (the #527 "never
+      // clipped" repro): the very first measurement overflows at `minScale`
+      // (the scale `_scale` already starts at), so `_settle` converges without
+      // ever changing `_scale`. Before the fix that meant `setState` was never
+      // called on this transition, leaving the content stuck at `Opacity: 0`
+      // under Reduce motion forever.
+      await pumpAutoSizedWithMotionSetting(
+        tester,
+        tallDance(),
+        const Size(420, 220),
+        c,
+        reduceMotion: true,
+      );
+
+      var revealed = false;
+      for (var i = 0; i < 10 && !revealed; i++) {
+        await tester.pump();
+        if (fitOpacity(tester).opacity == 1.0) revealed = true;
+      }
+
+      expect(revealed, isTrue);
+      expect(tester.takeException(), isNull);
+      // The scrollable fallback still keeps the (unshrinkable) content
+      // reachable, exactly as the motion-off #527 test asserts.
+      expect(scrollPosition(tester).maxScrollExtent, greaterThan(0.0));
     },
   );
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/formation_colors_scope.dart';
 import '../data/decimal_turns_scope.dart';
+import '../data/reduce_motion_scope.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
@@ -379,12 +380,18 @@ class _FitToHeightState extends State<_FitToHeight> {
   }
 
   /// Records the converged [value], caches it so a return visit skips the
-  /// search, and repaints at it if the last trial differs meaningfully.
+  /// search, and repaints if the last trial differs meaningfully *or* this is
+  /// the transition into convergence — the latter matters even when [value]
+  /// equals the current [_scale] (e.g. settling exactly at `minScale` /
+  /// `maxScale`): a caller under Reduce motion (issue #628) gates visibility
+  /// on `_converged` in [build], so skipping `setState` here would leave that
+  /// rebuild unscheduled and the content stuck invisible forever.
   void _settle(double value, Size viewport, double systemTextScale) {
     final settled = value.clamp(widget.minScale, widget.maxScale);
+    final wasConverged = _converged;
     _converged = true;
     _cache.remember(widget.resetToken, viewport, systemTextScale, settled);
-    if ((settled - _scale).abs() > _scaleEpsilon / 2) {
+    if (!wasConverged || (settled - _scale).abs() > _scaleEpsilon / 2) {
       setState(() => _scale = settled);
     }
   }
@@ -449,6 +456,15 @@ class _FitToHeightState extends State<_FitToHeight> {
     // must invalidate the cached converged scale and re-measure — otherwise an
     // enlargement would keep a stale (too-large) scale and overflow.
     final systemTextScale = MediaQuery.textScalerOf(context).scale(1);
+    // Reduce motion (ROADMAP G.7, issue #447): the fit search below is a real
+    // multi-frame binary search — each trial scale is actually rendered so it can
+    // be measured — which otherwise produces a visible "grow-in" on every reset.
+    // While reduced motion is on and the search hasn't converged yet, keep
+    // rendering (and measuring) it, but hide it with zero opacity so the user
+    // never sees the intermediate frames; once it settles, reveal the final size
+    // in one step. A cached scale converges immediately (see [_beginToken]) so
+    // there's nothing to hide in that case either way.
+    final reduceMotion = ReduceMotionScope.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewport = Size(constraints.maxWidth, constraints.maxHeight);
@@ -467,10 +483,13 @@ class _FitToHeightState extends State<_FitToHeight> {
             _measureAndStep(viewport, systemTextScale);
           });
         }
-        return SingleChildScrollView(
-          child: KeyedSubtree(
-            key: _contentKey,
-            child: widget.builder(context, _scale),
+        return Opacity(
+          opacity: reduceMotion && !_converged ? 0.0 : 1.0,
+          child: SingleChildScrollView(
+            child: KeyedSubtree(
+              key: _contentKey,
+              child: widget.builder(context, _scale),
+            ),
           ),
         );
       },

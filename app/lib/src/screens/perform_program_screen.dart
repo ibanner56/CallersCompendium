@@ -444,7 +444,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       AppLocalizations.of(
         context,
       ).performSlotPosition(_groupIndex + 1, _groups.length),
-      TextDirection.ltr,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
 
@@ -466,7 +466,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     SemanticsService.sendAnnouncement(
       View.of(context),
       l10n.performShowingSlot(_slotLabel(l10n, slot)),
-      TextDirection.ltr,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
 
@@ -578,7 +578,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       SemanticsService.sendAnnouncement(
         View.of(context),
         announce,
-        TextDirection.ltr,
+        Directionality.maybeOf(context) ?? TextDirection.ltr,
       );
     }
     final onChanged = widget.onProgramChanged;
