@@ -209,18 +209,19 @@ void main() {
     expect(_title(tester), 'User guide');
   });
 
-  testWidgets('the header titles a guide by its own heading, not its file name', (
-    tester,
-  ) async {
-    // `faq.md` would read as "Faq" if the title came from the file name; the
-    // header takes the guide's H1 instead so it reads the way the guide does.
-    await _pumpGuide(tester);
+  testWidgets(
+    'the header titles a guide by its own heading, not its file name',
+    (tester) async {
+      // `faq.md` would read as "Faq" if the title came from the file name; the
+      // header takes the guide's H1 instead so it reads the way the guide does.
+      await _pumpGuide(tester);
 
-    _tapLink(tester, 'faq.md');
-    await tester.pumpAndSettle();
+      _tapLink(tester, 'faq.md');
+      await tester.pumpAndSettle();
 
-    expect(_title(tester), 'FAQ & troubleshooting');
-  });
+      expect(_title(tester), 'FAQ & troubleshooting');
+    },
+  );
 
   testWidgets('an in-page anchor link scrolls to that heading', (tester) async {
     // A guide with enough prose that the target heading starts well below the
@@ -252,9 +253,7 @@ void main() {
         .widget<SingleChildScrollView>(find.byType(SingleChildScrollView))
         .controller!
         .offset;
-    final viewportHeight = tester
-        .getSize(find.byType(UserGuideDocView))
-        .height;
+    final viewportHeight = tester.getSize(find.byType(UserGuideDocView)).height;
     final heading = find.text(target);
 
     // The heading is laid out even though it is off screen — that is what makes

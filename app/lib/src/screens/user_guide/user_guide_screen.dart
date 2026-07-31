@@ -197,7 +197,11 @@ class _UserGuideScreenState extends State<UserGuideScreen> {
   }
 
   /// The guide's chrome: the header (title + in-panel back) above [body].
-  Widget _frame(AppLocalizations l10n, {required Widget body, _GuideBody? doc}) {
+  Widget _frame(
+    AppLocalizations l10n, {
+    required Widget body,
+    _GuideBody? doc,
+  }) {
     return Column(
       key: const ValueKey('user-guide-screen'),
       crossAxisAlignment: CrossAxisAlignment.stretch,

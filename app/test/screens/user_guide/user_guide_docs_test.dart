@@ -131,7 +131,10 @@ void main() {
       );
       // GitHub drops `&` entirely, leaving the spaces on either side as
       // hyphens — so this really is a double hyphen, not a typo.
-      expect(UserGuideDocs.slugify('Collection & search'), 'collection--search');
+      expect(
+        UserGuideDocs.slugify('Collection & search'),
+        'collection--search',
+      );
     });
 
     test('keeps hyphens and underscores, drops other punctuation', () {
