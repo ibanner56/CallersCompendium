@@ -89,6 +89,29 @@ void main() {
     await expectLater(repo.delete('f1'), throwsA(isA<StateError>()));
   });
 
+  test('delete succeeds once the referencing dance clears the value', () async {
+    await repo.upsert(
+      CustomFieldDef(
+        id: 'f1',
+        key: 'origin',
+        label: 'Origin',
+        type: CustomFieldType.text,
+      ),
+    );
+    final dance = Dance(
+      id: 'd1',
+      title: 'Some Dance',
+      customFields: [CustomFieldValue(fieldId: 'f1', value: 'New England')],
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+    );
+    await dances.create(dance);
+    await dances.update(dance.copyWith(customFields: const []));
+
+    await repo.delete('f1');
+    expect(await repo.getById('f1'), isNull);
+  });
+
   test('delete succeeds once no dance references the field', () async {
     await repo.upsert(
       CustomFieldDef(

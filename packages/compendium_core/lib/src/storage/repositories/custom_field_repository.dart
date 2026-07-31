@@ -76,7 +76,10 @@ class CustomFieldDefRepository {
   /// Throws if any dance still has a value for [id] — deleting a field
   /// definition out from under populated data would silently strand values
   /// that can no longer be decoded (their type is only known via the def).
-  Future<void> delete(String id) async {
+  /// The "still used?" check and the delete run inside a single transaction
+  /// so no dance can acquire a value for [id] between the check and the
+  /// delete (no check-then-act race). Mirrors `VenueRepository.delete`.
+  Future<void> delete(String id) => _db.transaction(() async {
     final stillUsed = await (_db.select(
       _db.customFieldValues,
     )..where((t) => t.fieldId.equals(id))).get();
@@ -87,7 +90,7 @@ class CustomFieldDefRepository {
       );
     }
     await (_db.delete(_db.customFieldDefs)..where((t) => t.id.equals(id))).go();
-  }
+  });
 
   static CustomFieldDef toModel(CustomFieldDefRow row) => CustomFieldDef(
     id: row.id,
