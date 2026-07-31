@@ -223,25 +223,53 @@ FigureMatch? _allemande(String text) {
   return FigureMatch('allemande', params: params, note: s.note());
 }
 
-/// circle (generic renderer): `circle <left|right> <n> places`.
+/// circle (generic renderer): `circle {left|right} {n} places`.
+///
+/// Issue #634: ContraDB free text occasionally phrases a single-file
+/// circulation around the ring as `promenade single file around the
+/// circle|ring {n} places` (real render: Travels with Rick and Kim #455) —
+/// a single-file CIRCLE, not the `promenade` move (this taxonomy has no
+/// separate `circle_left` id; `turn` already spans left/right). The owner
+/// flagged this as the more fragile of the two #634 mappings, so it is
+/// recognized ONLY as this exact, fully-anchored phrase — no partial match,
+/// no fallback — and always defaults `turn` to `left` (the phrasing never
+/// states a direction).
 FigureMatch? _circle(String text) {
   final s = _Scan(text);
+  final singleFileSave = s.pos;
+  if (s.eatPhrase('promenade single file around the')) {
+    final ringNoun = s.peek();
+    if (ringNoun == 'circle' || ringNoun == 'ring') {
+      s.take();
+      final params = <String, Object?>{'turn': 'left', 'singleFile': true};
+      _eatPlaces(s, params);
+      return FigureMatch('circle', params: params, note: s.note());
+    }
+  }
+  s.reset(singleFileSave);
+
   if (!s.eat('circle')) return null;
   final turn = _leftRight(s.peek());
   if (turn == null) return null;
   s.take();
   final params = <String, Object?>{'turn': turn};
-  final n = int.tryParse(s.peek() ?? '');
-  if (n != null) {
-    final save = s.pos;
-    s.take();
-    if (s.eat('places') || s.eat('place')) {
-      params['places'] = n;
-    } else {
-      s.reset(save);
-    }
-  }
+  _eatPlaces(s, params);
   return FigureMatch('circle', params: params, note: s.note());
+}
+
+/// Consumes an optional trailing `<n> places`/`<n> place` into `places` on
+/// [params], leaving the cursor put when the count/unit isn't a complete
+/// pair. Shared by both `_circle` branches above.
+void _eatPlaces(_Scan s, Map<String, Object?> params) {
+  final n = int.tryParse(s.peek() ?? '');
+  if (n == null) return;
+  final save = s.pos;
+  s.take();
+  if (s.eat('places') || s.eat('place')) {
+    params['places'] = n;
+  } else {
+    s.reset(save);
+  }
 }
 
 /// slideAlongSetWords: `slide <left|right> along set`.
@@ -538,16 +566,37 @@ String? _starGrip(_Scan s) {
 }
 
 /// promenadeWords: `<who> promenade [<dir>] [<spin>]`.
+///
+/// Issue #634: a leading `single file` (no dancer subject follows — a true
+/// single-file promenade travels the WHOLE major set, not a per-couple
+/// relationship) sets `singleFile` and defaults `who` to `everyone`; real
+/// render: Strange New Worlds #3107 — `single file promenade along major set
+/// to new neightbors`. Everything after `promenade` in that case is left as
+/// the verbatim note rather than probed for `dir`: "along major set …" is a
+/// descriptive tail, not the plain `across`/`along` direction token, so
+/// forcing it through `_direction` would silently swallow the "major set to
+/// new neighbors" detail. The ordinary (non-single-file) form is unchanged.
 FigureMatch? _promenade(String text) {
   final s = _Scan(text);
+  var singleFile = false;
+  final sfSave = s.pos;
+  if (s.eatPhrase('single file')) {
+    singleFile = true;
+  } else {
+    s.reset(sfSave);
+  }
   final who = _subject(s);
-  if (who == null) return null;
+  if (who == null && !singleFile) return null;
   if (!s.eat('promenade')) return null;
-  final params = <String, Object?>{'who': who};
-  final dir = _direction(s.peek());
-  if (dir != null) {
-    s.take();
-    params['dir'] = dir;
+  final params = <String, Object?>{'who': who ?? 'everyone'};
+  if (singleFile) {
+    params['singleFile'] = true;
+  } else {
+    final dir = _direction(s.peek());
+    if (dir != null) {
+      s.take();
+      params['dir'] = dir;
+    }
   }
   return FigureMatch('promenade', params: params, note: s.note());
 }
@@ -639,17 +688,36 @@ FigureMatch? _archAndDive(String text) {
   return FigureMatch('arch_and_dive', params: {'who': who}, note: s.note());
 }
 
-/// giveAndTakeWords (give form): `<who> give & take <whom>`. The rarer `take`
-/// (give=false) form is left to the shared recognizer / custom fallback.
+/// giveAndTakeWords: `<who> give & take <whom>` (give=true), or the take-only
+/// form `<who> take <whom>` (give=false; issue #634 — real renders: The Erik
+/// Effect #570 `ladles take neighbors`, Green Lake Twirl #548 `gentlespoons
+/// take neighbors`). The take-only branch requires `whom` to resolve to a
+/// known dancer-set subject — unlike the looser give=true branch — so a
+/// bare `<who> take <anything-else>` line is never force-matched; it falls
+/// through to the shared recognizer / custom fallback instead.
 FigureMatch? _giveAndTake(String text) {
   final s = _Scan(text);
   final who = _subject(s);
   if (who == null) return null;
-  if (!(s.eat('give') && s.eat('&') && s.eat('take'))) return null;
-  final params = <String, Object?>{'who': who, 'give': true};
-  final whom = _subject(s);
-  if (whom != null) params['whom'] = whom;
-  return FigureMatch('give_and_take', params: params, note: s.note());
+  final giveSave = s.pos;
+  if (s.eat('give') && s.eat('&') && s.eat('take')) {
+    final params = <String, Object?>{'who': who, 'give': true};
+    final whom = _subject(s);
+    if (whom != null) params['whom'] = whom;
+    return FigureMatch('give_and_take', params: params, note: s.note());
+  }
+  s.reset(giveSave);
+  if (s.eat('take')) {
+    final whom = _subject(s);
+    if (whom != null) {
+      return FigureMatch(
+        'give_and_take',
+        params: {'who': who, 'give': false, 'whom': whom},
+        note: s.note(),
+      );
+    }
+  }
+  return null;
 }
 
 /// roll away (generic renderer): `<who> roll away <whom> [half sashay]`. Any

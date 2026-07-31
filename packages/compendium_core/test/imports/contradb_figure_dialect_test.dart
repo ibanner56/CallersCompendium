@@ -63,6 +63,33 @@ void main() {
       expect(f.move, 'circle');
       expect(f.params['turn'], 'left');
       expect(f.params['places'], 3);
+      expect(f.params.containsKey('singleFile'), isFalse);
+    });
+
+    // Issue #634 — real render: Travels with Rick and Kim #455, A2 (8 beats).
+    // ContraDB's own free text (auto-linked keywords on the live page: the
+    // dance's "hook" field literally reads "promenade single file around the
+    // circle") — a single-file circulation, not the `promenade` move. No
+    // direction is stated, so `turn` takes the taxonomy default (`left`).
+    test(
+      'promenade single file around the circle N places → circle singleFile',
+      () {
+        final f = _parse('promenade single file around the circle 3 places');
+        expect(f.isCustom, isFalse);
+        expect(f.move, 'circle');
+        expect(f.params['turn'], 'left');
+        expect(f.params['places'], 3);
+        expect(f.params['singleFile'], isTrue);
+        expect(f.note, isNull);
+      },
+    );
+
+    test('promenade single file around the ring (synonym, no places)', () {
+      final f = _parse('promenade single file around the ring');
+      expect(f.move, 'circle');
+      expect(f.params['turn'], 'left');
+      expect(f.params['singleFile'], isTrue);
+      expect(f.params.containsKey('places'), isFalse);
     });
 
     test('slide left along set (the canonical-core gap)', () {
@@ -158,6 +185,23 @@ void main() {
       expect(f.move, 'promenade');
       expect(f.params['who'], 'partners');
       expect(f.params['dir'], 'across');
+      expect(f.params.containsKey('singleFile'), isFalse);
+    });
+
+    // Issue #634 — real render: Strange New Worlds #3107, A2 (8 beats). No
+    // dancer subject precedes "single file" — a true single-file promenade
+    // travels the whole major set. Everything after "promenade" (including
+    // ContraDB's own live typo "neightbors") survives verbatim as the note.
+    test('single file promenade → promenade singleFile, everyone', () {
+      final f = _parse(
+        'single file promenade along major set to new neightbors',
+      );
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'promenade');
+      expect(f.params['who'], 'everyone');
+      expect(f.params['singleFile'], isTrue);
+      expect(f.params.containsKey('dir'), isFalse);
+      expect(f.note, 'along major set to new neightbors');
     });
 
     test('box the gnat', () {
@@ -209,6 +253,33 @@ void main() {
       expect(f.params['who'], 'role1s');
       expect(f.params['give'], isTrue);
       expect(f.params['whom'], 'role2s');
+    });
+
+    // Issue #634 — real renders: The Erik Effect #570 (2 beats) and Green
+    // Lake Twirl #548 (4 beats), both "<who> take neighbors" with no "give &"
+    // prefix at all. The take-only form requires `whom` to resolve to a known
+    // subject (unlike the looser `give=true` branch above).
+    test('take-only (ladles take neighbors) → give_and_take give=false', () {
+      final f = _parse('ladles take neighbors');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'give_and_take');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['give'], isFalse);
+      expect(f.params['whom'], 'neighbors');
+      expect(f.note, isNull);
+    });
+
+    test('take-only (gentlespoons take neighbors)', () {
+      final f = _parse('gentlespoons take neighbors');
+      expect(f.move, 'give_and_take');
+      expect(f.params['who'], 'role1s');
+      expect(f.params['give'], isFalse);
+      expect(f.params['whom'], 'neighbors');
+    });
+
+    test('bare "<who> take" with no resolvable whom → falls to custom', () {
+      final f = _parse('ladles take hands');
+      expect(f.isCustom, isTrue);
     });
 
     test('roll away', () {
