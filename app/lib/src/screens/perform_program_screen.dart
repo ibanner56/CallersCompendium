@@ -325,6 +325,10 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   void _togglePause() => setState(() => _paused = !_paused);
 
+  // Re-entrancy guard (issue #666, parity with #612): true while the exit
+  // confirmation dialog is showing.
+  bool _exitDialogShowing = false;
+
   /// Guards leaving Perform (issue #434). A single stray tap on the close
   /// control — or a system back / predictive-back gesture — must not drop the
   /// caller out mid-set, so we require a deliberate confirmation first. The
@@ -340,8 +344,6 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// may be in flight at a time, and the flag is always cleared in `finally`
   /// so a later exit attempt isn't permanently blocked even if the dialog
   /// throws.
-  bool _exitDialogShowing = false;
-
   Future<void> _confirmAndExit() async {
     if (_exitDialogShowing) return;
     _exitDialogShowing = true;
