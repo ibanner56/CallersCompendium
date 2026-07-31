@@ -127,6 +127,26 @@ class FtsDeleteByDanceCounter extends QueryInterceptor {
 CompendiumDatabase openCountingTestDatabase(QueryInterceptor counter) =>
     CompendiumDatabase(NativeDatabase.memory().interceptWith(counter));
 
+/// Counts `BEGIN TRANSACTION` calls issued against the database — used to
+/// assert a multi-read/multi-write operation (e.g. archive export/restore)
+/// opens exactly one transaction rather than leaving its reads/writes as
+/// independently-snapshotted statements (#615).
+class TransactionCounter extends QueryInterceptor {
+  int _count = 0;
+
+  /// The number of transactions begun so far.
+  int get count => _count;
+
+  /// Resets the counter to zero.
+  void reset() => _count = 0;
+
+  @override
+  TransactionExecutor beginTransaction(QueryExecutor parent) {
+    _count++;
+    return super.beginTransaction(parent);
+  }
+}
+
 /// Captures the bound arguments of a repository's post-fetch **sort aggregate**
 /// SELECT so a test can assert the aggregate is scoped to the result-set ids
 /// (chunked `dance_id IN (…)`) rather than scanning the whole collection (#465).
