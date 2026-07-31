@@ -471,6 +471,42 @@ void main() {
       expect(spy.renderCalls, 0);
     });
 
+    // #594: a `meanwhile` container (#590) is one figure list element, so the
+    // PDF must call renderSummary() exactly ONCE for the whole container (not
+    // once per concurrent side) and must build without throwing; the resulting
+    // text — asserted separately in the renderer/dance_text unit tests since
+    // PDF bytes aren't grep-able — joins the sides with "while" and shows the
+    // shared beat count once.
+    testWidgets(
+      'renders a meanwhile container as a single figure (one renderSummary '
+      'call, not one per side)',
+      (tester) async {
+        final container = Figure.meanwhile(
+          figures: [
+            Figure(move: 'allemande', params: const {'who': 'role1'}),
+            Figure(move: 'orbit', params: const {'who': 'role2'}),
+          ],
+          beats: 8,
+        );
+        final spy = _SpyRenderer();
+        final bytes = await buildDancePdf(
+          _dance(title: 'Meanwhile Dance', figures: [container]),
+          dialect: Dialect.larksRobins,
+          authorNames: const [],
+          formationLabel: 'Duple improper',
+          statusLabel: 'Active',
+          renderer: spy,
+        );
+
+        expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+        // Exactly one figure list element → exactly one renderSummary call for
+        // the whole container's figure row (the container's own text is what
+        // the summary walk sees; the recursive per-side render happens inside
+        // FigureRenderer._render, not via a second top-level call).
+        expect(spy.renderSummaryCalls, 1);
+      },
+    );
+
     testWidgets('handles a figureless, note-less dance', (tester) async {
       final bytes = await buildDancePdf(
         _dance(title: 'Stub'),

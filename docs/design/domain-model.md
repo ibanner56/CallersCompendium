@@ -90,6 +90,15 @@ caller matches that default caller (trim + case-insensitive; issue #583).
   the archive/.ccshare sanitizer recurses into every nested side (scrubbing
   free text) and enforces the depth + side-count caps defensively (clamp/flatten,
   never throw).
+- **Display convention** (#594): every human-facing render
+  (`FigureRenderer.render`/`renderVerbose`/`renderSummary` — the dance detail
+  table, Perform, plain-text export, and PDF export all use these) joins a
+  `meanwhile` container's sides with the caller-facing word **"while"**
+  ("Larks allemande left 1 while Robins orbit clockwise ½"; 3+ sides chain the
+  same separator). `renderCanonical` is **untouched** — it still joins sides
+  with the structural `meanwhile` move id, so the dedupe/FTS key stays
+  byte-stable. Every surface reads the shared beat count once from
+  `deriveSections`, so the pair never double-counts on screen or in export.
 - Section labels (A1/B2…) are **derived** from cumulative beats +
   phraseStructure, not stored — keeps reordering/beat edits consistent.
 
