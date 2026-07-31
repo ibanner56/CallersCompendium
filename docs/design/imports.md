@@ -204,12 +204,28 @@ such a unit and reads it in one of three ways, in order:
 - **Unknown parent whose children ALL structure (#295)** → emit the
   **children**, each carrying its own source-stated beats. The parent is a
   shorthand the taxonomy deliberately does not model but TCB decomposes itself
-  into moves we already have — `flutterwheel` is the reference case
-  (`(8) Neighbor flutterwheel:` == `(4) Women allemande right ½` +
-  `(4) Neighbor star promenade ½ (WR)`). The exact-sum guard already proves the
-  children total the parent, so section beats are byte-identical to the
-  collapsed reading. The parent's shorthand name is preserved as a `note` on the
-  **first** child, so the caller-meaningful name is not lost.
+  into moves we already have. The exact-sum guard already proves the children
+  total the parent, so section beats are byte-identical to the collapsed
+  reading.
+
+  This rule is **general, not figure-specific**: measured over the full corpus
+  it fires on **877 compound blocks across 81 distinct parent names**. The
+  largest families are `interrupted square through 2`/`… 4` (331 blocks),
+  `modified right and left through with partner/neighbor` (141),
+  `flutterwheel` (135 — `(8) Neighbor flutterwheel:` == `(4) Women allemande
+  right ½` + `(4) Neighbor star promenade ½ (WR)`), `open ladies/gents chain`
+  (66), `georgia rang tang` (47) and `hey along sides` (34), with a long tail
+  covering `allemande x`, `catch all eight`, `do paso`, `dixie style to a wave`,
+  `modified revolving door`, `vicious circle` and others.
+
+  **The parent's shorthand name is preserved as a `note` on the FIRST child**,
+  verbatim after scrubbing. That note is load-bearing at this breadth: it is
+  what keeps a choreographically meaningful qualifier — the "interrupted" in
+  `Interrupted square through 2`, the "modified" in `Modified right and left
+  through with partner`, or a whole name like `Georgia Rang Tang` — from
+  vanishing when the block is expressed as its parts. It is never truncated or
+  normalized away (only `scrubFigureText`'s repo-wide gendered-term
+  canonicalization applies, exactly as on any other stored text).
 - **Anything else** → one `customFigure` with the parent text (colon stripped)
   and the parent's beats, the scrubbed decomposition in its `note`. This is the
   fallback whenever **any** child fails to structure, so a block is never
@@ -227,9 +243,13 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
 Both the parent line and its children accept a `(START-END)` beat span (the same
 inclusive `END - START + 1` rule `_beatsPrefix` uses), because TCB writes
 positioned/simultaneous compounds that way — e.g. `(7-12) [Top two couples]
-Neighbor flutterwheel:`. Before #295 the parent pattern rejected the span, so
-such a block was not recognised as a compound at all and its beats were
-double-counted.
+Neighbor flutterwheel:`. `_beatsPrefix` gained span support in #555 but
+`_compoundParent` did not, so until #295 such a block was **not recognised as a
+compound at all**: the parent became its own figure *and* its children were
+emitted alongside it, so the block contributed parent + children beats
+(6 + 6 = 12 instead of 6) and every later section label drifted. Both patterns
+now share the one rule; a backwards span (`(12-7)`) yields 0 beats and safely
+declines the collapse.
 
 ### 2. Caller's Companion migration (6.5)
 - Input: user's `CallersCompanion2.USR` (FileMaker 12 container).

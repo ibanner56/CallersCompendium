@@ -16,12 +16,22 @@
     pull by left`; ContraDB has no grand-right-and-left figure at all.
   - **An unknown compound parent whose children ALL structure now emits the
     CHILDREN**, each with its own source-stated beats, instead of one custom
-    parent. `flutterwheel` is the reference case (`(8) Neighbor flutterwheel:`
-    == `(4) Women allemande right 1/2` + `(4) Neighbor star promenade 1/2`).
+    parent. This is a **general** rule over TCB's `(beats) Name:` +
+    indented-children convention, not a single-figure special case: it covers
+    **877 compound blocks across 81 distinct parent names** in the full corpus —
+    `interrupted square through 2`/`… 4` (331), `modified right and left through
+    with partner/neighbor` (141), `flutterwheel` (135, e.g.
+    `(8) Neighbor flutterwheel:` == `(4) Women allemande right 1/2` +
+    `(4) Neighbor star promenade 1/2`), `open ladies/gents chain` (66),
+    `georgia rang tang` (47), `hey along sides` (34) and a long tail.
     Known parents (`revolving_door`, …) still collapse to the single parent move
     exactly as before, and a block with ANY unstructurable child still stays one
-    whole-custom figure — never a half-structured mix. The parent's shorthand
-    name is preserved as a note on the first child.
+    whole-custom figure — never a half-structured mix. **The parent's shorthand
+    name is preserved verbatim (post-scrub) as a note on the first child**, so a
+    meaningful qualifier — the "interrupted" in `Interrupted square through 2`,
+    the "modified" in `Modified right and left through with partner`, or a name
+    like `Georgia Rang Tang` — is never lost when the block is expressed as its
+    parts.
   - **Beats are exact.** Grand right and left splits the source total evenly
     across the passes and **declines to custom when it does not divide evenly**
     (an uneven split would invent a per-pass duration the source never states);
@@ -45,11 +55,16 @@
 ### Fixed
 
 - **A TCB compound parent with a `(START-END)` beat span was not recognised as a
-  compound (#295).** `(7-12) [Top two couples] Neighbor flutterwheel:` fell
-  through to the ordinary per-line path, so the parent AND its indented children
-  were both emitted and the section's beat total was double-counted. The parent
+  compound, corrupting section beats (#295).** `_beatsPrefix` gained span
+  support in #555, but `_compoundParent` did not, so a block like
+  `(7-12) [Top two couples] Neighbor flutterwheel:` fell through to the ordinary
+  per-line path: the parent became its own figure **and** its indented children
+  were emitted alongside it, so the block contributed parent + children beats
+  (6 + 6 = 12 instead of 6) and every later section label drifted. The parent
   and child patterns now accept a span with the same inclusive
-  `END - START + 1` rule the per-line beats prefix uses.
+  `END - START + 1` rule the per-line beats prefix uses; a backwards span
+  (`(12-7)`) yields 0 beats and safely declines the collapse. Covered by its own
+  regression group.
 
 ### Fixed
 

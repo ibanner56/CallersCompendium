@@ -279,6 +279,55 @@ void main() {
       expect(figure.params['pass1'], 'shadows');
       expect(figure.params['pass2'], 'secondShadows');
     });
+
+    // Non-regression: extending a SHARED map must not perturb any hey the
+    // decoder already read. These are corpus-shaped pass lists whose codes are
+    // untouched by the P1/S1/S2 addition.
+    final heyBaseline = <String, Map<String, Object?>>{
+      'Hey 1/2 (WR;PL;MR;N2L~)': {
+        'length': 'half',
+        'pass1': 'role2s',
+        'shoulder': 'right',
+        'pass2': 'partners',
+      },
+      'Full hey (ML;PR)': {
+        'length': 'full',
+        'pass1': 'role1s',
+        'shoulder': 'left',
+        'pass2': 'partners',
+      },
+      'Hey 1/2 (WR;NL;MR;PL)': {
+        'length': 'half',
+        'pass1': 'role2s',
+        'shoulder': 'right',
+        'pass2': 'neighbors',
+      },
+      'Hey 1/2 (W ricochet;PL;MR)': {
+        'length': 'half',
+        'rico1': true,
+        'pass1': 'role2s',
+        'shoulder': 'right',
+        'pass2': 'partners',
+      },
+    };
+
+    heyBaseline.forEach((line, expected) {
+      test('hey is unchanged: $line', () {
+        final figure = _line(line, beats: 16).single;
+        expect(figure.move, 'hey');
+        expected.forEach((key, value) {
+          expect(figure.params[key], value, reason: key);
+        });
+        expect(figure.params['beats'], 16);
+      });
+    });
+
+    test('a hey with an unmapped code still drops to custom', () {
+      // Square corners are deliberately absent from the map, so they degrade
+      // the hey exactly as they degrade a grand right and left.
+      expect(_line('Hey 1/2 (C1R;C2L)', beats: 16).single.isCustom, isTrue);
+      expect(_line('Hey 1/2 (P2R;P3L)', beats: 16).single.isCustom, isTrue);
+    });
   });
 
   // --- Part B: flutterwheel ---------------------------------------------------
@@ -363,19 +412,6 @@ void main() {
       });
     });
 
-    test('a (START-END) parent span is read as an inclusive duration', () async {
-      // Real corpus line. Before #295 the range prefix did not match the
-      // compound-parent pattern at all, so the parent AND its children were
-      // emitted and the section beats were double-counted (6 → 12).
-      final figures = await _figures([
-        '(7-12) [Top two couples] Neighbor flutterwheel:',
-        '     (2) Women allemande right 1/2',
-        '     (4) Neighbor star promenade 1/2 (WR) (hand-in-hand with neighbor)',
-      ]);
-      expect(figures.map((f) => f.move), ['allemande', 'star_promenade']);
-      expect(_totalBeats(figures), 6);
-    });
-
     test(
       'ANY unstructurable child keeps the block whole-custom (never a mix)',
       () async {
@@ -408,6 +444,224 @@ void main() {
         'star_promenade',
       ]);
       expect(_totalBeats(figures), 12);
+    });
+  });
+
+  // --- The decomposition rule is GENERAL, not flutterwheel-only --------------
+
+  group('corpus compound families all decompose (#295)', () {
+    // The "unknown parent + all children structure" rule fires on 877 compound
+    // blocks across 81 distinct parent names in the full TCB corpus —
+    // flutterwheel is only ~135 of them. These are the biggest families,
+    // verbatim from the corpus, so the tests cover the real blast radius rather
+    // than one figure.
+    final families =
+        <
+          String,
+          ({List<String> lines, List<String> moves, int beats, String note})
+        >{
+          // 331 blocks (with the `… 4` and `[with …]` variants), dance #19238.
+          'interrupted square through 2': (
+            lines: [
+              '(8) Interrupted square through 2:',
+              '     (4) Partner balance (RH)',
+              '     (4) Square through 2 (PR;N1L)',
+            ],
+            moves: ['balance', 'square_through'],
+            beats: 8,
+            note: 'Interrupted square through 2',
+          ),
+          // 141 blocks (all `modified right and left through` variants), #6523.
+          'modified right and left through with partner': (
+            lines: [
+              '(8) Modified right and left through with partner:',
+              '     (4) Pass through across (N3R)',
+              '     (4) Partner California twirl',
+            ],
+            moves: ['pass_through', 'california_twirl'],
+            beats: 8,
+            note: 'Modified right and left through with partner',
+          ),
+          // 66 blocks across the open ladies/gents chain family, #6165.
+          'open ladies chain to neighbor': (
+            lines: [
+              '(8) Open ladies chain to neighbor:',
+              '     (4) Women allemande right 1/2',
+              '     (4) Neighbor allemande left 3/4',
+            ],
+            moves: ['allemande', 'allemande'],
+            beats: 8,
+            // Gendered terms are canonicalized to role tokens by `scrubFigureText`
+            // repo-wide (the revolving-door suite pins the same for the custom
+            // path); the QUALIFIER "Open …" survives untouched, which is what
+            // matters — the shorthand name must not be normalized away.
+            note: 'Open role2s chain to neighbor',
+          ),
+          // 47 blocks, #300798 — four children, not two.
+          'georgia rang tang': (
+            lines: [
+              '(16) Georgia Rang Tang:',
+              '     (4) Partner allemande right 3/4',
+              '     (4) Women pass left',
+              '     (4) N2 neighbor allemande left 1',
+              '     (4) Women pass right',
+            ],
+            moves: ['allemande', 'pass_by', 'allemande', 'pass_by'],
+            beats: 16,
+            note: 'Georgia Rang Tang',
+          ),
+          // 34 blocks, #6000 — four children with uneven beats (2+6+2+6).
+          'hey along sides': (
+            lines: [
+              '(16) Hey along sides:',
+              '     (2) Pass through along (NR)',
+              '     (6) N2 neighbor left shoulder round 1',
+              '     (2) Pass through along (N1R)',
+              '     (6) N0 neighbor left shoulder round 1',
+            ],
+            moves: [
+              'pass_through',
+              'shoulder_round',
+              'pass_through',
+              'shoulder_round',
+            ],
+            beats: 16,
+            note: 'Hey along sides',
+          ),
+          // 8 blocks, #11487.
+          'catch all eight': (
+            lines: [
+              '(10) Catch all eight:',
+              '     (4) Neighbor allemande right 1/2',
+              '     (6) Neighbor allemande left 1 & 1/4',
+            ],
+            moves: ['allemande', 'allemande'],
+            beats: 10,
+            note: 'Catch all eight',
+          ),
+        };
+
+    families.forEach((label, spec) {
+      test('$label decomposes with its name kept verbatim', () async {
+        final figures = await _figures(spec.lines);
+        expect(figures.map((f) => f.move), spec.moves);
+        expect(figures.any((f) => f.isCustom), isFalse);
+        // The children's own beats total the parent's exactly — no drift.
+        expect(_totalBeats(figures), spec.beats);
+        // The shorthand name is load-bearing now that the rule is general: the
+        // qualifier ("Interrupted", "Modified", "Open", …) must survive
+        // verbatim, never truncated or normalized away.
+        expect(figures.first.note, spec.note);
+        expect(figures.skip(1).every((f) => f.note == null), isTrue);
+      });
+    });
+
+    test(
+      'a MODIFIED revolving door decomposes; the bare one still collapses',
+      () async {
+        // The sharpest contrast in the corpus (#19305): `revolving_door` is a
+        // taxonomy move, so the bare parent collapses; the "Modified …"
+        // shorthand is not, so TCB's own children win.
+        final modified = await _figures([
+          '(10) Modified revolving door:',
+          '     (2) Partner star promenade 1/4 (WR) [with N1]',
+          '     (8) Women allemande right 1',
+        ]);
+        expect(modified.map((f) => f.move), ['star_promenade', 'allemande']);
+        expect(modified.first.note, 'Modified revolving door');
+        expect(_totalBeats(modified), 10);
+
+        final bare = await _figures([
+          '(6) Revolving door:',
+          '     (4) Partner star promenade 1/2 (WR)',
+          '     (2) Women allemande right 1/2',
+        ]);
+        expect(bare.single.move, 'revolving_door');
+        expect(_totalBeats(bare), 6);
+      },
+    );
+
+    test(
+      'a family block with ONE unstructurable child stays whole-custom',
+      () async {
+        // Same shape as the georgia-rang-tang family, but one child is prose
+        // the recognizer cannot account for. All-or-nothing: the block must
+        // collapse to a single custom parent, never a half-structured mix.
+        final figures = await _figures([
+          '(16) Georgia Rang Tang:',
+          '     (4) Partner allemande right 3/4',
+          '     (4) Women wave at the band',
+          '     (4) N2 neighbor allemande left 1',
+          '     (4) Women pass right',
+        ]);
+        expect(figures.length, 1);
+        expect(figures.single.isCustom, isTrue);
+        expect(figures.single.beats, 16);
+        // The full decomposition still rides along in the note.
+        expect(figures.single.note, contains('allemande'));
+        expect(figures.single.note, contains('wave at the band'));
+      },
+    );
+  });
+
+  // --- Regression: the (START-END) compound-parent beat corruption -----------
+
+  group('a (START-END) compound parent no longer double-counts beats', () {
+    // `_beatsPrefix` gained `(START-END)` span support in #555, but
+    // `_compoundParent` did not. A compound whose parent carried a span was
+    // therefore NOT recognised as a compound at all: the parent became its own
+    // figure AND its indented children were emitted alongside it, so the block
+    // contributed parent + children beats instead of just the parent's. Both
+    // patterns now share the same inclusive `END - START + 1` rule.
+    const block = [
+      '(7-12) [Top two couples] Neighbor flutterwheel:',
+      '     (2) Women allemande right 1/2',
+      '     (4) Neighbor star promenade 1/2 (WR) (hand-in-hand with neighbor)',
+    ];
+
+    test(
+      'the block is consumed as ONE compound, not parent + children',
+      () async {
+        final figures = await _figures(block);
+        // Two figures (the children), NOT three (a custom parent plus them).
+        expect(figures.length, 2);
+        expect(figures.map((f) => f.move), ['allemande', 'star_promenade']);
+        expect(figures.any((f) => f.isCustom), isFalse);
+      },
+    );
+
+    test('beats total the parent span (6), not the corrupted 12', () async {
+      final figures = await _figures(block);
+      // The span 7-12 is 6 beats inclusive, which the children (2 + 4) match.
+      // The bug produced 6 (parent) + 6 (children) = 12.
+      expect(_totalBeats(figures), 6);
+    });
+
+    test('section placement is correct for a span parent mid-phrase', () async {
+      final figures = await _figures([
+        '(1-6) Neighbor balance and swing',
+        ...block,
+        '(13-16) Circle left 3/4',
+      ]);
+      // 6 + 6 + 4 = 16 — one clean phrase. The bug inflated this to 22.
+      expect(_totalBeats(figures), 16);
+    });
+
+    test('a backwards span declines the collapse instead of throwing', () async {
+      // OWASP: untrusted input. A `(12-7)` span yields 0 beats, which fails the
+      // `parentBeats > 0` guard, so the pre-pass declines safely and the lines
+      // flow through the ordinary per-line path (parse-never-fails).
+      final figures = await _figures([
+        '(12-7) Neighbor flutterwheel:',
+        '     (2) Women allemande right 1/2',
+        '     (4) Neighbor star promenade 1/2 (WR)',
+      ]);
+      expect(figures, isNotEmpty);
+      // The parent is NOT collapsed away, so its text survives verbatim.
+      expect(
+        figures.any((f) => f.isCustom && _text(f).contains('flutterwheel')),
+        isTrue,
+      );
     });
   });
 

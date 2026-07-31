@@ -86,9 +86,9 @@ a unit to the single parent figure carrying the parent's beats (see
 `docs/design/imports.md` → *Compound figures*) — counting the children
 separately would inflate the section's beat total. When the parent is a
 shorthand the taxonomy does NOT model but every child structures, the parser
-emits the **children** instead (#295, see the flutterwheel section below); the
-children's own beats already total the parent's, so the section total is
-identical either way.
+emits the **children** instead (#295) and keeps the parent's name in a note —
+see *The decomposition rule is general* below; the children's own beats already
+total the parent's, so the section total is identical either way.
 
 
 ### Grand right and left & flutterwheel — compound shorthands (2026-07-31, issue #295)
@@ -183,6 +183,44 @@ contras." · *Notation*: "While one of the pieces is listed as a star promenade,
 that's only a loose approximation of the hand-hold. There is no butterfly
 whirl." — i.e. TCB's own children are an approximation TCB chose, which is
 exactly what we re-emit.
+
+#### The decomposition rule is general: 877 blocks across 81 parent names
+
+Flutterwheel motivated the rule, but "unknown parent + every child structures"
+is a property of TCB's compound convention, not of one figure. Measured over the
+full mirror, the compound blocks split as:
+
+| block class | blocks | behaviour |
+|---|---|---|
+| parent structures to a taxonomy move | 110 | **unchanged** — collapse to the parent (`revolving_door`, …) |
+| parent does not structure, ALL children do | **877** | emit the children (#295) |
+| parent does not structure, some child fails | 788 | **unchanged** — one whole-custom parent |
+
+The 877 span 81 distinct parent names. The largest families, with a verbatim
+corpus block each:
+
+| parent shorthand | blocks | example (dance) |
+|---|---|---|
+| `interrupted square through 2` / `… 4` (+ `[with …]`) | 331 | `(8) Interrupted square through 2:` → `(4) Partner balance (RH)` + `(4) Square through 2 (PR;N1L)` (#19238) |
+| `modified right and left through with partner/neighbor` | 141 | `(8) Modified right and left through with partner:` → `(4) Pass through across (N3R)` + `(4) Partner California twirl` (#6523) |
+| `flutterwheel` (all variants) | 135 | `(8) Neighbor flutterwheel:` → `(4) Women allemande right 1/2` + `(4) Neighbor star promenade 1/2 (WR)` (#6489) |
+| `open ladies/gents chain to partner/neighbor` | 66 | `(8) Open ladies chain to neighbor:` → `(4) Women allemande right 1/2` + `(4) Neighbor allemande left 3/4` (#6165) |
+| `georgia rang tang` | 47 | `(16) Georgia Rang Tang:` → 4 children: allemande, pass, allemande, pass (#300798) |
+| `hey along sides` | 34 | `(16) Hey along sides:` → 4 children: pass through, shoulder round, pass through, shoulder round (#6000) |
+| `allemande x`, `catch all eight`, `corner trade 2`, `do paso`, `dixie style to a wave`, `ones reel up the set`, `vicious circle`, `modified revolving door`, … | ~123 | `(10) Catch all eight:` → `(4) Neighbor allemande right 1/2` + `(6) Neighbor allemande left 1 & 1/4` (#11487) |
+
+Because the rule is this broad, the parent name is **preserved verbatim
+(post-scrub) as a note on the first emitted child**. The qualifiers carry real
+choreographic meaning — "interrupted", "modified", "open" — and `Georgia Rang
+Tang` / `Catch all eight` are names a caller searches for, so dropping them would
+be a genuine fidelity loss even though the movement is fully expressed by the
+children. `Modified revolving door` (#19305) is the sharpest illustration: the
+bare `Revolving door` collapses to the taxonomy move, while the "Modified"
+variant decomposes and keeps its name in the note.
+
+Whole-corpus effect of #295 (grand right and left + the general compound rule),
+measured with `tool/tcb_coverage.dart` on the same mirror before and after:
+**75.09% → 76.24%** of figure lines structured.
 
 
 ### Residual variance to handle in the snapshot pipeline
