@@ -467,15 +467,7 @@ class FigureRenderer {
   /// the empty case, so a clause never emits a bogus pair. The inverted token
   /// is mapped through [_displayDancer] so it stays dialect-aware and plural.
   String _invertPair(Object? value, Dialect dialect) {
-    const inverse = <String, String>{
-      'role1s': 'role2s',
-      'role2s': 'role1s',
-      'ones': 'twos',
-      'twos': 'ones',
-      'firstCorners': 'secondCorners',
-      'secondCorners': 'firstCorners',
-    };
-    final other = value is String ? inverse[value] : null;
+    final other = value is String ? invertPairDancerSet(value) : null;
     return other == null ? 'others' : _displayDancer(other, dialect);
   }
 

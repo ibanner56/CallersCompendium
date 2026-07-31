@@ -105,7 +105,35 @@ abstract final class ParamVocab {
     'up',
     'down',
   ];
+
+  /// The "other pair" for each nameable two-couple pairing, mirroring ContraDB
+  /// `dance.js` `invertPair` (`app/javascript/libfigure/dance.js` @13f38a5).
+  /// ContraDB inverts only the four-dancer pairings it can name; every other
+  /// dancer token (`partners`, `neighbors`, the single-dancer identities, …)
+  /// has no inverse. See [invertPairDancerSet].
+  static const Map<String, String> pairInverse = <String, String>{
+    'role1s': 'role2s',
+    'role2s': 'role1s',
+    'ones': 'twos',
+    'twos': 'ones',
+    'firstCorners': 'secondCorners',
+    'secondCorners': 'firstCorners',
+  };
 }
+
+/// The "other pair" for a dancer-set token [who], or `null` when [who] has no
+/// nameable inverse (ContraDB inverts only role1s↔role2s, ones↔twos,
+/// firstCorners↔secondCorners; anything else — `partners`, `neighbors`, a
+/// single-dancer identity, an out-of-domain value — returns `null`).
+///
+/// The single source of truth for pair inversion, shared by the display
+/// renderer (`invertPair`), the `allemande_orbit` → `meanwhile[allemande,
+/// orbit]` schema migration, and the ContraDB structured-import decomposition
+/// (issue #295) so the three paths can never drift. Pure and Flutter-free.
+/// Callers decide their own out-of-domain fallback (the renderer renders
+/// "others"; the orbit decomposition declines to a byte-identical/custom
+/// figure) — this never fabricates a pair.
+String? invertPairDancerSet(String who) => ParamVocab.pairInverse[who];
 
 /// Specification of one named move parameter: kind, default, and (for
 /// [ParamKind.choice], or to narrow dancer kinds) an explicit value domain.

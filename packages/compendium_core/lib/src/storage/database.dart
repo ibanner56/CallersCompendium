@@ -6,6 +6,7 @@ import '../dialect/canonicalize.dart';
 import '../dialect/dialect.dart';
 import '../model/enums.dart';
 import '../model/formation.dart';
+import '../taxonomy/param_types.dart';
 import 'tables.dart';
 
 part 'database.g.dart';
@@ -764,14 +765,6 @@ String? _rewriteOceanWaveFigures(String figuresJson) {
 /// non-left/right value) or whose `who` has no pair-inverse is kept byte-
 /// identical rather than dropped or fabricated.
 String? _rewriteAllemandeOrbitFigures(String figuresJson) {
-  const inverse = <String, String>{
-    'role1s': 'role2s',
-    'role2s': 'role1s',
-    'ones': 'twos',
-    'twos': 'ones',
-    'firstCorners': 'secondCorners',
-    'secondCorners': 'firstCorners',
-  };
   final Object? decoded;
   try {
     decoded = jsonDecode(figuresJson);
@@ -816,7 +809,7 @@ String? _rewriteAllemandeOrbitFigures(String figuresJson) {
         continue;
       }
       // The orbiting pair is the OTHER pair. Bail on a `who` with no inverse.
-      final orbitWho = inverse[who];
+      final orbitWho = invertPairDancerSet(who);
       if (orbitWho == null) {
         out.add(entry);
         continue;

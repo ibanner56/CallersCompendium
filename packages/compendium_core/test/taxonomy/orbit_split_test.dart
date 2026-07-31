@@ -42,6 +42,36 @@ void main() {
     });
   });
 
+  group('invertPairDancerSet (shared pair-inversion helper)', () {
+    // Single source of truth reused by the display renderer, the schema-v18
+    // migration, and the ContraDB structured-import decomposition (#295).
+    test('inverts each nameable two-couple pairing (round-trip)', () {
+      const pairs = {
+        'role1s': 'role2s',
+        'ones': 'twos',
+        'firstCorners': 'secondCorners',
+      };
+      pairs.forEach((a, b) {
+        expect(invertPairDancerSet(a), b);
+        expect(invertPairDancerSet(b), a); // symmetric
+      });
+    });
+
+    test('returns null for a dancer set with no nameable inverse', () {
+      for (final who in const [
+        'everyone',
+        'partners',
+        'neighbors',
+        'shadows',
+        'centers',
+        'onesRole1',
+        'not-a-token',
+      ]) {
+        expect(invertPairDancerSet(who), isNull, reason: who);
+      }
+    });
+  });
+
   group('canonical rendering (golden)', () {
     final cases = <String, Figure>{
       'ones orbit clockwise ½': Figure(move: 'orbit'),

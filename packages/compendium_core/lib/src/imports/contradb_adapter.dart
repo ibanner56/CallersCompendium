@@ -4,6 +4,7 @@ import '../model/dance.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
+import '../taxonomy/param_types.dart';
 import '../util/text_sanitizer.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
@@ -457,14 +458,6 @@ class ContraDbAdapter implements SourceAdapter {
     required String? note,
     required bool progression,
   }) {
-    const inverse = <String, String>{
-      'role1s': 'role2s',
-      'role2s': 'role1s',
-      'ones': 'twos',
-      'twos': 'ones',
-      'firstCorners': 'secondCorners',
-      'secondCorners': 'firstCorners',
-    };
     final who = params['who'] is String ? params['who'] as String : 'ones';
     final hand = params['hand'] is String ? params['hand'] as String : 'left';
     final inner = params['inner'] is num ? params['inner'] : 1.5;
@@ -479,7 +472,7 @@ class ContraDbAdapter implements SourceAdapter {
     } else {
       return null;
     }
-    final orbitWho = inverse[who];
+    final orbitWho = invertPairDancerSet(who);
     if (orbitWho == null) return null;
 
     return Figure.meanwhile(
