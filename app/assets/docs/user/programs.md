@@ -90,10 +90,6 @@ anything it can't place is kept as a note, in the exact order of the event.
 Review the preview, then choose **Import** — with the same **Undo** safety net as
 every other import. This needs an internet connection.
 
-> _Screenshot (added once packaged builds are available): the Import from
-> ContraDB screen with the Paste URL / Search by name toggle, a search field, and
-> a preview of the event's dances below._
-
 ## Build a program
 
 On a wide screen — a desktop or a tablet in landscape — the builder shows two
@@ -172,19 +168,23 @@ Here is how to read it:
   (duple improper, Becket, triple minor, and so on), so you can spot too many
   non-improper formations stacking up in a row without losing your place
   while scrolling through moves.
-- **A ★ (star)** marks where a move is **first introduced** in the program — the
-  first dance (top to bottom) whose choreography uses it, wherever it falls in
-  that dance.
-- **A ▸ (flag)** marks each **dance's own first figure** — the move it opens
-  with.
-- **A ✓ (check mark)** shows where a move appears in a dance.
-- **A ‼ alert marker** replaces the check mark when a move lands in the **same
-  phrase** (A1, A2, B1, B2…) in **two dances that run back-to-back** in the
-  program — for example a partner balance & swing in B1 of one dance and again
-  in B1 of the very next dance. Adjacent repeats like this can make two dances
-  feel samey on the floor, so the matrix flags them for you to notice and, if
-  you like, reconsider. Only the two colliding cells are flagged; a repeat that
-  is not in neighbouring dances, or lands in a different phrase, is left alone.
+- **Four cell markers** say what is happening at each intersection. Each is an
+  icon with a label, and the matrix carries a legend:
+
+  | Marker | Label | Meaning |
+  |---|---|---|
+  | Star | **Introduced here** | The first dance (top to bottom) whose choreography uses that move, wherever it falls in that dance |
+  | Flag | **Dance's first figure** | The move that dance opens with |
+  | Check | **Present** | The move appears in that dance |
+  | Alert | **Same phrase as adjacent dance** | See below |
+
+- **The alert marker** replaces the check when a move lands in the **same phrase**
+  (A1, A2, B1, B2…) in **two dances that run back-to-back** in the program — for
+  example a partner balance & swing in B1 of one dance and again in B1 of the very
+  next dance. Adjacent repeats like this can make two dances feel samey on the
+  floor, so the matrix flags them for you to notice and, if you like, reconsider.
+  Only the two colliding cells are flagged; a repeat that is not in neighbouring
+  dances, or lands in a different phrase, is left alone.
 - **Headers stay pinned** as you scroll, so you never lose track of which row or
   column you are looking at.
 
@@ -202,32 +202,35 @@ A few practical notes:
   still conveys the same information.
 - **For screen-reader users**, the matrix reads as a proper table, so you can
   navigate it row by row and column by column.
-- **To take it with you**, print or export the matrix as its own landscape PDF,
-  complete with a legend explaining the ★, ▸, ✓, and ‼ (adjacent same-phrase
-  repeat) markers.
+- **To take it with you**, use **Export or print matrix as PDF** in the **Matrix**
+  tab. This is the matrix's own control, separate from the program's **Export**
+  menu, and it is unavailable while the matrix is empty. The PDF is landscape and
+  carries its own legend — where the screen uses icons, the printed page uses the
+  marks `★` (introduced here), `▸` (dance's first figure), `✓` (present), and `‼`
+  (same phrase as adjacent dance). See
+  [Share, print & export](./sharing.md#print-the-programming-matrix).
 
 ## Print, export, and email a program
 
 When it is time to hand out or file your set list, open the program's **Export**
-menu. You can export or print a program as:
+menu:
 
-- a **PDF**,
-- **plain text** (copy the set list, or share it as text), or
-- an **emailable text set list** you can drop straight into a message.
+- **Share set list (text)** — hands a plain-text set list to your system's share
+  sheet, ready to drop into an email or a message.
+- **Share (program + dances)** — writes one file holding the program *and* every
+  dance it uses, so another caller gets the dances too, not just a list of titles.
+- **Copy set list** — puts the same text on your clipboard.
+- **Export / print PDF** — builds a PDF and opens your system's print dialog.
 
-You can also **Share (program + dances)** — this writes one Caller's Compendium
-file that holds the program *and* every dance it uses, so another caller can
-import the whole thing and get the dances too, not just a list of titles. It is
-the same `.json` format the app uses everywhere else. On the other end, the
-recipient can simply **open the file** (AirDrop, "Open with", or a share intent)
-and Caller's Compendium imports the program and its dances and opens it
-automatically — or they can bring it in from **Settings › Import** like any other
-file. Either way, matching dances they already have are updated, not duplicated.
-See [Open a shared program someone sent you](./imports.md#open-a-shared-program-someone-sent-you).
+A set list is titles, event details, and slot notes — deliberately not a
+figure-by-figure breakdown of every dance. If your program is linked to a
+[venue](./glossary.md#venue) with contact people recorded, the PDF and the
+program-plus-dances share ask before including any of those personal details, and
+leave them out unless you say otherwise.
 
-As with a single dance, the text and PDF exports follow your
-[dialect](./dialects.md), so the wording matches how you — or whoever you are
-handing it to — speak.
+[Share, print & export](./sharing.md#share-a-program) covers all of this in
+detail, including what a shared bundle contains and what never leaves your
+device.
 
 ## Track what you have called
 
@@ -249,6 +252,7 @@ rules a dance's calling history follows.
 - **Fill your library first:** [Collection & search](./collection.md)
 - **Call your program from the stage:** [Perform mode](./perform.md)
 - **Put your programs in your own words:** [Dialect](./dialects.md)
+- **Hand a set list to someone else:** [Share, print & export](./sharing.md)
 - **Save and move your data:**
   [Settings](./settings.md) ·
   [Backup & portability](./backup-portability.md)

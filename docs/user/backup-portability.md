@@ -97,6 +97,13 @@ be invalid or corrupt, the restore is safely stopped *before* any of
 your current data is touched — so you never lose what you already have
 by trying.
 
+> **If your settings don't come back, your dances still did.** Occasionally a
+> restore succeeds for your content but fails while re-applying your saved
+> settings. The app says so plainly — *your dances and programs were restored,
+> but applying your saved settings failed* — and offers **Retry settings**.
+> Choose it and the app tries again, confirming with **Settings applied.** Your
+> restored content is safe either way.
+
 > **A broken integrity seal never harms your data.** If a backup was
 > corrupted or altered after it was exported, its integrity check won't
 > match and the app tells you it can't safely restore the file, then

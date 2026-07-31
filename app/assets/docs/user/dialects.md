@@ -146,8 +146,8 @@ list ships with some common examples and is yours to edit, add to, or clear.
 ## Switch dialect on the fly
 
 You don't have to visit Settings every time. On the dance card and in
-[Perform mode](./glossary.md#perform-mode) there is a quick-switch control — the
-people icon — that changes your active dialect instantly.
+[Perform mode](./glossary.md#perform-mode) there is a quick-switch control — a
+group-of-people icon — that changes your active dialect instantly.
 
 Choose it, pick a dialect from the list, and the whole app re-reads in those
 words at once. This is built for real evenings: guest-calling for a community that
@@ -214,16 +214,19 @@ recognise, then flip back to your own.
 
 ## Good to know
 
-- **Printing and sharing.** When you print or export a dance or program, you can
-  choose whether to use your dialect or the canonical wording, so what you hand
-  someone matches how *they* speak.
+- **Printing and sharing.** A dance you print or export is written in your
+  **active** dialect, so what you hand someone matches how you both speak. Note
+  that the on-screen **Show canonical terms** toggle changes only what you are
+  looking at — it doesn't change what an export contains. To export in different
+  words, switch your active dialect first. See
+  [Share, print & export](./sharing.md#which-words-a-dance-export-uses).
 - **Screen readers.** The app reads dances aloud in your dialect too — your own
   words are the clearest ones for you — so the spoken view and the visible view
   stay in step. See the [accessibility guide](./accessibility.md) for more.
 - **It's all on your device.** Dialects, like everything in Caller's Compendium,
   live only on your device. There is no account and nothing to sync.
 
-## Related guides
+## Where to go next
 
 - [Getting started](./getting-started.md) — find your way around the app.
 - [Perform mode](./perform.md) — call live, with the dialect and canonical
@@ -232,4 +235,5 @@ recognise, then flip back to your own.
 - [Collection & search](./collection.md) — searching works whatever dialect you
   use.
 - [Imports & migration](./imports.md) — bring in dances written in other words.
+- [Share, print & export](./sharing.md) — which words leave the app with a dance.
 - [Glossary](./glossary.md) — plain definitions of the terms used here.
