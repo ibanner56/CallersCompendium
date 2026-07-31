@@ -44,7 +44,7 @@
   "settingsDateFormatCustom": "Aangepast…",
   "settingsDateFormatCustomPatternLabel": "Aangepast datumpatroon",
   "settingsDateFormatCustomPatternHint": "MM.DD.YY",
-  "settingsDateFormatCustomLegend": "Tokens: yyyy of yy = jaar, MM = maand (MMM = korte naam, MMMM = volledige naam), dd = dag. Scheidingstekens: - / . of spatie.",
+  "settingsDateFormatCustomLegend": "Tokens: yyyy of yy = jaar, MM = maand (MMM = korte naam, MMMM = volledige naam), d of dd = dag. Scheidingstekens: - / . , of spatie.",
   "settingsDateFormatCustomInvalid": "Onbekend patroon — de systeemstandaard wordt gebruikt totdat dit is gecorrigeerd.",
   "settingsFirstDayOfWeekTitle": "Eerste dag van de week",
   "settingsFirstDayOfWeekSubtitle": "Welke dag de week begint in de datumweergaven van de app. Komt in een toekomstige update.",

@@ -157,7 +157,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDateFormatCustomLegend =>
-      'Tokens: yyyy of yy = jaar, MM = maand (MMM = korte naam, MMMM = volledige naam), dd = dag. Scheidingstekens: - / . of spatie.';
+      'Tokens: yyyy of yy = jaar, MM = maand (MMM = korte naam, MMMM = volledige naam), d of dd = dag. Scheidingstekens: - / . , of spatie.';
 
   @override
   String get settingsDateFormatCustomInvalid =>

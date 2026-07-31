@@ -14,6 +14,9 @@ void main() {
         'MMMM dd yyyy', // full month name (#632)
         'yyyy MMM dd',
         'MMMM-dd-yyyy',
+        'MMMM d, yyyy', // comma separator + single-d day (#668)
+        'd MMMM yyyy', // single-d day, day-first (#668)
+        'd/MMMM, yyyy', // mixed separators: slash then comma (#668)
       ]) {
         expect(parseCustomDatePattern(pattern), isNotNull, reason: pattern);
       }
@@ -65,8 +68,7 @@ void main() {
     test('rejects unrecognized token widths', () {
       expect(parseCustomDatePattern('yyy-MM-dd'), isNull); // 3 y's
       expect(parseCustomDatePattern('yyyy-M-dd'), isNull); // single M
-      expect(parseCustomDatePattern('yyyy-MM-d'), isNull); // single d
-      expect(parseCustomDatePattern('yyyy-MM-ddd'), isNull); // 3 d's
+      expect(parseCustomDatePattern('yyyy-MM-ddd'), isNull); // 3 d's (#668)
       expect(parseCustomDatePattern('yyyy-MMMMM-dd'), isNull); // 5 M's (#632)
     });
 
@@ -78,6 +80,15 @@ void main() {
       // A numeric and a written-out month together is still a duplicate month.
       expect(parseCustomDatePattern('MMM MM yyyy dd'), isNull);
       expect(parseCustomDatePattern('MMMM MMM dd yyyy'), isNull);
+      // d and dd together is still a duplicate day (#668).
+      expect(parseCustomDatePattern('d dd MM yyyy'), isNull);
+      expect(parseCustomDatePattern('dd d MM yyyy'), isNull);
+    });
+
+    test('unknown separators are still rejected alongside the new comma '
+        '(#668)', () {
+      expect(parseCustomDatePattern('MM;dd;yyyy'), isNull);
+      expect(parseCustomDatePattern('MM_dd_yyyy'), isNull);
     });
   });
 
@@ -135,6 +146,52 @@ void main() {
         ),
         '03 06 2026',
       );
+    });
+
+    group('comma separator and single-d day (#668)', () {
+      test('MMMM d, yyyy renders a single-digit day with no padding', () {
+        expect(
+          formatWithCustomPattern(
+            DateTime.utc(2026, 6, 3),
+            parseCustomDatePattern('MMMM d, yyyy')!,
+            monthNames: _enMonthNames,
+          ),
+          'June 3, 2026',
+        );
+      });
+
+      test('d MMMM yyyy renders a single-digit day, day-first layout', () {
+        expect(
+          formatWithCustomPattern(
+            DateTime.utc(2026, 6, 3),
+            parseCustomDatePattern('d MMMM yyyy')!,
+            monthNames: _enMonthNames,
+          ),
+          '3 June 2026',
+        );
+      });
+
+      test('single-d still renders a two-digit day in full', () {
+        expect(
+          formatWithCustomPattern(
+            DateTime.utc(2026, 12, 25),
+            parseCustomDatePattern('d MMMM yyyy')!,
+            monthNames: _enMonthNames,
+          ),
+          '25 December 2026',
+        );
+      });
+
+      test('dd still zero-pads (no regression alongside the new d token)', () {
+        expect(
+          formatWithCustomPattern(
+            DateTime.utc(2026, 6, 3),
+            parseCustomDatePattern('dd MMMM yyyy')!,
+            monthNames: _enMonthNames,
+          ),
+          '03 June 2026',
+        );
+      });
     });
   });
 
@@ -267,6 +324,46 @@ void main() {
         sw.stop();
         expect(result, isNull);
         expect(sw.elapsedMilliseconds, lessThan(1000));
+      });
+    });
+
+    group('comma separator and single-d day (#668)', () {
+      test('matches a comma-separated title with a single-digit day', () {
+        final p = parseCustomDatePattern('MMMM d, yyyy')!;
+        expect(
+          matchTitleWithCustomPattern(
+            'Spring Fling — June 3, 2026',
+            p,
+            monthNames: _enMonthFullNames,
+          ),
+          DateTime.utc(2026, 6, 3),
+        );
+      });
+
+      test('matches a day-first, single-d, space-separated title', () {
+        final p = parseCustomDatePattern('d MMMM yyyy')!;
+        expect(
+          matchTitleWithCustomPattern(
+            '3 June 2026 Contra',
+            p,
+            monthNames: _enMonthFullNames,
+          ),
+          DateTime.utc(2026, 6, 3),
+        );
+      });
+
+      test('a single-d pattern still matches a zero-padded day in text', () {
+        // The title-match day group already accepts \d{1,2} regardless of the
+        // declared width, so a `d`-declared pattern still matches "03".
+        final p = parseCustomDatePattern('d MMMM yyyy')!;
+        expect(
+          matchTitleWithCustomPattern(
+            '03 June 2026',
+            p,
+            monthNames: _enMonthFullNames,
+          ),
+          DateTime.utc(2026, 6, 3),
+        );
       });
     });
   });
