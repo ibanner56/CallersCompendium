@@ -290,6 +290,7 @@ class UpdateController extends ChangeNotifier {
 
       final handoff = await _handoff(file, _platform);
       if (handoff == HandoffResult.failed) {
+        await _deleteDirQuietly(downloadDir);
         _failDownload(
           'The update was downloaded and verified, but could not be opened '
           'automatically. Use "View release" to finish installing.',

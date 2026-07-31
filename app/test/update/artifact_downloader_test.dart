@@ -409,8 +409,8 @@ void main() {
 
   test('a destination colliding with an existing directory is refused before '
       'any bytes are written', () async {
-    // A directory already sits at the destination path: the exclusive
-    // create must fail closed (never buffer/write through it) rather than
+    // A directory already sits at the destination path: the pre-write
+    // existence check (not following links) must fail closed rather than
     // discovering the collision only at flush/close time.
     final collide = Directory('${tempDir.path}/collide')..createSync();
 
@@ -422,7 +422,7 @@ void main() {
     );
 
     expect(outcome.kind, DownloadResultKind.networkError);
-    expect(outcome.message, contains('could not create destination file'));
+    expect(outcome.message, contains('already exists'));
     // The pre-existing directory must be left untouched, not deleted.
     expect(await collide.exists(), isTrue);
   });
@@ -444,11 +444,36 @@ void main() {
     );
 
     expect(outcome.kind, DownloadResultKind.networkError);
-    expect(outcome.message, contains('could not create destination file'));
+    expect(outcome.message, contains('already exists'));
     // The symlink must still exist, unmolested, and its target must be
     // completely untouched — the write never followed it.
     expect(await link.exists(), isTrue);
     expect(await secret.readAsString(), 'do-not-touch');
+  });
+
+  test('a pre-planted symlink whose target does NOT exist is still refused '
+      '(dangling-symlink residual gap, CWE-59)', () async {
+    // A dangling symlink at the destination path: an exclusive create
+    // alone can (depending on platform/FS) proceed through a symlink whose
+    // target doesn't exist yet, creating the target through the link. The
+    // explicit non-following existence check must refuse regardless of
+    // whether the symlink's target currently exists.
+    final missingTarget = File('${tempDir.path}/outside/does-not-exist');
+    final link = Link(dest.path)..createSync(missingTarget.path);
+
+    final client = _streamingClient([utf8.encode('AB')], contentLength: 2);
+    final outcome = await downloadArtifact(
+      _artifact(size: 2),
+      destination: File(dest.path),
+      client: client,
+    );
+
+    expect(outcome.kind, DownloadResultKind.networkError);
+    expect(outcome.message, contains('already exists'));
+    // The dangling symlink must still exist, unmolested, and its target
+    // must still not exist — the write never followed/created through it.
+    expect(await link.exists(), isTrue);
+    expect(await missingTarget.exists(), isFalse);
   });
 
   test(

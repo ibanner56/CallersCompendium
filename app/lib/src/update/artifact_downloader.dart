@@ -140,13 +140,15 @@ typedef ArtifactDownloader =
 /// partial file — but only one this call itself created — so no truncated
 /// artifact is ever handed to verification.
 ///
-/// [destination] is created with `exclusive: true` (issue #626) before any
-/// byte is written: this fails closed rather than writing through a
-/// pre-existing file *or symlink* at that path, closing a local
+/// [destination] is refused if anything already sits at that path — checked
+/// **without following a symlink** — before any byte is written (issue #626):
+/// a pre-existing file, directory, or symlink (dangling or not) fails the
+/// download closed rather than being written through. A `create(exclusive:
+/// true)` immediately follows as defense-in-depth against a TOCTOU race
+/// between the check and the create. Together these close a local
 /// symlink/predictable-path attack (CWE-59/377). Callers should additionally
 /// route [destination] through an unpredictable directory (e.g.
-/// `Directory.createTemp`) so the exclusive-create is defense-in-depth rather
-/// than the sole guard.
+/// `Directory.createTemp`) so neither guard here is the sole line of defense.
 Future<DownloadOutcome> downloadArtifact(
   UpdateArtifact artifact, {
   required File destination,
@@ -207,18 +209,36 @@ Future<DownloadOutcome> downloadArtifact(
         ? artifact.size
         : kMaxArtifactDownloadBytes;
 
-    // Create the destination **exclusively** (`O_EXCL`-equivalent): this
-    // fails closed if anything — a regular file, a directory, or a
-    // symlink — already sits at [destination], instead of writing through it.
-    // That defeats a local symlink attack (CWE-59) where an attacker
-    // pre-plants a symlink at a predictable path to redirect the write at a
-    // target of their choosing: `openWrite()`/`open()` alone would happily
-    // follow it, but a failed exclusive-create means we never open, never
-    // write, and never delete the pre-existing entity (the cleanup in
-    // `finally` below only ever removes a file *this call* created). Callers
-    // pair this with an unpredictable destination path (see
-    // `UpdateController.startAssistedDownload`) so the exclusive-create is
-    // defense-in-depth, not the only guard.
+    // Refuse if anything already sits at [destination] — checked WITHOUT
+    // following a symlink (`FileSystemEntity.type(..., followLinks: false)`).
+    // This closes a residual gap in relying on `create(exclusive: true)`
+    // alone: an exclusive create can still race with, or (per platform/FS
+    // nuance) proceed through, a pre-existing symlink whose *target* does not
+    // (yet) exist, creating the target through the link. Rejecting any
+    // existing entity at the raw path — file, directory, or link, dangling or
+    // not — means we never open, never write, and never delete a pre-existing
+    // entity (the cleanup in `finally` below only ever removes a file *this
+    // call* created).
+    final existingType = await FileSystemEntity.type(
+      destination.path,
+      followLinks: false,
+    );
+    if (existingType != FileSystemEntityType.notFound) {
+      return DownloadOutcome.networkError(
+        'refusing to write: something already exists at the destination path',
+      );
+    }
+
+    // Create the destination **exclusively** (`O_EXCL`-equivalent) as
+    // defense-in-depth on top of the check above: this fails closed if
+    // anything appears at [destination] between the check and this call
+    // (TOCTOU), instead of writing through it. That defeats a local symlink
+    // attack (CWE-59) where an attacker pre-plants a symlink at a predictable
+    // path to redirect the write at a target of their choosing: `openWrite()`
+    // alone would happily follow it. Callers additionally pair this with an
+    // unpredictable destination path (see
+    // `UpdateController.startAssistedDownload`), so neither guard here is the
+    // sole line of defense.
     try {
       await destination.create(exclusive: true);
       createdDestination = true;
