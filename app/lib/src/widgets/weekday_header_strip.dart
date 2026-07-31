@@ -43,6 +43,16 @@ class WeekdayHeaderStrip extends StatelessWidget {
     final firstOfWeek = today.subtract(
       Duration(days: (today.weekday - order.first) % 7),
     );
+    // Normalize once per build so each cell's membership check below is an
+    // O(1) set lookup instead of an O(N) scan of `markedDates` per cell.
+    final normalizedMarked = markedDates.map(_dateOnly).toSet();
+    // Compute each cell's date exactly once and reuse it for both the
+    // `isToday` and `isMarked` checks below (was previously recomputed twice
+    // per cell via `firstOfWeek.add(...)`).
+    final cellDates = List<DateTime>.generate(
+      7,
+      (i) => firstOfWeek.add(Duration(days: i)),
+    );
 
     return Row(
       key: const ValueKey('weekday-header-strip'),
@@ -53,11 +63,9 @@ class WeekdayHeaderStrip extends StatelessWidget {
               // narrowWeekdays is Sunday-first (index 0); DateTime.sunday is 7,
               // so `% 7` maps Mon..Sat (1..6) to themselves and Sun (7) to 0.
               label: material.narrowWeekdays[order[i] % 7],
-              date: firstOfWeek.add(Duration(days: i)),
-              isToday: _isSameDay(firstOfWeek.add(Duration(days: i)), today),
-              isMarked: markedDates.any(
-                (d) => _isSameDay(d, firstOfWeek.add(Duration(days: i))),
-              ),
+              date: cellDates[i],
+              isToday: _isSameDay(cellDates[i], today),
+              isMarked: normalizedMarked.contains(cellDates[i]),
             ),
           ),
       ],
