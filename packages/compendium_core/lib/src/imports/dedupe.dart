@@ -151,8 +151,8 @@ class DedupeIndex {
   /// Snapshot of every choreographer at the time this index was built
   /// (normalized name → id), incidentally captured from the same collection
   /// load that produced [_entries]'s author names. Lets [ImportPipeline.commit]
-  /// reuse this instead of a second `listAll()` — see [ImportPipeline.
-  /// buildDedupeIndex] and [ImportPipeline.commit].
+  /// reuse this instead of a second `listAll()` — see
+  /// [ImportPipeline.buildDedupeIndex] and [ImportPipeline.commit].
   final Map<String, String> choreographerIdByNormalizedName;
 
   /// Default minimum combined similarity for a fuzzy match to be surfaced.
