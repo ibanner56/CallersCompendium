@@ -249,6 +249,129 @@ void main() {
     expect(find.text('partner swing'), findsNothing);
   });
 
+  group('column-header tooltip removal (#662)', () {
+    testWidgets('headers have no tooltip — the label is the only text', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        dances: [
+          dance('d1', 'A', [swing(), move('balance')]),
+        ],
+      );
+
+      // The redundant Tooltip wrapper is gone entirely.
+      expect(find.byType(Tooltip), findsNothing);
+    });
+
+    testWidgets('header semantics label survives tooltip removal', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        dances: [
+          dance('d1', 'A', [swing()]),
+        ],
+      );
+
+      // The accessible name was always sourced from the Semantics wrapper
+      // above the (now-removed) Tooltip, not the Tooltip itself.
+      expect(find.bySemanticsLabel('Move: partner swing'), findsOneWidget);
+      expect(find.bySemanticsLabel('Move: neighbor swing'), findsOneWidget);
+    });
+  });
+
+  group('header-strip scroll cue (#662)', () {
+    Future<void> pumpAtWidth(
+      WidgetTester tester, {
+      required List<Dance> dances,
+      required double width,
+    }) async {
+      await tester.binding.setSurfaceSize(Size(width, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: ProgramMatrixTable(
+              matrix: buildProgramMatrix(dances),
+              taxonomy: contraTaxonomy,
+              dialect: Dialect.canonical,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    const rightCue = ValueKey('program-matrix-header-scroll-right');
+    const leftCue = ValueKey('program-matrix-header-scroll-left');
+
+    // Enough distinct moves that the header strip overflows even a
+    // reasonably wide (but still tablet-range) surface.
+    final manyMoveDances = [
+      dance('d1', 'A', [
+        swing(),
+        move('balance'),
+        move('do_si_do'),
+        move('circle'),
+        move('allemande'),
+        move('star'),
+        move('promenade'),
+        move('right_left_through'),
+        move('chain'),
+        move('box_the_gnat'),
+        move('california_twirl'),
+        move('pass_through'),
+        move('star_through'),
+        move('poussette'),
+        move('cross_trails'),
+        hey('full'),
+      ]),
+    ];
+
+    testWidgets('shows only the right cue when overflowing at rest', (
+      tester,
+    ) async {
+      await pumpAtWidth(tester, dances: manyMoveDances, width: 700);
+
+      expect(find.byKey(rightCue), findsOneWidget);
+      expect(find.byKey(leftCue), findsNothing);
+    });
+
+    testWidgets(
+      'right cue disappears and left cue appears once scrolled to the end',
+      (tester) async {
+        await pumpAtWidth(tester, dances: manyMoveDances, width: 700);
+
+        await tester.drag(
+          find.byKey(const ValueKey('program-matrix-body-h-scroll')),
+          const Offset(-4000, 0),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(rightCue), findsNothing);
+        expect(find.byKey(leftCue), findsOneWidget);
+      },
+    );
+
+    testWidgets('neither cue shows when the matrix fits without overflow', (
+      tester,
+    ) async {
+      await pumpAtWidth(
+        tester,
+        dances: [
+          dance('d1', 'A', [swing()]),
+        ],
+        width: 1400,
+      );
+
+      expect(find.byKey(rightCue), findsNothing);
+      expect(find.byKey(leftCue), findsNothing);
+    });
+  });
+
   group('phone-width compact view (< 600dp)', () {
     Future<void> pumpNarrow(
       WidgetTester tester, {

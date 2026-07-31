@@ -69,7 +69,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   (moves as columns, per-dance presence + program-debut and dance-first-figure
   highlights) — CC's
   programming matrix without the manual checklist. Horizontally scrollable,
-  row/column headers pinned, AT-navigable as a table.
+  row/column headers pinned, AT-navigable as a table. When columns overflow,
+  the pinned header strip shows a gradient-plus-chevron edge cue on whichever
+  side(s) have more content, so off-screen columns are discoverable without
+  relying on colour alone.
 - Header: event date/venue/notes; duplicate program; print/export (PDF, text);
   "mark performed" stamps performedAt on called slots (feeds calling history).
 
