@@ -422,6 +422,50 @@ String? _takeNeighborNumber(List<String> w) {
   return null;
 }
 
+/// Takes a TCB relationship target, resolving an N-tag written in EITHER word
+/// order. [_takeDancer] already absorbs the prefix form ("N2 neighbor butterfly
+/// whirl clockwise"); TCB also writes the SUFFIX form ("Mad robin clockwise
+/// around neighbor N2"), where a plain [_takeDancer] would match "neighbor"
+/// first and resolve the very same relationship to `neighbors` instead of
+/// `nextNeighbors`. Scanning for the `neighbor(s) N<i>` pair first makes both
+/// orders agree. Falls back to [_takeDancer] when no such pair is present.
+String? _takeRelationship(List<String> w) {
+  for (var i = 0; i + 1 < w.length; i++) {
+    if ((w[i] == 'neighbor' || w[i] == 'neighbors') &&
+        _neighborNumbers.contains(w[i + 1])) {
+      final tag = w[i + 1];
+      w.removeRange(i, i + 2);
+      return _dancerWords[tag];
+    }
+  }
+  return _takeDancer(w);
+}
+
+/// Removes a rotation-direction word from anywhere in [w] and returns the
+/// canonical `clockwise`/`counterclockwise` token, or null when the line states
+/// none. Shared by every move whose TCB line states a spin direction (`orbit`,
+/// `mad_robin`, `butterfly_whirl`).
+///
+/// The counter-forms are tested FIRST: `_consumePhrase(['clockwise'])` would
+/// otherwise match the second half of a two-token "counter clockwise" and leave
+/// a stray "counter" behind, inverting the direction (the recognizer would then
+/// reject the line for leftover text — safe, but needlessly lossy).
+///
+/// Distinct from [_takeGateDirection], which additionally admits TCB's
+/// gate-only `mirror` value and therefore cannot be shared.
+String? _takeSpinDirection(List<String> w) {
+  if (_consumePhrase(w, ['counterclockwise']) ||
+      _consumePhrase(w, ['counter', 'clockwise']) ||
+      _consumePhrase(w, ['anticlockwise']) ||
+      _consumePhrase(w, ['ccw'])) {
+    return 'counterclockwise';
+  }
+  if (_consumePhrase(w, ['clockwise']) || _consumePhrase(w, ['cw'])) {
+    return 'clockwise';
+  }
+  return null;
+}
+
 /// Whether the consecutive [phrase] occurs anywhere in [w], WITHOUT consuming.
 bool _hasPhrase(List<String> w, List<String> phrase) {
   for (var i = 0; i + phrase.length <= w.length; i++) {
@@ -629,6 +673,14 @@ final List<_Recognizer> _recognizers = [
   // With this in place the TCB `||` and ContraDB `while` fan-outs represent the
   // combined "X allemande while Y orbits" as meanwhile[allemande, orbit].
   _orbit,
+  // Issue #295: TCB's `mad robin` and `butterfly whirl`. Each anchors on a
+  // distinct multi-word lead phrase ("mad robin" / "butterfly whirl") that no
+  // other recognizer consumes, so they neither shadow nor are shadowed. Both
+  // require the direction TCB always states, so a bare "mad robin" or
+  // "butterfly whirl" (ContraDB's own phrasing) still degrades to custom here —
+  // ContraDB lines are recognized by `contradb_figure_dialect.dart` instead.
+  _madRobin,
+  _butterflyWhirl,
   // Additive TCB-attested moves (issue #553, Gap 1). Each is conservative
   // (leftover token → null → custom) and anchors on a distinct lead phrase, so
   // none shadows or is shadowed by the recognizers above.
@@ -1241,15 +1293,7 @@ _Match? _orbit(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['orbit'])) return null;
   final who2 = who ?? _takeDancer(w);
-  String? spin;
-  if (_consumePhrase(w, ['clockwise']) || _consumePhrase(w, ['cw'])) {
-    spin = 'clockwise';
-  } else if (_consumePhrase(w, ['counterclockwise']) ||
-      _consumePhrase(w, ['counter', 'clockwise']) ||
-      _consumePhrase(w, ['anticlockwise']) ||
-      _consumePhrase(w, ['ccw'])) {
-    spin = 'counterclockwise';
-  }
+  final spin = _takeSpinDirection(w);
   if (spin == null) return null; // an orbit always states its direction
   final amount = _takeRotation(w);
   if (amount == null) return null; // the amount is never fabricated
@@ -1262,6 +1306,70 @@ _Match? _orbit(List<String> w) {
     null,
     who2 == null,
   );
+}
+
+/// Issue #295: TCB's `mad robin`. TCB writes the figure with detail ContraDB
+/// does not model — "Mad robin clockwise around neighbor", "Mad robin
+/// counterclockwise around partner", "Mad robin clockwise 1 & 1/2 around
+/// neighbor N2" — and states BOTH facts on every surveyed line (24/24 in a
+/// 5,147-line sample), so both are REQUIRED here:
+/// - the rotation `direction` (TCB glossary: "a clockwise mad robin begins with
+///   the left-hand person going in front"), and
+/// - the "around `<whom>`" target (TCB glossary: "you travel in an oval around
+///   the person at your side… **Who you go around is listed**").
+///
+/// `whom` is deliberately NOT folded into `who`: ContraDB's `who` names which
+/// pair steps IN FRONT (`madRobinWords` renders "`<who>` in front"), a different
+/// concept, so reusing it would invert the meaning of every ContraDB import.
+/// TCB never states the in-front role, so `who` is left unset and the match is
+/// flagged as an assumed subject (#460).
+///
+/// A rotation amount is optional (TCB states one on 2/24 lines) and maps to the
+/// existing `turn` — ContraDB's `circling`/`once_around` angle. A missing
+/// direction, a missing "around `<target>`", or ANY leftover token yields null so
+/// the line degrades to a faithful custom figure.
+_Match? _madRobin(List<String> w) {
+  if (!_consumePhrase(w, ['mad', 'robin'])) return null;
+  final direction = _takeSpinDirection(w);
+  if (direction == null) return null; // TCB always states the direction
+  final turn = _takeRotation(w);
+  if (!_consumePhrase(w, ['around'])) return null;
+  final whom = _takeRelationship(w);
+  if (whom == null) return null; // and always states what you go around
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match(
+    'mad_robin',
+    {'direction': direction, 'turn': ?turn, 'whom': whom},
+    null,
+    // TCB never names the in-front role, so `who` falls back to the taxonomy
+    // default and must be surfaced as assumed rather than as source fact.
+    true,
+  );
+}
+
+/// Issue #295: TCB's `butterfly whirl` — "Partner butterfly whirl
+/// counterclockwise", "N2 neighbor butterfly whirl clockwise". TCB's glossary
+/// defines the figure as "two people … rotate clockwise or counterclockwise
+/// about a common center", and states BOTH the pair and the direction on every
+/// surveyed line (18/18), so both are required here. ContraDB models `beats`
+/// alone, so its own recognizer (`contradb_figure_dialect.dart`) is unchanged
+/// and keeps asserting neither.
+///
+/// There is deliberately NO rotation-amount slot: TCB states an amount on 4/18
+/// lines ("… counterclockwise 1 & 1/2"), but neither ContraDB nor the TCB
+/// glossary models one, so those lines correctly stay custom (prefer-custom)
+/// rather than having the amount silently dropped from a structured figure.
+_Match? _butterflyWhirl(List<String> w) {
+  final who = _takeRelationship(w);
+  if (!_consumePhrase(w, ['butterfly', 'whirl'])) return null;
+  final who2 = who ?? _takeRelationship(w);
+  if (who2 == null) return null; // TCB always names the whirling pair
+  final direction = _takeSpinDirection(w);
+  if (direction == null) return null; // … and always states the direction
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('butterfly_whirl', {'who': who2, 'direction': direction});
 }
 
 /// Tier A: TCB writes "Partner California twirl" (dance id 11 "Hocus Pocus").

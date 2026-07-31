@@ -16,6 +16,23 @@
 
 ### Added
 
+- **`mad_robin` and `butterfly_whirl` now carry the detail The Caller's Box
+  states (#295).** `mad_robin` gains a rotation `direction`
+  (`clockwise`/`counterclockwise`) and `whom` — the pair you travel AROUND,
+  which is a different concept from the existing `who` (ContraDB's pair that
+  steps *in front*). `butterfly_whirl` gains `who` and the same `direction`.
+  New conservative TCB recognizers structure "Mad robin clockwise around
+  neighbor N2" and "Partner butterfly whirl counterclockwise"; each requires
+  BOTH stated facts, so a bare "mad robin" / "butterfly whirl" — or a butterfly
+  whirl with a rotation amount, which no source models — still degrades to a
+  faithful custom figure. Sourced from TCB's glossary and a 5,147-line TCB
+  sample (24/24 and 18/18 lines respectively state both facts); ContraDB models
+  neither, so ContraDB imports keep asserting nothing. Taxonomy version → 20.
+  Purely additive: every new param defaults to an `unspecified` sentinel that
+  renders as nothing, so `renderCanonical` — the search/dedupe key — is
+  byte-identical for every figure stored before v20 and no database migration
+  is needed.
+
 - **`orbit` is now a first-class move (#295).** A standalone `orbit` move —
   `who` (dancerSet), `turn` (`clockwise`/`counterclockwise`, reusing the
   existing spin-direction vocabulary), `amount` (rotation, default ½), and

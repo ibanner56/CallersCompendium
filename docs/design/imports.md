@@ -421,10 +421,19 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
   hey
   / right-&-left-through (→ `dir: left/rightDiagonal`), same-role right & left
   through (variant kept as a note), weave-the-line `with <dancer>`, relationship
-  N-suffix (`with/to neighbor N2`), explicit dancer codes (M1/W1/M2/W2 →
-  ones/twos single-dancer identities), and `(A-B)` beat ranges. **Out (→ custom
-  for now, tracked on #295):** balance-in-a-wave, cast off, mad robin & butterfly
-  whirl (need direction/who params), two-hand turn & other ECD figures, promenade
+  N-suffix (`with/to neighbor N2`, in either word order), explicit dancer codes
+  (M1/W1/M2/W2 →
+  ones/twos single-dancer identities), and `(A-B)` beat ranges. **Mad robin &
+  butterfly whirl (#295, taxonomy v20):** both moves gained the params TCB
+  states — `mad robin` a rotation `direction` plus the "around `<whom>`" target,
+  `butterfly whirl` a `who` plus the same `direction` — so "Mad robin clockwise
+  around neighbor N2" and "Partner butterfly whirl counterclockwise" now
+  structure. Each recognizer requires BOTH stated facts, so a bare "mad robin" /
+  "butterfly whirl" (ContraDB's own phrasing), or a butterfly whirl carrying an
+  unmodeled rotation amount ("… counterclockwise 1 & 1/2"), still stays custom.
+  **Out (→ custom
+  for now, tracked on #295):** balance-in-a-wave, cast off,
+  two-hand turn & other ECD figures, promenade
   CW/CCW around the major set, non-duple formations, and
   anything with leftover prose. Coverage improves iteratively — measured against
   the full corpus (design target ≥80% of lines structured over time). (`||`

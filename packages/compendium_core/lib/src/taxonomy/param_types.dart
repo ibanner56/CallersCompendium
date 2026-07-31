@@ -88,6 +88,16 @@ abstract final class ParamVocab {
   static const List<String> dancerSets = [...pairDancerSets, ...singleDancers];
   static const List<String> sides = ['right', 'left'];
   static const List<String> spins = ['clockwise', 'counterclockwise'];
+
+  /// Sentinel value meaning "the source states nothing here".
+  ///
+  /// Admitted only by params that explicitly list it in [ParamSpec.choices]
+  /// (`hey.pass2`/`hey.meetTarget`, `mad_robin.direction`/`whom`,
+  /// `butterfly_whirl.who`/`direction`). It is NOT a dancer or a direction, so
+  /// the renderer emits it as the empty string — which is what lets such a
+  /// param sit in a `renderTemplate` without changing the canonical text of any
+  /// figure that leaves it unset.
+  static const String unspecified = 'unspecified';
   static const List<String> fractions = [
     'quarter',
     'half',
