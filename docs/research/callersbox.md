@@ -336,10 +336,17 @@ the remainder is the implicit case, dominated by allemandes.
 
 Forming wordings in the same corpus: `form wave of four` ×632, `form long wave`
 ×385, `form wave of four with N2` ×232, `form long wave in center` ×210,
-`form wave of four with shadow` ×58.
+`form wave of four with shadow` ×58. The **plural** `form long waves` occurs
+exactly **once** in all 24,107 files (dance 2463 *Gypsy Star* B1) — TCB's
+singular "long wave" is the overwhelmingly dominant forming wording.
+
+86 balance lines name a formation the taxonomy has no model for
+(`interlocking` ×43, `circular` ×27, `intersecting` ×16). These stay `custom`
+on BOTH the promotion and the trailing-balance-fold paths, so the qualifier is
+never dropped from a structured figure.
 
 Effect of taxonomy v21 measured by running the real adapter over the whole
-mirror: custom figures 24,775 → 22,271, structured share 76.24% → **78.69%**,
+mirror: custom figures 24,775 → 22,272, structured share 76.24% → **78.69%**,
 with per-dance beat totals byte-identical for all 20,515 dances and no
 forward-merge move losing a balance.
 

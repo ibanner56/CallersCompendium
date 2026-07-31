@@ -560,7 +560,14 @@ class CallersBoxAdapter implements SourceAdapter {
   /// the same single-source-of-truth beat pattern the leading-balance folds use.
   ///
   /// `form_long_waves` joined this set at taxonomy v21 (#295), which gave it the
-  /// `balance` flag whose absence had previously excluded it.
+  /// `balance` flag whose absence had previously excluded it. It is here for
+  /// CONSISTENCY, not corpus demand: TCB writes the plural "form long waves"
+  /// exactly ONCE in the 24,107-file corpus (dance 2463 *Gypsy Star* B1), and
+  /// that line's balance names an `interlocking` formation which
+  /// [_unmodeledWaveQualifiers] correctly refuses. Excluding the move anyway
+  /// would be incoherent, though — the balance-a-wave promotion already emits
+  /// `form_long_waves{balance: true}`, so a formed-then-balanced long wave must
+  /// be able to reach the same shape.
   static const _trailingBalanceMergeMoves = {
     'pass_the_ocean',
     'form_short_waves',
@@ -667,17 +674,36 @@ class CallersBoxAdapter implements SourceAdapter {
   static bool _isOceanWaveMove(Figure f) =>
       !f.isCustom && _trailingBalanceMergeMoves.contains(f.move);
 
+  /// Formation qualifiers The Caller's Box uses for waves the taxonomy has NO
+  /// model for: `Balance interlocking long waves`, `Balance intersecting waves
+  /// of four`, `Balance circular wave`. A balance line carrying one of these is
+  /// not a balance of the wave a preceding line formed — it names a DIFFERENT
+  /// formation — so neither the trailing-balance fold nor the balance-a-wave
+  /// promotion may claim it (prefer-custom: the qualifier would be silently
+  /// dropped from a structured figure that then asserts something the source
+  /// never said). 86 corpus lines carry one — `interlocking` 43, `circular` 27,
+  /// `intersecting` 16.
+  static const _unmodeledWaveQualifiers = {
+    'interlocking',
+    'intersecting',
+    'circular',
+  };
+
   /// A balance-WAVE line: a custom figure whose scrubbed text leads with
   /// "balance" AND names a wave (`Balance wave of four`, `Balance the wave`,
   /// `Balance long wave`). This is deliberately NARROWER than [_isBalanceLine]:
   /// a bare dancer balance (`Partner balance`, `Neighbor balance`) must NOT fold
   /// into a preceding ocean/wave, because it belongs to the FOLLOWING move
   /// (e.g. a swing) via Fold 1. Structured `balance` / `balance_the_ring` moves
-  /// are excluded too — the balance-wave forms fall through to custom.
+  /// are excluded too — the balance-wave forms fall through to custom. A line
+  /// naming an unmodeled formation ([_unmodeledWaveQualifiers]) is excluded as
+  /// well, so the fold and the promotion agree about exactly which wordings
+  /// they are willing to represent.
   static bool _isBalanceWaveLine(Figure f) {
     if (!f.isCustom) return false;
-    final words = _figureWords(f);
+    final words = _figureWords(f).map(_stripEdgePunctuation).toList();
     if (words.isEmpty || words.first != 'balance') return false;
+    if (words.any(_unmodeledWaveQualifiers.contains)) return false;
     return words.any((w) => w == 'wave' || w == 'waves');
   }
 

@@ -207,6 +207,67 @@ void main() {
     });
   });
 
+  group('an unmodeled formation qualifier is never folded away', () {
+    // `_isBalanceWaveLine` used to accept ANY "balance … wave …" line, so a
+    // balance naming a formation the taxonomy cannot represent folded into a
+    // preceding wave move and the qualifier ("interlocking" / "intersecting" /
+    // "circular") was silently dropped — the merged figure then asserted a
+    // balance of a wave that is not the one the source named. 33 corpus lines
+    // hit this. The fold and the promotion now refuse the same wordings.
+    test(
+      'the real TCB case: Gypsy Star B1 keeps its interlocking text',
+      () async {
+        // Verbatim from dance 2463 — the ONLY plural "form long waves" line in
+        // the whole corpus, and the reason this guard exists.
+        final figures = await _figuresFor([
+          '(6) Facing star clockwise 1/2 (MR, WL, free hand to partner); '
+              'form long waves in center',
+          '(4) Balance interlocking long waves in center',
+        ]);
+        expect(figures, hasLength(3));
+        expect(figures[1].move, 'form_long_waves');
+        expect(figures[1].params.containsKey('balance'), isFalse);
+        expect(figures[2].isCustom, isTrue);
+        expect(
+          figures[2].params['text'],
+          contains('interlocking'),
+          reason: 'the unmodeled formation word must survive verbatim',
+        );
+        expect(_totalBeats(figures), 10);
+      },
+    );
+
+    for (final line in const [
+      '(4) Balance interlocking long waves',
+      '(4) Balance intersecting waves of four (C2R,ML)',
+      '(4) Balance circular wave',
+    ]) {
+      test('"$line" does not fold into a preceding pass the ocean', () async {
+        final figures = await _figuresFor(['(4) Pass the ocean', line]);
+        expect(figures, hasLength(2));
+        expect(figures[0].move, 'pass_the_ocean');
+        expect(figures[0].params.containsKey('balance'), isFalse);
+        expect(figures[1].isCustom, isTrue);
+        // Beats are untouched either way — the fold summed them, and not
+        // folding leaves the same two counts in place.
+        expect(_totalBeats(figures), 8);
+      });
+    }
+
+    test(
+      'an ordinary balance wave still folds (the guard is narrow)',
+      () async {
+        final figures = await _figuresFor([
+          '(4) Pass the ocean',
+          '(4) Balance wave of four (NR,WL)',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.params['balance'], isTrue);
+        expect(_totalBeats(figures), 8);
+      },
+    );
+  });
+
   group('the existing forward balance-merge keeps its balances', () {
     const forwardCases = <String, String>{
       '(12) Neighbor swing': 'swing',

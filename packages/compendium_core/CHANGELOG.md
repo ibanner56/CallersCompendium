@@ -33,13 +33,15 @@
     (the role pair is the wave's centre, the relationship pair its sides, hands
     opposite — verified on 2,560 of 2,764 corpus lines). Conservative: wave
     sizes we do not model, exotic formations (`intersecting`/`interlocking`/
-    `circular`), two-hand-hold annotations, people codes the shared
+    `circular` — refused on the trailing-balance FOLD path too, so a
+    formed-then-balanced wave never loses the qualifier either), two-hand-hold
+    annotations, people codes the shared
     `tcbPassPeople` map deliberately omits (square corners, mixer partner
     series, phantoms, trail buddies) and `Balance long wave for all in center`
     all stay custom.
   - `form (a) wave of four [with <dancer>]` — TCB's dominant forming wording —
     now structures too, so the explicit-forming merge can fire.
-  - Measured over the full mirror: custom figures 24,775 → 22,271, structured
+  - Measured over the full mirror: custom figures 24,775 → 22,272, structured
     share 76.24% → 78.69%, **per-dance beat totals byte-identical for all
     20,515 dances**, and no forward-merge move losing a balance. Taxonomy
     version → 21.

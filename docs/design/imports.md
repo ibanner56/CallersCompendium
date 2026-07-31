@@ -576,7 +576,13 @@ form figure is ever emitted.
    `form_long_waves` folds into that figure with the beats summed, so an
    explicitly-formed-then-balanced wave yields exactly ONE form figure. The
    balance line's annotation now also **enriches** the merged figure with any
-   hand/pair it states that the forming line did not, instead of being discarded.
+   hand/pair it states that the forming line did not, instead of being
+   discarded. A balance naming an **unmodeled formation** (`interlocking`,
+   `intersecting`, `circular`) is refused here, exactly as the promotion refuses
+   it: it is not a balance of the wave the previous line formed, and folding it
+   would drop the qualifier from a structured figure that then asserts something
+   the source never said. The single corpus case is dance 2463 *Gypsy Star* B1,
+   `form long waves in center` / `Balance interlocking long waves in center`.
 3. **Promotion** — whatever is left becomes the form figure on its own. This is
    the implicit case (an allemande or shoulder round leaves the dancers in the
    wave the very next line balances): the forming is a fact the source implies,
@@ -622,7 +628,7 @@ dominant forming wording (~1,000 clauses) — now structures as `form_short_wave
 sizes still degrade to custom.
 
 **Measured effect** (real adapter over the full mirror, 20,516 parseable dances):
-custom figures 24,775 → 22,271 (−2,504), structured share 76.24% → **78.69%**;
+custom figures 24,775 → 22,272 (−2,503), structured share 76.24% → **78.69%**;
 every forward-merge move's count is unchanged or higher (none lost a balance);
 and **per-dance beat totals are byte-identical for all 20,515 dances**, so
 `deriveSections`' cumulative section placement cannot drift.
