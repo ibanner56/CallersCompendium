@@ -3,6 +3,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
+import '../../data/aggressive_beats_update_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
@@ -672,6 +673,27 @@ class _DefaultsView extends StatelessWidget {
           onChanged: onFreeTextEntryChanged,
           title: Text(l10n.settingsDefaultsFreeTextEntryTitle),
           subtitle: Text(l10n.settingsDefaultsFreeTextEntrySubtitle),
+        ),
+        Builder(
+          builder: (context) {
+            final aggressiveBeatsUpdate = AggressiveBeatsUpdateScope.of(
+              context,
+            );
+            return SwitchListTile(
+              key: const ValueKey('defaults-aggressive-beats-update'),
+              value: aggressiveBeatsUpdate,
+              onChanged: (value) async {
+                AggressiveBeatsUpdateScope.notifierOf(context).value = value;
+                final repos = RepositoriesScope.of(context);
+                await repos.settings.set(kAggressiveBeatsUpdateKey, value);
+              },
+              title: Text(l10n.settingsDefaultsAggressiveBeatsUpdateTitle),
+              subtitle: Text(
+                l10n.settingsDefaultsAggressiveBeatsUpdateSubtitle,
+              ),
+              isThreeLine: true,
+            );
+          },
         ),
         Builder(
           builder: (context) {

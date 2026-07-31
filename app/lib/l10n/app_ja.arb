@@ -147,6 +147,8 @@
   "settingsDefaultsAuthoringHeader": "ダンス作成のデフォルト設定",
   "settingsDefaultsFreeTextEntryTitle": "フリーテキスト入力",
   "settingsDefaultsFreeTextEntrySubtitle": "オンにすると、新しいフィギュアを追加する際に「neighbor balance & swing」のように1行で入力できます（フィールドごとに入力する代わりに）。入力した行はフィギュアに解析されます。認識されなかった部分はカスタムフィギュアとして保存され、後で修正できます。既存のフィギュアの編集は常にフルエディターを使用します。",
+  "settingsDefaultsAggressiveBeatsUpdateTitle": "フィギュアの拍数を積極的に再計算",
+  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "オンにすると、フィギュアのムーブやタイミングに影響するパラメータを変更した際に、拍数が即座に再計算されます — 手動で入力した拍数も上書きされます。オフ(既定)の場合、編集した拍数が自動的に変更されることはありません。",
   "settingsDefaultsFigureShorthandsTitle": "フィギュアのショートハンド",
   "settingsDefaultsFigureShorthandsEmptySubtitle": "フリーテキスト入力時に挿入できるフィギュアへの短縮トークンをマッピングします。",
   "settingsDefaultsFigureShorthandsCountSubtitle": "{count, plural, other{{count}件のショートハンドが定義されています。}}",

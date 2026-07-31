@@ -13,6 +13,14 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Aggressively recompute figure beats (opt-in).** New Settings toggle under
+  Defaults > Dance-authoring defaults: "Aggressively recompute figure beats".
+  Off by default (today's behavior is unchanged) — a figure's beat count is
+  only auto-derived from its move's default while you haven't taken ownership
+  of the value. When turned on, changing a figure's move or any parameter that
+  affects timing immediately recalculates its beat count, even overwriting a
+  beat count you typed in by hand; the setting's subtitle states this
+  explicitly so the trade-off is never a surprise. Closes #689.
 - **First day of week is live.** The Language & region settings dropdown for
   first day of week (System default / Sunday / Monday / Saturday) is no
   longer disabled — it now has a real consumer, the Programs list's "this

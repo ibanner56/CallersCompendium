@@ -534,6 +534,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Activé : l’ajout d’une nouvelle figure vous permet de la saisir sur une seule ligne (ex. « neighbor balance & swing ») au lieu de la construire champ par champ. La ligne est analysée en figure(s) ; tout ce qui n’est pas reconnu est conservé comme figure personnalisée à corriger ultérieurement. La modification d’une figure existante utilise toujours l’éditeur complet.';
 
   @override
+  String get settingsDefaultsAggressiveBeatsUpdateTitle =>
+      'Recalculer agressivement les temps de la figure';
+
+  @override
+  String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
+      'Lorsque cette option est activée, la modification du mouvement d\'une figure ou d\'un paramètre affectant le tempo recalcule immédiatement son nombre de temps — même en écrasant un nombre de temps que vous avez saisi manuellement. Lorsqu\'elle est désactivée (par défaut), un nombre de temps que vous avez modifié n\'est jamais changé automatiquement.';
+
+  @override
   String get settingsDefaultsFigureShorthandsTitle => 'Abréviations de figures';
 
   @override

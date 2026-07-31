@@ -147,6 +147,8 @@
   "settingsDefaultsAuthoringHeader": "Standardwerte für die Tanzerstellung",
   "settingsDefaultsFreeTextEntryTitle": "Freitexteingabe",
   "settingsDefaultsFreeTextEntrySubtitle": "Wenn aktiviert, können Sie beim Hinzufügen einer neuen Figur diese als eine Zeile eingeben (z. B. „neighbor balance & swing“) statt sie Feld für Feld aufzubauen. Die Zeile wird in Figuren geparst; Nichterkanntes wird als benutzerdefinierte Figur gespeichert, die Sie später korrigieren können. Das Bearbeiten einer bestehenden Figur verwendet immer den vollständigen Editor.",
+  "settingsDefaultsAggressiveBeatsUpdateTitle": "Figurtakte aggressiv neu berechnen",
+  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Wenn aktiviert, wird die Taktzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Taktzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von Ihnen bearbeitete Taktzahl nie automatisch geändert.",
   "settingsDefaultsFigureShorthandsTitle": "Figur-Abkürzungen",
   "settingsDefaultsFigureShorthandsEmptySubtitle": "Kurze Tokens einer oder mehreren Figuren zuordnen, die bei der Freitexteingabe eingefügt werden können.",
   "settingsDefaultsFigureShorthandsCountSubtitle": "{count, plural, =1{1 Abkürzung definiert.} other{{count} Abkürzungen definiert.}}",

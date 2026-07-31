@@ -263,6 +263,10 @@ per dance. [Write & edit dances](./authoring.md) covers them in context.
 - **Move defaults** — preferred parameter values applied automatically when you
   insert a [move](./glossary.md#move) while writing. These override that move's
   built-in defaults, and you can still change any parameter afterwards.
+- **Aggressively recompute figure beats** (off by default) — when on, changing a
+  figure's move or a parameter that affects timing recalculates its beat count
+  immediately, even overwriting a beat count you typed in by hand. When off, a
+  beat count you've edited is never changed automatically.
 - **Walkthrough snippets** — a personal, per-figure library of your own
   walkthrough wording. The app saves the text you write for a figure and offers it
   again wherever that figure appears. Manage the whole library from here: review

@@ -2,6 +2,7 @@ import '../screens/perform_card.dart' show kPerformMinScale;
 import '../screens/settings/settings_keys.dart';
 import '../update/update_config.dart'
     show kUpdateAutoCheckKey, kUpdateBetaChannelKey, kUpdateDismissedVersionKey;
+import 'aggressive_beats_update_scope.dart' show kAggressiveBeatsUpdateKey;
 import 'confirm_before_delete_scope.dart' show kConfirmBeforeDeleteKey;
 import 'decimal_turns_scope.dart' show kDecimalTurnsKey;
 import 'display_defaults.dart'
@@ -61,6 +62,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kColourDanceThemeKey,
     kVenueEntityModeKey,
     kFreeTextEntryKey,
+    kAggressiveBeatsUpdateKey,
     kReduceMotionKey,
     kVerboseFigureRenderingKey,
     kDecimalTurnsKey,

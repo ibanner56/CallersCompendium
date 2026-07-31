@@ -522,6 +522,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. Editing an existing figure always uses the full editor.';
 
   @override
+  String get settingsDefaultsAggressiveBeatsUpdateTitle =>
+      'Aggressively recompute figure beats';
+
+  @override
+  String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
+      'When on, changing a figure\'s move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you\'ve edited is never changed automatically.';
+
+  @override
   String get settingsDefaultsFigureShorthandsTitle => 'Figure shorthands';
 
   @override

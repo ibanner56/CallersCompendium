@@ -992,6 +992,18 @@ abstract class AppLocalizations {
   /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. Editing an existing figure always uses the full editor.'**
   String get settingsDefaultsFreeTextEntrySubtitle;
 
+  /// Title of the opt-in setting that makes the figure editor always recompute a figure's beat count from its move/params, even overriding a manually entered value (issue #689).
+  ///
+  /// In en, this message translates to:
+  /// **'Aggressively recompute figure beats'**
+  String get settingsDefaultsAggressiveBeatsUpdateTitle;
+
+  /// Explanatory subtitle for the aggressive-beats-update setting, explicitly warning that a manually entered beat count can be overwritten when the toggle is on (issue #689 guardrail).
+  ///
+  /// In en, this message translates to:
+  /// **'When on, changing a figure\'s move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you\'ve edited is never changed automatically.'**
+  String get settingsDefaultsAggressiveBeatsUpdateSubtitle;
+
   /// Title of the Defaults settings row that opens the figure-shorthand mappings editor (#420).
   ///
   /// In en, this message translates to:

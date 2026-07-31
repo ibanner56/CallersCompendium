@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import 'l10n/app_localizations.dart';
 import 'src/data/active_dialect_scope.dart';
+import 'src/data/aggressive_beats_update_scope.dart';
 import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
 import 'src/data/archive_intake_labels.dart';
@@ -272,6 +273,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     false,
   );
   final ValueNotifier<bool> _decimalTurnsNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _aggressiveBeatsUpdateNotifier = ValueNotifier(
+    false,
+  );
   final ValueNotifier<bool> _confirmBeforeDeleteNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _venueEntityModeNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _colourDanceThemeNotifier = ValueNotifier(false);
@@ -713,6 +717,15 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (decimalTurns is bool) {
       _decimalTurnsNotifier.value = decimalTurns;
     }
+    // Load the "aggressively recompute figure beats" toggle (#689), off by
+    // default when unset. Opt-in, so a read failure or missing/corrupt stored
+    // value keeps today's behavior (only recompute beats while untouched).
+    final aggressiveBeatsUpdate = await _appData.repositories.settings
+        .get(kAggressiveBeatsUpdateKey)
+        .catchError((_) => null);
+    if (aggressiveBeatsUpdate is bool) {
+      _aggressiveBeatsUpdateNotifier.value = aggressiveBeatsUpdate;
+    }
     final confirmBeforeDelete = await _appData.repositories.settings
         .get(kConfirmBeforeDeleteKey)
         .catchError((_) => null);
@@ -820,6 +833,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _reduceMotionNotifier.dispose();
     _verboseFigureRenderingNotifier.dispose();
     _decimalTurnsNotifier.dispose();
+    _aggressiveBeatsUpdateNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
     _venueEntityModeNotifier.dispose();
     _colourDanceThemeNotifier.dispose();
@@ -996,34 +1010,39 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                       notifier: _verboseFigureRenderingNotifier,
                                       child: DecimalTurnsScope(
                                         notifier: _decimalTurnsNotifier,
-                                        child: ConfirmBeforeDeleteScope(
+                                        child: AggressiveBeatsUpdateScope(
                                           notifier:
-                                              _confirmBeforeDeleteNotifier,
-                                          child: ColourDanceThemeScope(
-                                            notifier: _colourDanceThemeNotifier,
-                                            child: SetListColorCodingScope(
+                                              _aggressiveBeatsUpdateNotifier,
+                                          child: ConfirmBeforeDeleteScope(
+                                            notifier:
+                                                _confirmBeforeDeleteNotifier,
+                                            child: ColourDanceThemeScope(
                                               notifier:
-                                                  _setListColorCodingNotifier,
-                                              child: DateFormatScope(
-                                                notifier: _dateFormatNotifier,
-                                                child: FirstDayOfWeekScope(
-                                                  notifier:
-                                                      _firstDayOfWeekNotifier,
-                                                  child: LocaleScope(
-                                                    notifier: _localeNotifier,
-                                                    child: BackupControllerScope(
-                                                      onRestored:
-                                                          reloadFromSettings,
-                                                      child: CollectionRefreshScope(
-                                                        revision:
-                                                            _collectionRefreshNotifier,
-                                                        child: CollectionFilterScope(
-                                                          controller:
-                                                              _collectionFilterController,
-                                                          child: VenueEntityModeScope(
-                                                            notifier:
-                                                                _venueEntityModeNotifier,
-                                                            child: child!,
+                                                  _colourDanceThemeNotifier,
+                                              child: SetListColorCodingScope(
+                                                notifier:
+                                                    _setListColorCodingNotifier,
+                                                child: DateFormatScope(
+                                                  notifier: _dateFormatNotifier,
+                                                  child: FirstDayOfWeekScope(
+                                                    notifier:
+                                                        _firstDayOfWeekNotifier,
+                                                    child: LocaleScope(
+                                                      notifier: _localeNotifier,
+                                                      child: BackupControllerScope(
+                                                        onRestored:
+                                                            reloadFromSettings,
+                                                        child: CollectionRefreshScope(
+                                                          revision:
+                                                              _collectionRefreshNotifier,
+                                                          child: CollectionFilterScope(
+                                                            controller:
+                                                                _collectionFilterController,
+                                                            child: VenueEntityModeScope(
+                                                              notifier:
+                                                                  _venueEntityModeNotifier,
+                                                              child: child!,
+                                                            ),
                                                           ),
                                                         ),
                                                       ),

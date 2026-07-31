@@ -514,6 +514,13 @@ class AppLocalizationsJa extends AppLocalizations {
       'オンにすると、新しいフィギュアを追加する際に「neighbor balance & swing」のように1行で入力できます（フィールドごとに入力する代わりに）。入力した行はフィギュアに解析されます。認識されなかった部分はカスタムフィギュアとして保存され、後で修正できます。既存のフィギュアの編集は常にフルエディターを使用します。';
 
   @override
+  String get settingsDefaultsAggressiveBeatsUpdateTitle => 'フィギュアの拍数を積極的に再計算';
+
+  @override
+  String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
+      'オンにすると、フィギュアのムーブやタイミングに影響するパラメータを変更した際に、拍数が即座に再計算されます — 手動で入力した拍数も上書きされます。オフ(既定)の場合、編集した拍数が自動的に変更されることはありません。';
+
+  @override
   String get settingsDefaultsFigureShorthandsTitle => 'フィギュアのショートハンド';
 
   @override

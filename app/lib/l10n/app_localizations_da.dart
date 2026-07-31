@@ -524,6 +524,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Når aktiveret kan du ved tilføjelse af en ny figur skrive den som én linje (f.eks. \"nabo balance & swing\") i stedet for at bygge den felt for felt. Linjen parses til figur(er); alt der ikke genkendes gemmes som en brugerdefineret figur, du kan rette senere. Redigering af en eksisterende figur bruger altid den fulde editor.';
 
   @override
+  String get settingsDefaultsAggressiveBeatsUpdateTitle =>
+      'Genberegn figurtakter aggressivt';
+
+  @override
+  String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
+      'Når slået til, genberegner en ændring af en figurs bevægelse eller en parameter, der påvirker timing, straks dens taktantal — selv hvis det overskriver et taktantal, du selv har indtastet. Når slået fra (standard), ændres et taktantal, du har redigeret, aldrig automatisk.';
+
+  @override
   String get settingsDefaultsFigureShorthandsTitle => 'Figurkortformer';
 
   @override

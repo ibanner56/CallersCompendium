@@ -1,4 +1,5 @@
 import 'package:compendium_app/src/theme/app_theme_extension.dart';
+import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart';
 import 'package:compendium_app/src/editor/figure_draft.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/figure_list_editor.dart';
@@ -22,6 +23,7 @@ class _Host extends StatefulWidget {
     this.moveParamDefaults,
     this.freeTextEntry = false,
     this.wireMeanwhile = true,
+    this.aggressiveBeatsUpdate = false,
   });
 
   final List<FigureDraft> drafts;
@@ -31,78 +33,109 @@ class _Host extends StatefulWidget {
   final bool freeTextEntry;
   final bool wireMeanwhile;
 
+  /// Wraps the editor in an [AggressiveBeatsUpdateScope] set to this value
+  /// (issue #689). Defaults to `false` so existing tests exercise today's
+  /// behavior unchanged.
+  final bool aggressiveBeatsUpdate;
+
   @override
   State<_Host> createState() => _HostState();
 }
 
 class _HostState extends State<_Host> {
+  late final ValueNotifier<bool> _aggressiveBeatsUpdateNotifier = ValueNotifier(
+    widget.aggressiveBeatsUpdate,
+  );
+
+  @override
+  void didUpdateWidget(_Host oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Keep the scope's live notifier in sync when a test re-pumps this host
+    // with a different `aggressiveBeatsUpdate` value (mirrors how the other
+    // rebuildable test props are threaded straight through `widget.*`).
+    if (widget.aggressiveBeatsUpdate != oldWidget.aggressiveBeatsUpdate) {
+      _aggressiveBeatsUpdateNotifier.value = widget.aggressiveBeatsUpdate;
+    }
+  }
+
+  @override
+  void dispose() {
+    _aggressiveBeatsUpdateNotifier.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      home: Scaffold(
-        body: SingleChildScrollView(
-          child: FigureListEditor(
-            drafts: widget.drafts,
-            taxonomy: contraTaxonomy,
-            phraseStructure: widget.phrase,
-            moveParamDefaults: widget.moveParamDefaults,
-            freeTextEntry: widget.freeTextEntry,
-            onChanged: () => setState(() {}),
-            onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
-            onAddFreeText: widget.freeTextEntry
-                ? (figures) => setState(
-                    () => widget.drafts.addAll(
-                      figures.map(FigureDraft.fromFigure),
-                    ),
-                  )
-                : null,
-            onDelete: (d) => setState(() => widget.drafts.remove(d)),
-            onDuplicate: widget.wireDuplicate
-                ? (d) => setState(() {
-                    final i = widget.drafts.indexOf(d);
-                    if (i == -1) return;
-                    widget.drafts.insert(
-                      i + 1,
-                      FigureDraft(
-                        move: d.move,
-                        params: Map<String, Object?>.of(d.params),
-                        note: d.note,
-                        progression: d.progression,
-                        schemaVersion: d.schemaVersion,
+      home: AggressiveBeatsUpdateScope(
+        notifier: _aggressiveBeatsUpdateNotifier,
+        child: Scaffold(
+          body: SingleChildScrollView(
+            child: FigureListEditor(
+              drafts: widget.drafts,
+              taxonomy: contraTaxonomy,
+              phraseStructure: widget.phrase,
+              moveParamDefaults: widget.moveParamDefaults,
+              freeTextEntry: widget.freeTextEntry,
+              onChanged: () => setState(() {}),
+              onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
+              onAddFreeText: widget.freeTextEntry
+                  ? (figures) => setState(
+                      () => widget.drafts.addAll(
+                        figures.map(FigureDraft.fromFigure),
                       ),
-                    );
-                  })
-                : null,
-            onReorder: (oldIndex, newIndex) => setState(() {
-              final draft = widget.drafts.removeAt(oldIndex);
-              widget.drafts.insert(newIndex, draft);
-            }),
-            onGroupWithNext: widget.wireMeanwhile
-                ? (draft) => setState(() {
-                    final index = widget.drafts.indexOf(draft);
-                    if (index == -1 || index >= widget.drafts.length - 1) {
-                      return;
-                    }
-                    final first = widget.drafts[index];
-                    final second = widget.drafts[index + 1];
-                    final group = FigureDraft(meanwhileSides: [first, second]);
-                    group.params['beats'] = first.beats;
-                    group.beatsTouched = first.beatsTouched;
-                    widget.drafts
-                      ..removeAt(index + 1)
-                      ..removeAt(index)
-                      ..insert(index, group);
-                  })
-                : null,
-            onCollapseMeanwhileGroup: widget.wireMeanwhile
-                ? (groupDraft, remainingSide) => setState(() {
-                    final index = widget.drafts.indexOf(groupDraft);
-                    if (index == -1) return;
-                    widget.drafts[index] = remainingSide;
-                  })
-                : null,
+                    )
+                  : null,
+              onDelete: (d) => setState(() => widget.drafts.remove(d)),
+              onDuplicate: widget.wireDuplicate
+                  ? (d) => setState(() {
+                      final i = widget.drafts.indexOf(d);
+                      if (i == -1) return;
+                      widget.drafts.insert(
+                        i + 1,
+                        FigureDraft(
+                          move: d.move,
+                          params: Map<String, Object?>.of(d.params),
+                          note: d.note,
+                          progression: d.progression,
+                          schemaVersion: d.schemaVersion,
+                        ),
+                      );
+                    })
+                  : null,
+              onReorder: (oldIndex, newIndex) => setState(() {
+                final draft = widget.drafts.removeAt(oldIndex);
+                widget.drafts.insert(newIndex, draft);
+              }),
+              onGroupWithNext: widget.wireMeanwhile
+                  ? (draft) => setState(() {
+                      final index = widget.drafts.indexOf(draft);
+                      if (index == -1 || index >= widget.drafts.length - 1) {
+                        return;
+                      }
+                      final first = widget.drafts[index];
+                      final second = widget.drafts[index + 1];
+                      final group = FigureDraft(
+                        meanwhileSides: [first, second],
+                      );
+                      group.params['beats'] = first.beats;
+                      group.beatsTouched = first.beatsTouched;
+                      widget.drafts
+                        ..removeAt(index + 1)
+                        ..removeAt(index)
+                        ..insert(index, group);
+                    })
+                  : null,
+              onCollapseMeanwhileGroup: widget.wireMeanwhile
+                  ? (groupDraft, remainingSide) => setState(() {
+                      final index = widget.drafts.indexOf(groupDraft);
+                      if (index == -1) return;
+                      widget.drafts[index] = remainingSide;
+                    })
+                  : null,
+            ),
           ),
         ),
       ),
@@ -118,6 +151,7 @@ Future<void> _pump(
   Map<String, Map<String, Object?>>? moveParamDefaults,
   bool freeTextEntry = false,
   bool wireMeanwhile = true,
+  bool aggressiveBeatsUpdate = false,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -129,6 +163,7 @@ Future<void> _pump(
       moveParamDefaults: moveParamDefaults,
       freeTextEntry: freeTextEntry,
       wireMeanwhile: wireMeanwhile,
+      aggressiveBeatsUpdate: aggressiveBeatsUpdate,
     ),
   );
   await tester.pumpAndSettle();
@@ -2195,6 +2230,96 @@ void main() {
         expect(drafts.single.params['turn'], 'right');
         expect(drafts.single.beats, 8);
         expect(drafts.single.beatsTouched, isFalse);
+      },
+    );
+  });
+
+  group('#689 aggressive beats update setting', () {
+    testWidgets(
+      'ON: overrides a manual beats override on a beats-affecting change',
+      (tester) async {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(tester, drafts, aggressiveBeatsUpdate: true);
+        await _selectMove(tester, 0, 'sw', 'swing');
+
+        // The user pins beats to 10, taking ownership of the value — same
+        // manual override as the #262 opt-out test.
+        await tester.enterText(
+          find.byKey(const ValueKey('figure-0-beats')),
+          '10',
+        );
+        await tester.pumpAndSettle();
+        expect(drafts.single.beats, 10);
+        expect(drafts.single.beatsTouched, isTrue);
+
+        // With aggressive mode ON, a balance prefix (which shifts the default
+        // 8->16) recomputes beats even though it was manually overridden —
+        // the owner-locked #689 decision.
+        await _selectDropdownOption(tester, 'figure-0-prefix', 'balance');
+        expect(drafts.single.params['prefix'], 'balance');
+        expect(drafts.single.beats, 16);
+        // beatsTouched itself is left alone; aggressive mode overrides its
+        // EFFECT (whether the value is protected), not the flag's value.
+        expect(drafts.single.beatsTouched, isTrue);
+      },
+    );
+
+    testWidgets('ON: a non-default-shifting param change leaves a manual '
+        'beats override alone', (tester) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(tester, drafts, aggressiveBeatsUpdate: true);
+      await _selectMove(tester, 0, 'circle', 'circle');
+
+      // Circle has 4 params, so `beats` is hidden behind "More options";
+      // set the manual override directly on the draft (equivalent to what
+      // the hidden field would do) rather than driving the disclosed UI.
+      drafts.single.params['beats'] = 12;
+      drafts.single.beatsTouched = true;
+      expect(drafts.single.beats, 12);
+      expect(drafts.single.beatsTouched, isTrue);
+
+      // Circle's turn direction carries no paramBeats, so the canonical
+      // default doesn't move (still 8). Aggressive mode only overrides a
+      // manual override when the param change actually shifts the derived
+      // default — matching the "a param that affects timing" UI copy — so
+      // the manual 12 survives this change untouched.
+      await _selectDropdownOption(tester, 'figure-0-turn', 'right');
+      expect(drafts.single.params['turn'], 'right');
+      expect(drafts.single.beats, 12);
+    });
+
+    testWidgets(
+      'ON + beatsTouched false: behaves exactly like the untouched path',
+      (tester) async {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(tester, drafts, aggressiveBeatsUpdate: true);
+        await _selectMove(tester, 0, 'sw', 'swing');
+        expect(drafts.single.beats, 8);
+        expect(drafts.single.beatsTouched, isFalse);
+
+        await _selectDropdownOption(tester, 'figure-0-prefix', 'balance');
+        expect(drafts.single.params['prefix'], 'balance');
+        expect(drafts.single.beats, 16);
+        expect(drafts.single.beatsTouched, isFalse);
+      },
+    );
+
+    testWidgets(
+      'OFF (default): a manual beats override is never touched — regression',
+      (tester) async {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(tester, drafts); // aggressiveBeatsUpdate defaults false
+        await _selectMove(tester, 0, 'sw', 'swing');
+        await tester.enterText(
+          find.byKey(const ValueKey('figure-0-beats')),
+          '10',
+        );
+        await tester.pumpAndSettle();
+        expect(drafts.single.beatsTouched, isTrue);
+
+        await _selectDropdownOption(tester, 'figure-0-prefix', 'balance');
+        expect(drafts.single.beats, 10);
+        expect(drafts.single.beatsTouched, isTrue);
       },
     );
   });

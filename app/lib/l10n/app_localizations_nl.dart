@@ -524,6 +524,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Als ingeschakeld, kun je een nieuwe figuur als één regel invoeren (bijv. “neighbor balance & swing”) in plaats van veld voor veld. De regel wordt geparseerd tot figuur(en); niet-herkende delen worden bewaard als een aangepaste figuur die je later kunt corrigeren. Het bewerken van een bestaande figuur gebruikt altijd de volledige editor.';
 
   @override
+  String get settingsDefaultsAggressiveBeatsUpdateTitle =>
+      'Figuurtellen agressief herberekenen';
+
+  @override
+  String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
+      'Indien ingeschakeld, wordt het aantal tellen van een figuur direct herberekend zodra je de beweging of een parameter wijzigt die de timing beïnvloedt — zelfs als dat een handmatig ingevoerd aantal tellen overschrijft. Indien uitgeschakeld (standaard) wordt een aantal tellen dat je hebt aangepast nooit automatisch gewijzigd.';
+
+  @override
   String get settingsDefaultsFigureShorthandsTitle => 'Figuurafkortingen';
 
   @override
