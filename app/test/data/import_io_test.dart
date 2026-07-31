@@ -78,6 +78,118 @@ void main() {
         throwsA(isA<UrlFetchException>()),
       );
     });
+
+    test('a plain thecallersbox.com URL is accepted', () {
+      final url = buildCallersBoxJsonUrl(
+        'https://thecallersbox.com/dance.php?id=3',
+      );
+      final uri = Uri.parse(url);
+      expect(uri.host, 'thecallersbox.com');
+      expect(uri.queryParameters['id'], '3');
+      expect(uri.queryParameters['format'], 'JSON');
+    });
+
+    test(
+      'a bare ibiblio.org URL (no www) under the mirror path is accepted',
+      () {
+        final url = buildCallersBoxJsonUrl(
+          'https://ibiblio.org/contradance/thecallersbox/dance.php?id=9',
+        );
+        final uri = Uri.parse(url);
+        expect(uri.host, 'ibiblio.org');
+        expect(uri.queryParameters['id'], '9');
+      },
+    );
+
+    test(
+      'an ibiblio.org URL NOT under the /thecallersbox/ path is rejected',
+      () {
+        expect(
+          () => buildCallersBoxJsonUrl(
+            'https://www.ibiblio.org/someotherarchive/dance.php?id=1',
+          ),
+          throwsA(isA<UrlFetchException>()),
+        );
+      },
+    );
+
+    test('an http:// (non-https) URL is rejected as an insecure scheme', () {
+      expect(
+        () => buildCallersBoxJsonUrl(
+          'http://www.thecallersbox.com/dance.php?id=1',
+        ),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.insecureScheme,
+          ),
+        ),
+      );
+    });
+
+    test('a URL whose host is not on the allowlist is rejected', () {
+      expect(
+        () => buildCallersBoxJsonUrl('https://example.com/dance.php?id=1'),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.callersBoxUnsupportedHost,
+          ),
+        ),
+      );
+    });
+
+    test(
+      'lookalike hosts (suffix/prefix tricks) are rejected, not fetched',
+      () {
+        for (final host in [
+          'thecallersbox.com.evil.com',
+          'evilthecallersbox.com',
+          'notthecallersbox.com',
+          'ibiblio.org.evil.com',
+        ]) {
+          expect(
+            () => buildCallersBoxJsonUrl('https://$host/dance.php?id=1'),
+            throwsA(
+              isA<UrlFetchException>().having(
+                (e) => e.reason,
+                'reason',
+                UrlFetchFailureReason.callersBoxUnsupportedHost,
+              ),
+            ),
+            reason: 'expected $host to be rejected',
+          );
+        }
+      },
+    );
+
+    test('a userinfo ("@") trick does not smuggle an untrusted host past the '
+        'allowlist', () {
+      // Uri.host resolves to the real authority (evil.com) here, not the
+      // string before the "@" — this documents/regression-tests that the
+      // allowlist check is applied to the parsed host, not the raw string.
+      expect(
+        () => buildCallersBoxJsonUrl(
+          'https://www.thecallersbox.com@evil.com/dance.php?id=1',
+        ),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.callersBoxUnsupportedHost,
+          ),
+        ),
+      );
+    });
+
+    test('a malformed URL is rejected cleanly, not thrown as a raw error', () {
+      expect(
+        () => buildCallersBoxJsonUrl('https://[not-a-valid-host'),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
   });
 
   group('buildContraDbUrl', () {

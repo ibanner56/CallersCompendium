@@ -855,6 +855,50 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets(
+      'a URL from a non-allowlisted host shows an inline error naming the '
+      'supported hosts, and is never fetched (#621)',
+      (tester) async {
+        final repos = openTestRepositories();
+        var fetchCalls = 0;
+        await _pump(
+          tester,
+          repos,
+          payload: 'unused',
+          sources: sourcesFor(),
+          fetcher: (url) async {
+            fetchCalls++;
+            return tcbJson;
+          },
+        );
+
+        await selectCallersBox(tester);
+        // A lookalike host must be rejected before any URL is built/fetched.
+        await _fetch(
+          tester,
+          'https://thecallersbox.com.evil.com/dance.php?id=1',
+        );
+
+        expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('import-url-error')),
+            matching: find.textContaining('thecallersbox.com'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('import-url-error')),
+            matching: find.textContaining('ibiblio.org'),
+          ),
+          findsOneWidget,
+        );
+        expect(fetchCalls, 0);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
     testWidgets('switching source clears stale URL provenance', (tester) async {
       final repos = openTestRepositories();
       final adapter = _CapturingAdapter();
