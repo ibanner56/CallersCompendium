@@ -20,6 +20,8 @@ Two things are under test, and the second matters more than the first:
 
 from __future__ import annotations
 
+import html as html_module
+import re
 import sys
 from pathlib import Path
 
@@ -303,6 +305,101 @@ def test_intra_word_underscores_are_literal() -> None:
     out = _html("a snake_case_name here")
     assert "<em>" not in out
     assert "snake_case_name" in out
+
+
+def test_underscore_emphasis_in_a_heading_slugs_like_asterisk_emphasis() -> None:
+    """The anchor must be the slug of the *rendered text*, not the source.
+
+    `_plain_text` used to re-implement emphasis detection more crudely than the
+    renderer, so `## Use _Import_` rendered `<em>Import</em>` but anchored as
+    `use-_import_` — matching neither GitHub nor the in-app reader.
+    """
+    underscore = md.render("## Use _Import_")
+    asterisk = md.render("## Use *Import*")
+    assert underscore.headings[0].anchor == "use-import"
+    assert underscore.headings[0].anchor == asterisk.headings[0].anchor
+    assert "<em>Import</em>" in underscore.html
+
+
+def test_heading_anchors_keep_intra_word_underscores() -> None:
+    # `slugify` preserves `_`, and an intra-word underscore is not emphasis, so
+    # the delimiters must not be over-stripped either.
+    assert md.render("## Snap_case_word").headings[0].anchor == "snap_case_word"
+    assert (
+        md.render("## _Import_ and snake_case_x").headings[0].anchor
+        == "import-and-snake_case_x"
+    )
+
+
+def test_heading_anchors_across_emphasis_forms() -> None:
+    cases = {
+        "## __Bold__ thing": "bold-thing",
+        "## ***both***": "both",
+        "## _a_ and _b_": "a-and-b",
+        "## **Strong** and *em*": "strong-and-em",
+        # A lone underscore is not emphasis and survives into the slug.
+        "## The _ character": "the-_-character",
+        # A lone asterisk is not emphasis either; slugify then drops it.
+        "## 2 * 3": "2--3",
+        # Escapes and code spans still resolve as before.
+        r"## A \_literal\_ one": "a-_literal_-one",
+        "## Use `--flag` now": "use---flag-now",
+        "## Use **`--flag`** now": "use---flag-now",
+    }
+    for source, expected in cases.items():
+        assert md.render(source).headings[0].anchor == expected, source
+
+
+def _text_content(html_fragment: str) -> str:
+    """The text a browser would show for a rendered fragment."""
+    return html_module.unescape(re.sub(r"<[^>]+>", "", html_fragment))
+
+
+def test_anchor_always_equals_the_slug_of_the_rendered_heading_text() -> None:
+    """The invariant the two code paths exist to satisfy.
+
+    Pins the relationship rather than a list of examples: whatever a heading
+    renders to, its anchor is the slug of that rendering's text content. This
+    is what keeps the site's anchors identical to GitHub's and the app's.
+    """
+    sources = [
+        "Use _Import_",
+        "Use *Import*",
+        "Snap_case_word",
+        "__Bold__ thing",
+        "***both***",
+        "_a_ and _b_",
+        "The _ character",
+        "2 * 3",
+        "a * b * c",
+        "Use **Import** and `--flag`",
+        r"A \_literal\_ one",
+        "Collection & search",
+        "FAQ & troubleshooting",
+        "What's next?",
+        "Verify your download (optional)",
+        "See [the guide](./imports.md)",
+        "See [**bold link**](./imports.md#x)",
+        "Blocked [x](javascript:alert(1)) link",
+        "An ![alt caption](x.png) image",
+        "Angle < brackets > here",
+        "Étape suivante — déjà",
+        "`code_with_underscores`",
+        "_mixed_ `code` and **bold**",
+        "Trailing underscore_",
+        "_Unclosed emphasis",
+        "**Unclosed strong",
+    ]
+    for source in sources:
+        result = md.render(f"## {source}")
+        match = re.search(r"<h2[^>]*>(.*)</h2>", result.html, re.S)
+        assert match is not None, source
+        expected = md.slugify(_text_content(match.group(1)))
+        assert result.headings[0].anchor == expected, (
+            source,
+            result.headings[0].anchor,
+            expected,
+        )
 
 
 def test_lone_asterisk_is_literal() -> None:

@@ -390,7 +390,21 @@ def _split_dest_title(inner: str) -> tuple[str, Optional[str]]:
     return inner, title
 
 
-def _emphasis_at(text: str, start: int, ctx: _Context) -> Optional[tuple[str, int]]:
+def _emphasis_span_at(text: str, start: int) -> Optional[tuple[str, int, int]]:
+    """Match an emphasis delimiter run at ``start`` *without* rendering it.
+
+    Returns ``(inner_source, end, run)`` — the text between the delimiters, the
+    index just past the closing run, and the run length (1 = em, 2 = strong,
+    3 = both) — or ``None`` when this is not emphasis.
+
+    This is the single source of truth for what counts as emphasis. Both
+    :func:`_inline` (which renders it) and :func:`_plain_text` (which strips it
+    for heading slugs) go through here, so the slug is always the text content
+    of the rendered markup. They used to carry separate rules, and the copy in
+    ``_plain_text`` was naive enough to leave ``_Import_``'s underscores in the
+    anchor while the body rendered ``<em>Import</em>`` — an anchor that matched
+    neither GitHub nor the in-app reader.
+    """
     char = text[start]
     run = 0
     while start + run < len(text) and text[start + run] == char:
@@ -422,21 +436,31 @@ def _emphasis_at(text: str, start: int, ctx: _Context) -> Optional[tuple[str, in
                 if not _PUNCT_OR_SPACE.match(after):
                     i += 1
                     continue
-            inner = _inline(text[open_end:i], ctx)
-            if run == 1:
-                return f"<em>{inner}</em>", i + 1
-            if run == 2:
-                return f"<strong>{inner}</strong>", i + 2
-            return f"<strong><em>{inner}</em></strong>", i + 3
+            return text[open_end:i], i + run, run
         i += 1
     return None
 
 
-def _plain_text(text: str) -> str:
-    """Strip inline markup, leaving the text a reader would see.
+def _emphasis_at(text: str, start: int, ctx: _Context) -> Optional[tuple[str, int]]:
+    span = _emphasis_span_at(text, start)
+    if span is None:
+        return None
+    inner_source, end, run = span
+    inner = _inline(inner_source, ctx)
+    if run == 1:
+        return f"<em>{inner}</em>", end
+    if run == 2:
+        return f"<strong>{inner}</strong>", end
+    return f"<strong><em>{inner}</em></strong>", end
 
-    Used for heading slugs (which must match the app and GitHub) and for image
-    alt text. Deliberately conservative: it only removes markup it recognises.
+
+def _plain_text(text: str) -> str:
+    """The text a reader sees, with inline markup removed.
+
+    Must equal the *text content* of what :func:`_inline` renders for the same
+    source — heading slugs are built from this, and they have to match the app
+    and GitHub. It shares :func:`_emphasis_span_at`, :func:`_code_span_at` and
+    :func:`_link_at` with the renderer so the two cannot drift apart.
     """
     out: list[str] = []
     i = 0
@@ -472,12 +496,14 @@ def _plain_text(text: str) -> str:
                 i = match.end()
                 continue
         if char in "*_":
-            run = 0
-            while i + run < length and text[i + run] == char:
-                run += 1
-            if char == "*" or run > 1:
-                i += run
+            span = _emphasis_span_at(text, i)
+            if span is not None:
+                inner_source, end, _run = span
+                out.append(_plain_text(inner_source))
+                i = end
                 continue
+            # Not emphasis: a literal `*` or `_`, kept exactly as the renderer
+            # keeps it (slugify then drops `*` and preserves `_`).
         out.append(char)
         i += 1
     return "".join(out)
