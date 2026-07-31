@@ -536,9 +536,9 @@ taxonomy are unchanged.
   schema audit: `Dance` (incl. `Level`, composed/revised dates, `Rating`,
   `UserDefined_*` → custom fields), `Set`+`SetItem` → Programs (with band/caller/
   dancerLevel, ALT flags, guest caller, timing), `Author` → Choreographers,
-  `Venue` → venue entity (the entity itself has shipped — schema v14, Phase 4.2
-  — though this CC import mapping into it is still pending), `Term` → glossary,
-  `Dance_Related` → related links.
+  `Venue` → venue entity (delivered — schema v14, Phase 4.2 entity, plus the
+  CC `.USR` import mapping into it), `Term` → glossary,
+  `Dance_Related` → related links (delivered).
   Free-text figures import as `custom` (see design/imports.md §2).
   - **Clipboard/text migration adapter delivered** (part 1 of 2):
     `CallersCompanionTextAdapter` (pure-Dart CORE `SourceAdapter`,
@@ -588,18 +588,39 @@ taxonomy are unchanged.
       no fabricated ids — see the 6.2–6.5 author-resolution sub-note above), so
       migrated dances carry their choreographer links. `UserDefined_*` fields
       import as calling notes **by design** (not typed custom fields).
+    - **Venue linking/minting delivered** (#687, PR #700): when venue-entity
+      mode is ON, `.USR` program commit now resolves each set's cleaned
+      `Location` text to a venue entity via the shared fingerprint path
+      (`venue_dedupe.dart`), mirroring the native archive importer's
+      fresh-mint-never-guess rule — unique fingerprint match → link, no
+      match → mint, weak/absent or ambiguous fingerprint → fresh-mint (never
+      guess). Mode OFF is unchanged (venue stays free text). A bare `.USR`
+      location can't produce a strong fingerprint, so same-import duplicate
+      locations collapse via a this-commit-only normalized-location-text
+      collapse, while cross-import reuse stays intentionally rare (a
+      deliberate never-mis-merge tradeoff). Original `venue` text is always
+      kept as a fallback label; newly minted venues are tracked as
+      `insertedVenueIds` and reverted on undo; re-importing an
+      already-linked program preserves `priorVenueId` and mints zero new
+      venues.
+    - **`Dance_Related` → `relatedDance` links delivered** (#688, PR #706):
+      the real `Dance_Related` table (`zk_Dance1_ID`/`zk_Dance2_ID`/
+      `zk_DanceRelatedID`/`zk_DanceRelatedID_PairID`) was confirmed against a
+      real `CallersCompanion2.USR` catalog, though that sample had zero
+      populated rows, so row shape is unvalidated and parsing stays
+      maximally defensive (parse-never-fails: missing/renamed table →
+      non-fatal warning + zero links). Links are directional only (no
+      symmetrize); an endpoint that wasn't imported is skipped with a
+      non-fatal `ImportIssue` rather than a dangling `targetDanceId`.
+      Fail-closed caps: `maxDanceRelatedRows=20000`,
+      `maxRelatedDancesPerDance=512`. Undo reverts created links.
     - Honest caveats keeping 6.5 open: the free-text figure → `custom` scrub is
       **unvalidated against real figure data** (the sample library has no
-      `A1`–`B2`/`Moves` notation). Three source tables are confirmed present in
+      `A1`–`B2`/`Moves` notation). One source table is confirmed present in
       the real file but not yet mapped:
-      - `Venue` → the venue **entity** now exists (shipped, schema v14 — see
-        Phase 4.2) and the native archive importer links venues by fingerprint,
-        but a `.USR` import still lands venue as free text only, with no entity
-        link. **Tracked in #687.**
-      - `Dance_Related` → the related-dance feature ships in-app, but `.USR`
-        import currently drops these relationships. **Tracked in #688.**
       - `Term` → glossary import remains **blocked** on the glossary browser,
         which is not yet built (post-GA "later" scope). **Tracked in #695.**
+        It is now the only remaining unmapped CC table for 6.5.
 - [x] 6.6 Generic import/export (JSON) for backup and inter-user sharing
   - Export/backup delivered under G.5 (whole-collection archive + restore/merge).
   - Inter-user-sharing **import** delivered: `GenericJsonAdapter` (pure-Dart CORE
