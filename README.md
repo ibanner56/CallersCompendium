@@ -10,22 +10,24 @@
 An open-source, local-first dance organizer for Contra (and eventually ECD and
 Squares) callers — on desktop, tablet, and phone.
 
-> **Status: our first public beta is out.** The core app is built and working —
+> **Status: our public beta is well underway.** The core app is built and working —
 > collection management, search, programs, and performance mode are complete
 > (roadmap Phases 0–5, plus the Caller's Companion parity backfill and the
 > named-dialect library manager), importing from community sources and migrating
 > from Caller's Companion have landed (Phase 6), and the release pipeline
-> (Phase 7) now produces downloadable builds for every platform. **Download the
-> latest beta from the
+> (Phase 7) now produces downloadable builds for every platform. Releases have
+> shipped steadily since `v0.1.0-beta.1`, and we are now on **`v0.1.0-beta.5`**.
+> **Download the latest beta from the
 > [Releases page](https://github.com/ibanner56/CallersCompendium/releases)** —
 > pick the newest release (marked *Pre-release*) and expand its **Assets** for
 > Linux, macOS, Windows, and Android. Not sure which file to grab, or hitting the
 > first-launch security prompt? The
 > [Installation guide](docs/user/installation.md) walks you through it. **iPhone
 > and iPad** builds are delivered through **TestFlight** to invited testers rather
-> than the Releases page; the macOS build is now signed and notarized (Linux and
-> Windows remain unsigned). See [docs/ROADMAP.md](docs/ROADMAP.md) for
-> the detailed, item-by-item status.
+> than the Releases page. **Android APKs are signed** and the **macOS build is
+> signed and notarized**; Linux and Windows desktop builds remain unsigned for
+> now, so those two still show a first-launch trust prompt. See
+> [docs/ROADMAP.md](docs/ROADMAP.md) for the detailed, item-by-item status.
 
 ## What it does
 
@@ -55,8 +57,8 @@ Squares) callers — on desktop, tablet, and phone.
   _(built, including a named-dialect library — create custom dialects, duplicate a
   preset to customize, preview edits live, and quick-switch dialects per gig)_
 - **Imports** — bring dances in from community sources and migrate from
-  Caller's Companion; everything is stored locally and the app is fully usable
-  offline. _(built: in-app import from The Caller's Box and ContraDB by link/id,
+  Caller's Companion, with no re-typing and no lock-in. _(built: in-app import
+  from The Caller's Box and ContraDB by link/id,
   from Caller's Companion — both its formatted-text copy and its binary `.USR`
   library file — and from our own Compendium JSON, all through a
   review-and-commit queue.)_
@@ -64,6 +66,29 @@ Squares) callers — on desktop, tablet, and phone.
   Japanese, Danish, and Dutch, selectable in Settings (or follow your device). Your
   dance terminology stays under your control via Dialects, independent of the
   interface language. _(built)_
+- **Backup & portability** — your library lives on your own device, so you keep
+  your own safety copy: choosing **Export a backup** in Settings writes your
+  whole collection, programs, and settings to a single dated file you can keep
+  anywhere (cloud drive, USB stick, email). Restore it on a new phone, tablet,
+  or computer — and an optional reminder nudges you to take a fresh copy. No
+  cloud account, no lock-in.
+  _(built — see the [Backup & portability guide](docs/user/backup-portability.md))_
+- **Private by design** — everything is stored locally and the app is fully
+  usable offline; there is **no analytics, tracking, or telemetry** — the app
+  never "phones home," and nothing about you is collected or transmitted. It
+  reaches the internet only for imports you initiate and for an optional update
+  check that is **off by default**.
+  _(built — see the [privacy policy](https://ibanner56.github.io/CallersCompendium/privacy/))_
+- **Updates you can verify** — an optional in-app update check tells you when a
+  new release is out. Update manifests are **cryptographically signed** and
+  artifacts are restricted to a GitHub-owned host allowlist; on desktop, an
+  assisted download **verifies the SHA-256 checksum before handing the file to
+  your OS**. Automatic checking and the beta channel are both **off by default**.
+  _(built)_
+- **Built to be usable** — keyboard-reachable controls, screen-reader support,
+  and a high-contrast stage theme run throughout, not just in Perform mode. The
+  full **User Guide ships inside the app**, so help is available offline at the
+  hall. _(built — see the [Accessibility guide](docs/user/accessibility.md))_
 
 ## Design & decisions
 
