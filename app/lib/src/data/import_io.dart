@@ -209,6 +209,7 @@ enum UrlFetchFailureReason {
   callersBoxEmptyPage,
   callersBoxNoImportableDance,
   callersBoxImportFailed,
+  callersBoxUnsupportedHost,
   // ContraDB.
   contraDbEmptyTitle,
   contraDbEmptyDanceInput,
@@ -618,14 +619,22 @@ const String callersBoxPathPrefix = '/contradance/thecallersbox';
 /// The Caller's Box serves per-dance JSON at `dance.php?id=N&format=JSON`. This
 /// accepts either:
 /// - a **bare numeric id** (`"1"`) → `https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1&format=JSON`;
-/// - a pasted **http(s) URL** with an `id` query param (`.../dance.php?id=N`,
-///   with or without an existing `format=…`) → the same URL with `format=JSON`
-///   set (any existing `format` is overwritten, so it is never doubled and an
-///   already-`format=JSON` link is returned effectively unchanged). The pasted
-///   host and path are preserved.
+/// - a pasted **https URL**, with a host in [_isCallersBoxUrl]'s allowlist
+///   (`thecallersbox.com` or the `ibiblio.org` `/thecallersbox/` mirror), and
+///   an `id` query param (`.../dance.php?id=N`, with or without an existing
+///   `format=…`) → the same URL with `format=JSON` set (any existing `format`
+///   is overwritten, so it is never doubled and an already-`format=JSON` link
+///   is returned effectively unchanged). The pasted path/other params are
+///   preserved; the host is **not** — it must already be an allowlisted host,
+///   or the input is rejected before any URL is built.
 ///
 /// Throws a [UrlFetchException] (message safe to show) for empty input, a
-/// non-http(s) URL, or a URL with no dance id.
+/// non-https URL, a URL whose host isn't a known Caller's Box host, or a URL
+/// with no dance id. Only `https` is accepted (a bare `http://` URL is
+/// rejected as an insecure scheme, matching the transport-security guard
+/// every online-import fetch already enforces) and the host must be on the
+/// known allowlist (OWASP: never trust/fetch an arbitrary user-supplied host
+/// as "Caller's Box JSON" — see #621).
 String buildCallersBoxJsonUrl(String input) {
   final trimmed = input.trim();
   if (trimmed.isEmpty) {
@@ -645,6 +654,19 @@ String buildCallersBoxJsonUrl(String input) {
       !uri.hasScheme ||
       (!uri.isScheme('http') && !uri.isScheme('https'))) {
     throw const UrlFetchException(UrlFetchFailureReason.callersBoxInvalidUrl);
+  }
+  if (!uri.isScheme('https')) {
+    throw const UrlFetchException(UrlFetchFailureReason.insecureScheme);
+  }
+  // Reject before building anything: an arbitrary public host must never be
+  // trusted/fetched as Caller's Box JSON (#621). Checked against the parsed
+  // `uri.host` (never a substring match), so a lookalike host or a
+  // userinfo (`user@host`) trick can't slip past this — `Uri.host` already
+  // resolves to the real authority.
+  if (!_isCallersBoxUrl(uri)) {
+    throw const UrlFetchException(
+      UrlFetchFailureReason.callersBoxUnsupportedHost,
+    );
   }
 
   final id = uri.queryParameters['id'];
@@ -1320,6 +1342,37 @@ const Set<String> _ibiblioHosts = {'ibiblio.org', 'www.ibiblio.org'};
 /// Hosts serving ContraDB dance pages.
 const Set<String> _contraDbHosts = {'contradb.com', 'www.contradb.com'};
 
+/// Returns `true` if [uri] names a known Caller's Box host: [_callersBoxHosts]
+/// directly, or [_ibiblioHosts] under the `/thecallersbox/` mirror path.
+///
+/// Compares the **parsed** `uri.host` against the allowlists by exact string
+/// equality (never substring/`contains`), so a lookalike host — e.g.
+/// `evilcallersbox.com` or `thecallersbox.com.evil.com` — never matches, and a
+/// userinfo trick (`https://thecallersbox.com@evil.com/...`) can't slip
+/// through either: `Uri.host` already resolves to the real authority
+/// (`evil.com`), not the string before the `@`.
+///
+/// The ibiblio mirror check normalizes dot-segments (`.`/`..`) via
+/// [Uri.normalizePath] and then requires an **exact path segment** named
+/// `thecallersbox` (not a raw substring match on the joined path string), so
+/// neither a crafted `/contradance/thecallersbox/../someotherarchive/x` (which
+/// resolves away from the mirror directory) nor an unrelated path that merely
+/// contains the substring (e.g. `/notthecallersboxfeed/x`) can slip past it.
+///
+/// Shared by [ImportSource.matchesUrl] (UI auto-detection) and
+/// [buildCallersBoxJsonUrl] (the actual fetch-URL builder) so the two can
+/// never drift — a URL the UI recognizes as Caller's Box is exactly the set
+/// of hosts the builder will ever fetch from.
+bool _isCallersBoxUrl(Uri uri) {
+  final host = uri.host.toLowerCase();
+  if (_callersBoxHosts.contains(host)) return true;
+  if (!_ibiblioHosts.contains(host)) return false;
+  final segments = uri.normalizePath().pathSegments.map(
+    (segment) => segment.toLowerCase(),
+  );
+  return segments.contains('thecallersbox');
+}
+
 /// The canonical, ordered list of selectable import sources
 /// (`docs/ROADMAP.md` Phase 6.3/6.4/6.5): the generic [GenericJsonAdapter]
 /// ("a Caller's Compendium JSON file", the default), the [CallersBoxAdapter]
@@ -1339,10 +1392,7 @@ List<ImportSource> defaultImportSources() => [
     kind: ImportSourceKind.callersBox,
     adapterFactory: CallersBoxAdapter.new,
     urlBuilder: buildCallersBoxJsonUrl,
-    matchesUrl: (uri) =>
-        _callersBoxHosts.contains(uri.host.toLowerCase()) ||
-        (_ibiblioHosts.contains(uri.host.toLowerCase()) &&
-            uri.path.toLowerCase().contains('/thecallersbox/')),
+    matchesUrl: _isCallersBoxUrl,
   ),
   ImportSource(
     kind: ImportSourceKind.contraDb,

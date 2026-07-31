@@ -3495,6 +3495,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Caller\'s Box-URL fehlt eine Tanz-ID (…dance.php?id=N).';
 
   @override
+  String get importErrorCallersBoxUnsupportedHost =>
+      'Dieser Link stammt nicht von einem unterstützten Caller\'s Box-Host. Füge einen Link von thecallersbox.com oder ibiblio.org ein oder gib die numerische ID des Tanzes ein.';
+
+  @override
   String get importErrorCallersBoxEmptySearch =>
       'Geben Sie einen Titel oder Phrase-Figuren ein, um The Caller\'s Box zu durchsuchen.';
 

@@ -3503,6 +3503,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cette URL Caller\'s Box ne contient pas d’identifiant de danse (…dance.php?id=N).';
 
   @override
+  String get importErrorCallersBoxUnsupportedHost =>
+      'Ce lien ne provient pas d\'un hébergeur Caller\'s Box pris en charge. Collez un lien de thecallersbox.com ou ibiblio.org, ou saisissez l\'identifiant numérique de la danse.';
+
+  @override
   String get importErrorCallersBoxEmptySearch =>
       'Saisissez un titre ou des figures par phrase pour rechercher sur The Caller\'s Box.';
 

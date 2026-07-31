@@ -3918,6 +3918,8 @@
   "@importErrorCallersBoxInvalidUrl": {"description": "Error shown when the Caller's Box input is neither a recognized dance URL nor a numeric id."},
   "importErrorCallersBoxMissingId": "That Caller's Box URL is missing a dance id (…dance.php?id=N).",
   "@importErrorCallersBoxMissingId": {"description": "Error shown when a Caller's Box URL has no dance id query parameter."},
+  "importErrorCallersBoxUnsupportedHost": "That link isn't from a supported Caller's Box host. Paste a link from thecallersbox.com or ibiblio.org, or enter the dance's numeric id.",
+  "@importErrorCallersBoxUnsupportedHost": {"description": "Error shown when a pasted Caller's Box URL's host is not thecallersbox.com or the ibiblio.org mirror. Never echoes the pasted URL/host."},
   "importErrorCallersBoxEmptySearch": "Enter a title or by-phrase figures to search The Caller's Box.",
   "@importErrorCallersBoxEmptySearch": {"description": "Error shown when a Caller's Box search is attempted with no query."},
   "importErrorSearchTimeout": "The search timed out after {seconds}s. Check your connection, then try again.",

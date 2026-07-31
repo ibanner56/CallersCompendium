@@ -59,6 +59,8 @@ String importErrorMessage(AppLocalizations l10n, UrlFetchException error) {
       l10n.importErrorCallersBoxNoDance,
     UrlFetchFailureReason.callersBoxImportFailed =>
       l10n.importErrorCallersBoxImportFailed,
+    UrlFetchFailureReason.callersBoxUnsupportedHost =>
+      l10n.importErrorCallersBoxUnsupportedHost,
     UrlFetchFailureReason.contraDbEmptyTitle =>
       l10n.importErrorContraDbEmptyTitle,
     UrlFetchFailureReason.contraDbEmptyDanceInput =>
