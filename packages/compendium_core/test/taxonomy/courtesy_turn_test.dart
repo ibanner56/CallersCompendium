@@ -349,15 +349,19 @@ void main() {
 
     test('a "courtesy fling" right-and-left-through is not a courtesy turn', () {
       // 19 corpus lines name the "courtesy fling" variant of a right and left
-      // through. They contain the word "courtesy" but no courtesy turn, and the
-      // trailing facing clause is unmodelable, so they stay whole-custom.
+      // through. They contain the word "courtesy" but no courtesy turn. The
+      // trailing facing clause is note-eligible, so the line structures as the
+      // right and left through it is, with the fling preserved verbatim as
+      // prose — the important guarantee is that `courtesy_turn` never claims it.
       final figs = parseTcbLines(
         'Right and left through with partner; face partner '
         '("courtesy fling")',
         beats: 8,
       );
       expect(figs, hasLength(1));
-      expect(figs.single.isCustom, isTrue);
+      expect(figs.single.move, 'right_left_through');
+      expect(figs.single.move, isNot('courtesy_turn'));
+      expect(figs.single.note, 'face partner ("courtesy fling")');
       expect(figs.single.beats, 8);
     });
   });
@@ -432,14 +436,31 @@ void main() {
       expect(_text(f).toLowerCase(), contains('without hands'));
     });
 
-    test('a `; face <cardinal>` compound stays WHOLE custom', () {
-      // The corpus DOES state cardinal ending facings — but always after a `;`,
-      // where the all-or-nothing compound rule keeps the line whole-custom
-      // because "face down" structures to nothing. This is the guard that stops
-      // a cardinal ever reaching `endFacing`'s dancer domain.
+    test('a `; face <cardinal>` compound never fills `endFacing`', () {
+      // The corpus DOES state cardinal ending facings — but always after a `;`.
+      // The facing clause is note-eligible, so the courtesy turn now structures
+      // and the cardinal is preserved as PROSE. That is the guard: a cardinal
+      // reaches the note, never `endFacing`'s dancer domain.
+      const noteified = {
+        'Ones courtesy turn; face down': 'face down',
+        'Partner courtesy turn (power turn); face out': 'power turn; face out',
+      };
+      for (final entry in noteified.entries) {
+        final figs = parseTcbLines(entry.key, beats: 4);
+        expect(figs, hasLength(1), reason: entry.key);
+        final only = figs.single;
+        expect(only.move, 'courtesy_turn', reason: entry.key);
+        expect(only.beats, 4, reason: entry.key);
+        expect(only.note, entry.value, reason: entry.key);
+        // The cardinal never becomes a structured facing.
+        expect(
+          only.params.containsKey('endFacing'),
+          isFalse,
+          reason: entry.key,
+        );
+      }
+      // A clause outside the note allowlist still collapses the whole line.
       for (final line in [
-        'Ones courtesy turn; face down',
-        'Partner courtesy turn (power turn); face out',
         'Partner courtesy turn 2; face clockwise around the major set',
         'Partner courtesy turn (in center); form ring',
       ]) {

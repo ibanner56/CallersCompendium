@@ -251,9 +251,12 @@ void main() {
       ).single;
       expect(figure.move, 'pass_through');
       expect(figure.note, startsWith('to n2; '));
-      // The combined note is bounded by the shared annotation cap, so a hostile
-      // line cannot inflate it.
-      expect(figure.note!.length, lessThanOrEqualTo(200));
+      // The COMBINED note is bounded by `kMaxFigureNote` (the shared cap on a
+      // joined note, #734), while each contributing part is separately bounded
+      // by its own producer — here `_maxAnnotationNote` plus the `{0,120}`
+      // per-run cap inside the annotation regex. A hostile line cannot inflate
+      // it past the joint bound.
+      expect(figure.note!.length, lessThanOrEqualTo(kMaxFigureNote));
     });
 
     test('an over-long parenthetical takes the annotation-stripped path', () {
@@ -391,5 +394,38 @@ void main() {
         expect(_totalBeats(figures), 16);
       },
     );
+
+    // Composition with #734's `;`-clause note fallback. Neither change
+    // structures this line alone: #734 cannot, because the trailing walk clause
+    // failed; #733 cannot, because the middle facing clause failed. Together
+    // the whole line structures, and the beats still sum to the source total.
+    // (Verbatim corpus line, dance 8166 B1.)
+    test('composes with the #734 clause-note fallback on one line', () {
+      final figures = _parse(
+        '[Heads (ones+fours)] Pass through across (NR); face partner; '
+        'walk forward to partner',
+        beats: 4,
+      );
+      expect(figures.map((f) => f.move), ['pass_through', 'pass_through']);
+      expect(figures[0].params['dir'], 'across');
+      expect(figures[0].note, 'face partner'); // note-ified by #734
+      expect(figures[1].note, 'to partner'); // destination, by #733
+      expect(_totalBeats(figures), 4);
+    });
+
+    // #734's rule is "a FAILING leading clause never note-ifies". This change
+    // does not weaken it — it removes one line shape from the set where the
+    // leading clause fails, by absorbing it instead. A leading clause that
+    // still fails still collapses the line.
+    test('a still-failing leading clause still collapses the whole line', () {
+      final figures = _parse(
+        'Women walk forward; form wave of four with N2',
+        beats: 4,
+      );
+      expect(figures, hasLength(1));
+      expect(figures.single.isCustom, isTrue);
+      expect(figures.single.note, isNull);
+      expect(figures.single.beats, 4);
+    });
   });
 }

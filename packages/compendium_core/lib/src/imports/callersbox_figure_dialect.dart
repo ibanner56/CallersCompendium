@@ -58,13 +58,27 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
 /// can route every line through this without changing single-line behaviour.
 ///
 /// Fidelity guards (per the CallersBox dialect rulings):
-/// - **All-or-nothing.** Every clause must independently structure to a taxonomy
-///   move. If ANY clause degrades to custom (or is empty), the WHOLE line is
-///   kept as a single custom figure carrying the original text — never
-///   partially structured. Most `;` compounds pair a move with an
-///   unstructurable formation/facing note (`…; form a wave of four`, `…; face
-///   up`); structuring the move alone would drop the note, and structuring the
-///   note would fabricate a move, so those correctly stay whole-custom.
+/// - **All-or-nothing, with a bounded NOTE FALLBACK.** Every clause must
+///   independently structure to a taxonomy move. When one does not, the line is
+///   normally kept as a single custom figure carrying the original text — never
+///   partially structured, because structuring the surviving moves alone would
+///   drop what the failing clause said. The ONE exception is a clause the
+///   dialect can preserve losslessly as prose: a **note-eligible** clause
+///   ([_noteEligibleClause]) is dropped from the figure list and preserved
+///   VERBATIM as a note on the nearest PRECEDING structured figure, so
+///   `Circle left 3/4; face up` yields `circle` plus the note `face up` instead
+///   of one custom figure. Nothing is lost and no move is fabricated — the same
+///   trade #729 made for annotations. Every clause outside the allowlist still
+///   collapses the whole line (`…; fall back`, `…; bend the line`,
+///   `…; cast down to place`, every `form <formation>` label). The note is the
+///   SCRUBBED clause, so it is canonical (`; women turn around` is stored as
+///   `role2s turn around`) and the renderer re-expresses it in the reader's
+///   dialect (#715/#717) — never a raw gendered term.
+/// - **A LEADING clause never note-ifies.** A note belongs *to* a figure, so
+///   when the FIRST clause fails there is nothing to hang it on without
+///   reordering the dance: `Walk forward; form long wave in center` stays
+///   whole-custom, and so does any line whose failing clause precedes every
+///   structured one.
 /// - **`||` (simultaneity) fans into a `meanwhile` container (#591/#572).** A
 ///   line containing a top-level `||` (`A || B`) is split into one side per
 ///   `||`-clause and wrapped in [Figure.meanwhile] — see
@@ -157,10 +171,28 @@ List<Figure> parseFigureLines(
 
   final parsed = <Figure>[];
   final scrubFn = scrub ?? scrubFigureText;
+  // Indices into `clauses` that failed to structure, in source order. Kept
+  // rather than bailing on the first failure so the note fallback below can see
+  // the WHOLE line: all-or-nothing still applies unless EVERY failure is
+  // note-eligible, which is only knowable once every clause has been tried.
+  //
+  // That reasoning only holds while the note fallback is REACHABLE. Above
+  // [_maxNoteFallbackClauses] `_withClauseNotes` declines outright, so a failing
+  // clause can no longer produce anything but the whole-custom line and there is
+  // nothing left to learn from the remaining clauses. Bailing immediately is
+  // therefore behaviour-identical AND bounds attacker-controlled work: this
+  // parser sits behind an online import path, and without the early return a
+  // crafted line of N junk `;` clauses costs N parses before the result is
+  // discarded (OWASP; the corpus maximum is 5 clauses, so no real dance ever
+  // takes this path).
+  final noteFallbackReachable = clauses.length <= _maxNoteFallbackClauses;
+  final declined = <int>[];
   for (var i = 0; i < clauses.length; i++) {
     // Option A beats distribution: the source's combined total rides on the
     // first clause; every later clause is beats-absent so the cumulative total
-    // equals the original compound (no double-count, no section drift).
+    // equals the original compound (no double-count, no section drift). A
+    // note-ified clause emits no figure at all, so it contributes 0 either way
+    // and the line's total is unchanged by the fallback.
     final clauseBeats = i == 0 ? beats : 0;
     // #733: a bare `[<dancer>] walk forward` clause is TCB's inbound travel to
     // the formation the NEXT clause names, so the pair is read together rather
@@ -197,13 +229,164 @@ List<Figure> parseFigureLines(
       scrub: scrub,
       frontEnd: frontEnd,
     );
-    // All-or-nothing: any clause that fails to structure (null/empty or custom)
-    // collapses the whole line back to a single custom figure.
-    if (f == null || f.isCustom) return wholeAsList();
-    parsed.add(f);
+    // A clause that fails to structure (null/empty or custom) is a candidate
+    // for the note fallback; anything else is a figure.
+    if (f == null || f.isCustom) {
+      if (!noteFallbackReachable) return wholeAsList();
+      declined.add(i);
+    } else {
+      parsed.add(f);
+    }
   }
-  return parsed;
+  if (declined.isEmpty) return parsed;
+  return _withClauseNotes(clauses, parsed, declined, scrub) ?? wholeAsList();
 }
+
+/// Applies the note fallback to a partially-structured `;` compound, or returns
+/// `null` to decline it (the caller then keeps the pre-existing whole-custom
+/// line). [parsed] holds the structured figures in source order and [declined]
+/// the indices of the clauses that failed.
+///
+/// Declines — i.e. keeps today's all-or-nothing behaviour — when:
+/// - **nothing structured**, or the FIRST failing clause precedes every
+///   structured one. A note has no figure to belong to, and inventing an order
+///   (hanging it on a LATER figure) would state that the dance does the note's
+///   action after the figure, which the source did not say;
+/// - **any** failing clause is not [_noteEligibleClause]. The allowlist is the
+///   whole fidelity argument: an ineligible clause is one we cannot assert is
+///   pure commentary, so the line keeps its honest unstructured reading;
+/// - the line carries more than [_maxNoteFallbackClauses] clauses — a
+///   **security bound** (OWASP), mirroring [kMaxMeanwhileSides]: a hostile line
+///   with a long `;` run degrades to the unchanged whole-custom line instead of
+///   accumulating notes. The corpus maximum is 5.
+///
+/// On success each failing clause's SCRUBBED text (the same text the custom
+/// fallback would have carried, so canonical `role1`/`role2` tokens reach the
+/// renderer and #717 re-expresses them in the reader's dialect) is combined
+/// onto the nearest preceding structured figure via [combineFigureNotes] — the
+/// figure's own recognizer note leads, so `Ladies chain to partner; face down`
+/// reads `to partner; face down` and neither half is lost.
+List<Figure>? _withClauseNotes(
+  List<String> clauses,
+  List<Figure> parsed,
+  List<int> declined,
+  String Function(String)? scrub,
+) {
+  if (parsed.isEmpty) return null;
+  if (clauses.length > _maxNoteFallbackClauses) return null;
+  final scrubFn = scrub ?? scrubFigureText;
+  // Notes to add, keyed by the index in `parsed` they belong to.
+  final notes = <int, String>{};
+  for (final index in declined) {
+    final text = scrubFn(clauses[index]).trim();
+    if (!_noteEligibleClause(text)) return null;
+    // The host is the last structured figure emitted BEFORE this clause: the
+    // number of clauses before `index` that structured. 0 means the clause
+    // precedes every figure -> decline (the leading-clause rule).
+    final host = index - declined.where((d) => d < index).length - 1;
+    if (host < 0) return null;
+    final combined = combineFigureNotes(notes[host], text);
+    if (combined == null) return null; // Unreachable: `text` is non-empty.
+    notes[host] = combined;
+  }
+  final out = List<Figure>.of(parsed);
+  for (final entry in notes.entries) {
+    final figure = out[entry.key];
+    out[entry.key] = figure.copyWith(
+      note: combineFigureNotes(figure.note, entry.value),
+    );
+  }
+  return out;
+}
+
+/// Clause-count bound for the note fallback (OWASP; see [_withClauseNotes]).
+/// The Caller's Box mirror's longest top-level `;` compound is 5 clauses, so
+/// this never bites real data. A longer line is not rejected outright — it
+/// simply keeps the pre-existing whole-custom reading.
+const int _maxNoteFallbackClauses = 8;
+
+/// Whether a `;` clause that failed to structure may be preserved as a figure
+/// NOTE instead of collapsing the whole line to custom.
+///
+/// [scrubbed] is the post-[scrubFigureText] clause. This is an explicit
+/// ALLOWLIST, not "anything that failed": note-ifying a clause asserts that it
+/// is commentary ON the preceding figure rather than an action of its own. That
+/// is only defensible for wordings the maintainer has ruled on, and each entry
+/// below is measured over the whole Caller's Box mirror (non-mixer,
+/// `Permission: full`, top-level `;` clauses only):
+///
+/// - **`face …` — 1,814 clause occurrences across 98 distinct wordings.** All 98
+///   were enumerated; every one is a facing statement (`face up` 351, `face N2`
+///   293, `face next` 229, `face down` 211, `face partner` 209, `face across`
+///   96, …) and none names a move the taxonomy models, so no figure is being
+///   passed over. The word boundary matters: it keeps `facing star …` — a real
+///   move with a real recognizer — out of this branch entirely.
+/// - **`finish proper` — 137**, and **`return to place` — 235.** Matched as
+///   EXACT phrases, not prefixes. That is what keeps out the neighbouring
+///   wordings the maintainer did NOT rule on (`finish improper`,
+///   `finish progressed`, `finish next to partner`, `finish with …`,
+///   `return to original place`, `return to place. role2 one follow`) and,
+///   deliberately, the whole `cast up/down/back to place` family — those lines
+///   must keep falling to custom so a future census of `cast` counts them.
+/// - **`role2s turn around` — 132**, and **`role1s turn around` — 96.** Matched
+///   by [_turnAroundClause], a PREFIX rule mirroring [_facingClause], so the 17
+///   annotated variants (`… (cw)`, `… [with n2]`, `… (by left)`) come with them
+///   — 221 sole-blocker lines in total. The subject-less `turn around
+///   (by right)` and the differently-subjected `role2 one and role1 two turn
+///   around` are still excluded.
+///
+///   Read those carefully: the comparison is against the **post-scrub**
+///   role tokens, NOT the source words `women`/`men`. Eligibility is evaluated
+///   after [scrubFigureText] *deliberately*: it lets the rule be stated once in
+///   the canonical role vocabulary instead of enumerating every gendered
+///   spelling a source might use — the same reason the recognizers themselves
+///   match on `role1`/`role2` rather than on dialect words.
+///
+///   The consequence is what makes the note useful. The clause TCB writes as
+///   `Women turn around` (in any casing) arrives here as `role2s turn around`
+///   and is stored on the figure in exactly that form, so the renderer can
+///   re-express it per dialect (#715/#717) — "robins turn around" under
+///   larks/robins, "follows turn around" under leads/follows. Rewriting these
+///   to `women`/`men` would therefore break twice: it would match nothing, AND
+///   it would store a dialect-specific term the reader could never see
+///   re-expressed.
+///
+/// Length-bounded first (OWASP: untrusted import text), so a pathological
+/// clause cannot become an unbounded note. The longest eligible corpus clause is
+/// 52 characters. Never throws.
+bool _noteEligibleClause(String scrubbed) {
+  if (scrubbed.isEmpty || scrubbed.length > kMaxClauseNote) return false;
+  final normalized = scrubbed.toLowerCase();
+  if (_facingClause.hasMatch(normalized)) return true;
+  if (_turnAroundClause.hasMatch(normalized)) return true;
+  return normalized == 'finish proper' || normalized == 'return to place';
+}
+
+/// Length bound on a single note-eligible `;` clause. Matches the per-run bound
+/// `_annotationRe` puts on an annotation, the other free-text fragment this
+/// dialect promotes into a note.
+const int kMaxClauseNote = 120;
+
+/// A bare facing statement. `\b` is load-bearing: without it this would also
+/// claim `facing star …`, which is a structured move.
+final RegExp _facingClause = RegExp(r'^face\b', caseSensitive: false);
+
+/// A subject-bearing `turn around` statement, matched on the POST-SCRUB text
+/// (hence `role1s`/`role2s`, never `men`/`women` — see [_noteEligibleClause]).
+///
+/// A prefix rule, deliberately mirroring [_facingClause]: both families are
+/// verbatim prose in the note either way, so an annotated variant
+/// (`role2s turn around (cw)`, `role1s turn around [with n2]`) preserves
+/// exactly as much as the whole-custom line did. Accepting `face up [with n0]`
+/// while rejecting `role2s turn around (cw)` would be arbitrary.
+///
+/// `^` and `\b` are load-bearing — they keep out the two wordings that name no
+/// subject or a different one: `turn around (by right)` and
+/// `role2 one and role1 two turn around`.
+final RegExp _turnAroundClause = RegExp(
+  r'^role[12]s turn around\b',
+  caseSensitive: false,
+);
 
 /// Fans a top-level `||` (simultaneity) line out into a [Figure.meanwhile]
 /// container (#591, part of the #572 epic): one side per `||`-clause, each
@@ -630,15 +813,14 @@ _AnnotatedMatch? _annotatedMatch(
 
 /// Rebuilds [match] with [note] attached (and any [extraParams] merged in).
 ///
-/// COMBINES rather than chooses when the recognizer produced its own note
-/// (maintainer ruling on #729): the recognizer's note LEADS — it is the
-/// load-bearing half (`pass_through`'s `to n2` destination, `chain`'s
-/// `to partner` target) — the annotation remainder follows after the file's
-/// `'; '` separator, and the JOINED string is truncated to
-/// [_maxAnnotationNote] on a rune boundary so the cap still holds and a long
-/// qualifier can never amputate the leading half.
-///
-/// No-op for `gate` and `courtesy_turn`, which never produce a recognizer note.
+/// Notes COMBINE ([combineFigureNotes]) rather than one winning: resolving this
+/// with `match.note ?? note` silently discarded the annotation whenever the
+/// shared recognizer had already set its own note. That was a no-op for `gate`
+/// and `courtesy_turn` (neither shared match carries a note of its own), but it
+/// is live on 40 corpus lines through the `;`-clause note path — and, since
+/// #733, on the `walk forward to <dancer>` lines too, where the recognizer's
+/// own `to n2` destination note must not be displaced by a trailing
+/// parenthetical. All three paths use the one combiner.
 FigureMatch _withAnnotationNote(
   FigureMatch match,
   String? note, {
@@ -646,19 +828,9 @@ FigureMatch _withAnnotationNote(
 }) => FigureMatch(
   match.moveId,
   params: <String, Object?>{...match.params, ...extraParams},
-  note: _combineNotes(match.note, note),
+  note: combineFigureNotes(match.note, note),
   assumedSubject: match.assumedSubject,
 );
-
-/// Joins a recognizer's note and an annotation note, recognizer first, bounded.
-String? _combineNotes(String? recognizerNote, String? annotationNote) {
-  if (recognizerNote == null) return annotationNote;
-  if (annotationNote == null) return recognizerNote;
-  return _truncateOnRuneBoundary(
-    '$recognizerNote; $annotationNote',
-    _maxAnnotationNote,
-  );
-}
 
 /// The dancer set an annotation names as walking FORWARD, or `null` when the
 /// annotation is not a "`<dancers>` forward" statement or names a set we do not
@@ -788,26 +960,7 @@ List<String> _annotations(String scrubbed) {
 /// Joins the annotations kept for the note, or `null` when none remain.
 String? _joinAnnotations(List<String> kept) {
   if (kept.isEmpty) return null;
-  return _truncateOnRuneBoundary(kept.join('; '), _maxAnnotationNote);
-}
-
-/// Truncates [text] to at most [maxUnits] UTF-16 code units WITHOUT splitting a
-/// character. `substring` cuts code units, so a naive cut can split a surrogate
-/// pair and leave a lone surrogate in the note. Shared by every bounded note
-/// this file builds so the cap lives in one place (OWASP: import text is
-/// untrusted).
-String _truncateOnRuneBoundary(String text, int maxUnits) {
-  if (text.length <= maxUnits) return text;
-  final runes = text.runes.toList();
-  var end = 0;
-  var units = 0;
-  while (end < runes.length) {
-    final next = units + (runes[end] > 0xFFFF ? 2 : 1);
-    if (next > maxUnits) break;
-    units = next;
-    end++;
-  }
-  return String.fromCharCodes(runes.take(end));
+  return truncateOnRuneBoundary(kept.join('; '), _maxAnnotationNote);
 }
 
 /// `{0,120}` bounds each captured run so a pathological line cannot produce an

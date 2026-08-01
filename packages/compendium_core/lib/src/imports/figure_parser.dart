@@ -5,6 +5,78 @@ import '../validation/validation.dart';
 import 'figure_text_scrub.dart';
 import 'structured_draft.dart';
 
+/// Upper bound on a COMBINED [Figure.note] built by [combineFigureNotes].
+///
+/// Import text is untrusted (OWASP): each contributing part is already bounded
+/// by its own producer (an annotation run by `_annotationRe`'s `{0,120}`, a
+/// note-eligible `;` clause by `kMaxClauseNote`), so this only ever bites a
+/// hostile line that stacks many parts. Generous by design — the longest
+/// combined note the whole Caller's Box mirror produces is under 60 characters.
+const int kMaxFigureNote = 400;
+
+/// Combines two figure notes so that NEITHER is silently dropped.
+///
+/// Notes arrive from two independent producers and a figure can legitimately
+/// carry both: a recognizer's own note (`chain`'s `to partner` target,
+/// `right_left_through`'s `same-role`) and a note the caller layers on (a
+/// CallersBox `()`/`[]` annotation, or a `;`-clause the splitter could not
+/// structure). Resolving that with `existing ?? added` — as this code did
+/// before — silently discards one of them; measured over the Caller's Box
+/// mirror, that collision is live on 40 lines (`chain` 38, `courtesy_turn` 2,
+/// e.g. `Ladies chain to partner; face down`).
+///
+/// [existing] LEADS the joined result: it is the recognizer's own note, which
+/// is load-bearing choreography (`to partner` names the chain's target), while
+/// [added] is commentary layered on afterwards. Blank/absent parts are dropped,
+/// an [added] identical to [existing] is not duplicated, and the joined result
+/// is truncated on a RUNE boundary to [kMaxFigureNote].
+///
+/// Only the JOINED result is truncated — a lone note passes through unchanged,
+/// so this is provably behaviour-preserving everywhere a single note is in play.
+/// Matches the `'; '` join and "original first" ordering of
+/// `reparse_custom_figures.dart`'s note merge, so a figure's note reads the same
+/// however it was assembled. Never throws.
+String? combineFigureNotes(String? existing, String? added) {
+  final left = _blankToNull(existing);
+  final right = _blankToNull(added);
+  if (left == null) return right;
+  if (right == null || right == left) return left;
+  return truncateOnRuneBoundary('$left; $right', kMaxFigureNote);
+}
+
+String? _blankToNull(String? s) {
+  final trimmed = s?.trim();
+  return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+}
+
+/// Truncates [text] to at most [maxLength] UTF-16 code units, cutting only on a
+/// RUNE boundary.
+///
+/// `String.substring` cuts code units, so a naive cut can split a surrogate pair
+/// and leave a lone surrogate in stored text. Shared by every bounded free-text
+/// field the importers build (annotation notes, combined figure notes) so the
+/// rune-safety rule has exactly one implementation. Never throws.
+///
+/// Walks runes with a [RuneIterator] and stops at the limit rather than
+/// materialising `text.runes.toList()`. The list form is O(n) in the FULL input
+/// length, which defeats the point of a bound on untrusted import text: a
+/// hostile note would pay the whole allocation before being truncated. This form
+/// is O([maxLength]) regardless of how long [text] is (OWASP).
+String truncateOnRuneBoundary(String text, int maxLength) {
+  if (maxLength <= 0) return '';
+  if (text.length <= maxLength) return text;
+  // `end` accumulates the code-unit length of the runes accepted so far, which
+  // is exactly the safe cut point because runes are visited in order.
+  var end = 0;
+  final runes = RuneIterator(text);
+  while (runes.moveNext()) {
+    final next = end + (runes.current > 0xFFFF ? 2 : 1);
+    if (next > maxLength) break;
+    end = next;
+  }
+  return text.substring(0, end);
+}
+
 /// A move recognised by a source-specific front-end pre-recognizer: the taxonomy
 /// [moveId] plus the params/note extracted from the text (never including
 /// `beats`, which [parseFigureLine] layers on from the source line).

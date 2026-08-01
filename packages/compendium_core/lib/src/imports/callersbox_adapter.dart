@@ -600,6 +600,17 @@ class CallersBoxAdapter implements SourceAdapter {
   /// deliberately runs last so it can only ever see leftovers: every balance
   /// that belongs to a following action (Fold 1) or a preceding wave (Fold 4)
   /// has already been consumed, so the promotion can never steal one.
+  ///
+  /// **Every fold preserves BOTH figures' notes** ([combineFigureNotes]), not
+  /// just the survivor's. A fold builds the merged figure by `copyWith`-ing the
+  /// figure that survives, so the consumed one's note would otherwise be
+  /// silently dropped — and since the `;`-clause note fallback
+  /// ([parseFigureLines]) now puts source prose on structured figures, that is
+  /// reachable: `Balance the ring; face up` structures to
+  /// `balance_the_ring` + the note `face up`, is still a balance LINE, and folds
+  /// into a following swing. Losing the note there would make structuring cost
+  /// information the custom fallback kept. Folds 2/3/4 consume only CUSTOM
+  /// lines, which carry no note, so the propagation is defence in depth there.
   static List<Figure> _mergeCrossLineFigures(List<Figure> figures) {
     final merged = <Figure>[];
     var i = 0;
@@ -761,16 +772,19 @@ class CallersBoxAdapter implements SourceAdapter {
       return null;
     }
     final beats = _sumBeats(balance, move);
+    final note = combineFigureNotes(move.note, balance.note);
     if (move.move == 'swing') {
       final prefix = move.params['prefix'];
       if (prefix != null && prefix != 'none') return null;
       return move.copyWith(
         params: {...move.params, 'prefix': 'balance', 'beats': ?beats},
+        note: note,
       );
     }
     if (move.params['balance'] == true) return null;
     return move.copyWith(
       params: {...move.params, 'balance': true, 'beats': ?beats},
+      note: note,
     );
   }
 
@@ -804,6 +818,7 @@ class CallersBoxAdapter implements SourceAdapter {
         'balance': true,
         'beats': ?beats,
       },
+      note: combineFigureNotes(wave.note, balance.note),
     );
   }
 
@@ -845,6 +860,7 @@ class CallersBoxAdapter implements SourceAdapter {
     final beats = _sumBeats(hall, enderLine);
     return hall.copyWith(
       params: {...hall.params, 'ender': ender, 'beats': ?beats},
+      note: combineFigureNotes(hall.note, enderLine.note),
     );
   }
 

@@ -124,15 +124,27 @@
     direction of travel; `(optional spin)` has no slot) stay `custom`. 55 lines
     carry a diagonal on the walk clause; 29 of them would structure if it were
     flattened away, which is the measured cost of declining.
-  - **Measured over the whole mirror**, `Permission: full` (11,499
-    figure-bearing dances — the other 9,017 parseable records are metadata-only
-    stubs with no figures): custom figures 22,180 → **21,725** (−455),
-    structured share 78.78% → **79.23%**, **450** `walk forward` lines newly
-    structuring end-to-end (0 → 450), and **per-dance beat totals
-    byte-identical for all 11,499 dances**. `atypical_beats` warnings rise by
-    339, almost all a 4-beat `pass_through` (`goodBeats: [2]`) — a leisurely
-    pass through is a warning, never an error, and no beats param is fabricated
-    to suppress it.
+  - **Measured over the whole mirror**, `Permission: full`, mixers INCLUDED
+    (11,499 figure-bearing dances — the other 9,017 parseable records are
+    metadata-only stubs with no figures): custom figures 20,452 → **19,996**
+    (−456), structured share 80.34% → **80.79%** (+0.45pp), **451**
+    `walk forward` lines newly structuring end-to-end (0 → 451), and
+    **per-dance beat totals byte-identical for all 11,499 dances**. Measured
+    against `22d5664b` (i.e. on top of #734); that share is not comparable as
+    an absolute to #734's own non-mixer 80.96%/82.55% series, though the
+    deltas are. `atypical_beats` warnings rise by 340, almost all a 4-beat
+    `pass_through` (`goodBeats: [2]`) — a leisurely pass through is a warning,
+    never an error, and no beats param is fabricated to suppress it.
+  - **Composes with #734.** One line structures only because both changes are
+    present (dance 8166 B1, `… Pass through across (NR); face partner; walk
+    forward to partner`): #734 note-ifies the middle facing clause, #733
+    structures the trailing walk clause, and neither alone gets the line.
+    #734's "a LEADING clause never note-ifies" rule is untouched — this change
+    removes `Walk forward; form long wave in center` from the set where the
+    leading clause FAILS (it is absorbed instead), rather than weakening the
+    rule; the two tests pinning it now use `Women walk forward; form wave of
+    four with N2`, which still fails at the leading clause because
+    `pass_through` has no `who` slot.
 
 - **New `courtesy_turn` move (`contraTaxonomyVersion` 23; `CompendiumDatabase`
   schema stays **20** — purely additive, no migration).** The Caller's Box

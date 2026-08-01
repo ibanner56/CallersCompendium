@@ -475,11 +475,17 @@ child that could not structure.
 ### Figure-line census: walk forward (2026-08-01, issue #733)
 
 Method: the real `CallersBoxAdapter` run over the whole 24,107-file mirror,
-before and after the change, restricted to the **`Permission == "full"`**
-population (11,499 dances, 104,541 figure lines before / 104,600 after). Line
-counts below are occurrences of a `phrases[].figures[]` line over that same
-population — so they run slightly higher than the non-mixer, non-deprecated
-counts quoted on the issue. Mixers (#732) are **not** excluded here.
+before (`22d5664b`, i.e. after #734) and after, restricted to the
+**`Permission == "full"`** population (11,499 dances, 104,018 figure lines
+before / 104,078 after). Line counts below are occurrences of a
+`phrases[].figures[]` line over that same population.
+
+**⚠️ Mixers (#732) are NOT excluded here, and that is why the structured share
+below does not line up with the 80.96%/82.55% series #734 quotes.** That series
+is measured over a non-mixer population (100,649 figures); this one includes
+mixers (104,018). The two are not comparable as absolutes — the *deltas* are.
+Whenever a figure here is set beside one from that series, check the population
+before treating them as the same measurement.
 
 **⚠️ Read the dance denominator carefully — it is narrower than the one the
 v21/v23 sections above use, and that is not a shrinking corpus.** Of the
@@ -488,10 +494,8 @@ parseable dance records — the denominator those sections quote. Only the
 **11,499** `full` ones carry figures at all (`callersbox_adapter.dart`
 returns `const []` for every other tier), so the remaining 9,017 are
 metadata-only stubs with zero figures and are byte-identical under any figure
-change, trivially. The FIGURE absolutes are therefore on the identical basis
-and chain exactly off v23's (custom 22,180 → 22,180, structured share 78.78%
-→ 78.78% at this branch's base); only the *dance count* in the beat-total gate
-below is stated over the narrower, figure-bearing 11,499.
+change, trivially. Only the *dance count* in the beat-total gate below is
+stated over the narrower, figure-bearing 11,499.
 
 **879** lines mention "walk forward". It is not one family, and none of the
 three real families needs a taxonomy move:
@@ -557,8 +561,8 @@ grounds, so inferring that value from a travel qualifier would be strictly
 more aggressive than what the parser already declines. `(optional spin)` has
 no slot on any of the three moves either.
 
-**Whole-corpus effect**, same harness, same mirror: **450** of the 879 lines
-newly structure end-to-end (**0 → 450**; no line shape stops structuring).
+**Whole-corpus effect**, same harness, same mirror: **451** of the 879 lines
+newly structure end-to-end (**0 → 451**; no line shape stops structuring).
 
 > **A harness caveat worth recording, because it nearly went into this doc as
 > fact.** A first pass reported "193 → 643". That check tested only whether
@@ -571,15 +575,26 @@ newly structure end-to-end (**0 → 450**; no line shape stops structuring).
 > counts are not.** Quote the delta; re-derive an absolute against the harness
 > you are comparing to.
 
-Custom figures 22,180 → **21,725** (−455), structured share
-78.78% → **79.23%**, per-dance beat totals **byte-identical for all 11,499
-dances**. The figure count rises by 59 (group 1b emits two figures where one
-custom stood; group 1a emits one). 423 dances see a per-FIGURE beat sequence
-change, all of them a `custom` line becoming structured except **4** where the
-existing trailing balance-wave fold (#577) now claims the `Balance wave …` line
-that follows the newly-structured wave: 3 dances move a balance off a following
-`box_the_gnat` and 1 off a following `swing`, onto the wave the source line
-actually names. `atypical_beats` warnings rise by 339, almost all a 4-beat
+Custom figures 20,452 → **19,996** (−456), structured share
+80.34% → **80.79%** (+0.45pp), per-dance beat totals **byte-identical for all
+11,499 dances**. The figure count rises by 60 (group 1b emits two figures where
+one custom stood; group 1a emits one). 424 dances see a per-FIGURE beat
+sequence change, all of them a `custom` line becoming structured except **4**
+where the existing trailing balance-wave fold (#577) now claims the
+`Balance wave …` line that follows the newly-structured wave: 3 dances move a
+balance off a following `box_the_gnat` and 1 off a following `swing`, onto the
+wave the source line actually names.
+
+**One line structures only because #733 and #734 combine**, and it is worth
+recording as the shape of the interaction: dance 8166 B1
+`(13-16) [Heads (ones+fours)] Pass through across (NR); face partner; walk
+forward to partner` now yields `pass_through{dir: across}` carrying #734's
+note-ified `face partner`, plus #733's `pass_through` carrying `to partner`.
+Neither change alone structures it — #734 could not, because the trailing walk
+clause failed; #733 could not, because the middle facing clause failed. Beats
+are unchanged (8 + 0 = the source's 8). Its `[Heads (ones+fours)]` / `(NR)`
+annotations are dropped, which is the pre-existing bare-`pass_through`
+annotation gap under #729's audit item, now reached by one more line. `atypical_beats` warnings rise by 340 (20,463 → 20,803), almost all a 4-beat
 `pass_through` (`goodBeats: [2]`) — a leisurely pass through is a warning, not
 an error, and no beats param is fabricated to suppress it.
 
