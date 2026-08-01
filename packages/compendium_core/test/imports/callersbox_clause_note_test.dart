@@ -143,11 +143,21 @@ void main() {
 
     test('the prefix rule still excludes the wrong-subject wordings', () {
       // `^` and `\b` are the whole guard. A prefix is far easier to
-      // over-widen later than an exact match, so this pins the boundary:
-      // neither of these names the subject the rule is scoped to.
+      // over-widen later than an exact match, so this pins the boundary in
+      // all three directions it can slip:
+      //  * the subject must be STATED — a bare `turn around (by right)` names
+      //    nobody, so a note would preserve a statement we cannot attribute;
+      //  * the subject must be a ROLE PAIR — an individual/mixed subject
+      //    (`role2 one and role1 two`) or a couple-set subject (`ones`,
+      //    `everyone`) is not what the ruling scoped;
+      //  * the phrase must LEAD the clause, so a turn-around buried mid-clause
+      //    can never drag an unrelated statement into the note with it.
       for (final line in [
         'Partner swing; turn around (by right)',
         'Partner swing; woman one and man two turn around',
+        'Partner swing; ones turn around',
+        'Partner swing; everyone turn around',
+        'Partner swing; walk forward then women turn around',
       ]) {
         _staysWholeCustom(line);
       }
@@ -334,6 +344,31 @@ void main() {
       final figures = _lines(hostile);
       expect(figures, hasLength(1));
       expect(figures.single.isCustom, isTrue);
+    });
+
+    test('above the cap, the early exit is BEHAVIOUR-IDENTICAL', () {
+      // The early exit is a shortcut, not a behaviour change: above the cap
+      // `_withClauseNotes` already declined for any failure, so the caller
+      // already landed on the whole-line custom reading. Assert the emitted
+      // figure EQUALS that reading — move, text, beats and note — rather than
+      // merely being "some custom figure", which would still pass if the
+      // shortcut had changed what gets emitted.
+      final hostile = [
+        'Partner swing',
+        ...List.filled(20, 'fall back'),
+      ].join('; ');
+      final figures = _lines(hostile, beats: 12);
+      final wholeLine = parseFigureLine(
+        hostile,
+        beats: 12,
+        frontEnd: tcbFigureFrontEnd,
+      );
+      expect(wholeLine, isNotNull);
+      expect(figures, hasLength(1));
+      expect(figures.single, wholeLine);
+      expect(figures.single.params['text'], wholeLine!.params['text']);
+      expect(figures.single.beats, 12);
+      expect(figures.single.note, isNull);
     });
 
     test('above the clause cap, parsing STOPS at the first failure', () {

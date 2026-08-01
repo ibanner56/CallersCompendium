@@ -296,15 +296,20 @@ const int _maxNoteFallbackClauses = 8;
 ///   around` are still excluded.
 ///
 ///   Read those carefully: the comparison is against the **post-scrub**
-///   role tokens, NOT the source words `women`/`men`. [scrubbed] has already
-///   been through [scrubFigureText]'s canonicalization, so the clause TCB
-///   writes as `Women turn around` (in any casing) arrives here as
-///   `role2s turn around` and is stored on the figure in exactly that form.
-///   That is the whole point: the note is canonical, and the renderer
-///   re-expresses it per dialect (#715/#717) — "robins turn around" under
+///   role tokens, NOT the source words `women`/`men`. Eligibility is evaluated
+///   after [scrubFigureText] *deliberately*: it lets the rule be stated once in
+///   the canonical role vocabulary instead of enumerating every gendered
+///   spelling a source might use — the same reason the recognizers themselves
+///   match on `role1`/`role2` rather than on dialect words.
+///
+///   The consequence is what makes the note useful. The clause TCB writes as
+///   `Women turn around` (in any casing) arrives here as `role2s turn around`
+///   and is stored on the figure in exactly that form, so the renderer can
+///   re-express it per dialect (#715/#717) — "robins turn around" under
 ///   larks/robins, "follows turn around" under leads/follows. Rewriting these
-///   to `women`/`men` would match nothing AND would store a dialect-specific
-///   term the reader could never see re-expressed.
+///   to `women`/`men` would therefore break twice: it would match nothing, AND
+///   it would store a dialect-specific term the reader could never see
+///   re-expressed.
 ///
 /// Length-bounded first (OWASP: untrusted import text), so a pathological
 /// clause cannot become an unbounded note. The longest eligible corpus clause is
