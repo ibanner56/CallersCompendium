@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../widgets/responsive_autocomplete.dart';
 
 typedef NameOption = ({String id, String name});
 
@@ -17,6 +18,7 @@ class NamePicker extends StatelessWidget {
     required this.onRemove,
     required this.onCreate,
     this.onEdit,
+    this.sheetSemanticLabel,
   });
 
   final String fieldKey;
@@ -32,6 +34,12 @@ class NamePicker extends StatelessWidget {
   /// to edit the shared choreographer record. When null (e.g. the Tags picker),
   /// chips stay plain, non-editable [Chip]s.
   final ValueChanged<String>? onEdit;
+
+  /// Announced when the small-screen picker sheet opens (e.g. "Authors" or
+  /// "Tags") so screen-reader users get the same field context sighted users
+  /// get from the [FieldLabel] shown above this picker. Ignored on the wide
+  /// inline layout.
+  final String? sheetSemanticLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +58,7 @@ class NamePicker extends StatelessWidget {
           options: options,
           onAdd: onAdd,
           onCreate: onCreate,
+          sheetSemanticLabel: sheetSemanticLabel,
         ),
       ],
     );
@@ -81,6 +90,7 @@ class _AddAutocomplete extends StatefulWidget {
     required this.options,
     required this.onAdd,
     required this.onCreate,
+    this.sheetSemanticLabel,
   });
 
   final String fieldKey;
@@ -88,6 +98,7 @@ class _AddAutocomplete extends StatefulWidget {
   final List<NameOption> options;
   final ValueChanged<String> onAdd;
   final Future<String> Function(String name) onCreate;
+  final String? sheetSemanticLabel;
 
   @override
   State<_AddAutocomplete> createState() => _AddAutocompleteState();
@@ -111,10 +122,11 @@ class _AddAutocompleteState extends State<_AddAutocomplete> {
   Widget build(BuildContext context) {
     final fieldKey = widget.fieldKey;
     final l10n = AppLocalizations.of(context);
-    return Autocomplete<_PickerChoice>(
+    return ResponsiveAutocomplete<_PickerChoice>(
       key: ValueKey('$fieldKey-autocomplete'),
       textEditingController: _controller,
       focusNode: _focusNode,
+      sheetSemanticLabel: widget.sheetSemanticLabel,
       displayStringForOption: (choice) => choice.label,
       optionsBuilder: (value) {
         final q = value.text.trim();
@@ -162,36 +174,20 @@ class _AddAutocompleteState extends State<_AddAutocomplete> {
           onSubmitted: (_) => onSubmit(),
         );
       },
-      optionsViewBuilder: (context, onSelected, choices) {
-        return Align(
-          alignment: Alignment.topLeft,
-          child: Material(
-            elevation: 4,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 240, maxWidth: 320),
-              child: ListView(
-                padding: EdgeInsets.zero,
-                shrinkWrap: true,
-                children: [
-                  for (final choice in choices)
-                    ListTile(
-                      key: ValueKey('$fieldKey-option-${choice.optionKey}'),
-                      dense: true,
-                      leading: Icon(
-                        choice.isCreate ? Icons.add : Icons.person_outline,
-                        size: 18,
-                      ),
-                      title: Text(
-                        choice.isCreate
-                            ? l10n.danceEditorCreateQuotedName(choice.name)
-                            : choice.name,
-                      ),
-                      onTap: () => onSelected(choice),
-                    ),
-                ],
-              ),
-            ),
+      optionTileBuilder: (context, choice, onSelected) {
+        return ListTile(
+          key: ValueKey('$fieldKey-option-${choice.optionKey}'),
+          dense: true,
+          leading: Icon(
+            choice.isCreate ? Icons.add : Icons.person_outline,
+            size: 18,
           ),
+          title: Text(
+            choice.isCreate
+                ? l10n.danceEditorCreateQuotedName(choice.name)
+                : choice.name,
+          ),
+          onTap: onSelected,
         );
       },
     );
