@@ -11,54 +11,26 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
-### Changed
+_Nothing yet._
 
-- **Your hook, calling notes and walkthrough are saved exactly as you type
-  them.** An unreleased change had started rewriting the role words in your
-  prose into internal terms so they could be re-shown in each reader's
-  vocabulary. That turned out to damage ordinary writing: the app matches whole
-  words like *man*, *men*, *lady*, *ladies*, *lark* and *robin* wherever they
-  appear, so a dance called "Lady of the Lake" was being re-shown as "robin of
-  the Lake", "Taught to me by Robin Hayden" became "robin Hayden", and "the
-  ladies room is past the stage" became "the robins room". Your capitalisation
-  was dropped too. Prose is now stored word-for-word as written. **Nothing you
-  have saved was affected — this never reached a release.** Dance and program
-  titles were never touched on any version. Figure notes are unchanged: they
-  still follow your chosen vocabulary, because they describe the figure sitting
-  next to them.
+## [0.1.0] - 2026-08-01
 
-- **"Gate" is now a single figure instead of two identical-looking ones.** The
-  move picker used to show two rows both labelled "gate" — one from ContraDB's
-  vocabulary and one from The Caller's Box's — with no way to tell them apart.
-  They are now one figure that holds the direction, the number of beats **and**
-  the facing the gate ends in. Existing dances are converted automatically the
-  first time you open the app; beat counts and section placement are unchanged.
-- **Gates no longer claim an ending facing the source never gave.** The app used
-  to work the facing out from the rotation, assuming dancers always start a gate
-  facing across the set. That assumption is often wrong — a half gate right
-  after a down-the-hall ends facing **up**, but the app said "out of the set".
-  Imported Caller's Box gates now show no facing at all (that source doesn't
-  state one) and you can set the correct one yourself; ContraDB dances, which do
-  state it, show exactly what their source says. **If you have gates in your
-  collection you may want to check their facing** — some will have been showing
-  the wrong one.
+Flutter build: `0.1.0+1`.
 
-### Fixed
+This section covers the `0.1.0` line. **`v0.1.0-beta.6`** (this pre-release) builds
+on **`v0.1.0-beta.5`** and is the largest beta so far. Its theme is **getting your
+existing library in, faithfully**: Caller's Companion files now bring their
+choreography across (previously they arrived with no figures at all), and
+thousands of Caller's Box and ContraDB lines that used to land as unstructured
+text — balanced waves, courtesy turns, mad robins, walk-forward figures, spelled-out
+shorthands — now import as real, searchable figures. Alongside that: **"meanwhile"
+(simultaneous) figures** are supported end to end, **pickers finally work on a
+phone**, and a **three-audit security and robustness pass** landed. The changes
+**since beta.5** are grouped first; the standing feature overview and install notes
+follow.
 
-- **A turn amount the source never gave no longer looks like "1 turn".** In the
-  figure editor, a rotation the app has no value for now reads **"not stated"**
-  instead of silently showing 1 turn. Nudging the stepper sets a real value (and
-  a new clear button puts it back to not-stated), so a number you never entered
-  can't quietly become part of your dance. This matters most for gates imported
-  from ContraDB, which state an ending facing but no amount.
-
-- **Caller's Box import keeps the "(ones forward)" detail on a gate.** Lines
-  like `Neighbor mirror gate 1 (ones forward)` used to lose the parenthetical
-  once the figure was recognized. Now, when it names dancers the app knows, it
-  becomes a real part of the figure — you'll see "…, ones forward" on the line
-  and can edit it. Anything the app can't represent exactly, such as
-  "(men stay put)" or "(M1+W2 forward)", is kept word-for-word as a note
-  instead of being guessed at.
+> Upgrading rewrites some stored figures (schema 15 → 20). It is automatic and
+> preserves every dance's timing — see **Data / Migrations** below.
 
 ### Added
 
@@ -105,6 +77,7 @@ each release so store builds and tags can be traced back to an entry.
   affects timing immediately recalculates its beat count, even overwriting a
   beat count you typed in by hand; the setting's subtitle states this
   explicitly so the trade-off is never a surprise. Closes #689.
+
 - **Balanced waves from The Caller's Box import as real figures.** TCB writes
   "Balance wave of four (NR,WL)" or "Balance long wave (NR, women face in)" as
   its own line — 4,613 lines across the full Caller's Box corpus, and by far the
@@ -117,11 +90,13 @@ each release so store builds and tags can be traced back to an entry.
   can't model faithfully (waves of two or three, interlocking or intersecting
   waves, annotations naming two hand-holds at once) deliberately stay as text
   rather than being guessed at. Closes #296 and part of #295.
+
 - **"Form a wave" is now called "form short waves".** The figure covers the
   whole set's short waves, which is how The Caller's Box always writes it, so
   the picker and every rendered figure use the clearer name. Your existing
   dances are updated automatically the first time you open the app after
   updating; the old name still finds the move when you search.
+
 - **Mad robins and butterfly whirls import as real figures.** Caller's Box
   dances that write "Mad robin clockwise around neighbor" or "Partner butterfly
   whirl counterclockwise" used to land as unstructured custom text, because the
@@ -131,12 +106,14 @@ each release so store builds and tags can be traced back to an entry.
   fields), and rendered in your dialect. Nothing is invented: a line that
   doesn't state both facts still imports verbatim as a custom figure, and
   existing dances are untouched.
+
 - **First day of week is live.** The Language & region settings dropdown for
   first day of week (System default / Sunday / Monday / Saturday) is no
   longer disabled — it now has a real consumer, the Programs list's "this
   week" header strip, which reorders its weekday columns to match your
   choice (falling back to your app language's convention for System
   default). Closes #636.
+
 - **Hide columns you don't need in the program matrix, with a one-tap
   reset.** Each move column in the wide grid now has a small eye glyph — always
   visible (not hover-only, so it works on touch and for keyboard/AT users too)
@@ -147,6 +124,7 @@ each release so store builds and tags can be traced back to an entry.
   what's on screen — the PDF/print export always includes every column,
   hidden or not. The pinned Formation column isn't hideable, since it's part
   of each dance's identity rather than a move. Closes #669.
+
 - **The program matrix now shows each dance's formation.** A new pinned
   "Formation" column sits next to the dance title in the wide grid — always
   visible while scrolling through moves, so callers can spot too many
@@ -158,6 +136,7 @@ each release so store builds and tags can be traced back to an entry.
   dedicated column over colour-coding formations. The programming-matrix PDF
   export gets the same pinned formation column, so the on-screen and printed
   matrices stay in sync. Closes #663.
+
 - **Comma-separated dates and single-digit days in your custom date format.**
   The custom date-format pattern (Settings ▸ Language & region ▸ Date format ▸
   Custom) now accepts a comma as a separator and a single, non-zero-padded `d`
@@ -171,11 +150,13 @@ each release so store builds and tags can be traced back to an entry.
   bounded ReDoS-safe matching, 1900–2100 calendar validation) is unchanged.
   Follow-up to the written-out month support from the previous release.
   Closes #668.
+
 - **"Meanwhile" (simultaneous) figures now display as "A while B" (#594).**
   The dance detail figure table, Perform view, plain-text export, and PDF
   export all show a simultaneity pair together on one row/line, joined by
   "while", with the shared beat count shown once — never split into two
   rows/lines and never double-counted.
+
 - **Importing a simultaneous-action line now keeps both sides instead of one
   opaque blob (#591).** The Caller's Box `||` operator (e.g. "Women allemande
   left 1 || Men orbit clockwise ½") and ContraDB free-text joined by
@@ -187,6 +168,7 @@ each release so store builds and tags can be traced back to an entry.
   invented — and the shared beat count is counted once. Re-syncing an
   existing dance upgrades any older `||`/"while" line the same way. Part of
   #572.
+
 - **Author simultaneous ("meanwhile") figures in the figure editor.** A figure
   row's overflow menu now offers **Group with next as meanwhile**, merging it
   with the row right after into one editable group of 2–6 concurrent sides —
@@ -226,6 +208,7 @@ each release so store builds and tags can be traced back to an entry.
   partial lengths, and clears itself if you switch the hey back to a half or full
   hey. The target is an allow-listed set of pairs, so imported or hand-edited data
   can never inject unexpected text. (#576)
+
 - **See which ContraDB programs you've already imported.** When you search or
   preview a program in **Import program ▸ From ContraDB**, rows you've likely
   already brought in are marked: a firm **Imported** badge (with the import date
@@ -238,6 +221,7 @@ each release so store builds and tags can be traced back to an entry.
   stored id) fall back to the title-only hint. ContraDB titles and ids are treated
   as untrusted input — normalized, length-capped, and matched with ReDoS-safe
   comparisons. (#586)
+
 - **Custom date format.** The **Settings ▸ Language & region ▸ Date format**
   picker gains a **Custom…** option that reveals a text box for your own pattern
   (e.g. `MM.DD.YY`), with an always-visible token legend (`yyyy`/`yy` = year,
@@ -248,6 +232,7 @@ each release so store builds and tags can be traced back to an entry.
   treated as untrusted input — length-capped, allowlist-validated, and
   ReDoS-safe — and any empty, unrecognized, or corrupted value falls back to the
   system default everywhere until it's corrected. (#584)
+
 - **Scope calling history to your own programs.** A new **General ▸ Calling
   history** setting, **Track calling history for all callers** (off by
   default), lets a caller who has set a *default caller for new programs*
@@ -260,6 +245,7 @@ each release so store builds and tags can be traced back to an entry.
   program's host caller (per-slot guest callers are not considered) and applies
   on top of the existing *Require "mark performed" for calling history* gate
   (both must pass). (#583)
+
 - **Program matrix flags same-figure-same-phrase repeats between neighbouring
   dances.** In the Matrix tab, a cell now shows an alert marker instead of the
   plain check when the same move lands in the *same phrase* (A1/A2/B1/B2…) in
@@ -271,29 +257,71 @@ each release so store builds and tags can be traced back to an entry.
   conveyed with a distinct shape plus a localized screen-reader announcement,
   never colour alone (WCAG 1.4.1). (#582)
 
-### Fixed
-
-- **Figure notes now round-trip through the same dialect canonicalization
-  chokepoint as `hook`/`callingNotes`/`walkthrough` (#613, #715).** Previously
-  an imported or dialect-typed figure note was stored/edited verbatim, so an
-  imported note showed raw canonical role tokens (`role2s`) in the editor,
-  and a caller's own typed role terms were never canonicalized to
-  dialect-agnostic storage. The dance editor now renders a figure's stored
-  note into the active dialect on load and canonicalizes it back on save,
-  exactly mirroring the existing dance-level prose fields — including for
-  meanwhile-group side notes and figures inserted via free-text entry.
-  No schema/migration change: canonicalization is a pure, idempotent,
-  roles-only rewrite, so existing stored notes simply resolve correctly the
-  next time that figure is opened or saved (consistent with the #665
-  precedent of not migrating unrelated free-text prose).
-
-- **Some Caller's Box dances imported with inflated beat counts.** When a
-  spelled-out figure's beat marker was written as a range (e.g. `(7-12)`), both
-  the figure and its sub-figures were counted, pushing later figures into the
-  wrong A1/A2/B1/B2 section. Those dances now import with the correct beats and
-  sections.
+- **Your Caller's Companion library now imports its choreography, not just its
+  dance list.** A `.USR` import previously brought across every dance's metadata
+  and your programs but **no figures at all** — Caller's Companion keeps the
+  actual transcription in a separate place the importer never read. Those
+  figures now come across, routed through the same recognizer the other sources
+  use, so a migrated dance arrives with real A1/A2/B1/B2 choreography you can
+  search and edit instead of an empty body. Beat prefixes written the many ways
+  Caller's Companion allows — compound `(4,12)`, bare, or malformed — are read
+  correctly, and anything unrecognized is kept verbatim as text rather than
+  guessed at.
+- **Your Caller's Companion "call buttons" can become figure shorthands.** If
+  your `.USR` file carries Caller's Companion's call buttons, the import now
+  offers to turn them into your own **figure shorthands**, so the wording you
+  already type expands the same way it did in the old app. It is opt-in and
+  previewed before anything is added.
+- **Caller's Companion venues become real venues.** Set locations from a `.USR`
+  import now link to actual venue entries — matching one you already have where
+  it is clearly the same place, and creating one where it isn't — so migrated
+  programs join the rest of your venue list instead of carrying a plain text
+  label. Ambiguous matches deliberately create a fresh venue rather than guess.
+  (Applies when venue entities are turned on; otherwise the text label is kept
+  exactly as before.)
+- **Related dances survive the move from Caller's Companion.** Dances that
+  pointed at each other in your `.USR` library now arrive linked as **related
+  dances**, so those connections open from the dance detail screen instead of
+  being dropped on import.
+- **Import spots variations of a dance you already have.** When an import
+  matches a dance in your collection but the *figures* differ, it now tells you
+  it looks like a **variation** and shows exactly which lines differ, so you can
+  import it as a separate dance, treat it as the same one, or skip it —
+  instead of silently creating a near-duplicate.
+- **Pickers work properly on a phone.** Type-ahead fields — choreographer,
+  venue, move, dance and source pickers, plus the author and move filters in
+  search — used to open a suggestion list that the software keyboard covered,
+  and that vanished if you tried to scroll it from the wrong spot. On phones
+  those fields now open a **keyboard-aware sheet** you can scroll and search
+  normally; on tablet and desktop the familiar inline list is unchanged.
+- **"Walk forward" is a real figure.** Caller's Box lines built on a plain walk
+  forward — over 300 of them — previously blocked the whole line from being
+  understood. They now map onto the moves the app already models, so those
+  dances import structured instead of as unstructured text.
+- **The user guide is now readable on the website.** The guides are published as
+  browsable pages at
+  <https://ibanner56.github.io/CallersCompendium/> rather than sending you to
+  raw files on GitHub. The same guide still ships **inside the app** for offline
+  use.
 
 ### Changed
+
+- **"Gate" is now a single figure instead of two identical-looking ones.** The
+  move picker used to show two rows both labelled "gate" — one from ContraDB's
+  vocabulary and one from The Caller's Box's — with no way to tell them apart.
+  They are now one figure that holds the direction, the number of beats **and**
+  the facing the gate ends in. Existing dances are converted automatically the
+  first time you open the app; beat counts and section placement are unchanged.
+
+- **Gates no longer claim an ending facing the source never gave.** The app used
+  to work the facing out from the rotation, assuming dancers always start a gate
+  facing across the set. That assumption is often wrong — a half gate right
+  after a down-the-hall ends facing **up**, but the app said "out of the set".
+  Imported Caller's Box gates now show no facing at all (that source doesn't
+  state one) and you can set the correct one yourself; ContraDB dances, which do
+  state it, show exactly what their source says. **If you have gates in your
+  collection you may want to check their facing** — some will have been showing
+  the wrong one.
 
 - **"Allemande orbit" figures are now stored as two concurrent moves.** The
   combined "one couple allemandes while the other orbits" figure is no longer a
@@ -313,22 +341,78 @@ each release so store builds and tags can be traced back to an entry.
   The underlying `progressionCapable` taxonomy flag (non-serialized static
   metadata) was removed along with it. Closes #551.
 
-### Security
-
-- **ContraDB dance and program imports are now restricted to the official
-  ContraDB host.** `buildContraDbUrl` and `buildContraDbProgramUrl` used to
-  preserve whatever host a pasted URL carried, verbatim — trusting any public
-  host as "ContraDB" so long as the path looked like `/dances/N` or
-  `/programs/N`. Both builders now enforce the same host allowlist
-  (`contradb.com` / `www.contradb.com`) already used to auto-detect a pasted
-  ContraDB link, rejecting any other host before a URL is even built, and now
-  require `https` (a bare `http://` link is rejected as an insecure scheme).
-  This mirrors the Caller's Box host allowlist from the previous release
-  (#621) and intentionally drops self-hosted-ContraDB-mirror support — the
-  existing fetch-time SSRF guard (blocking loopback/private-IP targets)
-  remains independent defense-in-depth regardless of host. (#667)
-
 ### Fixed
+
+- **In-app update checks work again for beta testers.** The signature file that
+  proves an update manifest is genuine went missing from the update site on
+  29 July, and because the updater is deliberately **fail-closed** — no valid
+  signature means no update — every beta tester's check has quietly reported
+  "no update available" ever since, with no error shown. Publishing this build
+  restores that file, so update checks resolve normally again. The publisher was
+  also fixed so a routine website deploy can no longer delete it.
+  **If you are on beta.4 or beta.5, your in-app check could not see this
+  release** — grab it from the Releases page once, and checks will work from
+  then on.
+- **A qualifier on a chain, promenade or right-and-left-through is no longer
+  dropped.** The importer strips bracketed asides before it tries to recognize a
+  line, so a trailing qualifier used to vanish once the figure matched — and two
+  of those wordings, "(without courtesy turn)" and "(optional double courtesy
+  turn)", *negate or change* the courtesy turn rather than merely describing it.
+  Those qualifiers are now kept word-for-word as a note on the figure, so the
+  line still structures without losing what it said.
+- **A clause the app can't structure no longer discards the rest of its line.**
+  The Caller's Box sometimes packs two actions onto one line with a semicolon
+  (`Circle left 3/4; face up`). If either half couldn't be understood, the whole
+  line used to collapse back to unstructured text — losing the half that parsed
+  perfectly. Now the parts that can be understood become real figures and the
+  part that can't is kept word-for-word as a note beside them.
+- **Backups no longer lose where an imported program came from.** A program's
+  import provenance now survives an export/restore round-trip, so restoring a
+  backup and then re-importing the same Caller's Companion file updates your
+  existing programs instead of creating a second copy of each one.
+- **Searching for a courtesy turn by its ending facing now filters correctly.**
+  The facing condition is applied as part of the search itself rather than after
+  results come back, so it no longer interacts badly with result limits.
+- **"Not stated" can be shown wherever the taxonomy allows it.** Several kinds
+  of parameter dropdown — in the figure editor and in the search facets —
+  ignored the choices a move actually declares, so a move that legitimately
+  records "the source didn't say" could not offer that option. They now honour
+  what the move declares. No existing figure's values or rendering change.
+
+- **A turn amount the source never gave no longer looks like "1 turn".** In the
+  figure editor, a rotation the app has no value for now reads **"not stated"**
+  instead of silently showing 1 turn. Nudging the stepper sets a real value (and
+  a new clear button puts it back to not-stated), so a number you never entered
+  can't quietly become part of your dance. This matters most for gates imported
+  from ContraDB, which state an ending facing but no amount.
+
+- **Caller's Box import keeps the "(ones forward)" detail on a gate.** Lines
+  like `Neighbor mirror gate 1 (ones forward)` used to lose the parenthetical
+  once the figure was recognized. Now, when it names dancers the app knows, it
+  becomes a real part of the figure — you'll see "…, ones forward" on the line
+  and can edit it. Anything the app can't represent exactly, such as
+  "(men stay put)" or "(M1+W2 forward)", is kept word-for-word as a note
+  instead of being guessed at.
+
+- **Figure notes now follow your chosen vocabulary (#715).** Previously an
+  imported or dialect-typed figure note was stored and edited verbatim, so an
+  imported note showed raw internal role tokens (`role2s`) in the editor. The
+  dance editor now renders a figure's stored note into the active dialect on
+  load and stores it back in neutral terms on save — including for
+  meanwhile-group side notes and figures inserted via free-text entry. A note
+  is treated this way (and dance-level prose is not) because it carries
+  modifiers for the figure sitting beside it, so its wording has to stay
+  consistent with that figure.
+  No schema/migration change: canonicalization is a pure, idempotent,
+  roles-only rewrite, so existing stored notes simply resolve correctly the
+  next time that figure is opened or saved (consistent with the #665
+  precedent of not migrating unrelated free-text prose).
+
+- **Some Caller's Box dances imported with inflated beat counts.** When a
+  spelled-out figure's beat marker was written as a range (e.g. `(7-12)`), both
+  the figure and its sub-figures were counted, pushing later figures into the
+  wrong A1/A2/B1/B2 section. Those dances now import with the correct beats and
+  sections.
 
 - **Program import no longer silently duplicates a dance already in your
   collection.** Multi-author strings (choreographer fields, Caller's Box
@@ -391,20 +475,19 @@ each release so store builds and tags can be traced back to an entry.
   scoop them up") everywhere a figure note is shown — the figure table, the
   large-print Perform view, and the exported PDF. (#619)
 
-- **Your typed dialect terms are now stored dialect-agnostically and re-render
-  for every reader.** The design promises that all free text passes through a
-  single canonicalization chokepoint before it's saved, so prose is stored in
-  canonical terms and shown in each reader's active dialect — but for hand-typed
-  dance prose (the hook, calling notes, and walkthrough) that step wasn't wired:
-  your terms were saved verbatim, so a reader on another dialect saw your words
-  unchanged and free-text search wasn't dialect-agnostic. Now those fields are
-  canonicalized on save and rendered under the active dialect on read (the hook
-  was also the last of the three still shown verbatim on the detail screen — now
-  fixed), so switching dialects re-renders them and search over prose ignores
-  dialect. A one-time migration canonicalizes prose you already typed as a beta
-  user; it's conservative and roles-only, so only exact role terms are rewritten
-  and all other prose is preserved exactly. (Program notes and free-text program
-  slots are a separate, still-verbatim case tracked as a follow-up.) (#613)
+- **Your hook, calling notes and walkthrough are saved exactly as you type
+  them.** An unreleased change had started rewriting the role words in your
+  prose into internal terms so they could be re-shown in each reader's
+  vocabulary. That turned out to damage ordinary writing: the app matches whole
+  words like *man*, *men*, *lady*, *ladies*, *lark* and *robin* wherever they
+  appear, so a dance called "Lady of the Lake" was being re-shown as "robin of
+  the Lake", "Taught to me by Robin Hayden" became "robin Hayden", and "the
+  ladies room is past the stage" became "the robins room". Your capitalisation
+  was dropped too. Prose is now stored word-for-word as written. **Nothing you
+  have saved was affected — this never reached a release.** Dance and program
+  titles were never touched on any version. Figure notes are unchanged: they
+  still follow your chosen vocabulary, because they describe the figure sitting
+  next to them.
 
 - **A backup restore that saves your content but can't apply your settings now
   says so — and lets you retry.** Restoring writes two independent stores that
@@ -420,6 +503,7 @@ each release so store builds and tags can be traced back to an entry.
   anything. The retry re-runs the same integrity check and per-setting
   validation (from the previous release) every time, so it can't be used to slip
   an unchecked value through, and it's safe to press more than once. (#608)
+
 - **The single-dance Perform view no longer exits on one stray tap or back
   gesture.** Exiting single-dance Perform mode used to pop the screen
   immediately on a single tap of the close control, with no `PopScope` to
@@ -429,6 +513,7 @@ each release so store builds and tags can be traced back to an entry.
   the same deliberate confirm dialog ("Exit performance view?" / Cancel /
   Exit) already used by the multi-dance program Perform view (#434), keeping
   the two Perform surfaces consistent. (#612)
+
 - **The program Perform exit dialog can no longer be stacked by rapid taps.**
   A quick double-tap on the close control, or repeated back gestures while
   the confirmation was already up, could open a second "Exit performance
@@ -437,6 +522,7 @@ each release so store builds and tags can be traced back to an entry.
   re-entrancy, matching the guard already added to the single-dance Perform
   view (#612), so only one dialog is ever shown and exactly one screen is
   popped. (#666)
+
 - **A corrupt backup can no longer brick startup.** Restoring a backup applied
   its saved preferences without checking them, and one startup read cast the
   theme preference with an unchecked cast — so a backup carrying a wrong-typed
@@ -449,6 +535,7 @@ each release so store builds and tags can be traced back to an entry.
   default (with a non-fatal notice), while every valid setting still restores,
   and startup reads the theme defensively so a bad value degrades to the default
   theme instead of crashing. (#609)
+
 - **ContraDB import: single-file promenade, single-file circle, and "take
   neighbors" now recognize instead of falling through to custom.** Deferred
   from the #585 recognizer sweep: `single file promenade …` (e.g. `single
@@ -461,6 +548,7 @@ each release so store builds and tags can be traced back to an entry.
   `circle`, and `give_and_take` moves with a new `singleFile` flag on the
   first two. Any figure that doesn't match one of these patterns still falls
   through to editable custom, unchanged. (#634)
+
 - **ContraDB import: figures with a `balance &` prefix now recognize instead of
   falling through to a plain custom figure.** ContraDB renders a balanced move as
   `balance & <move>` (e.g. `balance & Rory O'More right`), and the `&` was being
@@ -469,6 +557,7 @@ each release so store builds and tags can be traced back to an entry.
   (e.g. `(in long waves)`) is preserved verbatim on the recognized figure. Notes
   that interrupt a figure mid-phrase still stay custom, and malformed/unbalanced
   parentheses are handled safely. (#578)
+
 - **ContraDB import: more real-world figures recognize instead of falling
   through to custom.** Extended the ContraDB figure recognizers to cover renders
   that were dropping to custom over a single unconsumed qualifier: `star` now
@@ -481,6 +570,7 @@ each release so store builds and tags can be traced back to an entry.
   subject (ContraDB's rendered form) now recognizes. Any leftover text is
   preserved verbatim as the figure's note; unrecognized figures still import as
   editable custom. (#585)
+
 - **Caller's Box import: the trailing balance on "pass the ocean" now merges
   into the ocean instead of importing as a separate figure.** The Caller's Box
   writes the figure across two lines — `(4) Pass the ocean` followed by
@@ -493,95 +583,106 @@ each release so store builds and tags can be traced back to an entry.
   destined for a following swing), only immediately-adjacent lines within a
   phrase, and never drops or fabricates choreography. (#577)
 
-## [0.1.0] - 2026-07-29
+### Security
 
-Flutter build: `0.1.0+1`.
+- **ContraDB dance and program imports are now restricted to the official
+  ContraDB host.** `buildContraDbUrl` and `buildContraDbProgramUrl` used to
+  preserve whatever host a pasted URL carried, verbatim — trusting any public
+  host as "ContraDB" so long as the path looked like `/dances/N` or
+  `/programs/N`. Both builders now enforce the same host allowlist
+  (`contradb.com` / `www.contradb.com`) already used to auto-detect a pasted
+  ContraDB link, rejecting any other host before a URL is even built, and now
+  require `https` (a bare `http://` link is rejected as an insecure scheme).
+  This mirrors the Caller's Box host allowlist from the previous release
+  (#621) and intentionally drops self-hosted-ContraDB-mirror support — the
+  existing fetch-time SSRF guard (blocking loopback/private-IP targets)
+  remains independent defense-in-depth regardless of host. (#667)
 
-This section covers the `0.1.0` line. **`v0.1.0-beta.5`** (this pre-release) builds
-on **`v0.1.0-beta.4`** with a round of caller-authoring and polish work: a dedicated
-**Walkthrough** field for teaching notes, a reusable **walkthrough snippet library**
-that pre-fills it from your own step text, **grouping your Collection by category**
-(a dance's "vibe"), an explicit **end facing for swings**, and **exported documents
-that now follow your language** — alongside the switch to plain, **integrity-checked
-backups**. The changes **since beta.4** are grouped first; the standing feature
-overview and install notes follow.
-
-### Added
-
-- **A dedicated Walkthrough field for every dance.** Each dance now has its own
-  free-text **Walkthrough** — a home for the step-by-step teaching notes you say
-  while walking a dance through, kept separate from the shorter Calling notes. It
-  appears in the dance detail view and travels with the dance.
-- **A walkthrough snippet library.** Build up a personal, per-figure library of your
-  own walkthrough wording. The first time you walk a figure the app learns your text,
-  and from then on it pre-fills the Walkthrough for any dance that uses that figure.
-  Editing a snippet asks whether to change it **everywhere** or **just for this
-  dance**, and you can manage the whole library from **Settings ▸ Defaults**.
-- **Group your Collection by category (a dance's "vibe").** Pick a tag and the
-  Collection splits into that category and everything else, so you can jump to a
-  "drawer" of bouncy, flowy, or glossy dances mid-evening. Reusable **choice** fields
-  — your band adjectives, say — can be built up on the spot with a **＋** while you
-  edit. It reuses the tags and custom fields you already have, so there is no new
-  data to set up.
-- **Swings can record their end facing.** A swing can be marked as ending facing **up
-  or down the hall** or **out of the set**. The usual "in"/across ending renders
-  exactly as before; the marker appears — on dance cards, in Perform, and in exports —
-  only when a swing ends somewhere other than the default.
-- **Backups now carry an integrity check.** Every exported backup wraps your data with
-  a **SHA-256 checksum**, so a corrupted backup is caught and refused at
-  restore — before any of your current data is touched — instead of importing
-  something damaged. The export stays a single, human-readable `.json` file; the
-  checksum guards against accidental corruption, not encryption, and — because it
-  travels inside the file — is not a defense against deliberate tampering.
-
-### Changed
-
-- **Exported documents now follow your language.** Printed and shared dance cards, set
-  lists, and the programming matrix (both plain-text and PDF exports) now render their
-  field labels — Formation, Level, Band, Caller, Venue, the matrix legend, and the
-  rest — in the app's current language, matching the six languages the interface
-  already speaks, instead of always printing in English. The diagnostics log export
-  stays English by design as a maintainer support artifact.
-- **More of the app's status messages are translated.** Core validation, warning, and
-  import-issue messages that previously always rendered in English now appear in your
-  language. (These translations are machine-assisted and anchored to the app's
-  existing terminology; a native-speaker review pass is planned.)
-- **Imports recognise more figures.** The Caller's Box and ContraDB importers now cover
-  more figure phrasings and rendered figures, so fewer moves fall through to
-  unstructured custom text.
-- **Caller's Companion imports read more date formats.** Composed and revised dates
-  written in non-ISO or localized forms are now parsed instead of being dropped.
-
-### Removed
-
-- **Passphrase-encrypted backups (`.ccbackup`) have been dropped.** The short-lived
-  encrypted-backup option introduced in beta.4 is gone; backups are now always a
-  plain, human-readable `.json` file protected by an integrity checksum (see Added). A
-  backup holds your own library and settings — no passwords, accounts, or third-party
-  personal data — and it never leaves your device unless you export it, so the
-  encryption option added real complexity for little practical benefit. Treat an
-  exported backup like any personal document and store it somewhere you trust.
-  **Breaking:** the app can no longer open existing `.ccbackup` files. If you have one,
-  restore it with the beta.4 build and export a fresh `.json` backup.
-
-### Fixed
-
-- **The Perform card fits the screen again.** Auto-size now scales the card to fit
-  windows smaller than full-screen, so the B1 section no longer clips on macOS.
-- **Settings section titles are translated.** The navigation titles on Settings
-  sub-screens now follow your chosen language instead of staying in English.
+- **Imports can only reach the sources they claim to.** Both Caller's Box and
+  ContraDB URL builders now enforce a host allowlist before a request is made,
+  so a pasted link that merely *looks* like one of those sites can no longer
+  redirect an import at an arbitrary host.
+- **Program imports get the same text sanitizing dances already had.** The
+  protections against invisible and direction-changing characters that were
+  applied to dance imports now cover program imports too, so a crafted file
+  can't smuggle deceptive text through the program path.
+- **Caller's Companion choreography is read fail-closed.** The newly-read
+  transcription table is sanitized and bounded — capped rows and lengths — so a
+  malformed or hostile `.USR` cannot exhaust memory or inject control
+  characters.
+- **Searches containing `%` or `_` no longer over-match.** Those characters are
+  wildcards to the database; they are now escaped, so searching for them finds
+  them literally.
+- **Downloaded updates are written to an unpredictable path, create-only.** The
+  update download no longer writes to a guessable filename, closing a local
+  symlink-overwrite vector on shared machines.
+- **Diagnostics can no longer leak in release builds.** Debug logging that could
+  print file paths, errors and user data is now consistently compiled out of
+  release builds.
+- **Deleting something is now atomic.** Three places checked whether a record
+  was still referenced and then deleted it in two separate steps; both halves
+  now happen in one transaction, so a concurrent edit can't slip between them.
+- **Backups are exported from a single consistent snapshot.** The export now
+  reads inside one transaction, so a backup taken while you are editing can't
+  capture a half-updated library.
+- **Restoring a corrupt backup can no longer brick startup.** Restored settings
+  are validated before they are applied, and a bad value falls back to its
+  default instead of crashing the app on next launch.
+- **Robustness fixes across storage.** Large batch look-ups are chunked so they
+  can't exceed the database's variable limit, a malformed custom-field choice no
+  longer throws while loading, and the per-dance calling-history queries are
+  backed by a new index instead of scanning every program slot.
+- **Accessibility consistency.** Announcements now honour the ambient text
+  direction rather than assuming left-to-right, and the Perform view's
+  auto-sizing respects the system **Reduce motion** setting.
+- **Continuous integration now runs the supply-chain suites on every pull
+  request** and analysis is stricter, so the checks that protect releases can't
+  silently stop running.
 
 ### Data / Migrations
 
-- **Schema advances from version 14 to 15 — automatically and losslessly.** A single
-  additive step runs on first launch: a new `walkthrough` text column on dances, empty
-  for every existing dance. Nothing is back-filled or rewritten, and upgrading is a
-  normal in-place install with no reinstall and no manual data steps. (Upgrading
-  *directly from beta.1* still runs the one-time ocean-wave migration described in the
-  beta.2 notes, and needs the Android reinstall below.)
+- **Schema advances from version 15 to 20 — automatically and losslessly, on
+  first launch.** Five steps run in order; nothing needs a reinstall and there
+  are no manual data steps. Three of them rewrite stored figures, which is why
+  this release also refreshes the derived search index for the rows it touched:
+  - **v16** adds an index used by per-dance calling history. No data changes.
+  - **v17** does nothing. It was going to rewrite your typed prose, but that
+    change was withdrawn before release (see Fixed) and the step is kept as a
+    documented no-op so the later numbers don't shift.
+  - **v18** converts stored `allemande orbit` figures into the two concurrent
+    moves they actually are (an allemande *while* the others orbit), carrying
+    the original beat count across as the pair's shared total.
+  - **v19** renames stored `form a wave` figures to `form short waves`. Values
+    are carried over untouched — only the identity and display name change.
+  - **v20** merges the two "gate" moves into one and rewrites stored figures of
+    both onto it, materializing each retired move's own defaults so no figure
+    changes meaning. Beat counts are carried over verbatim.
+  - Every rewrite is per-dance and per-figure fail-safe: anything that cannot be
+    remapped cleanly is left exactly as it was rather than dropped or altered.
+  - **Upgrading directly from beta.1** still runs the one-time ocean-wave
+    migration described in the beta.2 notes, and needs the Android reinstall
+    noted below.
+- **The move vocabulary advances from version 16 to 23.** New moves and
+  parameters (courtesy turn, orbit as its own move, wave balance details, hey
+  "run until you meet", single-file promenade and circle, mad robin and
+  butterfly whirl details) are additive and do not change how existing figures
+  render. The exceptions are the three identity changes above — the wave-move
+  rename, the `allemande orbit` split, and the gate merge — and each has a
+  migration that updates your data for you.
+- **Timing is preserved throughout.** No migration in this release changes any
+  dance's beat totals or A1/A2/B1/B2 placement.
+- **Back up first if you like.** Upgrading is designed to be safe and automatic,
+  but **Settings ▸ General ▸ Export a backup** before a big version jump is
+  never a bad idea. Downgrading to an older build after these migrations is not
+  supported.
 
 ### Known issues
 
+- **On beta.4 or beta.5, your in-app update check can't see this release.** The
+  update site lost its manifest signature on 29 July, and the updater is
+  fail-closed, so checks have been reporting "no update available". Download this
+  build from the Releases page once; publishing it restores the signature and
+  in-app checks work normally from then on.
 - **Coming from beta.1? A one-time Android reinstall is still required.** beta.2
   unified the Android application identifier with Apple
   (`org.callerscompendium.compendiumApp`), so a beta.1 sideload cannot upgrade in
@@ -589,10 +690,15 @@ overview and install notes follow.
   app, install this build, then restore.**
 - **Have an older `.ccbackup` file?** The encrypted-backup format from beta.4 can no
   longer be opened. Restore it with the beta.4 build and export a fresh `.json` backup.
+- **Check your gates.** Gates no longer invent an ending facing the source never
+  stated (see Changed). If you had gates before this build, some may have been
+  showing a facing that was wrong — worth a look.
 - **In-app update checks remain opt-in.** Automatic checks and the beta channel are off
   by default and enabled in Settings; when on, updates are signature-verified. Either
   way, you can always watch the GitHub Releases page for new betas.
 - **Windows and Linux desktop builds are still unsigned** (see Platforms & install).
+- **The user guide has no screenshots yet.** The written guides are current; the
+  images pass is still to come.
 
 ### What you can do today
 
@@ -609,9 +715,11 @@ overview and install notes follow.
   **Walkthrough** for each dance and let your **snippet library** pre-fill it from
   wording you have used before.
 - **Import your existing library.** Bring dances in from a JSON backup, The Caller's
-  Box, ContraDB, and Caller's Companion (`.USR`); import **programs** from Caller's
-  Companion (`.USR`) and from **ContraDB** as well. Every import is reviewable and
-  undoable with one tap.
+  Box, ContraDB, and Caller's Companion (`.USR`) — with the choreography, your
+  venues, related-dance links and call-button shorthands coming across too; import
+  **programs** from Caller's Companion (`.USR`) and from **ContraDB** as well. Every
+  import is reviewable and undoable with one tap, and near-duplicates are flagged
+  before they land.
 - **Share between devices.** Send a program and its dances to another device, or open
   one that was shared with you.
 - **Search the way you talk.** Dialect-aware search and filtering understands the
@@ -650,13 +758,13 @@ source is safe. Before a large import — or any upgrade — you can export a ba
 
 Please tell us what breaks or feels wrong:
 <https://github.com/ibanner56/CallersCompendium/issues>. Include your platform, the
-version (`0.1.0-beta.5`), and the steps you took. For import problems, a small
+version (`0.1.0-beta.6`), and the steps you took. For import problems, a small
 sanitized sample of the file you were importing helps enormously.
 
 ### License
 
 Caller's Compendium is free software under the **AGPL-3.0**, with an
-[additional permission](../LICENSE-EXCEPTION.md)
+[additional permission](https://github.com/ibanner56/CallersCompendium/blob/main/LICENSE-EXCEPTION.md)
 that allows distribution through managed application marketplaces (Apple's App
 Store, Google Play, and comparable stores) under those stores' required terms —
 while the source stays fully AGPL-3.0 and every user keeps their rights to it. The

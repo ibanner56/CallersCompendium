@@ -303,6 +303,15 @@ design/domain-model.md "CC parity backfill".*
   Delivered as three atomic PRs: **a** reusable `PublishedSource` entity +
   storage (schema v8), **b** search/FTS integration + `SourceFilter`, **c**
   editor UI. Box is checked when **c** lands.
+- [x] 4b.6 **"Meanwhile" (simultaneous) figures** — a first-class container for
+  two actions that happen at once (epic #572), the model gap that previously
+  forced any concurrent line into unstructured text. Delivered as four atomic
+  PRs: **#590** core model + serialization + search (a `meanwhile` container
+  figure holding sides, with a shared beat total), **#591** import fan-out (The
+  Caller's Box `||` lines and ContraDB "while" phrasing), **#593** figure-editor
+  authoring, and **#594** render / Perform / export ("A while B"). This is also
+  the target shape the schema-v18 `allemande_orbit` retirement rewrites into,
+  and it recurses — a TCB `||` line can hold two gates (schema v20).
 
 ## Phase 5 — Performance mode
 
@@ -539,7 +548,9 @@ taxonomy are unchanged.
   `Venue` → venue entity (delivered — schema v14, Phase 4.2 entity, plus the
   CC `.USR` import mapping into it), `Term` → glossary,
   `Dance_Related` → related links (delivered).
-  Free-text figures import as `custom` (see design/imports.md §2).
+  Free-text figures route through the shared `parseFigureLine` grammar: lines the
+  parser recognizes import as STRUCTURED moves and only the remainder falls back
+  to `custom` (see design/imports.md §2).
   - **Clipboard/text migration adapter delivered** (part 1 of 2):
     `CallersCompanionTextAdapter` (pure-Dart CORE `SourceAdapter`,
     `ProvenanceSource.callersCompanion`) imports **dances** from CC's "copy
@@ -615,10 +626,16 @@ taxonomy are unchanged.
       non-fatal `ImportIssue` rather than a dangling `targetDanceId`.
       Fail-closed caps: `maxDanceRelatedRows=20000`,
       `maxRelatedDancesPerDance=512`. Undo reverts created links.
-    - Honest caveats keeping 6.5 open: the free-text figure → `custom` scrub is
-      **unvalidated against real figure data** (the sample library has no
-      `A1`–`B2`/`Moves` notation). One source table is confirmed present in
-      the real file but not yet mapped:
+    - The free-text figure path is now **validated against real CC figure data**
+      (#559): the transcription does not live in the Dance row's `A1`–`C2`
+      columns (those are empty in the real library, which is why the importer
+      previously produced zero figures) but in the separate `Phrase` table.
+      `extractCcUsrArchive` now joins it, and the real-file test asserts all 40
+      dances in the sample `CallersCompanion2.USR` come across with a
+      Phrase-joined body (162 `Phrase` rows) rather than bodyless. `InsertCall`
+      call buttons also seed figure shorthands (#562), and the ingestion is
+      sanitized + fail-closed bounded (#561). One source table is confirmed
+      present in the real file but not yet mapped:
       - `Term` → glossary import remains **blocked** on the glossary browser,
         which is not yet built (post-GA "later" scope). **Tracked in #695.**
         It is now the only remaining unmapped CC table for 6.5.
@@ -644,7 +661,7 @@ taxonomy are unchanged.
 ## Phase 7 — Release
 
 - [ ] 7.1 Packaging/signing for all platforms; update channel
-  - Architecture — [ADR-002](adr/002-distribution-and-update-channels.md); release runbook — [releasing.md](dev/releasing.md). Box stays open: **Android release APKs are now signed** (upload keystore + four CI secrets configured, validated end-to-end on a release run) and **macOS release builds are now signed with a Developer ID and notarized**, but **Windows and Linux** desktop builds still ship **unsigned** (deferred signing wave). GitHub Pages is now enabled, so the per-channel update manifests are hosted and served (and a public landing page ships from `site/`); as of beta.4 the in-app update path also **verifies a signed (Ed25519) update manifest, restricts artifacts to a GitHub-owned host allowlist, and gates launch on that verification**. The **first public beta is well underway** — `v0.1.0-beta.1` (desktop + Android), `v0.1.0-beta.2`, `v0.1.0-beta.3`, `v0.1.0-beta.4`, and the current `v0.1.0-beta.5` are published on the [Releases page](https://github.com/ibanner56/CallersCompendium/releases); each build ships signed + notarized macOS and signed Android artifacts alongside unsigned Windows/Linux, with iPhone/iPad delivered to TestFlight testers (see the CHANGELOG, including the one-time Android reinstall note for the unified application id).
+  - Architecture — [ADR-002](adr/002-distribution-and-update-channels.md); release runbook — [releasing.md](dev/releasing.md). Box stays open: **Android release APKs are now signed** (upload keystore + four CI secrets configured, validated end-to-end on a release run) and **macOS release builds are now signed with a Developer ID and notarized**, but **Windows and Linux** desktop builds still ship **unsigned** (deferred signing wave). GitHub Pages is now enabled, so the per-channel update manifests are hosted and served (and a public landing page ships from `site/`); as of beta.4 the in-app update path also **verifies a signed (Ed25519) update manifest, restricts artifacts to a GitHub-owned host allowlist, and gates launch on that verification**. The **first public beta is well underway** — `v0.1.0-beta.1` (desktop + Android), `v0.1.0-beta.2`, `v0.1.0-beta.3`, `v0.1.0-beta.4`, `v0.1.0-beta.5`, and the current `v0.1.0-beta.6` are published on the [Releases page](https://github.com/ibanner56/CallersCompendium/releases); each build ships signed + notarized macOS and signed Android artifacts alongside unsigned Windows/Linux, with iPhone/iPad delivered to TestFlight testers (see the CHANGELOG, including the one-time Android reinstall note for the unified application id).
   - **Delivered**
     - Reusable CI (`_checks.yml` via `workflow_call`) with a thin `ci.yml` caller (#228).
     - Release pipeline `release.yml` (#230): a `v*` tag reuses the checks gate, then a build matrix produces a **draft** GitHub Release of **unsigned** desktop artifacts — Linux x64 (AppImage + tar.gz), macOS universal (dmg + zip), Windows x64 (installer + zip) — under deterministic `CallersCompendium-<ver>-<platform>-<arch>.<ext>` names, plus a `SHA256SUMS` manifest, keyless SLSA build-provenance + artifact attestation, and the per-channel `stable.json` / `beta.json` update manifests. Least-privilege (global `contents: read`; only the publish job elevates), canonical-repo + tag guards, SHA-pinned actions.
