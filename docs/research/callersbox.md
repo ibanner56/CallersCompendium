@@ -481,7 +481,7 @@ before / 104,078 after). Line counts below are occurrences of a
 `phrases[].figures[]` line over that same population.
 
 **⚠️ Mixers (#732) are NOT excluded here, and that is why the structured share
-below does not line up with the 80.96%/82.55% series #734 quotes.** That series
+below does not line up with the 80.96%/82.57% series #734 quotes.** That series
 is measured over a non-mixer population (100,649 figures); this one includes
 mixers (104,018). The two are not comparable as absolutes — the *deltas* are.
 Whenever a figure here is set beside one from that series, check the population

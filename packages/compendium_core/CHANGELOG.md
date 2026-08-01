@@ -131,7 +131,7 @@
     `walk forward` lines newly structuring end-to-end (0 → 451), and
     **per-dance beat totals byte-identical for all 11,499 dances**. Measured
     against `22d5664b` (i.e. on top of #734); that share is not comparable as
-    an absolute to #734's own non-mixer 80.96%/82.55% series, though the
+    an absolute to #734's own non-mixer 80.96%/82.57% series, though the
     deltas are. `atypical_beats` warnings rise by 340, almost all a 4-beat
     `pass_through` (`goodBeats: [2]`) — a leisurely pass through is a warning,
     never an error, and no beats param is fabricated to suppress it.
