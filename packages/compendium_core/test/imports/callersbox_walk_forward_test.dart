@@ -5,10 +5,11 @@ import 'package:test/test.dart';
 
 /// Issue #733 — The Caller's Box `walk forward` lines.
 ///
-/// TCB writes `walk forward` on 879 figure lines of the `Permission: full`
-/// corpus. It is not one family and it is NOT a missing move; every group below
-/// maps onto moves the taxonomy already has (no new `MoveDef`, no taxonomy
-/// version bump):
+/// TCB writes `walk forward` on a large minority of its figure lines. It is not
+/// one family and it is NOT a missing move; every group below maps onto moves
+/// the taxonomy already has (no new `MoveDef`, no taxonomy version bump). Line
+/// counts and the population they are measured over live in the `walk forward`
+/// census in `docs/research/callersbox.md`, not here.
 ///
 /// - **1a — absorbed.** `[<dancer>] walk forward; form long wave in center`
 ///   emits ONLY `form_a_long_wave`, with the walk clause's dancer TRANSFERRED
@@ -59,10 +60,11 @@ void main() {
       expect(figures.single.move, 'form_a_long_wave');
     });
 
-    // THE regression that matters: ~216 corpus lines put the role on the WALK
-    // clause and none on the wave clause, while `form_a_long_wave.who` defaults
-    // to `role2s`. Absorbing without transferring the subject would render
-    // every men's line as a women's figure.
+    // THE regression that matters: every subject-bearing line in this group
+    // states the role on the WALK clause and NONE on the wave clause, while
+    // `form_a_long_wave.who` defaults to `role2s`. Absorbing without
+    // transferring the subject would render every men's line as a women's
+    // figure.
     test('a "Men …" source NEVER yields a role2s subject', () {
       final figure = _parse(
         'Men walk forward; form long wave in center',

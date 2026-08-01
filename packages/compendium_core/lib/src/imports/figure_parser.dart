@@ -1317,9 +1317,12 @@ _Match? _passThrough(List<String> w) {
   return _Match('pass_through', {'dir': ?dir});
 }
 
-/// Tier B (#733): TCB writes "Walk forward to N2" (132 corpus lines), "… to
-/// shadow" (18), "… to N1" (6), "… to partner" (5), "… to N0" (4), "… to N3"
-/// (4) — a **pass through**.
+/// Tier B (#733): TCB writes "Walk forward to N2" / "… to shadow" / "… to N1"
+/// / "… to partner" / "… to N0" / "… to N3" — a **pass through**. (Line counts
+/// and the population they are measured over live in the `walk forward` census
+/// in `docs/research/callersbox.md`; they are not repeated here, where they
+/// would drift silently the next time the mirror is re-pulled and could not
+/// state their own population filter.)
 ///
 /// `to <dancer>` names the DESTINATION you arrive at, not a dancer you pass:
 /// you walk forward past your current neighbour and finish facing the named

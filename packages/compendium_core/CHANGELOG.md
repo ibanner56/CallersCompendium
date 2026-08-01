@@ -119,11 +119,16 @@
     `until right shoulders are adjacent`, `(out of the set)`), a non-dancer or
     qualified destination (`to center`, `to next star`, `to shadow S1`), a
     stated subject on either pass-through reading (`pass_through` has no `who`),
-    and **all 27 diagonal lines** (`form_a_long_wave` has no `dir` at all;
-    `form_short_waves`'s `dir` describes the wave's orientation, not the
-    direction of travel; `(optional spin)` has no slot) stay `custom`.
-  - **Measured over the whole mirror:** custom figures 22,180 → **21,725**
-    (−455), structured share 78.78% → **79.23%**, and **per-dance beat totals
+    and **every diagonal walk-forward line** (`form_a_long_wave` has no `dir` at
+    all; `form_short_waves`'s `dir` describes the wave's orientation, not the
+    direction of travel; `(optional spin)` has no slot) stay `custom`. 55 lines
+    carry a diagonal on the walk clause; 29 of them would structure if it were
+    flattened away, which is the measured cost of declining.
+  - **Measured over the whole mirror**, `Permission: full` (11,499
+    figure-bearing dances — the other 9,017 parseable records are metadata-only
+    stubs with no figures): custom figures 22,180 → **21,725** (−455),
+    structured share 78.78% → **79.23%**, **450** `walk forward` lines newly
+    structuring end-to-end (0 → 450), and **per-dance beat totals
     byte-identical for all 11,499 dances**. `atypical_beats` warnings rise by
     339, almost all a 4-beat `pass_through` (`goodBeats: [2]`) — a leisurely
     pass through is a warning, never an error, and no beats param is fabricated

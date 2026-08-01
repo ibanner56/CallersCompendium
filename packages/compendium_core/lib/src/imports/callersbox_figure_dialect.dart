@@ -297,7 +297,7 @@ class _WalkForwardClause {
 /// Recognises a clause that is EXACTLY `[<dancer set>] walk forward`, on
 /// already-SCRUBBED text (so gendered terms have become `role1`/`role2`).
 ///
-/// Anchored at BOTH ends, which is what keeps the ~50 genuinely bare and the
+/// Anchored at BOTH ends, which is what keeps the genuinely bare and the
 /// qualified lines custom (#733 group 3): `walk forward one step`, `walk
 /// forward slowly (step; step)`, `walk forward on slight left diagonal`, `walk
 /// forward (out)`, `walk forward until right shoulders are adjacent` and
@@ -347,21 +347,25 @@ const String _walkForwardPassThroughMove = 'form_short_waves';
 /// to the ordinary per-clause path (where a bare walk forward is custom and the
 /// whole line therefore stays custom).
 ///
-/// Two readings, decided by what the FORMATION clause resolves to:
+/// Two readings, decided by what the FORMATION clause resolves to. (Per-shape
+/// line counts, and the population they are measured over, live in the
+/// `walk forward` census in `docs/research/callersbox.md` rather than here —
+/// an inline count drifts silently the next time the mirror is re-pulled and
+/// cannot state its own population filter.)
 ///
-/// - **`form long wave …` → absorb (group 1a, 142 corpus lines).** Emit ONLY
+/// - **`form long wave …` → absorb (group 1a).** Emit ONLY
 ///   the wave figure and DROP the travel clause. That is not data loss:
 ///   `form_a_long_wave.in` defaults to `true` and the renderer's entry for the
 ///   move reads "`<who>` dance in to a long wave in the center", so the
 ///   INBOUND TRAVEL is already in the target move's rendered text — a separate
 ///   travel figure would state it twice. The clause's `who` is TRANSFERRED onto
 ///   the wave (and `assumedSubject` cleared): every subject-bearing line in
-///   this group states the role on the WALK clause and none on the wave
-///   clause, while `form_a_long_wave.who` defaults to `role2s`, so absorbing
-///   without the transfer would render all 66 `Men walk forward …` lines as
-///   women's figures.
+///   this group states the role on the WALK clause and NONE on the wave
+///   clause, while `form_a_long_wave.who` defaults to `role2s` — so absorbing
+///   without the transfer would render every `Men walk forward …` line as a
+///   women's figure.
 /// - **`form wave of four with <dancer>` → pass through, then the wave (group
-///   1b, 127 lines).** Walking forward into a wave of four with the dancer you
+///   1b).** Walking forward into a wave of four with the dancer you
 ///   are NOT currently facing is a pass through; the wave clause already
 ///   structures on its own today, so the pair emits two figures. A bare
 ///   `pass_through()` is emitted and `dir`/`shoulder` are deliberately NOT
@@ -725,13 +729,16 @@ final RegExp _courtesyTurnAnchor = RegExp(
 /// The same gap [_gateAnnotation] and [_courtesyTurnAnnotation] close, for the
 /// `walk forward to <dancer>` lines #733 maps onto `pass_through`.
 ///
-/// Two corpus lines spell the travel out in a parenthetical — `Walk forward to
-/// N2 (women going on slight right diagonal, men on slight left diagonal)` and
-/// its N3 mirror — and [_stripAnnotations] drops it for recognition. Without
-/// this, teaching the recognizer those lines would make them structure while
-/// SILENTLY LOSING the per-role diagonals, which the custom fallback preserves
-/// today. Structuring a line must never cost information the unstructured
-/// reading kept.
+/// Exactly TWO lines of the `Permission: full` corpus spell the travel out in
+/// a parenthetical — `Walk forward to N2 (women going on slight right
+/// diagonal, men on slight left diagonal)` and its N3 mirror. That count is
+/// stated inline because it is the whole justification for this
+/// pre-recognizer's existence: at zero lines the code would be dead, and the
+/// same population basis the `walk forward` census uses applies. Without it,
+/// [_stripAnnotations] drops the parenthetical for recognition, so teaching
+/// the recognizer those lines would make them structure while SILENTLY LOSING
+/// the per-role diagonals the custom fallback preserves today. Structuring a
+/// line must never cost information the unstructured reading kept.
 ///
 /// `pass_through` has no slot any of this could faithfully fill, so EVERY
 /// annotation is preserved verbatim as the note and none is structured — and

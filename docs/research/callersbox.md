@@ -476,11 +476,22 @@ child that could not structure.
 
 Method: the real `CallersBoxAdapter` run over the whole 24,107-file mirror,
 before and after the change, restricted to the **`Permission == "full"`**
-population (11,499 dances, 104,541 figure lines before / 104,600 after). The
-3,591 `NOT_FOUND` placeholder files and the metadata-only `search`/blank tiers
-carry no figures. Line counts below are occurrences of a `phrases[].figures[]`
-line, counted over that same population — so they run slightly higher than the
-non-mixer, non-deprecated counts quoted on the issue.
+population (11,499 dances, 104,541 figure lines before / 104,600 after). Line
+counts below are occurrences of a `phrases[].figures[]` line over that same
+population — so they run slightly higher than the non-mixer, non-deprecated
+counts quoted on the issue. Mixers (#732) are **not** excluded here.
+
+**⚠️ Read the dance denominator carefully — it is narrower than the one the
+v21/v23 sections above use, and that is not a shrinking corpus.** Of the
+24,107 mirror files, 3,591 are `NOT_FOUND` placeholders, leaving **20,516**
+parseable dance records — the denominator those sections quote. Only the
+**11,499** `full` ones carry figures at all (`callersbox_adapter.dart`
+returns `const []` for every other tier), so the remaining 9,017 are
+metadata-only stubs with zero figures and are byte-identical under any figure
+change, trivially. The FIGURE absolutes are therefore on the identical basis
+and chain exactly off v23's (custom 22,180 → 22,180, structured share 78.78%
+→ 78.78% at this branch's base); only the *dance count* in the beat-total gate
+below is stated over the narrower, figure-bearing 11,499.
 
 **879** lines mention "walk forward". It is not one family, and none of the
 three real families needs a taxonomy move:
@@ -516,24 +527,51 @@ with shadow` stay `custom` rather than silently dropping the role. `who` DOES
 transfer on group 1a, and it must: every subject-bearing line in that group
 states the role on the WALK clause and none on the wave clause, while
 `form_a_long_wave.who` defaults to `role2s` — absorbing without transferring
-would render all 66 men's lines as women's figures. Measured after the change,
-`form_a_long_wave.who` is `role1s` x69, `role2s` x75, `ones` x4, defaulted x228
-(the defaulted count is unchanged from before).
+would render all 66 men's lines as women's figures. Measured after the change
+over these lines specifically, `form_a_long_wave.who` is `role1s` x66,
+`role2s` x72, `ones` x4 (the corpus-wide totals are 3 higher in each role,
+from pre-existing lines this change does not touch).
 
-**⚠️ The diagonals are declined, deliberately.** 27 lines write
-`walk forward on [slight] left/right diagonal [(optional spin)]; form wave of
-four with <dancer>` — the shape group 1b would otherwise claim (55 lines
-mention a walk-forward diagonal in all). `form_a_long_wave` has
-no `dir` param at all; `form_short_waves` does, but its domain
-(`set_direction_acrossish`) describes the WAVE's orientation while the source
-states the direction of TRAVEL, and the recognizer already refuses TCB's
-explicit `form diagonal wave of four` on the same prefer-custom grounds.
-`(optional spin)` has no slot on any of the three moves. So all 26 stay
-`custom` rather than being flattened into a plain `across` wave.
+**⚠️ The diagonals are declined, deliberately.** On **55** lines the
+walk-forward clause itself carries a diagonal travel qualifier —
+`walk forward on [slight|sharp] left/right diagonal [(optional spin)]`. (62
+lines mention both "walk forward" and "diagonal"; on the other 7 the diagonal
+is somewhere else, e.g. inside the `(…)` annotation of
+`Walk forward to N2 (women going on slight right diagonal, …)`.)
+
+**29 of the 55 are the actual cost of declining** — measured by flattening the
+qualifier away and re-parsing: those 29 would structure end-to-end without it,
+while the other 26 stay `custom` for independent reasons (`form wave of two`,
+`form intersecting waves of four`, `form two-faced line`, a bare diagonal walk
+with no formation clause). Of the 29, **28** are group-1b-shaped
+(`…; form wave of four with <dancer>`) and **1** is group-2-shaped
+(`Walk forward on left diagonal (optional spin) to N1`); **19** also carry
+`(optional spin)`.
+
+All 29 stay `custom` rather than being flattened into a plain `across` wave:
+`form_a_long_wave` has no `dir` param at all, and `form_short_waves` does but
+its domain (`set_direction_acrossish`) describes the WAVE's orientation while
+the source states the direction of TRAVEL. The recognizer already refuses
+TCB's *explicit* `form diagonal wave of four` on the same prefer-custom
+grounds, so inferring that value from a travel qualifier would be strictly
+more aggressive than what the parser already declines. `(optional spin)` has
+no slot on any of the three moves either.
 
 **Whole-corpus effect**, same harness, same mirror: **450** of the 879 lines
-newly structure end-to-end (193 → 643 fully-structured lines; no line shape
-stops structuring). Custom figures 22,180 → **21,725** (−455), structured share
+newly structure end-to-end (**0 → 450**; no line shape stops structuring).
+
+> **A harness caveat worth recording, because it nearly went into this doc as
+> fact.** A first pass reported "193 → 643". That check tested only whether
+> each top-level figure was non-`custom`, and a `meanwhile` container is
+> non-`custom` even when every one of its concurrent sides is `custom` — so it
+> counted 193 `||` lines as already-structured at base when in truth **none**
+> of them was. Recursing into the sides gives 0 → 450. The *delta* was
+> identical either way (643 − 193 = 450 − 0), which is exactly why it survived
+> and the absolutes did not: **deltas are portable across harnesses, absolute
+> counts are not.** Quote the delta; re-derive an absolute against the harness
+> you are comparing to.
+
+Custom figures 22,180 → **21,725** (−455), structured share
 78.78% → **79.23%**, per-dance beat totals **byte-identical for all 11,499
 dances**. The figure count rises by 59 (group 1b emits two figures where one
 custom stood; group 1a emits one). 423 dances see a per-FIGURE beat sequence
