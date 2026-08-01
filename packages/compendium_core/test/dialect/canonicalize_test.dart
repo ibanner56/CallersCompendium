@@ -274,4 +274,72 @@ void main() {
       expect(texts, containsAll(['swing', 'petronella']));
     });
   });
+
+  group('canonicalization is UNSAFE for long-form prose (issue #613)', () {
+    // These document WHY hand-typed prose (hook/callingNotes/walkthrough) is
+    // stored verbatim rather than canonicalized. The always-on legacy synonym
+    // set includes ordinary English words and proper nouns, so a word-boundary
+    // substitution over free prose corrupts dance titles, tune names and
+    // people's names. If a future change re-routes prose through this
+    // chokepoint, these tests are the tripwire.
+    //
+    // Figure NOTES are still canonicalized on purpose: they carry modifiers and
+    // clarifiers for the figure text beside them, so their language must stay
+    // consistent with the figure (and importers already store them canonically).
+
+    test('mangles a real contra dance title', () {
+      expect(
+        canonicalizeText('Lady of the Lake is a chestnut.', larks),
+        'role2 of the Lake is a chestnut.',
+      );
+    });
+
+    test('mangles a real tune title', () {
+      expect(
+        canonicalizeText('We opened with Larks in the Morning.', larks),
+        'We opened with role1s in the Morning.',
+      );
+    });
+
+    test("mangles a person's name", () {
+      expect(
+        canonicalizeText('Taught to me by Robin Hayden at NEFFA.', larks),
+        'Taught to me by role2 Hayden at NEFFA.',
+      );
+    });
+
+    test('mangles ordinary English', () {
+      expect(
+        canonicalizeText('The ladies room is past the stage.', larks),
+        'The role2s room is past the stage.',
+      );
+      expect(
+        canonicalizeText('One man short, so I danced it myself.', larks),
+        'One role1 short, so I danced it myself.',
+      );
+    });
+
+    test('the mangling survives re-rendering under a different dialect', () {
+      // The round trip does not restore the original: a title the caller typed
+      // re-renders as whatever the READER's dialect calls that role.
+      const stored = 'role2 of the Lake is a chestnut.';
+      expect(
+        renderer.renderFreeText(stored, larks),
+        'robin of the Lake is a chestnut.',
+      );
+      expect(
+        renderer.renderFreeText(stored, Dialect.leadsFollows),
+        'follow of the Lake is a chestnut.',
+      );
+    });
+
+    test('canonicalization also discards the caller\'s capitalisation', () {
+      // `Substitutor` supports `preserveCase`, but `canonicalize` does not
+      // enable it, so both upper and title case are flattened.
+      expect(
+        canonicalizeText('LARKS and Robins balance the ring.', larks),
+        'role1s and role2s balance the ring.',
+      );
+    });
+  });
 }

@@ -284,7 +284,7 @@ void main() {
     expect(dance.createdAt, now);
   });
 
-  test('buildDance canonicalizes typed dialect prose before persistence '
+  test('buildDance stores typed prose VERBATIM, never canonicalized '
       '(issue #613)', () async {
     final repos = openTestRepositories();
     addTearDown(repos.db.close);
@@ -296,8 +296,10 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load(dance: null, fieldDefs: const []);
 
-    // A caller on Larks/Robins types their own role terms into the prose
-    // fields; the title is NOT a prose field and must be left verbatim.
+    // A caller types their own role terms into the prose fields. Canonicalizing
+    // these was reverted: the substitution's always-on synonym set includes
+    // ordinary English and proper nouns, so it corrupted dance titles, tune
+    // names and people's names in long-form prose.
     controller.titleController.text = 'Larks in the Larch';
     controller.hookController.text = 'Larks and Robins balance the ring.';
     controller.notesController.text = 'Robins chain across to the Larks.';
@@ -306,12 +308,45 @@ void main() {
     controller.onTextEdited();
 
     final dance = controller.buildDance();
-    // Prose is stored in canonical role tokens...
-    expect(dance.hook, 'role1s and role2s balance the ring.');
-    expect(dance.callingNotes, 'role2s chain across to the role1s.');
-    expect(dance.walkthrough, 'A1: role1s allemande left. Balance the ring.');
-    // ...while the title (not a canonicalized prose field) is untouched.
+    expect(dance.hook, 'Larks and Robins balance the ring.');
+    expect(dance.callingNotes, 'Robins chain across to the Larks.');
+    expect(dance.walkthrough, 'A1: Larks allemande left. Balance the ring.');
     expect(dance.title, 'Larks in the Larch');
+    // No canonical token was written into anything the caller typed.
+    for (final field in [dance.hook, dance.callingNotes, dance.walkthrough]) {
+      expect(field, isNot(contains('role1')));
+      expect(field, isNot(contains('role2')));
+    }
+  });
+
+  test('buildDance preserves proper nouns and ordinary English in prose '
+      '(issue #613 regression)', () async {
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+    final controller = DanceEditorController(
+      repositories: repos,
+      danceId: null,
+      dialect: Dialect.larksRobins,
+    );
+    addTearDown(controller.dispose);
+    await controller.load(dance: null, fieldDefs: const []);
+
+    // Every one of these was corrupted while prose canonicalization was active.
+    controller.titleController.text = 'Lady of the Lake';
+    controller.hookController.text = 'Taught to me by Robin Hayden at NEFFA.';
+    controller.notesController.text = 'The ladies room is past the stage.';
+    controller.walkthroughController.text =
+        'We opened with Larks in the Morning. One man short.';
+    controller.onTextEdited();
+
+    final dance = controller.buildDance();
+    expect(dance.title, 'Lady of the Lake');
+    expect(dance.hook, 'Taught to me by Robin Hayden at NEFFA.');
+    expect(dance.callingNotes, 'The ladies room is past the stage.');
+    expect(
+      dance.walkthrough,
+      'We opened with Larks in the Morning. One man short.',
+    );
   });
 
   test(
@@ -334,8 +369,8 @@ void main() {
     },
   );
 
-  test('load renders canonical stored prose into the active dialect for '
-      'editing, and buildDance round-trips it back (#613)', () async {
+  test('load shows stored prose exactly as stored, with no dialect rewrite '
+      '(#613)', () async {
     final repos = openTestRepositories();
     addTearDown(repos.db.close);
     final controller = DanceEditorController(
@@ -345,27 +380,16 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    // Storage is canonical (as written by imports / the v17 migration / a
-    // previous save).
     final stored = sampleDance(id: 'd1').copyWith(
-      hook: 'role1s and role2s balance the ring.',
-      callingNotes: 'role2s chain across to the role1s.',
+      hook: 'Larks and Robins balance the ring.',
+      callingNotes: 'Robins chain across to the Larks.',
     );
     await controller.load(dance: stored, fieldDefs: const []);
 
-    // The editor field shows the caller's own dialect terms, not canonical
-    // tokens.
-    expect(
-      controller.hookController.text,
-      'larks and robins balance the ring.',
-    );
-    expect(
-      controller.notesController.text,
-      'robins chain across to the larks.',
-    );
+    expect(controller.hookController.text, stored.hook);
+    expect(controller.notesController.text, stored.callingNotes);
 
-    // Saving without edits round-trips back to the same canonical storage
-    // (idempotent — no spurious rewrite).
+    // Saving without edits is a true no-op on the prose fields.
     final rebuilt = controller.buildDance();
     expect(rebuilt.hook, stored.hook);
     expect(rebuilt.callingNotes, stored.callingNotes);

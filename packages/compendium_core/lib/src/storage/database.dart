@@ -2,8 +2,6 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
-import '../dialect/canonicalize.dart';
-import '../dialect/dialect.dart';
 import '../model/enums.dart';
 import '../model/figure.dart' show kMaxMeanwhileDepth, meanwhileMove;
 import '../model/formation.dart';
@@ -249,16 +247,16 @@ const int kCompendiumSchemaVersion = 20;
 ///   index. Pure DDL: no columns/tables added, no data rewritten, and the
 ///   derived `dance_fts`/`dance_figures` indexes are untouched, so no derived
 ///   rebuild is required.
-/// - v17 (2026-07-30): typed-prose canonicalization (issue #613, audit-3 F-4).
-///   A data-only migration (no schema shape change): retroactively routes the
-///   hand-typed prose columns (`hook`, `calling_notes`, `walkthrough`) through
-///   the `canonicalizeText` chokepoint so stored prose is dialect-agnostic,
-///   like imports/search already are. Best-effort — the per-record source
-///   dialect isn't recorded, so it assumes the current global active dialect
-///   (`active_dialect` setting; falls back to `Dialect.larksRobins`). Roles-
-///   only and conservative: non-role prose is byte-identical, and it is
-///   idempotent. `hook`/`calling_notes` feed `dance_fts`, so a rewrite schedules
-///   a derived rebuild (marker) — only when a row actually changed.
+/// - v17 (2026-07-30, REVERTED before release): typed-prose canonicalization
+///   (issue #613). The step routed `hook`/`calling_notes`/`walkthrough` through
+///   `canonicalizeText`, but that substitution's always-on synonym set includes
+///   ordinary English words and proper nouns (`man`, `men`, `lady`, `ladies`,
+///   `lark(s)`, `robin(s)`, …), so across long-form prose it corrupted dance
+///   titles, tune names and people's names ("Lady of the Lake" → "role2 of the
+///   Lake"). No released build ever contained it, so no database in the wild
+///   was rewritten. The version number is retained as a no-op step so v18+
+///   keep their numbering. Free prose is stored verbatim; figure notes are
+///   still canonicalized (they carry figure-adjacent modifiers).
 /// - v18 (issue #295): fused-move retirement + figure rewrite. The
 ///   `allemande_orbit` MoveDef was removed from the taxonomy (v19); its stored
 ///   figures are rewritten in each `dances.figures_json` blob to a
@@ -557,68 +555,15 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // touched, no derived rebuild.
         await customStatement(programSlotsDanceIdIndexSql);
       }
-      if (from < 17) {
-        // Issue #613 (audit-3 F-4): hand-typed prose (`hook`, `calling_notes`,
-        // `walkthrough`) was persisted VERBATIM in whatever dialect the caller
-        // had active, instead of passing through the canonicalization
-        // chokepoint like imports and search already do. Retroactively
-        // canonicalize existing prose so storage/search stay dialect-agnostic
-        // and the prose re-renders under each reader's active dialect.
-        //
-        // The source dialect isn't recorded per record (the active dialect is a
-        // single global setting, changeable over time), so this is a
-        // best-effort migration that assumes the CURRENT global active dialect.
-        // It is low-risk and non-destructive because `canonicalizeText` is
-        // ROLES-ONLY and conservative: only exact word-boundary role terms are
-        // rewritten (and the built-in legacy synonyms — larks/robins/gents/
-        // ladies/… — map back to canonical tokens REGARDLESS of the assumed
-        // dialect), while all other prose passes through byte-for-byte. It is
-        // idempotent: canonical tokens are not themselves dialect terms, so a
-        // second run rewrites nothing.
-        final dialect = await _readActiveDialectForMigration();
-        final rows = await customSelect(
-          'SELECT id, hook, calling_notes, walkthrough FROM dances',
-        ).get();
-        var rewroteAny = false;
-        for (final row in rows) {
-          final id = row.data['id'];
-          if (id is! String) continue;
-          final hook = row.data['hook'];
-          final notes = row.data['calling_notes'];
-          final walkthrough = row.data['walkthrough'];
-          final newHook = hook is String
-              ? canonicalizeText(hook, dialect)
-              : hook;
-          final newNotes = notes is String
-              ? canonicalizeText(notes, dialect)
-              : notes;
-          final newWalkthrough = walkthrough is String
-              ? canonicalizeText(walkthrough, dialect)
-              : walkthrough;
-          if (newHook != hook ||
-              newNotes != notes ||
-              newWalkthrough != walkthrough) {
-            await customStatement(
-              'UPDATE dances SET hook = ?, calling_notes = ?, '
-              'walkthrough = ? WHERE id = ?',
-              [newHook, newNotes, newWalkthrough, id],
-            );
-            rewroteAny = true;
-          }
-        }
-        // `hook` and `calling_notes` feed `dance_fts`, so a rewrite changes the
-        // derived search text. The FTS rows can't be refilled here (that needs
-        // the taxonomy/renderer owned by the repository layer), so durably
-        // record that a derived rebuild is owed — exactly like the v2/v9/v12
-        // steps. `CompendiumRepositories.ensureMigrated()` then rebuilds every
-        // `dance_fts` row. Only schedule it when prose actually changed.
-        if (rewroteAny) {
-          await customStatement(
-            'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-            [derivedRebuildRequiredKey, 'true'],
-          );
-        }
-      }
+      // v17 was a typed-prose canonicalization step (issue #613). It was
+      // REVERTED before ever shipping: role canonicalization is a word-boundary
+      // substitution over an always-on synonym set containing ordinary English
+      // and proper nouns (`man`, `men`, `lady`, `ladies`, `lark(s)`,
+      // `robin(s)`, ...), so run across long-form prose it corrupted dance
+      // titles, tune names and people's names ("Lady of the Lake" -> "role2 of
+      // the Lake"). No released build ever contained the step, so no database
+      // in the wild was rewritten and there is nothing to undo; the version
+      // number is retained as a no-op so the v18+ steps keep their numbering.
       if (from < 18) {
         // Issue #295: `allemande_orbit` was removed from the taxonomy (v19), so
         // rewrite every stored figure that references it onto a `meanwhile`
@@ -772,41 +717,6 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   Future<bool> quickCheck() async {
     final rows = await customSelect('PRAGMA quick_check').get();
     return rows.length == 1 && rows.first.data.values.first == 'ok';
-  }
-
-  /// Reads the persisted global active dialect for the schema-v17 typed-prose
-  /// canonicalization migration (issue #613). Mirrors the app layer's
-  /// `kActiveDialectKey` (`'active_dialect'`), under which the resolved
-  /// dialect's full JSON blob is stored (see `ActiveDialectScope` /
-  /// `DialectLibraryController`). Parse-never-throw: any missing or malformed
-  /// value falls back to [Dialect.larksRobins] — the app's default dialect, and
-  /// the one a beta user without an explicit selection was already seeing.
-  /// [canonicalizeText]'s always-on legacy role synonyms cover the common
-  /// preset terms regardless of this choice, so the fallback is safe.
-  Future<Dialect> _readActiveDialectForMigration() async {
-    try {
-      final rows = await customSelect(
-        "SELECT value_json FROM settings WHERE key = 'active_dialect'",
-      ).get();
-      if (rows.isNotEmpty) {
-        final raw = rows.first.data['value_json'];
-        if (raw is String && raw.isNotEmpty) {
-          final decoded = jsonDecode(raw);
-          if (decoded is Map) {
-            return Dialect.fromJson(decoded.cast<String, Object?>());
-          }
-          if (decoded is String) {
-            // Legacy: a bare preset-name string rather than a full JSON blob.
-            final byName = Dialect.forName(decoded);
-            if (byName != null) return byName;
-          }
-        }
-      }
-    } catch (_) {
-      // Malformed settings row: fall back to the default below rather than
-      // aborting the whole migration.
-    }
-    return Dialect.larksRobins;
   }
 }
 

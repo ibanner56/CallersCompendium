@@ -47,36 +47,48 @@ class DanceEditorController extends ChangeNotifier {
   final String? danceId;
   Dialect _activeDialect;
 
-  /// Renders canonical stored prose back into the active dialect for editing.
-  /// Only [FigureRenderer.renderFreeText] (roles-only, case-preserving) is used,
-  /// so the taxonomy is irrelevant here — any instance works.
-  static final FigureRenderer _proseRenderer = FigureRenderer(contraTaxonomy);
+  /// Renders canonical stored note text back into the active dialect for
+  /// editing. Only [FigureRenderer.renderFreeText] (roles-only, case-preserving)
+  /// is used, so the taxonomy is irrelevant here — any instance works.
+  static final FigureRenderer _noteRenderer = FigureRenderer(contraTaxonomy);
 
-  /// Renders canonical stored prose (`hook`/`callingNotes`/`walkthrough`) into
-  /// the active dialect so the editor field shows the caller's own terms rather
-  /// than canonical role tokens (issue #613). Inverse of [_canonicalizeProse].
-  String _renderProse(String stored) =>
-      _proseRenderer.renderFreeText(stored, _activeDialect);
+  /// Renders a canonical stored figure note into the active dialect so the
+  /// editor shows the caller's own terms rather than canonical role tokens.
+  /// Inverse of [_canonicalizeNote].
+  ///
+  /// Deliberately NOT applied to `hook`/`callingNotes`/`walkthrough`: those are
+  /// stored exactly as typed (see [_canonicalizeNote] for why).
+  String _renderNote(String stored) =>
+      _noteRenderer.renderFreeText(stored, _activeDialect);
 
-  /// Routes typed prose through the canonicalization chokepoint before
-  /// persistence (issue #613), so storage/search stay dialect-agnostic and the
-  /// prose re-renders under each reader's active dialect. Conservative and
-  /// roles-only: non-role prose is stored byte-for-byte as typed. Inverse of
-  /// [_renderProse]. Trims first, matching the prior verbatim save behaviour.
-  String _canonicalizeProse(String typed) =>
+  /// Routes a typed figure note through the canonicalization chokepoint before
+  /// persistence, so notes stay dialect-agnostic and re-render under each
+  /// reader's active dialect. Inverse of [_renderNote]. Trims first.
+  ///
+  /// Notes are canonicalized because they carry modifiers and clarifiers for
+  /// the figure text beside them, and that language must stay consistent with
+  /// the figure — importers already store note text canonically via
+  /// `scrubFigureText`.
+  ///
+  /// The dance-level prose fields deliberately do NOT go through here. Role
+  /// canonicalization is a word-boundary substitution over an always-on synonym
+  /// set that includes ordinary English and proper nouns (`man`, `men`, `lady`,
+  /// `ladies`, `lark(s)`, `robin(s)`, …), so in long-form prose it corrupts
+  /// dance titles, tune names and people's names — "Lady of the Lake" becomes
+  /// "role2 of the Lake" and re-renders as "robin of the Lake". Free prose is
+  /// therefore stored verbatim (issue #613).
+  String _canonicalizeNote(String typed) =>
       canonicalizeText(typed.trim(), _activeDialect);
 
   /// Renders every [FigureDraft.note] in [drafts] (recursing into meanwhile
   /// [FigureDraft.meanwhileSides]) from canonical storage into the active
-  /// dialect via [_renderProse], so a figure note behaves exactly like the
-  /// dance-level prose fields: `draft.note` holds active-dialect text while
-  /// being edited, the same contract as `hookController.text` etc. Called
-  /// once, right after each site that seeds `figureDrafts` via
-  /// [FigureDraft.fromFigure] (issue #715 — figure notes were previously
-  /// outside the #613 canonicalization chokepoint entirely).
+  /// dialect via [_renderNote], so `draft.note` holds active-dialect text while
+  /// being edited. Called once, right after each site that seeds `figureDrafts`
+  /// via [FigureDraft.fromFigure] (issue #715 — figure notes were previously
+  /// outside the canonicalization chokepoint entirely).
   void _renderNotesRecursively(Iterable<FigureDraft> drafts) {
     for (final draft in drafts) {
-      draft.note = _renderProse(draft.note);
+      draft.note = _renderNote(draft.note);
       if (draft.meanwhileSides case final sides?) {
         _renderNotesRecursively(sides);
       }
@@ -151,7 +163,7 @@ class DanceEditorController extends ChangeNotifier {
 
   List<Figure> get _figures => [
     for (final draft in figureDrafts)
-      ?draft.toFigure(canonicalizeNote: _canonicalizeProse),
+      ?draft.toFigure(canonicalizeNote: _canonicalizeNote),
   ];
 
   PhraseStructure _phraseStructure = PhraseStructure.standard;
@@ -246,9 +258,9 @@ class DanceEditorController extends ChangeNotifier {
     if (dance != null) {
       _original = dance;
       titleController.text = dance.title;
-      hookController.text = _renderProse(dance.hook);
-      notesController.text = _renderProse(dance.callingNotes);
-      walkthroughController.text = _renderProse(dance.walkthrough);
+      hookController.text = dance.hook;
+      notesController.text = dance.callingNotes;
+      walkthroughController.text = dance.walkthrough;
       phraseController.text = dance.phraseStructure.raw;
       formationDetailController.text = dance.formation.detail ?? '';
       _form = dance.form;
@@ -718,9 +730,9 @@ class DanceEditorController extends ChangeNotifier {
         formation: formation,
         progression: _progression,
         phraseStructure: phraseController.text.trim(),
-        hook: _canonicalizeProse(hookController.text),
-        callingNotes: _canonicalizeProse(notesController.text),
-        walkthrough: _canonicalizeProse(walkthroughController.text),
+        hook: hookController.text.trim(),
+        callingNotes: notesController.text.trim(),
+        walkthrough: walkthroughController.text.trim(),
         status: _status,
         level: _level,
         clearLevel: _level == null,
@@ -748,9 +760,9 @@ class DanceEditorController extends ChangeNotifier {
       formation: formation,
       progression: _progression,
       phraseStructure: phraseController.text.trim(),
-      hook: _canonicalizeProse(hookController.text),
-      callingNotes: _canonicalizeProse(notesController.text),
-      walkthrough: _canonicalizeProse(walkthroughController.text),
+      hook: hookController.text.trim(),
+      callingNotes: notesController.text.trim(),
+      walkthrough: walkthroughController.text.trim(),
       status: _status,
       level: _level,
       mixedLevel: _mixedLevel,
