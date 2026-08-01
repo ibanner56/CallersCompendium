@@ -202,6 +202,46 @@ void main() {
       expect(f.assumedSubject, isTrue);
     });
 
+    test('a facing clause BEFORE the move name declines the line', () {
+      // The clause is read by index, so it must be bounded to positions after
+      // the `courtesy turn` anchor. Unbounded, `face N2 courtesy turn` would be
+      // lifted apart and structured as though it were the attested word order —
+      // normalising a wording no source writes into a reading it never
+      // expressed. This file's settled posture is to DECLINE an unattested word
+      // order (cf. `_takeLeadingDancer`).
+      for (final line in [
+        'face N2 courtesy turn',
+        'face N2 partner courtesy turn',
+        'face N3 neighbor courtesy turn clockwise',
+      ]) {
+        final f = parseTcb(line, beats: 4);
+        expect(f, isNotNull, reason: line);
+        expect(f!.isCustom, isTrue, reason: line);
+        // Nothing is lost: the whole line survives in the custom text.
+        expect(_text(f).toLowerCase(), contains('face'), reason: line);
+      }
+    });
+
+    test('a second dancer is never captured as `whom`', () {
+      // The two `<dancer>?` slots in the grammar are alternative positions for
+      // the SAME value (`who`), not two params. No corpus line writes the
+      // two-dancer form, so filling `whom` would invent a reading no source
+      // states — a line naming two dancers leaves one over and declines.
+      for (final line in [
+        'ones courtesy turn twos',
+        'partner courtesy turn neighbor',
+      ]) {
+        final f = parseTcb(line, beats: 4);
+        expect(f, isNotNull, reason: line);
+        expect(f!.isCustom, isTrue, reason: line);
+      }
+      // And the post-anchor position still works as the SUBJECT fallback.
+      final fallback = parseTcb('Courtesy turn partner', beats: 4)!;
+      expect(fallback.move, 'courtesy_turn');
+      expect(fallback.params['who'], 'partners');
+      expect(fallback.params.containsKey('whom'), isFalse);
+    });
+
     test('a redundant "N2 neighbor" pairing is absorbed on both slots', () {
       final f = parseTcb('N2 neighbor courtesy turn, face N3 neighbor')!;
       expect(f.move, 'courtesy_turn');

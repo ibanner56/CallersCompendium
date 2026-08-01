@@ -520,7 +520,13 @@ String? _takeSpinDirection(List<String> w) {
 }
 
 /// Whether the consecutive [phrase] occurs anywhere in [w], WITHOUT consuming.
-bool _hasPhrase(List<String> w, List<String> phrase) {
+bool _hasPhrase(List<String> w, List<String> phrase) =>
+    _phraseIndex(w, phrase) != -1;
+
+/// Index of the first occurrence of the consecutive [phrase] in [w], or -1.
+/// Does NOT consume. Recognizers use this when a later clause's position must
+/// be checked RELATIVE to an anchor phrase before anything is removed.
+int _phraseIndex(List<String> w, List<String> phrase) {
   for (var i = 0; i + phrase.length <= w.length; i++) {
     var hit = true;
     for (var j = 0; j < phrase.length; j++) {
@@ -529,9 +535,9 @@ bool _hasPhrase(List<String> w, List<String> phrase) {
         break;
       }
     }
-    if (hit) return true;
+    if (hit) return i;
   }
-  return false;
+  return -1;
 }
 
 /// Consumes a LEADING "on [the] left/right diagonal" clause (TCB writes it as a
@@ -1129,7 +1135,20 @@ _Match? _chain(List<String> w) {
 
 // The Caller's Box's standalone courtesy turn (taxonomy v23). Grammar:
 //
-//   [<dancer>] courtesy turn [<dancer>] [clockwise|counterclockwise] [face <dancer>]
+//   <dancer>? "courtesy turn" <dancer>? <clockwise|counterclockwise>?
+//                                                      ("face" <dancer>)?
+//
+// Read the two `<dancer>?` slots carefully: they are ALTERNATIVE POSITIONS FOR
+// THE SAME VALUE (`who`), not two different params. TCB writes the subject
+// before the anchor ("Partner courtesy turn"); the post-anchor position exists
+// only as a fallback for a line that omits it. **`whom` is never emitted by
+// this recognizer**, and that is deliberate: no corpus line writes the
+// two-dancer form `<X> courtesy turn <Y>`, so filling `whom` would invent a
+// reading no source states. A line that DOES name two dancers
+// ("ones courtesy turn twos") therefore leaves one of them over and declines to
+// `custom` — the honest outcome, not a gap. `whom` exists on the MoveDef for
+// manual authoring only (the maintainer's ruling: "left out by default unless
+// it actually shows up in parsing data").
 //
 // Lives in the SHARED core rather than the TCB dialect because the grammar is
 // source-neutral — nothing in it is TCB-only notation. (ContraDB will never
@@ -1167,11 +1186,15 @@ _Match? _chain(List<String> w) {
 //     four-slot ruling gives it none — so an amount-bearing line stays custom
 //     rather than losing the amount.
 _Match? _courtesyTurn(List<String> w) {
-  // Capture the ending-facing clause FIRST, before any `_takeDancer` runs, so
-  // its dancer can never be mistaken for the subject — the same ordering guard
+  // Locate the anchor WITHOUT consuming it, so the ending-facing clause can be
+  // required to FOLLOW it (see `_takeFacingDancer`).
+  final anchor = _phraseIndex(w, ['courtesy', 'turn']);
+  if (anchor == -1) return null;
+  // Capture the ending-facing clause before any `_takeDancer` runs, so its
+  // dancer can never be mistaken for the subject — the same ordering guard
   // `_chain` uses for its "to <dancer>" note. Without it, `courtesy turn face
   // N2` would resolve `who: nextNeighbors`, inverting the line's meaning.
-  final endFacing = _takeFacingDancer(w);
+  final endFacing = _takeFacingDancer(w, after: anchor + 2);
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['courtesy', 'turn'])) return null;
   final who2 = who ?? _takeDancer(w);
@@ -1194,10 +1217,21 @@ _Match? _courtesyTurn(List<String> w) {
   );
 }
 
-/// Consumes a trailing `face <dancer>` clause and returns the canonical dancer
-/// token, or null when absent. TCB writes it as `Partner courtesy turn, face
-/// N2` — the comma is stripped by `_normalize`, so `face` and the dancer arrive
-/// as adjacent words.
+/// Consumes a TRAILING `face <dancer>` clause — one that begins at or after
+/// [after], the index just past the `courtesy turn` anchor — and returns the
+/// canonical dancer token, or null when absent. TCB writes it as `Partner
+/// courtesy turn, face N2`; the comma is stripped by `_normalize`, so `face`
+/// and the dancer arrive as adjacent words.
+///
+/// The [after] bound is load-bearing, not defensive tidiness. Scanning the
+/// whole list would let a `face` clause that PRECEDES the move name be lifted
+/// out before the main parse runs, so an unattested word order like `face N2
+/// courtesy turn` would structure as though it were the attested one. No source
+/// writes the facing first, and this file's settled posture on unattested word
+/// order is to DECLINE rather than to normalise it into a reading the source
+/// never expressed (cf. `_takeLeadingDancer`, which exists for exactly this
+/// reason). With the bound, such a line leaves `face`/`n2` over and correctly
+/// falls to `custom`.
 ///
 /// The value is a **DANCER**, not a cardinal facing: all 13 attested lines say
 /// `face N0`/`N2`/`N3`. TCB does also write cardinal facings (`Ones courtesy
@@ -1206,9 +1240,9 @@ _Match? _courtesyTurn(List<String> w) {
 /// recognizer. Requiring the very next word to be a dancer is what keeps it
 /// that way if that ever changes: `face down` resolves no dancer, so it is left
 /// as leftover and declines the line.
-String? _takeFacingDancer(List<String> w) {
+String? _takeFacingDancer(List<String> w, {required int after}) {
   final i = w.indexOf('face');
-  if (i == -1 || i + 1 >= w.length) return null;
+  if (i < after || i == -1 || i + 1 >= w.length) return null;
   final token = _dancerWords[w[i + 1]];
   if (token == null) return null;
   // Absorb TCB's redundant "N2 neighbor" pairing, mirroring `_takeDancer`.
