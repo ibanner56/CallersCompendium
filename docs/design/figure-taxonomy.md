@@ -385,14 +385,22 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
 
     The `derivedRebuildRequiredKey` marker is owed for a **broader** reason than
     canonical text, and it is worth stating precisely because it is easy to get
-    backwards. `dance_figures` projects three things out of a stored figure —
-    the **move id**, `params_json` and `canonicalText` (see `tables.dart`) — and
-    a rebuild is owed if **any** of them moves. A rename changes the move id by
-    definition, so **a rename always owes both a migration and a rebuild**, even
-    one that leaves `displayName` (and therefore canonical text) untouched:
-    without the rebuild, `dance_figures.move` would keep an id the taxonomy no
-    longer defines, and structural search / filter-by-move would silently go
-    stale.
+    backwards. `dance_figures` (see `tables.dart`) projects several columns out
+    of each stored figure — `move` (the taxonomy id), `beats`, `progression`,
+    `paramsJson`, `canonicalText`, and the derived `section` label — beyond the
+    `danceId`/`idx` primary key. **A rebuild is owed whenever any of them would
+    change.** Do not reduce that to the canonical text, and do not treat the
+    list as closed: a migration that rewrote stored `beats` owes one just as
+    much, and because `section` is derived from cumulative beats across the
+    whole dance, such a change can shift the label of *later* figures too.
+
+    A rename changes `move` by definition, so **a rename always owes both a
+    migration and a rebuild** — even one that leaves `displayName` (and
+    therefore canonical text) untouched. Without the rebuild,
+    `dance_figures.move` keeps an id the taxonomy no longer defines and
+    structural search goes silently stale: `DanceRepository.danceIdsWithFigure`
+    (`dance_repository.dart:1454`) filters on exactly `danceFigures.move` and
+    reads `paramsJson`.
 
     (#296 also names `form_an_ocean_wave`; that reference is **stale** — the
     MoveDef was split at v13 and removed at v14.)
