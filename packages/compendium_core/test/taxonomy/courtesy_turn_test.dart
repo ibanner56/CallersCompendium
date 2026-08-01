@@ -203,8 +203,8 @@ void main() {
     });
 
     test('a facing clause BEFORE the move name declines the line', () {
-      // The clause is read by index, so it must be bounded to positions after
-      // the `courtesy turn` anchor. Unbounded, `face N2 courtesy turn` would be
+      // The clause is read by index and bounded to positions at or after the
+      // `courtesy turn` anchor. Unbounded, `face N2 courtesy turn` would be
       // lifted apart and structured as though it were the attested word order —
       // normalising a wording no source writes into a reading it never
       // expressed. This file's settled posture is to DECLINE an unattested word
@@ -219,6 +219,27 @@ void main() {
         expect(f!.isCustom, isTrue, reason: line);
         // Nothing is lost: the whole line survives in the custom text.
         expect(_text(f).toLowerCase(), contains('face'), reason: line);
+      }
+    });
+
+    test('a pre-anchor facing clause declines even when a valid one follows', () {
+      // The bound lives in the search (`w.indexOf('face', after)`), so a
+      // pre-anchor `face` is not examined at all and the POST-anchor clause is
+      // the one found. That alone would structure the line — but the stray
+      // leading `face` is a token nothing consumes (it is not a dancer word,
+      // not filler, and not part of any phrase), so the whole-line contract
+      // still declines. This is why bounding the search rather than rejecting
+      // an early hit afterwards is behaviour-preserving: the two differ only on
+      // lines that carry a second `face`, and such a line always has an
+      // unconsumable leftover either way.
+      for (final line in [
+        'face courtesy turn face N2',
+        'face N2 courtesy turn face N3',
+        'partner face courtesy turn face N2',
+      ]) {
+        final f = parseTcb(line, beats: 4);
+        expect(f, isNotNull, reason: line);
+        expect(f!.isCustom, isTrue, reason: line);
       }
     });
 
