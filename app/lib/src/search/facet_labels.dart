@@ -98,6 +98,17 @@ String formationLabel(AppLocalizations l10n, Formation formation) {
 /// The discrete, pickable value vocabulary for a figure parameter, or `null`
 /// when the parameter has no closed vocabulary (rotation/beats/text). Used to
 /// offer optional param dropdowns on an Advanced "has figure" row.
+///
+/// `spec.choices`, when present, IS the domain — for every kind that has one.
+/// A spec may narrow its kind's fixed vocabulary, or opt into the
+/// [ParamVocab.unspecified] sentinel, and this facet must offer exactly what
+/// [ParamSpec.validate] accepts and `FigureParamEditor` renders: the three are
+/// consumers of one contract and must not disagree about a param's domain
+/// (issue #726 / PR #736 taught the other two this same rule; this is the
+/// third). Offering the fixed vocabulary instead lets a search row build a
+/// filter for a value the param cannot hold — and silently drops a sentinel
+/// the user needs to search for. A spec that omits `choices` keeps exactly the
+/// kind's fixed vocabulary, i.e. today's behaviour.
 List<String>? figureParamChoices(ParamSpec spec) {
   switch (spec.kind) {
     case ParamKind.dancerSet:
@@ -105,13 +116,13 @@ List<String>? figureParamChoices(ParamSpec spec) {
       return spec.choices ?? ParamVocab.dancerSets;
     case ParamKind.handedness:
     case ParamKind.shoulder:
-      return ParamVocab.sides;
+      return spec.choices ?? ParamVocab.sides;
     case ParamKind.spinDirection:
-      return ParamVocab.spins;
+      return spec.choices ?? ParamVocab.spins;
     case ParamKind.fraction:
-      return ParamVocab.fractions;
+      return spec.choices ?? ParamVocab.fractions;
     case ParamKind.direction:
-      return ParamVocab.directions;
+      return spec.choices ?? ParamVocab.directions;
     case ParamKind.choice:
       return spec.choices;
     case ParamKind.rotation:

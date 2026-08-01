@@ -12,9 +12,14 @@ import '../support/screen_size.dart';
 // ---------------------------------------------------------------------------
 
 class _Host extends StatefulWidget {
-  const _Host({required this.root, required this.sectionLabels});
+  const _Host({
+    required this.root,
+    required this.sectionLabels,
+    required this.taxonomy,
+  });
   final BuilderGroup root;
   final List<String> sectionLabels;
+  final Taxonomy taxonomy;
 
   @override
   State<_Host> createState() => _HostState();
@@ -30,7 +35,7 @@ class _HostState extends State<_Host> {
         body: SingleChildScrollView(
           child: AdvancedQueryBuilder(
             root: widget.root,
-            taxonomy: contraTaxonomy,
+            taxonomy: widget.taxonomy,
             sectionLabels: widget.sectionLabels,
             onChanged: () => setState(() {}),
           ),
@@ -50,9 +55,19 @@ Future<void> _pump(
   // field existed. Pass a narrow/short size (e.g. Size(360, 720)) to
   // exercise the sheet path instead.
   Size screenSize = const Size(900, 1600),
+  // Defaults to the real taxonomy, which is what every test here wants.
+  // Overridden only by the `spec.choices` facet tests below, which need a
+  // param combination no live taxonomy param declares yet.
+  Taxonomy? taxonomy,
 }) async {
   await setScreenSize(tester, screenSize);
-  await tester.pumpWidget(_Host(root: root, sectionLabels: sectionLabels));
+  await tester.pumpWidget(
+    _Host(
+      root: root,
+      sectionLabels: sectionLabels,
+      taxonomy: taxonomy ?? contraTaxonomy,
+    ),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -372,5 +387,115 @@ void main() {
         expect(figure.move, 'chain');
       },
     );
+  });
+
+  _paramChoiceTests();
+}
+
+// ---------------------------------------------------------------------------
+// The "has figure" param dropdowns honour spec.choices
+//
+// `figureParamChoices` (app/lib/src/search/facet_labels.dart) is the third
+// consumer of the `ParamSpec.kind` + `ParamSpec.choices` contract, after the
+// figure param editor and `ParamSpec.validate` (both taught the same rule by
+// issue #726 / PR #736). It hardcoded the vocabulary for five kinds, so a spec
+// that NARROWED its kind's domain got a search dropdown offering the values it
+// had just excluded — a filter for a value the param cannot hold.
+//
+// No live taxonomy param pairs one of those kinds with a `choices` list, so
+// these tests inject a synthetic single-move taxonomy. Unit coverage of the
+// function itself is in `test/search/facet_param_choices_test.dart`; these two
+// exist because that function is pure — only a widget test proves the value
+// actually reaches the dropdown and round-trips into `BuilderFigure.params`.
+// ---------------------------------------------------------------------------
+
+Taxonomy _taxonomyWithHandParam({required List<String>? choices}) => Taxonomy(
+  version: 1,
+  form: DanceForm.contra,
+  moves: [
+    MoveDef(
+      id: 'wave',
+      displayName: 'Wave',
+      renderTemplate: '{move} {hand}',
+      params: {
+        'hand': ParamSpec(
+          ParamKind.handedness,
+          defaultValue: 'right',
+          choices: choices,
+        ),
+      },
+    ),
+  ],
+);
+
+void _paramChoiceTests() {
+  group('has-figure param dropdowns honour spec.choices', () {
+    testWidgets('a sentinel in choices is offered and round-trips', (
+      tester,
+    ) async {
+      final figure = BuilderFigure(move: 'wave');
+      final root = BuilderGroup(
+        children: [BuilderThen(before: figure, after: BuilderFigure())],
+      );
+      await _pump(
+        tester,
+        root: root,
+        taxonomy: _taxonomyWithHandParam(
+          choices: const [...ParamVocab.sides, ParamVocab.unspecified],
+        ),
+      );
+
+      await tester.tap(find.byKey(ValueKey('param-${figure.id}-hand')));
+      await tester.pumpAndSettle();
+      expect(find.text(ParamVocab.unspecified), findsWidgets);
+
+      await tester.tap(find.text(ParamVocab.unspecified).last);
+      await tester.pumpAndSettle();
+      // The stored value is the canonical sentinel, so the compiled filter can
+      // actually match figures whose source stated nothing for this param.
+      expect(figure.params['hand'], ParamVocab.unspecified);
+    });
+
+    testWidgets('a narrowed domain does not offer the excluded value', (
+      tester,
+    ) async {
+      final figure = BuilderFigure(move: 'wave');
+      final root = BuilderGroup(
+        children: [BuilderThen(before: figure, after: BuilderFigure())],
+      );
+      await _pump(
+        tester,
+        root: root,
+        taxonomy: _taxonomyWithHandParam(choices: const ['right']),
+      );
+
+      await tester.tap(find.byKey(ValueKey('param-${figure.id}-hand')));
+      await tester.pumpAndSettle();
+      // `left` is in `ParamVocab.sides` but NOT in this param's domain, and
+      // `ParamSpec.validate` rejects it — offering it would build a filter no
+      // valid figure can match.
+      expect(find.text('left'), findsNothing);
+      expect(find.text('right'), findsWidgets);
+    });
+
+    testWidgets('a spec without choices keeps the full fixed vocabulary', (
+      tester,
+    ) async {
+      final figure = BuilderFigure(move: 'wave');
+      final root = BuilderGroup(
+        children: [BuilderThen(before: figure, after: BuilderFigure())],
+      );
+      await _pump(
+        tester,
+        root: root,
+        taxonomy: _taxonomyWithHandParam(choices: null),
+      );
+
+      await tester.tap(find.byKey(ValueKey('param-${figure.id}-hand')));
+      await tester.pumpAndSettle();
+      expect(find.text('left'), findsWidgets);
+      expect(find.text('right'), findsWidgets);
+      expect(find.text(ParamVocab.unspecified), findsNothing);
+    });
   });
 }
