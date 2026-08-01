@@ -50,7 +50,7 @@ class DanceEditorController extends ChangeNotifier {
   /// Renders canonical stored note text back into the active dialect for
   /// editing. Only [FigureRenderer.renderFreeText] (roles-only, case-preserving)
   /// is used, so the taxonomy is irrelevant here — any instance works.
-  static final FigureRenderer _proseRenderer = FigureRenderer(contraTaxonomy);
+  static final FigureRenderer _noteRenderer = FigureRenderer(contraTaxonomy);
 
   /// Renders a canonical stored figure note into the active dialect so the
   /// editor shows the caller's own terms rather than canonical role tokens.
@@ -59,7 +59,7 @@ class DanceEditorController extends ChangeNotifier {
   /// Deliberately NOT applied to `hook`/`callingNotes`/`walkthrough`: those are
   /// stored exactly as typed (see [_canonicalizeNote] for why).
   String _renderNote(String stored) =>
-      _proseRenderer.renderFreeText(stored, _activeDialect);
+      _noteRenderer.renderFreeText(stored, _activeDialect);
 
   /// Routes a typed figure note through the canonicalization chokepoint before
   /// persistence, so notes stay dialect-agnostic and re-render under each

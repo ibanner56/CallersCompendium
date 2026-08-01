@@ -82,8 +82,12 @@ stored exactly as typed (issue #613).
 
 Where the chokepoint IS wired:
 
-- **Imports** canonicalize incoming prose (with `Dialect.canonical`, so the
-  always-on legacy synonyms resolve roles) before persistence.
+- **Imports** canonicalize incoming **figure text** — the `custom` figure text
+  and figure notes built by the free-text adapters — through `scrubFigureText`,
+  which calls `canonicalizeText(…, Dialect.canonical)` so the always-on legacy
+  synonyms resolve roles. Imported **dance-level prose** (`hook`,
+  `callingNotes`, `walkthrough`) is only sanitized (`sanitizeImportedText`),
+  never canonicalized, matching how hand-typed prose is stored.
 - **Figure notes** (`Figure.note`) are canonicalized against the caller's
   **active** dialect in the dance editor's save path (`buildDance`), and
   rendered back via `renderFreeText` on load and at every display site

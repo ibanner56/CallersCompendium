@@ -2040,7 +2040,9 @@ void main() {
     late String dbPath;
 
     setUp(() async {
-      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v17_');
+      dir = await Directory.systemTemp.createTemp(
+        'compendium_core_mig_v16_current_',
+      );
       dbPath = p.join(dir.path, 'test.sqlite');
       final fixture = File(
         p.join(
