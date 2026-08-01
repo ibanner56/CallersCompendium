@@ -1,131 +1,51 @@
-/// Deterministic ending-facing derivation for the TCB rotation-gate figure
-/// (`rotation_gate`, issue #294).
+/// Set-relative facing + rotation vocabulary for the `gate` figure.
 ///
-/// The raw TCB line — e.g. `Partner gate counterclockwise 3/4` — does NOT state
-/// the ending facing literally. Per the product decision, the resulting facing
-/// is a **computed, verifiable value derived from the rotation geometry**, never
-/// free-typed or fabricated. [gateEndFacing] is that derivation: a pure function
-/// of `(startFacing, direction, turn)`. It is deliberately CONSERVATIVE — it
-/// returns a facing ONLY for the cases that are unambiguous, and returns `null`
-/// otherwise so the renderer emits no facing clause rather than guessing.
+/// ## History: this module used to host a DERIVATION, which was WITHDRAWN (v22)
 ///
-/// This is the **first instance of the "derived taxonomy value" convention** —
-/// a computed-at-render value that is never stored, so it lives in its own pure
-/// module (named `<figure>_<property>.dart`) rather than as a `ParamSpec` in
-/// `contra_taxonomy.dart`. See the "Derived (computed-at-render) taxonomy
-/// values" section of `docs/design/figure-taxonomy.md` for the rationale and the
-/// rule for when future derivations should move under `taxonomy/derived/`.
+/// From taxonomy v15 (issue #294) to v21 this file exported `gateEndFacing` —
+/// a pure function deriving a rotation-gate's ending facing from
+/// `(startFacing, direction, turn)` — and was cited by
+/// `docs/design/figure-taxonomy.md` as the first and only instance of the
+/// "derived (computed-at-render) taxonomy value" convention.
 ///
-/// ## Derivation table (start = [gateStartFacing] = `in`, across the set)
+/// It was wrong, and not repairably so:
 ///
-/// | direction        | turn (mod full) | result | rationale                    |
-/// |------------------|-----------------|--------|------------------------------|
-/// | cw / ccw         | full (360°·n)   | `in`   | back to the start orientation |
-/// | cw / ccw         | half (180°)     | `out`  | opposite of the start        |
-/// | cw / ccw         | 90° / 270°      | `null` | cardinal depends on the (unratified) rotation-cycle convention |
-/// | mirror           | full            | `in`   | full turn ⇒ unchanged        |
-/// | mirror           | anything else   | `null` | per-role sense differs; only the full-turn mirror is attested |
-/// | (any)            | non-quarter     | `null` | lands on no cardinal facing  |
+///   * The renderer called it WITHOUT a `startFacing`, so every gate derived
+///     from the module's nominal `gateStartFacing = 'in'`. A 1/2 gate always
+///     rendered "to face out of the set" — including after a down-the-hall,
+///     where dancers are facing down and a half turn ends facing **up**.
+///   * Passing the real start facing would not have fixed it. The derivation's
+///     only sound rules are RELATIVE (a full turn leaves the facing unchanged;
+///     a half turn reverses it). Turning a relative rule into an absolute
+///     cardinal requires knowing the orientation the dancers arrive in, which
+///     depends on every preceding figure — i.e. choreography simulation, not a
+///     context-free function. The module's own "CAVEAT" conceded a narrow
+///     version of this for gate *sequences*; the real scope is any preceding
+///     orientation-changing figure.
 ///
-/// Only the full-turn and half-turn rows are emitted; every convention- or
-/// context-dependent case returns `null`. The 90°/270° cardinal is intentionally
-/// NOT derived pending a ratified cw/ccw→cardinal cycle convention (issue #294
-/// open question).
+/// The ending facing is therefore **stored data** as of v22: the `gate.face`
+/// param, filled by the ContraDB importer (whose `gate_face` states it
+/// literally — `figure.js:841` renders `… "to face" <gate_face>`), left
+/// `unspecified` by The Caller's Box (which never states one), and correctable
+/// by the user. Nothing is derived, and nothing is fabricated.
 ///
-/// ## Start-orientation assumption (`in`) — verified against the corpus
-///
-/// A gate is danced from an **across-the-set** body facing (you rotate around a
-/// dancer you face across the set), modeled as `in`. Confirmed against the three
-/// corpus contexts:
-///   * #15 "Back to Dublin" — the gate is the dance opener in improper duple
-///     minor, where neighbors begin facing across (`in`). Full turn ⇒ `in`.
-///   * #519 "A Rose…" — the gates immediately follow `In long lines, go forward
-///     and back`, which returns dancers to the across facing (`in`).
-///   * #289 "Run Around Susie" — a 3/4 turn, which is convention-dependent and
-///     yields `null` regardless, so the start orientation does not matter here.
-///
-/// CAVEAT (surfaced for review): in a *sequence* of gates (e.g. #519's second,
-/// N3 gate directly after the first) the physical start orientation carries over
-/// from the preceding gate rather than resetting to `in`. This context-free
-/// function has no cross-figure state, so it derives from the nominal `in`
-/// start; a subsequent gate's true facing may differ. `in` is therefore a
-/// documented *nominal* reference orientation, not a runtime claim.
-///
-/// The four cardinal facings, relative to a longways contra set:
-/// `up`/`down` the hall, and `in`/`out` across the set (toward / away from the
-/// other line). These reuse the tokens already in the taxonomy's `direction`
-/// vocabulary (see [ParamVocab.directions]).
+/// What remains here is the plain vocabulary the merged move and the renderer
+/// share.
 library;
 
-/// The four cardinal facings a gate can end in (see the library docs).
+/// The four cardinal facings a gate can end in, relative to a longways contra
+/// set: `up`/`down` the hall, and `in`/`out` across the set (toward / away from
+/// the other line). These reuse the tokens already in the taxonomy's
+/// `direction` vocabulary (see `ParamVocab.directions`) and are the same four
+/// `swing.endFacing` uses.
+///
+/// Sourced from ContraDB `libfigure` `param.js` `_stringParamGateFace`:
+/// `{up: "up the set", down: "down the set", in: "into the set",
+/// out: "out of the set"}`.
 const List<String> gateFacings = ['up', 'down', 'in', 'out'];
 
-/// Start-orientation assumption for a gate: dancers begin facing **into the
-/// set** (across, toward the other role). This is the ratifiable assumption
-/// called out in issue #294, verified against the corpus contexts in the
-/// library docs. Isolated here so a corrected assumption is a one-line change.
-const String gateStartFacing = 'in';
-
-const Map<String, String> _opposite = {
-  'up': 'down',
-  'down': 'up',
-  'in': 'out',
-  'out': 'in',
-};
-
-/// Valid `direction` tokens for a rotation-gate (matches the `rotation_gate`
-/// MoveDef's `direction` choice domain).
+/// Valid `direction` tokens for a gate — The Caller's Box's rotation sense.
+/// `mirror` (the two-couple gate, where the two roles rotate in opposite
+/// senses) has no ContraDB equivalent and is why this cannot be
+/// `ParamKind.spinDirection`.
 const List<String> gateDirections = ['clockwise', 'counterclockwise', 'mirror'];
-
-/// Derives the facing a dancer ends in after a rotation-gate, or `null` when it
-/// cannot be determined WITHOUT fabricating a value.
-///
-/// Deterministic and defensive (never throws): unknown [direction], an
-/// out-of-domain [startFacing], a non-positive or non-quarter [turn], or any
-/// convention-dependent partial turn all yield `null`.
-///
-/// Resolved (convention-independent) cases:
-///   * a whole number of full turns (360° · n) — facing is UNCHANGED;
-///   * a half turn (180°, i.e. an odd number of half-turns) — facing is the
-///     OPPOSITE of the start.
-///
-/// Unresolved (returns `null`, so no facing is fabricated):
-///   * quarter / three-quarter turns (90° / 270°) for `clockwise` /
-///     `counterclockwise` — the resulting cardinal depends on the set-geometry
-///     cycle convention, which is not yet ratified (issue #294 open question);
-///   * any `mirror` gate other than a full turn — the per-role rotation sense
-///     differs, so a partial mirror gate has no single ending facing (and only
-///     the full-turn mirror gate is attested in the corpus);
-///   * non-quarter turn fractions (e.g. 1/8), which land on no cardinal facing.
-String? gateEndFacing({
-  required String direction,
-  required num turn,
-  String startFacing = gateStartFacing,
-}) {
-  if (!gateDirections.contains(direction)) return null;
-  if (!_opposite.containsKey(startFacing)) return null;
-  if (turn <= 0) return null;
-
-  // Quarter-turn count. Reject anything that is not an exact quarter multiple
-  // rather than rounding (a fabricated facing is worse than none).
-  final quartersExact = turn * 4;
-  if (quartersExact % 1 != 0) return null;
-  final quarters = quartersExact.toInt();
-
-  final mod = quarters % 4; // 0 = full, 2 = half, 1|3 = quarter/three-quarter.
-
-  // A mirror gate is only resolvable at a full turn (the sole attested form).
-  if (direction == 'mirror') {
-    return mod == 0 ? startFacing : null;
-  }
-
-  switch (mod) {
-    case 0:
-      return startFacing; // full turn(s): back to the start orientation.
-    case 2:
-      return _opposite[startFacing]; // half turn: face the opposite way.
-    default:
-      // 90° / 270°: convention-dependent — do not fabricate.
-      return null;
-  }
-}

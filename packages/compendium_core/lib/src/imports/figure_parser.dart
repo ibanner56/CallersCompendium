@@ -180,6 +180,59 @@ class _Match {
   final bool assumedSubject;
 }
 
+/// Resolves [text] to EXACTLY ONE canonical dancer-set token, or `null` when it
+/// names none, names more than one, or carries any other word.
+///
+/// The strict "nothing left over" rule is what makes this safe to point at
+/// source fragments a recognizer did not itself consume: a phrase we only
+/// partly understand resolves to `null` rather than to its first dancer word.
+/// Exposed for front-ends that must read a dancer out of source text the shared
+/// grammar never sees — the CallersBox gate annotation (`(ones forward)`) is
+/// stripped before `_normalize`, so its pre-recognizer resolves the dancer here
+/// instead of duplicating [_dancerWords].
+///
+/// Runs on POST-SCRUB text, so gendered terms have already become `role1`/
+/// `role2` tokens. Never throws.
+String? resolveDancerSetPhrase(String text) {
+  final w = _normalize(text, null);
+  if (w.isEmpty) return null;
+  final token = _takeDancer(w);
+  if (token == null) return null;
+  _dropFiller(w);
+  return w.isEmpty ? token : null;
+}
+
+/// Attempts to recognise [scrubbed] as one covered move using ONLY the shared,
+/// source-neutral recognizers — no front-end pre-recognizers, so it can never
+/// recurse back into a caller.
+///
+/// Exists for front-ends that must PRE-PROCESS a line and then delegate: the
+/// CallersBox gate pre-recognizer lifts the `(ones forward)` annotation out
+/// before `_normalize` would drop it, then hands the remainder here rather than
+/// duplicating the gate grammar. [recognitionNormalize] is applied exactly as
+/// `_normalize` would apply a front-end's own hook.
+///
+/// Returns `null` when no shared recognizer accounts for the whole line.
+FigureMatch? recognizeSharedFigureLine(
+  String scrubbed, {
+  String Function(String)? recognitionNormalize,
+}) {
+  final words = _normalize(scrubbed, recognitionNormalize);
+  if (words.isEmpty) return null;
+  for (final recognizer in _recognizers) {
+    final match = recognizer(List<String>.of(words));
+    if (match != null) {
+      return FigureMatch(
+        match.moveId,
+        params: match.params,
+        note: match.note,
+        assumedSubject: match.assumedSubject,
+      );
+    }
+  }
+  return null;
+}
+
 /// Attempts to recognise [scrubbed] as one covered move. Returns `null` when no
 /// recognizer accounts for the whole line (→ custom fallback).
 _Match? _recognize(String scrubbed, FigureFrontEnd frontEnd) {
@@ -696,14 +749,13 @@ final List<_Recognizer> _recognizers = [
   // requires an explicit side and empty leftover, so it declines "pass through",
   // "pass the ocean", and "cross trail through" and never shadows them.
   _passCrossBy,
-  // TCB rotation-gate (issue #294, Option B). A DISTINCT figure from the
-  // ContraDB `gate` (facing up/down/in/out, fixed 8 beats), which we still do
-  // NOT recognize: the domains are disjoint (0/62 surveyed TCB gate lines map to
-  // `face`), so reusing `face` would fabricate a facing the line never stated.
-  // This recognizer structures ONLY a gate line that fully resolves to
-  // (who, direction, turn); the ending facing is derived at render time
-  // (gate_facing.dart), never parsed. Anything that doesn't resolve stays custom.
-  _rotationGate,
+  // The unified gate (taxonomy v22; was `rotation_gate`, issue #294). Structures
+  // ONLY a gate line that fully resolves to (pair, direction, turn) — the TCB
+  // shape. The ContraDB shape (`<who> gate <whom> to face <dir>`) is handled by
+  // the ContraDB dialect's own `_gate`, which fills different slots on the same
+  // move. Anything that doesn't resolve stays custom; the ending facing is never
+  // parsed here and never derived (see gate_facing.dart).
+  _gate,
   _californiaTwirl,
   _weaveTheLine,
   _squareThrough,
@@ -894,16 +946,31 @@ String? _takeGateDirection(List<String> w) {
   return null;
 }
 
-// TCB rotation-gate (issue #294). Structures a gate line ONLY when it fully
-// resolves to the tuple (who, direction, turn): the `gate` anchor, a rotation
-// direction, and a turn fraction, with nothing left over. A bare "gate", a
-// missing direction or fraction, adversarial tokens, or trailing prose all
-// yield null so the line degrades to a faithful custom figure (never a throw,
-// never a fabricated facing). The `(ones forward)`/`(NR)` parentheticals are
-// dropped by `_normalize` for recognition and survive only on the custom
-// fallback. Beats are layered on from the source line (variable 4/6/8), not here.
-// The ending facing is DERIVED at render time (gate_facing.dart), never parsed.
-_Match? _rotationGate(List<String> w) {
+// The unified gate (taxonomy v22; was the TCB-only `rotation_gate`, issue
+// #294). Structures a TCB gate line ONLY when it fully resolves to
+// (pair, direction, turn): the `gate` anchor, a rotation direction, and a turn
+// fraction, with nothing left over. A bare "gate", a missing direction or
+// fraction, adversarial tokens, or trailing prose all yield null so the line
+// degrades to a faithful custom figure (never a throw, never a fabricated
+// facing).
+//
+// The subject goes to `pair`, NOT `who`. TCB's "Neighbor gate…" / "Partner
+// gate…" names the pairing you gate WITH; ContraDB's `who` names the side that
+// extends a hand and BACKS UP (libfigure `figure.js:844`, and `chooser.js:114`
+// shows its domain admits only role-sides — never `neighbors`/`partners`).
+// Writing TCB's subject into `who` would reinterpret every imported TCB gate as
+// a claim about which side moves.
+//
+// The ending facing is NOT parsed and NOT derived: TCB never states one for a
+// gate, so `face` stays `unspecified` for the user to fill in. (Before v22 it
+// was derived from a nominal `in` start orientation and was wrong after any
+// orientation-changing figure — see gate_facing.dart.)
+//
+// The `(ones forward)`/`(NR)` parentheticals are dropped by `_normalize` for
+// recognition; the TCB front-end's `_gateAnnotation` pre-recognizer runs first
+// and preserves them verbatim as the figure's note, so nothing is lost. Beats
+// are layered on from the source line (variable 2/3/4/6/8), not here.
+_Match? _gate(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['gate'])) return null;
   final who2 = who ?? _takeDancer(w);
@@ -914,8 +981,8 @@ _Match? _rotationGate(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match(
-    'rotation_gate',
-    {'who': who2 ?? 'neighbors', 'direction': direction, 'turn': turn},
+    'gate',
+    {'pair': who2 ?? 'neighbors', 'direction': direction, 'turn': turn},
     null,
     who2 == null,
   );

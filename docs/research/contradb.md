@@ -28,6 +28,30 @@ itself is factual domain vocabulary and freely adoptable.
   revolving door, right left through, roll away, Rory O'More, slice, slide along
   set, square through, stand still, star, star promenade, swing, turn alone,
   zig zag.
+- **`gate` — read the source, not the param name (corrected 2026-07-31).** Two
+  things about it are easy to get backwards, and we did, from taxonomy v15 to
+  v21:
+  - Its `gate_face` param is the **ending facing**, not a direction of travel.
+    `figure.js:841` renders the figure as
+    `words(ssubject, smove, sobject, "to face", sgate_face)` and `param.js:711`
+    maps its values to `{up: "up the set", down: "down the set",
+    in: "into the set", out: "out of the set"}`.
+    **This is the trap.** `param.js:714` declares it as
+    `defineParam("gate_face", { name: "face", ui: "chooser_gate_direction" })`.
+    The `ui:` value is a **widget hint, not the param's meaning**. Reading
+    "chooser_gate_direction" as "direction of travel" is exactly how the wrong
+    gloss reached `contra_taxonomy.dart` and then the v15/v16 taxonomy history
+    entries. When reading libfigure, trust `name` + the move's `words()`
+    function + the value strings; treat `ui:` as presentation only.
+  - Its subject **backs up** and its object **walks forward**. `figure.js:844`:
+    *"'ones gate twos' means: ones, extend a hand to twos - twos walk forward,
+    ones back up, orbiting around the joined hands."* Neither orbits the other.
+  - The subject chooser is `chooser_pair` — `[gentlespoons, ladles, ones, twos,
+    first corners, second corners]` (`chooser.js:114`). It can **never** hold
+    `partners`/`neighbors`; only the object chooser
+    (`chooser_pairs_or_ones_or_twos`) can. That asymmetry is what proves
+    ContraDB's subject and The Caller's Box's "Neighbor gate…" subject are
+    different axes. ContraDB states no rotation sense and no turn amount at all.
 - **Aliases** share a canonical move with pinned params: see saw → do si do
   (left shoulder), swat the flea → box the gnat (left hand), meltdown swing →
   swing. Search de-aliases automatically.

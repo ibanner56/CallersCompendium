@@ -35,7 +35,9 @@ void main() {
 
   group('canonical rendering (golden)', () {
     final cases = <String, Figure>{
-      'ones gate neighbors up': Figure(move: 'gate'),
+      // v22: the merged gate defaults every slot to `unspecified`, so a bare
+      // gate asserts nothing — each source fills only what it states.
+      'gate': Figure(move: 'gate'),
       'role1s give & take partners': Figure(move: 'give_and_take'),
       'neighbors pull by right': Figure(move: 'pull_by_dancers'),
       'pull by along right': Figure(move: 'pull_by_direction'),
@@ -49,10 +51,13 @@ void main() {
       });
     });
 
-    test('gate renders a non-default face', () {
+    test('gate renders a ContraDB-shaped figure', () {
       expect(
         renderer.renderCanonical(
-          Figure(move: 'gate', params: {'face': 'down'}),
+          Figure(
+            move: 'gate',
+            params: {'who': 'ones', 'whom': 'neighbors', 'face': 'down'},
+          ),
         ),
         'ones gate neighbors down',
       );
@@ -79,8 +84,10 @@ void main() {
 
   group('goodBeats warnings', () {
     test('gate warns on atypical beats', () {
+      // v22 widened goodBeats to the counts both sources attest
+      // ([2, 3, 4, 6, 8]), so 6 is now typical; 5 is not.
       final issues = tax.validateFigure(
-        Figure(move: 'gate', params: {'beats': 6}),
+        Figure(move: 'gate', params: {'beats': 5}),
       );
       expect(issues.single.code, 'atypical_beats');
       expect(issues.single.severity, ValidationSeverity.warning);
