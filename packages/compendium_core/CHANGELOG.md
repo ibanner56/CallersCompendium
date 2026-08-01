@@ -105,7 +105,7 @@
   change**; 1,061 figures gain or extend a note (`right_left_through` 594,
   `chain` 416, `promenade` 51).
 
-
+### Added
 
 - **The Caller's Box `walk forward` lines now map onto existing moves (#733) —
   NO new `MoveDef`, no `contraTaxonomyVersion` bump, no schema migration.**

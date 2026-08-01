@@ -31,6 +31,45 @@ List<Figure> _parse(String text, {int beats = 0}) =>
 Figure _single(String text, {int beats = 0}) =>
     _parse(text, beats: beats).single;
 
+/// Mirrors the package-private `_maxAnnotationNote` bound in
+/// `callersbox_figure_dialect.dart` so the surrogate-pair test below can
+/// state its own expectations without reaching into library internals. Kept
+/// as a literal (not imported) deliberately — if the production bound ever
+/// changes, this test should be re-derived against the new value rather than
+/// silently tracking it.
+const int _maxAnnotationNoteForTest = 200;
+
+/// True iff every UTF-16 surrogate in [s] is correctly paired: every high
+/// surrogate (0xD800-0xDBFF) is immediately followed by a low surrogate
+/// (0xDC00-0xDFFF), and every low surrogate is immediately preceded by a
+/// high one. A string with a LONE surrogate (from a naive, non-rune-aware
+/// truncation) fails this check.
+///
+/// Neither `note.codeUnits` alone (which only catches a lone LOW surrogate,
+/// missing a lone HIGH one left dangling at the very end of a truncated
+/// string — precisely the shape a truncation cut produces) nor
+/// `String.fromCharCodes(s.runes) == s` (which round-trips a malformed
+/// string with a lone surrogate right back to itself, because `.runes`
+/// surfaces an unpaired surrogate as its own code point) actually detects
+/// this; both were verified empirically to pass on a deliberately malformed
+/// string before being replaced by this check.
+bool _isProperlySurrogatePaired(String s) {
+  final units = s.codeUnits;
+  for (var i = 0; i < units.length; i++) {
+    final unit = units[i];
+    final isHigh = unit >= 0xD800 && unit <= 0xDBFF;
+    final isLow = unit >= 0xDC00 && unit <= 0xDFFF;
+    if (isHigh) {
+      final next = i + 1 < units.length ? units[i + 1] : null;
+      if (next == null || next < 0xDC00 || next > 0xDFFF) return false;
+    } else if (isLow) {
+      final prev = i > 0 ? units[i - 1] : null;
+      if (prev == null || prev < 0xD800 || prev > 0xDBFF) return false;
+    }
+  }
+  return true;
+}
+
 void main() {
   group('#729 — chain: annotation combines with the "to <dancer>" note', () {
     test('the issue\'s own example line', () {
@@ -198,16 +237,58 @@ void main() {
       expect(f.note, isNull);
     });
 
-    test('a truncated note never splits a surrogate pair', () {
-      final line = 'Ladies chain to partner (${'\u{1F483}' * 300})';
+    test('a truncated annotation note never splits a surrogate pair (mid-emoji '
+        'truncation via the shared _maxAnnotationNote bound)', () {
+      // Two annotations (regex per-run cap is 120 UTF-16 units; neither
+      // approaches it) are deliberately sized so their `_joinAnnotations`
+      // join — 118 + '; '.length(2) + 85 = 205 units — crosses the shared
+      // `_maxAnnotationNote` (200) bound with a 💃 (U+1F483, a surrogate
+      // pair) straddling the cut: 79 filler chars into the second
+      // annotation puts the emoji's high surrogate at joined-string index
+      // 199 and its low surrogate at 200 — exactly where a naive
+      // `substring(0, 200)` would cut, and exactly where a mid-emoji split
+      // would land if truncation were not rune-safe.
+      const body1Len = 118;
+      const filler2Len = 79;
+      final emoji = '\u{1F483}';
+      final body1 = 'a' * body1Len;
+      final body2 = '${'b' * filler2Len}${emoji}tail';
+      final line = 'Ladies chain to partner ($body1) ($body2)';
+
+      // Control: prove the hazard is real by reconstructing the identical
+      // pre-truncation join and confirming a NAIVE `substring` truncation
+      // (not rune-aware) actually splits the pair here — i.e. this input
+      // would fail the assertions below against a naive implementation.
+      final joined = '$body1; $body2';
+      expect(joined.length, greaterThan(_maxAnnotationNoteForTest));
+      final naiveCut = joined.substring(0, _maxAnnotationNoteForTest);
+      expect(
+        _isProperlySurrogatePaired(naiveCut),
+        isFalse,
+        reason:
+            'test input does not actually straddle a surrogate pair at '
+            'the truncation boundary — fix the offsets above',
+      );
+
       final f = _single(line, beats: 8);
       expect(f.move, 'chain');
       final note = f.note ?? '';
       expect(note.length, lessThanOrEqualTo(kMaxFigureNote));
-      for (final unit in note.codeUnits) {
-        expect(unit, isNot(inInclusiveRange(0xDC00, 0xDFFF)));
-      }
-      expect(String.fromCharCodes(note.runes), note);
+      expect(_isProperlySurrogatePaired(note), isTrue, reason: 'note: $note');
+    });
+
+    test('a single annotation far exceeding the per-run capture bound is '
+        'dropped whole (never partially captured mid-emoji)', () {
+      // `_annotationRe`'s `{0,120}` bounds each PAREN RUN, not the overall
+      // note: 300 emoji (600 UTF-16 units) never matches the regex at all
+      // (no possible backtrack lands the closing `)` within 120 units), so
+      // this annotation is dropped in its entirety — the line still
+      // structures via the ordinary annotation-stripped path, keeping only
+      // `chain`'s own recognizer note.
+      final line = 'Ladies chain to partner (${'\u{1F483}' * 300})';
+      final f = _single(line, beats: 8);
+      expect(f.move, 'chain');
+      expect(f.note, 'to partner');
     });
 
     test('an unterminated annotation never throws', () {
