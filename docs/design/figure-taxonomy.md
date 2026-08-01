@@ -381,9 +381,18 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
       figure would stop resolving and fall through to the #358 raw-id fallback —
       this is what forces the schema-v19 migration) and the **`displayName`**
       ("form a wave" → "form short waves"), which `renderTemplate`'s `{move}`
-      token expands — so those figures' canonical text moves too, which is what
-      forces `derivedRebuildRequiredKey`. Renaming only the id would have needed
-      the migration but not the rebuild.
+      token expands — so those figures' canonical text moves too.
+
+    The `derivedRebuildRequiredKey` marker is owed for a **broader** reason than
+    canonical text, and it is worth stating precisely because it is easy to get
+    backwards. `dance_figures` projects three things out of a stored figure —
+    the **move id**, `params_json` and `canonicalText` (see `tables.dart`) — and
+    a rebuild is owed if **any** of them moves. A rename changes the move id by
+    definition, so **a rename always owes both a migration and a rebuild**, even
+    one that leaves `displayName` (and therefore canonical text) untouched:
+    without the rebuild, `dance_figures.move` would keep an id the taxonomy no
+    longer defines, and structural search / filter-by-move would silently go
+    stale.
 
     (#296 also names `form_an_ocean_wave`; that reference is **stale** — the
     MoveDef was split at v13 and removed at v14.)

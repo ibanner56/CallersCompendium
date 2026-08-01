@@ -192,10 +192,17 @@ import 'taxonomy.dart';
 ///         `renderTemplate` is `'{move}'`, whose `{move}` token expands the
 ///         DISPLAY NAME (`FigureRenderer._renderMoveName` uses the id only as a
 ///         dialect-substitution lookup key) — so those figures' canonical text
-///         changes too, which is what forces `derivedRebuildRequiredKey`.
-///         Renaming only the id and keeping the old `displayName` would have
-///         needed the migration but NOT the rebuild; both were changed
-///         deliberately.
+///         changes too.
+///       The `derivedRebuildRequiredKey` marker is owed for a BROADER reason
+///       than canonical text, and it is worth stating precisely because it is
+///       easy to get backwards: `dance_figures` projects three things out of a
+///       stored figure — the **move id**, `params_json` and `canonicalText`
+///       (see `tables.dart`) — and a rebuild is owed if ANY of them moves. A
+///       rename changes the move id by definition, so **a rename always owes
+///       both a migration and a rebuild**, even one that leaves `displayName`
+///       (and therefore canonical text) untouched: without the rebuild,
+///       `dance_figures.move` would keep an id the taxonomy no longer defines
+///       and structural search / filter-by-move would silently go stale.
 ///     - The new params and the balance suffix are otherwise surfaced only on
 ///       the `!forCanonical` display path (that display work IS issue #296,
 ///       whose own reference to `form_an_ocean_wave` is stale — that MoveDef was
