@@ -2035,14 +2035,13 @@ void main() {
     });
   });
 
-  group('v16 -> v17 upgrade (typed-prose canonicalization, issue #613)', () {
+  group('v16 -> current upgrade (prose is NOT canonicalized, issue #613)', () {
     late Directory dir;
     late String dbPath;
 
     setUp(() async {
       dir = await Directory.systemTemp.createTemp('compendium_core_mig_v17_');
       dbPath = p.join(dir.path, 'test.sqlite');
-      // Copy the checked-in v16 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
           Directory.current.path,
@@ -2058,9 +2057,6 @@ void main() {
     tearDown(() => dir.delete(recursive: true));
 
     test('the v16 fixture starts at v16 with VERBATIM dialect prose', () async {
-      // Guards the migration's premise: the fixture is a genuine pre-v17 DB
-      // whose prose still holds the caller's literal dialect terms, so the
-      // assertions below prove `onUpgrade` (not the generator) canonicalized it.
       final raw = sqlite3.sqlite3.open(dbPath);
       expect(raw.select('PRAGMA user_version').first.values.first, 16);
       final row = raw
@@ -2078,45 +2074,52 @@ void main() {
       raw.close();
     });
 
-    test('canonicalizes role terms in typed prose, preserving other prose '
-        'and bumping the schema version', () async {
+    test('leaves hand-typed prose BYTE-IDENTICAL across the upgrade', () async {
+      // v17 originally canonicalized these columns. It was reverted before
+      // release because the substitution's always-on synonym set contains
+      // ordinary English and proper nouns, so it corrupted dance titles, tune
+      // names and people's names in long-form prose. Prose is now stored
+      // exactly as the caller typed it, in every dialect.
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       final repos = CompendiumRepositories(db, contraTaxonomy);
       await repos.ensureMigrated();
 
       final version = await db.customSelect('PRAGMA user_version').get();
       expect(version.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 20);
 
       final dance = await repos.dances.getById('dance-1');
       expect(dance, isNotNull);
-      // Role terms are rewritten to canonical tokens...
-      expect(dance!.hook, 'role1s and role2s balance the ring.');
-      expect(dance.callingNotes, 'role2s chain across, then role1s turn back.');
-      expect(
-        dance.walkthrough,
-        'A1: role1s allemande left once and a half. Balance the ring and '
-        'petronella.',
-      );
-      // ...and no literal dialect term survives in storage.
-      expect(dance.hook, isNot(contains('Lark')));
-      expect(dance.callingNotes, isNot(contains('Robin')));
+      expect(dance!.hook, 'Larks and Robins balance the ring.');
+      expect(dance.callingNotes, 'Robins chain across, then Larks turn back.');
+      expect(dance.walkthrough, contains('Larks allemande left'));
+      // No canonical role token was written into the caller's prose.
+      expect(dance.hook, isNot(contains('role1')));
+      expect(dance.hook, isNot(contains('role2')));
 
       await db.close();
     });
 
-    test('leaves prose with no role terms byte-for-byte untouched', () async {
+    test('leaves dance titles untouched', () async {
+      // Titles are never routed through canonicalization on any path (editor,
+      // import or migration). Pinned so the #613 class of bug cannot reach
+      // them: "Lady of the Lake" must never become "role2 of the Lake".
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      expect((await repos.dances.getById('dance-1'))!.title, 'Ocean Motion');
+      expect((await repos.dances.getById('dance-2'))!.title, 'Plain Sailing');
+
+      await db.close();
+    });
+
+    test('prose with no role terms is untouched too', () async {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       final repos = CompendiumRepositories(db, contraTaxonomy);
       await repos.ensureMigrated();
 
       final dance = await repos.dances.getById('dance-2');
-      expect(dance, isNotNull);
       expect(dance!.hook, 'Balance and swing your partner.');
-      expect(
-        dance.callingNotes,
-        'Circle left three places, then pass through.',
-      );
       expect(
         dance.walkthrough,
         'A1: Long lines forward and back. Star right once around.',
@@ -2125,105 +2128,45 @@ void main() {
       await db.close();
     });
 
-    test('round-trips: rendering canonical storage under a dialect yields that '
-        'dialect\'s terms (dialect-agnostic re-rendering)', () async {
+    test('full-text search over prose behaves as it did before #613', () async {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       final repos = CompendiumRepositories(db, contraTaxonomy);
       await repos.ensureMigrated();
 
-      final dance = await repos.dances.getById('dance-1');
-      final renderer = FigureRenderer(contraTaxonomy);
-      // Under the SOURCE dialect the caller's own terms come back. The
-      // roles-only canonical model normalizes role terms to the dialect's
-      // configured (here lowercase) term — the same behaviour imports already
-      // have — so the surrounding prose is intact and the terms round-trip.
-      expect(
-        renderer.renderFreeText(dance!.hook, Dialect.larksRobins),
-        'larks and robins balance the ring.',
-      );
-      // The whole point of canonical storage: a reader on a DIFFERENT dialect
-      // sees the equivalent terms without the prose ever being re-typed.
-      expect(
-        renderer.renderFreeText(dance.hook, Dialect.leadsFollows),
-        'leads and follows balance the ring.',
-      );
-
-      await db.close();
-    });
-
-    test(
-      'is idempotent: canonicalizing already-canonical prose is a no-op',
-      () async {
-        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
-        final repos = CompendiumRepositories(db, contraTaxonomy);
-        await repos.ensureMigrated();
-
-        final dance = await repos.dances.getById('dance-1');
-        // The migration transform applied to its own output changes nothing —
-        // canonical role tokens are not themselves dialect terms.
-        expect(canonicalizeText(dance!.hook, Dialect.larksRobins), dance.hook);
-        expect(
-          canonicalizeText(dance.walkthrough, Dialect.larksRobins),
-          dance.walkthrough,
-        );
-
-        await db.close();
-      },
-    );
-
-    test('rebuilds dance_fts so full-text search over prose is '
-        'dialect-agnostic', () async {
-      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
-      final repos = CompendiumRepositories(db, contraTaxonomy);
-      await repos.ensureMigrated();
-
-      // The FTS index now holds canonical tokens, so a Larks/Robins reader's
-      // query (canonicalized to role tokens at the boundary) matches the prose
-      // they originally typed as "Robins".
-      final byDialectTerm = await repos.dances.search(
-        const FullTextFilter('Robins'),
-        dialect: Dialect.larksRobins,
-      );
-      expect(byDialectTerm, contains('dance-1'));
-
-      // Plain (non-role) prose stays searchable verbatim. `chain` is ordinary
-      // prose in calling_notes (which feeds `dance_fts`); the migration left it
-      // untouched.
+      // Ordinary prose is indexed and searchable verbatim.
       final byPlainProse = await repos.dances.search(
         const FullTextFilter('chain'),
       );
       expect(byPlainProse, contains('dance-1'));
+      expect(
+        await repos.dances.search(const FullTextFilter('balance')),
+        contains('dance-1'),
+      );
 
-      // The rebuilt derived text is canonical, not verbatim.
+      // KNOWN LIMITATION, restored deliberately: the search path canonicalizes
+      // the QUERY ('Robins' -> 'role2s') but prose is now stored verbatim, so a
+      // role term typed into prose is not full-text matchable. This is the
+      // pre-#613 behaviour — #613 never touched the search path (it changed
+      // only the editor, the detail screen and the migration), so reverting it
+      // restores this gap rather than introducing one. Tracked separately; the
+      // fix is to match the query against both forms, not to rewrite the
+      // caller's prose.
+      expect(
+        await repos.dances.search(
+          const FullTextFilter('Robins'),
+          dialect: Dialect.larksRobins,
+        ),
+        isEmpty,
+      );
+
+      // The index holds exactly what the caller typed.
       final fts = await db
-          .customSelect(
-            "SELECT hook, notes FROM dance_fts WHERE dance_id = 'dance-1'",
-          )
+          .customSelect("SELECT hook FROM dance_fts WHERE dance_id = 'dance-1'")
           .get();
-      expect(fts.single.read<String>('hook'), contains('role1s'));
+      expect(fts.single.data['hook'], 'Larks and Robins balance the ring.');
 
       await db.close();
     });
-
-    test(
-      'is referentially intact after the migration (no dangling FKs)',
-      () async {
-        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
-        final repos = CompendiumRepositories(db, contraTaxonomy);
-        await repos.ensureMigrated();
-
-        final fkViolations = await db
-            .customSelect('PRAGMA foreign_key_check')
-            .get();
-        expect(
-          fkViolations,
-          isEmpty,
-          reason: 'the v17 migration must not leave any dangling foreign keys',
-        );
-
-        await db.close();
-      },
-    );
   });
 
   test(

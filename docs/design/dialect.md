@@ -6,7 +6,9 @@
 ## Model
 
 A **dialect** is a user-level presentation mapping applied at render time.
-Storage is always canonical (move IDs, role IDs, canonicalized free text).
+Storage is canonical for structured data (move IDs, role IDs) and for
+figure-bearing free text; hand-typed prose is stored verbatim (see
+"Canonicalization on input").
 
 ```json
 {
@@ -60,31 +62,46 @@ free text (notes/custom) ──term regex (case-preserving)──▶ display tex
 ## Canonicalization on input (single chokepoint)
 
 ContraDB's `DialectReverser` ran only on some code paths (pitfall #7). Here,
-**all free-text entry passes through one `canonicalize(text, dialect)`
+**figure-bearing free text passes through one `canonicalize(text, dialect)`
 function** before persistence: it inverse-maps the user's dialect terms and
 known synonyms/legacy terms (gypsy → shoulder round) back to canonical
 vocabulary, and flags ambiguities inline ("lingo line" underlining: recognized
 terms underlined, discouraged terms struck through, unknown terms plain).
 
-This chokepoint is wired at every free-text entry point:
+The chokepoint is deliberately **not** applied to long-form hand-typed prose.
+`canonicalize` is a word-boundary substitution over an always-on synonym set
+that includes ordinary English words and proper nouns — `man`, `men`, `woman`,
+`women`, `lady`, `ladies`, `gent(s)`, `lark(s)`, `robin(s)`. Over a figure line
+those are reliably roles; over a caller's prose they are not. Applied to prose
+it rewrote dance titles, tune names and people's names: `Lady of the Lake`
+became `role2 of the Lake` and re-rendered as "robin of the Lake"; `Robin
+Hayden` became `role2 Hayden`; `The ladies room` became `The role2s room`. The
+rewrite is in-place and the substitution also discards the caller's
+capitalisation, so the original text is not recoverable. Prose is therefore
+stored exactly as typed (issue #613).
+
+Where the chokepoint IS wired:
 
 - **Imports** canonicalize incoming prose (with `Dialect.canonical`, so the
   always-on legacy synonyms resolve roles) before persistence.
-- **Hand-typed dance prose** — `hook`, `callingNotes`, `walkthrough`, and
-  per-figure `note` — is canonicalized against the caller's **active**
-  dialect in the dance editor's save path (`buildDance`), so a caller's own
-  role terms are stored as canonical tokens. On load the editor renders those
-  tokens back into the active dialect via `renderFreeText`, and every display
-  site (detail, perform, PDF/text export) renders under the reader's active
-  dialect — so stored prose is dialect-agnostic and re-renders for each
-  reader (issue #613; figure `note` folded into the same chokepoint via
-  issue #715). Because the model is roles-only, a role term is normalized to
-  its dialect-configured casing on the round-trip (e.g. the Larks/Robins
-  preset term is lowercase), the same as imported prose; surrounding prose is
-  preserved byte-for-byte.
-- **Search** canonicalizes the query at the compiler boundary, and the
-  full-text index is built from the (now canonical) stored prose, so free-text
-  search over typed prose is dialect-agnostic.
+- **Figure notes** (`Figure.note`) are canonicalized against the caller's
+  **active** dialect in the dance editor's save path (`buildDance`), and
+  rendered back via `renderFreeText` on load and at every display site
+  (detail, perform, PDF/text export). A note carries modifiers and clarifiers
+  for the figure beside it, so its language must stay consistent with the
+  figure — and importers already store note text canonically through
+  `scrubFigureText` (issue #715).
+- **Hand-typed dance prose** — `hook`, `callingNotes`, `walkthrough` — is
+  stored **verbatim, exactly as typed**, in whatever dialect the caller uses.
+  It is not canonicalized on save and not rewritten on load. Display sites
+  still route it through `renderFreeText`, which is a no-op for text holding no
+  canonical role tokens.
+- **Search** canonicalizes the query at the compiler boundary. Because prose is
+  stored verbatim, a role term typed into prose is **not** full-text matchable
+  (a Larks/Robins reader searching "Robins" has the query canonicalized to
+  `role2s`, which the verbatim index does not contain). Ordinary prose is
+  matched normally. This is a known gap, tracked separately; the fix is to
+  match the query against both forms, not to rewrite the caller's prose.
 
 > Intentionally not wired: **program-level prose** (`Program.notes`, free-text
 > `ProgramSlot.text`) is stored and displayed verbatim — it is not
@@ -102,19 +119,17 @@ Edge rules:
   dialect-edit time, since they'd make reversal ambiguous.
 - Canonicalization is conservative: unknown phrases are stored as typed; only
   exact dialect/synonym matches are rewritten.
-- Migration: existing beta prose typed before this chokepoint was wired is
-  canonicalized once by the schema-v17 migration. The per-record source dialect
-  isn't recorded, so it assumes the current global active dialect — safe because
-  canonicalization is roles-only and conservative (non-role prose is untouched)
-  and the built-in legacy synonyms resolve the common preset terms regardless.
-  The migration is idempotent.
+- Migration: a schema-v17 step once canonicalized existing prose in place. It
+  was reverted before any release contained it (see above), so no database in
+  the wild was rewritten. v17 remains a no-op step so v18+ keep their numbering.
 
 ## Scope of substitution
 
 | Surface | Dialect applied? |
 |---|---|
 | Dance card, editor previews, performance mode | ✅ |
-| Free text: calling notes, hooks, walkthrough, custom figures, figure notes | ✅ (canonical on save, rendered on read) |
+| Free text: custom figures, figure notes | ✅ (canonical on save, rendered on read) |
+| Hand-typed prose: hooks, calling notes, walkthrough | ❌ verbatim (intentional; #613) |
 | Program notes / free-text slots | ❌ verbatim (intentional; #665 not planned) |
 | Search input | canonicalized before matching |
 | Stored data, snapshots, JSON export (canonical mode) | ❌ canonical |

@@ -13,6 +13,20 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Changed
 
+- **Your hook, calling notes and walkthrough are saved exactly as you type
+  them.** An unreleased change had started rewriting the role words in your
+  prose into internal terms so they could be re-shown in each reader's
+  vocabulary. That turned out to damage ordinary writing: the app matches whole
+  words like *man*, *men*, *lady*, *ladies*, *lark* and *robin* wherever they
+  appear, so a dance called "Lady of the Lake" was being re-shown as "robin of
+  the Lake", "Taught to me by Robin Hayden" became "robin Hayden", and "the
+  ladies room is past the stage" became "the robins room". Your capitalisation
+  was dropped too. Prose is now stored word-for-word as written. **Nothing you
+  have saved was affected — this never reached a release.** Dance and program
+  titles were never touched on any version. Figure notes are unchanged: they
+  still follow your chosen vocabulary, because they describe the figure sitting
+  next to them.
+
 - **"Gate" is now a single figure instead of two identical-looking ones.** The
   move picker used to show two rows both labelled "gate" — one from ContraDB's
   vocabulary and one from The Caller's Box's — with no way to tell them apart.
