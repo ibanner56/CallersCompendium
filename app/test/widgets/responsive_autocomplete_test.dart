@@ -14,6 +14,7 @@ class _TestPicker extends StatefulWidget {
     this.compactWidthBreakpoint = 600,
     this.compactHeightBreakpoint = 480,
     this.autofocus = false,
+    this.focusNode,
   });
 
   final List<String> options;
@@ -22,6 +23,7 @@ class _TestPicker extends StatefulWidget {
   final double compactWidthBreakpoint;
   final double compactHeightBreakpoint;
   final bool autofocus;
+  final FocusNode? focusNode;
 
   @override
   State<_TestPicker> createState() => _TestPickerState();
@@ -39,6 +41,7 @@ class _TestPickerState extends State<_TestPicker> {
     return ResponsiveAutocomplete<String>(
       sheetSemanticLabel: 'Search options',
       autofocus: widget.autofocus,
+      focusNode: widget.focusNode,
       compactWidthBreakpoint: widget.compactWidthBreakpoint,
       compactHeightBreakpoint: widget.compactHeightBreakpoint,
       displayStringForOption: (o) => o,
@@ -99,6 +102,7 @@ Future<void> _pump(
   double compactHeightBreakpoint = 480,
   bool autofocus = false,
   TextDirection textDirection = TextDirection.ltr,
+  FocusNode? focusNode,
 }) async {
   await tester.pumpWidget(
     Directionality(
@@ -112,6 +116,7 @@ Future<void> _pump(
             compactWidthBreakpoint: compactWidthBreakpoint,
             compactHeightBreakpoint: compactHeightBreakpoint,
             autofocus: autofocus,
+            focusNode: focusNode,
           ),
         ),
       ),
@@ -172,6 +177,7 @@ void main() {
       required ValueChanged<String> onSelected,
       bool autofocus = false,
       TextDirection textDirection = TextDirection.ltr,
+      FocusNode? focusNode,
     }) async {
       await _setScreenSize(tester, const Size(360, 720));
       await _pump(
@@ -180,6 +186,7 @@ void main() {
         onSelected: onSelected,
         autofocus: autofocus,
         textDirection: textDirection,
+        focusNode: focusNode,
       );
     }
 
@@ -211,7 +218,56 @@ void main() {
       expect(picked, 'balance');
       // Closes after the pick.
       expect(find.byType(BottomSheet), findsNothing);
+      // The launcher's field is updated to show the picked option's display
+      // string (mirrors `Autocomplete`'s own post-selection behavior) rather
+      // than staying on whatever text was typed while searching.
+      final launcherField = tester.widget<TextField>(
+        find.byKey(const ValueKey('test-input')),
+      );
+      expect(launcherField.controller?.text, 'balance');
     });
+
+    testWidgets(
+      'a tap-driven open does not swallow a later genuine Tab/AT focus '
+      'arrival',
+      (tester) async {
+        final focusNode = FocusNode();
+        addTearDown(focusNode.dispose);
+        await pumpNarrow(
+          tester,
+          options: const ['swing'],
+          onSelected: (_) {},
+          focusNode: focusNode,
+        );
+
+        // Open (and close, via a pick) the sheet purely by tapping — the
+        // launcher's FocusNode never gains focus in this path, since
+        // AbsorbPointer blocks the tap from reaching the field itself.
+        await tester.tap(
+          find.byKey(const ValueKey('test-input')),
+          warnIfMissed: false,
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('test-input')),
+          'swing',
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('test-option-swing')));
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsNothing);
+        expect(focusNode.hasFocus, isFalse);
+
+        // A later, unrelated, genuine Tab/AT-driven focus arrival must still
+        // open the sheet — it must not be swallowed by a stale
+        // "ignore next focus gain" guard left over from the tap-driven open
+        // above (see PR review discussion on responsive_autocomplete.dart).
+        focusNode.requestFocus();
+        await tester.pumpAndSettle();
+
+        expect(find.byType(BottomSheet), findsOneWidget);
+      },
+    );
 
     testWidgets('autofocus opens the sheet immediately on mount', (
       tester,

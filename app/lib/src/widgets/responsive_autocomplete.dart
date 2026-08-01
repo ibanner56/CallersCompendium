@@ -140,11 +140,14 @@ class _ResponsiveAutocompleteState<T extends Object>
   FocusNode? _ownedFocusNode;
   bool _didScheduleAutofocus = false;
   bool _sheetOpen = false;
-  // Popping the sheet restores focus to whatever previously held it (the
-  // launcher field), which would otherwise immediately re-trigger
+  // Popping the sheet can restore focus to whatever previously held it (the
+  // launcher field) *if* the sheet was opened via a genuine focus gain
+  // (Tab/AT traversal) — which would otherwise immediately re-trigger
   // [_handleFocusChange] and reopen the sheet. Set right before the sheet
-  // closes so exactly that one restored-focus event is ignored; a genuine
-  // later Tab/AT focus still opens it normally.
+  // closes, but only when it was actually opened that way (see
+  // `_openSheet`'s `openedViaFocus`), so a later, unrelated, genuine
+  // Tab/AT focus gain is never wrongly swallowed by a stale flag left over
+  // from a tap-driven open (which never focuses the launcher at all).
   bool _ignoreNextFocusGain = false;
 
   TextEditingController get _controller {
@@ -210,6 +213,15 @@ class _ResponsiveAutocompleteState<T extends Object>
 
   Future<void> _openSheet() async {
     if (_sheetOpen) return;
+    // Only a focus-driven open (Tab/AT traversal reaching the launcher's
+    // FocusNode) can trigger the post-close focus-restoration "boomerang" —
+    // a tap-driven open never focuses the launcher at all (AbsorbPointer
+    // blocks the tap from reaching the field), so nothing focus-related
+    // happens when that route pops. Recording this now (rather than
+    // unconditionally arming the ignore-guard on close) avoids leaving a
+    // stale `_ignoreNextFocusGain = true` around to wrongly swallow a
+    // completely unrelated, later, genuine Tab/AT focus arrival.
+    final openedViaFocus = _focusNode.hasFocus;
     // Rebuilds the launcher out of the tree (see `build`'s narrow branch) so
     // the sheet's own field — built from the same [fieldViewBuilder] and
     // therefore carrying the same call-site [ValueKey] — is never mounted
@@ -247,8 +259,19 @@ class _ResponsiveAutocompleteState<T extends Object>
     );
     if (!mounted) return;
     setState(() => _sheetOpen = false);
-    _ignoreNextFocusGain = true;
+    if (openedViaFocus) {
+      _ignoreNextFocusGain = true;
+    }
     if (picked != null) {
+      // Mirrors RawAutocomplete's own `_select`: write the picked option's
+      // display string back into the field's controller (collapsed
+      // selection at the end) before notifying the caller, so the launcher
+      // shows the pick immediately instead of the stale pre-pick text.
+      final selectionString = widget.displayStringForOption(picked);
+      _controller.value = TextEditingValue(
+        text: selectionString,
+        selection: TextSelection.collapsed(offset: selectionString.length),
+      );
       widget.onSelected(picked);
     }
   }
