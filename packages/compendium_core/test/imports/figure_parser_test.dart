@@ -10,6 +10,11 @@ import 'package:test/test.dart';
 /// every assertion byte-identical. The narrowed core's behavior WITHOUT a
 /// front-end (and the canonical-vs-TCB contrast that pins the relocation) is
 /// covered by `callersbox_figure_dialect_test.dart`.
+/// The param slot a recognizer writes its SUBJECT into. Almost every move uses
+/// `who`; the merged `gate` (taxonomy v22) puts TCB's subject in `pair`,
+/// because `who` there means ContraDB's "the side that backs up".
+String _subjectKey(String move) => move == 'gate' ? 'pair' : 'who';
+
 Figure? _parseLine(
   String rawText, {
   int beats = 0,
@@ -219,42 +224,45 @@ void main() {
       'Form a wave': (move: 'form_short_waves', params: {}),
       'Form short waves': (move: 'form_short_waves', params: {}),
       'Form a short wave': (move: 'form_short_waves', params: {}),
-      // Issue #294 — TCB rotation-gate, the three corpus lines (verbatim from
-      // ibiblio thecallersbox JSON). The `(ones forward)` parenthetical is
-      // stripped for recognition; beats (8/6/4) are layered from the source, not
-      // emitted here. The ending facing is derived at render time, not parsed.
+      // TCB gate lines (verbatim from ibiblio thecallersbox JSON). Since the
+      // v22 merge these structure onto the SINGLE `gate` move, and TCB's
+      // subject lands on `pair` (the pairing you gate with) — never on `who`,
+      // which is ContraDB's "the side that extends a hand and backs up"
+      // (libfigure `figure.js:844`). Beats (8/6/4) are layered from the source,
+      // not emitted here. The ending facing is neither parsed nor derived: TCB
+      // never states one, so `face` stays unspecified.
       'Neighbor mirror gate 1 (ones forward)': (
-        move: 'rotation_gate',
-        params: {'who': 'neighbors', 'direction': 'mirror', 'turn': 1.0},
+        move: 'gate',
+        params: {'pair': 'neighbors', 'direction': 'mirror', 'turn': 1.0},
       ),
       'Partner gate counterclockwise 3/4': (
-        move: 'rotation_gate',
+        move: 'gate',
         params: {
-          'who': 'partners',
+          'pair': 'partners',
           'direction': 'counterclockwise',
           'turn': 0.75,
         },
       ),
       'N2 neighbor gate counterclockwise 1/2': (
-        move: 'rotation_gate',
+        move: 'gate',
         params: {
-          'who': 'nextNeighbors',
+          'pair': 'nextNeighbors',
           'direction': 'counterclockwise',
           'turn': 0.5,
         },
       ),
       'N3 neighbor gate counterclockwise 1/2': (
-        move: 'rotation_gate',
+        move: 'gate',
         params: {
-          'who': 'thirdNeighbors',
+          'pair': 'thirdNeighbors',
           'direction': 'counterclockwise',
           'turn': 0.5,
         },
       ),
       // Clockwise gates are attested (rarer); the recognizer handles them too.
       'Partner gate clockwise 1/2': (
-        move: 'rotation_gate',
-        params: {'who': 'partners', 'direction': 'clockwise', 'turn': 0.5},
+        move: 'gate',
+        params: {'pair': 'partners', 'direction': 'clockwise', 'turn': 0.5},
       ),
     };
 
@@ -385,8 +393,8 @@ void main() {
         who: 'neighbors',
       ),
       'Partner gate counterclockwise 3/4': (
-        site: 'rotation_gate',
-        move: 'rotation_gate',
+        site: 'gate',
+        move: 'gate',
         who: 'partners',
       ),
       'Neighbors star through': (
@@ -402,7 +410,7 @@ void main() {
         expect(f, isNotNull, reason: line);
         expect(f!.isCustom, isFalse, reason: line);
         expect(f.move, e.move, reason: line);
-        expect(f.params['who'], e.who, reason: '$line who');
+        expect(f.params[_subjectKey(e.move)], e.who, reason: '$line who');
         expect(f.assumedSubject, isFalse, reason: '$line assumedSubject');
       });
     });
@@ -446,8 +454,8 @@ void main() {
         who: 'partners',
       ),
       'Gate counterclockwise 3/4': (
-        site: 'rotation_gate',
-        move: 'rotation_gate',
+        site: 'gate',
+        move: 'gate',
         who: 'neighbors',
       ),
       'Star through': (
@@ -464,7 +472,7 @@ void main() {
         expect(f!.isCustom, isFalse, reason: line);
         expect(f.move, e.move, reason: line);
         // The structured move is still emitted with the default subject...
-        expect(f.params['who'], e.who, reason: '$line who');
+        expect(f.params[_subjectKey(e.move)], e.who, reason: '$line who');
         // ...but flagged assumed so it never renders as source-stated fact.
         expect(f.assumedSubject, isTrue, reason: '$line assumedSubject');
       });
@@ -544,11 +552,11 @@ void main() {
       "Neighbor Rory O'More",
       // "square through" spelled out (TCB uses a digit count) stays custom.
       'square through four',
-      // gate: the ContraDB facing-gate stays custom (we do not recognize it),
-      // and a TCB rotation-gate line that does NOT fully resolve to
-      // (who, direction, turn) also stays custom — the recognizer never
-      // defaults a missing direction or fraction (issue #294). Fully-resolved
-      // rotation-gate lines ARE structured now (see the rotation_gate group).
+      // gate: the shared recognizer only structures the TCB shape, and only
+      // when a line fully resolves to (pair, direction, turn) — it never
+      // defaults a missing direction or fraction. ContraDB's facing-gate
+      // wording is handled by the ContraDB dialect's own recognizer, not here,
+      // so it stays custom on this front-end.
       'gate', // bare anchor: no direction, no fraction.
       'Partner gate', // direction + fraction both missing.
       'Neighbor gate up', // ContraDB facing value, not a rotation qualifier.

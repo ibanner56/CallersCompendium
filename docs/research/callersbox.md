@@ -267,6 +267,42 @@ the v20 note in `docs/design/figure-taxonomy.md`). Critically, TCB's "around
 `<X>`" is the pair you ORBIT, whereas ContraDB's mad robin `who` is the pair
 that steps IN FRONT: different concepts, so they map to different params.
 
+### Gate lines (surveyed 2026-07-31 over the full 24,107-dance mirror)
+
+186 figure lines contain a gate. TCB and ContraDB describe the SAME figure from
+opposite ends, which is why they merge cleanly into one taxonomy move (v22):
+ContraDB states how a gate ends and never its amount; TCB states the rotation
+sense and amount and never a facing.
+
+- **Rotation sense** — `counterclockwise` 77, `mirror` 75, `clockwise` 34.
+  `mirror` (the two-couple gate) has no ContraDB equivalent at all.
+- **Turn amount** — `1` x96, `1 & 1/4` x34, `1/2` x27, `3/4` x16, `1/4` x6,
+  absent x7.
+- **Beats** — 8 x122, 4 x33, 6 x15, 2 x13, 3 x3. (Not the fixed 8 ContraDB
+  pins.) The three 3-beat lines (#6819, #20257, #19476) are all the SAME real
+  pattern rather than typos — a 6-beat compound split evenly into 3 + 3:
+  `(6) Modified right and left through with partner:` →
+  `(3) Pass through across (NR)` + `(3) Partner gate counterclockwise 1/2`.
+- **Subject** — the *pairing*: `Neighbor`, `N0`/`N1`/`N2`/`N3 neighbor`,
+  `Partner`, `P1 partner`, `Shadow`, `Same-role neighbor`. This is NOT
+  ContraDB's subject, which names the side that backs up and whose chooser
+  cannot even hold `neighbors`/`partners` — hence the separate `pair` slot.
+- **Which side moves lives in a trailing parenthetical**, on 82 of the 186
+  lines: `(ones forward)` x46, `(twos forward)` x13, `(men stay put)` x4,
+  `(M1+W2 forward)` x4, `(ends forward)` x4, `(woman one and man two forward)`
+  x2, `(threes forward)` x2, and singletons `(women are posts)`,
+  `(centers are posts)`, `(twos and fours forward)`, `(ones and threes
+  forward)`, `(women forward)`, `(twos split ones)`. This is the same fact
+  ContraDB encodes in its subject/object split. A `"<dancers> forward"`
+  annotation whose dancers resolve to a set we model (60 of the 82) maps onto
+  the merged move's `whom`, which means precisely "walks forward". The rest are
+  preserved verbatim as a note: the **stationary** phrasings
+  (`(men stay put)`, `(women are posts)`, `(centers are posts)`) fit neither
+  `whom` (walks forward) nor `who` (backs up — also moving), and the remaining
+  "forward" phrases name sets we do not model.
+- **TCB never states a cardinal ending facing for a gate.** The only "to face"
+  wording found names a *dancer* (`to face N2`), not a direction.
+
 ## Search capabilities (hints at internal schema)
 
 Substring search on title/author; controlled formation + progression filters;

@@ -1,5 +1,69 @@
 ## Unreleased
 
+### Changed
+
+- **The two `gate` moves are now ONE figure (`contraTaxonomyVersion` 22,
+  `CompendiumDatabase` schema 20).** `gate` (ContraDB) and `rotation_gate`
+  (The Caller's Box, taxonomy v15) both rendered the display name "gate" and
+  appeared as two identical rows in the move picker. The merged `gate` carries a
+  direction, a duration **and** an ending facing; `rotation_gate` is removed and
+  stored figures of both are rewritten by the schema-v20 migration (per-row and
+  per-figure parse-never-throw, recursing into `meanwhile` containers, beat
+  totals preserved exactly). Chains after the schema-v19 wave-move rename;
+  neither step adds a column or table.
+  - **Two source misreadings corrected**, verified against `libfigure`
+    (github.com/contradb/contra @ master). `figure.js:841` renders a gate as
+    `words(ssubject, smove, sobject, "to face", sgate_face)` over
+    `{up: "up the set", …}` (`param.js:711`) — ContraDB's `face` is the
+    **ending facing**, not "which way `who` orbits `whom`" as v15/v16 recorded,
+    so the two sources were never in conflict. And `figure.js:844`
+    ("*'ones gate twos' means: ones, extend a hand to twos - twos walk forward,
+    ones back up*") shows `who` **backs up** and `whom` **walks forward**.
+  - **TCB's subject maps to a new `pair` slot, never to `who`.** It names the
+    pairing you gate *with*, a third axis from ContraDB's "which side backs up"
+    (whose domain, `chooser.js:114`, cannot even hold `neighbors`/`partners`).
+    Reusing `who` would have silently reinterpreted every TCB-imported gate.
+    Same shape as the `mad_robin.whom` split at v20.
+  - **`goodBeats` widens to `[2, 3, 4, 6, 8]`** — the counts attested across the
+    186 gate lines in the 24,107-dance TCB corpus. The three 3-beat lines were
+    verified rather than assumed: all are a 6-beat `Modified right and left
+    through` compound split evenly into 3 + 3, which our own importer emits as
+    children, so excluding `3` would warn on real imported data.
+  - Every param defaults to the `unspecified` sentinel, so each source asserts
+    only what it states. `turn` is the first `ParamKind.rotation` to opt into
+    that sentinel (`ParamSpec.validate` now accepts it when a rotation spec
+    lists it in `choices`), because ContraDB's gate has no amount param at all.
+
+### Removed
+
+- **`gateEndFacing` (the "derived taxonomy value" exemplar) is WITHDRAWN.** It
+  derived a gate's ending facing from a nominal `in` start orientation, so every
+  half-turn gate rendered "to face out of the set" — including straight after a
+  down-the-hall, where the answer is "up". Passing the real start facing would
+  not have fixed it: the rule is only ever *relative*, and promoting it to an
+  absolute cardinal needs the orientation the dancers arrive in, i.e.
+  choreography simulation. The facing is stored data now (`gate.face`).
+  `taxonomy/gate_facing.dart` keeps only the shared `gateFacings` /
+  `gateDirections` vocabulary, and the "Derived (computed-at-render) taxonomy
+  values" section of `docs/design/figure-taxonomy.md` records the withdrawal.
+
+### Fixed
+
+- **Caller's Box gate annotations are no longer silently dropped.** 82 of the
+  corpus's 186 gate lines state which side moves — `(ones forward)`,
+  `(men stay put)`, `(women are posts)` — and a *structured* gate discarded it
+  (the `()`/`[]` strip is recognition-only, so only the custom fallback kept
+  it). A `tcbFigureFrontEnd` pre-recognizer now reads them and splits by whether
+  the stated verb matches a slot's meaning: `"<dancers> forward"` naming a set
+  we model (60 lines) maps onto `whom`, which means precisely "walks forward";
+  **stationary** phrasings (`(men stay put)`, `(women are posts)`) fit neither
+  `whom` nor `who` (which backs up — also moving) and are never structured; and
+  anything else is preserved verbatim as the note. OWASP bounds on the
+  annotation count, per-annotation capture length and joined note length.
+  New `resolveDancerSetPhrase` in `figure_parser.dart` resolves a dancer phrase
+  only when it consumes the whole phrase, so a partly-understood fragment
+  resolves to `null` rather than to its first dancer word.
+
 ### Added
 
 - **Balance-a-wave lines from The Caller's Box now import as real figures

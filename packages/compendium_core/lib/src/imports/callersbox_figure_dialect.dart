@@ -35,7 +35,7 @@ import 'figure_text_scrub.dart';
 /// `()`/`[]` recognition-only annotation strip. Pass this as the `frontEnd` to
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
 final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
-  preRecognizers: [_hey, _circulate],
+  preRecognizers: [_hey, _circulate, _gateAnnotation],
   recognitionNormalize: _stripAnnotations,
 );
 
@@ -289,6 +289,155 @@ List<String> _splitTopLevel(String t, String sep) {
 String _stripAnnotations(String lowercased) => lowercased
     .replaceAll(RegExp(r'\([^)]*\)'), ' ')
     .replaceAll(RegExp(r'\[[^\]]*\]'), ' ');
+
+// --- Gate annotation preservation (taxonomy v22) -----------------------------
+
+/// TCB states which side of a gate MOVES in a trailing parenthetical —
+/// `(ones forward)`, `(twos forward)`, `(men stay put)`, `(women are posts)`,
+/// `(M1+W2 forward)` — on 82 of the 186 gate lines in the 24,107-dance corpus.
+/// It is load-bearing choreography, and it is the same fact ContraDB stores in
+/// its `who`/`whom` split (`figure.js:844`: "twos walk forward, ones back up").
+/// But [_stripAnnotations] drops it for recognition, so before v22 a structured
+/// gate SILENTLY LOST it — only an unrecognised line kept it, via the custom
+/// fallback's un-normalized text.
+///
+/// This pre-recognizer closes that gap. It runs ahead of the shared
+/// recognizers, delegates the actual grammar to [recognizeSharedFigureLine] (no
+/// duplicated gate parsing, no recursion back into a front-end), and then:
+///
+///   * **structures a "`<dancers>` forward" annotation onto `whom`** — the
+///     merged move's `whom` means precisely "the side that walks forward", so
+///     this is source-verified, not inferred; and
+///   * **preserves every OTHER annotation verbatim as the figure's note.**
+///
+/// The split is deliberate and conservative — prefer-custom applied at param
+/// granularity:
+///
+///   * `(men stay put)`, `(women are posts)`, `(centers are posts)` state that
+///     dancers are STATIONARY. That is neither `whom` ("walks forward") nor
+///     `who` ("extends a hand and backs up" — a moving role: it backs up).
+///     Mapping them to either slot would fabricate, so they stay note-only.
+///   * `(M1+W2 forward)`, `(ends forward)`, `(twos and fours forward)`,
+///     `(ones and threes forward)`, `(threes forward)` DO say "forward", but
+///     name no dancer set our vocabulary models. [resolveDancerSetPhrase]
+///     returns null for them and they stay note-only rather than being
+///     approximated onto a token that means something else.
+///   * A line with several annotations keeps the unconsumed ones:
+///     `[Ones and twos] Neighbor mirror gate 3/4 (twos forward)` yields
+///     `whom: twos` plus the note `Ones and twos`.
+///
+/// An annotation that IS consumed into `whom` does not also become a note:
+/// notes render as their own row next to the figure line, so duplicating the
+/// same words in both would read as a bug. Nothing is lost either way — the
+/// structured slot carries the fact, and the display renderer states it.
+///
+/// Fires only for a line that (a) contains the `gate` anchor, (b) carries at
+/// least one non-numeric annotation, and (c) the shared recognizers resolve to
+/// the `gate` move. Anything else returns null and takes the normal path.
+FigureMatch? _gateAnnotation(String scrubbed) {
+  if (!_gateAnchor.hasMatch(scrubbed)) return null;
+  final annotations = _annotations(scrubbed);
+  if (annotations.isEmpty) return null;
+  final match = recognizeSharedFigureLine(
+    scrubbed,
+    recognitionNormalize: _stripAnnotations,
+  );
+  if (match == null || match.moveId != 'gate') return null;
+
+  String? whom;
+  final kept = <String>[];
+  for (final body in annotations) {
+    // Only the FIRST resolvable "<dancers> forward" is consumed; a second one
+    // would mean the line names two forward-walking sides, which no source
+    // does — so it is kept verbatim rather than silently overwriting.
+    final forward = whom == null ? _forwardDancers(body) : null;
+    if (forward != null) {
+      whom = forward;
+    } else {
+      kept.add(body);
+    }
+  }
+  if (whom == null && kept.isEmpty) return null;
+
+  final note = _joinAnnotations(kept);
+  return FigureMatch(
+    match.moveId,
+    params: <String, Object?>{
+      ...match.params,
+      // Never clobber a `whom` the grammar itself resolved.
+      if (whom != null && !match.params.containsKey('whom')) 'whom': whom,
+    },
+    // A shared match never carries its own note today; if that ever changes,
+    // keep the recognizer's (more specific) note rather than overwriting it.
+    note: match.note ?? note,
+    assumedSubject: match.assumedSubject,
+  );
+}
+
+/// The dancer set an annotation names as walking FORWARD, or `null` when the
+/// annotation is not a "`<dancers>` forward" statement or names a set we do not
+/// model. The trailing `forward` is REQUIRED — it is the word that makes the
+/// annotation mean the same thing as the merged move's `whom`.
+String? _forwardDancers(String body) {
+  final trimmed = body.trim();
+  final m = _forwardRe.firstMatch(trimmed);
+  if (m == null) return null;
+  return resolveDancerSetPhrase(m.group(1)!);
+}
+
+/// `{1,40}` bounds the dancer phrase; anything longer is prose, not a dancer
+/// set, and falls through to note-only.
+final RegExp _forwardRe = RegExp(
+  r'^(.{1,40}?)\s+forward$',
+  caseSensitive: false,
+);
+
+final RegExp _gateAnchor = RegExp(r'\bgates?\b', caseSensitive: false);
+
+/// Bounded extractor for `()`/`[]` annotation contents, in source order.
+///
+/// Import text is untrusted (OWASP): the match count is capped, each captured
+/// run is length-capped by the regex itself, and [_joinAnnotations] truncates
+/// the result — so a hostile line with thousands of parentheticals cannot
+/// inflate a note. Purely-numeric annotations (a stray beat marker) are skipped:
+/// they carry no choreography and would be noise on every figure.
+List<String> _annotations(String scrubbed) {
+  final out = <String>[];
+  for (final m in _annotationRe.allMatches(scrubbed)) {
+    if (out.length >= _maxAnnotations) break;
+    final body = (m.group(1) ?? m.group(2) ?? '').trim();
+    if (body.isEmpty || _numericOnly.hasMatch(body)) continue;
+    out.add(body);
+  }
+  return out;
+}
+
+/// Joins the annotations kept for the note, or `null` when none remain.
+String? _joinAnnotations(List<String> kept) {
+  if (kept.isEmpty) return null;
+  final joined = kept.join('; ');
+  if (joined.length <= _maxAnnotationNote) return joined;
+  // Truncate on a RUNE boundary. `substring` cuts UTF-16 code units, so a naive
+  // cut can split a surrogate pair and leave a lone surrogate in the note.
+  final runes = joined.runes.toList();
+  var end = 0;
+  var units = 0;
+  while (end < runes.length) {
+    final next = units + (runes[end] > 0xFFFF ? 2 : 1);
+    if (next > _maxAnnotationNote) break;
+    units = next;
+    end++;
+  }
+  return String.fromCharCodes(runes.take(end));
+}
+
+/// `{0,120}` bounds each captured run so a pathological line cannot produce an
+/// unbounded capture; a longer parenthetical simply doesn't match and the line
+/// takes the normal (annotation-stripped or custom) path.
+final RegExp _annotationRe = RegExp(r'\(([^()]{0,120})\)|\[([^\[\]]{0,120})\]');
+final RegExp _numericOnly = RegExp(r'^\d+$');
+const int _maxAnnotations = 8;
+const int _maxAnnotationNote = 200;
 
 // --- Shared primitives the hey decoder needs --------------------------------
 //

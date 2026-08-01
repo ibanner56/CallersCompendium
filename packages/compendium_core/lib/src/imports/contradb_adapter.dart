@@ -1002,6 +1002,15 @@ final Map<String, _MoveMap> _moveMappings = {
     _PosParam('whom', _dancers),
     _PosParam('beats', _beatsConv()),
   ]),
+  // libfigure `gate` — positional (subject, object, gate_face, beats_8).
+  // `figure.js:844`: "'ones gate twos' means: ones, extend a hand to twos -
+  // twos walk forward, ones back up, orbiting around the joined hands" — so the
+  // SUBJECT backs up (`who`) and the OBJECT walks forward (`whom`). `gate_face`
+  // is the ENDING FACING, not a travel direction: `figure.js:841` renders
+  // `words(ssubject, smove, sobject, "to face", sgate_face)` over
+  // `{up:"up the set", down:"down the set", in:"into the set",
+  // out:"out of the set"}` (`param.js:711`). ContraDB states no rotation sense
+  // and no turn amount, so `direction`/`turn`/`pair` stay `unspecified` (v22).
   'gate': _MoveMap('gate', [
     _PosParam('who', _dancers),
     _PosParam('whom', _dancers),
