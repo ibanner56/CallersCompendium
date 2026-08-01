@@ -286,6 +286,19 @@ void main() {
     // figure and its beats — and there is no slot for the qualifier in either
     // model: ContraDB's `chain` has exactly four params and none is a
     // courtesy turn.
+    //
+    // #729's `_chainAnnotation`/`_promenadeAnnotation`/
+    // `_rightLeftThroughAnnotation` pre-recognizers do not disturb this group:
+    // the courtesy-turn phrase here is BARE trailing text ("with double
+    // courtesy turn"), not inside `()`/`[]`, so it is never stripped before
+    // recognition and the shared grammar still sees it as leftover — the
+    // pre-recognizer's delegated match is still null, exactly as before.
+    // Two of these lines (`Ladies chain to partner with double courtesy turn
+    // (begin with woman on the left)` and `Right and left through with
+    // partner with double courtesy turn (along the set)`) DO also carry a
+    // real parenthetical, but the bare "with double courtesy turn" leftover
+    // still fails the delegated grammar regardless, so the line stays
+    // whole-custom either way.
     const lines = [
       '[W1+W2] Ladies chain, with half courtesy turn in center',
       '[Groups of four] Ladies chain to partner, with half courtesy turn in '
@@ -313,30 +326,47 @@ void main() {
     }
 
     test('a line whose courtesy turn is only in a PARENTHETICAL still emits no '
-        'courtesy_turn figure', () {
+        'courtesy_turn figure, and now PRESERVES the qualifier as a note '
+        '(#729)', () {
       // `_stripAnnotations` drops `()` for recognition, so these resolve to
-      // the bare chain/promenade they lead with. The invariant this move owes
-      // is that no SECOND figure appears and no beat is counted twice — and
-      // it holds, because the annotation never reaches a recognizer.
+      // the bare chain/promenade they lead with. The invariant this move
+      // owes is that no SECOND figure appears and no beat is counted
+      // twice — and it holds, because the annotation never reaches a
+      // recognizer.
       //
-      // These lines DO lose their parenthetical, which for "(without
-      // courtesy turn)" is choreographically load-bearing. That loss is
-      // PRE-EXISTING and unchanged by taxonomy v23 (verified against the
-      // corpus before and after): it belongs to `chain`/`promenade`, which
-      // have no annotation-preserving pre-recognizer of their own. Closing it
-      // means generalizing the `gate`/`courtesy_turn` note mechanism to those
-      // moves, which changes notes on far more of the corpus than this unit
-      // touches. Tracked separately; pinned here so the gap is visible rather
-      // than silent.
-      for (final line in [
-        'Ladies chain to partner (optional double courtesy turn)',
-        'Partner promenade across (without courtesy turn)',
-        'Neighbor promenade across (without courtesy turn)',
+      // Before #729, these lines DID lose their parenthetical outright,
+      // which for "(without courtesy turn)" is choreographically
+      // load-bearing: the structured figure asserted a courtesy turn had
+      // happened when the source explicitly said it had not. #729's
+      // `_chainAnnotation`/`_promenadeAnnotation` pre-recognizers close
+      // that gap by preserving the qualifier verbatim as the figure's
+      // note — the OWNER'S DELIBERATE RULING (not re-litigated here) is to
+      // do this for negating qualifiers too, rather than decline these
+      // lines to custom or add a new taxonomy flag to model "no courtesy
+      // turn happened". The consequence, accepted knowingly: `chain` and
+      // `promenade` still assert the un-negated choreography (nothing marks
+      // the move itself as negated), while the contradicting words live in
+      // the note, readable but not machine-checkable against the figure's
+      // own params.
+      for (final (line, note) in [
+        (
+          'Ladies chain to partner (optional double courtesy turn)',
+          'to partner; optional double courtesy turn',
+        ),
+        (
+          'Partner promenade across (without courtesy turn)',
+          'without courtesy turn',
+        ),
+        (
+          'Neighbor promenade across (without courtesy turn)',
+          'without courtesy turn',
+        ),
       ]) {
         final figs = parseTcbLines(line, beats: 6);
         expect(figs, hasLength(1), reason: line);
         expect(figs.single.move, isNot('courtesy_turn'), reason: line);
         expect(figs.single.beats, 6, reason: line);
+        expect(figs.single.note, note, reason: line);
       }
     });
 
