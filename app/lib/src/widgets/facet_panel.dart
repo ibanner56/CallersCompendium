@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/collection_query.dart';
 import '../search/facet_labels.dart';
+import 'responsive_autocomplete.dart';
 
 /// The one-tap facet filter panel (`docs/design/ux.md` §1). Each section is a
 /// multi-select group of [FilterChip]s over the [FacetSelections] the parent
@@ -598,11 +599,14 @@ class _AuthorFacetState extends State<_AuthorFacet> {
                 ],
               ),
             ),
-          Autocomplete<Choreographer>(
+          ResponsiveAutocomplete<Choreographer>(
             key: const ValueKey('author-facet-autocomplete'),
             textEditingController: _controller,
             focusNode: _focusNode,
             displayStringForOption: (a) => a.name,
+            // Announced when the narrow-layout sheet opens (matches this
+            // section's own label, e.g. "Author").
+            sheetSemanticLabel: l10n.collectionFacetAuthor,
             optionsBuilder: (value) {
               final q = value.text.trim().toLowerCase();
               if (q.isEmpty) return const Iterable<Choreographer>.empty();
@@ -614,6 +618,11 @@ class _AuthorFacetState extends State<_AuthorFacet> {
                     a.name.toLowerCase().contains(q),
               );
             },
+            // Picking always closes the sheet on narrow layouts (owner's Q1
+            // decision, uniform across all seven call sites) — even here,
+            // where multi-select via repeated adds is the norm. The cleared
+            // + refocused field below keeps "tap again to add another" as
+            // smooth as the wide inline overlay's loop.
             onSelected: (a) => _add(a.id),
             fieldViewBuilder: (context, controller, focusNode, onSubmit) {
               return TextField(
@@ -628,32 +637,13 @@ class _AuthorFacetState extends State<_AuthorFacet> {
                 onSubmitted: (_) => onSubmit(),
               );
             },
-            optionsViewBuilder: (context, onSelected, options) {
-              return Align(
-                alignment: Alignment.topLeft,
-                child: Material(
-                  elevation: 4,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxHeight: 240,
-                      maxWidth: 320,
-                    ),
-                    child: ListView(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      children: [
-                        for (final a in options)
-                          ListTile(
-                            key: ValueKey('author-facet-option-${a.id}'),
-                            dense: true,
-                            leading: const Icon(Icons.person_outline, size: 18),
-                            title: Text(a.name),
-                            onTap: () => onSelected(a),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
+            optionTileBuilder: (context, a, onSelected) {
+              return ListTile(
+                key: ValueKey('author-facet-option-${a.id}'),
+                dense: true,
+                leading: const Icon(Icons.person_outline, size: 18),
+                title: Text(a.name),
+                onTap: onSelected,
               );
             },
           ),

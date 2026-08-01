@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../support/l10n_harness.dart';
+import '../support/screen_size.dart';
 
 // ---------------------------------------------------------------------------
 // Minimal host that owns the mutable builder root and calls onChanged to
@@ -43,9 +44,14 @@ Future<void> _pump(
   WidgetTester tester, {
   required BuilderGroup root,
   List<String> sectionLabels = const [],
+  // Comfortably above ResponsiveAutocomplete's compact width/height
+  // breakpoints (600/480) so the "has figure" move field's wide inline
+  // overlay renders by default, matching every test written before that
+  // field existed. Pass a narrow/short size (e.g. Size(360, 720)) to
+  // exercise the sheet path instead.
+  Size screenSize = const Size(900, 1600),
 }) async {
-  await tester.binding.setSurfaceSize(const Size(900, 1600));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await setScreenSize(tester, screenSize);
   await tester.pumpWidget(_Host(root: root, sectionLabels: sectionLabels));
   await tester.pumpAndSettle();
 }
@@ -288,5 +294,83 @@ void main() {
       expect(group.children, hasLength(1));
       expect(group.children.single, isA<BuilderFigure>());
     });
+  });
+
+  // -------------------------------------------------------------------------
+  // Narrow-mode "has figure" move field (issue #716): MoveTypeAheadField's
+  // migration to ResponsiveAutocomplete, plus its new fieldKey capability.
+  // -------------------------------------------------------------------------
+
+  group('narrow-mode "has figure" move field (#716)', () {
+    testWidgets(
+      'on a narrow/short screen, picking a move from the keyboard-safe sheet '
+      'updates the figure and closes the sheet, with the option fully '
+      'visible above a simulated keyboard inset',
+      (tester) async {
+        final figure = BuilderFigure(move: 'swing');
+        final thenNode = BuilderThen(
+          before: figure,
+          after: BuilderFigure(move: 'balance'),
+        );
+        final root = BuilderGroup(children: [thenNode]);
+        await _pump(tester, root: root, screenSize: const Size(360, 720));
+
+        final fieldKey = ValueKey('has-figure-${figure.id}-input');
+        await tester.tap(find.byKey(fieldKey), warnIfMissed: false);
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsOneWidget);
+
+        // Simulate a software keyboard inset, as issue #716 describes.
+        tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+        addTearDown(tester.view.resetViewInsets);
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byKey(fieldKey), 'chain');
+        await tester.pumpAndSettle();
+
+        final optionKey = ValueKey('has-figure-${figure.id}-option-chain');
+        final option = find.byKey(optionKey);
+        expect(option, findsOneWidget);
+        final optionRect = tester.getRect(option);
+        final screenHeight =
+            tester.view.physicalSize.height / tester.view.devicePixelRatio;
+        expect(optionRect.bottom, lessThanOrEqualTo(screenHeight - 300));
+
+        await tester.tap(option);
+        await tester.pumpAndSettle();
+
+        expect(figure.move, 'chain');
+        // Picking always closes the sheet (owner's Q1 decision, uniform
+        // across all seven call sites).
+        expect(find.byType(BottomSheet), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'the wide layout is unaffected: no sheet opens and the inline overlay '
+      'still filters/selects as before',
+      (tester) async {
+        final figure = BuilderFigure(move: 'swing');
+        final thenNode = BuilderThen(
+          before: figure,
+          after: BuilderFigure(move: 'balance'),
+        );
+        final root = BuilderGroup(children: [thenNode]);
+        await _pump(tester, root: root);
+
+        final fieldKey = ValueKey('has-figure-${figure.id}-input');
+        await tester.enterText(find.byKey(fieldKey), 'chain');
+        await tester.pumpAndSettle();
+
+        expect(find.byType(BottomSheet), findsNothing);
+        final optionKey = ValueKey('has-figure-${figure.id}-option-chain');
+        expect(find.byKey(optionKey), findsOneWidget);
+
+        await tester.tap(find.byKey(optionKey));
+        await tester.pumpAndSettle();
+
+        expect(figure.move, 'chain');
+      },
+    );
   });
 }
