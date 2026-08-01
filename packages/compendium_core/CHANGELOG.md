@@ -13,7 +13,8 @@
   - `form_long_waves` gains `whom`, `hand` and `balance`. `whom`/`hand` default
     to the `unspecified` sentinel and `balance` to `false`, and
     `renderTemplate` is unchanged, so `renderCanonical` — the search/dedupe key
-    — is byte-identical for every previously stored figure. `who` keeps its
+    — is byte-identical for every previously stored `form_long_waves` figure.
+    (The short-wave RENAME below is a separate, deliberate canonical change.) `who` keeps its
     ContraDB meaning (the pair that faces IN); TCB states the same fact.
   - The display path now surfaces a wave's balance as a trailing
     ` - and balance` clause on both `form_long_waves` and `form_short_waves`,
