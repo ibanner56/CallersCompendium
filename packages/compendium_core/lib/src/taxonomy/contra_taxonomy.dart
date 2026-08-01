@@ -769,6 +769,24 @@ final Taxonomy contraTaxonomy = Taxonomy(
       // it a counterclockwise courtesy turn would dedupe as identical to a
       // clockwise one.
       renderTemplate: '{who} {move} {whom} {direction} {endFacing}',
+      // DEFINE THE POPULATION BEFORE ARGUING ABOUT THE TAIL. This list is drawn
+      // from the 115 lines this move's GRAMMAR CLAIMS, not from the 228 lines a
+      // grep for "courtesy turn" returns — and the two disagree at exactly the
+      // margins where a `goodBeats` judgement call feels hardest. Over the
+      // claimable population: 4 x97, 2 x8, 3 x6, 6 x4. Over the grep
+      // population, a `5` and five `8`s also appear, and both are artifacts:
+      // the `5` is `(5) Neighbor promenade across; courtesy turn 3/4` (a `;`
+      // compound, kept whole-custom) and the `8`s are
+      // `right and left through …("courtesy fling")` lines, which are not
+      // courtesy turns at all. Including either would have weakened the
+      // atypical-beat warning for every author, to fit data this move never
+      // sees. The lesson generalizes past this param: when a corpus statistic
+      // decides a taxonomy value, measure the set the code will actually act
+      // on.
+      //
+      // The genuinely marginal values (2, 3, 6) were then checked in context
+      // rather than assumed, per the v22 precedent, and are all real timing —
+      // see the version-history entry above for the three dances.
       goodBeats: [2, 3, 4, 6],
     ),
     const MoveDef(

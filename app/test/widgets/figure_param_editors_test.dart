@@ -474,4 +474,114 @@ void main() {
     expect(humanizeToken('threeQuarter'), 'three quarter');
     expect(humanizeToken('who'), 'who');
   });
+
+  // --- Sentinel write-back protection (issue #726) --------------------------
+  //
+  // The hazard these guard is DATA FABRICATION, not a cosmetic dropdown gap.
+  // `_dropdown` reconciles its selection against the list it RENDERS, and when
+  // the current value is absent from that list it pushes a substitute back to
+  // the draft via `addPostFrameCallback`. So for a param whose stored value may
+  // be the `unspecified` sentinel, merely OPENING the editor can silently
+  // rewrite "the source stated nothing" into a fabricated dancer.
+  //
+  // A dropdown-CONTENTS assertion would pass while the write-back still fired,
+  // so these assert the write-back itself: `read()` must stay null.
+  group('sentinel-bearing dancerSet params never write back on open', () {
+    // Bound to the SHIPPED taxonomy specs, not hand-built ones, so a future
+    // edit that drops `choices` from either param fails here.
+    for (final paramKey in ['whom', 'endFacing']) {
+      testWidgets('courtesy_turn.$paramKey (taxonomy v23)', (tester) async {
+        final spec = contraTaxonomy.resolve('courtesy_turn')!.params[paramKey]!;
+        // Precondition: the sentinel must be in the list the editor RENDERS.
+        // `ParamSpec.validate` accepting it is NOT sufficient — the editor and
+        // the validator consult different domains, and only `choices` is
+        // shared with the widget.
+        expect(spec.choices, contains(ParamVocab.unspecified));
+
+        final read = await _pumpEditor(
+          tester,
+          paramKey: paramKey,
+          spec: spec,
+          value: ParamVocab.unspecified,
+        );
+        await tester.pumpAndSettle();
+        expect(
+          read(),
+          isNull,
+          reason: 'opening the editor must not write a value into $paramKey',
+        );
+      });
+    }
+
+    testWidgets('the same is true for every other sentinel dancerSet', (
+      tester,
+    ) async {
+      // Every sentinel-bearing dancerSet on the taxonomy, checked in one
+      // sweep so a newly-added one cannot quietly skip the guard.
+      final offenders = <String>[];
+      for (final move in contraTaxonomy.moves.values) {
+        move.params.forEach((name, spec) {
+          final isDancer =
+              spec.kind == ParamKind.dancerSet ||
+              spec.kind == ParamKind.dancerPair;
+          if (isDancer && spec.defaultValue == ParamVocab.unspecified) {
+            if (!(spec.choices?.contains(ParamVocab.unspecified) ?? false)) {
+              offenders.add('${move.id}.$name');
+            }
+          }
+        });
+      }
+      expect(
+        offenders,
+        isEmpty,
+        reason:
+            'a dancerSet defaulting to the sentinel MUST list it in `choices`; '
+            'without it the editor renders ParamVocab.dancerSets (which has no '
+            'sentinel) and writes `choices.first` back into the draft',
+      );
+    });
+
+    testWidgets('a sentinel default WITHOUT explicit choices DOES fabricate', (
+      tester,
+    ) async {
+      // The failure mode the guard above exists to prevent, pinned so the
+      // reason for that rule cannot be lost. `choices: null` makes the editor
+      // fall back to `ParamVocab.dancerSets`, which has no sentinel — so the
+      // selection reconciles to `choices.first` and is written back.
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'endFacing',
+        spec: const ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+        ),
+        value: ParamVocab.unspecified,
+      );
+      await tester.pumpAndSettle();
+      expect(read(), isNotNull);
+      expect(read(), ParamVocab.dancerSets.first);
+    });
+
+    testWidgets('courtesy_turn.direction needs no sentinel and writes back '
+        'nothing', (tester) async {
+      // `ParamKind.spinDirection` renders from a HARDCODED `ParamVocab.spins`,
+      // ignoring `spec.choices` entirely — so a sentinel there could not be
+      // made safe by declaring choices. The move avoids the problem by having a
+      // real default (a courtesy turn wheels clockwise by construction).
+      final spec = contraTaxonomy
+          .resolve('courtesy_turn')!
+          .params['direction']!;
+      expect(spec.kind, ParamKind.spinDirection);
+      expect(spec.choices, isNull);
+
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'direction',
+        spec: spec,
+        value: 'clockwise',
+      );
+      await tester.pumpAndSettle();
+      expect(read(), isNull);
+    });
+  });
 }
