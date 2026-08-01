@@ -43,13 +43,13 @@ class FigureParamEditor extends StatelessWidget {
         return _dropdown(spec.choices ?? ParamVocab.dancerSets);
       case ParamKind.handedness:
       case ParamKind.shoulder:
-        return _dropdown(ParamVocab.sides);
+        return _dropdown(spec.choices ?? ParamVocab.sides);
       case ParamKind.spinDirection:
-        return _dropdown(ParamVocab.spins);
+        return _dropdown(spec.choices ?? ParamVocab.spins);
       case ParamKind.fraction:
-        return _dropdown(ParamVocab.fractions);
+        return _dropdown(spec.choices ?? ParamVocab.fractions);
       case ParamKind.direction:
-        return _dropdown(ParamVocab.directions);
+        return _dropdown(spec.choices ?? ParamVocab.directions);
       case ParamKind.choice:
         return _dropdown(spec.choices ?? const []);
       case ParamKind.rotation:

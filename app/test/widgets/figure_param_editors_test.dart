@@ -169,7 +169,14 @@ void main() {
       spec: const ParamSpec(ParamKind.handedness, defaultValue: 'right'),
       value: 'right',
     );
-    await _selectFromDropdown(tester, 'p-hand', 'left');
+    // No `choices` on the spec: the sentinel must not appear (issue #726
+    // regression guard — a spec without an explicit sentinel keeps behaving
+    // exactly as it did before the fix).
+    await tester.tap(find.byKey(const ValueKey('p-hand')));
+    await tester.pumpAndSettle();
+    expect(find.text('unspecified'), findsNothing);
+    await tester.tap(find.text('left').last);
+    await tester.pumpAndSettle();
     expect(read(), 'left');
   });
 
@@ -180,7 +187,11 @@ void main() {
       spec: const ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
       value: 'right',
     );
-    await _selectFromDropdown(tester, 'p-shoulder', 'left');
+    await tester.tap(find.byKey(const ValueKey('p-shoulder')));
+    await tester.pumpAndSettle();
+    expect(find.text('unspecified'), findsNothing);
+    await tester.tap(find.text('left').last);
+    await tester.pumpAndSettle();
     expect(read(), 'left');
   });
 
@@ -191,7 +202,11 @@ void main() {
       spec: const ParamSpec(ParamKind.spinDirection, defaultValue: 'clockwise'),
       value: 'clockwise',
     );
-    await _selectFromDropdown(tester, 'p-spin', 'counterclockwise');
+    await tester.tap(find.byKey(const ValueKey('p-spin')));
+    await tester.pumpAndSettle();
+    expect(find.text('unspecified'), findsNothing);
+    await tester.tap(find.text('counterclockwise').last);
+    await tester.pumpAndSettle();
     expect(read(), 'counterclockwise');
   });
 
@@ -202,7 +217,11 @@ void main() {
       spec: const ParamSpec(ParamKind.fraction, defaultValue: 'quarter'),
       value: 'quarter',
     );
-    await _selectFromDropdown(tester, 'p-amount', 'half');
+    await tester.tap(find.byKey(const ValueKey('p-amount')));
+    await tester.pumpAndSettle();
+    expect(find.text('unspecified'), findsNothing);
+    await tester.tap(find.text('half').last);
+    await tester.pumpAndSettle();
     expect(read(), 'half');
   });
 
@@ -213,8 +232,201 @@ void main() {
       spec: const ParamSpec(ParamKind.direction, defaultValue: 'along'),
       value: 'along',
     );
-    await _selectFromDropdown(tester, 'p-dir', 'across');
+    await tester.tap(find.byKey(const ValueKey('p-dir')));
+    await tester.pumpAndSettle();
+    expect(find.text('unspecified'), findsNothing);
+    await tester.tap(find.text('across').last);
+    await tester.pumpAndSettle();
     expect(read(), 'across');
+  });
+
+  // --- Sentinel-in-choices honoured by the five dropdown kinds (issue #726) -
+  //
+  // Before the fix, `handedness`/`shoulder`/`spinDirection`/`fraction`/
+  // `direction` ignored `spec.choices` entirely and always rendered a fixed
+  // vocabulary, so a spec that opted into `ParamVocab.unspecified` (the "the
+  // source stated nothing" sentinel) got a dropdown silently missing it — the
+  // user could never express, or return to, "not stated". Each pair of tests
+  // below asserts (a) the sentinel is offered and selectable, storing exactly
+  // `ParamVocab.unspecified`, and (b) opening the editor already ON the
+  // sentinel does not fabricate a write-back — the real hazard here is silent
+  // data fabrication, not merely a missing dropdown item (mirrors the
+  // dancerSet/dancerPair sentinel guards above).
+  group('the five dropdown kinds honour a sentinel in spec.choices', () {
+    testWidgets('handedness', (tester) async {
+      const spec = ParamSpec(
+        ParamKind.handedness,
+        defaultValue: 'right',
+        choices: [...ParamVocab.sides, ParamVocab.unspecified],
+      );
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'hand',
+        spec: spec,
+        value: 'right',
+      );
+      await _selectFromDropdown(tester, 'p-hand', 'unspecified');
+      expect(read(), ParamVocab.unspecified);
+    });
+
+    testWidgets('handedness does not fabricate when opened unspecified', (
+      tester,
+    ) async {
+      const spec = ParamSpec(
+        ParamKind.handedness,
+        defaultValue: 'right',
+        choices: [...ParamVocab.sides, ParamVocab.unspecified],
+      );
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'hand',
+        spec: spec,
+        value: ParamVocab.unspecified,
+      );
+      await tester.pumpAndSettle();
+      expect(read(), isNull);
+      expect(find.text('unspecified'), findsOneWidget);
+    });
+
+    testWidgets('shoulder', (tester) async {
+      const spec = ParamSpec(
+        ParamKind.shoulder,
+        defaultValue: 'right',
+        choices: [...ParamVocab.sides, ParamVocab.unspecified],
+      );
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'shoulder',
+        spec: spec,
+        value: 'right',
+      );
+      await _selectFromDropdown(tester, 'p-shoulder', 'unspecified');
+      expect(read(), ParamVocab.unspecified);
+    });
+
+    testWidgets('shoulder does not fabricate when opened unspecified', (
+      tester,
+    ) async {
+      const spec = ParamSpec(
+        ParamKind.shoulder,
+        defaultValue: 'right',
+        choices: [...ParamVocab.sides, ParamVocab.unspecified],
+      );
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'shoulder',
+        spec: spec,
+        value: ParamVocab.unspecified,
+      );
+      await tester.pumpAndSettle();
+      expect(read(), isNull);
+      expect(find.text('unspecified'), findsOneWidget);
+    });
+
+    testWidgets('spinDirection', (tester) async {
+      const spec = ParamSpec(
+        ParamKind.spinDirection,
+        defaultValue: 'clockwise',
+        choices: [...ParamVocab.spins, ParamVocab.unspecified],
+      );
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'spin',
+        spec: spec,
+        value: 'clockwise',
+      );
+      await _selectFromDropdown(tester, 'p-spin', 'unspecified');
+      expect(read(), ParamVocab.unspecified);
+    });
+
+    testWidgets('spinDirection does not fabricate when opened unspecified', (
+      tester,
+    ) async {
+      const spec = ParamSpec(
+        ParamKind.spinDirection,
+        defaultValue: 'clockwise',
+        choices: [...ParamVocab.spins, ParamVocab.unspecified],
+      );
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'spin',
+        spec: spec,
+        value: ParamVocab.unspecified,
+      );
+      await tester.pumpAndSettle();
+      expect(read(), isNull);
+      expect(find.text('unspecified'), findsOneWidget);
+    });
+
+    testWidgets('fraction', (tester) async {
+      const spec = ParamSpec(
+        ParamKind.fraction,
+        defaultValue: 'quarter',
+        choices: [...ParamVocab.fractions, ParamVocab.unspecified],
+      );
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'amount',
+        spec: spec,
+        value: 'quarter',
+      );
+      await _selectFromDropdown(tester, 'p-amount', 'unspecified');
+      expect(read(), ParamVocab.unspecified);
+    });
+
+    testWidgets('fraction does not fabricate when opened unspecified', (
+      tester,
+    ) async {
+      const spec = ParamSpec(
+        ParamKind.fraction,
+        defaultValue: 'quarter',
+        choices: [...ParamVocab.fractions, ParamVocab.unspecified],
+      );
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'amount',
+        spec: spec,
+        value: ParamVocab.unspecified,
+      );
+      await tester.pumpAndSettle();
+      expect(read(), isNull);
+      expect(find.text('unspecified'), findsOneWidget);
+    });
+
+    testWidgets('direction', (tester) async {
+      const spec = ParamSpec(
+        ParamKind.direction,
+        defaultValue: 'along',
+        choices: [...ParamVocab.directions, ParamVocab.unspecified],
+      );
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'dir',
+        spec: spec,
+        value: 'along',
+      );
+      await _selectFromDropdown(tester, 'p-dir', 'unspecified');
+      expect(read(), ParamVocab.unspecified);
+    });
+
+    testWidgets('direction does not fabricate when opened unspecified', (
+      tester,
+    ) async {
+      const spec = ParamSpec(
+        ParamKind.direction,
+        defaultValue: 'along',
+        choices: [...ParamVocab.directions, ParamVocab.unspecified],
+      );
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'dir',
+        spec: spec,
+        value: ParamVocab.unspecified,
+      );
+      await tester.pumpAndSettle();
+      expect(read(), isNull);
+      expect(find.text('unspecified'), findsOneWidget);
+    });
   });
 
   testWidgets('choice dropdown round-trips a value', (tester) async {
