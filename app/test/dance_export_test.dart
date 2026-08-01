@@ -483,8 +483,8 @@ void main() {
       (tester) async {
         final container = Figure.meanwhile(
           figures: [
-            Figure(move: 'allemande', params: const {'who': 'role1'}),
-            Figure(move: 'orbit', params: const {'who': 'role2'}),
+            Figure(move: 'allemande', params: const {'who': 'role1s'}),
+            Figure(move: 'orbit', params: const {'who': 'role2s'}),
           ],
           beats: 8,
         );
