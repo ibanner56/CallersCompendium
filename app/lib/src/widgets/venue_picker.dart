@@ -256,12 +256,19 @@ class _VenueAutocompleteState extends State<_VenueAutocomplete> {
         if (choice.isCreate) {
           // The create flow opens a SECOND modal sheet (`VenueEditorSheet`)
           // via `widget.onCreate` -> `_VenuePickerState._createNew`. This is
-          // safe because `ResponsiveAutocomplete`'s narrow-layout sheet has
-          // already popped (via `Navigator.of(context).pop(option)` in
+          // safe at the ROUTE level: `ResponsiveAutocomplete`'s narrow-layout
+          // sheet's route has already been popped (via
+          // `Navigator.of(context).pop(option)` in
           // `_AutocompleteSheetContent`'s tile `onTap`) *before* `onSelected`
           // runs — see `_openSheet`'s `await showModalBottomSheet<T>(...)`.
-          // So the two sheets are always sequential, never stacked, on both
-          // the wide and narrow layouts.
+          // So the two sheets never stack as *interactive* routes on either
+          // the wide or narrow layout. Note, though, that
+          // `showModalBottomSheet`'s future resolves on `pop()` itself, not
+          // on the pop's reverse animation finishing, so the first sheet's
+          // (non-interactive) dismiss animation and the second sheet's
+          // entrance animation can transiently overlap in the widget tree
+          // for a frame or two. That overlap is expected and harmless —
+          // see the test in `venue_picker_test.dart`.
           await widget.onCreate(choice.name);
           // The create flow is async (it opens the editor sheet); if this
           // picker was disposed while that was open (e.g. the route was

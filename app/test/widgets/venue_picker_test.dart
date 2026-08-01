@@ -95,9 +95,12 @@ void main() {
     expect(find.byKey(const ValueKey('venue-picker-selected')), findsOneWidget);
   });
 
-  testWidgets('narrow layout: creating a brand-new venue opens a SECOND sheet '
-      '(VenueEditorSheet) only after the picker sheet has fully closed — '
-      'the two sheets are sequential, never stacked', (tester) async {
+  testWidgets('narrow layout: creating a brand-new venue opens a SECOND '
+      'sheet (VenueEditorSheet) only after the picker sheet\'s route has '
+      'popped — the two never stack as interactive routes, though their '
+      'dismiss/entrance animations can transiently overlap in the tree', (
+    tester,
+  ) async {
     final repos = openTestRepositories();
     String? linked;
     await setScreenSize(tester, const Size(360, 720));
