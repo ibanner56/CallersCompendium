@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../screens/venue_editor_sheet.dart';
+import 'responsive_autocomplete.dart';
 
 /// A single-select picker over the reusable [Venue] records. Used by the
 /// program editor's "enriched" venue mode to choose (or inline-create) the
@@ -216,11 +217,15 @@ class _VenueAutocompleteState extends State<_VenueAutocomplete> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Autocomplete<_VenueChoice>(
+    return ResponsiveAutocomplete<_VenueChoice>(
       key: const ValueKey('venue-picker-autocomplete'),
       textEditingController: _controller,
       focusNode: _focusNode,
+      // Reuses the existing "Venue" field label already shown above this
+      // picker in `program_editor_screen.dart` — no new l10n string needed.
+      sheetSemanticLabel: l10n.programsVenueLabel,
       displayStringForOption: (choice) => choice.label,
+      overlayConstraints: const BoxConstraints(maxHeight: 260, maxWidth: 420),
       optionsBuilder: (value) {
         final q = value.text.trim();
         if (q.isEmpty) return const Iterable<_VenueChoice>.empty();
@@ -249,6 +254,14 @@ class _VenueAutocompleteState extends State<_VenueAutocomplete> {
       },
       onSelected: (choice) async {
         if (choice.isCreate) {
+          // The create flow opens a SECOND modal sheet (`VenueEditorSheet`)
+          // via `widget.onCreate` -> `_VenuePickerState._createNew`. This is
+          // safe because `ResponsiveAutocomplete`'s narrow-layout sheet has
+          // already popped (via `Navigator.of(context).pop(option)` in
+          // `_AutocompleteSheetContent`'s tile `onTap`) *before* `onSelected`
+          // runs — see `_openSheet`'s `await showModalBottomSheet<T>(...)`.
+          // So the two sheets are always sequential, never stacked, on both
+          // the wide and narrow layouts.
           await widget.onCreate(choice.name);
           // The create flow is async (it opens the editor sheet); if this
           // picker was disposed while that was open (e.g. the route was
@@ -275,36 +288,20 @@ class _VenueAutocompleteState extends State<_VenueAutocomplete> {
           onSubmitted: (_) => onSubmit(),
         );
       },
-      optionsViewBuilder: (context, onSelected, choices) {
-        return Align(
-          alignment: Alignment.topLeft,
-          child: Material(
-            elevation: 4,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 260, maxWidth: 420),
-              child: ListView(
-                padding: EdgeInsets.zero,
-                shrinkWrap: true,
-                children: [
-                  for (final choice in choices)
-                    ListTile(
-                      key: ValueKey('venue-option-${choice.optionKey}'),
-                      dense: true,
-                      leading: Icon(
-                        choice.isCreate ? Icons.add : Icons.place_outlined,
-                        size: 18,
-                      ),
-                      title: Text(
-                        choice.isCreate
-                            ? l10n.venuePickerCreateOption(choice.name)
-                            : choice.venue!.displayName,
-                      ),
-                      onTap: () => onSelected(choice),
-                    ),
-                ],
-              ),
-            ),
+      optionTileBuilder: (context, choice, onSelected) {
+        return ListTile(
+          key: ValueKey('venue-option-${choice.optionKey}'),
+          dense: true,
+          leading: Icon(
+            choice.isCreate ? Icons.add : Icons.place_outlined,
+            size: 18,
           ),
+          title: Text(
+            choice.isCreate
+                ? l10n.venuePickerCreateOption(choice.name)
+                : choice.venue!.displayName,
+          ),
+          onTap: onSelected,
         );
       },
     );
