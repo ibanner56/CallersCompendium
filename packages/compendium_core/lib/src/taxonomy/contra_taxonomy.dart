@@ -322,8 +322,9 @@ import 'taxonomy.dart';
 ///       clockwise by construction (the couple wheels as a unit), so those 10
 ///       lines are redundant confirmations rather than a distinction, and
 ///       `clockwise` is a REAL default, not a fabrication. Deliberately carries
-///       NO `unspecified` sentinel — see the param comment for the issue-#726
-///       editor hazard that makes a sentinel here actively unsafe.
+///       NO `unspecified` sentinel — not for any editor-safety reason (that gap
+///       closed with #726), but simply because the move has no semantic need
+///       for one; see the param comment.
 ///     - `endFacing` — a **DANCER**, not a facing. Every attested value is a
 ///       neighbor relationship: `, face N2` x8, `, face N3` x4, `, face N0` x1.
 ///       See the param comment: this is the single easiest thing to get wrong
@@ -705,21 +706,29 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // rather than a fabricated one, and the display renderer says nothing
         // when it holds.
         //
-        // ⚠️ DELIBERATELY NO `unspecified` SENTINEL, and this is load-bearing,
-        // not an oversight. `ParamKind.spinDirection` is one of the kinds the
-        // app's figure param editor renders from a HARDCODED vocabulary,
-        // ignoring `spec.choices` entirely (`figure_param_editors.dart`:
-        // `case ParamKind.spinDirection: return _dropdown(ParamVocab.spins)`).
-        // A sentinel-bearing spinDirection would not merely show a dropdown
-        // missing the sentinel — `_dropdown`'s reconciliation pushes a
-        // substitute value back into the draft via `addPostFrameCallback`, so
-        // simply OPENING the editor would silently rewrite "the source stated
-        // nothing" into "clockwise". That is the exact class of bug #724 had to
-        // fix at the UI layer, and issue #726 tracks the editor gap. The
-        // established workaround where a sentinel is genuinely needed is to
-        // declare the param `ParamKind.choice` instead (see `_handOrUnspecified`
-        // / `_spinOrUnspecified`); this move does not need one, so it uses the
-        // honest kind.
+        // ⚠️ DELIBERATELY NO `unspecified` SENTINEL — but only because this
+        // move has no semantic need for one, NOT because a sentinel would be
+        // unsafe on a typed kind. It once was: `ParamKind.spinDirection` used
+        // to render from a hardcoded `ParamVocab.spins` that ignored
+        // `spec.choices`, and `_dropdown`'s reconciliation pushes a substitute
+        // value back into the draft via `addPostFrameCallback`, so merely
+        // OPENING the editor on a sentinel-bearing spinDirection would have
+        // silently rewritten "the source stated nothing" into "clockwise" —
+        // the exact class of bug #724 fixed at the UI layer. That gap is
+        // CLOSED. All three consumers of the kind + `choices` contract now read
+        // `spec.choices ?? <fixed vocabulary>`: the figure param editor
+        // (`figure_param_editors.dart`) and [ParamSpec.validate] (issue #726),
+        // and the Advanced-search facet (`facet_labels.dart`'s
+        // `figureParamChoices`). A sentinel on a typed kind is therefore
+        // offered, stored and validated correctly.
+        //
+        // ⚠️ The corollary: declaring a param `ParamKind.choice` PURELY so it
+        // can admit the sentinel (`_handOrUnspecified` / `_spinOrUnspecified`)
+        // is now an OBSOLETE workaround — do not copy it into new params;
+        // issue #739 tracks unwinding the two that exist. This param keeps the
+        // honest `ParamKind.spinDirection` and no sentinel because a courtesy
+        // turn wheels clockwise by construction, so `clockwise` is a real
+        // default rather than a fabricated one.
         'direction': ParamSpec(
           ParamKind.spinDirection,
           defaultValue: 'clockwise',
