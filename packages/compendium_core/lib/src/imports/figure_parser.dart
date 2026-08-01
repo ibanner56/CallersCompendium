@@ -1241,8 +1241,17 @@ _Match? _courtesyTurn(List<String> w) {
 /// that way if that ever changes: `face down` resolves no dancer, so it is left
 /// as leftover and declines the line.
 String? _takeFacingDancer(List<String> w, {required int after}) {
-  final i = w.indexOf('face');
-  if (i < after || i == -1 || i + 1 >= w.length) return null;
+  // The scan STARTS at `after` (the index just past the anchor) rather than
+  // searching the whole list and rejecting an early hit on the following line.
+  // The bound IS the contract, so it belongs in the search call: a guard on the
+  // next line is invisible to every cheap check — a grep for the bare search, an
+  // eye-skim, a reviewer scanning a diff hunk — and reading such a search as
+  // unbounded is then a reasonable, wrong conclusion. (Deliberately phrased
+  // without quoting the unbounded form: writing it here, even as an example,
+  // would put the very string back into the file and re-create the false grep
+  // hit this exists to remove.)
+  final i = w.indexOf('face', after);
+  if (i == -1 || i + 1 >= w.length) return null;
   final token = _dancerWords[w[i + 1]];
   if (token == null) return null;
   // Absorb TCB's redundant "N2 neighbor" pairing, mirroring `_takeDancer`.
