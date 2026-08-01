@@ -1100,13 +1100,51 @@ void main() {
     });
 
     test(
-      'a facing/note second clause is not a move → whole line stays custom',
+      'a note-eligible facing second clause becomes a NOTE on the first '
+      "figure — the line's move survives instead of collapsing to custom",
       () {
         final fs = _parseLines('Partner swing; face N3', beats: 8);
         expect(fs, hasLength(1));
-        expect(fs.single.isCustom, isTrue);
+        final only = fs.single;
+        expect(only.isCustom, isFalse);
+        expect(only.move, 'swing');
+        // Lossless: the clause the recognizer could not structure survives
+        // verbatim as prose, and the line's beats are unchanged.
+        expect(only.note, 'face N3');
+        expect(only.beats, 8);
       },
     );
+
+    test('a second clause OUTSIDE the note allowlist still collapses the whole '
+        'line to custom', () {
+      for (final line in [
+        'Partner swing; fall back',
+        'Partner swing; bend the line',
+        // The `cast` family is deliberately excluded so a future census of
+        // undefined `cast` figures still counts these lines.
+        'Partner swing; cast down to place',
+        // `return to place` is allowlisted as an EXACT phrase, so its
+        // neighbouring wordings are not swept in.
+        'Partner swing; return to original place',
+        'Partner swing; finish improper',
+      ]) {
+        final fs = _parseLines(line, beats: 8);
+        expect(fs, hasLength(1), reason: line);
+        expect(fs.single.isCustom, isTrue, reason: line);
+        expect(fs.single.beats, 8, reason: line);
+      }
+    });
+
+    test('a LEADING clause never note-ifies: there is no preceding figure to '
+        'carry it, so the whole line stays custom', () {
+      final fs = _parseLines(
+        'Walk forward; form long wave in center',
+        beats: 4,
+      );
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isTrue);
+      expect(fs.single.beats, 4);
+    });
 
     test('a top-level `||` (simultaneity) fans into a `meanwhile` container '
         '(#591/#572), never a whole-custom line', () {
