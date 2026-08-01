@@ -102,9 +102,11 @@ void main() {
         // editor rendered it from a hardcoded `ParamVocab.spins`, ignoring
         // `spec.choices`, and its reconciliation pushed a substitute back
         // into the draft, rewriting "unstated" into "clockwise" on open.
-        // #726 closed that — the editor, `ParamSpec.validate` and the
-        // Advanced-search facet now all read `spec.choices ?? <fixed
-        // vocabulary>`. So this move uses the honest kind because it IS
+        // #726 closed the editor half of that, and taught
+        // `ParamSpec.validate` the same rule; the Advanced-search facet
+        // (`facet_labels.dart`) was the last holdout and was fixed
+        // separately. All three now read `spec.choices ?? <fixed
+        // vocabulary>`, so this move uses the honest kind because it IS
         // honest, not as a workaround.
         final spec = tax.resolve('courtesy_turn')!.params['direction']!;
         expect(spec.kind, ParamKind.spinDirection);
