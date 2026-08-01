@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 
 /// Parity PR4 (issue #290 ocean-wave family) — Part A display renders.
 ///
-/// `form_a_short_wave` and `pass_the_ocean` gain fuller DISPLAY base lines
+/// `form_short_waves` and `pass_the_ocean` gain fuller DISPLAY base lines
 /// (product wording that intentionally diverges from ContraDB's `words()`;
 /// these are our #290 splits with no ContraDB analog). The renders are gated
 /// behind `!forCanonical`, so `renderCanonical` stays byte-stable — the FTS /
@@ -15,10 +15,12 @@ void main() {
   final d = Dialect.canonical;
 
   group('canonical byte-stability (Part B is the only reindex change)', () {
-    test('form_a_short_wave canonical stays "form a wave"', () {
+    test('form_short_waves canonical stays "form short waves"', () {
+      // v21 (#295) renamed the move, so the canonical text is now the new
+      // display name; stored figures are migrated by CompendiumDatabase v19.
       expect(
-        renderer.renderCanonical(Figure(move: 'form_a_short_wave')),
-        'form a wave',
+        renderer.renderCanonical(Figure(move: 'form_short_waves')),
+        'form short waves',
       );
     });
 
@@ -43,9 +45,9 @@ void main() {
       };
       expect(
         renderer.renderCanonical(
-          Figure(move: 'form_a_short_wave', params: params),
+          Figure(move: 'form_short_waves', params: params),
         ),
-        'form a wave',
+        'form short waves',
       );
       expect(
         renderer.renderCanonical(
@@ -58,7 +60,7 @@ void main() {
 
   group('display base line is !forCanonical-gated', () {
     test('display diverges from canonical for both moves', () {
-      for (final id in const ['form_a_short_wave', 'pass_the_ocean']) {
+      for (final id in const ['form_short_waves', 'pass_the_ocean']) {
         final figure = Figure(move: id);
         expect(
           renderer.render(figure, d),
@@ -69,11 +71,11 @@ void main() {
     });
   });
 
-  group('form_a_short_wave display', () {
+  group('form_short_waves display', () {
     test('default (centerHand right -> side left)', () {
       expect(
-        renderer.render(Figure(move: 'form_a_short_wave'), d),
-        'form a short wave - role2s by the right in the center, '
+        renderer.render(Figure(move: 'form_short_waves'), d),
+        'form short waves - role2s by the right in the center, '
         'neighbor by the left on the sides',
       );
     });
@@ -81,32 +83,33 @@ void main() {
     test('centerHand left flips the derived side hand to right', () {
       expect(
         renderer.render(
-          Figure(move: 'form_a_short_wave', params: {'centerHand': 'left'}),
+          Figure(move: 'form_short_waves', params: {'centerHand': 'left'}),
           d,
         ),
-        'form a short wave - role2s by the left in the center, '
+        'form short waves - role2s by the left in the center, '
         'neighbor by the right on the sides',
       );
     });
 
-    test('short wave has no balance clause even when balance is set', () {
-      // The authored product spec gives the balance clause to pass_the_ocean
-      // only; the short wave line stays identical.
+    test('a set balance appends the " - and balance" clause (#296)', () {
+      // v21 (#296): the wave-formation moves now surface their balance on the
+      // display path, so the short wave no longer silently drops the flag.
       expect(
         renderer.render(
-          Figure(move: 'form_a_short_wave', params: {'balance': true}),
+          Figure(move: 'form_short_waves', params: {'balance': true}),
           d,
         ),
-        renderer.render(Figure(move: 'form_a_short_wave'), d),
+        '${renderer.render(Figure(move: 'form_short_waves'), d)}'
+        ' - and balance',
       );
     });
 
     test('missing center subject leaves no dangling connective', () {
       final out = renderer.render(
-        Figure(move: 'form_a_short_wave', params: {'center': null}),
+        Figure(move: 'form_short_waves', params: {'center': null}),
         d,
       );
-      expect(out, startsWith('form a short wave - by the right in the center'));
+      expect(out, startsWith('form short waves - by the right in the center'));
       expect(out, isNot(contains('  ')));
       expect(out, isNot(contains('- ,')));
     });

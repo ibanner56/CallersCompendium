@@ -2,6 +2,52 @@
 
 ### Added
 
+- **Balance-a-wave lines from The Caller's Box now import as real figures
+  (#295, subsuming #296).** TCB writes "balance an existing wave" as its own
+  line (`Balance wave of four (NR,WL)`, `Balance long wave (NR, women face
+  in)`) — 4,613 lines across the 24,107-dance corpus, formerly the single
+  largest custom bucket. No `balance_the_wave` move was added: the taxonomy
+  expresses "a wave exists and is balanced" as the wave-FORMATION move carrying
+  its `balance` flag, so such a line maps onto that move as ONE figure keeping
+  its own beats.
+  - `form_long_waves` gains `whom`, `hand` and `balance`. `whom`/`hand` default
+    to the `unspecified` sentinel and `balance` to `false`, and
+    `renderTemplate` is unchanged, so `renderCanonical` — the search/dedupe key
+    — is byte-identical for every previously stored figure. `who` keeps its
+    ContraDB meaning (the pair that faces IN); TCB states the same fact.
+  - The display path now surfaces a wave's balance as a trailing
+    ` - and balance` clause on both `form_long_waves` and `form_short_waves`,
+    and `form_long_waves` renders the pair + hand when the source stated them
+    (`form long waves - neighbor by the right, role2s facing in, role1s facing
+    out - and balance`). This is issue **#296** — whose own reference to
+    `form_an_ocean_wave` is stale, that MoveDef having been removed at taxonomy
+    v14. `form_a_long_wave` and `pass_the_ocean` already embedded their balance
+    and are unchanged.
+  - The mapping runs as a FINAL pass of the CallersBox cross-line merge, so it
+    only ever sees lines no existing fold claimed: a balance destined for a
+    following swing / petronella / rory o'more / box the gnat / box circulate
+    still folds forward, and a balance following an explicitly-formed wave still
+    folds backward into exactly ONE form figure — now also carrying any hand or
+    pair the balance line stated that the forming line did not.
+  - TCB's `(NR,WL)` / `(NR, women face in)` annotation is decoded into params
+    (the role pair is the wave's centre, the relationship pair its sides, hands
+    opposite — verified on 2,560 of 2,764 corpus lines). Conservative: wave
+    sizes we do not model, exotic formations (`intersecting`/`interlocking`/
+    `circular` — refused on the trailing-balance FOLD path too, so a
+    formed-then-balanced wave never loses the qualifier either; 86 corpus lines
+    carry such a qualifier, of which 85 already fell to custom and exactly 1 was
+    being folded and losing it), two-hand-hold annotations, people codes the
+    shared
+    `tcbPassPeople` map deliberately omits (square corners, mixer partner
+    series, phantoms, trail buddies) and `Balance long wave for all in center`
+    all stay custom.
+  - `form (a) wave of four [with <dancer>]` — TCB's dominant forming wording —
+    now structures too, so the explicit-forming merge can fire.
+  - Measured over the full mirror: custom figures 24,775 → 22,272, structured
+    share 76.24% → 78.69%, **per-dance beat totals byte-identical for all
+    20,515 dances**, and no forward-merge move losing a balance. Taxonomy
+    version → 21.
+
 - **`Grand right and left` and `flutterwheel` now structure, with NO new
   taxonomy moves (#295).** Both are compound shorthands, so instead of crowding
   the taxonomy they are lowered onto moves that already exist —
@@ -124,6 +170,18 @@
   resolve to `isNew`.
 
 ### Changed
+
+- **BREAKING (data): `form_a_short_wave` is renamed `form_short_waves` (#295).**
+  The move is the whole set's short waves, and every Caller's Box wording is
+  "wave of four" / "short waves", so its display label is now **"form short
+  waves"** (was "form a wave"). Because stored figures carry the old move id
+  this ships **`CompendiumDatabase` schema v19**, which rewrites `move` in every
+  `dances.figures_json` blob — including sides nested inside a `meanwhile`
+  container — and schedules a derived rebuild, but only when a figure actually
+  changed. Per-row and per-figure parse-never-throw: an unmappable or malformed
+  entry is left byte-identical and rides the non-destructive unknown-move path
+  (#358). The pre-rename label stays searchable as a `searchKeyword`. Callers
+  referencing the id in code must update it; there is no alias.
 
 - **The fused `allemande_orbit` move is retired in favour of
   `meanwhile[allemande, orbit]` (#295).** With `orbit` now recognized

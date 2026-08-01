@@ -1006,13 +1006,13 @@ void main() {
         },
       );
 
-      test('form_a_short_wave → trailing balance wave folds', () async {
+      test('form_short_waves → trailing balance wave folds', () async {
         final figures = await figuresFor([
           '(4) Form a wave',
           '(4) Balance the wave',
         ]);
         expect(figures, hasLength(1));
-        expect(figures.single.move, 'form_a_short_wave');
+        expect(figures.single.move, 'form_short_waves');
         expect(figures.single.params['balance'], isTrue);
         expect(figures.single.params['beats'], 8);
       });
@@ -1049,19 +1049,19 @@ void main() {
       );
 
       test(
-        'form_long_waves does NOT fold a trailing balance wave (no param)',
+        'form_long_waves folds a trailing balance wave (v21, #295)',
         () async {
-          // form_long_waves is a bare formation with no balance param, so the
-          // balance-wave stays a separate figure rather than fabricating one.
+          // Before taxonomy v21 `form_long_waves` had no `balance` param and was
+          // excluded from the fold; it now carries one, so the trailing balance
+          // folds in like every other wave move (beats summed).
           final figures = await figuresFor([
             '(0) Form long waves',
             '(4) Balance the wave',
           ]);
-          expect(figures, hasLength(2));
-          expect(figures[0].move, 'form_long_waves');
-          expect(figures[0].params.containsKey('balance'), isFalse);
-          expect(figures[1].isCustom, isTrue);
-          expect(_text(figures[1]), 'Balance the wave');
+          expect(figures, hasLength(1));
+          expect(figures.single.move, 'form_long_waves');
+          expect(figures.single.params['balance'], isTrue);
+          expect(figures.single.params['beats'], 4); // 0 + 4
         },
       );
 
@@ -1091,11 +1091,16 @@ void main() {
             ),
           );
           // The ocean ends A2 and the balance wave opens B1 — different
-          // sections, so they stay two separate figures.
+          // sections, so they stay two separate figures: the ocean keeps its
+          // own 4 beats and no balance, and the balance line is promoted on its
+          // own (#295) rather than folding backwards across the boundary.
           expect(draft.dance.figures, hasLength(2));
           expect(draft.dance.figures[0].move, 'pass_the_ocean');
           expect(draft.dance.figures[0].params.containsKey('balance'), isFalse);
-          expect(draft.dance.figures[1].isCustom, isTrue);
+          expect(draft.dance.figures[0].params['beats'], 4);
+          expect(draft.dance.figures[1].move, 'form_short_waves');
+          expect(draft.dance.figures[1].params['balance'], isTrue);
+          expect(draft.dance.figures[1].params['beats'], 4);
         },
       );
     });

@@ -2,7 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 /// Issue #290 — split the overloaded `form_an_ocean_wave` into a default
-/// short-wave `form_a_short_wave` ("form a wave") and a distinct
+/// short-wave `form_short_waves` ("form a wave") and a distinct
 /// `pass_the_ocean` ("pass the ocean"). Both inherit the legacy move's sourced
 /// params MINUS `passThru`; neither invents a beat count. As of taxonomy v14 the
 /// legacy `form_an_ocean_wave` MoveDef is REMOVED; stored figures that reference
@@ -13,7 +13,7 @@ void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  const splitMoves = ['form_a_short_wave', 'pass_the_ocean'];
+  const splitMoves = ['form_short_waves', 'pass_the_ocean'];
 
   // The sourced param set both new moves inherit from form_an_ocean_wave,
   // minus `passThru` (intrinsic to pass_the_ocean, absent from the short wave).
@@ -56,9 +56,9 @@ void main() {
         // The legacy `form_an_ocean_wave` is gone (v14); assert the two splits
         // still carry identical defaults for every inherited param, so neither
         // drifted or invented a value during the removal.
-        final sibling = id == 'form_a_short_wave'
+        final sibling = id == 'form_short_waves'
             ? 'pass_the_ocean'
-            : 'form_a_short_wave';
+            : 'form_short_waves';
         final params = tax.resolve(id)!.params;
         final other = tax.resolve(sibling)!.params;
         for (final key in inheritedParams) {
@@ -85,7 +85,7 @@ void main() {
 
   group('canonical rendering (golden)', () {
     final cases = <String, Figure>{
-      'form a wave': Figure(move: 'form_a_short_wave'),
+      'form short waves': Figure(move: 'form_short_waves'),
       'pass the ocean': Figure(move: 'pass_the_ocean'),
     };
     cases.forEach((expected, figure) {

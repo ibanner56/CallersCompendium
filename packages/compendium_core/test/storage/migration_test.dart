@@ -1362,8 +1362,8 @@ void main() {
       expect(figures[0].params['sides'], 'neighbors');
       expect(figures[0].params['beats'], 8);
 
-      // passThru:false -> form_a_short_wave; other params intact.
-      expect(figures[1].move, 'form_a_short_wave');
+      // passThru:false -> form_short_waves; other params intact.
+      expect(figures[1].move, 'form_short_waves');
       expect(figures[1].params.containsKey('passThru'), isFalse);
       expect(figures[1].params['centerHand'], 'left');
       expect(figures[1].params['beats'], 4);
@@ -1406,8 +1406,11 @@ void main() {
 
         expect(move[0], 'pass_the_ocean');
         expect(canonical[0], 'pass the ocean');
-        expect(move[1], 'form_a_short_wave');
-        expect(canonical[1], 'form a wave');
+        expect(move[1], 'form_short_waves');
+        // Chained upgrade: v12 writes the (then-current) `form_a_short_wave`
+        // id, which the v19 rename step then rewrites — so a long hop from
+        // v11 lands on the NEW id and its new canonical text.
+        expect(canonical[1], 'form short waves');
         expect(move[2], 'pass_the_ocean');
         expect(canonical[2], 'pass the ocean');
         expect(move[3], 'swing');
@@ -1428,7 +1431,7 @@ void main() {
           .getSingle();
       final figuresText = row.read<String>('figures_text');
       expect(figuresText, contains('pass the ocean'));
-      expect(figuresText, contains('form a wave'));
+      expect(figuresText, contains('form short waves'));
       // The legacy phrasing must be gone from the index.
       expect(figuresText, isNot(contains('form an ocean wave')));
 
@@ -1722,7 +1725,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
 
       await db.close();
     });
@@ -1828,7 +1831,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
 
       await db.close();
     });
@@ -1950,7 +1953,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').get();
       expect(version.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
 
       await db.close();
     });
@@ -2083,7 +2086,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').get();
       expect(version.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
 
       final dance = await repos.dances.getById('dance-1');
       expect(dance, isNotNull);
@@ -2619,6 +2622,130 @@ void main() {
       // The rewritten container's canonical text carries the orbit side, so a
       // full-text search on "orbit" finds the dance.
       final hits = await repos.dances.search(const FullTextFilter('orbit'));
+      expect(hits, contains('dance-1'));
+
+      await db.close();
+    });
+  });
+
+  group('v18 -> v19 upgrade (issue #295 form_a_short_wave rename)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v19_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v18 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v18.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, db.schemaVersion);
+
+      await db.close();
+    });
+
+    test('renames stored form_a_short_wave figures, preserving everything '
+        'else byte-for-byte', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final dance = await repos.dances.getById('dance-1');
+      expect(dance, isNotNull);
+      final figures = dance!.figures;
+      expect(figures, hasLength(5));
+
+      // [0] fully-specified: only the move id changes.
+      expect(figures[0].move, 'form_short_waves');
+      expect(figures[0].params['dir'], 'rightDiagonal');
+      expect(figures[0].params['balance'], isTrue);
+      expect(figures[0].params['center'], 'role1s');
+      expect(figures[0].params['centerHand'], 'left');
+      expect(figures[0].params['sides'], 'partners');
+      expect(figures[0].params['beats'], 8);
+      expect(figures[0].note, 'ladies in the centre');
+      expect(figures[0].progression, isTrue);
+
+      // [1] params-less: renamed without inventing params.
+      expect(figures[1].move, 'form_short_waves');
+      expect(figures[1].params.keys, isNot(contains('center')));
+
+      // [2] the NESTED side of a meanwhile container is renamed too.
+      expect(figures[2].isMeanwhile, isTrue);
+      final sides = figures[2].subFigures;
+      expect(sides.map((f) => f.move), ['form_short_waves', 'swing']);
+      expect(sides[0].params['centerHand'], 'left');
+
+      // [3] control swing: byte-identical.
+      expect(figures[3].move, 'swing');
+      expect(figures[3].params['who'], 'partners');
+      expect(figures[3].params['beats'], 16);
+
+      // [4] an unknown move id is untouched and rides the #358 fallback.
+      expect(figures[4].move, 'some_removed_move');
+      expect(figures[4].params['beats'], 4);
+
+      await db.close();
+    });
+
+    test('the old move id is gone from every stored blob', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db
+          .customSelect('SELECT figures_json FROM dances')
+          .get();
+      for (final row in rows) {
+        expect(
+          row.read<String>('figures_json'),
+          isNot(contains('form_a_short_wave')),
+        );
+      }
+
+      await db.close();
+    });
+
+    test('rebuilt dance_figures + FTS reflect the renamed move', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      // The derived-rebuild marker is cleared once the rebuild completes.
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(
+        marker.isEmpty || marker.single.data['value_json'] != 'true',
+        isTrue,
+        reason: 'the derived rebuild must clear its marker',
+      );
+
+      // The renamed move's canonical text is "form short waves", so a
+      // full-text search on it finds the dance.
+      final hits = await repos.dances.search(
+        const FullTextFilter('short waves'),
+      );
       expect(hits, contains('dance-1'));
 
       await db.close();

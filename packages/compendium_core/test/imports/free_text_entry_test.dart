@@ -45,11 +45,11 @@ void main() {
 
     test('all-or-nothing: a clause that cannot structure keeps the WHOLE line '
         'as one custom figure', () {
-      final fs = parseFreeTextFigureEntry('Star right 3/4; form wave of four');
+      final fs = parseFreeTextFigureEntry('Star right 3/4; form new wave');
       expect(fs, hasLength(1));
       expect(fs.single.isCustom, isTrue);
       expect(fs.single.params['text'], contains('Star right 3/4'));
-      expect(fs.single.params['text'], contains('form wave of four'));
+      expect(fs.single.params['text'], contains('form new wave'));
     });
 
     test('a top-level `||` (simultaneity) fans into a `meanwhile` container '

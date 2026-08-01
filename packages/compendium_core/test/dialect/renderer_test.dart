@@ -1701,7 +1701,7 @@ void main() {
       test('default: who faces in, the other pair faces out', () {
         expect(
           renderer.render(Figure(move: 'form_long_waves'), larks),
-          'form long waves - larks face in, robins face out',
+          'form long waves - larks facing in, robins facing out',
         );
       });
     });

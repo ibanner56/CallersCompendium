@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import '../dialect/canonicalize.dart';
 import '../dialect/dialect.dart';
 import '../model/enums.dart';
+import '../model/figure.dart' show kMaxMeanwhileDepth, meanwhileMove;
 import '../model/formation.dart';
 import '../taxonomy/param_types.dart';
 import 'tables.dart';
@@ -115,7 +116,7 @@ const String purgeCorruptionRepairDoneKey = '__purge_corruption_repair_done__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 18;
+const int kCompendiumSchemaVersion = 19;
 
 /// The Caller's Compendium local database.
 ///
@@ -272,6 +273,20 @@ const int kCompendiumSchemaVersion = 18;
 ///   wildcard `hand`, or a `who` with no pair-inverse) is left byte-identical,
 ///   falling through to the #358 unknown-move path rather than being
 ///   dropped/corrupted.
+/// - v19 (issue #295): taxonomy move RENAME. `form_a_short_wave` became
+///   `form_short_waves` at taxonomy v21, so every stored figure with
+///   `move == 'form_a_short_wave'` in each `dances.figures_json` blob is
+///   rewritten to the new id — including sides nested inside a `meanwhile`
+///   container (which the v18 rewrite can itself create). Params are carried
+///   over untouched: this is purely an identity change. Like v12/v18 it is a
+///   SANCTIONED canonical-changing migration (the display/canonical text moves
+///   from "form a wave" to "form short waves"), so it schedules a derived
+///   rebuild (marker) — but only when a figure actually changed. Per-row and
+///   per-figure parse-never-throw: a malformed blob or entry is left
+///   byte-identical, falling through to the #358 unknown-move path. Note the
+///   historical v12 step still writes the OLD id (it is frozen history); a
+///   long-hop upgrade from ≤ v11 therefore lands on `form_a_short_wave` at v12
+///   and is renamed here at v19.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -622,6 +637,40 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           );
         }
       }
+      if (from < 19) {
+        // Issue #295: `form_a_short_wave` was RENAMED `form_short_waves` at
+        // taxonomy v21, so rewrite every stored figure that carries the old id
+        // — including sides nested inside a `meanwhile` container. Params are
+        // untouched; only the move id changes. Canonical/FTS text changes for
+        // those figures, so this is the SANCTIONED canonical-changing migration
+        // (cf. v12/v18) and schedules a derived rebuild, but only when a figure
+        // actually changed. Per-row and per-figure parse-never-throw: a
+        // malformed blob or entry is left byte-identical, falling through to
+        // the #358 unknown-move path rather than being dropped/corrupted.
+        final rows = await customSelect(
+          'SELECT id, figures_json FROM dances',
+        ).get();
+        var rewroteAny = false;
+        for (final row in rows) {
+          final id = row.data['id'];
+          final figuresJson = row.data['figures_json'];
+          if (id is! String || figuresJson is! String) continue;
+          final rewritten = _rewriteShortWaveRename(figuresJson);
+          if (rewritten != null && rewritten != figuresJson) {
+            await customStatement(
+              'UPDATE dances SET figures_json = ? WHERE id = ?',
+              [rewritten, id],
+            );
+            rewroteAny = true;
+          }
+        }
+        if (rewroteAny) {
+          await customStatement(
+            'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+            [derivedRebuildRequiredKey, 'true'],
+          );
+        }
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -851,4 +900,77 @@ String? _rewriteAllemandeOrbitFigures(String figuresJson) {
   }
   if (!changed) return null;
   return jsonEncode(out);
+}
+
+/// Rewrites `form_a_short_wave` figures in a `figures_json` string onto the
+/// issue #295 renamed move id `form_short_waves` for the schema-v19 migration.
+/// Returns the rewritten JSON, or `null` when nothing changed OR the blob can't
+/// be parsed as a figure array — in which case the caller leaves the stored
+/// `figures_json` byte-identical so any malformed data falls through to the
+/// non-destructive unknown-move path (issue #358).
+///
+/// A pure identity change: `params`, `note`, `progression`, `schemaVersion`,
+/// `customOrigin`, `assumedSubject`, `walkthroughOverride` and any unknown key
+/// are preserved verbatim. Sides nested inside a `meanwhile` container's
+/// `params.figures` are rewritten too — the schema-v18 step can itself produce
+/// such containers, and a `meanwhile` may legitimately hold a wave side.
+/// Parse-never-throw at the blob and the individual-figure level; the nested
+/// walk is depth-bounded by [kMaxMeanwhileDepth] so hostile stored data cannot
+/// exhaust the stack (OWASP).
+String? _rewriteShortWaveRename(String figuresJson) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(figuresJson);
+  } catch (_) {
+    return null; // malformed JSON: leave the row untouched.
+  }
+  if (decoded is! List) return null;
+  var changed = false;
+
+  Object? rewriteEntry(Object? entry, int depth) {
+    if (entry is! Map || depth > kMaxMeanwhileDepth) return entry;
+    try {
+      final figure = Map<String, Object?>.from(entry);
+      var touched = false;
+      if (figure['move'] == 'form_a_short_wave') {
+        figure['move'] = 'form_short_waves';
+        touched = true;
+      }
+      final rawParams = figure['params'];
+      if (figure['move'] == meanwhileMove && rawParams is Map) {
+        final sides = rawParams['figures'];
+        if (sides is List) {
+          final rewrittenSides = [
+            for (final side in sides) rewriteEntry(side, depth + 1),
+          ];
+          if (!_identicalSides(sides, rewrittenSides)) {
+            figure['params'] = <String, Object?>{
+              ...Map<String, Object?>.from(rawParams),
+              'figures': rewrittenSides,
+            };
+            touched = true;
+          }
+        }
+      }
+      if (!touched) return entry;
+      changed = true;
+      return figure;
+    } catch (_) {
+      return entry; // per-figure failure: keep the original entry intact.
+    }
+  }
+
+  final out = [for (final entry in decoded) rewriteEntry(entry, 0)];
+  if (!changed) return null;
+  return jsonEncode(out);
+}
+
+/// Whether every element of [a] is the same instance as the matching element of
+/// [b] — i.e. the nested rewrite left the list untouched.
+bool _identicalSides(List<Object?> a, List<Object?> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (!identical(a[i], b[i])) return false;
+  }
+  return true;
 }

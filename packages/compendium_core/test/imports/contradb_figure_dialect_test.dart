@@ -493,12 +493,12 @@ void main() {
 
   group('contraDbHtmlFigureFrontEnd — ocean wave family', () {
     test(
-      'form an ocean wave → form_a_short_wave (across, center/sides/hands)',
+      'form an ocean wave → form_short_waves (across, center/sides/hands)',
       () {
         final f = _parse(
           'form an ocean wave - ladles by right hands and neighbors by left hands',
         );
-        expect(f.move, 'form_a_short_wave');
+        expect(f.move, 'form_short_waves');
         expect(f.params['dir'], 'across');
         expect(f.params['center'], 'role2s');
         expect(f.params['centerHand'], 'right');
@@ -512,7 +512,7 @@ void main() {
       final f = _parse(
         'form an ocean wave & balance - ladles by right hands and neighbors by left hands',
       );
-      expect(f.move, 'form_a_short_wave');
+      expect(f.move, 'form_short_waves');
       expect(f.params.containsKey('balance'), isFalse);
     });
 

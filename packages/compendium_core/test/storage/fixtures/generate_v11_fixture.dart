@@ -17,7 +17,9 @@
 // The injected blob exercises every migration branch:
 //   * a `passThru: true` figure (+ balance/center/centerHand/sides/beats) — must
 //     become `pass_the_ocean` carrying those params;
-//   * a `passThru: false` figure — must become `form_a_short_wave`;
+//   * a `passThru: false` figure — the v12 step writes the then-current
+//     `form_a_short_wave`, which the v19 rename step rewrites, so the fully
+//     upgraded blob holds `form_short_waves`;
 //   * a `passThru`-less figure with note/progression — defaults to
 //     `pass_the_ocean`, preserving note/progression, dropping the empty params;
 //   * a control `swing` figure — must be left byte-identical;
