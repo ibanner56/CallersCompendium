@@ -492,12 +492,6 @@ void main() {
     for (final paramKey in ['whom', 'endFacing']) {
       testWidgets('courtesy_turn.$paramKey (taxonomy v23)', (tester) async {
         final spec = contraTaxonomy.resolve('courtesy_turn')!.params[paramKey]!;
-        // Precondition: the sentinel must be in the list the editor RENDERS.
-        // `ParamSpec.validate` accepting it is NOT sufficient — the editor and
-        // the validator consult different domains, and only `choices` is
-        // shared with the widget.
-        expect(spec.choices, contains(ParamVocab.unspecified));
-
         final read = await _pumpEditor(
           tester,
           paramKey: paramKey,
@@ -505,11 +499,23 @@ void main() {
           value: ParamVocab.unspecified,
         );
         await tester.pumpAndSettle();
+        // THE load-bearing assertion, and it is deliberately FIRST. A
+        // taxonomy-level check that `choices` contains the sentinel would pass
+        // even if `_dropdown`'s reconciliation later changed and started
+        // fabricating again; only this one exercises the widget. Asserting it
+        // before the diagnostic below means a reconciliation regression fails
+        // HERE rather than being masked by an earlier precondition.
         expect(
           read(),
           isNull,
           reason: 'opening the editor must not write a value into $paramKey',
         );
+        // Diagnostic, not the guarantee: if the assertion above ever fails,
+        // this is the first thing to check — the sentinel must be in the list
+        // the editor RENDERS. `ParamSpec.validate` accepting it is NOT
+        // sufficient, because the validator and the widget consult different
+        // domains and only `choices` is shared with the widget.
+        expect(spec.choices, contains(ParamVocab.unspecified));
       });
     }
 
