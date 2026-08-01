@@ -36,9 +36,9 @@ import 'figure_text_scrub.dart';
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
 ///
 /// Pre-recognizer order is not correctness-critical: each requires a distinct
-/// anchor (`hey` / `circulate:` / `gate` / `courtesy turn` / `walk forward`)
-/// plus a successful resolution to its own move, so no two can claim the same
-/// line.
+/// anchor (`hey` / `circulate:` / `gate` / `courtesy turn` / `walk forward` /
+/// `chain` / `promenade` / `right (and) left through`) plus a successful
+/// resolution to its own move, so no two can claim the same line.
 final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
   preRecognizers: [
     _hey,
@@ -46,6 +46,9 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _gateAnnotation,
     _courtesyTurnAnnotation,
     _walkForwardAnnotation,
+    _chainAnnotation,
+    _promenadeAnnotation,
+    _rightLeftThroughAnnotation,
   ],
   recognitionNormalize: _stripAnnotations,
 );
@@ -936,6 +939,110 @@ FigureMatch? _walkForwardAnnotation(String scrubbed) {
 
 final RegExp _walkForwardAnchor = RegExp(
   r'\bwalk\s+forward\b',
+  caseSensitive: false,
+);
+
+// --- Chain / promenade / right-and-left-through annotation preservation
+// (#729) --------------------------------------------------------------------
+
+/// The same gap [_gateAnnotation], [_courtesyTurnAnnotation] and
+/// [_walkForwardAnnotation] close, for `chain`, `promenade` and
+/// `right_left_through`.
+///
+/// TCB pairs these three high-frequency moves with a courtesy-turn
+/// qualifier IN A PARENTHETICAL far more often than the moves this issue's
+/// predecessors touched — `Ladies chain to partner (optional double
+/// courtesy turn)`, `Partner promenade across (without courtesy turn)`,
+/// `[Ones and twos] Same-role right and left through with neighbor`. Because
+/// [_stripAnnotations] drops `()`/`[]` for recognition, all three used to
+/// structure while SILENTLY LOSING the qualifier — and, for the negating
+/// wordings ("without courtesy turn"), the structured figure was left
+/// asserting the OPPOSITE of what the source said. That is the shape #295
+/// declined to fix inline (chain/promenade are two of the highest-frequency
+/// moves in the corpus, so blast radius had to be measured first, not
+/// assumed) and #729 measures and closes it.
+///
+/// **Locked design ruling (owner, #729): preserve-as-note for EVERY
+/// qualifier, additive or negating — never decline these lines to custom.**
+/// A `courtesyTurn` taxonomy flag was raised and explicitly declined: adding
+/// one would mean the taxonomy needs to know a courtesy turn *could* have
+/// happened on a chain/promenade/right-and-left-through, which is a much
+/// bigger and more speculative modeling question than "preserve the words
+/// the source actually wrote". The consequence, adopted deliberately: the
+/// structured figure still asserts the un-negated choreography (a `chain`
+/// still IS a chain; nothing marks it "no courtesy turn"), while the
+/// contradicting words live in the note, readable by a caller/dancer but not
+/// machine-checkable against the figure's own params. A future modeler who
+/// wants that checkable is welcome to add the flag additively (as
+/// `promenade.singleFile` did, #634) — this pre-recognizer does not foreclose
+/// it, it just does not attempt it.
+///
+/// `chain` and `right_left_through` already emit their OWN note
+/// (`` `to <dancer>` `` / `` `same-role` ``), so without
+/// [_withAnnotationNote]'s combine fix a naive `existing ?? added` would make
+/// these two pre-recognizers silent no-ops whenever that note already fired —
+/// invisible, because *a* note is still present, just not the annotation.
+/// That combine fix already landed (motivated by this exact collision,
+/// foreseen while #733 wired up its own annotation-preserving pre-recognizer)
+/// — this PR only adds the three new pre-recognizers that actually exercise
+/// it for these moves. `promenade` carries no note of its own, so it never
+/// collides; it is still wired in here so all three moves share one mechanism
+/// rather than two being "fixed" and one being left with the original silent
+/// drop.
+///
+/// Measured over the `Permission: full` Caller's Box corpus (see
+/// `docs/research/callersbox.md`'s figure-line census for #729): of
+/// 117,981 lines across 12,001 dances, **0 move IDs, 0 beat totals and 0
+/// custom/structured flips change** — this pre-recognizer only ever adds or
+/// extends a `note`. **1,061** figures gain or change a note:
+/// `right_left_through` 594 (mostly a bracketed subject group — `[Ones and
+/// twos]`, `[Twos and threes]` — combining with the move's own
+/// `` `same-role` `` note), `chain` 416 (mostly `(along the set)`/`(across
+/// the set)`/`[those who can]`/`[Groups of four]` combining with the move's
+/// own `` `to <dancer>` `` note), and `promenade` 51 (no collision — a
+/// straightforward add, including this issue's own two example lines).
+FigureMatch? _chainAnnotation(String scrubbed) {
+  final base = _annotatedMatch(scrubbed, _chainAnchor, 'chain');
+  if (base == null) return null;
+  final note = _joinAnnotations(base.annotations);
+  if (note == null) return null;
+  return _withAnnotationNote(base.match, note);
+}
+
+/// See [_chainAnnotation]. `promenade` has no note of its own (no collision),
+/// but shares the same mechanism for consistency.
+FigureMatch? _promenadeAnnotation(String scrubbed) {
+  final base = _annotatedMatch(scrubbed, _promenadeAnchor, 'promenade');
+  if (base == null) return null;
+  final note = _joinAnnotations(base.annotations);
+  if (note == null) return null;
+  return _withAnnotationNote(base.match, note);
+}
+
+/// See [_chainAnnotation]. The anchor accepts both `right and left through`
+/// and `right left through`, matching the `and` being optional in the shared
+/// recognizer's own grammar (`figure_parser.dart`), so the pre-recognizer's
+/// cheap anchor test never rejects a line the delegated grammar would go on
+/// to accept.
+FigureMatch? _rightLeftThroughAnnotation(String scrubbed) {
+  final base = _annotatedMatch(
+    scrubbed,
+    _rightLeftThroughAnchor,
+    'right_left_through',
+  );
+  if (base == null) return null;
+  final note = _joinAnnotations(base.annotations);
+  if (note == null) return null;
+  return _withAnnotationNote(base.match, note);
+}
+
+final RegExp _chainAnchor = RegExp(r'\bchains?\b', caseSensitive: false);
+final RegExp _promenadeAnchor = RegExp(
+  r'\bpromenades?\b',
+  caseSensitive: false,
+);
+final RegExp _rightLeftThroughAnchor = RegExp(
+  r'\bright\s+(and\s+)?left\s+through\b',
   caseSensitive: false,
 );
 

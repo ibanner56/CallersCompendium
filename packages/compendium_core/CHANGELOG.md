@@ -84,7 +84,28 @@
   only when it consumes the whole phrase, so a partly-understood fragment
   resolves to `null` rather than to its first dancer word.
 
-### Added
+- **Caller's Box `chain`/`promenade`/`right_left_through` no longer silently
+  drop a parenthetical qualifier — including one that NEGATES the
+  choreography (#729).** `"Ladies chain to partner (optional double courtesy
+  turn)"` and `"Partner promenade across (without courtesy turn)"` used to
+  structure while losing the annotation entirely (`_stripAnnotations` is
+  recognition-only), so the negating form left the imported figure asserting
+  the opposite of what the source said. Three new `tcbFigureFrontEnd`
+  pre-recognizers (mirroring `gate`/`courtesy_turn`/`walk forward`) now
+  preserve every qualifier verbatim as the figure's note, for BOTH additive
+  and negating wordings — a deliberate, owner-ruled choice: no new taxonomy
+  flag models "a courtesy turn did or did not happen" on these moves, so the
+  structured figure still asserts the un-negated choreography while the
+  contradicting words live in the (human-readable, not machine-checked) note.
+  `chain` and `right_left_through` already emit their own recognizer note
+  (`to <dancer>` / `same-role`); the note-combine fix that keeps that note
+  from being displaced (see "Changed", above) is what makes these two safe.
+  Measured over the `Permission: full` corpus (117,981 figure lines / 12,001
+  dances): **0 move IDs, 0 beat totals and 0 custom/structured flips
+  change**; 1,061 figures gain or extend a note (`right_left_through` 594,
+  `chain` 416, `promenade` 51).
+
+
 
 - **The Caller's Box `walk forward` lines now map onto existing moves (#733) —
   NO new `MoveDef`, no `contraTaxonomyVersion` bump, no schema migration.**

@@ -594,9 +594,80 @@ Neither change alone structures it — #734 could not, because the trailing walk
 clause failed; #733 could not, because the middle facing clause failed. Beats
 are unchanged (8 + 0 = the source's 8). Its `[Heads (ones+fours)]` / `(NR)`
 annotations are dropped, which is the pre-existing bare-`pass_through`
-annotation gap under #729's audit item, now reached by one more line. `atypical_beats` warnings rise by 340 (20,463 → 20,803), almost all a 4-beat
+annotation gap under #729's audit item, now reached by one more line.
+`atypical_beats` warnings rise by 340 (20,463 → 20,803), almost all a 4-beat
 `pass_through` (`goodBeats: [2]`) — a leisurely pass through is a warning, not
 an error, and no beats param is fabricated to suppress it.
+
+### Figure-line census: chain/promenade/right_left_through annotations
+(2026-08-01, issue #729)
+
+**⚠️ Methodology differs from every other census in this document.** The
+sections above are all measured against a **local file mirror** of the
+24,107-ID TCB corpus (20,516 parseable records, 11,499–20,516 `full`-permission
+dances depending on the section, per the denominator note above). This section
+instead used a **live crawl** of `dance.php?id=N&format=JSON` for
+`id` 1–20,500, because the local mirror was not available in this session:
+**16,874 dances fetched**, 0 HTTP errors, ~3,626 IDs missing/gapped (`omit`/
+`search`/`not searchable` tiers return no figures, or the id is simply unused).
+Of those, **12,001 dances carry `Permission: full` figures**, yielding
+**117,981** figure lines — noticeably fewer dances than the 20,516/11,499
+figures elsewhere in this document. The gap between "24,107 IDs" and "16,874
+fetched" was not resolved (a live HTTP crawl can miss records a database-level
+mirror would not, e.g. transient permission flips or rate-limiting the crawl
+did not surface as an error). Treat the **deltas** below as reliable (they
+were reproduced against `origin/main` at the point of implementation, not just
+the original prototype) and the population size as a lower bound, not a
+precise count.
+
+Method: `parseFigureLines(..., frontEnd: tcbFigureFrontEnd)` run over every
+extracted line, before (`7aee635c`, i.e. right after #733/#737 landed) and
+after wiring in `_chainAnnotation`/`_promenadeAnnotation`/
+`_rightLeftThroughAnnotation`.
+
+**0 move IDs, 0 beat totals, 0 custom/structured flips change** across all
+117,981 lines — this pre-recognizer trio only ever adds or extends a `note`.
+
+**1,061** figures gain or change a note:
+
+| move | lines | why |
+|---|---:|---|
+| `right_left_through` | 594 | mostly a bracketed subject group (`[Ones and twos]`, `[Twos and threes]`) combining with the move's own `same-role` note — the LARGER of the two collision sites, contrary to the issue's initial framing |
+| `chain` | 416 | mostly `(along the set)`/`(across the set)`/`[those who can]`/`[Groups of four]` combining with the move's own `to <dancer>` note |
+| `promenade` | 51 | no collision (promenade emits no note of its own) — a straightforward add, including this issue's own two example lines |
+
+Real before/after samples (verbatim from the corpus):
+
+```
+Ladies chain to partner (optional double courtesy turn)
+  before: note='to partner'
+  after:  note='to partner; optional double courtesy turn'
+
+Partner promenade across (without courtesy turn)
+  before: note=None
+  after:  note='without courtesy turn'
+
+[Ones and twos] Same-role right and left through with neighbor
+  before: note='same-role'
+  after:  note='same-role; Ones and twos'
+
+Ladies chain to neighbor (along the set)
+  before: note='to neighbor'
+  after:  note='to neighbor; along the set'
+```
+
+**Audit of the same shape on other moves (report only — NOT expanded into
+this change).** Filtering for a structured (non-custom) line carrying a
+prose-like qualifier (a lowercase alphabetic word of 3+ letters inside `()`/
+`[]`, as opposed to TCB's own compact shorthand — pass-list codes like
+`(PR;NL)`, role-letter codes like `(M1-W2-M2-W1)`, hand codes — which
+dedicated mechanisms like `hey`'s own pass-list decoder already consume, not
+drop): **39 other moves, 9,726 figures total** currently drop such a
+qualifier. Top offenders: `circle` 2,251, `star` 1,556, `balance_the_ring`
+915, `slide_along_set` 822, `roll_away` 803, `meanwhile` 642, `swing` 385,
+`do_si_do` 305, `up_the_hall` 292, `down_the_hall` 259, `allemande` 230, plus
+28 more moves at lower counts. This is ~9.2x the figure count `chain`/
+`promenade`/`right_left_through` touch — a follow-up issue, not this PR.
 
 ## Open questions
 
