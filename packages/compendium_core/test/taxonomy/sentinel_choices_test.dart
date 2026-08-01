@@ -63,5 +63,35 @@ void main() {
             '$offenders',
       );
     });
+
+    // The matching direction (issue #736 review finding): a sentinel the
+    // editor can OFFER is worthless if `ParamSpec.validate` then REJECTS it —
+    // the figure would fail `Taxonomy.validateFigure`/import validation the
+    // moment a user (or importer) actually selects "not stated". Unlike the
+    // editor-side check above, this needs no hand-maintained kind list:
+    // `spec.validate` is right here in core, so we just call it.
+    test('every param whose choices admit ParamVocab.unspecified is accepted '
+        'by its own validator', () {
+      final offenders = <String>[];
+      for (final move in contraTaxonomy.moves.values) {
+        move.params.forEach((name, spec) {
+          final choices = spec.choices;
+          if (choices != null &&
+              choices.contains(ParamVocab.unspecified) &&
+              !spec.validate(ParamVocab.unspecified)) {
+            offenders.add('${move.id}.$name (${spec.kind})');
+          }
+        });
+      }
+      expect(
+        offenders,
+        isEmpty,
+        reason:
+            'these params declare ParamVocab.unspecified in `choices` but '
+            'ParamSpec.validate rejects it for their kind — a figure that '
+            'stores the sentinel (via the editor or an importer) would fail '
+            'validateFigure/import validation: $offenders',
+      );
+    });
   });
 }

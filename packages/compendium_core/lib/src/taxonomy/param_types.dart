@@ -170,9 +170,15 @@ class ParamSpec {
             (choices ?? ParamVocab.dancerSets).contains(value);
       case ParamKind.handedness:
       case ParamKind.shoulder:
-        return value is String && ParamVocab.sides.contains(value);
+        // `choices` is optional here too (issue #726): when a spec narrows
+        // the domain — or opts into the `unspecified` sentinel — `choices` is
+        // the single shared domain between this validator and the editor
+        // (`FigureParamEditor`'s dropdown), so both MUST consult it rather
+        // than the fixed vocabulary. A spec that omits `choices` keeps
+        // exactly today's strict domain.
+        return value is String && (choices ?? ParamVocab.sides).contains(value);
       case ParamKind.spinDirection:
-        return value is String && ParamVocab.spins.contains(value);
+        return value is String && (choices ?? ParamVocab.spins).contains(value);
       case ParamKind.rotation:
         // A rotation is numeric, but a spec MAY opt into the "source stated
         // nothing" sentinel by listing it in [choices] (taxonomy v22: the
@@ -192,11 +198,13 @@ class ParamSpec {
       case ParamKind.places:
         return value is int && value >= 1 && value <= 10;
       case ParamKind.fraction:
-        return value is String && ParamVocab.fractions.contains(value);
+        return value is String &&
+            (choices ?? ParamVocab.fractions).contains(value);
       case ParamKind.beats:
         return value is int && value >= 0 && value <= 64;
       case ParamKind.direction:
-        return value is String && ParamVocab.directions.contains(value);
+        return value is String &&
+            (choices ?? ParamVocab.directions).contains(value);
       case ParamKind.choice:
         return value is String && (choices?.contains(value) ?? false);
       case ParamKind.text:
