@@ -218,5 +218,30 @@ void main() {
       expect(spec.validate('role1s'), isTrue);
       expect(spec.validate('partners'), isFalse);
     });
+
+    // Issue #736 review: the five kinds #726 taught the EDITOR to honour
+    // `spec.choices` for must also be honoured by the VALIDATOR — otherwise a
+    // spec that opts a kind into the `unspecified` sentinel would let the
+    // editor render and store it, then have `validateFigure` reject it. One
+    // representative kind (handedness) pinned directly; the taxonomy-wide
+    // sweep lives in `sentinel_choices_test.dart`.
+    test('a sentinel-bearing handedness spec validates the sentinel, still '
+        'rejects out-of-domain values', () {
+      const spec = ParamSpec(
+        ParamKind.handedness,
+        defaultValue: 'right',
+        choices: [...ParamVocab.sides, ParamVocab.unspecified],
+      );
+      expect(spec.validate(ParamVocab.unspecified), isTrue);
+      expect(spec.validate('right'), isTrue);
+      expect(spec.validate('sideways'), isFalse);
+    });
+
+    test('a handedness spec WITHOUT choices keeps the strict fixed domain', () {
+      const spec = ParamSpec(ParamKind.handedness, defaultValue: 'right');
+      expect(spec.validate('right'), isTrue);
+      expect(spec.validate('left'), isTrue);
+      expect(spec.validate(ParamVocab.unspecified), isFalse);
+    });
   });
 }
