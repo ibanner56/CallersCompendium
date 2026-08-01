@@ -34,6 +34,14 @@
     two-couple gate — which `ParamKind.spinDirection` (`clockwise`/
     `counterclockwise` only) cannot express, so it is not an instance of this
     workaround and converting it would silently drop `mirror`.
+  - **`ParamVocab.unspecified`'s doc comment now states the rule instead of
+    listing the params.** It enumerated which params opt into the sentinel and
+    had already drifted (it omitted `form_long_waves.hand`/`whom` and all four
+    `gate.*`). It now says what is actually true — a param admits the sentinel
+    iff it names it in `ParamSpec.choices` and its kind's validator consults
+    `choices`, which explicitly includes the typed kinds — and points at
+    `sentinel_choices_test.dart` as the mechanically-enforced source of truth,
+    so it cannot drift again.
   - **Two new guards.** `sentinel_choices_test.dart` now fails any
     `ParamKind.choice` whose domain, minus the sentinel, is exactly one of the
     fixed vocabularies (the workaround's precise signature, and one that does

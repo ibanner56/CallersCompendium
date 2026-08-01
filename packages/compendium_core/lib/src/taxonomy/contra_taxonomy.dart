@@ -418,9 +418,9 @@ const _pairOrUnspecified = _heyMeetTargetChoices;
 // all three consumers of the kind + `choices` contract now read
 // `spec.choices ?? <fixed vocabulary>`: the figure param editor
 // (`figure_param_editors.dart`) and [ParamSpec.validate] (issue #726), and the
-// Advanced-search facet (`facet_labels.dart`'s `figureParamChoices`, issue
-// #746). A sentinel on a typed kind is offered, stored and validated
-// correctly, so do NOT reintroduce the `choice` workaround for new params.
+// Advanced-search facet (`facet_labels.dart`'s `figureParamChoices`, PR #746).
+// A sentinel on a typed kind is offered, stored and validated correctly, so do
+// NOT reintroduce the `choice` workaround for new params.
 const _spinOrUnspecified = [...ParamVocab.spins, ParamVocab.unspecified];
 
 // v21 (issue #295): the hand a wave is held by, or the `unspecified` sentinel
@@ -737,8 +737,8 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // `spec.choices ?? <fixed vocabulary>`: the figure param editor
         // (`figure_param_editors.dart`) and [ParamSpec.validate] (issue #726),
         // and the Advanced-search facet (`facet_labels.dart`'s
-        // `figureParamChoices`). A sentinel on a typed kind is therefore
-        // offered, stored and validated correctly.
+        // `figureParamChoices`, PR #746). A sentinel on a typed kind is
+        // therefore offered, stored and validated correctly.
         //
         // ⚠️ The corollary: declaring a param `ParamKind.choice` PURELY so it
         // can admit the sentinel is an OBSOLETE workaround — do not copy it
