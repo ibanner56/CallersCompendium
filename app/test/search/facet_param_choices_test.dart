@@ -212,13 +212,18 @@ void main() {
       }
     });
 
-    // The same assertion swept over the real taxonomy. It passes trivially
-    // today (no live param pairs a typed kind with `choices`) and is here as
-    // the durable drift guard: it starts doing real work the moment #739
-    // re-declares `_handOrUnspecified` / `_spinOrUnspecified` with their
-    // natural kinds, and would fail loudly if the facet and the validator ever
-    // disagreed again.
-    test('across every param in contraTaxonomy', () {
+    // ⚠️ This one CANNOT FAIL ON TODAY'S TAXONOMY, by construction — it is a
+    // REGRESSION GUARD, not a bug-finder, and must not be mistaken for active
+    // coverage of the fix (the synthetic sweep above is what actually proves
+    // it; that one IS red without the fix). No live param pairs one of the
+    // five typed kinds with a `choices` list, so every spec here takes a
+    // branch that was already correct. It exists to start doing real work the
+    // moment that stops being true — #739 re-declaring `_handOrUnspecified` /
+    // `_spinOrUnspecified` with their natural kinds is the next such change —
+    // and to fail loudly if the facet and the validator ever disagree again.
+    // Same convention as `sentinel_choices_test.dart` in compendium_core.
+    test('across every param in contraTaxonomy (drift guard — cannot fail '
+        'on today\'s taxonomy)', () {
       final offenders = <String>[];
       for (final move in contraTaxonomy.moves.values) {
         move.params.forEach((name, spec) {
@@ -234,7 +239,12 @@ void main() {
         isEmpty,
         reason:
             'these params offer a search-facet value their own validator '
-            'rejects: $offenders',
+            'rejects, so the Advanced "has figure" row would build a filter no '
+            'valid figure can match: $offenders\n'
+            'NOTE: this assertion passes trivially on the taxonomy as of the '
+            'fix (nothing exercises the five typed-kind-plus-choices paths), '
+            'so if you are reading this it means a taxonomy change made it '
+            'live — fix the param or the facet, do not relax the test.',
       );
     });
   });
