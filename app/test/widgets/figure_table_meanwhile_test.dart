@@ -35,7 +35,7 @@ void main() {
   );
   final sideB = Figure(
     move: 'orbit',
-    params: const {'who': 'role2', 'turn': 0.5},
+    params: const {'who': 'role2', 'turn': 'clockwise', 'amount': 0.5},
   );
 
   testWidgets('renders both sides joined by "while" on a single row', (
