@@ -8,12 +8,14 @@ import 'package:flutter_test/flutter_test.dart';
 /// `FigureParamEditor` (the figure edit dropdowns) and `ParamSpec.validate` —
 /// and was the last one still ignoring `spec.choices` for five kinds.
 ///
-/// Every spec that pairs a typed kind WITH a `choices` list is synthetic here,
-/// deliberately: no param in `contraTaxonomy` declares that combination today
-/// (taxonomy authors routed such params to `ParamKind.choice` to work around
-/// the editor's matching gap, see #739), so nothing real exercises this path.
-/// That is exactly why it needs pinning — the defect is latent, and a test
-/// suite that only walks the live taxonomy would never catch it.
+/// The synthetic specs below stay synthetic on purpose — they sweep kinds and
+/// shapes the taxonomy does not currently declare, so the contract is pinned
+/// independently of whatever the taxonomy happens to contain. They were the
+/// ONLY coverage when this was written, because no live param then paired a
+/// typed kind with a `choices` list: taxonomy authors routed such params to
+/// `ParamKind.choice` to work around the gap this file fixes. Issue #739 has
+/// since unwound that workaround, so the live-taxonomy sweep at the bottom is
+/// no longer vacuous (see its own note).
 void main() {
   // Kind -> the fixed vocabulary that kind falls back to when a spec declares
   // no `choices`. Drives the table-driven cases below.
@@ -212,18 +214,64 @@ void main() {
       }
     });
 
-    // ⚠️ This one CANNOT FAIL ON TODAY'S TAXONOMY, by construction — it is a
-    // REGRESSION GUARD, not a bug-finder, and must not be mistaken for active
-    // coverage of the fix (the synthetic sweep above is what actually proves
-    // it; that one IS red without the fix). No live param pairs one of the
-    // five typed kinds with a `choices` list, so every spec here takes a
-    // branch that was already correct. It exists to start doing real work the
-    // moment that stops being true — #739 re-declaring `_handOrUnspecified` /
-    // `_spinOrUnspecified` with their natural kinds is the next such change —
-    // and to fail loudly if the facet and the validator ever disagree again.
-    // Same convention as `sentinel_choices_test.dart` in compendium_core.
-    test('across every param in contraTaxonomy (drift guard — cannot fail '
-        'on today\'s taxonomy)', () {
+    // Live-taxonomy sweep #1 — the direction that ACTUALLY catches a dropped
+    // sentinel, and the reason issue #739 had to wait for this file's fix.
+    //
+    // The `offers nothing validate rejects` sweep below is one-directional: it
+    // catches the facet offering TOO MUCH, never too little. Re-declaring
+    // `form_long_waves.hand` as a `handedness` and `mad_robin.direction` /
+    // `butterfly_whirl.direction` as `spinDirection`s under the OLD hardcoded
+    // facet would have moved them into a branch returning `ParamVocab.sides` /
+    // `ParamVocab.spins`, silently dropping `unspecified` from the Advanced
+    // search dropdown — a real loss of the ability to search for "the source
+    // stated nothing" — while every other guard in the repo stayed green,
+    // because `sides` and `spins` are perfectly valid values.
+    //
+    // So: whenever a spec declares a domain AND the facet offers a dropdown at
+    // all, the dropdown must be that domain, exactly. Unlike the sweep below,
+    // this is NOT vacuous — since #739 three live params pair a typed kind with
+    // a sentinel-bearing `choices` list, so reverting `figureParamChoices` to
+    // its hardcoded form turns this red.
+    test('every param with a declared domain is offered exactly that domain', () {
+      final offenders = <String>[];
+      for (final move in contraTaxonomy.moves.values) {
+        move.params.forEach((name, spec) {
+          final declared = spec.choices;
+          if (declared == null) return;
+          final offered = figureParamChoices(spec);
+          // `null` means "no dropdown for this kind at all" (e.g. `gate.turn`,
+          // a rotation that opts into the sentinel); that is a deliberate
+          // decision the facet makes per KIND, not a dropped value.
+          if (offered == null) return;
+          if (offered.join('\u0000') != declared.join('\u0000')) {
+            offenders.add(
+              '${move.id}.$name (${spec.kind}) declares $declared but the '
+              'facet offers $offered',
+            );
+          }
+        });
+      }
+      expect(
+        offenders,
+        isEmpty,
+        reason:
+            'the Advanced "has figure" row must offer a param\'s declared '
+            'domain verbatim. Offering LESS is the silent failure mode: a '
+            'param that opts into ParamVocab.unspecified becomes unsearchable '
+            'for "not stated" with every other test still green: $offenders',
+      );
+    });
+
+    // Live-taxonomy sweep #2 — the opposite direction, and much weaker.
+    //
+    // ⚠️ Read the reason string before trusting this one. It catches only the
+    // facet offering a value the validator REJECTS, so on any taxonomy where
+    // the facet under-offers it stays green (that is what the sweep above is
+    // for). The synthetic cases earlier in this file are what actually prove
+    // the fix; those ARE red without it. Same convention as
+    // `sentinel_choices_test.dart` in compendium_core.
+    test('across every param in contraTaxonomy, the facet never offers a '
+        'value validate rejects', () {
       final offenders = <String>[];
       for (final move in contraTaxonomy.moves.values) {
         move.params.forEach((name, spec) {
@@ -241,10 +289,9 @@ void main() {
             'these params offer a search-facet value their own validator '
             'rejects, so the Advanced "has figure" row would build a filter no '
             'valid figure can match: $offenders\n'
-            'NOTE: this assertion passes trivially on the taxonomy as of the '
-            'fix (nothing exercises the five typed-kind-plus-choices paths), '
-            'so if you are reading this it means a taxonomy change made it '
-            'live — fix the param or the facet, do not relax the test.',
+            'NOTE: this direction is the weak one — it cannot see a value the '
+            'facet fails to offer. The "declared domain" sweep above covers '
+            'that; fix the param or the facet, do not relax either test.',
       );
     });
   });

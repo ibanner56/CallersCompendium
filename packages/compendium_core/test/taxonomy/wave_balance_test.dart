@@ -58,6 +58,34 @@ void main() {
       expect(def.params['who']!.defaultValue, 'role1s');
     });
 
+    // Issue #739. `hand` wore `ParamKind.choice` from v21 until #726/#736
+    // (editor + validator) and #746 (search facet) taught all three consumers
+    // of the kind + `choices` contract to read `spec.choices ?? <fixed
+    // vocabulary>`; the workaround existed ONLY to smuggle the sentinel past
+    // consumers that ignored `choices`. Pinned as a pair — kind AND sentinel —
+    // because the whole risk of restoring the natural kind is that the sentinel
+    // stops being admitted somewhere: a spec the editor or the facet offers
+    // `unspecified` for, but whose validator then rejects it, would fail
+    // `validateFigure` the moment a user picks "not stated".
+    test('hand is a handedness that still admits the sentinel (#739)', () {
+      final spec = tax.resolve('form_long_waves')!.params['hand']!;
+      expect(spec.kind, ParamKind.handedness);
+      expect(spec.choices, ['right', 'left', ParamVocab.unspecified]);
+      expect(spec.validate(ParamVocab.unspecified), isTrue);
+      expect(spec.validate('right'), isTrue);
+      expect(spec.validate('left'), isTrue);
+      expect(spec.validate('sideways'), isFalse);
+      expect(
+        tax.validateFigure(
+          Figure(
+            move: 'form_long_waves',
+            params: const {'hand': ParamVocab.unspecified},
+          ),
+        ),
+        isEmpty,
+      );
+    });
+
     test('validates across the new domains', () {
       expect(
         tax.validateFigure(

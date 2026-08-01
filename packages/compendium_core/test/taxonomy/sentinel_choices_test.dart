@@ -41,18 +41,20 @@ void main() {
           }
         });
       }
-      // This is a REGRESSION GUARD, not a bug-finder: on today's taxonomy it
-      // passes trivially, because every existing sentinel-bearing param
-      // (`_handOrUnspecified`, `_spinOrUnspecified`, `_gateDirectionOrUnspecified`,
-      // `_dancerOrUnspecified`, `_heyPass2Choices`, `_heyMeetTargetChoices`,
-      // `_pairOrUnspecified`) was deliberately routed to `ParamKind.choice` or
-      // `ParamKind.dancerSet`/`dancerPair` — kinds that already honoured
-      // `spec.choices` before issue #726 — specifically to avoid this exact
-      // trap. It exists to catch the NEXT author who declares a sentinel on a
-      // kind the editor doesn't render it for. If this ever fails, the fix is
-      // either: (a) give the param `ParamKind.choice` (or another kind already
-      // in `_sentinelCapableKinds`), or (b) extend the editor's switch AND add
-      // the kind to `_sentinelCapableKinds` above, together.
+      // This is a REGRESSION GUARD, not a bug-finder: it passes on today's
+      // taxonomy because every sentinel-bearing param is declared on a kind
+      // that honours `spec.choices`. Since issue #739 that includes the
+      // NATURAL typed kinds — `form_long_waves.hand` is a `handedness` and
+      // `mad_robin.direction` / `butterfly_whirl.direction` are
+      // `spinDirection`s, each listing the sentinel in `choices`. The rest sit
+      // on `ParamKind.choice` (`gate.direction`, `swing.endFacing`) or
+      // `dancerSet`/`dancerPair` (`_dancerOrUnspecified`, `_heyPass2Choices`,
+      // `_heyMeetTargetChoices`, `_pairOrUnspecified`), and `gate.turn` is the
+      // one `rotation` that opts in. It exists to catch the NEXT author who
+      // declares a sentinel on a kind the editor doesn't render it for. If this
+      // ever fails, the fix is either: (a) move the param to a kind already in
+      // `_sentinelCapableKinds`, or (b) extend the editor's switch AND add the
+      // kind to `_sentinelCapableKinds` above, together.
       expect(
         offenders,
         isEmpty,
@@ -91,6 +93,81 @@ void main() {
             'ParamSpec.validate rejects it for their kind — a figure that '
             'stores the sentinel (via the editor or an importer) would fail '
             'validateFigure/import validation: $offenders',
+      );
+    });
+
+    // Issue #739. The two checks above accept `ParamKind.choice` as a home for
+    // a sentinel — correctly, since it honours `choices`. But `choice` is also
+    // where the OBSOLETE workaround lived: before #726/#736/#746 the five typed
+    // dropdown kinds rendered and validated from a hardcoded vocabulary that
+    // ignored `spec.choices`, so the only way to give a semantically typed
+    // param the "source stated nothing" sentinel was to launder it through
+    // `choice` and lose the type information. That is fixed, and #739 unwound
+    // the three declarations that used it.
+    //
+    // This guard stops it creeping back. Its signature is precise: a `choice`
+    // whose domain, minus the sentinel, is EXACTLY one of the fixed
+    // vocabularies has no reason to be a `choice` — it is that kind. A `choice`
+    // that merely OVERLAPS a fixed vocabulary is legitimate and must not be
+    // flagged: `gate.direction` is `spins` PLUS `mirror` (the two-couple gate,
+    // which `ParamKind.spinDirection` cannot express, so converting it would
+    // silently drop `mirror`), and `swing.endFacing`/`gate.face` are the four
+    // set-relative `gateFacings`, a different concept from
+    // `ParamKind.direction`'s eight spatial tokens.
+    //
+    // ⚠️ `ParamVocab.sides` needs the extra `hand`/`shoulder` name test, and it
+    // is not belt-and-braces — writing this guard without it flagged five
+    // params that are CORRECTLY `choice`: `slide_along_set.slide`,
+    // `rory_o_more.slide`, `slice.slice`, `zig_zag.turn` and `circle.turn`.
+    // `['left', 'right']` is an overloaded vocabulary: in those params it is a
+    // SPATIAL side (which way the move travels), not a hand or a shoulder, and
+    // `ParamKind.handedness` means specifically "right/left **hand**". Token
+    // identity is not kind identity for this one vocabulary, so the name is
+    // what distinguishes them. The other four vocabularies are unambiguous —
+    // nothing but a spin is `clockwise`/`counterclockwise` — and need no such
+    // qualification.
+    test('no param launders a fixed vocabulary through ParamKind.choice', () {
+      const unambiguousVocabs = <String, List<String>>{
+        'ParamKind.spinDirection (ParamVocab.spins)': ParamVocab.spins,
+        'ParamKind.fraction (ParamVocab.fractions)': ParamVocab.fractions,
+        'ParamKind.direction (ParamVocab.directions)': ParamVocab.directions,
+        'ParamKind.dancerSet/dancerPair (ParamVocab.dancerSets)':
+            ParamVocab.dancerSets,
+      };
+      String key(Iterable<String> values) =>
+          (values.toSet().toList()..sort()).join('\u0000');
+
+      final offenders = <String>[];
+      for (final move in contraTaxonomy.moves.values) {
+        move.params.forEach((name, spec) {
+          if (spec.kind != ParamKind.choice) return;
+          final domain = (spec.choices ?? const <String>[])
+              .where((v) => v != ParamVocab.unspecified)
+              .toList();
+          if (domain.isEmpty) return;
+          unambiguousVocabs.forEach((label, vocab) {
+            if (key(domain) == key(vocab)) {
+              offenders.add('${move.id}.$name is exactly $label');
+            }
+          });
+          if ((name == 'hand' || name == 'shoulder') &&
+              key(domain) == key(ParamVocab.sides)) {
+            offenders.add(
+              '${move.id}.$name is exactly ParamKind.handedness/shoulder '
+              '(ParamVocab.sides)',
+            );
+          }
+        });
+      }
+      expect(
+        offenders,
+        isEmpty,
+        reason:
+            'these params are declared ParamKind.choice but their domain is a '
+            "fixed kind's whole vocabulary, so they are throwing away type "
+            'information for nothing — declare the natural kind and keep the '
+            '`choices` list (that is what issue #739 did, and every consumer '
+            'now reads `spec.choices ?? <fixed vocabulary>`): $offenders',
       );
     });
   });

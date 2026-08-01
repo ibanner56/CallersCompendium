@@ -546,11 +546,15 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     Advanced-search facet (`facet_labels.dart`'s `figureParamChoices`). A
     sentinel on a typed kind is offered, stored and validated correctly.
     The corollary: declaring a param `ParamKind.choice` **purely** so it can
-    admit the sentinel (`_handOrUnspecified` / `_spinOrUnspecified`) is now an
-    **obsolete workaround** — do not copy it into new params; #739 tracks
-    unwinding the two that exist. This param keeps the honest
-    `ParamKind.spinDirection` and no sentinel because a courtesy turn wheels
-    clockwise by construction — so `clockwise` is a real default, not a
+    admit the sentinel is an **obsolete workaround** — do not copy it into new
+    params. #739 unwound the three declarations that used it:
+    `form_long_waves.hand` is now a `ParamKind.handedness` and
+    `mad_robin.direction` / `butterfly_whirl.direction` are
+    `ParamKind.spinDirection`s, each still listing the sentinel in `choices`.
+    (`gate.direction` stays a `choice` for an unrelated reason — its domain
+    includes `mirror`, which no typed kind can express.) This param keeps the
+    honest `ParamKind.spinDirection` and no sentinel because a courtesy turn
+    wheels clockwise by construction — so `clockwise` is a real default, not a
     fabricated one.
   - **`goodBeats: [2, 3, 4, 6]`** — the counts attested across the 115 lines the
     recognizer claims (4 x97, 2 x8, 3 x6, 6 x4). `5` and `8` appear only on

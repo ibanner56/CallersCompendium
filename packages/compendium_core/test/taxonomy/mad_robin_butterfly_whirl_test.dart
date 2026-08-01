@@ -46,13 +46,22 @@ void main() {
       expect(def.params.keys, ['who', 'turn', 'direction', 'whom', 'beats']);
       expect(def.params['who']!.defaultValue, 'ones');
       expect(def.params['turn']!.defaultValue, 1.0);
-      expect(def.params['direction']!.kind, ParamKind.choice);
+      // Issue #739: the NATURAL kind. `direction` wore `ParamKind.choice` from
+      // v20 until #726/#736 (editor + validator) and #746 (search facet) taught
+      // all three consumers of the kind + `choices` contract to read
+      // `spec.choices ?? <fixed vocabulary>` — the workaround's only purpose
+      // was to smuggle the sentinel past consumers that ignored `choices`.
+      expect(def.params['direction']!.kind, ParamKind.spinDirection);
       expect(def.params['direction']!.defaultValue, ParamVocab.unspecified);
       expect(def.params['direction']!.choices, [
         'clockwise',
         'counterclockwise',
         'unspecified',
       ]);
+      // The point of the natural kind is that it costs nothing: a typed spin
+      // direction still validates the sentinel, because it reads `choices`.
+      expect(def.params['direction']!.validate(ParamVocab.unspecified), isTrue);
+      expect(def.params['direction']!.validate('sideways'), isFalse);
       expect(def.params['whom']!.kind, ParamKind.dancerSet);
       expect(def.params['whom']!.defaultValue, ParamVocab.unspecified);
       expect(def.goodBeats, [6, 8]);
@@ -63,6 +72,15 @@ void main() {
       expect(def.params.keys, ['who', 'direction', 'beats']);
       expect(def.params['who']!.defaultValue, ParamVocab.unspecified);
       expect(def.params['direction']!.defaultValue, ParamVocab.unspecified);
+      // Issue #739: shares `_spinOrUnspecified` with `mad_robin.direction`, so
+      // it carries the same natural kind and the same sentinel admission.
+      expect(def.params['direction']!.kind, ParamKind.spinDirection);
+      expect(def.params['direction']!.choices, [
+        'clockwise',
+        'counterclockwise',
+        'unspecified',
+      ]);
+      expect(def.params['direction']!.validate(ParamVocab.unspecified), isTrue);
       // TCB states an amount on only 4/18 lines and no source models one, so
       // there is deliberately no `turn`/`amount` slot (prefer-custom).
       expect(def.params.containsKey('turn'), isFalse);
