@@ -370,8 +370,21 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     suffix. `form_a_long_wave` and `pass_the_ocean` already embedded their
     balance, so the wave moves are deliberately absent from the generic
     "balance &" prefix table — listing them would double it. All of this is
-    `!forCanonical`-gated: **`renderTemplate` is unchanged for both moves**, so
-    canonical / FTS / dedupe text is byte-stable for every existing figure.
+    `!forCanonical`-gated: **`renderTemplate` is unchanged for both moves**.
+    Be precise about what that does and does not buy, because the two halves of
+    v21 differ:
+    - the **new `whom`/`hand`/`balance` params** are byte-stable — at their
+      sentinel/`false` defaults a figure's canonical / FTS / dedupe text is
+      unchanged from v20;
+    - the **rename is not**, and deliberately so. `form_a_short_wave` →
+      `form_short_waves` changes both the move **id** (so an unmigrated stored
+      figure would stop resolving and fall through to the #358 raw-id fallback —
+      this is what forces the schema-v19 migration) and the **`displayName`**
+      ("form a wave" → "form short waves"), which `renderTemplate`'s `{move}`
+      token expands — so those figures' canonical text moves too, which is what
+      forces `derivedRebuildRequiredKey`. Renaming only the id would have needed
+      the migration but not the rebuild.
+
     (#296 also names `form_an_ocean_wave`; that reference is **stale** — the
     MoveDef was split at v13 and removed at v14.)
   - **`form_a_long_wave` is untouched** (it already carries a balance and means
