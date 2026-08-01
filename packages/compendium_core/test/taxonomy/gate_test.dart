@@ -28,7 +28,7 @@ void main() {
           .toList();
       expect(gates, ['gate']);
       // The retired TCB-only move is gone (stored figures are migrated by
-      // CompendiumDatabase schema v19).
+      // CompendiumDatabase schema v20).
       expect(tax.resolve('rotation_gate'), isNull);
     });
 

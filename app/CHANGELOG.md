@@ -31,6 +31,13 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **A turn amount the source never gave no longer looks like "1 turn".** In the
+  figure editor, a rotation the app has no value for now reads **"not stated"**
+  instead of silently showing 1 turn. Nudging the stepper sets a real value (and
+  a new clear button puts it back to not-stated), so a number you never entered
+  can't quietly become part of your dance. This matters most for gates imported
+  from ContraDB, which state an ending facing but no amount.
+
 - **Caller's Box import keeps the "(ones forward)" detail on a gate.** Lines
   like `Neighbor mirror gate 1 (ones forward)` used to lose the parenthetical
   once the figure was recognized. Now, when it names dancers the app knows, it

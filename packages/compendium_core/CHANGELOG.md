@@ -49,6 +49,17 @@
 
 ### Fixed
 
+- **The rotation param editor represents the `unspecified` sentinel instead of
+  coercing it to `1.0`.** `FigureParamEditor`'s `ParamKind.rotation` branch fell
+  back to `1.0` for any non-numeric value, so `gate.turn`'s sentinel displayed as
+  "1 turn" — a value no source stated — and the first stepper nudge would have
+  promoted that fabrication into stored data. A rotation spec that lists
+  `ParamVocab.unspecified` in `choices` now renders an explicit unset state,
+  disables decrement while unset, adopts the domain minimum on the first
+  increment (an unambiguous user action rather than a seeded "typical" value),
+  and offers a clear affordance back to unspecified. Rotation specs WITHOUT the
+  sentinel keep the numeric fallback unchanged.
+
 - **Caller's Box gate annotations are no longer silently dropped.** 82 of the
   corpus's 186 gate lines state which side moves — `(ones forward)`,
   `(men stay put)`, `(women are posts)` — and a *structured* gate discarded it

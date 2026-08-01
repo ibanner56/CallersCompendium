@@ -53,10 +53,20 @@ class FigureParamEditor extends StatelessWidget {
       case ParamKind.choice:
         return _dropdown(spec.choices ?? const []);
       case ParamKind.rotation:
+        // A rotation spec may opt into the `unspecified` sentinel by listing it
+        // in `choices` (taxonomy v22's `gate.turn`: ContraDB's gate states no
+        // turn amount at all). For those, a non-numeric value means the source
+        // stated NOTHING and must render as an explicit unset state — showing
+        // the old `1.0` fallback would display "1 turn" for a figure that never
+        // claimed one, and the first stepper nudge would silently promote that
+        // fabricated number into stored data.
+        final allowsUnset =
+            spec.choices?.contains(ParamVocab.unspecified) ?? false;
         return _RotationStepper(
           fieldKey: _key,
           label: humanizeToken(paramKey),
-          value: value is num ? value! as num : 1.0,
+          value: value is num ? value! as num : (allowsUnset ? null : 1.0),
+          allowsUnset: allowsUnset,
           onChanged: onChanged,
         );
       case ParamKind.beats:
@@ -154,11 +164,19 @@ class _RotationStepper extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onChanged,
+    this.allowsUnset = false,
   });
 
   final String fieldKey;
   final String label;
-  final num value;
+
+  /// The stored amount, or `null` when the source stated none. Only reachable
+  /// when [allowsUnset] — a spec without the sentinel always gets a number.
+  final num? value;
+
+  /// Whether this param admits [ParamVocab.unspecified], i.e. whether "the
+  /// source stated no amount" is a representable state.
+  final bool allowsUnset;
   final ValueChanged<Object?> onChanged;
 
   static const double _min = 0.25;
@@ -168,10 +186,17 @@ class _RotationStepper extends StatelessWidget {
   static String _format(num n) =>
       n == n.roundToDouble() ? n.toInt().toString() : n.toString();
 
+  /// The amount a first nudge lands on from the unset state. Deliberately the
+  /// domain minimum rather than a "typical" value: stepping UP from the floor
+  /// is an unambiguous user action, whereas seeding a plausible middle value
+  /// would be the app guessing choreography.
+  static const double _firstStep = _min;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
+    final current = value;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -185,25 +210,53 @@ class _RotationStepper extends StatelessWidget {
               tooltip: l10n.danceEditorLessTooltip,
               icon: const Icon(Icons.remove),
               visualDensity: VisualDensity.compact,
-              onPressed: value > _min
-                  ? () =>
-                        onChanged((value - _step).clamp(_min, _max).toDouble())
+              // Disabled while unset: there is nothing to decrement, and
+              // stepping DOWN into a value would read as "the app picked one".
+              onPressed: (current != null && current > _min)
+                  ? () => onChanged(
+                      (current - _step).clamp(_min, _max).toDouble(),
+                    )
                   : null,
             ),
             Text(
-              l10n.danceEditorTurnCount(value, _format(value)),
+              current == null
+                  ? l10n.danceEditorTurnNotStated
+                  : l10n.danceEditorTurnCount(current, _format(current)),
               key: ValueKey('$fieldKey-value'),
+              style: current == null
+                  ? theme.textTheme.bodyMedium?.copyWith(
+                      fontStyle: FontStyle.italic,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    )
+                  : null,
             ),
             IconButton(
               key: ValueKey('$fieldKey-inc'),
               tooltip: l10n.danceEditorMoreTooltip,
               icon: const Icon(Icons.add),
               visualDensity: VisualDensity.compact,
-              onPressed: value < _max
-                  ? () =>
-                        onChanged((value + _step).clamp(_min, _max).toDouble())
+              // From the unset state the first nudge ADOPTS a value — an
+              // explicit user action, never an implicit default.
+              onPressed: current == null
+                  ? () => onChanged(_firstStep)
+                  : current < _max
+                  ? () => onChanged(
+                      (current + _step).clamp(_min, _max).toDouble(),
+                    )
                   : null,
             ),
+            // Only offered when the param can actually represent "not stated",
+            // and only once a value is set — so a user who set an amount by
+            // mistake can put it back rather than being stuck with a number the
+            // source never gave.
+            if (allowsUnset && current != null)
+              IconButton(
+                key: ValueKey('$fieldKey-clear'),
+                tooltip: l10n.danceEditorTurnClearTooltip,
+                icon: const Icon(Icons.backspace_outlined),
+                visualDensity: VisualDensity.compact,
+                onPressed: () => onChanged(ParamVocab.unspecified),
+              ),
           ],
         ),
       ],

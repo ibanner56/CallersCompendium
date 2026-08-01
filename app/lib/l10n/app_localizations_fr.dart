@@ -4843,6 +4843,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorLessTooltip => 'Moins';
 
   @override
+  String get danceEditorTurnNotStated => 'non précisé';
+
+  @override
+  String get danceEditorTurnClearTooltip => 'Effacer (non précisé)';
+
+  @override
   String get danceEditorMoreTooltip => 'Plus';
 
   @override
