@@ -93,7 +93,8 @@ abstract final class ParamVocab {
   ///
   /// Admitted only by params that explicitly list it in [ParamSpec.choices]
   /// (`hey.pass2`/`hey.meetTarget`, `mad_robin.direction`/`whom`,
-  /// `butterfly_whirl.who`/`direction`). It is NOT a dancer or a direction, so
+  /// `butterfly_whirl.who`/`direction`, and — the one [ParamKind.rotation] that
+  /// opts in — `gate.turn`). It is NOT a dancer or a direction, so
   /// the renderer emits it as the empty string — which is what lets such a
   /// param sit in a `renderTemplate` without changing the canonical text of any
   /// figure that leaves it unset.
@@ -173,6 +174,17 @@ class ParamSpec {
       case ParamKind.spinDirection:
         return value is String && ParamVocab.spins.contains(value);
       case ParamKind.rotation:
+        // A rotation is numeric, but a spec MAY opt into the "source stated
+        // nothing" sentinel by listing it in [choices] (taxonomy v22: the
+        // merged `gate.turn` — ContraDB's gate states an ending facing and no
+        // turn amount at all, so a numeric default there would fabricate one).
+        // The opt-in is deliberate: rotation params that omit `choices` keep
+        // the strict numeric domain.
+        if (value is String) {
+          return choices != null &&
+              value == ParamVocab.unspecified &&
+              choices!.contains(value);
+        }
         return value is num &&
             value >= 0.25 &&
             value <= 2.5 &&

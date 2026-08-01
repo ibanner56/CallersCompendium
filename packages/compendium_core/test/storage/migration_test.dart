@@ -1725,7 +1725,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 19);
+      expect(db.schemaVersion, 20);
 
       await db.close();
     });
@@ -1831,7 +1831,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 19);
+      expect(db.schemaVersion, 20);
 
       await db.close();
     });
@@ -1953,7 +1953,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').get();
       expect(version.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 19);
+      expect(db.schemaVersion, 20);
 
       await db.close();
     });
@@ -2086,7 +2086,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').get();
       expect(version.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 19);
+      expect(db.schemaVersion, 20);
 
       final dance = await repos.dances.getById('dance-1');
       expect(dance, isNotNull);
@@ -2746,6 +2746,241 @@ void main() {
       final hits = await repos.dances.search(
         const FullTextFilter('short waves'),
       );
+      expect(hits, contains('dance-1'));
+
+      await db.close();
+    });
+  });
+
+  group('v19 -> v20 upgrade (gate merge: gate + rotation_gate -> gate)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v20_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v19 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v19.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, db.schemaVersion);
+
+      await db.close();
+    });
+
+    test('rewrites both legacy gate shapes onto the merged move, mapping '
+        "rotation_gate's who to `pair` and never to `who`", () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final dance = await repos.dances.getById('dance-1');
+      expect(dance, isNotNull);
+      final figures = dance!.figures;
+      expect(figures, hasLength(6));
+
+      // [0] fully-specified rotation_gate + note/progression. The TCB subject
+      // MUST land on `pair` — writing it to `who` would reinterpret it as
+      // ContraDB's "the side that backs up".
+      expect(figures[0].move, 'gate');
+      expect(figures[0].params['pair'], 'nextNeighbors');
+      expect(figures[0].params.containsKey('who'), isFalse);
+      expect(figures[0].params['direction'], 'counterclockwise');
+      expect(figures[0].params['turn'], 0.5);
+      expect(figures[0].params['beats'], 4);
+      expect(figures[0].note, 'ones forward');
+      expect(figures[0].progression, isTrue);
+
+      // [1] params-less rotation_gate: the RETIRED move's defaults are
+      // materialized, because the merged move defaults every slot to
+      // `unspecified`.
+      expect(figures[1].move, 'gate');
+      expect(figures[1].params['pair'], 'neighbors');
+      expect(figures[1].params['direction'], 'counterclockwise');
+      expect(figures[1].params['turn'], 0.5);
+
+      // [2] fully-specified legacy ContraDB gate: same slots, same meaning —
+      // left byte-identical (`face` was already the ENDING facing).
+      expect(figures[2].move, 'gate');
+      expect(figures[2].params['who'], 'ones');
+      expect(figures[2].params['whom'], 'neighbors');
+      expect(figures[2].params['face'], 'down');
+      expect(figures[2].params['beats'], 8);
+      expect(figures[2].params.containsKey('pair'), isFalse);
+
+      // [3] beats-only legacy gate: the retired move's defaults materialize.
+      expect(figures[3].move, 'gate');
+      expect(figures[3].params['who'], 'ones');
+      expect(figures[3].params['whom'], 'neighbors');
+      expect(figures[3].params['face'], 'up');
+      expect(figures[3].params['beats'], 8);
+
+      // [4] meanwhile container: the migration recurses into `params.figures`
+      // and preserves the container's shared beats and the untouched side.
+      expect(figures[4].isMeanwhile, isTrue);
+      expect(figures[4].beats, 4);
+      final sides = figures[4].subFigures;
+      expect(sides.map((f) => f.move), ['gate', 'swing']);
+      expect(sides[0].params['pair'], 'partners');
+      expect(sides[0].params['direction'], 'clockwise');
+      expect(sides[0].params['turn'], 0.25);
+      expect(sides[1].params['who'], 'neighbors');
+
+      // [5] control swing: byte-identical.
+      expect(figures[5].move, 'swing');
+      expect(figures[5].params['who'], 'partners');
+      expect(figures[5].params['beats'], 16);
+
+      await db.close();
+    });
+
+    test('beat totals survive the rewrite exactly', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final dance = (await repos.dances.getById('dance-1'))!;
+      // 4 (rotation_gate) + 8 (default) + 8 + 8 + 4 (meanwhile) + 16 (swing).
+      expect(
+        dance.figures
+            .map((f) => contraTaxonomy.effectiveParams(f)['beats'])
+            .toList(),
+        [4, 8, 8, 8, 4, 16],
+      );
+
+      await db.close();
+    });
+
+    // The failure mode a version collision would cause: a user who lands at a
+    // stored `user_version` at or above the guard never runs the step, so their
+    // stored figures keep pointing at move ids the taxonomy no longer has and
+    // fall silently through the #358 unknown-move path. `from < 20` must fire
+    // for EVERY entry point below 20, whichever earlier steps ran first.
+    //
+    // Schema 17..20 are structurally identical (all three steps are data
+    // rewrites that add no column or table), so stamping the fixture down is a
+    // faithful simulation of a user arriving from that version — including the
+    // concurrent schema-19 wave-move rename, which this fixture holds no
+    // figures for and which therefore no-ops over it.
+    for (final from in [17, 18, 19]) {
+      test(
+        'the gate rewrite still runs for a database arriving from v$from',
+        () async {
+          final raw = sqlite3.sqlite3.open(dbPath);
+          raw.execute('PRAGMA user_version = $from');
+          raw.close();
+
+          final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+          final repos = CompendiumRepositories(db, contraTaxonomy);
+          await repos.ensureMigrated();
+
+          final version = await db.customSelect('PRAGMA user_version').get();
+          expect(version.single.data.values.first, 20, reason: 'from v$from');
+
+          final figures = (await repos.dances.getById('dance-1'))!.figures;
+          // Both legacy shapes landed on the merged move, with the TCB subject
+          // on `pair` — not on `who`.
+          expect(figures[0].move, 'gate', reason: 'from v$from');
+          expect(
+            figures[0].params['pair'],
+            'nextNeighbors',
+            reason: 'from v$from',
+          );
+          expect(figures[2].move, 'gate', reason: 'from v$from');
+          expect(figures[2].params['who'], 'ones', reason: 'from v$from');
+          // Nothing anywhere still references the retired move id.
+          final moves = await db
+              .customSelect(
+                "SELECT DISTINCT move FROM dance_figures WHERE dance_id = 'dance-1'",
+              )
+              .get();
+          expect(
+            moves.map((r) => r.data['move']).toSet(),
+            isNot(contains('rotation_gate')),
+            reason: 'from v$from',
+          );
+          // Beat totals are untouched by however many steps ran.
+          expect(
+            figures
+                .map((f) => contraTaxonomy.effectiveParams(f)['beats'])
+                .toList(),
+            [4, 8, 8, 8, 4, 16],
+            reason: 'from v$from',
+          );
+
+          await db.close();
+        },
+      );
+    }
+
+    test('rebuilt dance_figures + FTS reflect the merged move', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      // The derived-rebuild marker is cleared once the rebuild completes.
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(
+        marker.isEmpty || marker.single.data['value_json'] != 'true',
+        isTrue,
+        reason: 'the derived rebuild must clear its marker',
+      );
+
+      // Every rewritten figure indexes under the single merged move id, so the
+      // retired `rotation_gate` id is gone from the derived index.
+      final moves = await db
+          .customSelect(
+            "SELECT DISTINCT move FROM dance_figures WHERE dance_id = 'dance-1'",
+          )
+          .get();
+      final moveIds = moves.map((r) => r.data['move']).toSet();
+      expect(moveIds, contains('gate'));
+      expect(moveIds, isNot(contains('rotation_gate')));
+
+      // The concrete consequence, through the API that actually reads those
+      // columns: `danceIdsWithFigure` queries `move` + `params_json`, so if the
+      // migration skipped its derived rebuild, structured search would still
+      // match the RETIRED id and miss every migrated figure. This is why the
+      // rebuild is owed even though `dance_figures` also carries canonical text
+      // — a migration that changed only the move id would owe one too.
+      expect(
+        await repos.dances.danceIdsWithFigure('gate'),
+        contains('dance-1'),
+      );
+      expect(await repos.dances.danceIdsWithFigure('rotation_gate'), isEmpty);
+      // The TCB subject is searchable in its NEW slot, and not in the old one.
+      expect(
+        await repos.dances.danceIdsWithFigure(
+          'gate',
+          paramKey: 'pair',
+          paramJsonValue: '"nextNeighbors"',
+        ),
+        contains('dance-1'),
+      );
+
+      final hits = await repos.dances.search(const FullTextFilter('gate'));
       expect(hits, contains('dance-1'));
 
       await db.close();

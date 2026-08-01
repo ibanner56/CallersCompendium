@@ -1177,6 +1177,8 @@
   "danceEditorOverByBeats": "Um {beats} Takte zu lang",
   "danceEditorUnderByBeats": "Um {beats} Takte zu kurz",
   "danceEditorLessTooltip": "Weniger",
+  "danceEditorTurnNotStated": "nicht angegeben",
+  "danceEditorTurnClearTooltip": "Löschen (nicht angegeben)",
   "danceEditorMoreTooltip": "Mehr",
   "danceEditorTurnCount": "{count, plural, =1{{formatted} Drehung} other{{formatted} Drehungen}}",
   "commonBack": "Zurück",

@@ -244,6 +244,102 @@ void main() {
     expect(read(), 1.25);
   });
 
+  // Taxonomy v22's `gate.turn` opts a ROTATION param into the `unspecified`
+  // sentinel, because ContraDB's gate states no turn amount at all. Before this
+  // the stepper coerced any non-numeric value to 1.0, so an unstated turn read
+  // as "1 turn" — a number the source never gave — and the first nudge would
+  // have promoted that fabrication into stored data.
+  const gateTurnSpec = ParamSpec(
+    ParamKind.rotation,
+    defaultValue: ParamVocab.unspecified,
+    choices: [ParamVocab.unspecified],
+  );
+
+  testWidgets('an unset sentinel rotation shows "not stated", never a number', (
+    tester,
+  ) async {
+    await _pumpEditor(
+      tester,
+      paramKey: 'turn',
+      spec: gateTurnSpec,
+      value: ParamVocab.unspecified,
+    );
+    await tester.pumpAndSettle();
+
+    final label = tester.widget<Text>(
+      find.byKey(const ValueKey('p-turn-value')),
+    );
+    expect(label.data, 'not stated');
+    expect(label.data, isNot(contains('1')));
+    // Nothing to decrement from an unset value.
+    final dec = tester.widget<IconButton>(
+      find.byKey(const ValueKey('p-turn-dec')),
+    );
+    expect(dec.onPressed, isNull);
+    // No clear button until there is something to clear.
+    expect(find.byKey(const ValueKey('p-turn-clear')), findsNothing);
+  });
+
+  testWidgets('the first nudge ADOPTS a value explicitly, from the floor', (
+    tester,
+  ) async {
+    final read = await _pumpEditor(
+      tester,
+      paramKey: 'turn',
+      spec: gateTurnSpec,
+      value: ParamVocab.unspecified,
+    );
+    // Merely rendering the editor must not write anything.
+    await tester.pumpAndSettle();
+    expect(read(), isNull);
+
+    await tester.tap(find.byKey(const ValueKey('p-turn-inc')));
+    await tester.pumpAndSettle();
+    // The domain minimum — stepping up from the floor is unambiguous, whereas
+    // seeding a "typical" value would be the app guessing choreography.
+    expect(read(), 0.25);
+  });
+
+  testWidgets('a set sentinel rotation can be cleared back to unspecified', (
+    tester,
+  ) async {
+    final read = await _pumpEditor(
+      tester,
+      paramKey: 'turn',
+      spec: gateTurnSpec,
+      value: 0.75,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('p-turn-value'))).data,
+      contains('turn'),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('p-turn-clear')));
+    await tester.pumpAndSettle();
+    expect(read(), ParamVocab.unspecified);
+  });
+
+  testWidgets('a rotation WITHOUT the sentinel keeps the numeric fallback', (
+    tester,
+  ) async {
+    // Unchanged behaviour for every other rotation param (mad_robin.turn, …):
+    // the sentinel is opt-in per spec, so a stray non-numeric value still
+    // reconciles to 1.0 rather than showing an unset state it cannot store.
+    await _pumpEditor(
+      tester,
+      paramKey: 'turn',
+      spec: const ParamSpec(ParamKind.rotation, defaultValue: 1.0),
+      value: 'garbage',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('p-turn-value'))).data,
+      isNot('not stated'),
+    );
+    expect(find.byKey(const ValueKey('p-turn-clear')), findsNothing);
+  });
+
   testWidgets('rotation stepper decrements and clamps at the minimum', (
     tester,
   ) async {

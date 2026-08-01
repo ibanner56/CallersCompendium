@@ -1065,6 +1065,12 @@ FigureMatch? _pullByDirection(String text) {
 }
 
 /// gateWords: `<who> gate <whom> to face <direction>`.
+///
+/// `who` is the side that extends a hand and BACKS UP; `whom` walks forward
+/// (libfigure `figure.js:844`). The trailing direction is the gate's ENDING
+/// FACING (`figure.js:841` emits the literal words "to face"), stored on the
+/// merged move's `face` param as of taxonomy v22 — the rotation sense and turn
+/// amount ContraDB does not model stay `unspecified`.
 FigureMatch? _gate(String text) {
   final s = _Scan(text);
   final who = _subject(s);

@@ -116,7 +116,7 @@ const String purgeCorruptionRepairDoneKey = '__purge_corruption_repair_done__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 19;
+const int kCompendiumSchemaVersion = 20;
 
 /// The Caller's Compendium local database.
 ///
@@ -287,6 +287,30 @@ const int kCompendiumSchemaVersion = 19;
 ///   historical v12 step still writes the OLD id (it is frozen history); a
 ///   long-hop upgrade from ≤ v11 therefore lands on `form_a_short_wave` at v12
 ///   and is renamed here at v19.
+/// - v20 (gate merge): duplicate-move retirement + figure rewrite. `gate` and
+///   `rotation_gate` — which both rendered the display name "gate" and showed
+///   as two identical picker rows — are MERGED into one `gate` move (taxonomy
+///   v22), and stored figures of BOTH are rewritten in each
+///   `dances.figures_json` blob onto it. `rotation_gate`'s `who` becomes the
+///   merged move's **`pair`**, NOT its `who`: TCB's subject names the pairing
+///   you gate WITH, while ContraDB's `who` names the side that extends a hand
+///   and backs up (libfigure `figure.js:844`), so reusing the slot would
+///   silently reinterpret every TCB-imported gate. The legacy `gate`'s `who`,
+///   `whom` and `face` keep their meaning exactly (`face` was already the
+///   ENDING facing). Each retired move's own defaults are materialized
+///   explicitly for omitted params, since the merged move defaults every slot
+///   to `unspecified`; `beats` is carried verbatim so beat totals are
+///   unchanged. Recurses into `meanwhile` containers (a TCB `||` line can hold
+///   two gates), bounded in depth. A SANCTIONED derived-data-changing migration
+///   (cf. v12, v18, and the v19 wave-move rename): it schedules a derived
+///   rebuild, but only when a figure actually changed. The rebuild is owed
+///   because `dance_figures` projects the move id and `params_json` as well as
+///   the canonical text — `danceIdsWithFigure` queries exactly those two — so
+///   skipping it would leave structured search matching the RETIRED
+///   `rotation_gate` id and missing every migrated `gate`. Per-row and per-figure
+///   parse-never-throw. Chains cleanly after v19 — that step only rewrites the
+///   `form_a_short_wave` move id and touches no gate figure, and neither step
+///   adds a column or table, so schema 18/19/20 are structurally identical.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -671,6 +695,60 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           );
         }
       }
+      if (from < 20) {
+        // Taxonomy v22: `gate` and `rotation_gate` are MERGED into one `gate`
+        // move, so rewrite every stored figure of BOTH onto it. This is a
+        // SANCTIONED derived-data-changing migration (cf. v12, v18, v19).
+        // Per-row and per-figure parse-never-throw: a blob or entry that can't
+        // be cleanly remapped is left byte-identical, falling through to the
+        // #358 unknown-move path rather than being dropped/corrupted.
+        //
+        // Runs AFTER the v19 rename above and is independent of it: that step
+        // only touches `form_a_short_wave` figures and this one only touches
+        // gates, so the order never matters — but the guard MUST be `< 20`, not
+        // `< 19`, or a database that already reached 19 through the rename
+        // would skip this step forever and keep referencing the retired
+        // `rotation_gate` id (see the entry-point tests in migration_test.dart).
+        final rows = await customSelect(
+          'SELECT id, figures_json FROM dances',
+        ).get();
+        var rewroteAny = false;
+        for (final row in rows) {
+          final id = row.data['id'];
+          final figuresJson = row.data['figures_json'];
+          if (id is! String || figuresJson is! String) continue;
+          final rewritten = _rewriteGateFigures(figuresJson);
+          if (rewritten != null && rewritten != figuresJson) {
+            await customStatement(
+              'UPDATE dances SET figures_json = ? WHERE id = ?',
+              [rewritten, id],
+            );
+            rewroteAny = true;
+          }
+        }
+        // Only schedule a rebuild when a figure actually changed — a database
+        // that held neither gate move (or held only already-explicit ones)
+        // already has correct derived rows.
+        //
+        // The rebuild is owed because `dance_figures` projects the move ID and
+        // `params_json`, NOT merely `canonical_text`. `danceIdsWithFigure`
+        // (dance_repository.dart) queries exactly `move` + `params_json`, so
+        // without a rebuild a search for `gate` would MISS every migrated
+        // figure while the retired `rotation_gate` id would still match — the
+        // structured-search index would disagree with what is actually stored.
+        // (The canonical/FTS text changes too, but that is the lesser half:
+        // a migration that changed only a figure's move id would still owe a
+        // rebuild.) Those derived rows need the taxonomy/renderer, which
+        // `MigrationStrategy` can't reach, so durably record that a rebuild is
+        // owed (crash-safe); `CompendiumRepositories.ensureMigrated()` then
+        // regenerates `dance_figures` + `dance_fts` from `figures_json`.
+        if (rewroteAny) {
+          await customStatement(
+            'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+            [derivedRebuildRequiredKey, 'true'],
+          );
+        }
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -973,4 +1051,173 @@ bool _identicalSides(List<Object?> a, List<Object?> b) {
     if (!identical(a[i], b[i])) return false;
   }
   return true;
+}
+
+/// Rewrites stored `gate` and `rotation_gate` figures onto the MERGED `gate`
+/// move (taxonomy v22) for the schema-v20 migration. Returns the rewritten
+/// JSON, or `null` when nothing changed OR the blob can't be parsed as a figure
+/// array — in which case the caller leaves the stored `figures_json`
+/// byte-identical so any unmapped/malformed data falls through to the
+/// non-destructive unknown-move path (issue #358).
+///
+/// Operates on the raw decoded JSON (not the [Figure] model) so unknown keys —
+/// `schemaVersion`, `note`, `progression`, `customOrigin`, `assumedSubject`,
+/// `walkthroughOverride` — are preserved verbatim. Parse-never-throw at both the
+/// blob and the individual-figure level.
+///
+/// ## Mapping
+///
+/// **`rotation_gate` → `gate`.** Its `who` moves to **`pair`**, not `who`. The
+/// two mean different things: TCB's subject names the pairing you gate WITH,
+/// while ContraDB's `who` names the side that extends a hand and BACKS UP
+/// (libfigure `figure.js:844`; `chooser.js:114` shows ContraDB's subject domain
+/// cannot even hold `neighbors`/`partners`). Writing it to `who` would silently
+/// reinterpret every TCB-imported gate. `direction`, `turn` and `beats` carry
+/// over verbatim.
+///
+/// **`gate` → `gate`.** `who`, `whom`, `face` and `beats` carry over verbatim —
+/// `face` was already the ENDING facing (`figure.js:841` renders it after the
+/// literal words "to face"), which is exactly what the merged `face` means.
+///
+/// In BOTH cases the RETIRED move's own defaults are materialized EXPLICITLY
+/// for any param the stored figure omitted (`rotation_gate`: who `neighbors`,
+/// direction `counterclockwise`, turn `0.5`; `gate`: who `ones`, whom
+/// `neighbors`, face `up`), because the merged move defaults every slot to
+/// `unspecified` instead. Without this a figure that relied on an old default
+/// would silently lose it. `beats` is never materialized — it defaults to 8 on
+/// both the old and new moves, so leaving it absent preserves the beat total
+/// exactly.
+///
+/// Recurses into `meanwhile` containers' `params.figures`, since a TCB `||`
+/// line fans two gates into one container (e.g. "Partner gate clockwise 1/4 ||
+/// Partner gate clockwise 1/2"). Depth is bounded by the shared
+/// [kMaxMeanwhileDepth] — stored data is untrusted and a hand-edited blob
+/// could nest containers arbitrarily.
+String? _rewriteGateFigures(String figuresJson) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(figuresJson);
+  } catch (_) {
+    return null; // malformed JSON: leave the row untouched.
+  }
+  if (decoded is! List) return null;
+  var changed = false;
+  final out = _rewriteGateList(decoded, 0, () => changed = true);
+  if (!changed) return null;
+  return jsonEncode(out);
+}
+
+List<Object?> _rewriteGateList(
+  List<Object?> figures,
+  int depth,
+  void Function() markChanged,
+) {
+  final out = <Object?>[];
+  for (final entry in figures) {
+    if (entry is! Map) {
+      out.add(entry); // preserve non-object entries verbatim.
+      continue;
+    }
+    try {
+      final move = entry['move'];
+      if (move == 'meanwhile') {
+        out.add(_rewriteGateContainer(entry, depth, markChanged));
+        continue;
+      }
+      if (move != 'gate' && move != 'rotation_gate') {
+        out.add(entry);
+        continue;
+      }
+      final rewritten = _rewriteGateFigure(entry, move as String);
+      if (rewritten == null) {
+        out.add(entry); // nothing to change: keep it byte-identical.
+        continue;
+      }
+      out.add(rewritten);
+      markChanged();
+    } catch (_) {
+      out.add(entry); // per-figure failure: keep the original entry intact.
+    }
+  }
+  return out;
+}
+
+/// Rewrites the sub-figures of a `meanwhile` container, preserving every other
+/// key (including the container's shared `beats`) verbatim. Past the depth cap
+/// the container is returned untouched rather than descended into.
+Object? _rewriteGateContainer(
+  Map<Object?, Object?> entry,
+  int depth,
+  void Function() markChanged,
+) {
+  if (depth >= kMaxMeanwhileDepth) return entry;
+  final rawParams = entry['params'];
+  if (rawParams is! Map) return entry;
+  final sides = rawParams['figures'];
+  if (sides is! List) return entry;
+  var innerChanged = false;
+  final rewrittenSides = _rewriteGateList(sides, depth + 1, () {
+    innerChanged = true;
+    markChanged();
+  });
+  if (!innerChanged) return entry;
+  return <String, Object?>{
+    for (final e in entry.entries)
+      if (e.key != 'params') '${e.key}': e.value,
+    'params': <String, Object?>{
+      for (final e in rawParams.entries)
+        if (e.key != 'figures') '${e.key}': e.value,
+      'figures': rewrittenSides,
+    },
+  };
+}
+
+/// The merged-move form of one legacy gate entry, or `null` when the entry is
+/// already exactly what the merged move stores (so the caller can leave it
+/// byte-identical and skip the derived rebuild).
+Map<String, Object?>? _rewriteGateFigure(
+  Map<Object?, Object?> entry,
+  String move,
+) {
+  final rawParams = entry['params'];
+  final params = rawParams is Map
+      ? Map<String, Object?>.from(rawParams)
+      : <String, Object?>{};
+
+  final Map<String, Object?> merged;
+  if (move == 'rotation_gate') {
+    merged = <String, Object?>{
+      // Retired `rotation_gate` defaults, materialized when absent.
+      'pair': params['who'] ?? 'neighbors',
+      'direction': params['direction'] ?? 'counterclockwise',
+      'turn': params['turn'] ?? 0.5,
+      // Every other stored param rides along untouched (`beats` above all —
+      // the beat total must survive the rewrite exactly).
+      for (final e in params.entries)
+        if (e.key != 'who' && e.key != 'direction' && e.key != 'turn')
+          e.key: e.value,
+    };
+  } else {
+    merged = <String, Object?>{
+      // Legacy ContraDB `gate` defaults, materialized when absent.
+      'who': params['who'] ?? 'ones',
+      'whom': params['whom'] ?? 'neighbors',
+      'face': params['face'] ?? 'up',
+      for (final e in params.entries)
+        if (e.key != 'who' && e.key != 'whom' && e.key != 'face')
+          e.key: e.value,
+    };
+    // A legacy `gate` that already spells out all three params is unchanged.
+    if (params.length == merged.length &&
+        merged.entries.every((e) => params.containsKey(e.key))) {
+      return null;
+    }
+  }
+  return <String, Object?>{
+    // Preserve every top-level key except the two we replace.
+    for (final e in entry.entries)
+      if (e.key != 'move' && e.key != 'params') '${e.key}': e.value,
+    'move': 'gate',
+    'params': merged,
+  };
 }

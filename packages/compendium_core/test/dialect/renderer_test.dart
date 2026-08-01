@@ -1903,11 +1903,11 @@ void main() {
       expect(verbose, isNot(contains('0.75')));
     });
 
-    test('composes with rotation_gate turn fraction (#294)', () {
+    test('composes with the merged gate turn fraction (#294)', () {
       final f = Figure(
-        move: 'rotation_gate',
+        move: 'gate',
         params: {
-          'who': 'partners',
+          'pair': 'partners',
           'direction': 'counterclockwise',
           'turn': 0.75,
           'beats': 6,
@@ -1948,16 +1948,16 @@ void main() {
   // "(assumed)" marker in every DISPLAY path, while the canonical (search/
   // dedupe) render and every explicit-subject figure stay byte-for-byte stable.
   group('assumed-subject marker (#460)', () {
-    // Template path (allemande) + base-renderer path (rotation_gate).
+    // Template path (allemande) + base-renderer path (the merged gate).
     Figure allemande({required bool assumed}) => Figure(
       move: 'allemande',
       params: {'who': 'neighbors', 'hand': 'left', 'turn': 1.5},
       assumedSubject: assumed,
     );
     Figure gate({required bool assumed}) => Figure(
-      move: 'rotation_gate',
+      move: 'gate',
       params: {
-        'who': 'partners',
+        'pair': 'partners',
         'direction': 'counterclockwise',
         'turn': 0.75,
       },
@@ -1980,7 +1980,7 @@ void main() {
       );
     });
 
-    test('base-renderer move (rotation_gate): marker follows the subject', () {
+    test('base-renderer move (gate): marker follows the subject', () {
       final f = gate(assumed: true);
       expect(
         renderer.render(f, Dialect.canonical),
@@ -2045,9 +2045,9 @@ void main() {
           renderer.renderVerbose(gate(assumed: false), dialect),
           renderer.renderVerbose(
             Figure(
-              move: 'rotation_gate',
+              move: 'gate',
               params: {
-                'who': 'partners',
+                'pair': 'partners',
                 'direction': 'counterclockwise',
                 'turn': 0.75,
               },

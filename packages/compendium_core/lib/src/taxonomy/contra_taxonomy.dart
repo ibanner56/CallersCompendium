@@ -1,5 +1,6 @@
 import '../model/enums.dart';
 import '../model/figure.dart' show customMoveId;
+import 'gate_facing.dart';
 import 'move_def.dart';
 import 'param_types.dart';
 import 'taxonomy.dart';
@@ -62,22 +63,28 @@ import 'taxonomy.dart';
 ///     carrying the remaining params. This is a DB migration (distinct from
 ///     this taxonomy version), the sanctioned canonical-changing exception.
 /// v15: adds the TCB rotation-gate figure kind `rotation_gate` (issue #294,
-///     Option B). A NEW move — distinct from the ContraDB `gate` (the two
-///     vocabularies are disjoint) — carrying `direction`
-///     (clockwise/counterclockwise/mirror) + a `turn` fraction over a VARIABLE
-///     beat count. Its resulting facing is derived deterministically at render
-///     time (gate_facing.dart), never stored. Purely additive taxonomy change:
-///     no existing figure's derived output changes, and distinct from
-///     CompendiumDatabase.schemaVersion — NO persisted-data migration is implied
-///     (new figures serialize under the existing figure codec; stored figures
-///     are untouched).
+///     Option B). A NEW move — believed at the time to be distinct from the
+///     ContraDB `gate` on the grounds that the two vocabularies were disjoint —
+///     carrying `direction` (clockwise/counterclockwise/mirror) + a `turn`
+///     fraction over a VARIABLE beat count. Its resulting facing was derived
+///     deterministically at render time (gate_facing.dart), never stored.
+///     Purely additive taxonomy change: no existing figure's derived output
+///     changes, and distinct from CompendiumDatabase.schemaVersion — NO
+///     persisted-data migration is implied (new figures serialize under the
+///     existing figure codec; stored figures are untouched).
+///     SUPERSEDED at v22: the "disjoint vocabularies" premise rested on
+///     misreading ContraDB's `face` as a travel direction when libfigure
+///     renders it as the ENDING facing. `rotation_gate` is merged back into
+///     `gate` and removed.
 /// v16: adds an `endFacing` param to `swing` (issue #543) — the body facing a
 ///     swing ends in, a first-class promotion of what previously lived only in
 ///     a figure note. A `ParamKind.choice` over the four set-relative facing
 ///     tokens (`in`/`out`/`up`/`down`, reused from the ContraDB `gate` `face`
 ///     domain / `gateFacings`), defaulting to `in` (across — where most swings
 ///     end). Named `endFacing` (NOT `face`) to avoid overloading gate's `face`
-///     (which means which way `who` orbits `whom`). Purely additive: the
+///     (which this entry described as an orbit direction — a misreading
+///     corrected at v22, where it is confirmed to be the ending facing and the
+///     two params turn out to mean the same kind of thing). Purely additive: the
 ///     default `in` renders exactly as today (the display renderer appends a
 ///     `facing …` clause ONLY when non-default; swing's canonical
 ///     `renderTemplate` is unchanged, so canonical/FTS/dedupe stay byte-stable),
@@ -218,7 +225,66 @@ import 'taxonomy.dart';
 ///     The taxonomy version bump is distinct from the schema bump: the params
 ///     ride the existing `figures_json` figure codec, and only the RENAME needs
 ///     the persisted-data migration.
-const int contraTaxonomyVersion = 21;
+/// v22: MERGES the two "gate" moves into one (maintainer ruling). `gate` and
+///     `rotation_gate` both rendered the display name "gate" and showed as two
+///     identical picker rows; they are now a single `gate` carrying a
+///     direction, a duration AND an ending facing. `rotation_gate` is REMOVED;
+///     stored figures of BOTH moves are rewritten by the schema migration
+///     (CompendiumDatabase schema v20 — v19 is v21's wave-move rename). This is
+///     a DB migration (distinct from
+///     this taxonomy version), the sanctioned canonical-changing exception
+///     (cf. v14, v19).
+///
+///     CORRECTS TWO SOURCE MISREADINGS that v15/v16 recorded. Verified against
+///     libfigure at github.com/contradb/contra @ master:
+///     - `figure.js:841` renders a gate as
+///       `words(ssubject, smove, sobject, "to face", sgate_face)` and
+///       `param.js:711` maps its values `{up:"up the set", down:"down the set",
+///       in:"into the set", out:"out of the set"}`. ContraDB's `face` is
+///       therefore the ENDING FACING, not "which way `who` orbits `whom`" as
+///       v15/v16 claimed. The misreading came from `param.js:714`, which
+///       declares `name: "face"` but `ui: "chooser_gate_direction"` — the `ui:`
+///       value is a WIDGET HINT, not the param's meaning, and reading it as one
+///       is what put "direction" in our comment. The two sources were never in
+///       conflict: ContraDB states how a gate ends and no amount; TCB states
+///       the rotation sense and amount and no facing. The merge is close to
+///       their union, and the v15 "disjoint vocabularies" rationale for a
+///       separate move does not survive the correction.
+///     - `figure.js:844`: "'ones gate twos' means: ones, extend a hand to twos
+///       - twos walk forward, ones back up, orbiting around the joined hands".
+///       ContraDB's `who` BACKS UP and `whom` WALKS FORWARD (neither orbits the
+///       other; both orbit the joined hands).
+///
+///     Slots. `who`/`whom` keep ContraDB's exact meaning. TCB's subject
+///     ("Neighbor gate…", "Partner gate…") is a THIRD axis — the pairing you
+///     gate WITH, not which side moves — and gets its own `pair` slot;
+///     `chooser.js:114` shows ContraDB's subject domain (`chooser_pair`) admits
+///     only role-sides and can never hold `neighbors`/`partners`, so folding
+///     TCB's subject into `who` would reinterpret every TCB-imported gate.
+///     Same reasoning, same shape as `mad_robin.whom` at v20. TCB's
+///     "(ones forward)" parentheticals — 82 of 186 corpus gate lines, until now
+///     silently dropped on a structured match — now fill `whom` when they say
+///     "<dancers> forward" AND name a set we model (60 lines), because `whom`
+///     means precisely "walks forward". A STATIONARY annotation
+///     ("(men stay put)", "(women are posts)") fits neither slot — `who` backs
+///     up, so it moves too — and is never structured; it, and any "forward"
+///     phrase naming a set we do not model, survives verbatim as the note.
+///
+///     The ending facing is now STORED (`face`), not derived. `gateEndFacing`
+///     is WITHDRAWN: it computed from a nominal `in` start orientation, so a
+///     1/2 gate after a down-the-hall claimed "to face out of the set" when the
+///     answer is "up". A start-relative rule cannot produce an absolute
+///     cardinal without simulating the preceding choreography. See the
+///     "Derived (computed-at-render) taxonomy values" section of
+///     docs/design/figure-taxonomy.md, whose only exemplar this withdraws.
+///
+///     Every param defaults to the `unspecified` sentinel (cf. v17/v20) so each
+///     source asserts only what it states; `turn` is the first
+///     ParamKind.rotation to opt into the sentinel (see ParamSpec.validate),
+///     because ContraDB's gate has no amount param at all. `goodBeats` widens
+///     from ContraDB's `[8]` / rotation_gate's `[4,6,8]` to `[2,3,4,6,8]`, the
+///     counts attested across the 186 corpus gate lines.
+const int contraTaxonomyVersion = 22;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -309,6 +375,25 @@ const _invertiblePairs = [
   'firstCorners',
   'secondCorners',
 ];
+// v22 (gate merge): the full dancer domain plus the `unspecified` sentinel.
+// The pre-merge `gate.who`/`gate.whom` carried NO `choices`, i.e. the whole
+// [ParamVocab.dancerSets] domain; listing the sentinel is the only way a spec
+// may admit it, so the domain is spelled as "everything it already accepted,
+// plus the sentinel" rather than narrowed here. (ContraDB's own choosers are
+// narrower — `chooser_pair` for the subject, `chooser_pairs_or_ones_or_twos`
+// for the object — but enforcing a source's UI restrictions on stored data is
+// not something this taxonomy does elsewhere, and TCB names dancers ContraDB's
+// subject chooser would reject.)
+const _dancerOrUnspecified = [...ParamVocab.dancerSets, ParamVocab.unspecified];
+
+// v22 (gate merge): the TCB rotation qualifier plus the sentinel. `mirror` is
+// the two-couple gate and has no ContraDB equivalent, which is why this is a
+// `choice` rather than [ParamKind.spinDirection].
+const _gateDirectionOrUnspecified = [...gateDirections, ParamVocab.unspecified];
+
+// v22 (gate merge): ContraDB `gate_face` (the ENDING facing) plus the sentinel.
+// Same four set-relative tokens `swing.endFacing` uses.
+const _gateFacingOrUnspecified = [...gateFacings, ParamVocab.unspecified];
 
 /// The seed contra move taxonomy.
 ///
@@ -343,7 +428,9 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // what previously went in a figure note. Reuses the four set-relative
         // facing tokens (the ContraDB `gate` `face` domain / `gateFacings`);
         // defaults to `in` (across), where most swings end. Named `endFacing`
-        // (not `face`) so it is not confused with gate's orbit-direction `face`.
+        // (not `face`) only to keep the two moves' params separately
+        // addressable; since v22 the gate's `face` is known to be the same kind
+        // of value (an ending facing), it just defaults to `unspecified` there.
         // Carries NO beat cost (absent from `paramBeats`) and is silenced in the
         // display renderer when `in` (see renderer.dart `_displayBaseRenderers`),
         // so the canonical `renderTemplate` below stays byte-stable.
@@ -728,65 +815,134 @@ final Taxonomy contraTaxonomy = Taxonomy(
     // Additive ContraDB moves that fit the existing ParamKind set (no new
     // vocabulary). ContraDB "no default" choosers get sensible community
     // defaults, since ParamSpec.defaultValue is required.
+    // --- v22: the UNIFIED gate (was ContraDB `gate` + TCB `rotation_gate`) ---
+    //
+    // ONE move carrying a direction, a duration and an ENDING FACING, per the
+    // maintainer ruling. The v15 premise that "the two gate vocabularies are
+    // disjoint" rested on a misreading of libfigure that is corrected here:
+    // ContraDB's `face` is not a travel direction, it is the ending facing, so
+    // the two sources were never in conflict — they state COMPLEMENTARY halves
+    // of the same figure. ContraDB says how the gate ENDS and never states an
+    // amount; TCB says which way and HOW FAR it turns and never states a
+    // facing. Every slot therefore defaults to the `unspecified` sentinel: each
+    // source fills only what it actually states, and the user corrects the
+    // rest.
+    //
+    // libfigure (github.com/contradb/contra @ master):
+    //   figure.js:844  // 'ones gate twos' means: ones, extend a hand to twos -
+    //                  // twos walk forward, ones back up, orbiting around the
+    //                  // joined hands
+    //   figure.js:841  words(ssubject, smove, sobject, "to face", sgate_face)
+    //   param.js:711   {up:"up the set", down:"down the set",
+    //                   in:"into the set", out:"out of the set"}
+    //   chooser.js:114 chooser_pair = [gentlespoons, ladles, ones, twos,
+    //                   first corners, second corners]   <- never neighbors/partners
+    //
+    // ⚠️ THE TRAP THAT CAUSED THE ORIGINAL MISREADING — do not fall into it
+    // again. `param.js:714` declares the param as:
+    //     defineParam("gate_face", { name: "face", ui: "chooser_gate_direction", … })
+    // The `ui:` value is a UI-WIDGET HINT, not the param's meaning. Reading
+    // "chooser_gate_direction" as "this is a direction of travel" is exactly how
+    // "which way `who` orbits `whom`" got written into this file and then copied
+    // into the v15 and v16 version-history entries. The param's `name` is
+    // "face", it renders after the literal words "to face", and its value
+    // strings are facings. Trust `name` + `words()` + the value strings; treat
+    // `ui:` as presentation only.
     const MoveDef(
       id: 'gate',
       displayName: 'gate',
       params: {
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
-        'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
-        // ContraDB chooser_gate_direction: which way `who` orbits `whom`.
-        // Its up/down/in/out are relative to the set — distinct enough from
-        // spatial `direction` that it is modeled as a dedicated choice.
-        'face': ParamSpec(
-          ParamKind.choice,
-          defaultValue: 'up',
-          choices: ['up', 'down', 'in', 'out'],
+        // ContraDB `subject_pair`: the side that EXTENDS THE HAND AND BACKS UP
+        // (figure.js:844). NOT the orbiting side — the mover is `whom`.
+        // ContraDB's own `chooser_pair` domain is role-sides only
+        // (gentlespoons/ladles/ones/twos/corners — never `partners`/
+        // `neighbors`), which is precisely why TCB's relationship subject
+        // cannot live here; see `pair` below.
+        'who': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _dancerOrUnspecified,
         ),
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
-      },
-      renderTemplate: '{who} {move} {whom} {face}',
-      goodBeats: [8],
-    ),
-    // --- Issue #294: TCB rotation-gate (Option B, product-owner accepted) ---
-    // A DISTINCT figure kind from the ContraDB `gate` above — the two "gate"
-    // vocabularies are disjoint (0/62 surveyed TCB gate lines map to `face`; see
-    // figure_parser_test.dart and PR #271). ContraDB `gate` encodes a *facing*
-    // (up/down/in/out) at a fixed 8 beats; TCB `gate` encodes a *rotation*
-    // (clockwise / counterclockwise / mirror + a turn fraction) over a VARIABLE
-    // beat count (attested 4 / 6 / 8). Modeling this as `face` would fabricate a
-    // facing the source never stated, so it is its own move.
-    //
-    // The tuple is (who, direction, turn, beats, resulting-facing). The
-    // resulting facing is NOT a stored param: it is DERIVED deterministically
-    // from (start-orientation, direction, turn) by [gateEndFacing] at render
-    // time, so it can never be free-typed, fabricated, or drift from the
-    // geometry (see gate_facing.dart).
-    const MoveDef(
-      id: 'rotation_gate',
-      displayName: 'gate',
-      params: {
-        // role/pair being gated (Partner, Neighbor, N2/N3 neighbor, …).
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
-        // TCB rotation qualifier. A dedicated choice (NOT ParamKind.spinDirection,
-        // which is cw/ccw only and cannot express the two-couple `mirror` gate).
+        // ContraDB `object_pairs_or_ones_or_twos`: the side that WALKS FORWARD.
+        // TCB states the same thing in its "(ones forward)" parenthetical.
+        'whom': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _dancerOrUnspecified,
+        ),
+        // v22: the PAIRING the gate is danced with — TCB's subject ("Neighbor
+        // gate…", "Partner gate…", "N2 neighbor gate…", "Shadow gate…"). A
+        // THIRD axis: it names who you gate WITH, not which of you moves, so
+        // folding it into `who` would silently reinterpret every TCB-imported
+        // gate as a claim about which side backs up. ContraDB has no slot for
+        // it. Directly precedented by `mad_robin.whom` (v20), which exists for
+        // the same reason.
+        'pair': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _pairOrUnspecified,
+        ),
+        // TCB rotation qualifier. A dedicated choice (NOT
+        // ParamKind.spinDirection, which is cw/ccw only and cannot express the
+        // two-couple `mirror` gate). ContraDB models no rotation sense.
         'direction': ParamSpec(
           ParamKind.choice,
-          defaultValue: 'counterclockwise',
-          choices: ['clockwise', 'counterclockwise', 'mirror'],
+          defaultValue: ParamVocab.unspecified,
+          choices: _gateDirectionOrUnspecified,
         ),
-        // Turn fraction, reusing ParamKind.rotation (turns, quarter steps):
-        // 1/2 -> 0.5, 3/4 -> 0.75, full 1 -> 1.0.
-        'turn': ParamSpec(ParamKind.rotation, defaultValue: 0.5),
-        // Variable as authored; the source line's beat count is layered on by
-        // the parser. The default only applies to a beats-absent line.
+        // Turn fraction in full turns (1/2 -> 0.5, 3/4 -> 0.75, 1 -> 1.0,
+        // "1 & 1/4" -> 1.25). The one ParamKind.rotation that opts into the
+        // `unspecified` sentinel (see ParamSpec.validate): ContraDB's gate has
+        // no amount param at all, so any numeric default would fabricate one
+        // for every ContraDB import.
+        'turn': ParamSpec(
+          ParamKind.rotation,
+          defaultValue: ParamVocab.unspecified,
+          choices: [ParamVocab.unspecified],
+        ),
+        // The facing the gate ENDS in — ContraDB `gate_face`, authored and
+        // STORED (v22). Previously derived at render time from a nominal `in`
+        // start orientation, which is wrong after any orientation-changing
+        // figure: a 1/2 gate following a down-the-hall ends facing UP, but the
+        // derivation always claimed `out`. A start-relative rule cannot yield
+        // an absolute cardinal without simulating the preceding choreography,
+        // so the derivation is withdrawn and the value is stored instead.
+        'face': ParamSpec(
+          ParamKind.choice,
+          defaultValue: ParamVocab.unspecified,
+          choices: _gateFacingOrUnspecified,
+        ),
+        // ContraDB pins 8 (`beats_8`); TCB is variable and layers the source
+        // line's own count on top. The default applies only to a beats-absent
+        // line.
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      // Canonical (byte-stable) line. The display renderer rewords `mirror`
-      // ahead of the move name and appends the derived facing clause
-      // (see renderer.dart `_displayBaseRenderers`); canonical stays template-driven.
-      renderTemplate: '{who} {move} {direction} {turn}',
+      // Canonical (byte-stable) line. Every `unspecified` slot renders empty
+      // and the runs collapse, so a ContraDB gate reads "ones gate neighbors
+      // up" and a TCB gate reads "neighbors gate mirror once" — each
+      // byte-identical to what its own predecessor move produced, which keeps
+      // dedupe/FTS text stable across the merge. `who` and `pair` both precede
+      // the move name because they are alternative grammatical subjects (a
+      // source fills one or the other, never both). The display renderer
+      // rewords `mirror` ahead of the move name and expands `face` into
+      // ContraDB's "to face …" clause (see renderer.dart
+      // `_displayBaseRenderers`); canonical stays template-driven.
+      renderTemplate: '{who} {pair} {move} {whom} {direction} {turn} {face}',
       searchKeywords: ['rotation gate', 'mirror gate'],
-      goodBeats: [4, 6, 8],
+      // ContraDB pins 8. TCB's 24,107-dance corpus attests 8x122, 4x33, 6x15,
+      // 2x13 and 3x3 across its 186 gate lines.
+      //
+      // `3` was checked before being included, since a spurious `goodBeats`
+      // entry quietly weakens the atypical-beat warning for everyone. All three
+      // lines (TCB #6819, #20257, #19476) are the SAME real pattern — a 6-beat
+      // compound split evenly into 3 + 3:
+      //     (6) Modified right and left through with partner:
+      //          (3) Pass through across (NR)
+      //          (3) Partner gate counterclockwise 1/2
+      // Not truncation or a typo, and our own importer emits those children
+      // with those beats (the compound-children rule, #295/PR #712) — so
+      // excluding `3` would fire a warning on real imported data.
+      goodBeats: [2, 3, 4, 6, 8],
     ),
     const MoveDef(
       id: 'give_and_take',

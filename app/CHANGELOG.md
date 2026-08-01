@@ -11,6 +11,41 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
+### Changed
+
+- **"Gate" is now a single figure instead of two identical-looking ones.** The
+  move picker used to show two rows both labelled "gate" — one from ContraDB's
+  vocabulary and one from The Caller's Box's — with no way to tell them apart.
+  They are now one figure that holds the direction, the number of beats **and**
+  the facing the gate ends in. Existing dances are converted automatically the
+  first time you open the app; beat counts and section placement are unchanged.
+- **Gates no longer claim an ending facing the source never gave.** The app used
+  to work the facing out from the rotation, assuming dancers always start a gate
+  facing across the set. That assumption is often wrong — a half gate right
+  after a down-the-hall ends facing **up**, but the app said "out of the set".
+  Imported Caller's Box gates now show no facing at all (that source doesn't
+  state one) and you can set the correct one yourself; ContraDB dances, which do
+  state it, show exactly what their source says. **If you have gates in your
+  collection you may want to check their facing** — some will have been showing
+  the wrong one.
+
+### Fixed
+
+- **A turn amount the source never gave no longer looks like "1 turn".** In the
+  figure editor, a rotation the app has no value for now reads **"not stated"**
+  instead of silently showing 1 turn. Nudging the stepper sets a real value (and
+  a new clear button puts it back to not-stated), so a number you never entered
+  can't quietly become part of your dance. This matters most for gates imported
+  from ContraDB, which state an ending facing but no amount.
+
+- **Caller's Box import keeps the "(ones forward)" detail on a gate.** Lines
+  like `Neighbor mirror gate 1 (ones forward)` used to lose the parenthetical
+  once the figure was recognized. Now, when it names dancers the app knows, it
+  becomes a real part of the figure — you'll see "…, ones forward" on the line
+  and can edit it. Anything the app can't represent exactly, such as
+  "(men stay put)" or "(M1+W2 forward)", is kept word-for-word as a note
+  instead of being guessed at.
+
 ### Added
 
 - **Caller's Box imports now understand shorthand figures written as their

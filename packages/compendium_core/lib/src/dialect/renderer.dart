@@ -346,9 +346,15 @@ class FigureRenderer {
   /// Base renderers run only on display renders, so tagging here is always safe;
   /// [_render] drops the sentinel when the subject is not assumed, leaving
   /// non-assumed output byte-for-byte unchanged.
-  String _subjectWho(Map<String, Object?> params, Dialect dialect) {
+  String _subjectWho(Map<String, Object?> params, Dialect dialect) =>
+      _subjectToken(params['who'], dialect);
+
+  /// [_subjectWho] for an arbitrary subject [value] — used by the merged `gate`
+  /// base line, whose grammatical subject is `who` (ContraDB) OR `pair` (The
+  /// Caller's Box) depending on which the source stated.
+  String _subjectToken(Object? value, Dialect dialect) {
     final subject = _displaySubject(
-      params['who'],
+      value,
       dialect,
     ).replaceAll(_subjectMarkSentinel, '');
     return subject.isEmpty ? subject : '$subject$_subjectMarkSentinel';
@@ -819,36 +825,72 @@ class FigureRenderer {
       final base = '$swho $prefix $move';
       return '$base${_swingEndFacingClause(params['endFacing'])}';
     },
-    // TCB rotation-gate (issue #294). Word order: `mirror` reads as a modifier
-    // BEFORE the move ("mirror gate"); clockwise/counterclockwise read AFTER it
-    // ("gate counterclockwise"). The ending facing is DERIVED (never authored):
-    // [gateEndFacing] appends a "to face …" clause ONLY when the geometry
-    // resolves unambiguously, so a convention-dependent 90°/270° turn simply
-    // shows no facing clause rather than a fabricated one. Canonical render is
-    // unaffected (it keeps expanding the template — no reorder, no facing).
-    'rotation_gate': (r, def, params, dialect, verbose, decimals) {
+    // The unified gate (taxonomy v22 — was ContraDB `gate` + TCB
+    // `rotation_gate`). Word order, preserved from both predecessors:
+    //   * `mirror` reads as a modifier BEFORE the move name ("mirror gate");
+    //     clockwise/counterclockwise read AFTER it ("gate counterclockwise").
+    //   * the object dancers sit right after the move name, as ContraDB's
+    //     `gateWords` does (`words(ssubject, smove, sobject, "to face", …)`).
+    //   * the ending facing is the STORED `face`, rendered in ContraDB's own
+    //     "to face …" wording. It is no longer derived: the withdrawn
+    //     `gateEndFacing` computed from a nominal `in` start orientation and so
+    //     claimed "to face out of the set" for every 1/2 gate, including after
+    //     a down-the-hall where the answer is "up" (see gate_facing.dart).
+    // Every slot is `unspecified` unless its source stated it, and an
+    // unspecified slot renders NOTHING — so a ContraDB gate reads "ones gate
+    // neighbors to face up the hall" and a TCB gate reads "neighbor mirror gate
+    // once", each byte-identical to what its own predecessor move produced.
+    // Canonical render is unaffected (it keeps expanding the template).
+    'gate': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final swho = r._subjectWho(params, dialect);
+      // Grammatical subject: ContraDB's `who` (the side that extends a hand and
+      // backs up) when stated, else TCB's `pair` (the pairing you gate with).
+      // They are different axes, so whichever the source filled leads the line
+      // and the other — normally absent — falls through to the object slot.
+      final whoRaw = params['who'];
+      final pairRaw = params['pair'];
+      final whoLeads = !_isUnspecified(whoRaw) && whoRaw != null;
+      final swho = r._subjectToken(whoLeads ? whoRaw : pairRaw, dialect);
+      final whomRaw = params['whom'];
+      final hasWhom = !_isUnspecified(whomRaw) && whomRaw != null;
+      // ContraDB's grammar puts the object straight after the move — but that
+      // only reads as "the side that walks forward" when a subject precedes it
+      // ("ones gate neighbors"). A TCB gate names the pairing instead, so
+      // "neighbor gate ones" would be ambiguous; there the forward-walking side
+      // is stated explicitly as a trailing clause, mirroring the source's own
+      // "(ones forward)" wording.
+      final objects = [
+        if (whoLeads && !_isUnspecified(pairRaw) && pairRaw != null)
+          r._displaySubject(pairRaw, dialect),
+        if (whoLeads && hasWhom) r._displaySubject(whomRaw, dialect),
+      ].where((s) => s.isNotEmpty).join(' ');
+      final forwardClause = (!whoLeads && hasWhom)
+          ? ', ${r._displaySubject(whomRaw, dialect)} forward'
+          : '';
       final directionRaw = params['direction'];
-      final direction = directionRaw is String ? directionRaw : '';
+      // An unexpected direction value humanizes after the move (surfacing
+      // malformed data) rather than silently vanishing.
+      final direction = _displayChoice(directionRaw);
       final turnRaw = params['turn'];
       final turn = turnRaw is num
           ? (verbose
                 ? _formatRotationVerbose(turnRaw)
                 : _formatRotation(turnRaw, decimals: decimals))
-          : _displayScalar(turnRaw);
-      // An unexpected direction value humanizes after the move (surfacing
-      // malformed data) rather than silently vanishing.
-      final head = direction == 'mirror'
-          ? '$swho mirror $move $turn'
-          : '$swho $move ${direction.isEmpty ? '' : '$direction '}$turn';
-      final facing = (directionRaw is String && turnRaw is num)
-          ? gateEndFacing(direction: directionRaw, turn: turnRaw)
-          : null;
-      final facingClause = facing == null
+          : _isUnspecified(turnRaw)
           ? ''
-          : ' to face ${_gateFacingPhrase(facing)}';
-      return '$head$facingClause';
+          : _displayScalar(turnRaw);
+      final head = direction == 'mirror'
+          ? '$swho mirror $move $objects $turn'
+          : '$swho $move $objects $direction $turn';
+      final faceRaw = params['face'];
+      // Allow-listed exactly like `swing.endFacing` (v16): an unknown or
+      // tolerantly-decoded token renders NO clause rather than being injected
+      // into the line as "to face <garbage>". A facing is a closed cardinal
+      // vocabulary, so surfacing a bad value here would read as choreography.
+      final facingClause = (faceRaw is String && gateFacings.contains(faceRaw))
+          ? ' to face ${_gateFacingPhrase(faceRaw)}'
+          : '';
+      return '$head$forwardClause$facingClause';
     },
     // ContraDB `zigZagWords`: words(twho, "zig", sspin, "zag", return_sspin, …).
     // The zag direction is the mirror of the zig (`turn`) direction. ContraDB

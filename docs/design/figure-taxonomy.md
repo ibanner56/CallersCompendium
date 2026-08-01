@@ -112,8 +112,10 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   `roll_away` with ContraDB's `whom` param. `who`/`whom` pairings are modeled as
   `dancerSet` (defaults required by `ParamSpec`); `give_and_take.who` is narrowed
   to `role1s`/`role2s`. `gate.face` (up/down/in/out) is a dedicated `choice`
-  rather than spatial `direction`. Beat-shaping flags that ContraDB uses only to
-  recompute beats (`give`, `balance`) are not render tokens.
+  rather than spatial `direction` — it is the gate's **ending facing** (ContraDB
+  `figure.js:841` renders it after the literal words "to face"), a point this
+  entry originally got wrong and v22 corrects. Beat-shaping flags that ContraDB
+  uses only to recompute beats (`give`, `balance`) are not render tokens.
 - **PR3 (choice-enum + `centers`/single-dancer vocab):** added `down_the_hall`,
   `up_the_hall`, `zig_zag`, `slice`, `contra_corners`, `turn_alone`, `figure_8`,
   `poussette`, `rory_o_more`. Move-specific enums are `ParamKind.choice` with
@@ -411,6 +413,79 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   - Import mapping, the annotation decoding, and what deliberately stays custom
     are documented in `docs/design/imports.md`; the corpus measurements are in
     `docs/research/callersbox.md`.
+- **v22 (the two `gate` moves MERGED into one):** `gate` (ContraDB) and
+  `rotation_gate` (TCB, v15) both rendered the display name "gate" and appeared
+  as two identical rows in the move picker. They are now a **single `gate`**
+  carrying a direction, a duration and an ending facing. `rotation_gate` is
+  removed and stored figures of both are rewritten by **CompendiumDatabase
+  schema v20** (v19 is the concurrent wave-move rename; neither step adds a
+  column or table, so they chain cleanly and 18/19/20 are structurally
+  identical).
+  - **Two source misreadings corrected.** v15 kept the moves apart because "the
+    two gate vocabularies are disjoint". They aren't, and the evidence is in
+    `libfigure` (github.com/contradb/contra @ master):
+    - `figure.js:841` renders a gate as
+      `words(ssubject, smove, sobject, "to face", sgate_face)`, over
+      `{up: "up the set", down: "down the set", in: "into the set",
+      out: "out of the set"}` (`param.js:711`). ContraDB's `face` is the
+      **ending facing**, not "which way `who` orbits `whom`". The sources are
+      complementary, not conflicting: ContraDB states how a gate ends and no
+      amount; TCB states the rotation sense and amount and no facing.
+      **Where the misreading came from — avoid it in future:**
+      `param.js:714` declares the param as
+      `defineParam("gate_face", { name: "face", ui: "chooser_gate_direction" })`.
+      The `ui:` value is a **widget hint, not the param's meaning**; reading it
+      as "direction of travel" is what put that phrase into
+      `contra_taxonomy.dart` and then into the v15/v16 history entries. Trust
+      `name` + `words()` + the value strings.
+    - `figure.js:844`: *"'ones gate twos' means: ones, extend a hand to twos -
+      twos walk forward, ones back up, orbiting around the joined hands."*
+      ContraDB's `who` **backs up** and `whom` **walks forward** (and neither
+      orbits the other — both orbit the joined hands).
+  - **Three dancer slots, one meaning each.** `who`/`whom` keep ContraDB's exact
+    semantics. TCB's subject ("Neighbor gate…", "Partner gate…") is a THIRD
+    axis — the pairing you gate WITH, not which side moves — so it gets its own
+    `pair` slot. `chooser.js:114` shows ContraDB's subject domain
+    (`chooser_pair`) admits only role-sides and can never hold
+    `neighbors`/`partners`, so folding TCB's subject into `who` would silently
+    reinterpret every TCB-imported gate. Same reasoning, same shape as
+    `mad_robin.whom` at v20.
+  - **The ending facing is now stored, not derived.** See the withdrawn
+    "Derived (computed-at-render) taxonomy values" section below for the full
+    post-mortem: `gateEndFacing` computed from a nominal `in` start orientation,
+    so a 1/2 gate after a down-the-hall claimed "to face out of the set" when
+    the answer is "up".
+  - **Nothing is fabricated.** Every param defaults to the `unspecified`
+    sentinel, so each source asserts only what it states and the user fills the
+    rest. `turn` is the first `ParamKind.rotation` to opt into the sentinel
+    (ContraDB's gate has no amount param at all). `goodBeats` widens to
+    `[2, 3, 4, 6, 8]` — the counts attested across the 186 gate lines in the
+    24,107-dance TCB corpus (8x122, 4x33, 6x15, 2x13, 3x3). The three 3-beat
+    lines were checked rather than assumed (a spurious entry quietly weakens the
+    atypical-beat warning for everyone): all three are the same real pattern, a
+    6-beat `Modified right and left through` compound split evenly into
+    `(3) Pass through across` + `(3) <X> gate counterclockwise 1/2`, which our
+    own importer emits as children — so excluding `3` would warn on real data.
+  - **TCB's "(ones forward)" annotations are no longer dropped.** 82 of those
+    186 lines carry one, and until v22 a structured gate silently discarded it.
+    A front-end pre-recognizer now reads them, and splits them by whether the
+    stated verb actually matches a slot's meaning — prefer-custom at *param*
+    granularity:
+    - `"<dancers> forward"` where the dancers resolve to a set we model (60
+      lines) → **`whom`**, which means exactly "the side that walks forward".
+      Source-verified, not inferred.
+    - **Stationary** phrasings — `(men stay put)`, `(women are posts)`,
+      `(centers are posts)` — fit NEITHER slot: `whom` walks forward and `who`
+      backs up, so both move. Structuring them would fabricate. Note-only.
+    - `"… forward"` naming a set we do not model (`M1+W2 forward`,
+      `ends forward`, `twos and fours forward`) → note-only, never approximated
+      onto a token that means something else.
+    An annotation consumed into `whom` does not *also* become a note (notes
+    render as their own row, so that would visibly duplicate); every unconsumed
+    annotation is preserved verbatim, so a multi-annotation line keeps the rest.
+  - **Out of scope:** `pull_by_dancers` and `pull_by_direction` also both
+    display "pull by". That is the same presentational collision, but they are
+    genuinely distinct moves and merging them is not obviously correct.
 
 
 **The full ContraDB v1 contra move set is now modeled** (all five 2.4a slices
@@ -467,42 +542,60 @@ figure as the progression. This is non-serialized taxonomy metadata, so no
 - FTS indexing uses canonical rendered text + searchKeywords (incl. legacy
   terms like "gypsy" so searches by older users still find shoulder round).
 
-### Derived (computed-at-render) taxonomy values — file convention
+### Derived (computed-at-render) taxonomy values — convention WITHDRAWN (v22)
+
+**Status: this convention currently has NO instances.** Its sole exemplar — a
+rotation-gate's ending facing, derived from `(startFacing, direction, turn)` in
+`taxonomy/gate_facing.dart` (issue #294, taxonomy v15) — was **withdrawn at
+taxonomy v22**, when the two gate moves merged and the ending facing became a
+stored `ParamSpec` (`gate.face`). This section is kept as a record of why,
+because the failure mode is instructive and will recur for anything that tries
+to compute choreography from a figure in isolation.
 
 Almost every taxonomy value is **stored data**: a named `ParamSpec` on a
 `MoveDef`, authored by the user or supplied by an importer, and serialized with
-the figure. A small minority are instead **derived** — computed at render time
-from other params, *never* stored, free-typed, or fabricated. The first (and
-currently only) example is a rotation-gate's ending facing, derived from
-`(startFacing, direction, turn)` in
-[`taxonomy/gate_facing.dart`](../../packages/compendium_core/lib/src/taxonomy/gate_facing.dart)
-(issue #294).
+the figure. A *derived* value would instead be computed at render time from
+other params and never stored — attractive because such a value can't be
+free-typed, fabricated, or drift from the geometry.
 
-Because a derived value is *logic carrying a guarantee*, not taxonomy data, it
-does **not** belong inside the `MoveDef` list in `contra_taxonomy.dart`. The
-convention is:
+**Why the gate-facing derivation failed.** `gateEndFacing` was a pure function
+of `(startFacing, direction, turn)`, defaulting `startFacing` to a nominal `in`
+("dancers gate from an across-the-set facing"). Two problems, one of them fatal:
 
-- **Each derived value lives in its own pure module**, named
-  `<figure>_<property>.dart` (e.g. `gate_facing.dart`), exporting a pure,
-  defensively-total function (never throws; returns `null` for any
-  convention-dependent / ambiguous case so the renderer emits nothing rather
-  than guessing).
-- **Isolate any unratified assumption at the top** of that module as a single
-  named constant with a comment, so revisiting it is a one-line change (see
-  `gateStartFacing = 'in'`).
-- **Keep the canonical line template-driven.** The derived clause is appended by
-  the *display* renderer (`FigureRenderer`), so it never enters the canonical,
-  byte-stable serialization — preserving the canonical/display split above.
-- **Do not create a shared `derived_values.dart` grab-bag.** One derivation =
-  one module = one reviewable guarantee + one test surface. Apply the rule of
-  three: when a *second* derived value appears, group the (still separate) files
-  under a `taxonomy/derived/` subdirectory rather than merging them.
+1. The renderer never passed a `startFacing`, so *every* gate derived from the
+   nominal `in`. A 1/2 gate always rendered "to face out of the set" — including
+   straight after a down-the-hall, where dancers face down and a half turn ends
+   facing **up**.
+2. Passing the real start facing would not have fixed it. The derivation's only
+   sound rules are **relative** (a full turn leaves the facing unchanged; a half
+   turn reverses it). Promoting a relative rule to an absolute cardinal requires
+   knowing the orientation the dancers arrive in, which depends on every
+   preceding figure — i.e. choreography simulation, not a context-free function
+   over one figure's params. The module's own "CAVEAT" conceded a narrow version
+   of this for gate *sequences*; the real scope is any preceding
+   orientation-changing figure (down the hall, long lines forward and back, a
+   Becket start, …).
 
-Contrast: an *author-set* facing — e.g. a swing's end-facing (`endFacing`,
-#543) — is stored data: it stays a plain `ParamSpec` in the taxonomy and needs
-no derivation module. Like the derived clauses, its display wording is appended
-by the renderer only when non-default (the default `in`/across renders as
-before), so the canonical line stays byte-stable.
+**The rule that survives.** Before modeling a value as derived, check that it is
+a function of the figure's OWN params alone. If it depends on where the dancers
+already are, it is not derivable from a figure — it is authored data, and the
+honest default is `unspecified` (so an importer can decline to state it and a
+user can correct it) rather than a confident wrong answer.
+
+If a genuinely context-free derived value ever appears, the original file
+convention stands and is worth reusing: one pure module per derivation, named
+`<figure>_<property>.dart`, exporting a defensively-total function that returns
+`null` for any ambiguous case; any unratified assumption isolated at the top as
+a single named constant; the derived clause appended by the *display* renderer
+only, so the canonical byte-stable line stays template-driven; and no shared
+`derived_values.dart` grab-bag — apply the rule of three and group separate
+files under `taxonomy/derived/` once a second one exists.
+
+Contrast — and now the norm for facings: an *author-set* facing (a swing's
+`endFacing`, #543; the merged gate's `face`, v22) is stored data, a plain
+`ParamSpec` in the taxonomy. Its display wording is appended by the renderer
+only when it is actually set (swing's default `in`/gate's `unspecified` render
+as before), so the canonical line stays byte-stable.
 
 ## Open questions (to resolve during implementation, with user input)
 

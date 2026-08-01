@@ -425,6 +425,61 @@ lowers the line onto one `pull_by_dancers` per stated pass, carrying that pass's
   no pass list, 2 degenerate, 1 on non-divisible beats). Whole-corpus structured
   share, with the compound-children change below: **75.09% → 76.24%**.
 
+#### The unified `gate` (taxonomy v22)
+
+`gate` and `rotation_gate` are ONE move now, and the two importers fill
+**different, non-overlapping halves** of it — which is the whole reason the
+merge is lossless:
+
+| slot | ContraDB | The Caller's Box |
+|---|---|---|
+| `who` (extends a hand, **backs up**) | `subject_pair` | — |
+| `whom` (**walks forward**) | `object_pairs_or_ones_or_twos` | the `(ones forward)` annotation |
+| `pair` (the pairing you gate **with**) | — | `Neighbor`/`Partner`/`Shadow`/`N2 neighbor`… |
+| `direction` (cw / ccw / **mirror**) | — | stated |
+| `turn` (amount) | — | stated |
+| `face` (the **ending facing**) | `gate_face` | — |
+
+- **TCB's subject goes to `pair`, never `who`.** libfigure `figure.js:844` says
+  ContraDB's subject backs up while its object walks forward, and
+  `chooser.js:114` shows the subject domain (`chooser_pair`) cannot even hold
+  `neighbors`/`partners`. TCB names the pairing, not a side, so reusing `who`
+  would silently reinterpret every imported TCB gate. (Same class of bug as the
+  `mad_robin` `who`/`whom` split.)
+- **Nobody guesses the ending facing.** ContraDB states it literally
+  (`figure.js:841` emits the words "to face"); TCB never states one for a gate,
+  so `face` stays `unspecified` for the user to fill in. It is no longer derived
+  from rotation geometry — that derivation assumed a nominal across-the-set
+  start and was wrong after any orientation-changing figure (see
+  `docs/design/figure-taxonomy.md`).
+- **The TCB `(ones forward)` annotation is no longer lost.** 82 of the corpus's
+  186 gate lines carry one, and a structured gate used to drop it (the `()`/`[]`
+  strip is recognition-only, so only the *custom* fallback kept it). A
+  `tcbFigureFrontEnd` pre-recognizer now runs ahead of the shared recognizers and
+  delegates the grammar to `recognizeSharedFigureLine`, then splits the
+  annotations by whether the stated verb matches a slot's meaning:
+  - `"<dancers> forward"`, dancers resolvable via `resolveDancerSetPhrase`
+    (60 lines) → **`whom`**. `whom` means exactly "walks forward", so this is
+    source-verified rather than inferred.
+  - **Stationary** phrasings (`(men stay put)`, `(women are posts)`,
+    `(centers are posts)`) fit NEITHER slot — `whom` walks forward and `who`
+    backs up, so both move — and are never structured.
+  - `"… forward"` naming an unmodelled set (`M1+W2 forward`, `ends forward`,
+    `twos and fours forward`, and `(twos split ones)`) → note-only.
+  Consumed annotations do not also become a note (notes render as their own row
+  beside the figure line, so duplicating the words would read as a bug);
+  everything unconsumed is preserved verbatim, so
+  `[Ones and twos] Neighbor mirror gate 3/4 (twos forward)` yields
+  `whom: twos` plus the note `Ones and twos`. Display: `whom` has no readable
+  ContraDB position without a subject, so a TCB gate states it as a trailing
+  `", ones forward"` clause while the ContraDB shape keeps `"<who> gate <whom>"`.
+- **Security (OWASP).** The annotation extractor bounds every axis: at most 8
+  annotations per line, at most 120 characters captured per annotation (a longer
+  one simply doesn't match), and the joined note is truncated at 200 characters.
+  Unterminated or empty brackets and purely-numeric annotations are skipped. A
+  line the pre-recognizer can't fully resolve falls through untouched — never a
+  half-structured figure, never a throw.
+
 ### 4. Generic JSON (6.6)
 - Our own canonical export format (full fidelity: figures, programs, custom
   fields, provenance, dialect definitions). Serves backup/restore and

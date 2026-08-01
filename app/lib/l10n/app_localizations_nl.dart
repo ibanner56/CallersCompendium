@@ -4811,6 +4811,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorLessTooltip => 'Minder';
 
   @override
+  String get danceEditorTurnNotStated => 'niet opgegeven';
+
+  @override
+  String get danceEditorTurnClearTooltip => 'Wissen (niet opgegeven)';
+
+  @override
   String get danceEditorMoreTooltip => 'Meer';
 
   @override
