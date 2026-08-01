@@ -451,8 +451,16 @@ void _paramChoiceTests() {
 
       await tester.tap(find.text(ParamVocab.unspecified).last);
       await tester.pumpAndSettle();
-      // The stored value is the canonical sentinel, so the compiled filter can
-      // actually match figures whose source stated nothing for this param.
+      // The stored value is the canonical sentinel — not a substitute value and
+      // not a dropped write — so the compiled filter targets exactly the
+      // figures that explicitly STORE "the source stated nothing" here.
+      //
+      // Deliberately NOT claiming more than that: it does not reach figures
+      // that omit the key. `FilterCompiler._figureLeaf` emits
+      // `json_extract(params_json, '$.hand') = ?` with no effective/default
+      // param fallback, so a figure relying on `defaultValue: unspecified`
+      // without storing it will not match. That gap is pre-existing, general to
+      // all params, and out of scope here.
       expect(figure.params['hand'], ParamVocab.unspecified);
     });
 
