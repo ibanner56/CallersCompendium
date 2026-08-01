@@ -66,6 +66,23 @@ class DanceEditorController extends ChangeNotifier {
   String _canonicalizeProse(String typed) =>
       canonicalizeText(typed.trim(), _activeDialect);
 
+  /// Renders every [FigureDraft.note] in [drafts] (recursing into meanwhile
+  /// [FigureDraft.meanwhileSides]) from canonical storage into the active
+  /// dialect via [_renderProse], so a figure note behaves exactly like the
+  /// dance-level prose fields: `draft.note` holds active-dialect text while
+  /// being edited, the same contract as `hookController.text` etc. Called
+  /// once, right after each site that seeds `figureDrafts` via
+  /// [FigureDraft.fromFigure] (issue #715 — figure notes were previously
+  /// outside the #613 canonicalization chokepoint entirely).
+  void _renderNotesRecursively(Iterable<FigureDraft> drafts) {
+    for (final draft in drafts) {
+      draft.note = _renderProse(draft.note);
+      if (draft.meanwhileSides case final sides?) {
+        _renderNotesRecursively(sides);
+      }
+    }
+  }
+
   bool _disposed = false;
 
   // ---- Prose (lingo-styled) text controllers ----
@@ -133,7 +150,8 @@ class DanceEditorController extends ChangeNotifier {
   final List<FigureDraft> figureDrafts = [];
 
   List<Figure> get _figures => [
-    for (final draft in figureDrafts) ?draft.toFigure(),
+    for (final draft in figureDrafts)
+      ?draft.toFigure(canonicalizeNote: _canonicalizeProse),
   ];
 
   PhraseStructure _phraseStructure = PhraseStructure.standard;
@@ -255,6 +273,7 @@ class DanceEditorController extends ChangeNotifier {
         customValues[value.fieldId] = value.value;
       }
       figureDrafts.addAll(dance.figures.map(FigureDraft.fromFigure));
+      _renderNotesRecursively(figureDrafts);
     } else {
       // New dance (ROADMAP DD.1): seed the initial metadata from the saved
       // dance-authoring defaults. Each read is independently guarded so a
@@ -306,6 +325,7 @@ class DanceEditorController extends ChangeNotifier {
           defaultNewDanceFigureTemplate().map(FigureDraft.fromFigure),
         );
       }
+      _renderNotesRecursively(figureDrafts);
     }
 
     // Seed text controllers for custom text/number fields.
@@ -983,7 +1003,9 @@ class DanceEditorController extends ChangeNotifier {
   /// figure (a `;`-compound). Rows are left collapsed. No-op on an empty list.
   void insertFreeTextFigures(List<Figure> figures) {
     if (figures.isEmpty) return;
-    figureDrafts.addAll(figures.map(FigureDraft.fromFigure));
+    final inserted = figures.map(FigureDraft.fromFigure).toList();
+    figureDrafts.addAll(inserted);
+    _renderNotesRecursively(inserted);
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();

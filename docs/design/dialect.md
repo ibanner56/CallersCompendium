@@ -70,16 +70,18 @@ This chokepoint is wired at every free-text entry point:
 
 - **Imports** canonicalize incoming prose (with `Dialect.canonical`, so the
   always-on legacy synonyms resolve roles) before persistence.
-- **Hand-typed dance prose** — `hook`, `callingNotes`, `walkthrough` — is
-  canonicalized against the caller's **active** dialect in the dance editor's
-  save path (`buildDance`), so a caller's own role terms are stored as canonical
-  tokens. On load the editor renders those tokens back into the active dialect
-  via `renderFreeText`, and every display site (detail, perform, PDF/text
-  export) renders under the reader's active dialect — so stored prose is
-  dialect-agnostic and re-renders for each reader (issue #613). Because the
-  model is roles-only, a role term is normalized to its dialect-configured
-  casing on the round-trip (e.g. the Larks/Robins preset term is lowercase), the
-  same as imported prose; surrounding prose is preserved byte-for-byte.
+- **Hand-typed dance prose** — `hook`, `callingNotes`, `walkthrough`, and
+  per-figure `note` — is canonicalized against the caller's **active**
+  dialect in the dance editor's save path (`buildDance`), so a caller's own
+  role terms are stored as canonical tokens. On load the editor renders those
+  tokens back into the active dialect via `renderFreeText`, and every display
+  site (detail, perform, PDF/text export) renders under the reader's active
+  dialect — so stored prose is dialect-agnostic and re-renders for each
+  reader (issue #613; figure `note` folded into the same chokepoint via
+  issue #715). Because the model is roles-only, a role term is normalized to
+  its dialect-configured casing on the round-trip (e.g. the Larks/Robins
+  preset term is lowercase), the same as imported prose; surrounding prose is
+  preserved byte-for-byte.
 - **Search** canonicalizes the query at the compiler boundary, and the
   full-text index is built from the (now canonical) stored prose, so free-text
   search over typed prose is dialect-agnostic.
@@ -112,7 +114,7 @@ Edge rules:
 | Surface | Dialect applied? |
 |---|---|
 | Dance card, editor previews, performance mode | ✅ |
-| Free text: calling notes, hooks, walkthrough, custom figures | ✅ (canonical on save, rendered on read) |
+| Free text: calling notes, hooks, walkthrough, custom figures, figure notes | ✅ (canonical on save, rendered on read) |
 | Program notes / free-text slots | ❌ verbatim (intentional; #665 not planned) |
 | Search input | canonicalized before matching |
 | Stored data, snapshots, JSON export (canonical mode) | ❌ canonical |

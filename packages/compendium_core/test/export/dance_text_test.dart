@@ -220,6 +220,48 @@ void main() {
       expect(text, contains('    end facing across'));
     });
 
+    // Regression for issue #715: a figure note is dialect-agnostic canonical
+    // storage (roles as `role1s`/`role2s`), so it must be rendered through
+    // the same dialect substitution as `callingNotes`/`walkthrough`, not
+    // emitted raw.
+    test('applies the dialect to figure note free text', () {
+      final d = dance(
+        figures: [
+          Figure(
+            move: 'allemande',
+            params: {'beats': 8},
+            note: 'Open role2s chain to neighbor',
+          ),
+        ],
+      );
+      final canonical = render(d, dialect: Dialect.canonical);
+      final dialectal = render(d, dialect: larks);
+
+      expect(canonical, contains('    Open role2s chain to neighbor'));
+      expect(dialectal, contains('    Open robins chain to neighbor'));
+      expect(dialectal, isNot(contains('role2s')));
+    });
+
+    test(
+      'leaves non-role figure note prose byte-identical under any dialect',
+      () {
+        final d = dance(
+          figures: [
+            Figure(
+              move: 'swing',
+              params: {'beats': 16},
+              note: 'smooth swing, no twirls',
+            ),
+          ],
+        );
+        final canonical = render(d, dialect: Dialect.canonical);
+        final dialectal = render(d, dialect: larks);
+
+        expect(canonical, contains('    smooth swing, no twirls'));
+        expect(dialectal, contains('    smooth swing, no twirls'));
+      },
+    );
+
     test('uses singular "beat" for a one-beat figure', () {
       final text = render(
         dance(

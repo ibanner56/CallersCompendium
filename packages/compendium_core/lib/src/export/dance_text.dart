@@ -98,7 +98,9 @@ String danceToPlainText(
       final marker = sf.figure.progression ? ' ¶' : '';
       lines.add('${sf.label}  $text ($beatsLabel)$marker');
       final note = sf.figure.note?.trim();
-      if (note != null && note.isNotEmpty) lines.add('    $note');
+      if (note != null && note.isNotEmpty) {
+        lines.add('    ${fig.renderFreeText(note, dialect)}');
+      }
     }
   }
 

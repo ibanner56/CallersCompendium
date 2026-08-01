@@ -203,6 +203,20 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Figure notes now round-trip through the same dialect canonicalization
+  chokepoint as `hook`/`callingNotes`/`walkthrough` (#613, #715).** Previously
+  an imported or dialect-typed figure note was stored/edited verbatim, so an
+  imported note showed raw canonical role tokens (`role2s`) in the editor,
+  and a caller's own typed role terms were never canonicalized to
+  dialect-agnostic storage. The dance editor now renders a figure's stored
+  note into the active dialect on load and canonicalizes it back on save,
+  exactly mirroring the existing dance-level prose fields — including for
+  meanwhile-group side notes and figures inserted via free-text entry.
+  No schema/migration change: canonicalization is a pure, idempotent,
+  roles-only rewrite, so existing stored notes simply resolve correctly the
+  next time that figure is opened or saved (consistent with the #665
+  precedent of not migrating unrelated free-text prose).
+
 - **Some Caller's Box dances imported with inflated beat counts.** When a
   spelled-out figure's beat marker was written as a range (e.g. `(7-12)`), both
   the figure and its sub-figures were counted, pushing later figures into the
