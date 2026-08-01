@@ -301,9 +301,13 @@ const int kCompendiumSchemaVersion = 20;
 ///   explicitly for omitted params, since the merged move defaults every slot
 ///   to `unspecified`; `beats` is carried verbatim so beat totals are
 ///   unchanged. Recurses into `meanwhile` containers (a TCB `||` line can hold
-///   two gates), bounded in depth. A SANCTIONED canonical-changing migration
+///   two gates), bounded in depth. A SANCTIONED derived-data-changing migration
 ///   (cf. v12, v18, and the v19 wave-move rename): it schedules a derived
-///   rebuild, but only when a figure actually changed. Per-row and per-figure
+///   rebuild, but only when a figure actually changed. The rebuild is owed
+///   because `dance_figures` projects the move id and `params_json` as well as
+///   the canonical text — `danceIdsWithFigure` queries exactly those two — so
+///   skipping it would leave structured search matching the RETIRED
+///   `rotation_gate` id and missing every migrated `gate`. Per-row and per-figure
 ///   parse-never-throw. Chains cleanly after v19 — that step only rewrites the
 ///   `form_a_short_wave` move id and touches no gate figure, and neither step
 ///   adds a column or table, so schema 18/19/20 are structurally identical.
@@ -693,13 +697,11 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       }
       if (from < 20) {
         // Taxonomy v22: `gate` and `rotation_gate` are MERGED into one `gate`
-        // move, so rewrite every stored figure of BOTH onto it. This is the
-        // SANCTIONED canonical-changing migration (cf. v12, v18, v19):
-        // rewriting `figures_json` changes those figures' derived
-        // `canonicalText`/FTS. Per-row and per-figure parse-never-throw: a blob
-        // or entry that can't be cleanly remapped is left byte-identical,
-        // falling through to the #358 unknown-move path rather than being
-        // dropped/corrupted.
+        // move, so rewrite every stored figure of BOTH onto it. This is a
+        // SANCTIONED derived-data-changing migration (cf. v12, v18, v19).
+        // Per-row and per-figure parse-never-throw: a blob or entry that can't
+        // be cleanly remapped is left byte-identical, falling through to the
+        // #358 unknown-move path rather than being dropped/corrupted.
         //
         // Runs AFTER the v19 rename above and is independent of it: that step
         // only touches `form_a_short_wave` figures and this one only touches
@@ -726,7 +728,20 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         }
         // Only schedule a rebuild when a figure actually changed — a database
         // that held neither gate move (or held only already-explicit ones)
-        // already has correct derived text.
+        // already has correct derived rows.
+        //
+        // The rebuild is owed because `dance_figures` projects the move ID and
+        // `params_json`, NOT merely `canonical_text`. `danceIdsWithFigure`
+        // (dance_repository.dart) queries exactly `move` + `params_json`, so
+        // without a rebuild a search for `gate` would MISS every migrated
+        // figure while the retired `rotation_gate` id would still match — the
+        // structured-search index would disagree with what is actually stored.
+        // (The canonical/FTS text changes too, but that is the lesser half:
+        // a migration that changed only a figure's move id would still owe a
+        // rebuild.) Those derived rows need the taxonomy/renderer, which
+        // `MigrationStrategy` can't reach, so durably record that a rebuild is
+        // owed (crash-safe); `CompendiumRepositories.ensureMigrated()` then
+        // regenerates `dance_figures` + `dance_fts` from `figures_json`.
         if (rewroteAny) {
           await customStatement(
             'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',

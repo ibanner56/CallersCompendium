@@ -2959,6 +2959,27 @@ void main() {
       expect(moveIds, contains('gate'));
       expect(moveIds, isNot(contains('rotation_gate')));
 
+      // The concrete consequence, through the API that actually reads those
+      // columns: `danceIdsWithFigure` queries `move` + `params_json`, so if the
+      // migration skipped its derived rebuild, structured search would still
+      // match the RETIRED id and miss every migrated figure. This is why the
+      // rebuild is owed even though `dance_figures` also carries canonical text
+      // — a migration that changed only the move id would owe one too.
+      expect(
+        await repos.dances.danceIdsWithFigure('gate'),
+        contains('dance-1'),
+      );
+      expect(await repos.dances.danceIdsWithFigure('rotation_gate'), isEmpty);
+      // The TCB subject is searchable in its NEW slot, and not in the old one.
+      expect(
+        await repos.dances.danceIdsWithFigure(
+          'gate',
+          paramKey: 'pair',
+          paramJsonValue: '"nextNeighbors"',
+        ),
+        contains('dance-1'),
+      );
+
       final hits = await repos.dances.search(const FullTextFilter('gate'));
       expect(hits, contains('dance-1'));
 

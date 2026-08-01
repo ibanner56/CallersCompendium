@@ -259,6 +259,40 @@ void main() {
       }
     });
 
+    // The #717 interaction (issue #715). A preserved annotation is stored
+    // POST-SCRUB, so a gendered source term is already a canonical role token by
+    // the time it lands in the note. Since #717 routes figure notes through
+    // `renderFreeText` on the display/export paths, that token is dialect-
+    // rendered for the user — which is exactly right, and is the whole point of
+    // #715. Pinned here because it is the class of bug that passes under the
+    // canonical dialect and silently differs under every other one: the STORED
+    // note must stay canonical, and only the RENDER may vary.
+    test('a preserved annotation stays canonical in storage and is '
+        'dialect-rendered for the reader', () {
+      final f = parse('Neighbor mirror gate 1/2 (women are posts)', 4).f;
+      expect(f.note, 'role2s are posts');
+
+      expect(
+        renderer.renderFreeText(f.note!, Dialect.canonical),
+        'role2s are posts',
+      );
+      final dialectal = renderer.renderFreeText(f.note!, Dialect.larksRobins);
+      expect(dialectal, 'robins are posts');
+      // The canonical token must never reach the reader.
+      expect(dialectal, isNot(contains('role2s')));
+    });
+
+    test(
+      'an annotation with no role token is byte-identical in any dialect',
+      () {
+        final f = parse('Neighbor mirror gate 1/2 (ends forward)', 4).f;
+        expect(f.note, 'ends forward');
+        for (final d in [Dialect.canonical, Dialect.larksRobins]) {
+          expect(renderer.renderFreeText(f.note!, d), 'ends forward');
+        }
+      },
+    );
+
     test('a multi-annotation line keeps whatever it does NOT structure', () {
       final f = parse(
         '[Ones and twos] Neighbor mirror gate 3/4 (twos forward)',
