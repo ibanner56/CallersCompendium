@@ -2,6 +2,8 @@ import 'package:compendium_app/src/widgets/responsive_autocomplete.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/screen_size.dart';
+
 /// A minimal in-memory [ResponsiveAutocomplete] harness: options are plain
 /// strings, matched by substring, with no free-text/create affordance beyond
 /// an `onCustomSubmitted` fallback (mirroring `MoveAutocomplete`'s contract)
@@ -75,22 +77,6 @@ class _TestPickerState extends State<_TestPicker> {
       },
     );
   }
-}
-
-/// Sets both the render surface size and the [MediaQuery] physical size to
-/// [size]. `setSurfaceSize` alone only affects layout constraints (what a
-/// [LayoutBuilder] would see) — `MediaQuery.sizeOf`, which
-/// [ResponsiveAutocomplete] uses for its breakpoints (matching real-device
-/// keyboard-obscuring geometry rather than a possibly-unbounded local layout
-/// box), reads `FlutterView.physicalSize` instead, so both must be set to
-/// faithfully simulate a given screen size in tests.
-Future<void> _setScreenSize(WidgetTester tester, Size size) async {
-  await tester.binding.setSurfaceSize(size);
-  tester.view.physicalSize = size * tester.view.devicePixelRatio;
-  addTearDown(() {
-    tester.view.resetPhysicalSize();
-    return tester.binding.setSurfaceSize(null);
-  });
 }
 
 Future<void> _pump(
@@ -179,7 +165,7 @@ void main() {
       TextDirection textDirection = TextDirection.ltr,
       FocusNode? focusNode,
     }) async {
-      await _setScreenSize(tester, const Size(360, 720));
+      await setScreenSize(tester, const Size(360, 720));
       await _pump(
         tester,
         options: options,
@@ -397,7 +383,7 @@ void main() {
     testWidgets('a wide-but-short (landscape phone) surface uses the sheet', (
       tester,
     ) async {
-      await _setScreenSize(tester, const Size(800, 400));
+      await setScreenSize(tester, const Size(800, 400));
       await _pump(tester, options: const ['swing'], onSelected: (_) {});
 
       await tester.tap(
@@ -410,7 +396,7 @@ void main() {
     });
 
     testWidgets('a tall-enough wide surface stays inline', (tester) async {
-      await _setScreenSize(tester, const Size(800, 700));
+      await setScreenSize(tester, const Size(800, 700));
       await _pump(tester, options: const ['swing'], onSelected: (_) {});
 
       await tester.enterText(find.byKey(const ValueKey('test-input')), 'sw');

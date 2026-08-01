@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/responsive_autocomplete.dart';
 import 'source_citation_draft.dart';
 
 /// A short bibliographic subtitle ("Author, Year") for a source, or `null`
@@ -151,8 +152,11 @@ class _AddSourceAutocomplete extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Autocomplete<_SourceChoice>(
+    return ResponsiveAutocomplete<_SourceChoice>(
       key: const ValueKey('source-autocomplete'),
+      // Reuses the field's own hint as the sheet's a11y announcement, same
+      // as the field itself already conveys sighted users.
+      sheetSemanticLabel: l10n.danceEditorCiteSourceHint,
       displayStringForOption: (choice) => choice.label,
       optionsBuilder: (value) {
         final q = value.text.trim();
@@ -191,39 +195,21 @@ class _AddSourceAutocomplete extends StatelessWidget {
           onSubmitted: (_) => onSubmit(),
         );
       },
-      optionsViewBuilder: (context, onSelected, choices) {
-        return Align(
-          alignment: Alignment.topLeft,
-          child: Material(
-            elevation: 4,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 240, maxWidth: 320),
-              child: ListView(
-                padding: EdgeInsets.zero,
-                shrinkWrap: true,
-                children: [
-                  for (final choice in choices)
-                    ListTile(
-                      key: ValueKey('source-option-${choice.optionKey}'),
-                      dense: true,
-                      leading: Icon(
-                        choice.isCreate ? Icons.add : Icons.menu_book_outlined,
-                        size: 18,
-                      ),
-                      title: Text(
-                        choice.isCreate
-                            ? l10n.danceEditorCreateQuotedName(choice.title)
-                            : choice.title,
-                      ),
-                      subtitle: choice.author == null
-                          ? null
-                          : Text(choice.author!),
-                      onTap: () => onSelected(choice),
-                    ),
-                ],
-              ),
-            ),
+      optionTileBuilder: (context, choice, onSelected) {
+        return ListTile(
+          key: ValueKey('source-option-${choice.optionKey}'),
+          dense: true,
+          leading: Icon(
+            choice.isCreate ? Icons.add : Icons.menu_book_outlined,
+            size: 18,
           ),
+          title: Text(
+            choice.isCreate
+                ? l10n.danceEditorCreateQuotedName(choice.title)
+                : choice.title,
+          ),
+          subtitle: choice.author == null ? null : Text(choice.author!),
+          onTap: onSelected,
         );
       },
     );

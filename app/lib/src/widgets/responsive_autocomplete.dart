@@ -282,11 +282,27 @@ class _ResponsiveAutocompleteState<T extends Object>
     _scheduleAutofocusIfNeeded(compact);
     if (!compact) {
       return Autocomplete<T>(
-        initialValue: widget.textEditingController == null
-            ? widget.initialValue
-            : null,
-        textEditingController: widget.textEditingController,
-        focusNode: widget.focusNode,
+        // `initialValue` is ignored (and asserted against) once a
+        // `textEditingController` is passed, and `_controller`/`_focusNode`
+        // below are now *always* passed non-null (see comment on
+        // `focusNode`) — so `initialValue` is never actually used here.
+        // `_controller` already seeds the owned controller from
+        // `widget.initialValue` when there's no external controller, so no
+        // initial text is lost.
+        initialValue: null,
+        textEditingController: _controller,
+        // Always the resolved node/controller (never the raw, possibly-null
+        // `widget.focusNode`/`widget.textEditingController`):
+        // `Autocomplete`/`RawAutocomplete` asserts
+        // `(focusNode == null) == (textEditingController == null)` and,
+        // when both are null, mints its own internal `FocusNode` — a second,
+        // orphaned node distinct from the `_focusNode` this state calls
+        // `.requestFocus()` on in `_scheduleAutofocusIfNeeded`, which
+        // silently broke `autofocus` for every call site that doesn't pass
+        // an external `focusNode` (e.g. `MoveAutocomplete`). Resolving both
+        // together keeps that assertion satisfied and keeps the "same node
+        // everywhere" invariant `_scheduleAutofocusIfNeeded` relies on.
+        focusNode: _focusNode,
         displayStringForOption: widget.displayStringForOption,
         optionsBuilder: widget.optionsBuilder,
         onSelected: widget.onSelected,

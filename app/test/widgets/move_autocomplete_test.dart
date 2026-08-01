@@ -3,12 +3,19 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/screen_size.dart';
+
 /// A dialect that renames the canonical `swing` move to "buzz", exercising the
 /// editor's requirement that the move picker both displays and matches dialect
 /// vocabulary (not just canonical taxonomy names).
 final _buzzDialect = Dialect(name: 'Custom', moves: const {'swing': 'buzz'});
 
-Future<void> _pump(WidgetTester tester, {Dialect? dialect}) async {
+Future<void> _pump(
+  WidgetTester tester, {
+  Dialect? dialect,
+  ValueChanged<MoveOption>? onSelected,
+  ValueChanged<String>? onCustomSubmitted,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
@@ -17,7 +24,8 @@ Future<void> _pump(WidgetTester tester, {Dialect? dialect}) async {
           dialect: dialect,
           initialText: '',
           fieldKey: 'move',
-          onSelected: (_) {},
+          onSelected: onSelected ?? (_) {},
+          onCustomSubmitted: onCustomSubmitted,
         ),
       ),
     ),
@@ -47,5 +55,72 @@ void main() {
     expect(find.text('swing'), findsWidgets);
     // The dialect term isn't shown when the active dialect is canonical.
     expect(find.text('buzz'), findsNothing);
+  });
+
+  group('narrow layout (issue #716)', () {
+    testWidgets('tapping the field opens a sheet and picking an option above a '
+        'simulated keyboard still selects the move', (tester) async {
+      MoveOption? picked;
+      await setScreenSize(tester, const Size(360, 720));
+      await _pump(tester, onSelected: (o) => picked = o);
+
+      await tester.tap(
+        find.byKey(const ValueKey('move-input')),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+
+      // Simulate a software keyboard inset, as issue #716 describes.
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(const ValueKey('move-input')), 'swing');
+      await tester.pumpAndSettle();
+
+      final optionFinder = find.byKey(const ValueKey('move-option-swing'));
+      expect(optionFinder, findsOneWidget);
+      // The option sits above the simulated keyboard inset, not hidden
+      // underneath it.
+      final optionRect = tester.getRect(optionFinder);
+      final screenHeight =
+          tester.view.physicalSize.height / tester.view.devicePixelRatio;
+      expect(optionRect.bottom, lessThanOrEqualTo(screenHeight - 300));
+
+      await tester.tap(optionFinder);
+      await tester.pumpAndSettle();
+
+      expect(picked?.id, 'swing');
+      // The sheet closes after the pick.
+      expect(find.byType(BottomSheet), findsNothing);
+    });
+
+    testWidgets('free-text submission of an unmatched move still fires '
+        'onCustomSubmitted from inside the sheet', (tester) async {
+      String? custom;
+      await setScreenSize(tester, const Size(360, 720));
+      await _pump(tester, onCustomSubmitted: (v) => custom = v);
+
+      await tester.tap(
+        find.byKey(const ValueKey('move-input')),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'a brand new move',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(custom, 'a brand new move');
+      expect(find.byType(BottomSheet), findsNothing);
+    });
   });
 }

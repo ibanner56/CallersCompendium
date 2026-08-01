@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import 'responsive_autocomplete.dart';
+
 /// One selectable entry in a [MoveAutocomplete]: either a canonical move or an
 /// alias. [id] is what gets stored on the figure/query (a move id or an alias
 /// id), so aliases keep their own identity (a "see saw" stays a see saw).
@@ -66,22 +68,6 @@ class MoveAutocomplete extends StatefulWidget {
 }
 
 class _MoveAutocompleteState extends State<MoveAutocomplete> {
-  // Fires once per mount to reliably grab focus on a cold start. Relying on
-  // `TextField.autofocus` alone drops the request when the enclosing FocusScope
-  // isn't yet active (a freshly opened editor before any manual focus), so we
-  // explicitly requestFocus after the first frame, which walks up and activates
-  // the ancestor scopes. Because the field remounts on each open (keyed by
-  // figure index), this runs on every open — exactly when we want it.
-  bool _didRequestAutofocus = false;
-
-  void _scheduleAutofocus(FocusNode focusNode) {
-    if (!widget.autofocus || _didRequestAutofocus) return;
-    _didRequestAutofocus = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !focusNode.hasFocus) focusNode.requestFocus();
-    });
-  }
-
   List<MoveOption> _optionsFor(String query) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return const [];
@@ -131,41 +117,26 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
 
   @override
   Widget build(BuildContext context) {
-    return Autocomplete<MoveOption>(
+    return ResponsiveAutocomplete<MoveOption>(
       initialValue: TextEditingValue(text: widget.initialText),
       displayStringForOption: (o) => o.displayName,
+      // Reuses the field's own label as the sheet's a11y announcement (e.g.
+      // "Move") — matches the field the user was just interacting with,
+      // rather than introducing a separate string.
+      sheetSemanticLabel: widget.labelText,
+      autofocus: widget.autofocus,
+      overlayConstraints: const BoxConstraints(maxHeight: 240, maxWidth: 280),
       optionsBuilder: (value) => _optionsFor(value.text),
       onSelected: widget.onSelected,
-      optionsViewBuilder: (context, onSelected, options) {
-        return Align(
-          alignment: Alignment.topLeft,
-          child: Material(
-            elevation: 4,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 240, maxWidth: 280),
-              child: ListView(
-                padding: EdgeInsets.zero,
-                shrinkWrap: true,
-                children: [
-                  for (final option in options)
-                    ListTile(
-                      key: ValueKey(
-                        '${widget.fieldKey ?? 'move'}-option-${option.id}',
-                      ),
-                      dense: true,
-                      title: Text(option.displayName),
-                      onTap: () => onSelected(option),
-                    ),
-                ],
-              ),
-            ),
-          ),
+      optionTileBuilder: (context, option, onSelected) {
+        return ListTile(
+          key: ValueKey('${widget.fieldKey ?? 'move'}-option-${option.id}'),
+          dense: true,
+          title: Text(option.displayName),
+          onTap: onSelected,
         );
       },
       fieldViewBuilder: (context, controller, focusNode, onSubmit) {
-        // Explicitly grab focus on the first frame this field is built so cold
-        // starts work; TextField.autofocus stays as a belt-and-suspenders.
-        _scheduleAutofocus(focusNode);
         return TextField(
           key: widget.fieldKey == null
               ? null
