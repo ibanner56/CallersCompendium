@@ -1242,11 +1242,14 @@ _Match? _courtesyTurn(List<String> w) {
 /// as leftover and declines the line.
 String? _takeFacingDancer(List<String> w, {required int after}) {
   // The scan STARTS at `after` (the index just past the anchor) rather than
-  // searching the whole list and rejecting an early hit on the next line. The
-  // bound IS the contract, so it belongs in the search: a guard one line below
-  // is invisible to every cheap check — a grep for `w.indexOf('face')`, an
-  // eye-skim, a reviewer scanning a diff hunk — and reading it as an unbounded
-  // whole-list scan is then a reasonable, wrong conclusion.
+  // searching the whole list and rejecting an early hit on the following line.
+  // The bound IS the contract, so it belongs in the search call: a guard on the
+  // next line is invisible to every cheap check — a grep for the bare search, an
+  // eye-skim, a reviewer scanning a diff hunk — and reading such a search as
+  // unbounded is then a reasonable, wrong conclusion. (Deliberately phrased
+  // without quoting the unbounded form: writing it here, even as an example,
+  // would put the very string back into the file and re-create the false grep
+  // hit this exists to remove.)
   final i = w.indexOf('face', after);
   if (i == -1 || i + 1 >= w.length) return null;
   final token = _dancerWords[w[i + 1]];
