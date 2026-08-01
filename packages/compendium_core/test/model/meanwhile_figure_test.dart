@@ -7,11 +7,11 @@ import 'package:test/test.dart';
 void main() {
   final sideA = Figure(
     move: 'allemande',
-    params: const {'who': 'role1', 'hand': 'left', 'turn': 1.5},
+    params: const {'who': 'role1s', 'hand': 'left', 'turn': 1.5},
   );
   final sideB = Figure(
     move: 'orbit',
-    params: const {'who': 'role2', 'turn': 0.5},
+    params: const {'who': 'role2s', 'turn': 'clockwise', 'amount': 0.5},
   );
 
   group('Figure.meanwhile', () {

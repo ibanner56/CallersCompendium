@@ -14,9 +14,9 @@ void main() {
   );
   final allemande = Figure(
     move: 'allemande',
-    params: const {'who': 'role1', 'hand': 'left', 'turn': 1.5},
+    params: const {'who': 'role1s', 'hand': 'left', 'turn': 1.5},
   );
-  final orbit = Figure(move: 'orbit', params: const {'who': 'role2'});
+  final orbit = Figure(move: 'orbit', params: const {'who': 'role2s'});
 
   group('round-trip', () {
     test('a two-sided container round-trips losslessly', () {
