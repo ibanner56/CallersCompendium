@@ -34,8 +34,12 @@ import 'figure_text_scrub.dart';
 /// The CallersBox/TCB front-end: the hey pass-list pre-recognizer plus the
 /// `()`/`[]` recognition-only annotation strip. Pass this as the `frontEnd` to
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
+///
+/// Pre-recognizer order is not correctness-critical: each requires a distinct
+/// anchor (`hey` / `circulate:` / `gate` / `courtesy turn`) plus a successful
+/// resolution to its own move, so no two can claim the same line.
 final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
-  preRecognizers: [_hey, _circulate, _gateAnnotation],
+  preRecognizers: [_hey, _circulate, _gateAnnotation, _courtesyTurnAnnotation],
   recognitionNormalize: _stripAnnotations,
 );
 
@@ -335,18 +339,13 @@ String _stripAnnotations(String lowercased) => lowercased
 /// least one non-numeric annotation, and (c) the shared recognizers resolve to
 /// the `gate` move. Anything else returns null and takes the normal path.
 FigureMatch? _gateAnnotation(String scrubbed) {
-  if (!_gateAnchor.hasMatch(scrubbed)) return null;
-  final annotations = _annotations(scrubbed);
-  if (annotations.isEmpty) return null;
-  final match = recognizeSharedFigureLine(
-    scrubbed,
-    recognitionNormalize: _stripAnnotations,
-  );
-  if (match == null || match.moveId != 'gate') return null;
+  final base = _annotatedMatch(scrubbed, _gateAnchor, 'gate');
+  if (base == null) return null;
+  final match = base.match;
 
   String? whom;
   final kept = <String>[];
-  for (final body in annotations) {
+  for (final body in base.annotations) {
     // Only the FIRST resolvable "<dancers> forward" is consumed; a second one
     // would mean the line names two forward-walking sides, which no source
     // does — so it is kept verbatim rather than silently overwriting.
@@ -359,20 +358,74 @@ FigureMatch? _gateAnnotation(String scrubbed) {
   }
   if (whom == null && kept.isEmpty) return null;
 
-  final note = _joinAnnotations(kept);
-  return FigureMatch(
-    match.moveId,
-    params: <String, Object?>{
-      ...match.params,
-      // Never clobber a `whom` the grammar itself resolved.
-      if (whom != null && !match.params.containsKey('whom')) 'whom': whom,
-    },
-    // A shared match never carries its own note today; if that ever changes,
-    // keep the recognizer's (more specific) note rather than overwriting it.
-    note: match.note ?? note,
-    assumedSubject: match.assumedSubject,
+  return _withAnnotationNote(
+    match,
+    _joinAnnotations(kept),
+    // Never clobber a `whom` the grammar itself resolved.
+    extraParams: (whom != null && !match.params.containsKey('whom'))
+        ? {'whom': whom}
+        : const {},
   );
 }
+
+/// A [FigureMatch] the shared recognizers produced for an ANNOTATED line, plus
+/// the annotation bodies that were stripped before they saw it.
+class _AnnotatedMatch {
+  const _AnnotatedMatch(this.match, this.annotations);
+  final FigureMatch match;
+  final List<String> annotations;
+}
+
+/// The one shared entry point for every annotation-preserving pre-recognizer
+/// (`gate` since v22, `courtesy_turn` since v23).
+///
+/// [_stripAnnotations] drops `()`/`[]` for RECOGNITION, so without this a
+/// structured match silently loses text the custom fallback keeps. Each caller
+/// supplies its own [anchor] and expected [moveId]; this does the common work
+/// once — cheap anchor test, BOUNDED annotation extraction, then delegation to
+/// [recognizeSharedFigureLine] so no move's grammar is ever duplicated here and
+/// no pre-recognizer can recurse back into a front-end.
+///
+/// Returns null (→ the normal path) unless the line has the anchor, carries at
+/// least one non-numeric annotation, AND actually resolves to [moveId]. That
+/// last condition is what stops, say, an annotated chain line that merely
+/// mentions a courtesy turn from being claimed.
+///
+/// All bounding lives in [_annotations] / [_joinAnnotations] — `_maxAnnotations`,
+/// `_maxAnnotationNote`, the per-run length cap inside `_annotationRe`, and
+/// rune-safe truncation. Import text is untrusted (OWASP), and keeping the caps
+/// in ONE place is why a new caller cannot accidentally introduce an unbounded
+/// note.
+_AnnotatedMatch? _annotatedMatch(
+  String scrubbed,
+  RegExp anchor,
+  String moveId,
+) {
+  if (!anchor.hasMatch(scrubbed)) return null;
+  final annotations = _annotations(scrubbed);
+  if (annotations.isEmpty) return null;
+  final match = recognizeSharedFigureLine(
+    scrubbed,
+    recognitionNormalize: _stripAnnotations,
+  );
+  if (match == null || match.moveId != moveId) return null;
+  return _AnnotatedMatch(match, annotations);
+}
+
+/// Rebuilds [match] with [note] attached (and any [extraParams] merged in).
+///
+/// A shared match never carries its own note today; if that ever changes, the
+/// recognizer's (more specific) note wins rather than being overwritten.
+FigureMatch _withAnnotationNote(
+  FigureMatch match,
+  String? note, {
+  Map<String, Object?> extraParams = const {},
+}) => FigureMatch(
+  match.moveId,
+  params: <String, Object?>{...match.params, ...extraParams},
+  note: match.note ?? note,
+  assumedSubject: match.assumedSubject,
+);
 
 /// The dancer set an annotation names as walking FORWARD, or `null` when the
 /// annotation is not a "`<dancers>` forward" statement or names a set we do not
@@ -393,6 +446,50 @@ final RegExp _forwardRe = RegExp(
 );
 
 final RegExp _gateAnchor = RegExp(r'\bgates?\b', caseSensitive: false);
+
+// --- Courtesy-turn annotation preservation (taxonomy v23) --------------------
+
+/// The same gap [_gateAnnotation] closes, for `courtesy_turn`: TCB writes
+/// annotations on 7 of the corpus's courtesy-turn lines — `Partner courtesy
+/// turn (in center)` (x4), `[Ones and threes] Partner courtesy turn
+/// (continued)` (x2), `[Sides] Partner courtesy turn (continued)` — and
+/// [_stripAnnotations] drops them for recognition. Without this, adding the
+/// move would make those lines structure while SILENTLY LOSING "in center",
+/// "continued" and the bracketed subject, all of which the custom fallback
+/// preserves today. Structuring a line must never cost information the
+/// unstructured reading kept.
+///
+/// Simpler than the gate's counterpart, deliberately: `courtesy_turn` has no
+/// slot any of these annotations could faithfully fill. "(in center)" is a
+/// spatial staging note, not a dancer; "(continued)" is TCB's marker for a
+/// figure that spans two phrases; "[Ones and threes]" names a set the taxonomy
+/// does not model. So EVERY annotation is preserved verbatim as the note and
+/// none is structured — prefer-custom applied at param granularity, the same
+/// discipline that keeps `(men stay put)` note-only on a gate.
+///
+/// Shares [_annotatedMatch] with the gate path, so the OWASP caps
+/// (`_maxAnnotations`, `_maxAnnotationNote`, the per-run length bound in
+/// `_annotationRe`, rune-safe truncation) are the SAME ones — a hostile line
+/// with thousands of parentheticals cannot inflate a note, and this adds no new
+/// bound of its own.
+///
+/// Fires only for a line that (a) contains the `courtesy turn` anchor,
+/// (b) carries at least one non-numeric annotation, and (c) resolves to the
+/// `courtesy_turn` move through the shared recognizers. Anything else returns
+/// null and takes the normal path — including, importantly, every
+/// chain-embedded courtesy turn, which never resolves to this move.
+FigureMatch? _courtesyTurnAnnotation(String scrubbed) {
+  final base = _annotatedMatch(scrubbed, _courtesyTurnAnchor, 'courtesy_turn');
+  if (base == null) return null;
+  final note = _joinAnnotations(base.annotations);
+  if (note == null) return null;
+  return _withAnnotationNote(base.match, note);
+}
+
+final RegExp _courtesyTurnAnchor = RegExp(
+  r'\bcourtesy\s+turns?\b',
+  caseSensitive: false,
+);
 
 /// Bounded extractor for `()`/`[]` annotation contents, in source order.
 ///

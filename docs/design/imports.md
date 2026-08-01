@@ -597,6 +597,37 @@ merge is lossless:
   figures" above). A pass code the taxonomy cannot faithfully represent, any
   leftover prose, or a child that fails to structure all keep the line custom.
   **Balance a wave (#295, taxonomy v21):** see *Balance-a-wave lines* below.
+  **Courtesy turn (taxonomy v23):** TCB writes a standalone courtesy turn on
+  **115** of the 24,107-dance corpus's figure lines, and until v23 every one of
+  them fell to `custom` — the taxonomy had no such move, and ContraDB models
+  none (0 hits for "courtesy" repo-wide; it treats the courtesy turn as an
+  unparameterized sub-component of `chain` / `right left through`). The
+  recognizer reads
+  `[<dancer>] courtesy turn [<dancer>] [clockwise|counterclockwise] [face <dancer>]`
+  and fills only what the line states: the pairing (`who`), a stated rotation
+  sense (`direction` — 10 lines, all `clockwise`), and the `, face N0/N2/N3`
+  ending facing (13 lines), which is a **DANCER**, not one of the cardinals
+  `swing.endFacing` uses. `whom` is never filled on import: no corpus line
+  writes the two-dancer form. A TCB annotation (`(in center)`, `(continued)`,
+  `[Ones and threes]`) is preserved verbatim as the figure's **note** by a
+  front-end pre-recognizer, so a structured match loses nothing the `custom`
+  fallback kept — the same mechanism `gate` uses (7 lines).
+  *Whole-line contract, so the following all stay `custom` with no exclusion
+  logic written:* a **chain** (or right-and-left-through / promenade) that also
+  names its courtesy turn (30 lines — emitting a standalone `courtesy_turn`
+  would double-count both the figure and its beats, and neither model has a slot
+  for the qualifier); **"arky"** (7 lines — reversed roles, unmodeled, and
+  dropping the word would lose real choreography); a **rotation amount**
+  (`courtesy turn 3/4`, `… 2` — 6 lines; the move has no `turn` param);
+  `without hands`; and every unmappable dancer (`phantom partner`,
+  `P1/P2/P4 partner`, `next corner`, `opposite neighbor`, `bottom couple`,
+  `fives`). A `;` compound (`Ones courtesy turn; face down`) stays whole-custom
+  under the existing all-or-nothing rule, which is also what keeps a **cardinal**
+  ending facing out of the dancer-valued `endFacing` slot.
+  *Secondary effect:* 13 dances' **compound parents** (`Modified ladies chain
+  to partner:`, `Wheel chain to neighbor:`) now decompose, because their
+  all-or-nothing child list was previously blocked by the unstructurable
+  courtesy-turn tail.
   **Out (→ custom
   for now, tracked on #295):** cast off,
   two-hand turn & other ECD figures, promenade

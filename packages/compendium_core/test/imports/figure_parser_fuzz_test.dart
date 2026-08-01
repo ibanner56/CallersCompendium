@@ -244,6 +244,9 @@ const List<String> _vocab = [
   'gypsy',
   'gyre',
   'chain',
+  'courtesy turn',
+  'face',
+  'arky',
   'ladies',
   'gentlemen',
   'neighbor',
@@ -424,7 +427,7 @@ int _randomBeats(Random rng) => switch (rng.nextInt(6)) {
 
 /// Hand-authored adversarial inputs: real display-spoofing / lossy-split
 /// hazards the generator might under-sample.
-const List<String> _adversarialCorpus = [
+final List<String> _adversarialCorpus = [
   '',
   '   ',
   '\t\n\r ',
@@ -449,4 +452,17 @@ const List<String> _adversarialCorpus = [
   'balance\u0000swing', // embedded NUL
   '\uFEFFcircle left', // leading BOM
   'shoulder round once and a half',
+  // Taxonomy v23 `courtesy_turn`: the recognizer reads a trailing
+  // `face <dancer>` clause by INDEX before taking the subject, so a line whose
+  // `face` is last, doubled, or followed by a non-dancer must still degrade
+  // cleanly rather than index past the end of the word list.
+  'courtesy turn face',
+  'partner courtesy turn face',
+  'face courtesy turn face n2 face',
+  'courtesy turn, face ',
+  'n2 n3 n0 courtesy turn face n2 n3 n0',
+  'partner courtesy turn clockwise counterclockwise clockwise',
+  // Repeated annotations: the note reader is capped, so a long run must not
+  // inflate the note or slow the parse.
+  'partner courtesy turn ${'(x)' * 200}',
 ];

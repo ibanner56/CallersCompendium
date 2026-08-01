@@ -389,6 +389,89 @@ mirror: custom figures 24,775 → 22,272, structured share 76.24% → **78.69%**
 with per-dance beat totals byte-identical for all 20,515 dances and no
 forward-merge move losing a balance.
 
+### Figure-line census: courtesy turn (2026-07-31, taxonomy v23)
+
+Method: the real `CallersBoxAdapter` run over the whole 24,107-file mirror
+before and after the change (20,516 dances with figures). Every line mentioning
+"courtesy" was extracted from `phrases[].figures[]` — **228** lines.
+
+Before v23, **all 228 fell to `custom`**: the taxonomy had no such move, so
+there was no existing reading to regress.
+
+**Line shape:** `({beats}) {who} courtesy turn[, face N{n}][ clockwise]`.
+
+`who`, over the 115 lines the recognizer claims:
+
+| token | lines | | token | lines |
+|---|---|---|---|---|
+| `partners` | 53 | | `shadows` | 1 |
+| `neighbors` | 39 | | `thirdNeighbors` | 1 |
+| `nextNeighbors` | 13 | | `twos` | 1 |
+
+**Beats: 4 x97, 2 x8, 3 x6, 6 x4.** Note this is the census over the *claimable*
+lines, which is the only population `goodBeats` should be drawn from. A naive
+grep for "courtesy turn" also turns up a `5` and five `8`s, but they belong to
+lines that can never structure as this move — `(5) Neighbor promenade across;
+courtesy turn 3/4` is a `;` compound, and the `8`s are
+`right and left through …("courtesy fling")` lines. The marginal 2/3/6 values
+were each checked in context and are genuine timing: dance 2957 writes
+`(8) Modified ladies chain to partner:` → `(6) Women allemande right 1 & 1/2` +
+`(2) Partner courtesy turn`, dance 174 `(5) Women allemande right 1` +
+`(3) Neighbor courtesy turn`, dance 14823 `(10) Star left 1 & 1/4` +
+`(6) Partner courtesy turn`.
+
+**`direction`:** stated on 10 lines; **all 10 say `clockwise`**.
+`counterclockwise` is unattested — consistent with the figure's mechanics (the
+couple wheels as a unit), so `clockwise` is a real default rather than a guess.
+
+**⚠️ The ending facing is a DANCER, not a direction.** Every in-line ending
+facing is a neighbor relationship — `, face N2` x8, `, face N3` x4, `, face N0`
+x1 — which `tcbPassPeople` maps to `nextNeighbors` / `thirdNeighbors` /
+`prevNeighbors`. Despite the shared name, this is **not** the `in`/`out`/`up`/
+`down` domain `swing.endFacing` and `gate.face` use.
+
+The corpus **does** contain cardinal facings on courtesy-turn lines — `Ones
+courtesy turn; face down`, `Partner courtesy turn (power turn); face out`,
+`Partner courtesy turn 2; face clockwise around the major set` — and it is worth
+being precise about why they do not contradict the finding. Every one of them
+uses a **semicolon**, and the CallersBox `;`-compound splitter is
+all-or-nothing: the `; face down` clause structures to nothing, so the whole
+line stays `custom` and the cardinal never reaches a slot. That is a property of
+the compound rule, not of the facing grammar — if the `;` handling is ever
+loosened, cardinals would start arriving at a dancer-valued param.
+
+**⚠️ There is no two-dancer form.** Searching for `<X> courtesy turn <Y>` finds
+nothing: `who` always names the pairing, never a turner plus a turnee. So the
+`whom` slot, though modeled for manual authoring, is never filled on import.
+
+**Wordings that stay `custom` (and why).** 30 lines write a **chain** — or a
+right-and-left-through / promenade, which end the same way — together with its
+courtesy turn (`[W1+W2] Ladies chain, with half courtesy turn in center`,
+`Ladies chain to partner with double courtesy turn`, `Right and left through
+with partner with double courtesy turn`, `Neighbor promenade across with double
+courtesy turn`). Emitting a standalone courtesy turn for one of these would
+double-count both the figure and its beats. 7 lines say **"arky"** (roles
+reversed — unmodeled here, and ContraDB has no such concept either). 6 state a
+**rotation amount** the four-slot model has no param for. The rest name dancers
+the vocabulary deliberately does not map (`phantom partner`, `P1`/`P2`/`P4
+partner`, `next corner`, `opposite neighbor`, `bottom couple`, `fives`). A
+further 19 lines contain the word "courtesy" but no courtesy turn at all — the
+`("courtesy fling")` variant of a right and left through.
+
+**Annotations.** 7 claimable lines carry one (`(in center)` x4, `(continued)`
+x3, plus bracketed subjects `[Ones and threes]` / `[Sides]`). The recognition
+pass strips `()`/`[]`, so a structured match would have silently lost them; a
+front-end pre-recognizer preserves them verbatim as the figure's note, the same
+mechanism `gate` uses for `(ones forward)`.
+
+**Whole-corpus effect of taxonomy v23**, measured with the same harness on the
+same mirror: custom figures 22,272 → **22,180** (−92), structured share
+78.69% → **78.78%**, per-dance beat totals byte-identical for all 20,516
+dances. The figure count rises by 14 because **13 compound parents**
+(`Modified ladies chain to partner:`, `Wheel chain to neighbor:`) now
+decompose — their all-or-nothing child list was previously blocked by the one
+child that could not structure.
+
 ## Open questions
 
 - Fraction of dances at each permission tier (only a crawl or the maintainers can

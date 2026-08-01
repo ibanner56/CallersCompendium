@@ -284,7 +284,64 @@ import 'taxonomy.dart';
 ///     because ContraDB's gate has no amount param at all. `goodBeats` widens
 ///     from ContraDB's `[8]` / rotation_gate's `[4,6,8]` to `[2,3,4,6,8]`, the
 ///     counts attested across the 186 corpus gate lines.
-const int contraTaxonomyVersion = 22;
+/// v23: ADDS `courtesy_turn` (`who`, `whom`, `direction`, `endFacing`, `beats`).
+///     Purely additive — a new move, no rename and no removal — so, distinct
+///     from CompendiumDatabase.schemaVersion, NO persisted-data migration is
+///     implied (cf. v20's `mad_robin`/`butterfly_whirl` params and v15's
+///     `rotation_gate`, both additive with no migration). The params ride the
+///     existing `figures_json` figure codec, and no stored figure can reference
+///     a move that did not exist, so every existing figure renders unchanged.
+///
+///     ENTIRELY TCB-SOURCED — ContraDB models this figure NOWHERE. Verified
+///     against libfigure at github.com/contradb/contra @ master: a repository-
+///     wide code search for "courtesy" returns ZERO hits, in any casing and any
+///     file. Its `chain` carries exactly four params (`subject_role_ladles`,
+///     `by_right_hand`, `set_direction_across`, `beats_8`) and its
+///     `right left through` exactly two (`set_direction_across`, `beats_8`);
+///     neither has a courtesy-turn slot, flag or ending facing. ContraDB treats
+///     the courtesy turn as an unparameterized sub-component of those figures.
+///     That is precisely why a TCB line writing one as its OWN figure line —
+///     which TCB does on 115 lines of the 24,107-dance corpus — had no home
+///     before this version and fell to `custom`.
+///
+///     Slots, and the evidence for each (census over the whole corpus):
+///     - `who` — the pairing the turn is danced with, stated on every line:
+///       partner x53, neighbor x39, N2 neighbor x13, shadow x1, N3 neighbor x1,
+///       twos x1. Defaults to `partners` (the mode) for the authoring path; a
+///       recognizer that has to fall back to it marks the figure
+///       `assumedSubject` rather than asserting a subject the line never gave.
+///     - `whom` — **no source states it.** A search for the two-dancer form
+///       `<X> courtesy turn <Y>` finds nothing in the corpus: `who` always
+///       names the pairing, never a turner plus a turnee. The slot exists for
+///       manual authoring only, defaults to the `unspecified` sentinel, and the
+///       importer NEVER fills it. Per the maintainer's ruling: "you can make
+///       the end_facing and whom optional, left out by default unless it
+///       actually shows up in parsing data".
+///     - `direction` — TCB states one on 10 lines and every one of them is
+///       `clockwise`; `counterclockwise` is unattested. A courtesy turn IS
+///       clockwise by construction (the couple wheels as a unit), so those 10
+///       lines are redundant confirmations rather than a distinction, and
+///       `clockwise` is a REAL default, not a fabrication. Deliberately carries
+///       NO `unspecified` sentinel — see the param comment for the issue-#726
+///       editor hazard that makes a sentinel here actively unsafe.
+///     - `endFacing` — a **DANCER**, not a facing. Every attested value is a
+///       neighbor relationship: `, face N2` x8, `, face N3` x4, `, face N0` x1.
+///       See the param comment: this is the single easiest thing to get wrong
+///       about this move.
+///     `goodBeats: [2, 3, 4, 6]` — the counts attested across the 115 corpus
+///     lines this move's grammar claims (4 x97, 2 x8, 3 x6, 6 x4). `5` and `8`
+///     appear only on lines that MENTION a courtesy turn but can never
+///     structure as one (`(5) Neighbor promenade across; courtesy turn 3/4` is
+///     a `;` compound; the `8`s are `right and left through …
+///     ("courtesy fling")` lines), so they are correctly absent. The marginal
+///     values were checked rather than assumed, per the v22 precedent: dance
+///     2957 writes `(8) Modified ladies chain to partner:` -> `(6) Women
+///     allemande right 1 & 1/2` + `(2) Partner courtesy turn` — the
+///     courtesy-turn tail of a decomposed chain, the exact shape our own
+///     compound fan-out emits — dance 174 `(5) Women allemande right 1` +
+///     `(3) Neighbor courtesy turn`, and dance 14823 `(10) Star left 1 & 1/4` +
+///     `(6) Partner courtesy turn`. All genuine timing, none noise.
+const int contraTaxonomyVersion = 23;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -601,6 +658,136 @@ final Taxonomy contraTaxonomy = Taxonomy(
       },
       renderTemplate: '{who} {move} {dir}',
       goodBeats: [8],
+    ),
+    // v23: The Caller's Box's standalone courtesy turn. ContraDB models this
+    // figure NOWHERE (0 hits repo-wide for "courtesy" at contradb/contra @
+    // master) — it treats the courtesy turn as an unparameterized sub-component
+    // of `chain` and `right left through`, neither of which carries a slot for
+    // it. TCB instead writes it as its own figure line 115 times across the
+    // 24,107-dance corpus, which is what this move exists to hold.
+    //
+    // NOT a chain, and never emitted by one. 30 corpus lines write both
+    // together (`[W1+W2] Ladies chain, with half courtesy turn in center`,
+    // `Ladies chain to partner with double courtesy turn`, `Right and left
+    // through with partner with double courtesy turn`, `Neighbor promenade
+    // across with double courtesy turn`). Those stay whole-`custom`: a chain
+    // line that also emitted a standalone `courtesy_turn` would double-count
+    // both the figure and its beats, and — since neither our `chain` nor
+    // ContraDB's has a courtesy-turn parameter — there is no slot in either
+    // model for the qualifier to ride in. The recognizer's whole-line contract
+    // enforces this by construction (the leftover `chain`/`with`/`double`
+    // tokens decline the line); no exclusion logic is needed and none is
+    // written.
+    const MoveDef(
+      id: 'courtesy_turn',
+      displayName: 'courtesy turn',
+      params: {
+        // The pairing the turn is danced with — TCB states it on every line
+        // (partner x53, neighbor x39, N2 neighbor x13, shadow/N3 neighbor/twos
+        // x1 each). `partners` is the mode, used as the authoring default; a
+        // recognizer that falls back to it marks the figure `assumedSubject`.
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        // The dancer being turned, when a source names a turner AND a turnee.
+        // NO SOURCE DOES: searching the corpus for `<X> courtesy turn <Y>`
+        // finds nothing, so `who` always names the pairing and this slot is
+        // never filled on import. It exists for manual authoring, per the
+        // maintainer's ruling that `whom` be "left out by default unless it
+        // actually shows up in parsing data". Full dancer domain plus the
+        // sentinel, exactly like `gate.who`/`gate.whom` (v22).
+        'whom': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _dancerOrUnspecified,
+        ),
+        // The rotation sense. A courtesy turn wheels clockwise by construction,
+        // and all 10 corpus lines that state a direction say `clockwise` —
+        // `counterclockwise` is unattested — so `clockwise` is a REAL default
+        // rather than a fabricated one, and the display renderer says nothing
+        // when it holds.
+        //
+        // ⚠️ DELIBERATELY NO `unspecified` SENTINEL, and this is load-bearing,
+        // not an oversight. `ParamKind.spinDirection` is one of the kinds the
+        // app's figure param editor renders from a HARDCODED vocabulary,
+        // ignoring `spec.choices` entirely (`figure_param_editors.dart`:
+        // `case ParamKind.spinDirection: return _dropdown(ParamVocab.spins)`).
+        // A sentinel-bearing spinDirection would not merely show a dropdown
+        // missing the sentinel — `_dropdown`'s reconciliation pushes a
+        // substitute value back into the draft via `addPostFrameCallback`, so
+        // simply OPENING the editor would silently rewrite "the source stated
+        // nothing" into "clockwise". That is the exact class of bug #724 had to
+        // fix at the UI layer, and issue #726 tracks the editor gap. The
+        // established workaround where a sentinel is genuinely needed is to
+        // declare the param `ParamKind.choice` instead (see `_handOrUnspecified`
+        // / `_spinOrUnspecified`); this move does not need one, so it uses the
+        // honest kind.
+        'direction': ParamSpec(
+          ParamKind.spinDirection,
+          defaultValue: 'clockwise',
+        ),
+        // ⚠️ THIS IS A DANCER, NOT A FACING — do not read it as `swing.endFacing`.
+        // The names match; the domains do not. `swing.endFacing` (issue #543)
+        // and `gate.face` (v22) hold the four set-relative cardinals
+        // (`in`/`out`/`up`/`down`, i.e. `gateFacings`). THIS param holds a
+        // dancer relationship, because that is what the source states: all 13
+        // corpus lines with an in-line ending facing write `, face N2` (x8),
+        // `, face N3` (x4) or `, face N0` (x1), which `tcbPassPeople` maps to
+        // `nextNeighbors` / `thirdNeighbors` / `prevNeighbors`.
+        //
+        // The corpus DOES also contain cardinal facings — `Ones courtesy turn;
+        // face down`, `Partner courtesy turn (power turn); face out`, `Partner
+        // courtesy turn 2; face clockwise around the major set` — but every one
+        // of them uses a SEMICOLON, and `parseFigureLines`' all-or-nothing
+        // `;`-compound rule keeps such a line whole-`custom` (its `; face down`
+        // clause structures to nothing). They therefore never reach this slot.
+        // Stated explicitly because it is a live hazard: anyone who later
+        // loosens that `;` handling would start feeding `down`/`out` into a
+        // dancer domain. If a cardinal ending facing is ever genuinely needed
+        // here it needs its OWN param, not this one.
+        //
+        // Full dancer domain plus the sentinel (cf. `gate.who`/`gate.whom`):
+        // the recognizer only ever fills what a line states, so widening the
+        // domain beyond the three attested tokens fabricates nothing.
+        'endFacing': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _dancerOrUnspecified,
+        ),
+        'beats': _beats4,
+      },
+      // Canonical (dedupe/FTS) line, deliberately FLAT — a `renderTemplate`
+      // cannot express a conditional. The maintainer's stated wording
+      // (`{who} courtesy turn {whom, when present} {direction, when not
+      // clockwise} {"to face" + endFacing, when set}`) is the DISPLAY render
+      // and lives in `renderer.dart`'s `_displayBaseRenderers`, exactly as the
+      // merged `gate`'s "to face …" clause does. `whom`/`endFacing` are the
+      // `unspecified` sentinel unless stated and render as the empty string, so
+      // an imported line reads "partners courtesy turn clockwise" — carrying
+      // the default direction the same way `right_left_through` carries its
+      // default `across`. `direction` stays IN the canonical text (rather than
+      // being display-only like `swing.endFacing`) because that omission was a
+      // byte-stability concession a brand-new move does not need, and without
+      // it a counterclockwise courtesy turn would dedupe as identical to a
+      // clockwise one.
+      renderTemplate: '{who} {move} {whom} {direction} {endFacing}',
+      // DEFINE THE POPULATION BEFORE ARGUING ABOUT THE TAIL. This list is drawn
+      // from the 115 lines this move's GRAMMAR CLAIMS, not from the 228 lines a
+      // grep for "courtesy turn" returns — and the two disagree at exactly the
+      // margins where a `goodBeats` judgement call feels hardest. Over the
+      // claimable population: 4 x97, 2 x8, 3 x6, 6 x4. Over the grep
+      // population, a `5` and five `8`s also appear, and both are artifacts:
+      // the `5` is `(5) Neighbor promenade across; courtesy turn 3/4` (a `;`
+      // compound, kept whole-custom) and the `8`s are
+      // `right and left through …("courtesy fling")` lines, which are not
+      // courtesy turns at all. Including either would have weakened the
+      // atypical-beat warning for every author, to fit data this move never
+      // sees. The lesson generalizes past this param: when a corpus statistic
+      // decides a taxonomy value, measure the set the code will actually act
+      // on.
+      //
+      // The genuinely marginal values (2, 3, 6) were then checked in context
+      // rather than assumed, per the v22 precedent, and are all real timing —
+      // see the version-history entry above for the three dances.
+      goodBeats: [2, 3, 4, 6],
     ),
     const MoveDef(
       id: 'promenade',

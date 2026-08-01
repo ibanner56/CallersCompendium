@@ -48,6 +48,27 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **"Courtesy turn" is now a real figure.** Until now, a Caller's Box dance that
+  called a courtesy turn on its own line landed in the unrecognized "custom"
+  bucket — around 115 lines across the whole Caller's Box collection. They now
+  import as a proper figure you can search, edit and swap the dialect on, with
+  the pairing ("partner", "neighbor", "N2 neighbor"), the direction when the
+  source gives one, and the dancer you end up facing when it says
+  "…, face N2".
+  - The app only records what the source actually says. A courtesy turn is
+    clockwise unless told otherwise, so the direction is only spelled out when
+    it isn't — and notes like "(in center)" or "(continued)" are kept
+    word-for-word next to the figure rather than being dropped.
+  - Anything the app can't represent exactly is still kept as plain text, so
+    nothing is quietly lost or guessed at: a ladies' chain that mentions its own
+    courtesy turn, an "arky" courtesy turn (roles reversed), a courtesy turn
+    with a stated amount like "3/4", and dancers the app doesn't model
+    ("phantom partner", "P2 partner", "next corner") all stay as written.
+  - As a bonus, thirteen dances that spell a "modified ladies chain" or "wheel
+    chain" out into its parts now import those parts too — previously the whole
+    block stayed unrecognized because one of its steps was the courtesy turn.
+  - Beat counts and section placement are unchanged for every existing dance.
+
 - **Caller's Box imports now understand shorthand figures written as their
   parts.** A grand right and left that lists its passes — e.g.
   `Grand right and left (N1R;N2L)` — imports as the individual pull-bys it is

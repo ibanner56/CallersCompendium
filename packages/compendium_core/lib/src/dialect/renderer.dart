@@ -892,6 +892,47 @@ class FigureRenderer {
           : '';
       return '$head$forwardClause$facingClause';
     },
+    // The Caller's Box's standalone courtesy turn (taxonomy v23). Maintainer's
+    // stated wording, verbatim:
+    //   {who} courtesy turn {whom, when present} {direction, when not
+    //   clockwise} {"to face" + endFacing, when set}
+    // A `renderTemplate` cannot express those conditionals, so the canonical
+    // (dedupe/FTS) render keeps expanding the flat template — byte-stability of
+    // the canonical text is therefore untouched by anything here — and the
+    // conditional wording lives on this DISPLAY-ONLY path, exactly as the
+    // merged `gate`'s "to face …" clause does.
+    //
+    // `clockwise` is silenced because a courtesy turn wheels clockwise by
+    // construction: all 10 corpus lines that state a direction say `clockwise`,
+    // so printing it would add a word to nearly every courtesy turn while
+    // distinguishing nothing. `counterclockwise` — unattested in the corpus but
+    // authorable — is genuinely surprising and always shown. An unexpected
+    // value is surfaced rather than silently vanishing, mirroring `gate`.
+    //
+    // `endFacing` renders in ContraDB's "to face …" idiom, but the value it
+    // names is a DANCER (`face N2` → "to face next neighbors"), not one of the
+    // four cardinals `swing.endFacing`/`gate.face` use — see the taxonomy param
+    // comment. It therefore goes through `_displaySubject` (dialect-aware),
+    // never `_gateFacingPhrase`.
+    'courtesy_turn': (r, def, params, dialect, verbose, decimals) {
+      final swho = r._subjectWho(params, dialect);
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final whomRaw = params['whom'];
+      final whom = (!_isUnspecified(whomRaw) && whomRaw != null)
+          ? r._displaySubject(whomRaw, dialect)
+          : '';
+      final directionRaw = params['direction'];
+      final direction = (directionRaw == 'clockwise')
+          ? ''
+          : _displayChoice(directionRaw);
+      final facingRaw = params['endFacing'];
+      final facing = (!_isUnspecified(facingRaw) && facingRaw != null)
+          ? ' to face ${r._displaySubject(facingRaw, dialect)}'
+          : '';
+      // The enclosing [_render] collapses the whitespace runs an empty slot
+      // leaves behind, so the all-defaults line reads "partner courtesy turn".
+      return '$swho $move $whom $direction$facing';
+    },
     // ContraDB `zigZagWords`: words(twho, "zig", sspin, "zag", return_sspin, …).
     // The zag direction is the mirror of the zig (`turn`) direction. ContraDB
     // omits the partners subject; per the ratified decision we instead surface

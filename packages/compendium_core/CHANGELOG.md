@@ -77,6 +77,69 @@
 
 ### Added
 
+- **New `courtesy_turn` move (`contraTaxonomyVersion` 23; `CompendiumDatabase`
+  schema stays **20** — purely additive, no migration).** The Caller's Box
+  writes a standalone courtesy turn on **115** of its 24,107-dance corpus's
+  figure lines and, until now, every one of them — 228 lines mentioning one in
+  total — fell to `custom`.
+  - **Entirely TCB-sourced.** ContraDB models this figure **nowhere**: a
+    repository-wide code search of `contradb/contra @ master` for "courtesy"
+    returns zero hits. Its `chain` carries exactly four params
+    (`subject_role_ladles`, `by_right_hand`, `set_direction_across`, `beats_8`)
+    and its `right left through` exactly two; neither has a courtesy-turn slot,
+    flag or ending facing. ContraDB treats the courtesy turn as an
+    unparameterized sub-component of those figures — which is precisely why a
+    TCB line writing one as its OWN figure line had no home.
+  - **Four slots, each backed by a corpus census.** `who` (stated on every
+    line — partner x53, neighbor x39, N2 neighbor x13); `whom` (**no source
+    states it** — there is no two-dancer `X courtesy turn Y` form anywhere in
+    the corpus, so it is authoring-only and never filled on import); `direction`
+    (10 lines state one, all `clockwise`); `endFacing` (13 lines).
+  - **`endFacing` is a DANCER, not a facing.** Despite sharing a name with
+    `swing.endFacing`, it does **not** hold the four set-relative cardinals.
+    Every attested value is a neighbor relationship — `, face N2` x8,
+    `, face N3` x4, `, face N0` x1 — mapped through `tcbPassPeople`. The corpus
+    does write cardinal facings on courtesy-turn lines, but always after a `;`,
+    where the existing all-or-nothing compound rule keeps the line whole-custom
+    before any recognizer sees it.
+  - **`direction` deliberately carries no `unspecified` sentinel.**
+    `ParamKind.spinDirection` is rendered by the app's param editor from a
+    hardcoded vocabulary that ignores `spec.choices` (issue #726), and the
+    editor's dropdown reconciliation would push a substitute value back into the
+    draft — so a sentinel there would silently rewrite "unstated" into
+    "clockwise" on open. A courtesy turn wheels clockwise by construction, so
+    the real default is honest and no sentinel is needed.
+  - **`goodBeats: [2, 3, 4, 6]`** — the counts attested across the 115 claimable
+    lines (4 x97, 2 x8, 3 x6, 6 x4). The `5` and `8` a naive grep finds belong
+    to lines that can never structure as this move. The marginal values were
+    verified in context rather than assumed, per the v22 precedent.
+  - **Rendering is split canonical/display.** Canonical (dedupe/FTS) keeps the
+    flat `'{who} {move} {whom} {direction} {endFacing}'`; the conditional
+    wording — `{who} courtesy turn {whom, when present} {direction, when not
+    clockwise} {"to face" + endFacing, when set}` — lives on the display path,
+    as the merged `gate`'s "to face …" clause does.
+- **The Caller's Box recognizer for courtesy turns**, reading
+  `[<dancer>] courtesy turn [<dancer>] [clockwise|counterclockwise]
+  [face <dancer>]` under the whole-line contract, plus a front-end
+  pre-recognizer that preserves a TCB annotation (`(in center)`, `(continued)`,
+  `[Ones and threes]`) verbatim as the figure's **note** — so a structured match
+  loses nothing the `custom` fallback kept. That single contract is also what
+  keeps every unmodelable wording honest, with no exclusion logic written: a
+  **chain** (or right-and-left-through / promenade) that also names its courtesy
+  turn stays whole-custom (30 lines — structuring it would double-count both the
+  figure and its beats, and neither model has a slot for the qualifier);
+  **"arky"** stays custom (7 lines — reversed roles, unmodeled, and ContraDB has
+  no such concept either); a stated **rotation amount** stays custom (6 lines —
+  the move has no `turn` param); and every unmappable dancer (`phantom
+  partner`, `P1`/`P2`/`P4 partner`, `next corner`, `opposite neighbor`,
+  `bottom couple`, `fives`) declines rather than being approximated.
+  - Measured over the whole mirror with the real adapter: custom figures
+    22,272 → **22,180**, structured share 78.69% → **78.78%**, per-dance beat
+    totals **byte-identical** for all 20,516 dances. A secondary win: **13
+    compound parents** (`Modified ladies chain to partner:`, `Wheel chain to
+    neighbor:`) now decompose into their children, because their all-or-nothing
+    child list was previously blocked by the one child that could not structure.
+
 - **Balance-a-wave lines from The Caller's Box now import as real figures
   (#295, subsuming #296).** TCB writes "balance an existing wave" as its own
   line (`Balance wave of four (NR,WL)`, `Balance long wave (NR, women face
