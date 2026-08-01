@@ -6,6 +6,7 @@ import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/facet_panel.dart';
 import '../support/l10n_harness.dart';
+import '../support/screen_size.dart';
 
 Future<void> _pump(
   WidgetTester tester,
@@ -17,8 +18,17 @@ Future<void> _pump(
   List<Choreographer> authors = const [],
   bool hasMixedLevel = false,
   bool hasRating = false,
+  // Only set when a test needs to exercise ResponsiveAutocomplete's narrow
+  // layout; existing (unset) tests keep relying on the default test window
+  // (800x600), which is already comfortably above the compact width/height
+  // breakpoints (600/480), so the author facet's wide inline overlay
+  // behaves exactly as it did before the ResponsiveAutocomplete migration.
+  Size? screenSize,
   required VoidCallback onChanged,
 }) async {
+  if (screenSize != null) {
+    await setScreenSize(tester, screenSize);
+  }
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
@@ -542,5 +552,118 @@ void main() {
         'c2',
       });
     });
+
+    testWidgets(
+      'narrow layout: picking an author from the keyboard-safe sheet adds '
+      'it and closes the sheet, with the option fully visible above a '
+      'simulated keyboard inset (#716)',
+      (tester) async {
+        final facets = FacetSelections();
+        var changes = 0;
+        await _pump(
+          tester,
+          facets,
+          authors: authors,
+          screenSize: const Size(360, 720),
+          onChanged: () => changes++,
+        );
+
+        await tester.tap(
+          find.byKey(const ValueKey('author-facet-search')),
+          warnIfMissed: false,
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsOneWidget);
+
+        // Simulate a software keyboard inset, as issue #716 describes.
+        tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+        addTearDown(tester.view.resetViewInsets);
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.byKey(const ValueKey('author-facet-search')),
+          'folk',
+        );
+        await tester.pumpAndSettle();
+
+        final option = find.byKey(const ValueKey('author-facet-option-c1'));
+        expect(option, findsOneWidget);
+        final optionRect = tester.getRect(option);
+        final screenHeight =
+            tester.view.physicalSize.height / tester.view.devicePixelRatio;
+        expect(optionRect.bottom, lessThanOrEqualTo(screenHeight - 300));
+
+        await tester.tap(option);
+        await tester.pumpAndSettle();
+
+        expect(facets.authorIds, {'c1'});
+        expect(changes, 1);
+        // Picking always closes the sheet (owner's Q1 decision, uniform
+        // across all seven call sites, including multi-select facets like
+        // this one — tap the search field again to add another author).
+        expect(find.byType(BottomSheet), findsNothing);
+        expect(
+          find.byKey(const ValueKey('author-facet-chip-c1')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'narrow layout: the search field re-opens with an empty query for '
+      'the next author (#716)',
+      (tester) async {
+        final facets = FacetSelections();
+        await _pump(
+          tester,
+          facets,
+          authors: authors,
+          screenSize: const Size(360, 720),
+          onChanged: () {},
+        );
+
+        await tester.tap(
+          find.byKey(const ValueKey('author-facet-search')),
+          warnIfMissed: false,
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('author-facet-search')),
+          'folk',
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('author-facet-option-c1')));
+        await tester.pumpAndSettle();
+
+        // Tap again to add a second author: the sheet must re-open with an
+        // empty query (the cleared launcher's own text), not "folk" left
+        // over from the first pick.
+        await tester.tap(
+          find.byKey(const ValueKey('author-facet-search')),
+          warnIfMissed: false,
+        );
+        await tester.pumpAndSettle();
+
+        final sheetField = find.descendant(
+          of: find.byType(BottomSheet),
+          matching: find.byKey(const ValueKey('author-facet-search')),
+        );
+        expect(tester.widget<TextField>(sheetField).controller!.text, '');
+        // The already-selected c1 is excluded, so an empty query still
+        // shows no options until the caller types again — same contract as
+        // the wide layout.
+        expect(
+          find.byKey(const ValueKey('author-facet-option-c2')),
+          findsNothing,
+        );
+
+        await tester.enterText(sheetField, 'grace');
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('author-facet-option-c2')));
+        await tester.pumpAndSettle();
+
+        expect(facets.authorIds, {'c1', 'c2'});
+      },
+    );
   });
 }

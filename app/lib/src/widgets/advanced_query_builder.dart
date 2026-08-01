@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../search/facet_labels.dart';
+import 'responsive_autocomplete.dart';
 
 /// The "Advanced" boolean-tree query builder (`docs/design/search.md`
 /// "Query-builder UX"). Edits the mutable [BuilderGroup] [root] in place and
@@ -642,6 +643,11 @@ class _MoveField extends StatelessWidget {
     return MoveTypeAheadField(
       initialText: current,
       taxonomy: taxonomy,
+      // New capability (this call site had no ValueKeys before, so there's
+      // no existing test dependency to preserve — see PR body): lets the
+      // narrow-layout sheet's field/options be found by key like every
+      // other picker, and gives assistive tech a stable identity per figure.
+      fieldKey: 'has-figure-${figure.id}',
       onSelected: (m) {
         if (figure.move != m.id) {
           figure.move = m.id;
@@ -660,10 +666,10 @@ class _MoveField extends StatelessWidget {
   }
 }
 
-/// A reusable move type-ahead: an [Autocomplete] over the [Taxonomy]'s moves
-/// (matching display name, id, or search keywords), rendered as a dense
-/// outlined [TextField]. Shared by the Advanced builder's "has figure" rows and
-/// the By-Phrase panel so both search moves identically.
+/// A reusable move type-ahead: a [ResponsiveAutocomplete] over the
+/// [Taxonomy]'s moves (matching display name, id, or search keywords),
+/// rendered as a dense outlined [TextField]. Shared by the Advanced builder's
+/// "has figure" rows and the By-Phrase panel so both search moves identically.
 ///
 /// [onSelected] fires when the user picks a move; [onCleared] (optional) fires
 /// when the field is emptied. Multi-select callers (e.g. the By-Phrase panel)
@@ -678,6 +684,7 @@ class MoveTypeAheadField extends StatelessWidget {
     this.onCleared,
     this.labelText,
     this.hintText,
+    this.fieldKey,
   });
 
   final Taxonomy taxonomy;
@@ -687,12 +694,25 @@ class MoveTypeAheadField extends StatelessWidget {
   final String? labelText;
   final String? hintText;
 
+  /// Optional key stem for the inner [TextField] (`<fieldKey>-input`) and
+  /// each option row (`<fieldKey>-option-<moveId>`).
+  ///
+  /// This call site previously had NO `ValueKey`s at all (it used
+  /// [Autocomplete]'s default overlay, un-keyed) and no test targets them —
+  /// so threading this through is a new capability the migration to
+  /// [ResponsiveAutocomplete] adds, not a rename of anything pre-existing.
+  final String? fieldKey;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Autocomplete<MoveDef>(
+    final label = labelText ?? l10n.collectionQueryMoveLabel;
+    return ResponsiveAutocomplete<MoveDef>(
       initialValue: TextEditingValue(text: initialText),
       displayStringForOption: (m) => m.displayName,
+      // Reuses the field's own label as the sheet's a11y announcement (e.g.
+      // "Move"), matching the pattern in `MoveAutocomplete`.
+      sheetSemanticLabel: label,
       optionsBuilder: (value) {
         final q = value.text.trim().toLowerCase();
         if (q.isEmpty) return const Iterable<MoveDef>.empty();
@@ -707,12 +727,21 @@ class MoveTypeAheadField extends StatelessWidget {
       onSelected: (m) {
         onSelected(m);
       },
+      optionTileBuilder: (context, m, onSelected) {
+        return ListTile(
+          key: fieldKey == null ? null : ValueKey('$fieldKey-option-${m.id}'),
+          dense: true,
+          title: Text(m.displayName),
+          onTap: onSelected,
+        );
+      },
       fieldViewBuilder: (context, controller, focusNode, onSubmit) {
         return TextField(
+          key: fieldKey == null ? null : ValueKey('$fieldKey-input'),
           controller: controller,
           focusNode: focusNode,
           decoration: InputDecoration(
-            labelText: labelText ?? l10n.collectionQueryMoveLabel,
+            labelText: label,
             hintText: hintText ?? l10n.collectionQueryMoveHint,
             isDense: true,
             border: const OutlineInputBorder(),
