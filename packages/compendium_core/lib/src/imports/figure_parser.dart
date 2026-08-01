@@ -698,6 +698,12 @@ final List<_Recognizer> _recognizers = [
   _starPromenade,
   _star,
   _chain,
+  // Taxonomy v23: TCB's standalone `courtesy turn`. Anchors on the two-word
+  // `courtesy turn` phrase, which no other recognizer consumes, so its position
+  // here is for locality (next to `chain`, its choreographic neighbour) rather
+  // than correctness. Conservative — any leftover token declines to custom,
+  // which is what keeps every chain-embedded courtesy turn whole-custom.
+  _courtesyTurn,
   _rightLeftThrough,
   // Order among these three is not correctness-critical: each recognizer runs on
   // its own copy of the word list, and "pass the ocean" contains no "through" so
@@ -1119,6 +1125,102 @@ _Match? _chain(List<String> w) {
   // unset so the taxonomy default (role2s) applies.
   if (who2 != null && who2 != 'role1s' && who2 != 'role2s') return null;
   return _Match('chain', {'who': ?who2, 'dir': ?dir}, note);
+}
+
+// The Caller's Box's standalone courtesy turn (taxonomy v23). Grammar:
+//
+//   [<dancer>] courtesy turn [<dancer>] [clockwise|counterclockwise] [face <dancer>]
+//
+// Lives in the SHARED core rather than the TCB dialect because the grammar is
+// source-neutral — nothing in it is TCB-only notation. (ContraDB will never
+// exercise it: libfigure models no courtesy turn at all.)
+//
+// Placement in `_recognizers` is not correctness-critical. The `courtesy turn`
+// anchor phrase is consumed by no other recognizer, and every recognizer runs
+// on its own copy of the word list, so this neither shadows nor is shadowed;
+// it sits next to `_chain` purely for locality, since the two are choreographic
+// neighbours and the chain interaction below is the thing a reader will look
+// for here.
+//
+// Conservative, per the whole-line contract: any leftover token declines the
+// line to `custom`. That single rule is what keeps every unmodelable corpus
+// wording honest, WITHOUT a word of exclusion logic:
+//   * a chain that also names a courtesy turn — `Ladies chain to partner with
+//     double courtesy turn`, `[W1+W2] Ladies chain, with half courtesy turn in
+//     center`, `Right and left through with partner with double courtesy
+//     turn`, `Neighbor promenade across with double courtesy turn` (30 corpus
+//     lines) — leaves `chain`/`with`/`double`/`half` over and stays whole
+//     `custom`. It must: emitting a standalone courtesy turn alongside the
+//     chain would double-count both the figure and its beats, and neither our
+//     `chain` nor ContraDB's has a slot for the qualifier to ride in.
+//   * `Partner arky courtesy turn` (7 lines) leaves `arky` over. "Arky" means
+//     the roles are reversed and we have no model for that, so structuring the
+//     rest would silently drop real choreography.
+//   * `Phantom partner`, `P1/P2/P4 partner`, `Next corner`, `Opposite
+//     neighbor`, `Bottom couple`, `Fives`, `Left-end partner and right-end
+//     partner` all leave their unmappable qualifier over. Those dancers are
+//     deliberately unmapped (see docs/research/callersbox.md) and must decline,
+//     not be approximated onto a token that means someone else.
+//   * `Partner courtesy turn without hands`, `Partner courtesy turn 3/4`,
+//     `Partner courtesy turn 1 // partner courtesy turn 2` leave a modifier or
+//     a rotation amount over. The move has no `turn` param — the maintainer's
+//     four-slot ruling gives it none — so an amount-bearing line stays custom
+//     rather than losing the amount.
+_Match? _courtesyTurn(List<String> w) {
+  // Capture the ending-facing clause FIRST, before any `_takeDancer` runs, so
+  // its dancer can never be mistaken for the subject — the same ordering guard
+  // `_chain` uses for its "to <dancer>" note. Without it, `courtesy turn face
+  // N2` would resolve `who: nextNeighbors`, inverting the line's meaning.
+  final endFacing = _takeFacingDancer(w);
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['courtesy', 'turn'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  // Emitted only when the line STATES it. Omitted otherwise, so the taxonomy's
+  // `clockwise` default applies without the figure claiming the source said so.
+  // Every one of the 10 corpus lines that states a direction says `clockwise`;
+  // `counterclockwise` is accepted for authoring parity and is unattested.
+  final direction = _takeSpinDirection(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match(
+    'courtesy_turn',
+    {
+      'who': who2 ?? 'partners',
+      'direction': ?direction,
+      'endFacing': ?endFacing,
+    },
+    null,
+    who2 == null,
+  );
+}
+
+/// Consumes a trailing `face <dancer>` clause and returns the canonical dancer
+/// token, or null when absent. TCB writes it as `Partner courtesy turn, face
+/// N2` — the comma is stripped by `_normalize`, so `face` and the dancer arrive
+/// as adjacent words.
+///
+/// The value is a **DANCER**, not a cardinal facing: all 13 attested lines say
+/// `face N0`/`N2`/`N3`. TCB does also write cardinal facings (`Ones courtesy
+/// turn; face down`), but always after a `;`, and the all-or-nothing
+/// `;`-compound rule keeps those lines whole-custom before they reach any
+/// recognizer. Requiring the very next word to be a dancer is what keeps it
+/// that way if that ever changes: `face down` resolves no dancer, so it is left
+/// as leftover and declines the line.
+String? _takeFacingDancer(List<String> w) {
+  final i = w.indexOf('face');
+  if (i == -1 || i + 1 >= w.length) return null;
+  final token = _dancerWords[w[i + 1]];
+  if (token == null) return null;
+  // Absorb TCB's redundant "N2 neighbor" pairing, mirroring `_takeDancer`.
+  var end = i + 2;
+  if (w[i + 1].length == 2 &&
+      w[i + 1].startsWith('n') &&
+      end < w.length &&
+      (w[end] == 'neighbor' || w[end] == 'neighbors')) {
+    end++;
+  }
+  w.removeRange(i, end);
+  return token;
 }
 
 _Match? _rightLeftThrough(List<String> w) {

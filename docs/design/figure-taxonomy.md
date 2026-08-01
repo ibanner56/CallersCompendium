@@ -79,6 +79,14 @@ Parameter-level details (per-move param sets, defaults, valid beats) follow
 ContraDB's definitions as surveyed in research/contradb.md and are finalized
 in the implementation with exhaustive tests; deviations get logged in this doc.
 
+**Beyond ContraDB.** A few moves exist because a *source* states choreography
+ContraDB does not model. `courtesy_turn` (v23) is the clearest case: ContraDB
+has no such figure at all (0 hits for "courtesy" repo-wide — it treats the
+courtesy turn as an unparameterized sub-component of `chain` and `right left
+through`), while The Caller's Box writes one as its own figure line 115 times in
+the 24,107-dance corpus. Such a move is added only with a corpus census behind
+each of its params; see the version history below.
+
 ## Implementation status (v0.1 engine, roadmap 2.4)
 
 The figure engine (`packages/compendium_core/lib/src/{taxonomy,dialect,serialization}`)
@@ -486,6 +494,88 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   - **Out of scope:** `pull_by_dancers` and `pull_by_direction` also both
     display "pull by". That is the same presentational collision, but they are
     genuinely distinct moves and merging them is not obviously correct.
+- **v23 (`courtesy_turn` added):** a Caller's Box figure the taxonomy had no
+  home for. Purely additive — new move, no rename, no removal — so
+  **`kCompendiumSchemaVersion` stays 20 and no migration is owed** (cf. v20's
+  `mad_robin`/`butterfly_whirl` params and v15's `rotation_gate`). The params
+  ride the existing `figures_json` figure codec, and no stored figure can
+  reference a move that did not exist, so every existing figure renders
+  unchanged.
+  - **ContraDB models this figure NOWHERE.** Verified against
+    github.com/contradb/contra @ master: a repository-wide code search for
+    "courtesy" returns **zero** hits in any file. `chain` carries exactly four
+    params (`subject_role_ladles`, `by_right_hand`, `set_direction_across`,
+    `beats_8`) and `right left through` exactly two; neither has a
+    courtesy-turn slot, flag or ending facing. ContraDB treats the courtesy turn
+    as an unparameterized sub-component of those figures. TCB instead writes it
+    as its own figure line **115 times** in the 24,107-dance corpus, which is
+    what this move exists to hold.
+  - **Four slots, each source-verified** (census over the whole corpus):
+    | param | kind | default | evidence |
+    |---|---|---|---|
+    | `who` | `dancerSet` | `partners` | stated on every line — partner x53, neighbor x39, N2 neighbor x13, shadow/N3 neighbor/twos x1 each |
+    | `whom` | `dancerSet` | `unspecified` | **no source states it**; authoring-only |
+    | `direction` | `spinDirection` | `clockwise` | 10 lines state one; all 10 say `clockwise` |
+    | `endFacing` | `dancerSet` | `unspecified` | `, face N2` x8, `, face N3` x4, `, face N0` x1 |
+  - **`endFacing` is a DANCER, not a facing — the easiest thing to get wrong
+    here.** The name matches `swing.endFacing` (v16/#543) and `gate.face` (v22);
+    the domain does not. Those hold the four set-relative cardinals
+    (`in`/`out`/`up`/`down`, i.e. `gateFacings`). This one holds a dancer
+    relationship, because that is what TCB states: every in-line ending facing
+    is `, face N<n>`, which `tcbPassPeople` maps to
+    `prevNeighbors`/`nextNeighbors`/`thirdNeighbors`.
+    The corpus **does** also contain cardinal facings (`Ones courtesy turn; face
+    down`, `Partner courtesy turn (power turn); face out`), but every one of
+    them uses a **semicolon**, and the all-or-nothing `;`-compound rule keeps
+    such a line whole-`custom` because its `; face down` clause structures to
+    nothing. They therefore never reach the slot. This is worth stating
+    explicitly rather than leaving implicit: anyone who later loosens that `;`
+    handling would start feeding `down`/`out` into a dancer domain. A cardinal
+    ending facing, if ever needed here, needs its **own** param.
+  - **`direction` deliberately has NO `unspecified` sentinel**, and that is
+    load-bearing rather than an oversight. `ParamKind.spinDirection` is one of
+    the kinds the app's figure param editor renders from a *hardcoded*
+    vocabulary, ignoring `spec.choices`
+    (`figure_param_editors.dart`: `case ParamKind.spinDirection: return
+    _dropdown(ParamVocab.spins)`). A sentinel-bearing spec of that kind would
+    not merely show a dropdown missing the sentinel — `_dropdown`'s
+    reconciliation pushes a substitute value back into the draft via
+    `addPostFrameCallback`, so simply *opening* the editor would rewrite "the
+    source stated nothing" into "clockwise". That is the class of bug #724 had
+    to fix at the UI layer, and issue #726 tracks the editor gap. The
+    established workaround where a sentinel is genuinely needed is to declare
+    the param `ParamKind.choice` instead (see `_handOrUnspecified`); this move
+    does not need one, because a courtesy turn wheels clockwise by
+    construction — so `clockwise` is a real default, not a fabricated one.
+  - **`goodBeats: [2, 3, 4, 6]`** — the counts attested across the 115 lines the
+    recognizer claims (4 x97, 2 x8, 3 x6, 6 x4). `5` and `8` appear only on
+    lines that *mention* a courtesy turn but can never structure as one, so they
+    are correctly absent. The marginal values were checked rather than assumed
+    (per the v22 precedent) and are all genuine: dance 2957 writes
+    `(8) Modified ladies chain to partner:` → `(6) Women allemande right 1 & 1/2`
+    + `(2) Partner courtesy turn` — the courtesy-turn tail of a decomposed
+    chain, the exact shape our own compound fan-out emits.
+  - **A chain never emits one.** 30 corpus lines write a chain (or a
+    right-and-left-through / promenade, which end the same way) together with
+    its courtesy turn. Those stay whole-`custom`: emitting a standalone
+    `courtesy_turn` alongside the chain would double-count both the figure and
+    its beats, and since neither our `chain` nor ContraDB's has a courtesy-turn
+    parameter there is no slot in either model for the qualifier to ride in. The
+    recognizer's whole-line contract enforces this by construction — no
+    exclusion logic is written.
+  - **Rendering is split canonical/display**, exactly as the merged `gate` is.
+    A `renderTemplate` cannot express a conditional, so the canonical
+    (dedupe/FTS) text is the flat
+    `'{who} {move} {whom} {direction} {endFacing}'` and the maintainer's stated
+    wording — `{who} courtesy turn {whom, when present} {direction, when not
+    clockwise} {"to face" + endFacing, when set}` — lives on the display-only
+    path. `direction` stays *in* the canonical text (rather than being
+    display-only like `swing.endFacing`) because that omission was a
+    byte-stability concession a brand-new move does not need, and without it a
+    counterclockwise courtesy turn would dedupe as identical to a clockwise one.
+  - Import mapping and what deliberately stays custom are documented in
+    `docs/design/imports.md`; the corpus census is in
+    `docs/research/callersbox.md`.
 
 
 **The full ContraDB v1 contra move set is now modeled** (all five 2.4a slices

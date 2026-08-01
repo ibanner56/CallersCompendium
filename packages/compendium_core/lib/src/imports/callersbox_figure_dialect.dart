@@ -34,8 +34,12 @@ import 'figure_text_scrub.dart';
 /// The CallersBox/TCB front-end: the hey pass-list pre-recognizer plus the
 /// `()`/`[]` recognition-only annotation strip. Pass this as the `frontEnd` to
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
+///
+/// Pre-recognizer order is not correctness-critical: each requires a distinct
+/// anchor (`hey` / `circulate:` / `gate` / `courtesy turn`) plus a successful
+/// resolution to its own move, so no two can claim the same line.
 final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
-  preRecognizers: [_hey, _circulate, _gateAnnotation],
+  preRecognizers: [_hey, _circulate, _gateAnnotation, _courtesyTurnAnnotation],
   recognitionNormalize: _stripAnnotations,
 );
 
@@ -393,6 +397,62 @@ final RegExp _forwardRe = RegExp(
 );
 
 final RegExp _gateAnchor = RegExp(r'\bgates?\b', caseSensitive: false);
+
+// --- Courtesy-turn annotation preservation (taxonomy v23) --------------------
+
+/// The same gap [_gateAnnotation] closes, for `courtesy_turn`: TCB writes
+/// annotations on 7 of the corpus's courtesy-turn lines — `Partner courtesy
+/// turn (in center)` (x4), `[Ones and threes] Partner courtesy turn
+/// (continued)` (x2), `[Sides] Partner courtesy turn (continued)` — and
+/// [_stripAnnotations] drops them for recognition. Without this, adding the
+/// move would make those lines structure while SILENTLY LOSING "in center",
+/// "continued" and the bracketed subject, all of which the custom fallback
+/// preserves today. Structuring a line must never cost information the
+/// unstructured reading kept.
+///
+/// Simpler than the gate's counterpart, deliberately: `courtesy_turn` has no
+/// slot any of these annotations could faithfully fill. "(in center)" is a
+/// spatial staging note, not a dancer; "(continued)" is TCB's marker for a
+/// figure that spans two phrases; "[Ones and threes]" names a set the taxonomy
+/// does not model. So EVERY annotation is preserved verbatim as the note and
+/// none is structured — prefer-custom applied at param granularity, the same
+/// discipline that keeps `(men stay put)` note-only on a gate.
+///
+/// Reuses the gate path's bounded [_annotations] / [_joinAnnotations] helpers,
+/// so the OWASP caps (`_maxAnnotations`, `_maxAnnotationNote`, the per-run
+/// length bound in `_annotationRe`, rune-safe truncation) apply unchanged and a
+/// hostile line with thousands of parentheticals cannot inflate a note.
+///
+/// Fires only for a line that (a) contains the `courtesy turn` anchor,
+/// (b) carries at least one non-numeric annotation, and (c) resolves to the
+/// `courtesy_turn` move through the shared recognizers. Anything else returns
+/// null and takes the normal path — including, importantly, every
+/// chain-embedded courtesy turn, which never resolves to this move.
+FigureMatch? _courtesyTurnAnnotation(String scrubbed) {
+  if (!_courtesyTurnAnchor.hasMatch(scrubbed)) return null;
+  final annotations = _annotations(scrubbed);
+  if (annotations.isEmpty) return null;
+  final match = recognizeSharedFigureLine(
+    scrubbed,
+    recognitionNormalize: _stripAnnotations,
+  );
+  if (match == null || match.moveId != 'courtesy_turn') return null;
+  final note = _joinAnnotations(annotations);
+  if (note == null) return null;
+  return FigureMatch(
+    match.moveId,
+    params: match.params,
+    // A shared match never carries its own note today; if that ever changes,
+    // keep the recognizer's (more specific) note rather than overwriting it.
+    note: match.note ?? note,
+    assumedSubject: match.assumedSubject,
+  );
+}
+
+final RegExp _courtesyTurnAnchor = RegExp(
+  r'\bcourtesy\s+turns?\b',
+  caseSensitive: false,
+);
 
 /// Bounded extractor for `()`/`[]` annotation contents, in source order.
 ///
