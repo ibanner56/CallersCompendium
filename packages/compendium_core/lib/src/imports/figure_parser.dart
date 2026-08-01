@@ -723,6 +723,11 @@ final List<_Recognizer> _recognizers = [
   // so relative order is not correctness-critical.
   _formLongWave,
   _passThrough,
+  // #733: TCB's "Walk forward to <dancer>" → the same `pass_through` move.
+  // Leading-anchored on "walk forward to", a phrase no other recognizer
+  // consumes, so its position here is for locality (next to `_passThrough`,
+  // the move it resolves to) rather than correctness.
+  _walkForwardTo,
   _promenade,
   _shift,
   _longLines,
@@ -1310,6 +1315,57 @@ _Match? _passThrough(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('pass_through', {'dir': ?dir});
+}
+
+/// Tier B (#733): TCB writes "Walk forward to N2" (132 corpus lines), "… to
+/// shadow" (18), "… to N1" (6), "… to partner" (5), "… to N0" (4), "… to N3"
+/// (4) — a **pass through**.
+///
+/// `to <dancer>` names the DESTINATION you arrive at, not a dancer you pass:
+/// you walk forward past your current neighbour and finish facing the named
+/// one. That is the standard contra progression, which is why the next line so
+/// often dances WITH that dancer (`(4) Walk forward to N1` / `(12) N1 neighbor
+/// swing`) — "walk forward to N2" then "<figure> with N2" is the same
+/// choreography as "pass through (from N1 to N2)" then "<figure> with N2".
+///
+/// `pass_through` has no destination param, so the destination is preserved
+/// VERBATIM as the figure's note (`to n2`), the same shape [_chain] uses for
+/// its `to <dancer>` target (maintainer ruling on #729: parse the recognized
+/// figure, preserve the remainder as a note). This is what keeps `to n0` /
+/// `to n1` / `to shadow` — which are NOT the ordinary progression target —
+/// recoverable instead of flattened into an undifferentiated pass through.
+///
+/// Deliberately narrow (prefer-custom):
+/// - The line must LEAD with "walk forward to". A stated subject ("Women walk
+///   forward to N2") is DECLINED: `pass_through` has no `who` slot, so
+///   structuring it would silently drop the role.
+/// - `dir` and `shoulder` are NEVER written. `pass_through` declares
+///   `along`/`right` as its own taxonomy defaults; writing either here would
+///   assert a direction and a shoulder the source did not state.
+/// - The destination must resolve to exactly one dancer set. A non-dancer
+///   destination ("to center", "to next star", "to second person"), a qualified
+///   one ("to shadow S1", "to same-role neighbor") or any other leftover token
+///   declines to custom — as does every walk-forward line carrying a travel
+///   qualifier ("walk forward on left diagonal to N1"), which never reaches the
+///   leading anchor.
+_Match? _walkForwardTo(List<String> w) {
+  if (w.length < 4 || w[0] != 'walk' || w[1] != 'forward' || w[2] != 'to') {
+    return null;
+  }
+  final dest = w[3];
+  if (!_dancerWords.containsKey(dest)) return null;
+  var end = 4;
+  var note = 'to $dest';
+  // Absorb an optional trailing N-tag ("to neighbor N2") exactly as `_chain`
+  // does, so the numeric qualifier does not survive as leftover → custom.
+  if (end < w.length && _neighborNumbers.contains(w[end])) {
+    note = '$note ${w[end]}';
+    end++;
+  }
+  w.removeRange(0, end);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('pass_through', const {}, note);
 }
 
 // "pass the ocean" — the pass-through-to-an-ocean-wave figure (issue #290).

@@ -36,10 +36,17 @@ import 'figure_text_scrub.dart';
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
 ///
 /// Pre-recognizer order is not correctness-critical: each requires a distinct
-/// anchor (`hey` / `circulate:` / `gate` / `courtesy turn`) plus a successful
-/// resolution to its own move, so no two can claim the same line.
+/// anchor (`hey` / `circulate:` / `gate` / `courtesy turn` / `walk forward`)
+/// plus a successful resolution to its own move, so no two can claim the same
+/// line.
 final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
-  preRecognizers: [_hey, _circulate, _gateAnnotation, _courtesyTurnAnnotation],
+  preRecognizers: [
+    _hey,
+    _circulate,
+    _gateAnnotation,
+    _courtesyTurnAnnotation,
+    _walkForwardAnnotation,
+  ],
   recognitionNormalize: _stripAnnotations,
 );
 
@@ -79,6 +86,14 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
 ///   stated pass. It is attempted only on that no-separator fall-through, so a
 ///   line like `Grand right and left (N1R;N2L); face across` keeps its
 ///   whole-custom reading rather than silently dropping the trailing clause.
+/// - **A bare `walk forward` clause reads with the clause AFTER it (#733).**
+///   TCB's `[<dancer>] walk forward; form <formation>` states the inbound
+///   travel and its destination formation as two clauses of one figure, so the
+///   pair is folded by [_walkForwardIntoFormation] rather than parsed
+///   independently (which would leave the travel clause custom and, by the
+///   all-or-nothing rule above, discard the formation clause with it). The fold
+///   consumes both clauses and preserves the pair's beats budget; a bare
+///   `walk forward` with no foldable follower still degrades to custom.
 List<Figure> parseFigureLines(
   String rawText, {
   int beats = 0,
@@ -141,11 +156,36 @@ List<Figure> parseFigureLines(
   if (clauses.any((c) => c.isEmpty)) return wholeAsList();
 
   final parsed = <Figure>[];
+  final scrubFn = scrub ?? scrubFigureText;
   for (var i = 0; i < clauses.length; i++) {
     // Option A beats distribution: the source's combined total rides on the
     // first clause; every later clause is beats-absent so the cumulative total
     // equals the original compound (no double-count, no section drift).
     final clauseBeats = i == 0 ? beats : 0;
+    // #733: a bare `[<dancer>] walk forward` clause is TCB's inbound travel to
+    // the formation the NEXT clause names, so the pair is read together rather
+    // than clause-by-clause. Declines (→ the ordinary per-clause path, which
+    // keeps a bare walk forward custom) for anything the fold cannot carry
+    // faithfully; see [_walkForwardIntoFormation].
+    final walk = _bareWalkForwardClause(scrubFn(clauses[i]));
+    if (walk != null && i + 1 < clauses.length) {
+      final folded = _walkForwardIntoFormation(
+        walk,
+        clauses[i + 1],
+        beats: clauseBeats,
+        // The wave clause is the LAST clause of the pair, so it carries the
+        // whole-line progression marker when the pair ends the line.
+        progression: progression && i + 2 == clauses.length,
+        taxonomy: taxonomy,
+        scrub: scrub,
+        frontEnd: frontEnd,
+      );
+      if (folded != null) {
+        parsed.addAll(folded);
+        i++; // both clauses consumed
+        continue;
+      }
+    }
     final f = parseFigureLine(
       clauses[i],
       beats: clauseBeats,
@@ -237,6 +277,178 @@ Figure? meanwhileFromDoublePipe(
     beats: safeBeats,
     progression: progression,
   );
+}
+
+// --- "Walk forward" clause folds (#733) -------------------------------------
+
+/// A clause that is EXACTLY `[<dancer set>] walk forward` — TCB's inbound
+/// travel clause — carrying the dancer set the clause names, or `null` when it
+/// names none. Wrapping it distinguishes "no subject stated" from "not a bare
+/// walk-forward clause at all" (which [_bareWalkForwardClause] reports as a
+/// null result).
+class _WalkForwardClause {
+  const _WalkForwardClause(this.who);
+
+  /// The canonical dancer-set token the clause names, or `null` for a bare
+  /// `Walk forward` that names nobody.
+  final String? who;
+}
+
+/// Recognises a clause that is EXACTLY `[<dancer set>] walk forward`, on
+/// already-SCRUBBED text (so gendered terms have become `role1`/`role2`).
+///
+/// Anchored at BOTH ends, which is what keeps the ~50 genuinely bare and the
+/// qualified lines custom (#733 group 3): `walk forward one step`, `walk
+/// forward slowly (step; step)`, `walk forward on slight left diagonal`, `walk
+/// forward (out)`, `walk forward until right shoulders are adjacent` and
+/// `walk forward or loop left` all carry text after the anchor and are
+/// declined. Annotations are deliberately NOT stripped first — a `(…)` after
+/// the anchor is content the fold cannot carry, so it must decline rather than
+/// silently drop it.
+///
+/// The leading dancer phrase is bounded at `{0,40}` (mirroring `_forwardRe`):
+/// anything longer is prose, not a dancer set. Import text is untrusted
+/// (OWASP), and the bound applies inside the regex, before any scan of the
+/// captured text.
+_WalkForwardClause? _bareWalkForwardClause(String scrubbedClause) {
+  final m = _bareWalkForwardRe.firstMatch(scrubbedClause);
+  if (m == null) return null;
+  final lead = m.group(1)!.trim();
+  if (lead.isEmpty) return const _WalkForwardClause(null);
+  // `resolveDancerSetPhrase` is strict — it resolves ONLY a phrase that names
+  // exactly one dancer set and nothing else — so a bracketed qualifier
+  // (`[Sides] Women walk forward`) or any other lead declines the fold.
+  final who = resolveDancerSetPhrase(lead);
+  return who == null ? null : _WalkForwardClause(who);
+}
+
+final RegExp _bareWalkForwardRe = RegExp(
+  r'^(.{0,40}?)\bwalk\s+forward\b[\s.,;:!]*$',
+  caseSensitive: false,
+);
+
+/// The wave-formation move a bare `walk forward` clause is ABSORBED into
+/// (#733 group 1a).
+///
+/// Only the SINGULAR `form_a_long_wave`. Its `who` means "which dancers dance
+/// IN to the long wave in the centre", which is exactly what the walk-forward
+/// clause states, so the subject transfers with its meaning intact. The PLURAL
+/// `form_long_waves.who` means something else entirely (the pair that faces
+/// IN, per its `MoveDef`), so a transfer there would fabricate a facing; no
+/// corpus line pairs a bare walk forward with the plural anyway.
+const String _walkForwardAbsorbingMove = 'form_a_long_wave';
+
+/// The formation move a bare `walk forward` clause is a PASS THROUGH into
+/// (#733 group 1b).
+const String _walkForwardPassThroughMove = 'form_short_waves';
+
+/// Folds TCB's `[<dancer>] walk forward; form <formation>` pair into the
+/// figures the taxonomy already models, or returns `null` to leave both clauses
+/// to the ordinary per-clause path (where a bare walk forward is custom and the
+/// whole line therefore stays custom).
+///
+/// Two readings, decided by what the FORMATION clause resolves to:
+///
+/// - **`form long wave …` → absorb (group 1a, 142 corpus lines).** Emit ONLY
+///   the wave figure and DROP the travel clause. That is not data loss:
+///   `form_a_long_wave.in` defaults to `true` and the renderer's entry for the
+///   move reads "`<who>` dance in to a long wave in the center", so the
+///   INBOUND TRAVEL is already in the target move's rendered text — a separate
+///   travel figure would state it twice. The clause's `who` is TRANSFERRED onto
+///   the wave (and `assumedSubject` cleared): every subject-bearing line in
+///   this group states the role on the WALK clause and none on the wave
+///   clause, while `form_a_long_wave.who` defaults to `role2s`, so absorbing
+///   without the transfer would render all 66 `Men walk forward …` lines as
+///   women's figures.
+/// - **`form wave of four with <dancer>` → pass through, then the wave (group
+///   1b, 127 lines).** Walking forward into a wave of four with the dancer you
+///   are NOT currently facing is a pass through; the wave clause already
+///   structures on its own today, so the pair emits two figures. A bare
+///   `pass_through()` is emitted and `dir`/`shoulder` are deliberately NOT
+///   written — both are the move's own taxonomy defaults, and writing them
+///   would assert a direction and a shoulder the source never stated.
+///
+/// Declines (→ `null`, never a partial structuring) when:
+/// - the formation clause does not structure, or structures to any other move
+///   (`turn alone`, `face across`, `form interlocking long waves`, `form wave
+///   of two`, `form ring of four`, …);
+/// - the walk clause names a subject AND the reading is the pass-through one:
+///   `pass_through` has no `who` slot, so `Women walk forward; form wave of
+///   four with N2` would silently drop the role.
+///
+/// **Beats.** The pair consumes two clauses but the source states ONE combined
+/// total, which by the file's Option A convention rides on the FIRST clause —
+/// so [beats] is exactly the pair's budget. The absorbing reading puts it on
+/// the single emitted wave; the pass-through reading puts it on the
+/// `pass_through` (the first figure) and leaves the wave beats-absent. Either
+/// way [deriveSections]' cumulative total is byte-identical to the whole-custom
+/// line this replaces.
+///
+/// A 4-beat `pass_through` is outside the move's `goodBeats` (`[2]`) and raises
+/// an `atypical_beats` WARNING. That is correct and expected — a 4-beat pass
+/// through is a leisurely pass through — and warnings never force the custom
+/// fallback. No beats param is fabricated to suppress it.
+List<Figure>? _walkForwardIntoFormation(
+  _WalkForwardClause walk,
+  String formationClause, {
+  required int beats,
+  required bool progression,
+  required Taxonomy? taxonomy,
+  required String Function(String)? scrub,
+  required FigureFrontEnd frontEnd,
+}) {
+  try {
+    final safeBeats = beats < 0 ? 0 : beats;
+    Figure? parse(int clauseBeats) => parseFigureLine(
+      formationClause,
+      beats: clauseBeats,
+      progression: progression,
+      taxonomy: taxonomy,
+      scrub: scrub,
+      frontEnd: frontEnd,
+    );
+
+    // Classify on a beats-absent parse so the same call serves both readings;
+    // the absorbing one re-parses with the budget so the figure it emits is
+    // validated with its real beats.
+    final probe = parse(0);
+    if (probe == null || probe.isCustom) return null;
+
+    if (probe.move == _walkForwardAbsorbingMove) {
+      final wave = safeBeats > 0 ? parse(safeBeats) : probe;
+      if (wave == null || wave.isCustom) return null;
+      final who = walk.who;
+      // Never clobber a `who` the wave clause itself stated (no corpus line
+      // states one on both clauses; this is the same defensive rule the gate
+      // annotation applies to `whom`).
+      if (who == null || wave.params.containsKey('who')) return [wave];
+      return [
+        wave.copyWith(
+          params: {...wave.params, 'who': who},
+          assumedSubject: false,
+        ),
+      ];
+    }
+
+    if (probe.move == _walkForwardPassThroughMove && walk.who == null) {
+      final tax = taxonomy ?? contraTaxonomy;
+      final passThrough = Figure(
+        move: 'pass_through',
+        params: {if (safeBeats > 0) 'beats': safeBeats},
+      );
+      final hasError = tax
+          .validateFigure(passThrough)
+          .any((issue) => issue.severity == ValidationSeverity.error);
+      if (hasError) return null;
+      return [passThrough, probe];
+    }
+
+    return null;
+  } catch (_) {
+    // Parse-never-fails: any unexpected shape leaves both clauses to the
+    // caller's ordinary per-clause reading.
+    return null;
+  }
 }
 
 /// Whether [sep] occurs at bracket depth 0 in [t] (outside any `()`/`[]`). Used
@@ -414,8 +626,15 @@ _AnnotatedMatch? _annotatedMatch(
 
 /// Rebuilds [match] with [note] attached (and any [extraParams] merged in).
 ///
-/// A shared match never carries its own note today; if that ever changes, the
-/// recognizer's (more specific) note wins rather than being overwritten.
+/// COMBINES rather than chooses when the recognizer produced its own note
+/// (maintainer ruling on #729): the recognizer's note LEADS — it is the
+/// load-bearing half (`pass_through`'s `to n2` destination, `chain`'s
+/// `to partner` target) — the annotation remainder follows after the file's
+/// `'; '` separator, and the JOINED string is truncated to
+/// [_maxAnnotationNote] on a rune boundary so the cap still holds and a long
+/// qualifier can never amputate the leading half.
+///
+/// No-op for `gate` and `courtesy_turn`, which never produce a recognizer note.
 FigureMatch _withAnnotationNote(
   FigureMatch match,
   String? note, {
@@ -423,9 +642,19 @@ FigureMatch _withAnnotationNote(
 }) => FigureMatch(
   match.moveId,
   params: <String, Object?>{...match.params, ...extraParams},
-  note: match.note ?? note,
+  note: _combineNotes(match.note, note),
   assumedSubject: match.assumedSubject,
 );
+
+/// Joins a recognizer's note and an annotation note, recognizer first, bounded.
+String? _combineNotes(String? recognizerNote, String? annotationNote) {
+  if (recognizerNote == null) return annotationNote;
+  if (annotationNote == null) return recognizerNote;
+  return _truncateOnRuneBoundary(
+    '$recognizerNote; $annotationNote',
+    _maxAnnotationNote,
+  );
+}
 
 /// The dancer set an annotation names as walking FORWARD, or `null` when the
 /// annotation is not a "`<dancers>` forward" statement or names a set we do not
@@ -491,6 +720,46 @@ final RegExp _courtesyTurnAnchor = RegExp(
   caseSensitive: false,
 );
 
+// --- Walk-forward annotation preservation (#733) -----------------------------
+
+/// The same gap [_gateAnnotation] and [_courtesyTurnAnnotation] close, for the
+/// `walk forward to <dancer>` lines #733 maps onto `pass_through`.
+///
+/// Two corpus lines spell the travel out in a parenthetical — `Walk forward to
+/// N2 (women going on slight right diagonal, men on slight left diagonal)` and
+/// its N3 mirror — and [_stripAnnotations] drops it for recognition. Without
+/// this, teaching the recognizer those lines would make them structure while
+/// SILENTLY LOSING the per-role diagonals, which the custom fallback preserves
+/// today. Structuring a line must never cost information the unstructured
+/// reading kept.
+///
+/// `pass_through` has no slot any of this could faithfully fill, so EVERY
+/// annotation is preserved verbatim as the note and none is structured — and
+/// the recognizer's own `to <dancer>` destination note LEADS it (see
+/// [_withAnnotationNote]), never being displaced by it.
+///
+/// Shares [_annotatedMatch] with the gate and courtesy-turn paths, so the OWASP
+/// caps (`_maxAnnotations`, `_maxAnnotationNote`, the per-run length bound in
+/// `_annotationRe`, rune-safe truncation) are the SAME ones; this adds no new
+/// bound of its own.
+///
+/// Anchored on `walk forward` specifically, not on `pass_through` as a move, so
+/// it claims ONLY the lines this change makes structurable: an ordinary
+/// `Pass through across (PR)` line keeps its existing (annotation-stripped)
+/// reading untouched.
+FigureMatch? _walkForwardAnnotation(String scrubbed) {
+  final base = _annotatedMatch(scrubbed, _walkForwardAnchor, 'pass_through');
+  if (base == null) return null;
+  final note = _joinAnnotations(base.annotations);
+  if (note == null) return null;
+  return _withAnnotationNote(base.match, note);
+}
+
+final RegExp _walkForwardAnchor = RegExp(
+  r'\bwalk\s+forward\b',
+  caseSensitive: false,
+);
+
 /// Bounded extractor for `()`/`[]` annotation contents, in source order.
 ///
 /// Import text is untrusted (OWASP): the match count is capped, each captured
@@ -512,16 +781,22 @@ List<String> _annotations(String scrubbed) {
 /// Joins the annotations kept for the note, or `null` when none remain.
 String? _joinAnnotations(List<String> kept) {
   if (kept.isEmpty) return null;
-  final joined = kept.join('; ');
-  if (joined.length <= _maxAnnotationNote) return joined;
-  // Truncate on a RUNE boundary. `substring` cuts UTF-16 code units, so a naive
-  // cut can split a surrogate pair and leave a lone surrogate in the note.
-  final runes = joined.runes.toList();
+  return _truncateOnRuneBoundary(kept.join('; '), _maxAnnotationNote);
+}
+
+/// Truncates [text] to at most [maxUnits] UTF-16 code units WITHOUT splitting a
+/// character. `substring` cuts code units, so a naive cut can split a surrogate
+/// pair and leave a lone surrogate in the note. Shared by every bounded note
+/// this file builds so the cap lives in one place (OWASP: import text is
+/// untrusted).
+String _truncateOnRuneBoundary(String text, int maxUnits) {
+  if (text.length <= maxUnits) return text;
+  final runes = text.runes.toList();
   var end = 0;
   var units = 0;
   while (end < runes.length) {
     final next = units + (runes[end] > 0xFFFF ? 2 : 1);
-    if (next > _maxAnnotationNote) break;
+    if (next > maxUnits) break;
     units = next;
     end++;
   }

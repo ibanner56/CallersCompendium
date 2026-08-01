@@ -2,6 +2,15 @@
 
 ### Changed
 
+- **A CallersBox annotation note no longer displaces a recognizer's own note
+  (#729's collision, as it applies to the new `walk forward` anchor).**
+  `_withAnnotationNote` combined the two with `??`, which was correct while only
+  `gate` and `courtesy_turn` (neither of which emits a note) used it. It now
+  JOINS them — recognizer note first, `'; '` separator, the joined string
+  truncated on a rune boundary to the existing `_maxAnnotationNote` cap — so
+  `Walk forward to N2 (women going on slight right diagonal, …)` keeps both its
+  `to n2` destination and the parenthetical. No existing figure changes.
+
 - **The two `gate` moves are now ONE figure (`contraTaxonomyVersion` 22,
   `CompendiumDatabase` schema 20).** `gate` (ContraDB) and `rotation_gate`
   (The Caller's Box, taxonomy v15) both rendered the display name "gate" and
@@ -76,6 +85,49 @@
   resolves to `null` rather than to its first dancer word.
 
 ### Added
+
+- **The Caller's Box `walk forward` lines now map onto existing moves (#733) —
+  NO new `MoveDef`, no `contraTaxonomyVersion` bump, no schema migration.**
+  `walk forward` appears on **879** figure lines of the `Permission: full`
+  corpus (11,499 dances); it is three families, none of which needs a move:
+  - **Absorbed into `form_a_long_wave` (142 lines).** `[<dancer>] walk forward;
+    form long wave in center` emits ONLY the wave figure — the move's `in`
+    defaults to `true` and its rendered line already reads "*&lt;who&gt; dance in
+    to a long wave in the center*", so a separate travel figure would state the
+    inbound travel twice. The walk clause's dancer is **transferred** onto the
+    wave's `who` and `assumedSubject` is cleared: the role is stated on the WALK
+    clause and never on the wave clause, while `form_a_long_wave.who` defaults
+    to `role2s`, so absorbing without the transfer would have rendered all 66
+    `Men walk forward …` lines as women's figures.
+  - **`pass_through()` + `form_short_waves` (127 lines).** `walk forward; form
+    wave of four with <dancer>` walks into a wave with the dancer you are not
+    currently facing, which is a pass through; the wave clause already parsed on
+    its own.
+  - **`pass_through()` with the destination as a note (181 lines).**
+    `walk forward to <dancer>` — the `to <dancer>` names the DESTINATION you
+    arrive at after passing your current neighbour (the standard contra
+    progression), not a dancer you pass. `pass_through` has no destination
+    param, so the destination rides as the figure's note (`to n2`), the shape
+    `chain` already uses for its `to <dancer>` target; that keeps `to n0` /
+    `to n1` / `to shadow` distinguishable from the ordinary progression target.
+  - **`dir` and `shoulder` are never written.** Both are `pass_through`'s own
+    taxonomy defaults; writing them would assert a direction and a shoulder the
+    source did not state. Verified corpus-wide: the count of pass-throughs
+    carrying a `dir` is unchanged (2,201) and none carries a `shoulder`.
+  - **Prefer-custom everywhere else.** A bare `walk forward`, any travel
+    qualifier the mapping cannot carry (`one step`, `slowly (step; step)`,
+    `until right shoulders are adjacent`, `(out of the set)`), a non-dancer or
+    qualified destination (`to center`, `to next star`, `to shadow S1`), a
+    stated subject on either pass-through reading (`pass_through` has no `who`),
+    and **all 27 diagonal lines** (`form_a_long_wave` has no `dir` at all;
+    `form_short_waves`'s `dir` describes the wave's orientation, not the
+    direction of travel; `(optional spin)` has no slot) stay `custom`.
+  - **Measured over the whole mirror:** custom figures 22,180 → **21,725**
+    (−455), structured share 78.78% → **79.23%**, and **per-dance beat totals
+    byte-identical for all 11,499 dances**. `atypical_beats` warnings rise by
+    339, almost all a 4-beat `pass_through` (`goodBeats: [2]`) — a leisurely
+    pass through is a warning, never an error, and no beats param is fabricated
+    to suppress it.
 
 - **New `courtesy_turn` move (`contraTaxonomyVersion` 23; `CompendiumDatabase`
   schema stays **20** — purely additive, no migration).** The Caller's Box

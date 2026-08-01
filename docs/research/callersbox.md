@@ -472,6 +472,79 @@ dances. The figure count rises by 14 because **13 compound parents**
 decompose — their all-or-nothing child list was previously blocked by the one
 child that could not structure.
 
+### Figure-line census: walk forward (2026-08-01, issue #733)
+
+Method: the real `CallersBoxAdapter` run over the whole 24,107-file mirror,
+before and after the change, restricted to the **`Permission == "full"`**
+population (11,499 dances, 104,541 figure lines before / 104,600 after). The
+3,591 `NOT_FOUND` placeholder files and the metadata-only `search`/blank tiers
+carry no figures. Line counts below are occurrences of a `phrases[].figures[]`
+line, counted over that same population — so they run slightly higher than the
+non-mixer, non-deprecated counts quoted on the issue.
+
+**879** lines mention "walk forward". It is not one family, and none of the
+three real families needs a taxonomy move:
+
+| group | shape | lines | mapping |
+|---|---|---:|---|
+| 1a | `[<dancer>] walk forward; form long wave in center` | 142 | `form_a_long_wave` **only**, `who` transferred |
+| 1b | `walk forward; form wave of four with <dancer>` | 127 | `pass_through()` + `form_short_waves(sides: …)` |
+| 2 | `walk forward to <dancer>` | 181 | `pass_through()`, destination kept as the note |
+| 3 | bare / qualified / diagonal | rest | left `custom` |
+
+Group 1a's exact wordings: `Women walk forward; form long wave in center` x70,
+`Men …` x66, `Ones …` x4, `Women walk forward; form long wave` x1,
+`… form long wave [with phantoms]` x1 (`[…]` is stripped for recognition, so
+this one line loses its bracket exactly as a standalone
+`Form long wave [with phantoms]` line already does — noted for #729's audit).
+
+Group 1b: `with N2` x92, `with shadow` x19, `with N3` x9, `with partner` x3,
+`with N0` x2, `with N1` x2. Group 2: `to N2` x139 (+1 annotated), `to shadow`
+x18, `to N1` x6 (+1 paired with a wave clause), `to partner` x6, `to N0` x4,
+`to N3` x4 (+1 annotated, +1 paired).
+
+**⚠️ `walk forward to N2` names the DESTINATION, not a dancer you pass.** You
+walk forward past your CURRENT neighbour and arrive facing N2 — the standard
+contra progression — so it is exactly a pass through. Corpus lines that dance
+with the same dancer on the next line (`(4) Walk forward to N1` /
+`(12) N1 neighbor swing`) confirm the mapping rather than contradict it: a pass
+through is what puts you facing the dancer you then swing.
+
+**⚠️ The subject cannot ride on a pass through.** `pass_through` has no `who`
+param, so `Women walk forward to N2` / `Men walk forward; form wave of four
+with shadow` stay `custom` rather than silently dropping the role. `who` DOES
+transfer on group 1a, and it must: every subject-bearing line in that group
+states the role on the WALK clause and none on the wave clause, while
+`form_a_long_wave.who` defaults to `role2s` — absorbing without transferring
+would render all 66 men's lines as women's figures. Measured after the change,
+`form_a_long_wave.who` is `role1s` x69, `role2s` x75, `ones` x4, defaulted x228
+(the defaulted count is unchanged from before).
+
+**⚠️ The diagonals are declined, deliberately.** 27 lines write
+`walk forward on [slight] left/right diagonal [(optional spin)]; form wave of
+four with <dancer>` — the shape group 1b would otherwise claim (55 lines
+mention a walk-forward diagonal in all). `form_a_long_wave` has
+no `dir` param at all; `form_short_waves` does, but its domain
+(`set_direction_acrossish`) describes the WAVE's orientation while the source
+states the direction of TRAVEL, and the recognizer already refuses TCB's
+explicit `form diagonal wave of four` on the same prefer-custom grounds.
+`(optional spin)` has no slot on any of the three moves. So all 26 stay
+`custom` rather than being flattened into a plain `across` wave.
+
+**Whole-corpus effect**, same harness, same mirror: **450** of the 879 lines
+newly structure end-to-end (193 → 643 fully-structured lines; no line shape
+stops structuring). Custom figures 22,180 → **21,725** (−455), structured share
+78.78% → **79.23%**, per-dance beat totals **byte-identical for all 11,499
+dances**. The figure count rises by 59 (group 1b emits two figures where one
+custom stood; group 1a emits one). 423 dances see a per-FIGURE beat sequence
+change, all of them a `custom` line becoming structured except **4** where the
+existing trailing balance-wave fold (#577) now claims the `Balance wave …` line
+that follows the newly-structured wave: 3 dances move a balance off a following
+`box_the_gnat` and 1 off a following `swing`, onto the wave the source line
+actually names. `atypical_beats` warnings rise by 339, almost all a 4-beat
+`pass_through` (`goodBeats: [2]`) — a leisurely pass through is a warning, not
+an error, and no beats param is fabricated to suppress it.
+
 ## Open questions
 
 - Fraction of dances at each permission tier (only a crawl or the maintainers can
