@@ -3,21 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/l10n_harness.dart';
-
-/// Sets both the render surface size and the [MediaQuery] physical size to
-/// [size]. `setSurfaceSize` alone only affects layout constraints —
-/// `MediaQuery.sizeOf`, which `ResponsiveAutocomplete` uses for its
-/// breakpoints, reads `FlutterView.physicalSize` instead (see
-/// `responsive_autocomplete_test.dart`), so both must be set to faithfully
-/// simulate a phone-sized screen in tests.
-Future<void> _setScreenSize(WidgetTester tester, Size size) async {
-  await tester.binding.setSurfaceSize(size);
-  tester.view.physicalSize = size * tester.view.devicePixelRatio;
-  addTearDown(() {
-    tester.view.resetPhysicalSize();
-    return tester.binding.setSurfaceSize(null);
-  });
-}
+import '../../support/screen_size.dart';
 
 void main() {
   testWidgets(
@@ -27,7 +13,7 @@ void main() {
     (tester) async {
       final added = <String>[];
       final created = <String>[];
-      await _setScreenSize(tester, const Size(360, 720));
+      await setScreenSize(tester, const Size(360, 720));
       await tester.pumpWidget(
         MaterialApp(
           localizationsDelegates: testLocalizationsDelegates,
@@ -100,7 +86,7 @@ void main() {
     (tester) async {
       final added = <String>[];
       final created = <String>[];
-      await _setScreenSize(tester, const Size(360, 720));
+      await setScreenSize(tester, const Size(360, 720));
       await tester.pumpWidget(
         MaterialApp(
           localizationsDelegates: testLocalizationsDelegates,

@@ -3,6 +3,8 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/screen_size.dart';
+
 /// A dialect that renames the canonical `swing` move to "buzz", exercising the
 /// editor's requirement that the move picker both displays and matches dialect
 /// vocabulary (not just canonical taxonomy names).
@@ -28,21 +30,6 @@ Future<void> _pump(
       ),
     ),
   );
-}
-
-/// Sets both the render surface size and the [MediaQuery] physical size to
-/// [size]. `setSurfaceSize` alone only affects layout constraints —
-/// `MediaQuery.sizeOf`, which `ResponsiveAutocomplete` uses for its
-/// breakpoints, reads `FlutterView.physicalSize` instead (see
-/// `responsive_autocomplete_test.dart`), so both must be set to faithfully
-/// simulate a phone-sized screen in tests.
-Future<void> _setScreenSize(WidgetTester tester, Size size) async {
-  await tester.binding.setSurfaceSize(size);
-  tester.view.physicalSize = size * tester.view.devicePixelRatio;
-  addTearDown(() {
-    tester.view.resetPhysicalSize();
-    return tester.binding.setSurfaceSize(null);
-  });
 }
 
 void main() {
@@ -74,7 +61,7 @@ void main() {
     testWidgets('tapping the field opens a sheet and picking an option above a '
         'simulated keyboard still selects the move', (tester) async {
       MoveOption? picked;
-      await _setScreenSize(tester, const Size(360, 720));
+      await setScreenSize(tester, const Size(360, 720));
       await _pump(tester, onSelected: (o) => picked = o);
 
       await tester.tap(
@@ -112,7 +99,7 @@ void main() {
     testWidgets('free-text submission of an unmatched move still fires '
         'onCustomSubmitted from inside the sheet', (tester) async {
       String? custom;
-      await _setScreenSize(tester, const Size(360, 720));
+      await setScreenSize(tester, const Size(360, 720));
       await _pump(tester, onCustomSubmitted: (v) => custom = v);
 
       await tester.tap(
