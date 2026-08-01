@@ -88,7 +88,7 @@ void main() {
       );
     });
 
-    test('`women/men turn around` (204 lines) are eligible and CANONICAL', () {
+    test('`women/men turn around` (221 lines) are eligible and CANONICAL', () {
       // The allowlist matches the POST-SCRUB role tokens, so the note is stored
       // canonically and the reader never sees a raw gendered term.
       const cases = {
@@ -119,13 +119,33 @@ void main() {
       }
     });
 
-    test('the annotated `turn around` variants are NOT swept in', () {
-      // Matched as EXACT phrases, so the 19 annotated/subject-less variants
-      // keep their honest whole-custom reading pending a separate ruling.
+    test('the annotated `turn around` variants ARE swept in', () {
+      // A PREFIX rule, mirroring `^face\b`: the note is verbatim prose either
+      // way, so `role2s turn around (cw)` preserves exactly as much as the
+      // whole-custom line did. Accepting `face up [with n0]` while rejecting
+      // this would be arbitrary.
+      // Note the annotation's own casing is preserved verbatim (`[with N2]`):
+      // only the role vocabulary is canonicalized.
+      const cases = {
+        'Partner swing; women turn around (cw)': 'role2s turn around (cw)',
+        'Partner swing; men turn around [with N2]':
+            'role1s turn around [with N2]',
+        'Partner swing; women turn around (by left)':
+            'role2s turn around (by left)',
+      };
+      for (final entry in cases.entries) {
+        final figures = _lines(entry.key);
+        expect(figures, hasLength(1), reason: entry.key);
+        expect(figures.single.isCustom, isFalse, reason: entry.key);
+        expect(figures.single.note, entry.value, reason: entry.key);
+      }
+    });
+
+    test('the prefix rule still excludes the wrong-subject wordings', () {
+      // `^` and `\b` are the whole guard. A prefix is far easier to
+      // over-widen later than an exact match, so this pins the boundary:
+      // neither of these names the subject the rule is scoped to.
       for (final line in [
-        'Partner swing; women turn around (cw)',
-        'Partner swing; men turn around [with N2]',
-        'Partner swing; women turn around (by left)',
         'Partner swing; turn around (by right)',
         'Partner swing; woman one and man two turn around',
       ]) {

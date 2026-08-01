@@ -288,12 +288,14 @@ const int _maxNoteFallbackClauses = 8;
 ///   `return to original place`, `return to place. role2 one follow`) and,
 ///   deliberately, the whole `cast up/down/back to place` family — those lines
 ///   must keep falling to custom so a future census of `cast` counts them.
-/// - **`role2s turn around` — 132**, and **`role1s turn around` — 96.** Also
-///   EXACT phrases (204 sole-blocker lines between them), so the 19 annotated
-///   variants (`… (cw)`, `… [with n2]`, `… (by left)`, and the subject-less
-///   `turn around (by right)`) are NOT swept in.
+/// - **`role2s turn around` — 132**, and **`role1s turn around` — 96.** Matched
+///   by [_turnAroundClause], a PREFIX rule mirroring [_facingClause], so the 17
+///   annotated variants (`… (cw)`, `… [with n2]`, `… (by left)`) come with them
+///   — 221 sole-blocker lines in total. The subject-less `turn around
+///   (by right)` and the differently-subjected `role2 one and role1 two turn
+///   around` are still excluded.
 ///
-///   Read those two carefully: the comparison is against the **post-scrub**
+///   Read those carefully: the comparison is against the **post-scrub**
 ///   role tokens, NOT the source words `women`/`men`. [scrubbed] has already
 ///   been through [scrubFigureText]'s canonicalization, so the clause TCB
 ///   writes as `Women turn around` (in any casing) arrives here as
@@ -311,10 +313,8 @@ bool _noteEligibleClause(String scrubbed) {
   if (scrubbed.isEmpty || scrubbed.length > kMaxClauseNote) return false;
   final normalized = scrubbed.toLowerCase();
   if (_facingClause.hasMatch(normalized)) return true;
-  return normalized == 'finish proper' ||
-      normalized == 'return to place' ||
-      normalized == 'role1s turn around' ||
-      normalized == 'role2s turn around';
+  if (_turnAroundClause.hasMatch(normalized)) return true;
+  return normalized == 'finish proper' || normalized == 'return to place';
 }
 
 /// Length bound on a single note-eligible `;` clause. Matches the per-run bound
@@ -325,6 +325,23 @@ const int kMaxClauseNote = 120;
 /// A bare facing statement. `\b` is load-bearing: without it this would also
 /// claim `facing star …`, which is a structured move.
 final RegExp _facingClause = RegExp(r'^face\b', caseSensitive: false);
+
+/// A subject-bearing `turn around` statement, matched on the POST-SCRUB text
+/// (hence `role1s`/`role2s`, never `men`/`women` — see [_noteEligibleClause]).
+///
+/// A prefix rule, deliberately mirroring [_facingClause]: both families are
+/// verbatim prose in the note either way, so an annotated variant
+/// (`role2s turn around (cw)`, `role1s turn around [with n2]`) preserves
+/// exactly as much as the whole-custom line did. Accepting `face up [with n0]`
+/// while rejecting `role2s turn around (cw)` would be arbitrary.
+///
+/// `^` and `\b` are load-bearing — they keep out the two wordings that name no
+/// subject or a different one: `turn around (by right)` and
+/// `role2 one and role1 two turn around`.
+final RegExp _turnAroundClause = RegExp(
+  r'^role[12]s turn around\b',
+  caseSensitive: false,
+);
 
 /// Fans a top-level `||` (simultaneity) line out into a [Figure.meanwhile]
 /// container (#591, part of the #572 epic): one side per `||`-clause, each
