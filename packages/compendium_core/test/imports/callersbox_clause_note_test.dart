@@ -203,9 +203,21 @@ void main() {
     test('a LEADING clause never note-ifies — nothing precedes it', () {
       // A note belongs TO a figure. Hanging it on a LATER figure would assert
       // an order the source never stated, so the line keeps its honest
-      // whole-custom reading. `walk forward` is the largest such blocker
-      // (313 sole-blocker lines) and has no taxonomy move.
-      _staysWholeCustom('Walk forward; form long wave in center', beats: 4);
+      // whole-custom reading.
+      //
+      // The example line changed at #733, and the invariant did NOT. This test
+      // used `Walk forward; form long wave in center`, which #733 now
+      // structures — not by note-ifying the leading clause, but by ABSORBING
+      // it into the `form_a_long_wave` the next clause names (the move's `in`
+      // flag already renders the inbound travel). That removes the line from
+      // the set where a leading clause FAILS; it does not weaken the rule.
+      // `Women walk forward; form wave of four with N2` is the same shape and
+      // still exercises it exactly: #733 declines the fold because
+      // `pass_through` has no `who` slot to carry "women", so the leading
+      // clause still fails while the trailing `form wave of four with N2`
+      // still structures — which is precisely the "note would have to hang on
+      // a LATER figure" case.
+      _staysWholeCustom('Women walk forward; form wave of four with N2');
       _staysWholeCustom('Fall back; face up');
     });
   });

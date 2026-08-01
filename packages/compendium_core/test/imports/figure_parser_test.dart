@@ -1137,8 +1137,14 @@ void main() {
 
     test('a LEADING clause never note-ifies: there is no preceding figure to '
         'carry it, so the whole line stays custom', () {
+      // #733 changed this test's EXAMPLE, not its rule: the former example
+      // (`Walk forward; form long wave in center`) is now absorbed into
+      // `form_a_long_wave`, so its leading clause no longer fails. This line
+      // is the same shape and still fails at the leading clause — #733
+      // declines it because `pass_through` has no `who` slot for "women" —
+      // while its trailing clause still structures.
       final fs = _parseLines(
-        'Walk forward; form long wave in center',
+        'Women walk forward; form wave of four with N2',
         beats: 4,
       );
       expect(fs, hasLength(1));

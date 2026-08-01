@@ -628,6 +628,41 @@ merge is lossless:
   to partner:`, `Wheel chain to neighbor:`) now decompose, because their
   all-or-nothing child list was previously blocked by the unstructurable
   courtesy-turn tail.
+  **Walk forward (#733, NO taxonomy change):** TCB writes `walk forward` on 879
+  figure lines; it is three families, none of which needs a move. A bare
+  `[<dancer>] walk forward` clause is read TOGETHER with the clause that follows
+  it, since it states the inbound travel to a formation the next clause names:
+  `[<dancer>] walk forward; form long wave in center` emits **only**
+  `form_a_long_wave` with the walk clause's dancer transferred onto `who`
+  (the move's `in` defaults to true and its rendered line already says "dance in
+  to a long wave in the center", so a separate travel figure would state the
+  travel twice), and `walk forward; form wave of four with <dancer>` emits
+  `pass_through()` + the `form_short_waves` figure that already parsed. A
+  directed `walk forward to <dancer>` is itself a `pass_through` — the `to
+  <dancer>` names the DESTINATION you arrive at after passing your current
+  neighbour, the standard contra progression — with the destination preserved
+  verbatim as the figure's **note** (`to n2`), the same shape `chain` uses for
+  its `to <dancer>` target, so `to n0` / `to n1` / `to shadow` stay
+  distinguishable from the ordinary progression target. `dir` and `shoulder` are
+  never written: both are `pass_through`'s own taxonomy defaults, and stating
+  them would assert a direction and a shoulder the source did not.
+  *Stays custom:* a genuinely bare `walk forward` (nothing anchors an
+  interpretation); every travel qualifier the mapping cannot carry
+  (`one step`, `slowly (step; step)`, `until right shoulders are adjacent`,
+  `towards partner`, `(out of the set)`); non-dancer or qualified destinations
+  (`to center`, `to next star`, `to second person`, `to shadow S1`); a stated
+  subject on either pass-through reading (`Women walk forward to N2` —
+  `pass_through` has no `who` slot, so structuring it would drop the role); and
+  **every diagonal** (`walk forward on left/right diagonal [(optional spin)]`),
+  because `form_a_long_wave` has no `dir` at all and on the short-wave side the
+  source states the direction of TRAVEL rather than the wave's orientation —
+  the recognizer already declines TCB's explicit `form diagonal wave of four`
+  for the same reason, and `(optional spin)` has no slot either.
+  *Secondary effect:* a newly-structured wave lets the existing trailing
+  balance-wave fold (#577) claim the `Balance wave …` line after it, which it
+  could not while the walk line was custom — 4 dances change which figure that
+  balance attaches to (see "Balance-a-wave lines" below). Beat totals are
+  unaffected.
   **Out (→ custom
   for now, tracked on #295):** cast off,
   two-hand turn & other ECD figures, promenade
