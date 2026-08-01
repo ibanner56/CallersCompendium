@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/responsive_autocomplete.dart';
 import 'link_draft.dart';
 import 'name_picker.dart';
 
@@ -237,8 +238,9 @@ class _RelatedDancePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Autocomplete<NameOption>(
+    return ResponsiveAutocomplete<NameOption>(
       initialValue: TextEditingValue(text: initialTitle),
+      sheetSemanticLabel: l10n.danceEditorRelatedDanceLabel,
       displayStringForOption: (opt) => opt.name,
       optionsBuilder: (value) {
         final q = value.text.trim().toLowerCase();
@@ -257,29 +259,13 @@ class _RelatedDancePicker extends StatelessWidget {
           ),
         );
       },
-      optionsViewBuilder: (context, onSelected, choices) {
-        return Align(
-          alignment: Alignment.topLeft,
-          child: Material(
-            elevation: 4,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 240, maxWidth: 320),
-              child: ListView(
-                padding: EdgeInsets.zero,
-                shrinkWrap: true,
-                children: [
-                  for (final choice in choices)
-                    ListTile(
-                      key: ValueKey('link-dance-option-${choice.id}'),
-                      dense: true,
-                      leading: const Icon(Icons.link, size: 18),
-                      title: Text(choice.name),
-                      onTap: () => onSelected(choice),
-                    ),
-                ],
-              ),
-            ),
-          ),
+      optionTileBuilder: (context, choice, onSelected) {
+        return ListTile(
+          key: ValueKey('link-dance-option-${choice.id}'),
+          dense: true,
+          leading: const Icon(Icons.link, size: 18),
+          title: Text(choice.name),
+          onTap: onSelected,
         );
       },
     );
