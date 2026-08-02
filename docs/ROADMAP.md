@@ -311,7 +311,10 @@ design/domain-model.md "CC parity backfill".*
   Caller's Box `||` lines and ContraDB "while" phrasing), **#593** figure-editor
   authoring, and **#594** render / Perform / export ("A while B"). This is also
   the target shape the schema-v18 `allemande_orbit` retirement rewrites into,
-  and it recurses — a TCB `||` line can hold two gates (schema v20).
+  and the container is deliberately **flat** — a `meanwhile` may not hold another
+  `meanwhile` — so the migrations and codec traverse a container's sides rather
+  than nesting them (schema v20 rewrites gate figures held as sides this way,
+  since a TCB `||` line can pair two gates).
 
 ## Phase 5 — Performance mode
 

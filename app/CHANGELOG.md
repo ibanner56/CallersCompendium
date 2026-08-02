@@ -377,7 +377,12 @@ follow.
   of parameter dropdown — in the figure editor and in the search facets —
   ignored the choices a move actually declares, so a move that legitimately
   records "the source didn't say" could not offer that option. They now honour
-  what the move declares. No existing figure's values or rendering change.
+  what the move declares. With that fixed, three parameters that had been
+  declared as generic choice lists purely to work around the gap — the hand a
+  long wave is held by, and the direction of a mad robin and of a butterfly
+  whirl — now carry their proper types again. No existing figure's values,
+  rendering or search results change; this was verified by diffing every
+  observable output of the whole move vocabulary before and after.
 
 - **A turn amount the source never gave no longer looks like "1 turn".** In the
   figure editor, a rotation the app has no value for now reads **"not stated"**
