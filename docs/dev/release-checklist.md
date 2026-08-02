@@ -81,7 +81,9 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] In-app update check resolves against the manifest (or is knowingly disabled
  for beta — record which).
 - [ ] **Landing page aligned:** the `site/` editorial copy (status list, feature
- cards, screenshots, version fallbacks) reflects what this release ships — see
+ cards, screenshots) reflects what this release ships — version strings are NOT
+ editorial and need no bump; leave `site/index.html` alone unless the copy
+ actually changed (editing it triggers the full build matrix) — see
  [releasing.md → Keeping the landing page aligned](releasing.md#keeping-the-landing-page-aligned).
  (Downloads self-update from `beta.json`; only the editorial copy needs a look.)
  After publishing, confirm <https://ibanner56.github.io/CallersCompendium/> shows
