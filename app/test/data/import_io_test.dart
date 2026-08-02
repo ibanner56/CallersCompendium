@@ -141,6 +141,38 @@ void main() {
       }
     });
 
+    test('a segment that merely starts with the mirror name is rejected', () {
+      // The canonical-position boundary case. A naive
+      // `path.startsWith(callersBoxPathPrefix)` would accept
+      // /contradance/thecallersboxfoo/ because the prefix is a string prefix
+      // of it; matching whole segments is what makes it fail. The empty-segment
+      // form is the other shape that defeats a raw startsWith.
+      for (final path in [
+        '/contradance/thecallersboxfoo/dance.php?id=1',
+        '/contradance/thecallersbox2/dance.php?id=1',
+        '/contradance//thecallersbox/dance.php?id=1',
+      ]) {
+        expect(
+          () => buildCallersBoxJsonUrl('https://www.ibiblio.org$path'),
+          throwsA(
+            isA<UrlFetchException>().having(
+              (e) => e.reason,
+              'reason',
+              UrlFetchFailureReason.callersBoxUnsupportedHost,
+            ),
+          ),
+          reason: 'expected $path to be rejected',
+        );
+      }
+    });
+
+    test('the canonical prefix is matched case-insensitively', () {
+      final url = buildCallersBoxJsonUrl(
+        'https://www.ibiblio.org/CONTRADANCE/THECALLERSBOX/dance.php?id=4',
+      );
+      expect(Uri.parse(url).queryParameters['id'], '4');
+    });
+
     test(
       'an ibiblio.org URL NOT under the /thecallersbox/ path is rejected',
       () {
