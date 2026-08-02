@@ -113,7 +113,10 @@ When you give the app a web address to fetch:
 - **It must belong to the source you chose.** A Caller's Box import accepts links
   from `thecallersbox.com` or `ibiblio.org`; a ContraDB import accepts links from
   `contradb.com`. Anything else gets a plain message naming the hosts that do
-  work — or you can skip the link entirely and type the dance's ID number.
+  work — or you can skip the link entirely and type the dance's ID number. This
+  holds for the *whole* fetch, not just the address you typed: if an archive
+  forwards the app somewhere else, that new address has to belong to the same
+  source too, or the import stops there.
 - **Redirects and size are capped**, so a link cannot bounce the app around
   indefinitely or hand it an endless download.
 
