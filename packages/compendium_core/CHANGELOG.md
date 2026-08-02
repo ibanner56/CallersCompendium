@@ -2,15 +2,16 @@
 
 ### Changed
 
-- **The two sentinel workaround params now carry their natural `ParamKind`s
+- **The sentinel workaround params now carry their natural `ParamKind`s
   (#739). Type information only — no behaviour change, no
   `contraTaxonomyVersion` bump.** `form_long_waves.hand` was declared
   `ParamKind.choice` and is now `ParamKind.handedness`;
   `mad_robin.direction` and `butterfly_whirl.direction` were `choice` and are
   now `ParamKind.spinDirection`. Each keeps its existing `choices` list, which
   already held the fixed vocabulary plus the `unspecified` sentinel. The
-  `choice` declarations existed for one reason only: the five typed dropdown
-  kinds used to render and validate from a *hardcoded* vocabulary that ignored
+  `choice` declarations existed for one reason only: the typed dropdown kinds
+  (`handedness`, `shoulder`, `spinDirection`, `fraction`, `direction`) used to
+  render and validate from a *hardcoded* vocabulary that ignored
   `spec.choices`, so a sentinel declared on one of them was offered nowhere and
   rejected by the validator. All three consumers of the kind + `choices`
   contract now read `spec.choices ?? <fixed vocabulary>` — the figure param
@@ -19,7 +20,7 @@
   taxonomy its type information.
   - **Nothing a user can see changes.** Verified by dumping every observable
     output for the whole taxonomy before and after — canonical text, display
-    and verbose renders under all three preset dialects, `renderSummary`,
+    and verbose renders under every preset dialect, `renderSummary`,
     `validateFigure`, `effectiveParams`, snippet signatures and their
     descriptions, `ParamSpec.validate` over a fixed probe set, and
     `figureParamChoices` for every param of every move — and diffing:
@@ -36,13 +37,13 @@
     workaround and converting it would silently drop `mirror`.
   - **`ParamVocab.unspecified`'s doc comment now states the rule instead of
     listing the params.** It enumerated which params opt into the sentinel and
-    had already drifted (it omitted `form_long_waves.hand`/`whom` and all four
-    `gate.*`). It now says what is actually true — a param admits the sentinel
-    iff it names it in `ParamSpec.choices` and its kind's validator consults
-    `choices`, which explicitly includes the typed kinds — and points at
-    `sentinel_choices_test.dart` as the mechanically-enforced source of truth,
-    so it cannot drift again.
-  - **Two new guards.** `sentinel_choices_test.dart` now fails any
+    had already drifted (it omitted `form_long_waves.hand`/`whom` and most of
+    the `gate.*` family). It now says what is actually true — a param admits
+    the sentinel iff it names it in `ParamSpec.choices` and its kind's
+    validator consults `choices`, which explicitly includes the typed kinds —
+    and points at `sentinel_choices_test.dart` as the mechanically-enforced
+    source of truth, so it cannot drift again.
+  - **New guards.** `sentinel_choices_test.dart` now fails any
     `ParamKind.choice` whose domain, minus the sentinel, is exactly one of the
     fixed vocabularies (the workaround's precise signature, and one that does
     not flag `gate.direction`'s superset domain). `facet_param_choices_test.dart`
