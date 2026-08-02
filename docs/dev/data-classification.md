@@ -169,10 +169,10 @@ tell an approved decision from an assumed one.
 | --- | --- | --- |
 | Performer names (`programs.caller`, `programs.band`, `program_slots.guest_caller`) are shareable | Maintainer | A program without its caller and band is useless, and event billing is already public |
 | All notes fields are shareable, including those on person and place records | Maintainer | They are the user's own words about their own collection |
-| `custom_field_values.value_text` is shareable | Maintainer | Custom fields are core collection data. Two obligations attach: creating a custom field must show a one-time notice that its contents travel, and per-field exclusion from sharing is a tracked backlog item |
+| `custom_field_values.value_text` is shareable | Maintainer | Custom fields are core collection data. Two obligations attach: creating a custom field must show a one-time notice that its contents travel, and per-field exclusion from sharing is tracked in #780 |
 | `venues.sponsor` is shareable | Maintainer | A sponsor is an organisation by intent and part of the venue's public identity |
 | Venue identity (`name`, `website`, `event_name`, schedule, time, price) is shareable while the address block and contacts are device-local | Agent, ratified by maintainer | Lets a program stay readable after a transfer without moving the address book |
-| `provenance.raw_payload` and `program_provenance.raw_payload` are device-local | Maintainer | Verbatim third-party content of unbounded shape (a whole ContraDB HTML page, or the source's JSON row — 7,492 bytes for this repo's real ContraDB fixture), which **nothing in the app reads**: the only consumers are the archive export round-trip and row-to-model plumbing. Nothing needs it to travel. Whether the column should exist at all is tracked separately. `program_provenance.raw_payload` is in fact never written — both program-import paths construct `Provenance` without it |
+| `provenance.raw_payload` and `program_provenance.raw_payload` are device-local | Maintainer | Verbatim third-party content of unbounded shape (a whole ContraDB HTML page, or the source's JSON row — 7,492 bytes for this repo's real ContraDB fixture), which **nothing in the app reads**: the only consumers are the archive export round-trip and row-to-model plumbing. Nothing needs it to travel. Whether the column should exist at all is tracked in #781. `program_provenance.raw_payload` is in fact never written — both program-import paths construct `Provenance` without it |
 | DPV top-level buckets are omitted from rendered paths | Maintainer ruled on `Tracking`; agent extended it to `External` | Same reasoning — an uninformative bucket name. The `External` extension is reversible |
 
 ## Known limitations
@@ -184,6 +184,11 @@ tell an approved decision from an assumed one.
 - **The catalogue classifies storage, not display.** A field marked
   `deviceLocal` can still be rendered on screen, printed, or copied by the user.
   This is a transmission boundary, not an access-control system.
+- **Two columns may not need to exist.** `provenance.raw_payload` and
+  `program_provenance.raw_payload` are read by nothing, and the program one is
+  never written. Tracked in #781.
+- **Some classified storage has no writer or no reader.** The `snapshots` table
+  and `tags.color` are catalogued here but unused. Tracked in #782.
 - **Freeform fields are classified by intent, not by content.** A user who types
   a phone number into a dance's calling notes has put contact data into a
   `shareable` field, and nothing detects that. The rulings above accept this
@@ -222,7 +227,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `custom_field_values` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `custom_field_values` | `field_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `custom_field_values` | `value_num` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
-| `custom_field_values` | `value_text` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Holds either unbounded free text or a user-defined choice value, for a field the user invented and named. Shareable by maintainer ruling: custom fields are core collection data. Two obligations attach to that ruling — (1) creating a custom field must show a one-time notice that its contents travel, and (2) per-field exclusion from sharing is a tracked backlog item. Both are prerequisites of sync shipping, not of this catalogue. |
+| `custom_field_values` | `value_text` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Holds either unbounded free text or a user-defined choice value, for a field the user invented and named. Shareable by maintainer ruling: custom fields are core collection data. Two obligations attach to that ruling — (1) creating a custom field must show a one-time notice that its contents travel, and (2) per-field exclusion from sharing is a tracked backlog item (#780). Both are prerequisites of sync shipping, not of this catalogue. |
 | `dance_authors` | `choreographer_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dance_authors` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dance_authors` | `position` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |

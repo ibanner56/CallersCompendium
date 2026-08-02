@@ -89,7 +89,7 @@ const _freeformNote = DataClassification(
 /// (`archive_codec.dart`) and row-to-model plumbing; no re-parse path consumes
 /// it. Kept device-local (maintainer ruling) because it is verbatim
 /// third-party content of unbounded shape and nothing needs it to travel.
-/// Whether the column should exist at all is tracked separately.
+/// Whether the column should exist at all is tracked in #781.
 ///
 /// Note that `program_provenance.raw_payload` is **never written**: both
 /// program-import paths (`callers_companion_programs.dart`,
@@ -336,8 +336,8 @@ final Map<String, DataClassification> fieldClassifications = {
         'custom fields are core collection data. Two obligations attach to '
         'that ruling — (1) creating a custom field must show a one-time notice '
         'that its contents travel, and (2) per-field exclusion from sharing is '
-        'a tracked backlog item. Both are prerequisites of sync shipping, not '
-        'of this catalogue.',
+        'a tracked backlog item (#780). Both are prerequisites of sync shipping, '
+        'not of this catalogue.',
   ),
   'custom_field_values.value_num': _choreography,
 
