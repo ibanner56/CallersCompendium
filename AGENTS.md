@@ -48,17 +48,26 @@ gh api --paginate repos/<owner>/<repo>/pulls/<N>/reviews -q '.[].body'
 default), so on a PR with several review rounds the older bodies — and any
 suppressed sections in them — are silently omitted.
 
-**Suppressed comments are not blocking.** They are suppressed because the
-reviewer had low confidence, and many are wrong, stale, or irrelevant — judge
-them on their merits rather than treating them as required work.
-
-But read them, because low confidence is not the same as low value. On #746 two
-consecutive passes suppressed every substantive finding in the review, and one
-was a genuine defect: a comment that would have planted the exact false belief
-that PR existed to correct.
+**Suppressed comments are not blocking**, but suppression reflects the
+reviewer's *confidence*, not the finding's *importance*. On this repository the
+suppressed block has held both the most substantive findings and the most
+misguided ones — on #746 every substantive finding in the review arrived
+suppressed, and all of them were correct. Read and judge them; neither trust nor
+dismiss them wholesale.
 
 Act on the ones that are right, and record why you dismissed the others — so the
 next reader can tell "considered" from "missed".
+
+A useful pattern when judging: this reviewer's *observations* are reliable — a
+file really does mix literals and constants, a changelog really does say "two"
+while listing three. Where it errs is the *remedy*, because consistency and DRY
+are its only objectives and it cannot tell a redundant duplicated literal from a
+load-bearing one. **When a suggestion would make two sides of an assertion move
+together, treat it as a claim about test strength and measure it** rather than
+accepting it as a style preference: on #751 a suggested refactor would have made
+a pinning assertion vacuous (spelled out, the vocabulary mutation produced 2
+failures; in the suggested form, 47/47 passed and the mutation went
+undetected).
 
 ## Before merging
 
@@ -77,7 +86,37 @@ next reader can tell "considered" from "missed".
 - **Suppressed comments read and considered** (above).
 - **CI green on the commit being merged.** Re-check after any push; a green run
   on a superseded commit proves nothing about the current head.
+- **The review is on the commit being merged.** A completed review is reported
+  the same way whether or not the head has moved under it, so check it
+  explicitly — on #746 a review landed six seconds before the next push:
+
+  ```sh
+  gh api --paginate repos/<owner>/<repo>/pulls/<N>/reviews \
+    -q '.[-1].commit_id' | tail -n 1
+  gh pr view <N> --json headRefOid -q .headRefOid
+  ```
+
+  `--paginate` for the same reason as above; `tail -n 1` because `-q` is applied
+  to each page separately, so the un-tailed form emits one commit per page.
+
+- **The PR closes only the issues you intend.** See below.
 - **State verified from the remote**, not from memory or a stale local checkout.
+
+## A branch name can close an issue on its own
+
+GitHub creates a linked-issue relationship from the **branch name**, not just
+from a closing keyword in the body. A branch named `…issue-716-…` closed #716
+on merge even though the PR was deliberately titled "Part of #716" with no
+`Closes` keyword — mid-way through a four-PR sequence, so the issue had to be
+reopened.
+
+Do not put `issue-<N>` in a branch name, and before merging any partial or
+stacked PR, check what it will actually close:
+
+```sh
+gh api graphql -f query='{repository(owner:"<owner>",name:"<repo>"){
+  pullRequest(number:<N>){closingIssuesReferences(first:10){nodes{number}}}}}'
+```
 
 ## Documentation is part of the change
 
@@ -94,6 +133,15 @@ design docs, roadmap status, and code comments.
   there. Verify it against the code, or delete it. A stale sentence in
   `docs/design/dialect.md` survived a rewrite of the section around it and had
   to be caught in review.
+- Grepping for the claim finds the places that *state* it. Also ask **"what did
+  I just make untrue?"** and grep for the *property*. PR #751 falsified two
+  comments asserting that no live taxonomy param pairs certain kinds with a
+  `choices` list; neither comment mentions the PR, the issue, or `ParamKind`, so
+  no citation search would reach them, and the tests stayed green because they
+  inject a synthetic taxonomy.
+- **Re-take any measurement quoted in a PR body after the final rebase.** Corpus
+  figures quoted for #729 were taken before a sibling landed, and the sibling
+  itself changed them.
 - A doc comment that asserts runtime behaviour should be checkable. `star.grip`
   carried a comment claiming it "is surfaced by the verbose/dialect renderer"
   while no renderer referenced it at all.
@@ -102,13 +150,49 @@ design docs, roadmap status, and code comments.
 
 - **Prove a new guard test can fail.** Run it against the unfixed code and watch
   it go red before making it green. A test can be structurally incapable of
-  failing and still read as rigorous.
+  failing and still read as rigorous — one surrogate-pair test was both
+  backwards *and* unreachable (its fixture exceeded a regex's length cap, so the
+  code under test never ran), and still passed review.
+- **Choose the right thing to falsify against.** "Does it fail if I undo my
+  work?" is the wrong question; ask **"what mutation would this test catch?"**
+  - For a *regression* guard, reverting the fix is the right target — but make
+    sure the revert still **builds**. A revert that fails to compile proves
+    nothing, and will happen if the fix and the helpers it needs are in one
+    commit. Split commits so the revert target is buildable.
+  - For a guard on a hazard introduced by *new* behaviour, revert is the wrong
+    target: the old code cannot exercise the hazard at all, so the test goes red
+    for an incidental reason. Instead **mutate out the guard** — implement the
+    naive version a future simplification would produce — and confirm the test
+    catches that.
+- **Do not use line-window greps to ask whether a declaration contains
+  something.** `ParamSpec` and `MoveDef` declarations span lines, so `grep -A3`
+  under-reports and a non-greedy regex can run past a short declaration and
+  capture a later one's field. The same question answered three ways gave 0, 5,
+  and (walking balanced parens) the truth. Walk the delimiters.
 - **Figure fixtures are not validated against the taxonomy.** An invalid param
   renders literally and the test still passes, so fixtures drift silently when a
   move changes. Seven `meanwhile` fixtures went stale when `orbit` was split
   into a first-class move (fixed in #745). When changing a move's params, grep
   the suites for fixtures using that move and run
   `contraTaxonomy.validateFigure()` over them.
+
+## Never `git stash` in a worktree
+
+All worktrees of a repository share **one stash stack** — `refs/stash` lives in
+the common git directory (`git rev-parse --git-common-dir`), not the per-worktree
+one. A `git stash push` in one worktree is visible to, and poppable by, every
+other, so a stash/pop pair that looks local is not.
+
+This has caused a real near-miss: a `git stash push -- <path>` on an
+already-committed file was a silent no-op, and the paired `pop` therefore popped
+an entry belonging to a different worktree.
+
+For red-run verification, restore from a ref instead — it is scoped to the
+worktree and cannot touch anyone else's state:
+
+```sh
+git checkout HEAD~1 -- <path>     # or any ref
+```
 
 ## Tracking follow-up work
 
@@ -136,3 +220,14 @@ When you decide something yourself, say so plainly and give the reason:
 Chose X. The issue suggested A and B; A is impossible here because <reason>,
 and B is disproportionate because <reason>. Not escalated — non-blocking.
 ```
+
+The same applies to verification. **State which layer you actually checked**, so
+a reader can see the edge of the evidence. "The stash is intact" and "no damage
+was done" differ in scope, not in confidence — the first was true and verified
+while the second was false, and no amount of hedging would have exposed the gap.
+Report what you looked at, not just what you concluded.
+
+When correcting a derived figure, **re-derive it from source rather than patching
+one term**. A count of "three of five" was corrected to "three of four" by
+checking only the denominator; the truth was two of four. The wrong number then
+carried the credibility of a correction.
