@@ -991,6 +991,59 @@ void main() {
       expect(read(), ParamVocab.unspecified);
     });
 
+    testWidgets('Clear also updates what the field DISPLAYS', (tester) async {
+      // Raised in review on PR #764: the concern was that
+      // `DropdownButtonFormField` ignores a later `initialValue` and leaves the
+      // field stuck on the cleared selection, since Clear updates the model
+      // from OUTSIDE the dropdown and the field's key is stable.
+      //
+      // The test above cannot answer that — `_pumpEditor` records `onChanged`
+      // without feeding the new value back, so the editor is never rebuilt and
+      // the display path is never exercised. That was a real gap regardless of
+      // the diagnosis, so this drives a host that re-seeds from the model the
+      // way `figure_list_editor` does.
+      //
+      // Measured result: the display DOES follow, because
+      // `_DropdownButtonFormFieldState.didUpdateWidget` calls `setValue` when
+      // `initialValue` changes (Flutter 3.44.6, `material/dropdown.dart`). It is
+      // plain `FormField` that does not — it syncs only `forceErrorText` — which
+      // is the likely source of the confusion. No value-based key is needed.
+      Object? current = 'role1s';
+      await tester.pumpWidget(
+        StatefulBuilder(
+          builder: (context, setState) => MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              body: Center(
+                child: FigureParamEditor(
+                  keyPrefix: 'p',
+                  paramKey: 'meetTarget',
+                  spec: heyMeetTarget(),
+                  value: current,
+                  dialect: Dialect.larksRobins,
+                  onChanged: (v) => setState(() => current = v),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('larks'), findsWidgets);
+
+      await tester.tap(find.byKey(const ValueKey('p-meetTarget-clear')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('larks'),
+        findsNothing,
+        reason: 'the field must not stay stuck on the cleared selection',
+      );
+      expect(find.text('not stated'), findsOneWidget);
+      expect(current, ParamVocab.unspecified);
+    });
+
     testWidgets('a spec without the sentinel offers no Clear affordance', (
       tester,
     ) async {

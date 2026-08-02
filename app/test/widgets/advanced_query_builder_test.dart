@@ -591,6 +591,43 @@ void _paramChoiceTests() {
         expect(figure.params['hand'], 'left');
       },
     );
+
+    testWidgets(
+      'changed by #741: an out-of-domain stored value is cleared from the MODEL',
+      (tester) async {
+        // Raised in review on PR #764. Coercing only the DISPLAY to "Any" would
+        // leave `_cleanParams` forwarding the stale token into the compiled
+        // `FigureLeaf` — a filter narrowing the results that the user cannot
+        // see, and cannot clear, because the control that would clear it
+        // already reads "Any hand".
+        //
+        // LATENT today: the builder tree is in-memory only and this dropdown is
+        // its sole writer, so the state is seeded directly here — which is
+        // exactly how a future saved-search/persistence layer would produce it.
+        final figure = BuilderFigure(move: 'wave');
+        figure.params['hand'] = ParamVocab.unspecified;
+        final root = BuilderGroup(
+          children: [BuilderThen(before: figure, after: BuilderFigure())],
+        );
+        await _pump(
+          tester,
+          root: root,
+          taxonomy: _taxonomyWithHandParam(
+            choices: const [...ParamVocab.sides, ParamVocab.unspecified],
+          ),
+        );
+
+        expect(
+          figure.params.containsKey('hand'),
+          isFalse,
+          reason:
+              'a value the dropdown refuses to display must not survive in the '
+              'model and keep filtering',
+        );
+        // What the UI promises and what the query does now agree.
+        expect(figure.toFigureQuery()?.params, isNot(contains('hand')));
+      },
+    );
   });
 
   // -------------------------------------------------------------------------

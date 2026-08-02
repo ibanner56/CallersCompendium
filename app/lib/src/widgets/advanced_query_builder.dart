@@ -874,6 +874,27 @@ class _ParamDropdown extends StatelessWidget {
     // `DropdownButton`'s single-match assertion. Unreachable through the UI —
     // the only writer is this dropdown — but cheap next to a crash.
     final value = selectable.contains(stored) ? stored : null;
+    // Coercing the DISPLAY to "Any" is not enough on its own: `_cleanParams`
+    // forwards every non-null param into the compiled `FigureLeaf`, so a stored
+    // value the dropdown refuses to show would still narrow the search — a
+    // filter the user can neither see nor clear, because the control they would
+    // use to clear it already reads "Any <param>". So normalise the MODEL to
+    // match, and re-run the search.
+    //
+    // LATENT, not live: the builder tree is in-memory only (`_advancedRoot` is
+    // constructed fresh and has no JSON codec) and the sole writer is this
+    // dropdown, which only ever stores a selectable value — and `_MoveField`
+    // clears `figure.params` when the move changes, so a param cannot outlive
+    // the move that declared it. This exists because none of that is
+    // load-bearing anywhere: the day the advanced query is persisted, or seeded
+    // from a saved search, an out-of-domain token becomes reachable and the
+    // failure is silent. Cheap to foreclose now, invisible to debug later.
+    if (stored != null && value == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        figure.params.remove(paramKey);
+        onChanged();
+      });
+    }
     return Semantics(
       label: label,
       child: DropdownButton<String?>(
