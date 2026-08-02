@@ -53,6 +53,28 @@ void main() {
       // was to smuggle the sentinel past consumers that ignored `choices`.
       expect(def.params['direction']!.kind, ParamKind.spinDirection);
       expect(def.params['direction']!.defaultValue, ParamVocab.unspecified);
+      // ⚠️ The string literals below are DELIBERATE, and the apparent
+      // inconsistency with the `ParamVocab.unspecified` on the line above is
+      // principled. Two different kinds of assertion live in this file:
+      //
+      // - IDENTITY ("the default IS the sentinel", "the sentinel validates")
+      //   uses `ParamVocab.unspecified`. It expresses intent and stays correct
+      //   however the sentinel is spelled.
+      // - DOMAIN-CONTENT PINNING (this one: "the declared domain is exactly
+      //   these values, in this order") uses literals. Its entire purpose is to
+      //   NOTICE when the underlying vocabulary changes.
+      //
+      // Writing this as `[...ParamVocab.spins, ParamVocab.unspecified]` — the
+      // DRY-looking form a reviewer will keep suggesting — makes it
+      // self-referential and unable to fail: both sides move together, so a
+      // value added to, removed from or reordered within `ParamVocab.spins`
+      // would silently change this param's domain with nothing catching it.
+      // Measured, not assumed: reordering `ParamVocab.spins` fails these
+      // literal assertions in both tests; rewritten in the `spread` form the
+      // whole file passes green against that same mutation.
+      //
+      // So changing `ParamVocab.spins` SHOULD break this test. That is the
+      // point of it — do not "fix" it.
       expect(def.params['direction']!.choices, [
         'clockwise',
         'counterclockwise',
@@ -75,6 +97,8 @@ void main() {
       // Issue #739: shares `_spinOrUnspecified` with `mad_robin.direction`, so
       // it carries the same natural kind and the same sentinel admission.
       expect(def.params['direction']!.kind, ParamKind.spinDirection);
+      // Literals again, deliberately — see the note on `mad_robin.direction`
+      // above. This is a domain-content pin, not an identity assertion.
       expect(def.params['direction']!.choices, [
         'clockwise',
         'counterclockwise',
