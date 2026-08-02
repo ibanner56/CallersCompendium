@@ -304,7 +304,7 @@ void main() {
       expect(requested, [contraDbDance]);
     });
 
-    test('refuses an ibiblio hop off the /thecallersbox/ path', () async {
+    test('refuses an ibiblio hop off the mirror prefix', () async {
       // ibiblio.org hosts many unrelated archives, so host alone never makes a
       // URL "Caller's Box" — the path-segment half of the predicate has to be
       // enforced on hops too, not just on the pasted URL.

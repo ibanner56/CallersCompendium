@@ -443,9 +443,9 @@ Uri _guardFetchUri(Uri uri) {
 /// online source.
 ///
 /// It is a predicate over the whole [Uri], not just its host: [_isCallersBoxUrl]
-/// accepts an `ibiblio.org` URL only under a `/thecallersbox/` path segment,
-/// because that host also serves many unrelated archives. A host-only check
-/// would let a hop wander off the mirror directory into one of them.
+/// accepts an `ibiblio.org` URL only under the `/contradance/thecallersbox/`
+/// mirror prefix, because that host also serves many unrelated archives. A
+/// host-only check would let a hop wander off the mirror into one of them.
 ///
 /// The source allowlists ([_isCallersBoxUrl] / [_isContraDbUrl]) are enforced
 /// by the URL builders at construction, but a builder only ever sees the URL
@@ -505,7 +505,7 @@ Future<http.Response> _sendGuarded(String url, http.Client client) async {
   var uri = _guardFetchUri(parsed);
   // Not `isAllowedHost`: the predicate validates the whole redirect URI, and
   // for Caller's Box the path matters as much as the host (ibiblio.org is only
-  // Caller's Box under a /thecallersbox/ path segment).
+  // Caller's Box under the /contradance/thecallersbox/ mirror prefix).
   final isAllowedRedirect = _redirectAllowlistFor(uri);
   var redirects = 0;
   while (true) {
@@ -660,8 +660,8 @@ class ImportSource {
   /// there is no host to recognize).
   ///
   /// A predicate (rather than a simple host set) is used because The Caller's
-  /// Box is also mirrored on ibiblio.org under a `/thecallersbox/` path, which
-  /// a host-only match cannot express.
+  /// Box is served from ibiblio.org under a `/contradance/thecallersbox/`
+  /// path, which a host-only match cannot express.
   final bool Function(Uri uri)? matchesUrl;
 
   /// When non-null, this source imports from a **binary file** the user picks
@@ -679,7 +679,8 @@ class ImportSource {
 
 /// The host used to build a Caller's Box JSON endpoint from a **bare id**. The
 /// Caller's Box is served from ibiblio.org under [callersBoxPathPrefix].
-/// Confirmed live: `.../thecallersbox/dance.php?id=1&format=JSON` returns real
+/// Confirmed live: `.../contradance/thecallersbox/dance.php?id=1&format=JSON`
+/// returns real
 /// TCB JSON. A pasted full URL keeps its own host; only bare-id input needs a
 /// host supplied here.
 const String callersBoxHost = 'www.ibiblio.org';
@@ -695,7 +696,8 @@ const String callersBoxPathPrefix = '/contradance/thecallersbox';
 /// accepts either:
 /// - a **bare numeric id** (`"1"`) → `https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1&format=JSON`;
 /// - a pasted **https URL** matching [_isCallersBoxUrl] — an `ibiblio.org` /
-///   `www.ibiblio.org` URL under the `/thecallersbox/` mirror path — and
+///   `www.ibiblio.org` URL under the `/contradance/thecallersbox/` mirror
+///   prefix — and
 ///   an `id` query param (`.../dance.php?id=N`, with or without an existing
 ///   `format=…`) → the same URL with `format=JSON` set (any existing `format`
 ///   is overwritten, so it is never doubled and an already-`format=JSON` link
@@ -1439,9 +1441,9 @@ Future<String> fetchContraDbSearch(String query, {http.Client? client}) async {
 }
 
 /// Hosts serving The Caller's Box: the ibiblio.org mirror, which is the
-/// canonical home. A Caller's Box URL there lives under a `/thecallersbox/`
-/// path segment (so host alone is not enough to recognize it — ibiblio.org
-/// serves many unrelated archives).
+/// canonical home. A Caller's Box URL there lives under the
+/// [callersBoxPathPrefix] mirror prefix (so host alone is not enough to
+/// recognize it — ibiblio.org serves many unrelated archives).
 ///
 /// `thecallersbox.com` / `www.thecallersbox.com` were removed here (#766):
 /// they have no DNS records at all, and the canonical prefix is

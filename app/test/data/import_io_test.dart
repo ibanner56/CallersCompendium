@@ -173,17 +173,14 @@ void main() {
       expect(Uri.parse(url).queryParameters['id'], '4');
     });
 
-    test(
-      'an ibiblio.org URL NOT under the /thecallersbox/ path is rejected',
-      () {
-        expect(
-          () => buildCallersBoxJsonUrl(
-            'https://www.ibiblio.org/someotherarchive/dance.php?id=1',
-          ),
-          throwsA(isA<UrlFetchException>()),
-        );
-      },
-    );
+    test('an ibiblio.org URL NOT under the mirror prefix is rejected', () {
+      expect(
+        () => buildCallersBoxJsonUrl(
+          'https://www.ibiblio.org/someotherarchive/dance.php?id=1',
+        ),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
 
     test('a dot-segment path trick that resolves away from the mirror '
         'directory is rejected, not accepted via substring match', () {
