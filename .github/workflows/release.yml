@@ -236,8 +236,9 @@ jobs:
       # and still succeeds). `signing=configured` ONLY when the full signing set
       # is present: the App Store Connect API key (base64 .p8, key id, issuer id),
       # the team id, the Apple Distribution certificate (base64 .p12 + its
-      # password), AND the App Store provisioning profile (base64
-      # .mobileprovision). Secrets arrive via `env:` (never a step-level `if:`);
+      # password), AND both App Store provisioning profiles (base64
+      # .mobileprovision each: the app's and the ShareExtension's). Secrets
+      # arrive via `env:` (never a step-level `if:`);
       # names are never interpolated into a `run:` line. `mkdir -p dist` keeps the
       # shared List/Upload steps happy on the no-op path.
       - name: Determine iOS signing availability
@@ -529,28 +530,29 @@ jobs:
       # --- iOS: signed App Store archive + TestFlight upload ----------------
       # Xcode signs the App Store build with the team's Apple Distribution
       # certificate, imported from a base64 .p12 secret into an ephemeral
-      # keychain, plus a pre-provisioned App Store profile (base64 secret)
-      # installed onto the runner. The archive uses automatic signing (a
-      # development identity, which cloud signing CAN mint) and the export uses
-      # MANUAL signing to re-sign with the local distribution identity + that
-      # profile. Automatic/cloud signing cannot be used for the distribution
+      # keychain, plus the two pre-provisioned App Store profiles (base64
+      # secrets — one for the app, one for the ShareExtension) installed onto
+      # the runner. The archive does NOT sign at all, and the export uses MANUAL
+      # signing with the local distribution identity + those profiles, mapped
+      # per bundle id in ExportOptions.plist. Automatic/cloud signing cannot be
+      # used for the distribution
       # export: the distribution cert is not Apple-managed, so cloud signing
       # fails with "Cloud signing permission error / no profiles found". The App
-      # Store Connect API key still drives the archive's development signing
-      # (-allowProvisioningUpdates) and the TestFlight upload; it needs the App
-      # Manager role (Developer is not enough).
+      # Store Connect API key is used ONLY by the TestFlight upload (the archive
+      # used to consume it too, which is what leaked a certificate per run —
+      # #758); it needs the App Manager role (Developer is not enough).
       #
       # Secrets arrive via `env:` and are only ever decoded to files with
       # `base64 -D` (never echoed); `set -x` is deliberately NOT used. The .p8 is
       # written to the two dirs xcodebuild + altool auto-search
       # (~/.appstoreconnect/private_keys and ~/.private_keys) as
       # AuthKey_<KEYID>.p8; the .p12 is imported into an ephemeral keychain under
-      # $RUNNER_TEMP; the provisioning profile is installed under
+      # $RUNNER_TEMP; the provisioning profiles are installed under
       # ~/Library/Developer/Xcode/UserData/Provisioning Profiles (+ the classic
       # MobileDevice dir). DEVELOPMENT_TEAM (absent from the checked-in project)
       # is injected into Release.xcconfig so signing has a team. The always()
-      # cleanup step removes the key material, deletes the keychain + profile,
-      # and reverts the xcconfig.
+      # cleanup step removes the key material, deletes the keychain + both
+      # profiles, and reverts the xcconfig.
       - name: Prepare iOS signing (App Store Connect API key)
         if: matrix.platform == 'ios' && steps.ios_signing.outputs.signing == 'configured'
         env:
@@ -661,10 +663,12 @@ jobs:
             cp "$ext_prof_raw" "$dir/${ext_prof_uuid}.mobileprovision"
           done
 
-          # Give automatic signing a team. Release.xcconfig only #includes the
+          # Give the build a team. Release.xcconfig only #includes the
           # ephemeral Generated.xcconfig today; append a team line (reverted in
           # cleanup). The team id is not secret, but sourcing it from the secret
-          # keeps the checked-in project team-agnostic.
+          # keeps the checked-in project team-agnostic. (Kept now that the
+          # archive is unsigned: the export still resolves against this team,
+          # and the ShareExtension picks it up without a project edit.)
           printf 'DEVELOPMENT_TEAM=%s\n' "$APPLE_TEAM_ID" >> app/ios/Flutter/Release.xcconfig
 
           # ExportOptions for the xcodebuild -exportArchive step, built with
@@ -704,9 +708,11 @@ jobs:
       - name: Build signed iOS .ipa (App Store archive)
         if: matrix.platform == 'ios' && steps.ios_signing.outputs.signing == 'configured'
         working-directory: app
+        # No App Store Connect API key here on purpose: this step no longer
+        # talks to the portal (see the archive comment below), so withholding
+        # the credential makes that structural rather than merely intended.
+        # The key is still available to the TestFlight upload step, which needs it.
         env:
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
@@ -741,44 +747,53 @@ jobs:
             -c "Set :CFBundleVersion ${build_number}" \
             ios/ShareExtension/Info.plist
 
-          # `flutter build ipa` cannot forward the App Store Connect API-key
-          # credentials to its internal `xcodebuild archive`, so that archive
-          # has no account and fails automatic signing with "No Accounts".
-          # Instead: (1) build the Flutter assets + generated project UNSIGNED,
-          # then (2) archive and (3) export with xcodebuild directly.
-          # (2) The archive uses AUTOMATIC signing: -allowProvisioningUpdates +
-          # the API key let Xcode mint/download a DEVELOPMENT identity + profile
-          # solely to produce the archive (the cloud can mint dev identities).
-          # (3) The export re-signs with MANUAL signing against the LOCALLY-
-          # imported distribution cert + the pre-installed App Store profile
-          # (no portal access), so a dev-signed archive is a fine input.
-          key_path="$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8"
+          # `flutter build ipa` runs its own internal `xcodebuild archive`, which
+          # we cannot pass signing settings to. Instead: (1) build the Flutter
+          # assets + generated project UNSIGNED, then (2) archive UNSIGNED and
+          # (3) export with xcodebuild directly, signing once at export time.
+          # (2) The archive is deliberately NOT signed. Its signature would be
+          # thrown away regardless — step (3) re-signs — so signing here bought
+          # nothing and cost a certificate: automatic signing with
+          # -allowProvisioningUpdates made Xcode MINT a new Apple Development
+          # identity in the portal on every run (a CI runner is ephemeral, so
+          # there is never an existing key to reuse), and nothing revoked it.
+          # That accumulated until the account hit Apple's certificate cap and
+          # every release failed (#758). No portal access happens here now.
+          # (3) The export signs with MANUAL signing against the LOCALLY-imported
+          # distribution cert + the pre-installed App Store profiles. It is the
+          # only step that signs, and the only one that can sign the Runner and
+          # ShareExtension targets with their OWN profiles (via the
+          # per-bundle-id map in ExportOptions.plist — CLI build settings would
+          # apply one profile to every target).
 
           # 1) Flutter build — populates Generated.xcconfig (incl. the build
           #    number) and compiles the Dart/asset bundle. --no-codesign because
-          #    xcodebuild signs during the archive below.
+          #    signing happens once, at export (step 3).
           flutter build ios --release --no-codesign --build-number="${build_number}"
 
-          # 2) Archive with automatic, API-key-authenticated signing.
+          # 2) Archive WITHOUT signing. No -allowProvisioningUpdates (that flag
+          #    is what authorizes Xcode to create portal resources) and no API
+          #    key: the archive needs neither, because it no longer signs. The
+          #    App Store Connect key is still written by the prepare step for the
+          #    altool upload below.
           xcodebuild archive \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$key_path" \
-            -authenticationKeyID "$APPLE_API_KEY_ID" \
-            -authenticationKeyIssuerID "$APPLE_API_ISSUER_ID" \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
 
           # 3) Export the App Store .ipa to app/build/ios/ipa (the path the
           #    TestFlight upload + artifact-upload steps below already glob).
           #    Manual signing: uses the LOCAL distribution identity + the
-          #    pre-installed profile from ExportOptions — NO cloud signing, NO
+          #    pre-installed profiles from ExportOptions — NO cloud signing, NO
           #    -allowProvisioningUpdates (which would re-trigger the failing
-          #    cloud distribution signing).
+          #    cloud distribution signing). This is what produces the signed
+          #    artifact; the .xcarchive never leaves the runner.
           rm -rf build/ios/ipa
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
@@ -853,8 +868,9 @@ jobs:
           rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${key_id}.p8" \
                 "$HOME/.private_keys/AuthKey_${key_id}.p8" 2>/dev/null || true
           security delete-keychain "$RUNNER_TEMP/cc-ios.keychain-db" 2>/dev/null || true
-          # Remove ONLY the profile this workflow installed (by UUID), never a
-          # blanket wipe that could delete unrelated profiles on the runner.
+          # Remove ONLY the profiles this workflow installed (both, by UUID:
+          # the app's and the ShareExtension's), never a blanket wipe that could
+          # delete unrelated profiles on the runner.
           prof_uuid="$(cat "$RUNNER_TEMP/cc-ios-profile-uuid" 2>/dev/null || true)"
           if [ -n "$prof_uuid" ]; then
             rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/${prof_uuid}.mobileprovision" \
