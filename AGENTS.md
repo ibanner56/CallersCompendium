@@ -91,9 +91,13 @@ undetected).
   explicitly — on #746 a review landed six seconds before the next push:
 
   ```sh
-  gh api repos/<owner>/<repo>/pulls/<N>/reviews -q '.[-1].commit_id'
+  gh api --paginate repos/<owner>/<repo>/pulls/<N>/reviews \
+    -q '.[-1].commit_id' | tail -n 1
   gh pr view <N> --json headRefOid -q .headRefOid
   ```
+
+  `--paginate` for the same reason as above; `tail -n 1` because `-q` is applied
+  to each page separately, so the un-tailed form emits one commit per page.
 
 - **The PR closes only the issues you intend.** See below.
 - **State verified from the remote**, not from memory or a stale local checkout.
