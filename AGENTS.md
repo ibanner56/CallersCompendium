@@ -146,6 +146,44 @@ design docs, roadmap status, and code comments.
   carried a comment claiming it "is surfaced by the verbose/dialect renderer"
   while no renderer referenced it at all.
 
+## Every persisted field must be classified
+
+The app's privacy boundary is a registry, not prose:
+`packages/compendium_core/lib/src/privacy/`, rendered to
+`docs/dev/data-classification.md`. Any new column, settings key, or data-entry
+surface must be classified **in the same PR that introduces it**.
+
+This exists because the boundary used to be prose and prose does not hold. A doc
+comment on `Choreographer` said its `email`/`location` "MUST NOT be emitted in
+any shareable export"; nothing enforced it, and the same question had no answer
+at all for the 22 columns of `venues`. Five ratchets now enforce it, so the
+failure mode is a red CI run rather than a silent leak.
+
+Three axes per field, and the third is the one to think about:
+
+- **Category** — a W3C DPV v2.3 term. Freely readable, so you can check your own
+  work against the source.
+- **Subject** — `none` / `appUser` / `thirdParty`. No published taxonomy
+  supplies this. Every one of them assumes the data subject is the person using
+  the app, and here it usually is not: venue contacts and choreographers never
+  touch this app and cannot consent to a transfer they do not know about.
+- **Egress** — `shareable` / `deviceLocal` / `deviceScoped` / `derived`.
+  `deviceLocal` and `deviceScoped` are not synonyms. The first is withheld
+  because of what it *contains* and may still move by a direct device-to-device
+  transfer; the second because of what it *means* on another device, and must
+  not travel by any route.
+
+Record **why** in the entry's `note` whenever the call is not self-evident, and
+say who decided it if it was contested — see [Attributing
+decisions](#attributing-decisions). A classification with no stated reason is
+indistinguishable from a guess.
+
+Do not narrow a ratchet's detection pattern to make a false positive go away.
+The settings ratchet flags `kUpdateManifestPublicKey`, which is the Ed25519 root
+of trust for update authenticity rather than a preference; it is excluded **by
+name, with a reason**, so that the next non-settings `…Key` constant still fails
+loudly. A cleverer pattern would have dropped both silently.
+
 ## Tests
 
 - **Prove a new guard test can fail.** Run it against the unfixed code and watch
