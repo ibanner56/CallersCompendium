@@ -2,6 +2,13 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../search/facet_labels.dart';
+
+// `humanizeToken` moved to `search/facet_labels.dart` (issue #741) so the dance
+// editor and the Advanced-search facet share one labelling primitive. Re-exported
+// here because this file was its original home and several call sites (and its
+// unit test) import it from here.
+export '../search/facet_labels.dart' show humanizeToken;
 
 /// Concrete-value editors for a single figure parameter, driven by its
 /// [ParamSpec] kind (`docs/design/figure-taxonomy.md`; `docs/design/ux.md` §3).
@@ -151,12 +158,6 @@ class FigureParamEditor extends StatelessWidget {
     );
   }
 }
-
-/// Turns `role1s` → `role1s`, `rightDiagonal` → `right diagonal`,
-/// `threeQuarter` → `three quarter` for display.
-String humanizeToken(String token) => token
-    .replaceAllMapped(RegExp(r'(?<=[a-z])(?=[A-Z])'), (_) => ' ')
-    .toLowerCase();
 
 class _RotationStepper extends StatelessWidget {
   const _RotationStepper({
