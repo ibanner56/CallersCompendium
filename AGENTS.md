@@ -41,8 +41,12 @@ zero unresolved, and still have findings — collapsed into a block in the body:
 these exist, so a thread-state-only check will never surface them:
 
 ```sh
-gh api repos/<owner>/<repo>/pulls/<N>/reviews -q '.[].body'
+gh api --paginate repos/<owner>/<repo>/pulls/<N>/reviews -q '.[].body'
 ```
+
+`--paginate` matters: without it you get only the first page of reviews (30 by
+default), so on a PR with several review rounds the older bodies — and any
+suppressed sections in them — are silently omitted.
 
 **Suppressed comments are not blocking.** They are suppressed because the
 reviewer had low confidence, and many are wrong, stale, or irrelevant — judge
@@ -64,11 +68,11 @@ next reader can tell "considered" from "missed".
   ```sh
   gh api graphql -f query='{repository(owner:"<owner>",name:"<repo>"){
     pullRequest(number:<N>){reviewThreads(first:100){
-      totalCount nodes{isResolved}}}}}'
+      totalCount pageInfo{hasNextPage endCursor} nodes{isResolved}}}}}'
   ```
 
-  If `totalCount` exceeds the number of nodes returned, paginate before
-  concluding anything.
+  If `hasNextPage` is true (or `totalCount` exceeds the nodes returned), fetch
+  the rest with `after: "<endCursor>"` before concluding anything.
 
 - **Suppressed comments read and considered** (above).
 - **CI green on the commit being merged.** Re-check after any push; a green run
