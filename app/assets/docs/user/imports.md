@@ -176,9 +176,23 @@ A `.USR` import brings across both your **dances** and your **program history**
 before it commits and undoable right after. Dances and programs you have imported
 before are recognised and offered as updates rather than duplicated.
 
-A few things do not come across yet: saved **venues**, custom **glossary terms**,
-and **related-dance links** stay behind for now. Your dances, their figures and
-notes, and your programs are the parts that migrate today.
+Your **figures come across too**. Caller's Companion keeps the actual
+choreography separately from the dance record, so earlier versions of the app
+brought your dances over with their titles, authors and notes but an empty body.
+The import now reads that choreography, so a migrated dance arrives with real
+A1/A2/B1/B2 figures you can search and edit. Anything the app cannot represent
+faithfully is kept word-for-word as text rather than guessed at.
+
+Your **venues** and **related-dance links** come across as well. Set locations
+become real venue entries — matching one you already have when it is clearly the
+same place, and creating a new one when it isn't (an ambiguous match always
+creates a fresh venue rather than guessing). That happens when venue entities
+are switched on; with them off, the location is kept as plain text exactly as
+before. Dances that pointed at each other in Caller's Companion arrive linked as
+**related dances**.
+
+One thing does not come across yet: custom **glossary terms** stay behind, because
+the app has no glossary of its own to put them in.
 
 ### Bring your call buttons across as shorthands
 
@@ -257,6 +271,13 @@ watches for matches:
   source, the app marks it as **unsure** and asks you to choose: **link** the two,
   keep both as a **duplicate**, or **skip** the new one. It never merges dances
   on its own.
+- **Same name, different choreography.** When the title and author match
+  confidently but the *figures* differ, the app shows a **Variation?** block with
+  an inline diff of exactly which lines changed, and offers **Import as a
+  variation** — which keeps it as its own dance, optionally linked back to the
+  original as a related dance — or **Same dance (link/update)**. Two dances that
+  differ only in timing or in which figure carries the progression count as the
+  same dance and never raise the prompt.
 
 ### Re-import to pick up a correction
 
