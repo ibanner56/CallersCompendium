@@ -882,7 +882,7 @@
   "importErrorCallersBoxEmptyInput": "Voer een Caller's Box dans-URL of -id in om van te importeren.",
   "importErrorCallersBoxInvalidUrl": "Dat ziet er niet uit als een Caller's Box dans-URL of een numeriek id.",
   "importErrorCallersBoxMissingId": "Die Caller's Box-URL mist een dans-id (…dance.php?id=N).",
-  "importErrorCallersBoxUnsupportedHost": "Die link is niet afkomstig van een ondersteunde Caller's Box-host. Plak een Caller's Box-link van ibiblio.org of www.ibiblio.org, of voer het numerieke dans-id in.",
+  "importErrorCallersBoxUnsupportedHost": "Die link is geen ondersteunde Caller's Box-link. Plak een link van ibiblio.org of www.ibiblio.org onder /contradance/thecallersbox/, of voer het numerieke dans-id in.",
   "importErrorCallersBoxEmptySearch": "Voer een titel of per-frase-figuren in om The Caller's Box te doorzoeken.",
   "importErrorSearchTimeout": "De zoekopdracht is na {seconds}s verlopen. Controleer je verbinding en probeer het opnieuw.",
   "importErrorCallersBoxUnreachable": "The Caller's Box kon niet worden bereikt. Controleer je verbinding en probeer het opnieuw.",

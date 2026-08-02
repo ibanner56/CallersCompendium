@@ -3499,7 +3499,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxUnsupportedHost =>
-      'That link isn\'t from a supported Caller\'s Box host. Paste a Caller\'s Box link from ibiblio.org or www.ibiblio.org, or enter the dance\'s numeric id.';
+      'That link isn\'t a supported Caller\'s Box link. Paste a link from ibiblio.org or www.ibiblio.org under /contradance/thecallersbox/, or enter the dance\'s numeric id.';
 
   @override
   String get importErrorCallersBoxEmptySearch =>
