@@ -2,6 +2,56 @@
 
 ### Changed
 
+- **The sentinel workaround params now carry their natural `ParamKind`s
+  (#739). Type information only — no behaviour change, no
+  `contraTaxonomyVersion` bump.** `form_long_waves.hand` was declared
+  `ParamKind.choice` and is now `ParamKind.handedness`;
+  `mad_robin.direction` and `butterfly_whirl.direction` were `choice` and are
+  now `ParamKind.spinDirection`. Each keeps its existing `choices` list, which
+  already held the fixed vocabulary plus the `unspecified` sentinel. The
+  `choice` declarations existed for one reason only: the typed dropdown kinds
+  (`handedness`, `shoulder`, `spinDirection`, `fraction`, `direction`) used to
+  render and validate from a *hardcoded* vocabulary that ignored
+  `spec.choices`, so a sentinel declared on one of them was offered nowhere and
+  rejected by the validator. All three consumers of the kind + `choices`
+  contract now read `spec.choices ?? <fixed vocabulary>` — the figure param
+  editor and `ParamSpec.validate` (#726), and the Advanced-search facet's
+  `figureParamChoices` (#746) — so the workaround buys nothing and cost the
+  taxonomy its type information.
+  - **Nothing a user can see changes.** Verified by dumping every observable
+    output for the whole taxonomy before and after — canonical text, display
+    and verbose renders under every preset dialect, `renderSummary`,
+    `validateFigure`, `effectiveParams`, snippet signatures and their
+    descriptions, `ParamSpec.validate` over a fixed probe set, and
+    `figureParamChoices` for every param of every move — and diffing:
+    byte-identical (93,479 lines, matching SHA-256). Canonical text is the
+    dedupe/FTS key, so this is the invariant that mattered.
+  - **No `contraTaxonomyVersion` bump.** The constant is not serialized
+    anywhere (it feeds only `Taxonomy.version`), no `MoveDef`, param, default
+    or vocabulary changed, and no stored figure is rewritten — the same
+    reasoning that applied to the `progressionCapable` removal (#551).
+  - **`gate.direction` deliberately stays a `ParamKind.choice`**, and its
+    comment now says so explicitly. Its domain includes `mirror` — the
+    two-couple gate — which `ParamKind.spinDirection` (`clockwise`/
+    `counterclockwise` only) cannot express, so it is not an instance of this
+    workaround and converting it would silently drop `mirror`.
+  - **`ParamVocab.unspecified`'s doc comment now states the rule instead of
+    listing the params.** It enumerated which params opt into the sentinel and
+    had already drifted (it omitted `form_long_waves.hand`/`whom` and most of
+    the `gate.*` family). It now says what is actually true — a param admits
+    the sentinel iff it names it in `ParamSpec.choices` and its kind's
+    validator consults `choices`, which explicitly includes the typed kinds —
+    and points at `sentinel_choices_test.dart` as the mechanically-enforced
+    source of truth, so it cannot drift again.
+  - **New guards.** `sentinel_choices_test.dart` now fails any
+    `ParamKind.choice` whose domain, minus the sentinel, is exactly one of the
+    fixed vocabularies (the workaround's precise signature, and one that does
+    not flag `gate.direction`'s superset domain). `facet_param_choices_test.dart`
+    gains the missing direction: the search facet must offer a param's declared
+    domain *verbatim*, since the pre-existing sweep only caught the facet
+    offering too much and would have stayed green while `unspecified` silently
+    vanished from the search dropdown.
+
 - **A CallersBox annotation note no longer displaces a recognizer's own note
   (#729's collision, as it applies to the new `walk forward` anchor).**
   `_withAnnotationNote` combined the two with `??`, which was correct while only

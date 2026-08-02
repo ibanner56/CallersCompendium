@@ -46,13 +46,44 @@ void main() {
       expect(def.params.keys, ['who', 'turn', 'direction', 'whom', 'beats']);
       expect(def.params['who']!.defaultValue, 'ones');
       expect(def.params['turn']!.defaultValue, 1.0);
-      expect(def.params['direction']!.kind, ParamKind.choice);
+      // Issue #739: the NATURAL kind. `direction` wore `ParamKind.choice` from
+      // v20 until #726/#736 (editor + validator) and #746 (search facet) taught
+      // all three consumers of the kind + `choices` contract to read
+      // `spec.choices ?? <fixed vocabulary>` — the workaround's only purpose
+      // was to smuggle the sentinel past consumers that ignored `choices`.
+      expect(def.params['direction']!.kind, ParamKind.spinDirection);
       expect(def.params['direction']!.defaultValue, ParamVocab.unspecified);
+      // ⚠️ The string literals below are DELIBERATE, and the apparent
+      // inconsistency with the `ParamVocab.unspecified` on the line above is
+      // principled. Two different kinds of assertion live in this file:
+      //
+      // - IDENTITY ("the default IS the sentinel", "the sentinel validates")
+      //   uses `ParamVocab.unspecified`. It expresses intent and stays correct
+      //   however the sentinel is spelled.
+      // - DOMAIN-CONTENT PINNING (this one: "the declared domain is exactly
+      //   these values, in this order") uses literals. Its entire purpose is to
+      //   NOTICE when the underlying vocabulary changes.
+      //
+      // Writing this as `[...ParamVocab.spins, ParamVocab.unspecified]` — the
+      // DRY-looking form a reviewer will keep suggesting — makes it
+      // self-referential and unable to fail: both sides move together, so a
+      // value added to, removed from or reordered within `ParamVocab.spins`
+      // would silently change this param's domain with nothing catching it.
+      // Measured, not assumed: reordering `ParamVocab.spins` fails these
+      // literal assertions in both tests; rewritten in the `spread` form the
+      // whole file passes green against that same mutation.
+      //
+      // So changing `ParamVocab.spins` SHOULD break this test. That is the
+      // point of it — do not "fix" it.
       expect(def.params['direction']!.choices, [
         'clockwise',
         'counterclockwise',
         'unspecified',
       ]);
+      // The point of the natural kind is that it costs nothing: a typed spin
+      // direction still validates the sentinel, because it reads `choices`.
+      expect(def.params['direction']!.validate(ParamVocab.unspecified), isTrue);
+      expect(def.params['direction']!.validate('sideways'), isFalse);
       expect(def.params['whom']!.kind, ParamKind.dancerSet);
       expect(def.params['whom']!.defaultValue, ParamVocab.unspecified);
       expect(def.goodBeats, [6, 8]);
@@ -63,6 +94,17 @@ void main() {
       expect(def.params.keys, ['who', 'direction', 'beats']);
       expect(def.params['who']!.defaultValue, ParamVocab.unspecified);
       expect(def.params['direction']!.defaultValue, ParamVocab.unspecified);
+      // Issue #739: shares `_spinOrUnspecified` with `mad_robin.direction`, so
+      // it carries the same natural kind and the same sentinel admission.
+      expect(def.params['direction']!.kind, ParamKind.spinDirection);
+      // Literals again, deliberately — see the note on `mad_robin.direction`
+      // above. This is a domain-content pin, not an identity assertion.
+      expect(def.params['direction']!.choices, [
+        'clockwise',
+        'counterclockwise',
+        'unspecified',
+      ]);
+      expect(def.params['direction']!.validate(ParamVocab.unspecified), isTrue);
       // TCB states an amount on only 4/18 lines and no source models one, so
       // there is deliberately no `turn`/`amount` slot (prefer-custom).
       expect(def.params.containsKey('turn'), isFalse);

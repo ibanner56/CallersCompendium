@@ -405,18 +405,29 @@ const _singleDancers = ParamVocab.singleDancers;
 const _pairOrUnspecified = _heyMeetTargetChoices;
 
 // v20 (issue #295): the rotation direction TCB states for `mad_robin` and
-// `butterfly_whirl`. Modeled as a `choice` rather than
-// [ParamKind.spinDirection] ONLY so it can admit the `unspecified` sentinel;
-// the stated values are exactly [ParamVocab.spins], so this introduces no new
-// vocabulary. The sentinel is the default because ContraDB models no direction
-// for either move and a ContraDB import must keep asserting none.
+// `butterfly_whirl` — exactly [ParamVocab.spins] plus the `unspecified`
+// sentinel, so this introduces no new vocabulary. The sentinel is the default
+// because ContraDB models no direction for either move and a ContraDB import
+// must keep asserting none.
+//
+// Both params carry the honest [ParamKind.spinDirection]. From v20 until issue
+// #739 they were declared [ParamKind.choice] ONLY so they could admit the
+// sentinel: the five typed dropdown kinds then rendered and validated from a
+// HARDCODED vocabulary that ignored `spec.choices`, so a sentinel declared on
+// one was offered nowhere and rejected by the validator. That gap is closed —
+// all three consumers of the kind + `choices` contract now read
+// `spec.choices ?? <fixed vocabulary>`: the figure param editor
+// (`figure_param_editors.dart`) and [ParamSpec.validate] (issue #726), and the
+// Advanced-search facet (`facet_labels.dart`'s `figureParamChoices`, PR #746).
+// A sentinel on a typed kind is offered, stored and validated correctly, so do
+// NOT reintroduce the `choice` workaround for new params.
 const _spinOrUnspecified = [...ParamVocab.spins, ParamVocab.unspecified];
 
 // v21 (issue #295): the hand a wave is held by, or the `unspecified` sentinel
-// when the source states none. Modeled as a `choice` rather than
-// [ParamKind.handedness] ONLY so it can admit the sentinel (the same reason
-// `_spinOrUnspecified` exists); the stated values are exactly
-// [ParamVocab.sides], so this introduces no new vocabulary.
+// when the source states none — exactly [ParamVocab.sides] plus the sentinel,
+// so this introduces no new vocabulary. Carries the honest
+// [ParamKind.handedness]; see `_spinOrUnspecified` above for why it spent v21
+// through #739 declared as a `choice`, and why that workaround is obsolete.
 const _handOrUnspecified = [...ParamVocab.sides, ParamVocab.unspecified];
 
 // v21 (issue #295): the pair tokens that have a nameable INVERSE — exactly
@@ -444,9 +455,16 @@ const _invertiblePairs = [
 // subject chooser would reject.)
 const _dancerOrUnspecified = [...ParamVocab.dancerSets, ParamVocab.unspecified];
 
-// v22 (gate merge): the TCB rotation qualifier plus the sentinel. `mirror` is
-// the two-couple gate and has no ContraDB equivalent, which is why this is a
-// `choice` rather than [ParamKind.spinDirection].
+// v22 (gate merge): the TCB rotation qualifier plus the sentinel.
+//
+// ⚠️ This IS a `choice`, and must stay one — for a reason that has nothing to
+// do with the sentinel. Its domain is `gateDirections`, which includes
+// `mirror`: the two-couple gate, which has no ContraDB equivalent and which
+// [ParamKind.spinDirection] (`clockwise`/`counterclockwise` only) cannot
+// express. This is therefore NOT an instance of the obsolete sentinel
+// workaround issue #739 unwound from `_spinOrUnspecified` /
+// `_handOrUnspecified`; "finishing the job" here would silently drop `mirror`
+// from the domain of every gate.
 const _gateDirectionOrUnspecified = [...gateDirections, ParamVocab.unspecified];
 
 // v22 (gate merge): ContraDB `gate_face` (the ENDING facing) plus the sentinel.
@@ -719,16 +737,23 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // `spec.choices ?? <fixed vocabulary>`: the figure param editor
         // (`figure_param_editors.dart`) and [ParamSpec.validate] (issue #726),
         // and the Advanced-search facet (`facet_labels.dart`'s
-        // `figureParamChoices`). A sentinel on a typed kind is therefore
-        // offered, stored and validated correctly.
+        // `figureParamChoices`, PR #746). A sentinel on a typed kind is
+        // therefore offered, stored and validated correctly.
         //
         // ⚠️ The corollary: declaring a param `ParamKind.choice` PURELY so it
-        // can admit the sentinel (`_handOrUnspecified` / `_spinOrUnspecified`)
-        // is now an OBSOLETE workaround — do not copy it into new params;
-        // issue #739 tracks unwinding the two that exist. This param keeps the
-        // honest `ParamKind.spinDirection` and no sentinel because a courtesy
-        // turn wheels clockwise by construction, so `clockwise` is a real
-        // default rather than a fabricated one.
+        // can admit the sentinel is an OBSOLETE workaround — do not copy it
+        // into new params. Issue #739 unwound the three declarations that used
+        // it: `form_long_waves.hand` (via `_handOrUnspecified`) now carries
+        // `ParamKind.handedness`, and `mad_robin.direction` /
+        // `butterfly_whirl.direction` (via `_spinOrUnspecified`) now carry
+        // `ParamKind.spinDirection` — each still listing the sentinel in
+        // `choices`. The one sentinel-bearing `choice` that REMAINS,
+        // `gate.direction`, is not an instance of the workaround: its domain
+        // includes `mirror`, which no typed kind can express (see
+        // `_gateDirectionOrUnspecified`). THIS param keeps the honest
+        // `ParamKind.spinDirection` and no sentinel because a courtesy turn
+        // wheels clockwise by construction, so `clockwise` is a real default
+        // rather than a fabricated one.
         'direction': ParamSpec(
           ParamKind.spinDirection,
           defaultValue: 'clockwise',
@@ -854,7 +879,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // and neither ContraDB nor the glossary models it, so those lines stay
         // `custom` (prefer-custom) and `goodBeats` stays `[4]`.
         'direction': ParamSpec(
-          ParamKind.choice,
+          ParamKind.spinDirection,
           defaultValue: ParamVocab.unspecified,
           choices: _spinOrUnspecified,
         ),
@@ -936,7 +961,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // v20 (#295): TCB glossary — "a CLOCKWISE mad robin begins with the
         // left-hand person going in front"; stated on 24/24 sampled lines.
         'direction': ParamSpec(
-          ParamKind.choice,
+          ParamKind.spinDirection,
           defaultValue: ParamVocab.unspecified,
           choices: _spinOrUnspecified,
         ),
@@ -1639,7 +1664,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
           choices: _pairOrUnspecified,
         ),
         'hand': ParamSpec(
-          ParamKind.choice,
+          ParamKind.handedness,
           defaultValue: ParamVocab.unspecified,
           choices: _handOrUnspecified,
         ),

@@ -91,13 +91,21 @@ abstract final class ParamVocab {
 
   /// Sentinel value meaning "the source states nothing here".
   ///
-  /// Admitted only by params that explicitly list it in [ParamSpec.choices]
-  /// (`hey.pass2`/`hey.meetTarget`, `mad_robin.direction`/`whom`,
-  /// `butterfly_whirl.who`/`direction`, and — the one [ParamKind.rotation] that
-  /// opts in — `gate.turn`). It is NOT a dancer or a direction, so
-  /// the renderer emits it as the empty string — which is what lets such a
-  /// param sit in a `renderTemplate` without changing the canonical text of any
-  /// figure that leaves it unset.
+  /// The rule, deliberately stated instead of enumerated: a param admits the
+  /// sentinel **iff** it names it explicitly in [ParamSpec.choices] and its
+  /// [ParamKind]'s validator consults `choices` — every kind with a closed
+  /// vocabulary does, plus [ParamKind.rotation] by an explicit opt-in. Nothing
+  /// admits it implicitly. That includes the semantically typed kinds, which is
+  /// why `form_long_waves.hand` can be a [ParamKind.handedness] and still mean
+  /// "not stated" (issue #739); a param does NOT have to be laundered through
+  /// [ParamKind.choice] to carry it. A list of the params that opt in would
+  /// only drift out of date — `sentinel_choices_test.dart` sweeps the live
+  /// taxonomy and is the mechanically-enforced source of truth for which
+  /// params opt in and which kinds may.
+  ///
+  /// It is NOT a dancer or a direction, so the renderer emits it as the empty
+  /// string — which is what lets such a param sit in a `renderTemplate` without
+  /// changing the canonical text of any figure that leaves it unset.
   static const String unspecified = 'unspecified';
   static const List<String> fractions = [
     'quarter',
