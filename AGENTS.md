@@ -86,18 +86,47 @@ undetected).
 - **Suppressed comments read and considered** (above).
 - **CI green on the commit being merged.** Re-check after any push; a green run
   on a superseded commit proves nothing about the current head.
-- **The review is on the commit being merged.** A completed review is reported
-  the same way whether or not the head has moved under it, so check it
-  explicitly — on #746 a review landed six seconds before the next push:
+- **The review is on the commit being merged.** A submitted review is pinned to
+  the commit it ran against, so a push after it lands leaves a review that has
+  not seen the change — exactly like a CI run on a superseded commit, and just
+  as invisible. On #746 a review landed six seconds before the next push.
+
+  **Filter by the reviewer's login, and do it before `tail`:**
 
   ```sh
   gh api --paginate repos/<owner>/<repo>/pulls/<N>/reviews \
-    -q '.[-1].commit_id' | tail -n 1
+    -q '.[]|select(.user.login=="copilot-pull-request-reviewer[bot]")|.commit_id' \
+    | tail -n 1
   gh pr view <N> --json headRefOid -q .headRefOid
   ```
 
+  Taking the last element without filtering does not work, because **this
+  endpoint returns a review object for every inline thread reply**, not just for
+  submitted reviews. Those replies carry the *PR author's* login and an empty
+  body, and they are appended after the reviewer's review — so the last element
+  is usually the author's own last activity, whose `commit_id` matches head by
+  construction. The check then reports a stale review as fresh. Measured on
+  #764, where the only real review was two commits behind head:
+
+  ```
+  copilot-pull-request-reviewer[bot]   bodylen=4075   83934433   <- the review
+  ibanner56                            bodylen=0      1b5b51be   <- thread reply
+  ibanner56                            bodylen=0      1b5b51be   <- thread reply
+  ```
+
+  **Use the bot login, not the display name.** The reviews endpoint spells it
+  `copilot-pull-request-reviewer[bot]`; `Copilot` — the spelling that appears in
+  `requested_reviewers` above — matches nothing here and returns empty. Verified
+  back to back on #764: filtering on `Copilot` gives ``, filtering on the bot
+  login gives `1b5b51be`. That failure is silent and mis-directed: an empty
+  result reads as "no review yet", which looks like a reason to wait rather than
+  a reason to look again.
+
+  Assert the result is non-empty, so a future login change fails loudly instead
+  of reading as "not reviewed yet".
+
   `--paginate` for the same reason as above; `tail -n 1` because `-q` is applied
-  to each page separately, so the un-tailed form emits one commit per page.
+  to each page separately, so the un-tailed form emits one match per page.
 
 - **The PR closes only the issues you intend.** See below.
 - **State verified from the remote**, not from memory or a stale local checkout.
@@ -164,6 +193,10 @@ design docs, roadmap status, and code comments.
     for an incidental reason. Instead **mutate out the guard** — implement the
     naive version a future simplification would produce — and confirm the test
     catches that.
+  - **Report the red-run result in the PR body.** Squash-merging collapses the
+    commit split, so a branch structured to keep the revert target buildable
+    survives only as concatenated prose, not as revertable commits. If the
+    result is not written down it is not recoverable afterwards.
 - **Do not use line-window greps to ask whether a declaration contains
   something.** `ParamSpec` and `MoveDef` declarations span lines, so `grep -A3`
   under-reports and a non-greedy regex can run past a short declaration and
