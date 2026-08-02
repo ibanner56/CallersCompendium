@@ -221,7 +221,7 @@ class _RotationStepper extends StatelessWidget {
             ),
             Text(
               current == null
-                  ? l10n.danceEditorTurnNotStated
+                  ? l10n.danceEditorParamNotStated
                   : l10n.danceEditorTurnCount(current, _format(current)),
               key: ValueKey('$fieldKey-value'),
               style: current == null
@@ -253,7 +253,7 @@ class _RotationStepper extends StatelessWidget {
             if (allowsUnset && current != null)
               IconButton(
                 key: ValueKey('$fieldKey-clear'),
-                tooltip: l10n.danceEditorTurnClearTooltip,
+                tooltip: l10n.danceEditorParamClearTooltip,
                 icon: const Icon(Icons.backspace_outlined),
                 visualDensity: VisualDensity.compact,
                 onPressed: () => onChanged(ParamVocab.unspecified),

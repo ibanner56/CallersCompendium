@@ -4781,10 +4781,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorLessTooltip => 'Færre';
 
   @override
-  String get danceEditorTurnNotStated => 'ikke angivet';
+  String get danceEditorParamNotStated => 'ikke angivet';
 
   @override
-  String get danceEditorTurnClearTooltip => 'Ryd (ikke angivet)';
+  String get danceEditorParamClearTooltip => 'Ryd (ikke angivet)';
 
   @override
   String get danceEditorMoreTooltip => 'Flere';

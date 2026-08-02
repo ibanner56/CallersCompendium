@@ -4631,10 +4631,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorLessTooltip => '少なく';
 
   @override
-  String get danceEditorTurnNotStated => '未指定';
+  String get danceEditorParamNotStated => '未指定';
 
   @override
-  String get danceEditorTurnClearTooltip => 'クリア（未指定）';
+  String get danceEditorParamClearTooltip => 'クリア（未指定）';
 
   @override
   String get danceEditorMoreTooltip => '多く';
