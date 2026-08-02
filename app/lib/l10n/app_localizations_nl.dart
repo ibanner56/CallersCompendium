@@ -3523,7 +3523,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxUnsupportedHost =>
-      'Die link is niet afkomstig van een ondersteunde Caller\'s Box-host. Plak een link van ibiblio.org/contradance/thecallersbox/, of voer het numerieke dans-id in.';
+      'Die link is niet afkomstig van een ondersteunde Caller\'s Box-host. Plak een Caller\'s Box-link van ibiblio.org of www.ibiblio.org, of voer het numerieke dans-id in.';
 
   @override
   String get importErrorCallersBoxEmptySearch =>
