@@ -5237,13 +5237,13 @@
   "@danceEditorLessTooltip":   {
     "description": "Tooltip for decrementing a numeric figure parameter."
   },
-  "danceEditorTurnNotStated": "not stated",
-  "@danceEditorTurnNotStated":   {
-    "description": "Shown in the figure parameter editor's rotation stepper when the source never stated a turn amount, so no number may be assumed."
+  "danceEditorParamNotStated": "not stated",
+  "@danceEditorParamNotStated":   {
+    "description": "Shown in the figure parameter editor when the source never stated a value for this parameter, so none may be assumed. Used by the rotation stepper and by the choice dropdowns whose parameter admits the unstated state."
   },
-  "danceEditorTurnClearTooltip": "Clear (not stated)",
-  "@danceEditorTurnClearTooltip":   {
-    "description": "Tooltip for the button that clears a rotation amount back to the unstated/unspecified state."
+  "danceEditorParamClearTooltip": "Clear (not stated)",
+  "@danceEditorParamClearTooltip":   {
+    "description": "Tooltip for the button that clears a figure parameter back to the unstated state."
   },
   "danceEditorMoreTooltip": "More",
   "@danceEditorMoreTooltip":   {

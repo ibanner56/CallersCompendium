@@ -329,6 +329,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
           AdvancedQueryBuilder(
             root: _advancedRoot,
             taxonomy: data.taxonomy,
+            dialect: widget.dialect,
             sectionLabels: data.sectionLabels,
             onChanged: _onAdvancedChanged,
           ),

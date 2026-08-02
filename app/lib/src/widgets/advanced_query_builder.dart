@@ -17,12 +17,19 @@ class AdvancedQueryBuilder extends StatelessWidget {
     super.key,
     required this.root,
     required this.taxonomy,
+    required this.dialect,
     required this.sectionLabels,
     required this.onChanged,
   });
 
   final BuilderGroup root;
   final Taxonomy taxonomy;
+
+  /// Active dialect, so figure-param choices are labelled with the user's
+  /// role terminology exactly as the dance editor labels them (issue #741).
+  /// Threaded explicitly rather than read from `ActiveDialectScope` so this
+  /// widget has no hidden inherited dependency.
+  final Dialect dialect;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
 
@@ -31,6 +38,7 @@ class AdvancedQueryBuilder extends StatelessWidget {
     return _GroupView(
       group: root,
       taxonomy: taxonomy,
+      dialect: dialect,
       sectionLabels: sectionLabels,
       onChanged: onChanged,
       onRemove: null,
@@ -43,6 +51,7 @@ class _GroupView extends StatelessWidget {
   const _GroupView({
     required this.group,
     required this.taxonomy,
+    required this.dialect,
     required this.sectionLabels,
     required this.onChanged,
     required this.onRemove,
@@ -51,6 +60,7 @@ class _GroupView extends StatelessWidget {
 
   final BuilderGroup group;
   final Taxonomy taxonomy;
+  final Dialect dialect;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
   final VoidCallback? onRemove;
@@ -142,6 +152,7 @@ class _GroupView extends StatelessWidget {
         return _GroupView(
           group: child,
           taxonomy: taxonomy,
+          dialect: dialect,
           sectionLabels: sectionLabels,
           onChanged: onChanged,
           onRemove: remove,
@@ -151,6 +162,7 @@ class _GroupView extends StatelessWidget {
         return _FigureRow(
           figure: child,
           taxonomy: taxonomy,
+          dialect: dialect,
           sectionLabels: sectionLabels,
           onChanged: onChanged,
           onRemove: () {
@@ -162,6 +174,7 @@ class _GroupView extends StatelessWidget {
         return _ThenRow(
           node: child,
           taxonomy: taxonomy,
+          dialect: dialect,
           sectionLabels: sectionLabels,
           onChanged: onChanged,
           onRemove: () {
@@ -223,6 +236,7 @@ class _FigureRow extends StatelessWidget {
   const _FigureRow({
     required this.figure,
     required this.taxonomy,
+    required this.dialect,
     required this.sectionLabels,
     required this.onChanged,
     required this.onRemove,
@@ -230,6 +244,7 @@ class _FigureRow extends StatelessWidget {
 
   final BuilderFigure figure;
   final Taxonomy taxonomy;
+  final Dialect dialect;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
   final VoidCallback onRemove;
@@ -250,6 +265,7 @@ class _FigureRow extends StatelessWidget {
             child: _FigureEditor(
               figure: figure,
               taxonomy: taxonomy,
+              dialect: dialect,
               sectionLabels: sectionLabels,
               onChanged: onChanged,
             ),
@@ -270,6 +286,7 @@ class _ThenRow extends StatelessWidget {
   const _ThenRow({
     required this.node,
     required this.taxonomy,
+    required this.dialect,
     required this.sectionLabels,
     required this.onChanged,
     required this.onRemove,
@@ -277,6 +294,7 @@ class _ThenRow extends StatelessWidget {
 
   final BuilderThen node;
   final Taxonomy taxonomy;
+  final Dialect dialect;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
   final VoidCallback onRemove;
@@ -305,6 +323,7 @@ class _ThenRow extends StatelessWidget {
                     onChanged();
                   },
                   taxonomy: taxonomy,
+                  dialect: dialect,
                   sectionLabels: sectionLabels,
                   onChanged: onChanged,
                 ),
@@ -326,6 +345,7 @@ class _ThenRow extends StatelessWidget {
                     onChanged();
                   },
                   taxonomy: taxonomy,
+                  dialect: dialect,
                   sectionLabels: sectionLabels,
                   onChanged: onChanged,
                 ),
@@ -356,6 +376,7 @@ class _FigureOperandEditor extends StatelessWidget {
     required this.node,
     required this.onReplace,
     required this.taxonomy,
+    required this.dialect,
     required this.sectionLabels,
     required this.onChanged,
   });
@@ -369,6 +390,7 @@ class _FigureOperandEditor extends StatelessWidget {
   final ValueChanged<BuilderFigureNode> onReplace;
 
   final Taxonomy taxonomy;
+  final Dialect dialect;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
 
@@ -386,6 +408,7 @@ class _FigureOperandEditor extends StatelessWidget {
         _FigureEditor(
           figure: figure,
           taxonomy: taxonomy,
+          dialect: dialect,
           sectionLabels: sectionLabels,
           onChanged: onChanged,
         ),
@@ -407,6 +430,7 @@ class _FigureOperandEditor extends StatelessWidget {
     return _FigureGroupEditor(
       group: group,
       taxonomy: taxonomy,
+      dialect: dialect,
       sectionLabels: sectionLabels,
       onChanged: onChanged,
       onFlatten: canFlatten
@@ -424,6 +448,7 @@ class _FigureGroupEditor extends StatelessWidget {
   const _FigureGroupEditor({
     required this.group,
     required this.taxonomy,
+    required this.dialect,
     required this.sectionLabels,
     required this.onChanged,
     this.onFlatten,
@@ -431,6 +456,7 @@ class _FigureGroupEditor extends StatelessWidget {
 
   final BuilderFigureGroup group;
   final Taxonomy taxonomy;
+  final Dialect dialect;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
 
@@ -507,6 +533,7 @@ class _FigureGroupEditor extends StatelessWidget {
                 child: _FigureEditor(
                   figure: child,
                   taxonomy: taxonomy,
+                  dialect: dialect,
                   sectionLabels: sectionLabels,
                   onChanged: onChanged,
                 ),
@@ -535,6 +562,7 @@ class _FigureGroupEditor extends StatelessWidget {
                 child: _FigureGroupEditor(
                   group: child,
                   taxonomy: taxonomy,
+                  dialect: dialect,
                   sectionLabels: sectionLabels,
                   onChanged: onChanged,
                 ),
@@ -560,12 +588,14 @@ class _FigureEditor extends StatelessWidget {
   const _FigureEditor({
     required this.figure,
     required this.taxonomy,
+    required this.dialect,
     required this.sectionLabels,
     required this.onChanged,
   });
 
   final BuilderFigure figure;
   final Taxonomy taxonomy;
+  final Dialect dialect;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
 
@@ -612,7 +642,9 @@ class _FigureEditor extends StatelessWidget {
                     _ParamDropdown(
                       figure: figure,
                       paramKey: entry.key,
+                      spec: entry.value,
                       choices: choices,
+                      dialect: dialect,
                       onChanged: onChanged,
                     ),
               ],
@@ -798,25 +830,77 @@ class _ParamDropdown extends StatelessWidget {
   const _ParamDropdown({
     required this.figure,
     required this.paramKey,
+    required this.spec,
     required this.choices,
+    required this.dialect,
     required this.onChanged,
   });
 
   final BuilderFigure figure;
   final String paramKey;
+
+  /// The parameter's spec. Needed to label its values the way the dance editor
+  /// labels them: dancer kinds route through the dialect, everything else is
+  /// humanized.
+  final ParamSpec spec;
+
+  /// The parameter's full DOMAIN, as [figureParamChoices] reports it — which
+  /// may include [ParamVocab.unspecified]. Not the same thing as the list the
+  /// user may pick from; see [build].
   final List<String> choices;
+  final Dialect dialect;
   final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final value = figure.params[paramKey] as String?;
+    // The `unspecified` sentinel is never offered here (issue #741). It reads
+    // as a synonym of "Any <param>" sitting directly above it, but means the
+    // opposite: "Any" declines to filter, while the sentinel filters FOR
+    // figures whose source stated nothing — a near-inverse result set, with
+    // nothing in the UI to signal that the user just narrowed rather than
+    // broadened. "Any <param>" already covers the only intent a caller has
+    // here, so the sentinel is dropped from the ITEMS only: `figureParamChoices`
+    // and `ParamSpec.validate` still report and accept the full domain, because
+    // they and the editor are three consumers of one contract (#726 / #746) and
+    // must not disagree about what a param can hold.
+    final selectable = figureParamSelectableChoices(choices);
+    // With nothing left to pick, "Any" alone is not a filter — offering a
+    // one-item dropdown that cannot constrain anything is just noise.
+    if (selectable.isEmpty) return const SizedBox.shrink();
+    final label = figureParamKeyLabel(paramKey);
+    final stored = figure.params[paramKey] as String?;
+    // Defensive: a value outside the selectable list would trip
+    // `DropdownButton`'s single-match assertion. Unreachable through the UI —
+    // the only writer is this dropdown — but cheap next to a crash.
+    final value = selectable.contains(stored) ? stored : null;
+    // Coercing the DISPLAY to "Any" is not enough on its own: `_cleanParams`
+    // forwards every non-null param into the compiled `FigureLeaf`, so a stored
+    // value the dropdown refuses to show would still narrow the search — a
+    // filter the user can neither see nor clear, because the control they would
+    // use to clear it already reads "Any <param>". So normalise the MODEL to
+    // match, and re-run the search.
+    //
+    // LATENT, not live: the builder tree is in-memory only (`_advancedRoot` is
+    // constructed fresh and has no JSON codec) and the sole writer is this
+    // dropdown, which only ever stores a selectable value — and `_MoveField`
+    // clears `figure.params` when the move changes, so a param cannot outlive
+    // the move that declared it. This exists because none of that is
+    // load-bearing anywhere: the day the advanced query is persisted, or seeded
+    // from a saved search, an out-of-domain token becomes reachable and the
+    // failure is silent. Cheap to foreclose now, invisible to debug later.
+    if (stored != null && value == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        figure.params.remove(paramKey);
+        onChanged();
+      });
+    }
     return Semantics(
-      label: paramKey,
+      label: label,
       child: DropdownButton<String?>(
         key: ValueKey('param-${figure.id}-$paramKey'),
         value: value,
-        hint: Text(l10n.collectionQueryAnyParam(paramKey)),
+        hint: Text(l10n.collectionQueryAnyParam(label)),
         onChanged: (v) {
           v == null
               ? figure.params.remove(paramKey)
@@ -826,10 +910,13 @@ class _ParamDropdown extends StatelessWidget {
         items: [
           DropdownMenuItem(
             value: null,
-            child: Text(l10n.collectionQueryAnyParam(paramKey)),
+            child: Text(l10n.collectionQueryAnyParam(label)),
           ),
-          for (final choice in choices)
-            DropdownMenuItem(value: choice, child: Text(choice)),
+          for (final choice in selectable)
+            DropdownMenuItem(
+              value: choice,
+              child: Text(figureParamChoiceLabel(l10n, spec, dialect, choice)),
+            ),
         ],
       ),
     );

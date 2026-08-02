@@ -1,4 +1,5 @@
 import 'package:compendium_app/src/search/collection_query.dart';
+import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/advanced_query_builder.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
@@ -16,10 +17,12 @@ class _Host extends StatefulWidget {
     required this.root,
     required this.sectionLabels,
     required this.taxonomy,
+    required this.dialect,
   });
   final BuilderGroup root;
   final List<String> sectionLabels;
   final Taxonomy taxonomy;
+  final Dialect dialect;
 
   @override
   State<_Host> createState() => _HostState();
@@ -36,6 +39,7 @@ class _HostState extends State<_Host> {
           child: AdvancedQueryBuilder(
             root: widget.root,
             taxonomy: widget.taxonomy,
+            dialect: widget.dialect,
             sectionLabels: widget.sectionLabels,
             onChanged: () => setState(() {}),
           ),
@@ -56,9 +60,13 @@ Future<void> _pump(
   // exercise the sheet path instead.
   Size screenSize = const Size(900, 1600),
   // Defaults to the real taxonomy, which is what every test here wants.
-  // Overridden only by the `spec.choices` facet tests below, which need a
-  // param combination no live taxonomy param declares yet.
+  // Overridden by the facet param tests below, which want a controlled minimal
+  // spec rather than whatever the live taxonomy happens to declare — they pin
+  // how a kind + `choices` shape is presented, not which moves use it.
   Taxonomy? taxonomy,
+  // Defaults to the app's own default dialect. Overridden by the labelling
+  // tests, which assert the facet honours the user's role terminology.
+  Dialect? dialect,
 }) async {
   await setScreenSize(tester, screenSize);
   await tester.pumpWidget(
@@ -66,6 +74,7 @@ Future<void> _pump(
       root: root,
       sectionLabels: sectionLabels,
       taxonomy: taxonomy ?? contraTaxonomy,
+      dialect: dialect ?? Dialect.larksRobins,
     ),
   );
   await tester.pumpAndSettle();
@@ -393,7 +402,7 @@ void main() {
 }
 
 // ---------------------------------------------------------------------------
-// The "has figure" param dropdowns honour spec.choices
+// The "has figure" param dropdowns: domain, and how it is presented
 //
 // `figureParamChoices` (app/lib/src/search/facet_labels.dart) is the third
 // consumer of the `ParamSpec.kind` + `ParamSpec.choices` contract, after the
@@ -402,14 +411,36 @@ void main() {
 // that NARROWED its kind's domain got a search dropdown offering the values it
 // had just excluded — a filter for a value the param cannot hold.
 //
-// No live taxonomy param pairs one of those kinds with a `choices` list, so
-// these tests inject a synthetic single-move taxonomy. Unit coverage of the
-// function itself is in `test/search/facet_param_choices_test.dart`; the three
-// tests below exist because that function is pure — only a widget test proves
-// the value actually reaches the dropdown and round-trips into
-// `BuilderFigure.params`. Two of them (sentinel, narrowed) fail without the
-// fix; the third (no `choices`) is the guard that unchanged specs still get
-// the full fixed vocabulary, and passes either way by design.
+// Issue #741 then separated DOMAIN from SELECTABLE. `figureParamChoices` and
+// `ParamSpec.validate` still report and accept the full domain, sentinel
+// included — that contract is untouched — but the facet renders only the
+// values a caller can meaningfully search for. The sentinel is dropped,
+// because it sits directly below "Any <param>", reads like a synonym of it,
+// and filters for the near-inverse set.
+//
+// These tests drive a synthetic single-move taxonomy so the spec under test is
+// a controlled minimal one, rather than whatever the live taxonomy happens to
+// declare today — the point is to pin how a given kind + `choices` shape is
+// PRESENTED, which a real move would couple to unrelated taxonomy churn. Unit
+// coverage of the pure functions is in `test/search/facet_param_choices_test.dart`
+// and `test/search/facet_param_labels_test.dart`; the tests below exist because
+// those functions are pure, so only a widget test proves a declared domain
+// actually reaches the dropdown and round-trips into `BuilderFigure.params`.
+//
+// Every test here is prefixed with the role it plays:
+//
+//   `changed by #741:`  — a case whose behaviour the fix altered. Goes RED
+//                         against the pre-fix widget.
+//   `guards unchanged:` — behaviour the fix must leave exactly alone. Passes
+//                         either way BY DESIGN; that is the point of it.
+//
+// The prefix is deliberately per-test rather than a tally in this header. The
+// header used to enumerate ("the three tests below … two of them fail without
+// the fix; the third …"), which pinned three separate counts to a list that
+// grows. It was written for two tests, corrected to three, and would have been
+// wrong again here — a count that gets corrected rather than removed is the
+// same defect with its counter reset. A prefix is a question every new test has
+// to answer, so it cannot silently fall out of date.
 // ---------------------------------------------------------------------------
 
 Taxonomy _taxonomyWithHandParam({required List<String>? choices}) => Taxonomy(
@@ -433,9 +464,18 @@ Taxonomy _taxonomyWithHandParam({required List<String>? choices}) => Taxonomy(
 
 void _paramChoiceTests() {
   group('has-figure param dropdowns honour spec.choices', () {
-    testWidgets('a sentinel in choices is offered and round-trips', (
+    testWidgets('changed by #741: a sentinel in choices is NOT offered', (
       tester,
     ) async {
+      // INVERTED from PR #746, which asserted the sentinel was offered and
+      // round-tripped. The owner has since ruled it must never be selectable:
+      // "As a user I don't want to see 'unspecified' as a drop-down option in
+      // the search […] it's meaningless to a user in basically every scenario."
+      //
+      // The two adjacent options are near-inverses. "Any hand" declines to
+      // filter and matches every wave; the sentinel filters FOR waves whose
+      // source stated no hand, a drastically smaller set. Both read as "I'm not
+      // specifying", with nothing to signal that one of them narrows.
       final figure = BuilderFigure(move: 'wave');
       final root = BuilderGroup(
         children: [BuilderThen(before: figure, after: BuilderFigure())],
@@ -450,63 +490,298 @@ void _paramChoiceTests() {
 
       await tester.tap(find.byKey(ValueKey('param-${figure.id}-hand')));
       await tester.pumpAndSettle();
-      expect(find.text(ParamVocab.unspecified), findsWidgets);
-
-      await tester.tap(find.text(ParamVocab.unspecified).last);
-      await tester.pumpAndSettle();
-      // The stored value is the canonical sentinel — not a substitute value and
-      // not a dropped write — so the compiled filter targets exactly the
-      // figures that explicitly STORE "the source stated nothing" here.
-      //
-      // Deliberately NOT claiming more than that: it does not reach figures
-      // that omit the key. `FilterCompiler._figureLeaf` emits
-      // `json_extract(params_json, '$.hand') = ?` with no effective/default
-      // param fallback, so a figure relying on `defaultValue: unspecified`
-      // without storing it will not match. That gap is pre-existing, general to
-      // all params, and out of scope here.
-      expect(figure.params['hand'], ParamVocab.unspecified);
-    });
-
-    testWidgets('a narrowed domain does not offer the excluded value', (
-      tester,
-    ) async {
-      final figure = BuilderFigure(move: 'wave');
-      final root = BuilderGroup(
-        children: [BuilderThen(before: figure, after: BuilderFigure())],
-      );
-      await _pump(
-        tester,
-        root: root,
-        taxonomy: _taxonomyWithHandParam(choices: const ['right']),
-      );
-
-      await tester.tap(find.byKey(ValueKey('param-${figure.id}-hand')));
-      await tester.pumpAndSettle();
-      // `left` is in `ParamVocab.sides` but NOT in this param's domain, and
-      // `ParamSpec.validate` rejects it — offering it would build a filter no
-      // valid figure can match.
-      expect(find.text('left'), findsNothing);
-      expect(find.text('right'), findsWidgets);
-    });
-
-    testWidgets('a spec without choices keeps the full fixed vocabulary', (
-      tester,
-    ) async {
-      final figure = BuilderFigure(move: 'wave');
-      final root = BuilderGroup(
-        children: [BuilderThen(before: figure, after: BuilderFigure())],
-      );
-      await _pump(
-        tester,
-        root: root,
-        taxonomy: _taxonomyWithHandParam(choices: null),
-      );
-
-      await tester.tap(find.byKey(ValueKey('param-${figure.id}-hand')));
-      await tester.pumpAndSettle();
+      expect(find.text(ParamVocab.unspecified), findsNothing);
+      // Nor under its human label — the point is that the concept is absent
+      // here, not that the wording changed.
+      expect(find.text('not stated'), findsNothing);
+      // The rest of the domain is unaffected: this removes one option, it does
+      // not disable the dropdown.
       expect(find.text('left'), findsWidgets);
       expect(find.text('right'), findsWidgets);
-      expect(find.text(ParamVocab.unspecified), findsNothing);
+    });
+
+    testWidgets(
+      'guards unchanged: the sentinel stays in the DOMAIN the facet is handed',
+      (tester) async {
+        // Guards the boundary of the fix. `figureParamChoices` and
+        // `ParamSpec.validate` are two of the three consumers of one domain
+        // contract (#726 / #746) and must keep reporting/accepting the sentinel;
+        // only the presentation edge filters it. Asserting this here, next to the
+        // widget test above, is what stops a future "simplification" from
+        // deleting the sentinel out of the domain and breaking the editor's
+        // unstated state along with it.
+        const spec = ParamSpec(
+          ParamKind.handedness,
+          defaultValue: 'right',
+          choices: [...ParamVocab.sides, ParamVocab.unspecified],
+        );
+        expect(figureParamChoices(spec), contains(ParamVocab.unspecified));
+        expect(spec.validate(ParamVocab.unspecified), isTrue);
+        expect(
+          figureParamSelectableChoices(figureParamChoices(spec)!),
+          isNot(contains(ParamVocab.unspecified)),
+        );
+      },
+    );
+
+    testWidgets(
+      'changed by #741: a param whose whole domain is the sentinel renders nothing',
+      (tester) async {
+        // Nothing left to pick, so the dropdown could only ever offer "Any hand"
+        // — which is not a filter. An inert control is worse than no control.
+        final figure = BuilderFigure(move: 'wave');
+        final root = BuilderGroup(
+          children: [BuilderThen(before: figure, after: BuilderFigure())],
+        );
+        await _pump(
+          tester,
+          root: root,
+          taxonomy: _taxonomyWithHandParam(
+            choices: const [ParamVocab.unspecified],
+          ),
+        );
+
+        expect(find.byKey(ValueKey('param-${figure.id}-hand')), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'guards unchanged: a narrowed domain does not offer the excluded value',
+      (tester) async {
+        final figure = BuilderFigure(move: 'wave');
+        final root = BuilderGroup(
+          children: [BuilderThen(before: figure, after: BuilderFigure())],
+        );
+        await _pump(
+          tester,
+          root: root,
+          taxonomy: _taxonomyWithHandParam(choices: const ['right']),
+        );
+
+        await tester.tap(find.byKey(ValueKey('param-${figure.id}-hand')));
+        await tester.pumpAndSettle();
+        // `left` is in `ParamVocab.sides` but NOT in this param's domain, and
+        // `ParamSpec.validate` rejects it — offering it would build a filter no
+        // valid figure can match.
+        expect(find.text('left'), findsNothing);
+        expect(find.text('right'), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'guards unchanged: a spec without choices keeps the full fixed vocabulary',
+      (tester) async {
+        final figure = BuilderFigure(move: 'wave');
+        final root = BuilderGroup(
+          children: [BuilderThen(before: figure, after: BuilderFigure())],
+        );
+        await _pump(
+          tester,
+          root: root,
+          taxonomy: _taxonomyWithHandParam(choices: null),
+        );
+
+        await tester.tap(find.byKey(ValueKey('param-${figure.id}-hand')));
+        await tester.pumpAndSettle();
+        expect(find.text('left'), findsWidgets);
+        expect(find.text('right'), findsWidgets);
+        // A real value still round-trips into the model as the canonical token.
+        await tester.tap(find.text('left').last);
+        await tester.pumpAndSettle();
+        expect(figure.params['hand'], 'left');
+      },
+    );
+
+    testWidgets(
+      'changed by #741: an out-of-domain stored value is cleared from the MODEL',
+      (tester) async {
+        // Raised in review on PR #764. Coercing only the DISPLAY to "Any" would
+        // leave `_cleanParams` forwarding the stale token into the compiled
+        // `FigureLeaf` — a filter narrowing the results that the user cannot
+        // see, and cannot clear, because the control that would clear it
+        // already reads "Any hand".
+        //
+        // LATENT today: the builder tree is in-memory only and this dropdown is
+        // its sole writer, so the state is seeded directly here — which is
+        // exactly how a future saved-search/persistence layer would produce it.
+        final figure = BuilderFigure(move: 'wave');
+        figure.params['hand'] = ParamVocab.unspecified;
+        final root = BuilderGroup(
+          children: [BuilderThen(before: figure, after: BuilderFigure())],
+        );
+        await _pump(
+          tester,
+          root: root,
+          taxonomy: _taxonomyWithHandParam(
+            choices: const [...ParamVocab.sides, ParamVocab.unspecified],
+          ),
+        );
+
+        expect(
+          figure.params.containsKey('hand'),
+          isFalse,
+          reason:
+              'a value the dropdown refuses to display must not survive in the '
+              'model and keep filtering',
+        );
+        // What the UI promises and what the query does now agree.
+        expect(figure.toFigureQuery()?.params, isNot(contains('hand')));
+      },
+    );
+  });
+
+  // -------------------------------------------------------------------------
+  // Humanized, dialect-aware labels (issue #741)
+  //
+  // The facet used to render `Text(choice)` and interpolate the raw param key,
+  // so it showed `role1s` and "Any meetTarget" while `FigureParamEditor` showed
+  // "larks" and "meet target" for the very same spec. Both surfaces now go
+  // through `figureParamChoiceLabel` / `figureParamKeyLabel`, so they cannot
+  // drift again.
+  // -------------------------------------------------------------------------
+  group('has-figure param dropdowns are humanized and dialect-aware', () {
+    /// A "hey"-shaped move: one dancerSet param carrying the sentinel, exactly
+    /// like the shipped `hey.meetTarget`.
+    Taxonomy taxonomyWithMeetTarget() => Taxonomy(
+      version: 1,
+      form: DanceForm.contra,
+      moves: [
+        MoveDef(
+          id: 'hey',
+          displayName: 'Hey',
+          renderTemplate: '{move} {meetTarget}',
+          params: {
+            'meetTarget': ParamSpec(
+              ParamKind.dancerSet,
+              defaultValue: ParamVocab.unspecified,
+              choices: const [
+                'role1s',
+                'role2s',
+                // Multi-word on purpose: `neighbors` humanizes to itself, so an
+                // assertion on it would pass with or without the fix.
+                'prevNeighbors',
+                ParamVocab.unspecified,
+              ],
+            ),
+          },
+        ),
+      ],
+    );
+
+    Future<BuilderFigure> pumpHey(WidgetTester tester, Dialect dialect) async {
+      final figure = BuilderFigure(move: 'hey');
+      await _pump(
+        tester,
+        root: BuilderGroup(
+          children: [BuilderThen(before: figure, after: BuilderFigure())],
+        ),
+        taxonomy: taxonomyWithMeetTarget(),
+        dialect: dialect,
+      );
+      await tester.tap(find.byKey(ValueKey('param-${figure.id}-meetTarget')));
+      await tester.pumpAndSettle();
+      return figure;
+    }
+
+    testWidgets(
+      'changed by #741: role tokens read in the larks/robins dialect',
+      (tester) async {
+        final figure = await pumpHey(tester, Dialect.larksRobins);
+        expect(find.text('larks'), findsWidgets);
+        expect(find.text('robins'), findsWidgets);
+        // The raw canonical token is what the facet used to show.
+        expect(find.text('role1s'), findsNothing);
+
+        await tester.tap(find.text('larks').last);
+        await tester.pumpAndSettle();
+        // Display-only: storage stays canonical, so the compiled filter matches
+        // regardless of which dialect the searcher happens to be using.
+        expect(figure.params['meetTarget'], 'role1s');
+      },
+    );
+
+    testWidgets(
+      'changed by #741: the same tokens read in a gents/ladies dialect',
+      (tester) async {
+        // Gendered terms ship as a CUSTOM dialect, not a preset, so build one —
+        // which also exercises the custom-dialect path rather than only presets.
+        final gentsLadies = Dialect(
+          name: 'Gents/Ladies',
+          roles: const {
+            'role1': RoleTerm('gent'),
+            'role2': RoleTerm('lady', plural: 'ladies'),
+          },
+        );
+        final figure = await pumpHey(tester, gentsLadies);
+        expect(find.text('gents'), findsWidgets);
+        expect(find.text('ladies'), findsWidgets);
+        // The crux of the bug: two callers with different role terminology were
+        // both shown `role1s`. Neither sees the other's word now.
+        expect(find.text('larks'), findsNothing);
+        expect(find.text('role1s'), findsNothing);
+
+        await tester.tap(find.text('gents').last);
+        await tester.pumpAndSettle();
+        expect(figure.params['meetTarget'], 'role1s');
+      },
+    );
+
+    testWidgets(
+      'changed by #741: non-role dancer tokens are humanized, not left raw',
+      (tester) async {
+        await pumpHey(tester, Dialect.larksRobins);
+        // Deliberately a MULTI-WORD token. `neighbors` would be a vacuous choice:
+        // it humanizes to itself, so the assertion would pass against the old
+        // `Text(choice)` too and could never fail.
+        expect(find.text('prevNeighbors'), findsNothing);
+        expect(find.text('prev neighbors'), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'changed by #741: the "Any" option names the param in human terms',
+      (tester) async {
+        await pumpHey(tester, Dialect.larksRobins);
+        // "Any meetTarget" leaked an internal identifier into the UI.
+        expect(find.text('Any meetTarget'), findsNothing);
+        expect(find.text('Any meet target'), findsWidgets);
+      },
+    );
+
+    testWidgets('changed by #741: structural vocabulary is humanized too', (
+      tester,
+    ) async {
+      // `direction` is not dialect vocabulary, so it takes the humanizer
+      // branch — the same one the dance editor uses for these tokens.
+      final figure = BuilderFigure(move: 'slide');
+      await _pump(
+        tester,
+        root: BuilderGroup(
+          children: [BuilderThen(before: figure, after: BuilderFigure())],
+        ),
+        taxonomy: Taxonomy(
+          version: 1,
+          form: DanceForm.contra,
+          moves: [
+            MoveDef(
+              id: 'slide',
+              displayName: 'Slide',
+              renderTemplate: '{move} {dir}',
+              params: {
+                'dir': ParamSpec(
+                  ParamKind.direction,
+                  defaultValue: 'along',
+                  choices: const ['along', 'rightDiagonal'],
+                ),
+              },
+            ),
+          ],
+        ),
+      );
+      await tester.tap(find.byKey(ValueKey('param-${figure.id}-dir')));
+      await tester.pumpAndSettle();
+      expect(find.text('rightDiagonal'), findsNothing);
+      expect(find.text('right diagonal'), findsWidgets);
     });
   });
 }

@@ -4774,10 +4774,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorLessTooltip => 'Less';
 
   @override
-  String get danceEditorTurnNotStated => 'not stated';
+  String get danceEditorParamNotStated => 'not stated';
 
   @override
-  String get danceEditorTurnClearTooltip => 'Clear (not stated)';
+  String get danceEditorParamClearTooltip => 'Clear (not stated)';
 
   @override
   String get danceEditorMoreTooltip => 'More';
