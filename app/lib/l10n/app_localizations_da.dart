@@ -3502,7 +3502,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxUnsupportedHost =>
-      'Det link er ikke fra en understøttet Caller\'s Box-vært. Indsæt et link fra ibiblio.org, eller indtast dansens numeriske id.';
+      'Det link er ikke fra en understøttet Caller\'s Box-vært. Indsæt et link fra ibiblio.org/contradance/thecallersbox/, eller indtast dansens numeriske id.';
 
   @override
   String get importErrorCallersBoxEmptySearch =>

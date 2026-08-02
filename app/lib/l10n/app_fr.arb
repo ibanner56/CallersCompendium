@@ -882,7 +882,7 @@
   "importErrorCallersBoxEmptyInput": "Saisissez une URL ou un identifiant de danse Caller's Box pour importer.",
   "importErrorCallersBoxInvalidUrl": "Cela ne ressemble pas à une URL ou un identifiant numérique Caller's Box.",
   "importErrorCallersBoxMissingId": "Cette URL Caller's Box ne contient pas d’identifiant de danse (…dance.php?id=N).",
-  "importErrorCallersBoxUnsupportedHost": "Ce lien ne provient pas d'un hébergeur Caller's Box pris en charge. Collez un lien d'ibiblio.org, ou saisissez l'identifiant numérique de la danse.",
+  "importErrorCallersBoxUnsupportedHost": "Ce lien ne provient pas d'un hébergeur Caller's Box pris en charge. Collez un lien d'ibiblio.org/contradance/thecallersbox/, ou saisissez l'identifiant numérique de la danse.",
   "importErrorCallersBoxEmptySearch": "Saisissez un titre ou des figures par phrase pour rechercher sur The Caller's Box.",
   "importErrorSearchTimeout": "La recherche a expiré après {seconds} s. Vérifiez votre connexion, puis réessayez.",
   "importErrorCallersBoxUnreachable": "Impossible d’atteindre The Caller's Box. Vérifiez votre connexion, puis réessayez.",
