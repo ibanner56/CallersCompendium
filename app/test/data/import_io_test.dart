@@ -114,6 +114,33 @@ void main() {
       },
     );
 
+    test('an ibiblio.org path with thecallersbox NOT under /contradance/ is '
+        'rejected', () {
+      // ibiblio.org hosts many independent archives. Accepting a
+      // `thecallersbox` segment *anywhere* in the path would let unrelated
+      // ibiblio content be fetched and parsed as trusted Caller's Box data,
+      // and would be broader than the prefix the builders emit and the docs
+      // promise. Only the canonical /contradance/thecallersbox/ prefix counts.
+      for (final path in [
+        '/anyarchive/thecallersbox/dance.php?id=1',
+        '/pub/misc/thecallersbox/dance.php?id=1',
+        '/thecallersbox/dance.php?id=1',
+        '/contradance/dance.php?id=1',
+      ]) {
+        expect(
+          () => buildCallersBoxJsonUrl('https://www.ibiblio.org$path'),
+          throwsA(
+            isA<UrlFetchException>().having(
+              (e) => e.reason,
+              'reason',
+              UrlFetchFailureReason.callersBoxUnsupportedHost,
+            ),
+          ),
+          reason: 'expected $path to be rejected',
+        );
+      }
+    });
+
     test(
       'an ibiblio.org URL NOT under the /thecallersbox/ path is rejected',
       () {

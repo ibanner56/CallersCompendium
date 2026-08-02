@@ -1454,8 +1454,17 @@ const Set<String> _ibiblioHosts = {'ibiblio.org', 'www.ibiblio.org'};
 /// Hosts serving ContraDB dance pages.
 const Set<String> _contraDbHosts = {'contradb.com', 'www.contradb.com'};
 
-/// Returns `true` if [uri] is a Caller's Box URL: an [_ibiblioHosts] host under
-/// the `/thecallersbox/` mirror path.
+/// The canonical mirror path as lowercase segments, derived from
+/// [callersBoxPathPrefix] so [_isCallersBoxUrl] and the URL builders cannot
+/// drift apart on what "the Caller's Box mirror" means.
+final List<String> _callersBoxPathSegments = callersBoxPathPrefix
+    .split('/')
+    .where((segment) => segment.isNotEmpty)
+    .map((segment) => segment.toLowerCase())
+    .toList(growable: false);
+
+/// Returns `true` if [uri] is a Caller's Box URL: an [_ibiblioHosts] host whose
+/// path begins with the canonical mirror prefix [callersBoxPathPrefix].
 ///
 /// Compares the **parsed** `uri.host` against the allowlist by exact string
 /// equality (never substring/`contains`), so a lookalike host — e.g.
@@ -1464,12 +1473,20 @@ const Set<String> _contraDbHosts = {'contradb.com', 'www.contradb.com'};
 /// `Uri.host` already resolves to the real authority (`evil.com`), not the
 /// string before the `@`.
 ///
-/// The ibiblio mirror check normalizes dot-segments (`.`/`..`) via
-/// [Uri.normalizePath] and then requires an **exact path segment** named
-/// `thecallersbox` (not a raw substring match on the joined path string), so
-/// neither a crafted `/contradance/thecallersbox/../someotherarchive/x` (which
-/// resolves away from the mirror directory) nor an unrelated path that merely
-/// contains the substring (e.g. `/notthecallersboxfeed/x`) can slip past it.
+/// The path check normalizes dot-segments (`.`/`..`) via [Uri.normalizePath]
+/// and then matches **exact leading path segments** (not a raw substring match
+/// on the joined path string), so neither a crafted
+/// `/contradance/thecallersbox/../someotherarchive/x` (which resolves away from
+/// the mirror directory) nor an unrelated path that merely contains the
+/// substring (e.g. `/notthecallersboxfeed/x`) can slip past it.
+///
+/// It requires the **whole** prefix rather than a `thecallersbox` segment
+/// anywhere in the path. ibiblio.org hosts many independent archives, so
+/// accepting `/anyarchive/thecallersbox/...` would let unrelated ibiblio
+/// content be fetched and parsed as trusted Caller's Box import data — and
+/// would be broader than what [buildCallersBoxJsonUrl] builds, what the update
+/// to `docs/user/imports.md` promises users, and what
+/// [UrlFetchFailureReason.callersBoxUnsupportedHost]'s message tells them.
 ///
 /// Both limbs matter, which is why callers must treat this as a predicate over
 /// the whole [Uri] and never as a host check.
@@ -1482,10 +1499,12 @@ const Set<String> _contraDbHosts = {'contradb.com', 'www.contradb.com'};
 /// redirect within.
 bool _isCallersBoxUrl(Uri uri) {
   if (!_ibiblioHosts.contains(uri.host.toLowerCase())) return false;
-  final segments = uri.normalizePath().pathSegments.map(
-    (segment) => segment.toLowerCase(),
-  );
-  return segments.contains('thecallersbox');
+  final segments = uri.normalizePath().pathSegments;
+  if (segments.length < _callersBoxPathSegments.length) return false;
+  for (var i = 0; i < _callersBoxPathSegments.length; i++) {
+    if (segments[i].toLowerCase() != _callersBoxPathSegments[i]) return false;
+  }
+  return true;
 }
 
 /// Returns `true` if [uri] names a known ContraDB host ([_contraDbHosts]).
