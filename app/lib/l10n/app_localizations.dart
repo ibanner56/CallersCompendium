@@ -7397,17 +7397,17 @@ abstract class AppLocalizations {
   /// **'Less'**
   String get danceEditorLessTooltip;
 
-  /// Shown in the figure parameter editor's rotation stepper when the source never stated a turn amount, so no number may be assumed.
+  /// Shown in the figure parameter editor when the source never stated a value for this parameter, so none may be assumed. Used by the rotation stepper and by the choice dropdowns whose parameter admits the unstated state.
   ///
   /// In en, this message translates to:
   /// **'not stated'**
-  String get danceEditorTurnNotStated;
+  String get danceEditorParamNotStated;
 
-  /// Tooltip for the button that clears a rotation amount back to the unstated/unspecified state.
+  /// Tooltip for the button that clears a figure parameter back to the unstated state.
   ///
   /// In en, this message translates to:
   /// **'Clear (not stated)'**
-  String get danceEditorTurnClearTooltip;
+  String get danceEditorParamClearTooltip;
 
   /// Tooltip for incrementing a numeric figure parameter.
   ///
