@@ -18,11 +18,20 @@ const String docBeginMarker = '<!-- BEGIN GENERATED: field-catalogue -->';
 /// Closing marker of the generated block.
 const String docEndMarker = '<!-- END GENERATED: field-catalogue -->';
 
-String _egressLabel(EgressClass egress) => switch (egress) {
+/// The human-readable name of an egress class, without markdown emphasis.
+/// Shared by the summary line and [_egressLabel] so the two cannot drift.
+String _egressName(EgressClass egress) => switch (egress) {
   EgressClass.shareable => 'shareable',
-  EgressClass.deviceLocal => '**device-local**',
+  EgressClass.deviceLocal => 'device-local',
   EgressClass.deviceScoped => 'device-scoped',
   EgressClass.derived => 'derived',
+};
+
+/// The table-cell rendering: [_egressName], emphasised for the classes that
+/// must not reach project infrastructure so they stand out when skimming.
+String _egressLabel(EgressClass egress) => switch (egress) {
+  EgressClass.deviceLocal => '**${_egressName(egress)}**',
+  _ => _egressName(egress),
 };
 
 String _subjectLabel(DataSubject subject) => switch (subject) {
@@ -77,7 +86,8 @@ String _summary(Map<String, DataClassification> entries, String noun) {
   final personal = entries.values.where((c) => c.term.isPersonalData).length;
   final parts = <String>[
     for (final egress in EgressClass.values)
-      if ((byEgress[egress] ?? 0) > 0) '${byEgress[egress]} ${egress.name}',
+      if ((byEgress[egress] ?? 0) > 0)
+        '${byEgress[egress]} ${_egressName(egress)}',
   ];
   return '**${entries.length} $noun**: ${parts.join(', ')}. '
       '$personal personal data by category.';

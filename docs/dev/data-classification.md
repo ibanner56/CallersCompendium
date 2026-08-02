@@ -206,7 +206,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**147 columns**: 108 shareable, 19 deviceLocal, 20 derived. 26 personal data by category.
+**147 columns**: 108 shareable, 19 device-local, 20 derived. 26 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -362,7 +362,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**47 settings keys**: 40 shareable, 7 deviceScoped. 2 personal data by category.
+**47 settings keys**: 40 shareable, 7 device-scoped. 2 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |

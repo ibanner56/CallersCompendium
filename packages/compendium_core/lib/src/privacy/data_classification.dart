@@ -53,8 +53,10 @@ enum DpvTerm {
   /// A telephone number. DPV: `Tracking → Contact → TelephoneNumber`.
   telephoneNumber('pd:TelephoneNumber', ['Contact', 'TelephoneNumber']),
 
-  /// A physical address, undecomposed. DPV: `→ Contact/Location →
-  /// PhysicalAddress`.
+  /// A physical address, undecomposed. DPV places this under two parents:
+  /// `Tracking → Contact → PhysicalAddress` and
+  /// `Tracking → Location → PhysicalAddress`. [path] follows the `Contact`
+  /// branch, which is how the address block is used here.
   physicalAddress('pd:PhysicalAddress', ['Contact', 'PhysicalAddress']),
 
   /// A street line. DPV: `… → PhysicalAddress → Street`.
