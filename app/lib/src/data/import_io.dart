@@ -438,9 +438,14 @@ Uri _guardFetchUri(Uri uri) {
   return uri.userInfo.isEmpty ? uri : uri.replace(userInfo: '');
 }
 
-/// Selects the source host allowlist that every redirect hop of a fetch
-/// starting at [origin] must keep satisfying, or `null` when [origin] belongs
-/// to no known online source.
+/// Selects the source predicate that every redirect hop of a fetch starting at
+/// [origin] must keep satisfying, or `null` when [origin] belongs to no known
+/// online source.
+///
+/// It is a predicate over the whole [Uri], not just its host: [_isCallersBoxUrl]
+/// accepts an `ibiblio.org` URL only under a `/thecallersbox/` path segment,
+/// because that host also serves many unrelated archives. A host-only check
+/// would let a hop wander off the mirror directory into one of them.
 ///
 /// The source allowlists ([_isCallersBoxUrl] / [_isContraDbUrl]) are enforced
 /// by the URL builders at construction, but a builder only ever sees the URL
@@ -498,7 +503,10 @@ Future<http.Response> _sendGuarded(String url, http.Client client) async {
     throw const UrlFetchException(UrlFetchFailureReason.invalidUrl);
   }
   var uri = _guardFetchUri(parsed);
-  final isAllowedHost = _redirectAllowlistFor(uri);
+  // Not `isAllowedHost`: the predicate validates the whole redirect URI, and
+  // for Caller's Box the path matters as much as the host (ibiblio.org is only
+  // Caller's Box under a /thecallersbox/ path segment).
+  final isAllowedRedirect = _redirectAllowlistFor(uri);
   var redirects = 0;
   while (true) {
     final request = http.Request('GET', uri)..followRedirects = false;
@@ -520,7 +528,7 @@ Future<http.Response> _sendGuarded(String url, http.Client client) async {
       // internal-address hop still reports its own (equally non-leaking)
       // reason, and before the request is issued so the refused target is
       // never contacted at all.
-      if (isAllowedHost != null && !isAllowedHost(next)) {
+      if (isAllowedRedirect != null && !isAllowedRedirect(next)) {
         throw const UrlFetchException(UrlFetchFailureReason.blockedHost);
       }
       uri = next;
