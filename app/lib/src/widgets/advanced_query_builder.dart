@@ -24,7 +24,7 @@ class AdvancedQueryBuilder extends StatelessWidget {
 
   final BuilderGroup root;
   final Taxonomy taxonomy;
-  
+
   /// Active dialect, so figure-param choices are labelled with the user's
   /// role terminology exactly as the dance editor labels them (issue #741).
   /// Threaded explicitly rather than read from `ActiveDialectScope` so this
@@ -854,13 +854,32 @@ class _ParamDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final value = figure.params[paramKey] as String?;
+    // The `unspecified` sentinel is never offered here (issue #741). It reads
+    // as a synonym of "Any <param>" sitting directly above it, but means the
+    // opposite: "Any" declines to filter, while the sentinel filters FOR
+    // figures whose source stated nothing — a near-inverse result set, with
+    // nothing in the UI to signal that the user just narrowed rather than
+    // broadened. "Any <param>" already covers the only intent a caller has
+    // here, so the sentinel is dropped from the ITEMS only: `figureParamChoices`
+    // and `ParamSpec.validate` still report and accept the full domain, because
+    // they and the editor are three consumers of one contract (#726 / #746) and
+    // must not disagree about what a param can hold.
+    final selectable = figureParamSelectableChoices(choices);
+    // With nothing left to pick, "Any" alone is not a filter — offering a
+    // one-item dropdown that cannot constrain anything is just noise.
+    if (selectable.isEmpty) return const SizedBox.shrink();
+    final label = figureParamKeyLabel(paramKey);
+    final stored = figure.params[paramKey] as String?;
+    // Defensive: a value outside the selectable list would trip
+    // `DropdownButton`'s single-match assertion. Unreachable through the UI —
+    // the only writer is this dropdown — but cheap next to a crash.
+    final value = selectable.contains(stored) ? stored : null;
     return Semantics(
-      label: paramKey,
+      label: label,
       child: DropdownButton<String?>(
         key: ValueKey('param-${figure.id}-$paramKey'),
         value: value,
-        hint: Text(l10n.collectionQueryAnyParam(paramKey)),
+        hint: Text(l10n.collectionQueryAnyParam(label)),
         onChanged: (v) {
           v == null
               ? figure.params.remove(paramKey)
@@ -870,10 +889,13 @@ class _ParamDropdown extends StatelessWidget {
         items: [
           DropdownMenuItem(
             value: null,
-            child: Text(l10n.collectionQueryAnyParam(paramKey)),
+            child: Text(l10n.collectionQueryAnyParam(label)),
           ),
-          for (final choice in choices)
-            DropdownMenuItem(value: choice, child: Text(choice)),
+          for (final choice in selectable)
+            DropdownMenuItem(
+              value: choice,
+              child: Text(figureParamChoiceLabel(l10n, spec, dialect, choice)),
+            ),
         ],
       ),
     );

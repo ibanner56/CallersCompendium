@@ -47,18 +47,18 @@ class FigureParamEditor extends StatelessWidget {
     switch (spec.kind) {
       case ParamKind.dancerSet:
       case ParamKind.dancerPair:
-        return _dropdown(spec.choices ?? ParamVocab.dancerSets);
+        return _dropdown(context, spec.choices ?? ParamVocab.dancerSets);
       case ParamKind.handedness:
       case ParamKind.shoulder:
-        return _dropdown(spec.choices ?? ParamVocab.sides);
+        return _dropdown(context, spec.choices ?? ParamVocab.sides);
       case ParamKind.spinDirection:
-        return _dropdown(spec.choices ?? ParamVocab.spins);
+        return _dropdown(context, spec.choices ?? ParamVocab.spins);
       case ParamKind.fraction:
-        return _dropdown(spec.choices ?? ParamVocab.fractions);
+        return _dropdown(context, spec.choices ?? ParamVocab.fractions);
       case ParamKind.direction:
-        return _dropdown(spec.choices ?? ParamVocab.directions);
+        return _dropdown(context, spec.choices ?? ParamVocab.directions);
       case ParamKind.choice:
-        return _dropdown(spec.choices ?? const []);
+        return _dropdown(context, spec.choices ?? const []);
       case ParamKind.rotation:
         // A rotation spec may opt into the `unspecified` sentinel by listing it
         // in `choices` (taxonomy v22's `gate.turn`: ContraDB's gate states no
@@ -71,7 +71,7 @@ class FigureParamEditor extends StatelessWidget {
             spec.choices?.contains(ParamVocab.unspecified) ?? false;
         return _RotationStepper(
           fieldKey: _key,
-          label: humanizeToken(paramKey),
+          label: figureParamKeyLabel(paramKey),
           value: value is num ? value! as num : (allowsUnset ? null : 1.0),
           allowsUnset: allowsUnset,
           onChanged: onChanged,
@@ -79,7 +79,7 @@ class FigureParamEditor extends StatelessWidget {
       case ParamKind.beats:
         return _IntField(
           fieldKey: _key,
-          label: humanizeToken(paramKey),
+          label: figureParamKeyLabel(paramKey),
           value: value is int ? value! as int : 0,
           min: 0,
           max: 64,
@@ -88,7 +88,7 @@ class FigureParamEditor extends StatelessWidget {
       case ParamKind.places:
         return _IntField(
           fieldKey: _key,
-          label: humanizeToken(paramKey),
+          label: figureParamKeyLabel(paramKey),
           value: value is int
               ? value! as int
               : (spec.defaultValue is int ? spec.defaultValue! as int : 1),
@@ -99,62 +99,133 @@ class FigureParamEditor extends StatelessWidget {
       case ParamKind.text:
         return _TextParamField(
           fieldKey: _key,
-          label: humanizeToken(paramKey),
+          label: figureParamKeyLabel(paramKey),
           value: value is String ? value! as String : '',
           onChanged: onChanged,
         );
       case ParamKind.flag:
         return _FlagSwitch(
           fieldKey: _key,
-          label: humanizeToken(paramKey),
+          label: figureParamKeyLabel(paramKey),
           value: value is bool ? value! as bool : false,
           onChanged: onChanged,
         );
     }
   }
 
-  Widget _dropdown(List<String> choices) {
-    // Dancer sets/pairs are dialect vocabulary: label them via the active
-    // dialect (e.g. `role1s` -> "Larks"). All other dropdowns are structural
-    // vocabulary and stay humanized. The stored value is always the canonical
-    // token regardless of the label shown.
-    final isDancerKind =
-        spec.kind == ParamKind.dancerSet || spec.kind == ParamKind.dancerPair;
-    String label(String choice) => isDancerKind
-        ? FigureRenderer.displayToken(choice, spec, dialect)
-        : humanizeToken(choice);
+  Widget _dropdown(BuildContext context, List<String> domain) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    // The sentinel is a valid VALUE but never a pickable OPTION (issue #741):
+    // "the source stated nothing" is a fact about provenance, not a
+    // choreographic value a transcriber chooses. It stays in the domain —
+    // `ParamSpec.validate` accepts it and the renderer emits it — and is shown
+    // below as the field's current state, with a Clear button to return to it.
+    final selectable = figureParamSelectableChoices(domain);
+    final admitsUnstated = paramAdmitsUnspecified(spec);
+
     // Reconcile the displayed selection with the model: prefer the current
-    // value when valid, else the spec default (if a valid choice), else the
+    // value when it is pickable, else the spec default (if pickable), else the
     // first choice. When we fall back, push that value back to the draft after
     // the frame so a saved-but-invalid value can't linger behind the UI.
+    //
+    // `null` here means "not stated" and is a legitimate resting state, NOT a
+    // substitution target — which is why a param that admits the sentinel falls
+    // back to `null` instead of a concrete value, and why `null` never writes
+    // back a fabricated value. Without that, merely OPENING the editor on a hey
+    // whose target was never stated would walk `value (unspecified) ->
+    // specDefault (unspecified) -> selectable.first` and silently fabricate
+    // `role1s` into the draft. Both rungs miss because `hey.meetTarget`'s own
+    // `defaultValue` IS the sentinel, so this is the common path, not an edge
+    // case — and it is exactly the invention issues #724 and #726 exist to
+    // prevent. Specs that do not admit the sentinel keep the original behaviour
+    // untouched.
     final specDefault = spec.defaultValue;
-    final current = value is String && choices.contains(value)
+    final current = (admitsUnstated && value == ParamVocab.unspecified)
+        ? null
+        : (value is String && selectable.contains(value))
         ? value! as String
-        : (specDefault is String && choices.contains(specDefault))
+        : (specDefault is String && selectable.contains(specDefault))
         ? specDefault
-        : (choices.isNotEmpty ? choices.first : null);
+        : (admitsUnstated
+              ? null
+              : (selectable.isNotEmpty ? selectable.first : null));
     if (current != null && current != value) {
       WidgetsBinding.instance.addPostFrameCallback((_) => onChanged(current));
+    } else if (admitsUnstated &&
+        current == null &&
+        value != null &&
+        value != ParamVocab.unspecified) {
+      // An out-of-domain value with no valid substitute available: every
+      // sentinel-admitting spec defaults TO the sentinel, so the default rung
+      // misses too and the chain lands on `null`. Normalise the draft to the
+      // sentinel rather than leaving it holding a token the field is already
+      // displaying as "not stated" — that mismatch would keep rendering the bad
+      // token into the figure text while offering no single-step way to fix it,
+      // since Clear is hidden whenever nothing is selected. This stores exactly
+      // what is displayed, so it corrects invalid data rather than inventing a
+      // value, and it keeps the "invalid values can't linger behind the UI"
+      // invariant that the fixed-vocabulary path has always had.
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => onChanged(ParamVocab.unspecified),
+      );
     }
-    return SizedBox(
+
+    final dropdown = SizedBox(
       width: 180,
       child: DropdownButtonFormField<String>(
         key: ValueKey(_key),
         initialValue: current,
         isExpanded: true,
         isDense: true,
+        // Shown only when there is no selection, i.e. the unstated state.
+        // Supplying a hint also keeps `InputDecorator.isEmpty` false, so the
+        // floating label behaves exactly as it does for a set value.
+        hint: admitsUnstated
+            ? Text(
+                l10n.danceEditorParamNotStated,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              )
+            : null,
         decoration: InputDecoration(
-          labelText: humanizeToken(paramKey),
+          labelText: figureParamKeyLabel(paramKey),
           isDense: true,
         ),
         items: [
-          for (final choice in choices)
-            DropdownMenuItem(value: choice, child: Text(label(choice))),
+          for (final choice in selectable)
+            DropdownMenuItem(
+              value: choice,
+              child: Text(figureParamChoiceLabel(l10n, spec, dialect, choice)),
+            ),
         ],
         onChanged: (v) {
           if (v != null) onChanged(v);
         },
       ),
+    );
+    if (!admitsUnstated) return dropdown;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        dropdown,
+        // Mirrors `_RotationStepper`'s clear affordance for this same sentinel:
+        // offered only once a value is set, so a transcriber who picked one by
+        // mistake can put the field back to "the source didn't say" rather than
+        // being stuck with a value the source never gave.
+        if (current != null)
+          IconButton(
+            key: ValueKey('$_key-clear'),
+            tooltip: l10n.danceEditorParamClearTooltip,
+            icon: const Icon(Icons.backspace_outlined),
+            visualDensity: VisualDensity.compact,
+            onPressed: () => onChanged(ParamVocab.unspecified),
+          ),
+      ],
     );
   }
 }

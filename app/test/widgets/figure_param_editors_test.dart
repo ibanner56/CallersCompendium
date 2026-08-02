@@ -174,7 +174,12 @@ void main() {
     // exactly as it did before the fix).
     await tester.tap(find.byKey(const ValueKey('p-hand')));
     await tester.pumpAndSettle();
-    expect(find.text('unspecified'), findsNothing);
+    // A spec without `choices` has no unstated state at all, so it gets no
+    // Clear affordance. Deliberately assert THAT and not the absence of a
+    // "not stated" label: with a concrete value set the hint is never
+    // mounted either way, so such an assertion could not fail — the same
+    // defect as the `find.text('unspecified')` check it replaced.
+    expect(find.byKey(const ValueKey('p-hand-clear')), findsNothing);
     await tester.tap(find.text('left').last);
     await tester.pumpAndSettle();
     expect(read(), 'left');
@@ -189,7 +194,12 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('p-shoulder')));
     await tester.pumpAndSettle();
-    expect(find.text('unspecified'), findsNothing);
+    // A spec without `choices` has no unstated state at all, so it gets no
+    // Clear affordance. Deliberately assert THAT and not the absence of a
+    // "not stated" label: with a concrete value set the hint is never
+    // mounted either way, so such an assertion could not fail — the same
+    // defect as the `find.text('unspecified')` check it replaced.
+    expect(find.byKey(const ValueKey('p-shoulder-clear')), findsNothing);
     await tester.tap(find.text('left').last);
     await tester.pumpAndSettle();
     expect(read(), 'left');
@@ -204,7 +214,12 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('p-spin')));
     await tester.pumpAndSettle();
-    expect(find.text('unspecified'), findsNothing);
+    // A spec without `choices` has no unstated state at all, so it gets no
+    // Clear affordance. Deliberately assert THAT and not the absence of a
+    // "not stated" label: with a concrete value set the hint is never
+    // mounted either way, so such an assertion could not fail — the same
+    // defect as the `find.text('unspecified')` check it replaced.
+    expect(find.byKey(const ValueKey('p-spin-clear')), findsNothing);
     await tester.tap(find.text('counterclockwise').last);
     await tester.pumpAndSettle();
     expect(read(), 'counterclockwise');
@@ -219,7 +234,12 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('p-amount')));
     await tester.pumpAndSettle();
-    expect(find.text('unspecified'), findsNothing);
+    // A spec without `choices` has no unstated state at all, so it gets no
+    // Clear affordance. Deliberately assert THAT and not the absence of a
+    // "not stated" label: with a concrete value set the hint is never
+    // mounted either way, so such an assertion could not fail — the same
+    // defect as the `find.text('unspecified')` check it replaced.
+    expect(find.byKey(const ValueKey('p-amount-clear')), findsNothing);
     await tester.tap(find.text('half').last);
     await tester.pumpAndSettle();
     expect(read(), 'half');
@@ -234,7 +254,12 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('p-dir')));
     await tester.pumpAndSettle();
-    expect(find.text('unspecified'), findsNothing);
+    // A spec without `choices` has no unstated state at all, so it gets no
+    // Clear affordance. Deliberately assert THAT and not the absence of a
+    // "not stated" label: with a concrete value set the hint is never
+    // mounted either way, so such an assertion could not fail — the same
+    // defect as the `find.text('unspecified')` check it replaced.
+    expect(find.byKey(const ValueKey('p-dir-clear')), findsNothing);
     await tester.tap(find.text('across').last);
     await tester.pumpAndSettle();
     expect(read(), 'across');
@@ -242,15 +267,20 @@ void main() {
 
   // --- Sentinel-in-choices honoured by the five dropdown kinds (issue #726) -
   //
-  // Before the fix, `handedness`/`shoulder`/`spinDirection`/`fraction`/
+  // Before the #726 fix, `handedness`/`shoulder`/`spinDirection`/`fraction`/
   // `direction` ignored `spec.choices` entirely and always rendered a fixed
   // vocabulary, so a spec that opted into `ParamVocab.unspecified` (the "the
   // source stated nothing" sentinel) got a dropdown silently missing it — the
-  // user could never express, or return to, "not stated". Each pair of tests
-  // below asserts (a) the sentinel is offered and selectable, storing exactly
-  // `ParamVocab.unspecified`, and (b) opening the editor already ON the
-  // sentinel does not fabricate a write-back — the real hazard here is silent
-  // data fabrication, not merely a missing dropdown item (mirrors the
+  // user could never express, or return to, "not stated".
+  //
+  // Issue #741 then changed HOW that state is reached, not whether it is
+  // reachable: the sentinel is no longer offered as a menu item anywhere,
+  // because it is a fact about provenance rather than a value a transcriber
+  // picks off a list. Each pair of tests below asserts (a) the menu carries
+  // real values only, and the Clear affordance reaches the unstated state and
+  // stores exactly `ParamVocab.unspecified`, and (b) opening the editor already
+  // ON the sentinel does not fabricate a write-back — the real hazard here is
+  // silent data fabrication, not merely a missing dropdown item (mirrors the
   // dancerSet/dancerPair sentinel guards above).
   group('the five dropdown kinds honour a sentinel in spec.choices', () {
     testWidgets('handedness', (tester) async {
@@ -265,7 +295,21 @@ void main() {
         spec: spec,
         value: 'right',
       );
-      await _selectFromDropdown(tester, 'p-hand', 'unspecified');
+      // Issue #741: the sentinel is NOT an offered option. "The source
+      // stated nothing" is a fact about provenance, not a value a
+      // transcriber picks off a list — so the menu carries real values only.
+      await tester.tap(find.byKey(const ValueKey('p-hand')));
+      await tester.pumpAndSettle();
+      expect(find.text('unspecified'), findsNothing);
+      expect(find.text('not stated'), findsNothing);
+      // Dismiss without choosing: opening the menu must not write either.
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      expect(read(), isNull);
+      // The unstated state is reachable through the Clear affordance, and
+      // still stores exactly the canonical sentinel.
+      await tester.tap(find.byKey(const ValueKey('p-hand-clear')));
+      await tester.pumpAndSettle();
       expect(read(), ParamVocab.unspecified);
     });
 
@@ -285,7 +329,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(read(), isNull);
-      expect(find.text('unspecified'), findsOneWidget);
+      expect(find.text('not stated'), findsOneWidget);
+      expect(find.text('unspecified'), findsNothing);
     });
 
     testWidgets('shoulder', (tester) async {
@@ -300,7 +345,21 @@ void main() {
         spec: spec,
         value: 'right',
       );
-      await _selectFromDropdown(tester, 'p-shoulder', 'unspecified');
+      // Issue #741: the sentinel is NOT an offered option. "The source
+      // stated nothing" is a fact about provenance, not a value a
+      // transcriber picks off a list — so the menu carries real values only.
+      await tester.tap(find.byKey(const ValueKey('p-shoulder')));
+      await tester.pumpAndSettle();
+      expect(find.text('unspecified'), findsNothing);
+      expect(find.text('not stated'), findsNothing);
+      // Dismiss without choosing: opening the menu must not write either.
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      expect(read(), isNull);
+      // The unstated state is reachable through the Clear affordance, and
+      // still stores exactly the canonical sentinel.
+      await tester.tap(find.byKey(const ValueKey('p-shoulder-clear')));
+      await tester.pumpAndSettle();
       expect(read(), ParamVocab.unspecified);
     });
 
@@ -320,7 +379,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(read(), isNull);
-      expect(find.text('unspecified'), findsOneWidget);
+      expect(find.text('not stated'), findsOneWidget);
+      expect(find.text('unspecified'), findsNothing);
     });
 
     testWidgets('spinDirection', (tester) async {
@@ -335,7 +395,21 @@ void main() {
         spec: spec,
         value: 'clockwise',
       );
-      await _selectFromDropdown(tester, 'p-spin', 'unspecified');
+      // Issue #741: the sentinel is NOT an offered option. "The source
+      // stated nothing" is a fact about provenance, not a value a
+      // transcriber picks off a list — so the menu carries real values only.
+      await tester.tap(find.byKey(const ValueKey('p-spin')));
+      await tester.pumpAndSettle();
+      expect(find.text('unspecified'), findsNothing);
+      expect(find.text('not stated'), findsNothing);
+      // Dismiss without choosing: opening the menu must not write either.
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      expect(read(), isNull);
+      // The unstated state is reachable through the Clear affordance, and
+      // still stores exactly the canonical sentinel.
+      await tester.tap(find.byKey(const ValueKey('p-spin-clear')));
+      await tester.pumpAndSettle();
       expect(read(), ParamVocab.unspecified);
     });
 
@@ -355,7 +429,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(read(), isNull);
-      expect(find.text('unspecified'), findsOneWidget);
+      expect(find.text('not stated'), findsOneWidget);
+      expect(find.text('unspecified'), findsNothing);
     });
 
     testWidgets('fraction', (tester) async {
@@ -370,7 +445,21 @@ void main() {
         spec: spec,
         value: 'quarter',
       );
-      await _selectFromDropdown(tester, 'p-amount', 'unspecified');
+      // Issue #741: the sentinel is NOT an offered option. "The source
+      // stated nothing" is a fact about provenance, not a value a
+      // transcriber picks off a list — so the menu carries real values only.
+      await tester.tap(find.byKey(const ValueKey('p-amount')));
+      await tester.pumpAndSettle();
+      expect(find.text('unspecified'), findsNothing);
+      expect(find.text('not stated'), findsNothing);
+      // Dismiss without choosing: opening the menu must not write either.
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      expect(read(), isNull);
+      // The unstated state is reachable through the Clear affordance, and
+      // still stores exactly the canonical sentinel.
+      await tester.tap(find.byKey(const ValueKey('p-amount-clear')));
+      await tester.pumpAndSettle();
       expect(read(), ParamVocab.unspecified);
     });
 
@@ -390,7 +479,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(read(), isNull);
-      expect(find.text('unspecified'), findsOneWidget);
+      expect(find.text('not stated'), findsOneWidget);
+      expect(find.text('unspecified'), findsNothing);
     });
 
     testWidgets('direction', (tester) async {
@@ -405,7 +495,21 @@ void main() {
         spec: spec,
         value: 'along',
       );
-      await _selectFromDropdown(tester, 'p-dir', 'unspecified');
+      // Issue #741: the sentinel is NOT an offered option. "The source
+      // stated nothing" is a fact about provenance, not a value a
+      // transcriber picks off a list — so the menu carries real values only.
+      await tester.tap(find.byKey(const ValueKey('p-dir')));
+      await tester.pumpAndSettle();
+      expect(find.text('unspecified'), findsNothing);
+      expect(find.text('not stated'), findsNothing);
+      // Dismiss without choosing: opening the menu must not write either.
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      expect(read(), isNull);
+      // The unstated state is reachable through the Clear affordance, and
+      // still stores exactly the canonical sentinel.
+      await tester.tap(find.byKey(const ValueKey('p-dir-clear')));
+      await tester.pumpAndSettle();
       expect(read(), ParamVocab.unspecified);
     });
 
@@ -425,7 +529,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(read(), isNull);
-      expect(find.text('unspecified'), findsOneWidget);
+      expect(find.text('not stated'), findsOneWidget);
+      expect(find.text('unspecified'), findsNothing);
     });
   });
 
@@ -800,6 +905,131 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(read(), isNull);
+    });
+  });
+
+  // --- The unstated state is shown, never picked (issue #741) ---------------
+  //
+  // The owner's ruling: `unspecified` must not be a drop-down option in search
+  // OR in dance entry — "it's meaningless to a user in basically every
+  // scenario" — though it may be the populated default. So the editor must
+  // still SHOW the unstated state (dropping it silently would fabricate over
+  // it, which is what the write-back group above guards) while offering only
+  // real values, and must provide a way back to it.
+  group('the unstated state is displayed and clearable, never selectable', () {
+    // The shipped spec, not a hand-built one, so this tracks real data.
+    ParamSpec heyMeetTarget() =>
+        contraTaxonomy.resolve('hey')!.params['meetTarget']!;
+
+    testWidgets('a dancerSet on its sentinel default reads "not stated"', (
+      tester,
+    ) async {
+      final spec = heyMeetTarget();
+      // Exactly how `figure_list_editor` seeds the editor for a hey whose
+      // source never stated a target: `draft.params[key] ?? spec.defaultValue`,
+      // and this param's `defaultValue` IS the sentinel. So this is the common
+      // path, not an edge case.
+      expect(spec.defaultValue, ParamVocab.unspecified);
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'meetTarget',
+        spec: spec,
+        value: spec.defaultValue,
+        dialect: Dialect.larksRobins,
+      );
+      await tester.pumpAndSettle();
+      expect(
+        read(),
+        isNull,
+        reason: 'opening the editor must not invent a meeting target',
+      );
+      expect(find.text('not stated'), findsOneWidget);
+      expect(find.text('unspecified'), findsNothing);
+      // Nothing to clear while already unstated.
+      expect(
+        find.byKey(const ValueKey('p-meetTarget-clear')),
+        findsNothing,
+        reason: 'the Clear affordance is pointless when nothing is set',
+      );
+    });
+
+    testWidgets('the menu offers real values only, labelled by dialect', (
+      tester,
+    ) async {
+      await _pumpEditor(
+        tester,
+        paramKey: 'meetTarget',
+        spec: heyMeetTarget(),
+        value: 'role1s',
+        dialect: Dialect.larksRobins,
+      );
+      await tester.tap(find.byKey(const ValueKey('p-meetTarget')));
+      await tester.pumpAndSettle();
+      expect(find.text('unspecified'), findsNothing);
+      expect(find.text('not stated'), findsNothing);
+      // Still dialect-labelled — #741 changed which values are offered, not how
+      // the remaining ones read.
+      expect(find.text('larks'), findsWidgets);
+    });
+
+    testWidgets('Clear returns a set dancerSet to the sentinel', (
+      tester,
+    ) async {
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'meetTarget',
+        spec: heyMeetTarget(),
+        value: 'role1s',
+        dialect: Dialect.larksRobins,
+      );
+      await tester.pumpAndSettle();
+      expect(read(), isNull, reason: 'a valid value must not be rewritten');
+      await tester.tap(find.byKey(const ValueKey('p-meetTarget-clear')));
+      await tester.pumpAndSettle();
+      // The canonical sentinel, not a blank or a dropped write — the draft has
+      // to be able to say "the source stated nothing" explicitly.
+      expect(read(), ParamVocab.unspecified);
+    });
+
+    testWidgets('a spec without the sentinel offers no Clear affordance', (
+      tester,
+    ) async {
+      await _pumpEditor(
+        tester,
+        paramKey: 'who',
+        spec: const ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        value: 'partners',
+      );
+      await tester.pumpAndSettle();
+      // "Not stated" is not a representable state for this param, so offering a
+      // way to reach it would produce a value `ParamSpec.validate` rejects.
+      expect(find.byKey(const ValueKey('p-who-clear')), findsNothing);
+      expect(find.text('not stated'), findsNothing);
+    });
+
+    testWidgets('an out-of-domain value is normalised to the sentinel', (
+      tester,
+    ) async {
+      // The one case where the field DOES write on open. Every
+      // sentinel-admitting spec defaults TO the sentinel, so a value outside
+      // the domain misses both the value rung and the default rung and the
+      // field falls to "not stated" — which would otherwise leave the draft
+      // still holding the bad token while displaying the opposite, with Clear
+      // hidden (nothing is selected) so the user could not reconcile them in
+      // one step. Storing the sentinel corrects invalid data to exactly what is
+      // displayed; it does not invent a dancer, which is what the guard above
+      // prevents.
+      final read = await _pumpEditor(
+        tester,
+        paramKey: 'meetTarget',
+        spec: heyMeetTarget(),
+        value:
+            'everyone', // a real dancer token, but not in this param's domain
+      );
+      await tester.pumpAndSettle();
+      expect(read(), ParamVocab.unspecified);
+      expect(find.text('not stated'), findsOneWidget);
+      expect(find.text('everyone'), findsNothing);
     });
   });
 }
