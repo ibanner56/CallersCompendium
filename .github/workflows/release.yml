@@ -236,8 +236,9 @@ jobs:
       # and still succeeds). `signing=configured` ONLY when the full signing set
       # is present: the App Store Connect API key (base64 .p8, key id, issuer id),
       # the team id, the Apple Distribution certificate (base64 .p12 + its
-      # password), AND the App Store provisioning profile (base64
-      # .mobileprovision). Secrets arrive via `env:` (never a step-level `if:`);
+      # password), AND both App Store provisioning profiles (base64
+      # .mobileprovision each: the app's and the ShareExtension's). Secrets
+      # arrive via `env:` (never a step-level `if:`);
       # names are never interpolated into a `run:` line. `mkdir -p dist` keeps the
       # shared List/Upload steps happy on the no-op path.
       - name: Determine iOS signing availability
@@ -529,10 +530,12 @@ jobs:
       # --- iOS: signed App Store archive + TestFlight upload ----------------
       # Xcode signs the App Store build with the team's Apple Distribution
       # certificate, imported from a base64 .p12 secret into an ephemeral
-      # keychain, plus a pre-provisioned App Store profile (base64 secret)
-      # installed onto the runner. The archive does NOT sign at all, and the
-      # export uses MANUAL signing with the local distribution identity + that
-      # profile. Automatic/cloud signing cannot be used for the distribution
+      # keychain, plus the two pre-provisioned App Store profiles (base64
+      # secrets — one for the app, one for the ShareExtension) installed onto
+      # the runner. The archive does NOT sign at all, and the export uses MANUAL
+      # signing with the local distribution identity + those profiles, mapped
+      # per bundle id in ExportOptions.plist. Automatic/cloud signing cannot be
+      # used for the distribution
       # export: the distribution cert is not Apple-managed, so cloud signing
       # fails with "Cloud signing permission error / no profiles found". The App
       # Store Connect API key is used ONLY by the TestFlight upload (the archive
@@ -544,12 +547,12 @@ jobs:
       # written to the two dirs xcodebuild + altool auto-search
       # (~/.appstoreconnect/private_keys and ~/.private_keys) as
       # AuthKey_<KEYID>.p8; the .p12 is imported into an ephemeral keychain under
-      # $RUNNER_TEMP; the provisioning profile is installed under
+      # $RUNNER_TEMP; the provisioning profiles are installed under
       # ~/Library/Developer/Xcode/UserData/Provisioning Profiles (+ the classic
       # MobileDevice dir). DEVELOPMENT_TEAM (absent from the checked-in project)
       # is injected into Release.xcconfig so signing has a team. The always()
-      # cleanup step removes the key material, deletes the keychain + profile,
-      # and reverts the xcconfig.
+      # cleanup step removes the key material, deletes the keychain + both
+      # profiles, and reverts the xcconfig.
       - name: Prepare iOS signing (App Store Connect API key)
         if: matrix.platform == 'ios' && steps.ios_signing.outputs.signing == 'configured'
         env:
@@ -865,8 +868,9 @@ jobs:
           rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${key_id}.p8" \
                 "$HOME/.private_keys/AuthKey_${key_id}.p8" 2>/dev/null || true
           security delete-keychain "$RUNNER_TEMP/cc-ios.keychain-db" 2>/dev/null || true
-          # Remove ONLY the profile this workflow installed (by UUID), never a
-          # blanket wipe that could delete unrelated profiles on the runner.
+          # Remove ONLY the profiles this workflow installed (both, by UUID:
+          # the app's and the ShareExtension's), never a blanket wipe that could
+          # delete unrelated profiles on the runner.
           prof_uuid="$(cat "$RUNNER_TEMP/cc-ios-profile-uuid" 2>/dev/null || true)"
           if [ -n "$prof_uuid" ]; then
             rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/${prof_uuid}.mobileprovision" \
