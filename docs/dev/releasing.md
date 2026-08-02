@@ -489,9 +489,14 @@ refresh anything the release changed:
 - **Screenshots** — replace or add captures for changed UI (see
   [`site/README.md`](../../site/README.md#adding-real-screenshots) for the capture
   procedure).
-- **Version fallbacks** — the static `v0.1.0-beta.<n>` string in `index.html`'s
-  version pill is only shown before the manifest fetch resolves; bump it at a major
-  beta so the pre-hydration flash matches the current release.
+- **Version fallbacks** — nothing to do. The hero version pill and the downloads
+  version line are both **version-free placeholders** (`Latest beta`) that
+  `app.js` replaces with the real version from `beta.json` on load, so neither
+  needs bumping at a release. Please keep them that way: `site/index.html` is not
+  a Markdown file, so editing it defeats `ci.yml`'s `paths-ignore: ['**.md']` and
+  triggers the whole five-platform build matrix for a cosmetic string. It also
+  removed a standing drift risk — a hand-bumped fallback is stale from the moment
+  the next release ships, and a stale *version* is worse than no version.
 
 Commit those edits to `main` in the release prep PR; merging triggers
 `pages-site.yml` and the page redeploys. To refresh the page **without** a code
