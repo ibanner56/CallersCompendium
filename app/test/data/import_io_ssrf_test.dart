@@ -353,6 +353,26 @@ void main() {
       expect(requested, ['https://www.contradb.com/dances/1', contraDbDance]);
     });
 
+    // NOTE (#766): thecallersbox.com is on the allowlist today, so this hop is
+    // genuinely permitted and the test asserts real current behaviour — and
+    // MockClient means no DNS lookup happens, so it passes either way. But that
+    // host does not resolve (no A, no NS), and the canonical Caller's Box
+    // prefix is https://www.ibiblio.org/contradance/thecallersbox/ — the
+    // ibiblio mirror is *the* source, not a fallback. #766 tracks removing
+    // both thecallersbox.com entries; **this test must be updated or removed
+    // at that point** or it will start failing with nothing pointing at why.
+    //
+    // If you are here doing #766: `_callersBoxHosts` holds exactly those two
+    // hosts, so removing both empties it — the Caller's Box predicate then
+    // reduces to "an `_ibiblioHosts` host under a /thecallersbox/ path
+    // segment". That does NOT cost you the coverage this test provides:
+    // `_ibiblioHosts` has two entries and the predicate accepts both (verified
+    // by executing it), so `www.ibiblio.org` -> `ibiblio.org` is still
+    // cross-host and still inside the allowlist. Both serve the dance JSON
+    // live (measured 2026-08-02). Retarget this test at that pair rather than
+    // deleting it, or `www.contradb.com` -> `contradb.com` becomes the suite's
+    // only cross-host-within-allowlist case and the Caller's Box predicate
+    // stops being exercised across hosts at all.
     test("follows an ibiblio -> thecallersbox.com hop", () async {
       // The other direction of the same rule: cross-host is fine as long as it
       // stays inside the source's allowlist.
