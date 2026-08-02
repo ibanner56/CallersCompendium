@@ -58,12 +58,17 @@ next reader can tell "considered" from "missed".
 
 ## Before merging
 
-- **No unresolved review threads.**
+- **No unresolved review threads.** Ask for `totalCount` too, so a page-size
+  truncation is detectable rather than silently reading as "none unresolved":
 
   ```sh
   gh api graphql -f query='{repository(owner:"<owner>",name:"<repo>"){
-    pullRequest(number:<N>){reviewThreads(first:50){nodes{isResolved}}}}}'
+    pullRequest(number:<N>){reviewThreads(first:100){
+      totalCount nodes{isResolved}}}}}'
   ```
+
+  If `totalCount` exceeds the number of nodes returned, paginate before
+  concluding anything.
 
 - **Suppressed comments read and considered** (above).
 - **CI green on the commit being merged.** Re-check after any push; a green run
