@@ -1926,6 +1926,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           AdvancedQueryBuilder(
             root: _advancedRoot,
             taxonomy: data.taxonomy,
+            dialect: _dialect,
             sectionLabels: data.sectionLabels,
             onChanged: _onAdvancedChanged,
           ),

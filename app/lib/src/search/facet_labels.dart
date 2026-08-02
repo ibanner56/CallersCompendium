@@ -95,6 +95,18 @@ String formationLabel(AppLocalizations l10n, Formation formation) {
       : l10n.commonFormationWithDetail(base, detail);
 }
 
+/// Turns `role1s` → `role1s`, `rightDiagonal` → `right diagonal`,
+/// `threeQuarter` → `three quarter` for display.
+///
+/// Lives here rather than beside the figure param editor because it is the
+/// shared presentation primitive for figure-param vocabulary: the dance editor
+/// and the Advanced-search facet must label the same canonical token the same
+/// way (issue #741). `figure_param_editors.dart` re-exports it so its existing
+/// importers are unaffected.
+String humanizeToken(String token) => token
+    .replaceAllMapped(RegExp(r'(?<=[a-z])(?=[A-Z])'), (_) => ' ')
+    .toLowerCase();
+
 /// The discrete, pickable value vocabulary for a figure parameter, or `null`
 /// when the parameter has no closed vocabulary (rotation/beats/text). Used to
 /// offer optional param dropdowns on an Advanced "has figure" row.

@@ -16,10 +16,12 @@ class _Host extends StatefulWidget {
     required this.root,
     required this.sectionLabels,
     required this.taxonomy,
+    required this.dialect,
   });
   final BuilderGroup root;
   final List<String> sectionLabels;
   final Taxonomy taxonomy;
+  final Dialect dialect;
 
   @override
   State<_Host> createState() => _HostState();
@@ -36,6 +38,7 @@ class _HostState extends State<_Host> {
           child: AdvancedQueryBuilder(
             root: widget.root,
             taxonomy: widget.taxonomy,
+            dialect: widget.dialect,
             sectionLabels: widget.sectionLabels,
             onChanged: () => setState(() {}),
           ),
@@ -59,6 +62,9 @@ Future<void> _pump(
   // Overridden only by the `spec.choices` facet tests below, which need a
   // param combination no live taxonomy param declares yet.
   Taxonomy? taxonomy,
+  // Defaults to the app's own default dialect. Overridden by the labelling
+  // tests, which assert the facet honours the user's role terminology.
+  Dialect? dialect,
 }) async {
   await setScreenSize(tester, screenSize);
   await tester.pumpWidget(
@@ -66,6 +72,7 @@ Future<void> _pump(
       root: root,
       sectionLabels: sectionLabels,
       taxonomy: taxonomy ?? contraTaxonomy,
+      dialect: dialect ?? Dialect.larksRobins,
     ),
   );
   await tester.pumpAndSettle();
