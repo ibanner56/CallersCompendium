@@ -66,7 +66,8 @@ void main() {
         }
       });
 
-      // The #726 sentinel case, in the facet layer. A spec may opt into
+      // The sentinel scenario #726 fixed for the EDITOR, here in the facet
+      // layer (#726 did not reach this function). A spec may opt into
       // "the source stated nothing" by listing it in `choices`; the facet has
       // to offer it or the user can never search for figures whose source was
       // silent about this param.

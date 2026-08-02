@@ -543,7 +543,7 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     closed.** All three consumers of the kind + `choices` contract now read
     `spec.choices ?? <fixed vocabulary>`: the figure param editor
     (`figure_param_editors.dart`) and `ParamSpec.validate` (#726), and the
-    Advanced-search facet (`facet_labels.dart`'s `figureParamChoices`). A
+    Advanced-search facet (`facet_labels.dart`'s `figureParamChoices`, #746). A
     sentinel on a typed kind is offered, stored and validated correctly.
     The corollary: declaring a param `ParamKind.choice` **purely** so it can
     admit the sentinel (`_handOrUnspecified` / `_spinOrUnspecified`) is now an

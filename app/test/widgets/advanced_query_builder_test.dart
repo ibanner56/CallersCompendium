@@ -404,12 +404,13 @@ void main() {
 //
 // No live taxonomy param pairs one of those kinds with a `choices` list, so
 // these tests inject a synthetic single-move taxonomy. Unit coverage of the
-// function itself is in `test/search/facet_param_choices_test.dart`; the three
-// tests below exist because that function is pure — only a widget test proves
-// the value actually reaches the dropdown and round-trips into
-// `BuilderFigure.params`. Two of them (sentinel, narrowed) fail without the
-// fix; the third (no `choices`) is the guard that unchanged specs still get
-// the full fixed vocabulary, and passes either way by design.
+// function itself is in `test/search/facet_param_choices_test.dart`; widget
+// coverage exists because that function is pure — only a widget test proves a
+// declared domain actually reaches the dropdown and round-trips into
+// `BuilderFigure.params`. Each case's own title says whether it exercises a
+// domain the fix changed (sentinel, narrowed) or guards that a spec without
+// `choices` still gets the full fixed vocabulary; deliberately not restated as
+// a count here, which would drift the next time a case is added.
 // ---------------------------------------------------------------------------
 
 Taxonomy _taxonomyWithHandParam({required List<String>? choices}) => Taxonomy(

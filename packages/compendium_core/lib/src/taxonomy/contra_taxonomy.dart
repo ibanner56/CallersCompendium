@@ -719,8 +719,8 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // `spec.choices ?? <fixed vocabulary>`: the figure param editor
         // (`figure_param_editors.dart`) and [ParamSpec.validate] (issue #726),
         // and the Advanced-search facet (`facet_labels.dart`'s
-        // `figureParamChoices`). A sentinel on a typed kind is therefore
-        // offered, stored and validated correctly.
+        // `figureParamChoices`, PR #746). A sentinel on a typed kind is
+        // therefore offered, stored and validated correctly.
         //
         // ⚠️ The corollary: declaring a param `ParamKind.choice` PURELY so it
         // can admit the sentinel (`_handOrUnspecified` / `_spinOrUnspecified`)

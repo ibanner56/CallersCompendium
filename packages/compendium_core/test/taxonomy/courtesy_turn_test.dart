@@ -104,8 +104,8 @@ void main() {
         // into the draft, rewriting "unstated" into "clockwise" on open.
         // #726 closed the editor half of that, and taught
         // `ParamSpec.validate` the same rule; the Advanced-search facet
-        // (`facet_labels.dart`) was the last holdout and was fixed
-        // separately. All three now read `spec.choices ?? <fixed
+        // (`facet_labels.dart`) was the last holdout and was closed by
+        // PR #746. All three now read `spec.choices ?? <fixed
         // vocabulary>`, so this move uses the honest kind because it IS
         // honest, not as a workaround.
         final spec = tax.resolve('courtesy_turn')!.params['direction']!;
