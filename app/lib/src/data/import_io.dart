@@ -694,8 +694,8 @@ const String callersBoxPathPrefix = '/contradance/thecallersbox';
 /// The Caller's Box serves per-dance JSON at `dance.php?id=N&format=JSON`. This
 /// accepts either:
 /// - a **bare numeric id** (`"1"`) → `https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1&format=JSON`;
-/// - a pasted **https URL**, with a host in [_isCallersBoxUrl]'s allowlist
-///   (`thecallersbox.com` or the `ibiblio.org` `/thecallersbox/` mirror), and
+/// - a pasted **https URL** matching [_isCallersBoxUrl] — an `ibiblio.org` /
+///   `www.ibiblio.org` URL under the `/thecallersbox/` mirror path — and
 ///   an `id` query param (`.../dance.php?id=N`, with or without an existing
 ///   `format=…`) → the same URL with `format=JSON` set (any existing `format`
 ///   is overwritten, so it is never doubled and an already-`format=JSON` link
@@ -704,10 +704,10 @@ const String callersBoxPathPrefix = '/contradance/thecallersbox';
 ///   or the input is rejected before any URL is built.
 ///
 /// Throws a [UrlFetchException] (message safe to show) for empty input, a
-/// non-https URL, a URL whose host isn't a known Caller's Box host, or a URL
+/// non-https URL, a URL that isn't a recognized Caller's Box URL, or a URL
 /// with no dance id. Only `https` is accepted (a bare `http://` URL is
 /// rejected as an insecure scheme, matching the transport-security guard
-/// every online-import fetch already enforces) and the host must be on the
+/// every online-import fetch already enforces) and the URL must satisfy the
 /// known allowlist (OWASP: never trust/fetch an arbitrary user-supplied host
 /// as "Caller's Box JSON" — see #621).
 String buildCallersBoxJsonUrl(String input) {
@@ -1438,28 +1438,31 @@ Future<String> fetchContraDbSearch(String query, {http.Client? client}) async {
   return body;
 }
 
-/// Hosts serving The Caller's Box directly.
-const Set<String> _callersBoxHosts = {
-  'thecallersbox.com',
-  'www.thecallersbox.com',
-};
-
-/// Hosts serving the ibiblio.org mirror; a Caller's Box URL there lives under a
-/// `/thecallersbox/` path segment (so host alone is not enough to recognize it).
+/// Hosts serving The Caller's Box: the ibiblio.org mirror, which is the
+/// canonical home. A Caller's Box URL there lives under a `/thecallersbox/`
+/// path segment (so host alone is not enough to recognize it — ibiblio.org
+/// serves many unrelated archives).
+///
+/// `thecallersbox.com` / `www.thecallersbox.com` were removed here (#766):
+/// they have no DNS records at all, and the canonical prefix is
+/// `https://www.ibiblio.org/contradance/thecallersbox/`. A registrable domain
+/// left on an import allowlist is a standing risk — anyone who registers the
+/// lapsed name inherits a host this app treats as a trusted import source —
+/// so the entries are deleted rather than kept "just in case".
 const Set<String> _ibiblioHosts = {'ibiblio.org', 'www.ibiblio.org'};
 
 /// Hosts serving ContraDB dance pages.
 const Set<String> _contraDbHosts = {'contradb.com', 'www.contradb.com'};
 
-/// Returns `true` if [uri] names a known Caller's Box host: [_callersBoxHosts]
-/// directly, or [_ibiblioHosts] under the `/thecallersbox/` mirror path.
+/// Returns `true` if [uri] is a Caller's Box URL: an [_ibiblioHosts] host under
+/// the `/thecallersbox/` mirror path.
 ///
-/// Compares the **parsed** `uri.host` against the allowlists by exact string
+/// Compares the **parsed** `uri.host` against the allowlist by exact string
 /// equality (never substring/`contains`), so a lookalike host — e.g.
-/// `evilcallersbox.com` or `thecallersbox.com.evil.com` — never matches, and a
-/// userinfo trick (`https://thecallersbox.com@evil.com/...`) can't slip
-/// through either: `Uri.host` already resolves to the real authority
-/// (`evil.com`), not the string before the `@`.
+/// `ibiblio.org.evil.com` or `evilibiblio.org` — never matches, and a userinfo
+/// trick (`https://www.ibiblio.org@evil.com/...`) can't slip through either:
+/// `Uri.host` already resolves to the real authority (`evil.com`), not the
+/// string before the `@`.
 ///
 /// The ibiblio mirror check normalizes dot-segments (`.`/`..`) via
 /// [Uri.normalizePath] and then requires an **exact path segment** named
@@ -1468,16 +1471,17 @@ const Set<String> _contraDbHosts = {'contradb.com', 'www.contradb.com'};
 /// resolves away from the mirror directory) nor an unrelated path that merely
 /// contains the substring (e.g. `/notthecallersboxfeed/x`) can slip past it.
 ///
+/// Both limbs matter, which is why callers must treat this as a predicate over
+/// the whole [Uri] and never as a host check.
+///
 /// Shared by [ImportSource.matchesUrl] (UI auto-detection),
 /// [buildCallersBoxJsonUrl] (the actual fetch-URL builder), and
 /// [_redirectAllowlistFor] (the per-hop redirect guard) so the three can never
-/// drift — a URL the UI recognizes as Caller's Box is exactly the set of hosts
-/// the builder will ever fetch from, and exactly the set a Caller's Box fetch
-/// may redirect within.
+/// drift — a URL the UI recognizes as Caller's Box is exactly the set the
+/// builder will ever fetch from, and exactly the set a Caller's Box fetch may
+/// redirect within.
 bool _isCallersBoxUrl(Uri uri) {
-  final host = uri.host.toLowerCase();
-  if (_callersBoxHosts.contains(host)) return true;
-  if (!_ibiblioHosts.contains(host)) return false;
+  if (!_ibiblioHosts.contains(uri.host.toLowerCase())) return false;
   final segments = uri.normalizePath().pathSegments.map(
     (segment) => segment.toLowerCase(),
   );

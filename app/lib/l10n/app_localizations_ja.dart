@@ -3394,7 +3394,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxUnsupportedHost =>
-      'そのリンクはサポートされているCaller\'s Boxのホストではありません。thecallersbox.comまたはibiblio.orgのリンクを貼り付けるか、ダンスの数値IDを入力してください。';
+      'そのリンクはサポートされているCaller\'s Boxのホストではありません。ibiblio.orgのリンクを貼り付けるか、ダンスの数値IDを入力してください。';
 
   @override
   String get importErrorCallersBoxEmptySearch =>

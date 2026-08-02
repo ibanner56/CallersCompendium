@@ -1133,7 +1133,10 @@ void main() {
       );
 
       await selectCallersBox(tester);
-      await _fetch(tester, 'https://www.thecallersbox.com/dance.php?id=1');
+      await _fetch(
+        tester,
+        'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1',
+      );
 
       expect(fetchedUrl, contains('id=1'));
       expect(fetchedUrl, contains('format=JSON'));
@@ -1157,7 +1160,10 @@ void main() {
 
       await selectCallersBox(tester);
       // A URL with no dance id can't be turned into an endpoint.
-      await _fetch(tester, 'https://www.thecallersbox.com/dances.php');
+      await _fetch(
+        tester,
+        'https://www.ibiblio.org/contradance/thecallersbox/dances.php',
+      );
 
       expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
       expect(fetchCalls, 0);
@@ -1185,23 +1191,25 @@ void main() {
         // A lookalike host must be rejected before any URL is built/fetched.
         await _fetch(
           tester,
-          'https://thecallersbox.com.evil.com/dance.php?id=1',
+          'https://ibiblio.org.evil.com/contradance/thecallersbox/dance.php?id=1',
         );
 
         expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
         expect(
           find.descendant(
             of: find.byKey(const ValueKey('import-url-error')),
-            matching: find.textContaining('thecallersbox.com'),
-          ),
-          findsOneWidget,
-        );
-        expect(
-          find.descendant(
-            of: find.byKey(const ValueKey('import-url-error')),
             matching: find.textContaining('ibiblio.org'),
           ),
           findsOneWidget,
+        );
+        // #766 removed thecallersbox.com from the allowlist, so the message
+        // must no longer offer it as somewhere the user could paste from.
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('import-url-error')),
+            matching: find.textContaining('thecallersbox.com'),
+          ),
+          findsNothing,
         );
         expect(fetchCalls, 0);
         expect(tester.takeException(), isNull);
@@ -1406,7 +1414,10 @@ void main() {
       // Default selection is the generic-JSON source.
       expect(selectedSource(tester).kind, ImportSourceKind.genericJson);
 
-      await typeUrl(tester, 'https://www.thecallersbox.com/dance.php?id=1');
+      await typeUrl(
+        tester,
+        'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1',
+      );
       // The selector auto-flipped to Caller's Box without the user touching it.
       expect(selectedSource(tester).kind, ImportSourceKind.callersBox);
 
@@ -1456,7 +1467,10 @@ void main() {
       expect(selectedSource(tester).kind, ImportSourceKind.contraDb);
 
       // …then pastes a Caller's Box URL: the manual choice wins, no auto-flip.
-      await typeUrl(tester, 'https://www.thecallersbox.com/dance.php?id=1');
+      await typeUrl(
+        tester,
+        'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1',
+      );
       expect(selectedSource(tester).kind, ImportSourceKind.contraDb);
     });
   });

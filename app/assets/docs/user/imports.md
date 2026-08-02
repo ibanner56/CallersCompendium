@@ -111,16 +111,15 @@ When you give the app a web address to fetch:
   own machine or your local network are turned away with *That URL points to a
   network location that cannot be imported from.*
 - **It must belong to the source you chose.** A Caller's Box import accepts links
-  from `thecallersbox.com` or `ibiblio.org`; a ContraDB import accepts links from
-  `contradb.com`. Paste a link from anywhere else and you get a plain message
-  naming the hosts that do work — or you can skip the link entirely and type the
-  dance's ID number. This holds for the *whole* fetch, not just the address you
-  typed: if an archive forwards the app somewhere else, that new address has to
-  belong to the same source too, or the import stops there. A forward that leaves
-  the source is turned away with the same general message as any other address the
-  app won't fetch from, rather than one naming hosts — by that point the address
-  came from the archive rather than from you, so there is nothing for you to
-  retype.
+  from `ibiblio.org`; a ContraDB import accepts links from `contradb.com`. Paste
+  a link from anywhere else and you get a plain message naming the hosts that do
+  work — or you can skip the link entirely and type the dance's ID number. This
+  holds for the *whole* fetch, not just the address you typed: if an archive
+  forwards the app somewhere else, that new address has to belong to the same
+  source too, or the import stops there. A forward that leaves the source is
+  turned away with the same general message as any other address the app won't
+  fetch from, rather than one naming hosts — by that point the address came from
+  the archive rather than from you, so there is nothing for you to retype.
 - **Redirects and size are capped**, so a link cannot bounce the app around
   indefinitely or hand it an endless download.
 

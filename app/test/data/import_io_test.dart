@@ -20,7 +20,7 @@ void main() {
 
     test('a pasted human dance URL gains format=JSON', () {
       final url = buildCallersBoxJsonUrl(
-        'https://www.thecallersbox.com/dance.php?id=1',
+        'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1',
       );
       final uri = Uri.parse(url);
       expect(uri.queryParameters['id'], '1');
@@ -29,7 +29,7 @@ void main() {
 
     test('an already-format=JSON URL is not doubled', () {
       final url = buildCallersBoxJsonUrl(
-        'https://www.thecallersbox.com/dance.php?id=1&format=JSON',
+        'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1&format=JSON',
       );
       expect('format=JSON'.allMatches(url).length, 1);
       expect(Uri.parse(url).queryParameters['format'], 'JSON');
@@ -37,7 +37,7 @@ void main() {
 
     test('an existing non-JSON format value is overwritten', () {
       final url = buildCallersBoxJsonUrl(
-        'https://www.thecallersbox.com/dance.php?id=1&format=html',
+        'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1&format=html',
       );
       expect(Uri.parse(url).queryParameters['format'], 'JSON');
       expect(url, isNot(contains('html')));
@@ -62,8 +62,9 @@ void main() {
 
     test('a URL with no dance id throws a UrlFetchException', () {
       expect(
-        () =>
-            buildCallersBoxJsonUrl('https://www.thecallersbox.com/dances.php'),
+        () => buildCallersBoxJsonUrl(
+          'https://www.ibiblio.org/contradance/thecallersbox/dances.php',
+        ),
         throwsA(isA<UrlFetchException>()),
       );
     });
@@ -79,14 +80,26 @@ void main() {
       );
     });
 
-    test('a plain thecallersbox.com URL is accepted', () {
-      final url = buildCallersBoxJsonUrl(
-        'https://thecallersbox.com/dance.php?id=3',
-      );
-      final uri = Uri.parse(url);
-      expect(uri.host, 'thecallersbox.com');
-      expect(uri.queryParameters['id'], '3');
-      expect(uri.queryParameters['format'], 'JSON');
+    test('a thecallersbox.com URL is now rejected (#766)', () {
+      // Was accepted until #766: thecallersbox.com and www.thecallersbox.com
+      // have no DNS records at all, and the canonical prefix is the ibiblio
+      // mirror. A registrable domain sitting on an import allowlist is a
+      // standing risk — whoever registers the lapsed name inherits a host the
+      // app trusts as an import source — so both entries were deleted. This
+      // asserts they stay deleted.
+      for (final host in ['thecallersbox.com', 'www.thecallersbox.com']) {
+        expect(
+          () => buildCallersBoxJsonUrl('https://$host/dance.php?id=3'),
+          throwsA(
+            isA<UrlFetchException>().having(
+              (e) => e.reason,
+              'reason',
+              UrlFetchFailureReason.callersBoxUnsupportedHost,
+            ),
+          ),
+          reason: 'expected $host to be rejected',
+        );
+      }
     });
 
     test(
@@ -152,7 +165,7 @@ void main() {
     test('an http:// (non-https) URL is rejected as an insecure scheme', () {
       expect(
         () => buildCallersBoxJsonUrl(
-          'http://www.thecallersbox.com/dance.php?id=1',
+          'http://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1',
         ),
         throwsA(
           isA<UrlFetchException>().having(
@@ -181,13 +194,15 @@ void main() {
       'lookalike hosts (suffix/prefix tricks) are rejected, not fetched',
       () {
         for (final host in [
-          'thecallersbox.com.evil.com',
-          'evilthecallersbox.com',
-          'notthecallersbox.com',
           'ibiblio.org.evil.com',
+          'evilibiblio.org',
+          'notibiblio.org',
+          'www.ibiblio.org.evil.com',
         ]) {
           expect(
-            () => buildCallersBoxJsonUrl('https://$host/dance.php?id=1'),
+            () => buildCallersBoxJsonUrl(
+              'https://$host/contradance/thecallersbox/dance.php?id=1',
+            ),
             throwsA(
               isA<UrlFetchException>().having(
                 (e) => e.reason,
@@ -206,9 +221,12 @@ void main() {
       // Uri.host resolves to the real authority (evil.com) here, not the
       // string before the "@" — this documents/regression-tests that the
       // allowlist check is applied to the parsed host, not the raw string.
+      // Both limbs are decoyed: the userinfo mimics an allowlisted host AND
+      // the path carries a real /thecallersbox/ segment, so only parsing the
+      // authority correctly rejects it.
       expect(
         () => buildCallersBoxJsonUrl(
-          'https://www.thecallersbox.com@evil.com/dance.php?id=1',
+          'https://www.ibiblio.org@evil.com/contradance/thecallersbox/dance.php?id=1',
         ),
         throwsA(
           isA<UrlFetchException>().having(
@@ -773,18 +791,6 @@ void main() {
     final sources = defaultImportSources();
     ImportSource? detect(String input) => detectSourceForUrl(input, sources);
 
-    test('a Caller\'s Box host resolves to The Caller\'s Box', () {
-      expect(
-        detect('https://www.thecallersbox.com/dance.php?id=1'),
-        same(sources[1]),
-      );
-      // Bare (no www.) host also matches.
-      expect(
-        detect('http://thecallersbox.com/dance.php?id=7&format=JSON'),
-        same(sources[1]),
-      );
-    });
-
     test('the ibiblio mirror path resolves to The Caller\'s Box', () {
       expect(
         detect(
@@ -792,6 +798,19 @@ void main() {
         ),
         same(sources[1]),
       );
+      // Bare (no www.) host also matches.
+      expect(
+        detect('https://ibiblio.org/contradance/thecallersbox/dance.php?id=7'),
+        same(sources[1]),
+      );
+    });
+
+    test('a thecallersbox.com URL no longer auto-detects (#766)', () {
+      // Removed from the allowlist, so the selector must not flip to Caller's
+      // Box for a host the fetcher would refuse anyway — auto-detection and
+      // the builder share _isCallersBoxUrl precisely so they cannot disagree.
+      expect(detect('https://www.thecallersbox.com/dance.php?id=1'), isNull);
+      expect(detect('https://thecallersbox.com/dance.php?id=7'), isNull);
     });
 
     test('an ibiblio URL without the mirror path does not match', () {
