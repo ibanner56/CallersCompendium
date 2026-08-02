@@ -31,10 +31,15 @@ void main() {
     fixedVocabByKind.forEach((kind, fixedVocab) {
       final defaultValue = fixedVocab.first;
 
-      // Unchanged-behaviour guard. EVERY param of these kinds in today's
-      // taxonomy omits `choices`, so this is the case that must not move: the
-      // fix is additive, and a spec that opts into nothing keeps exactly the
-      // vocabulary it had before.
+      // Unchanged-behaviour guard: a spec that opts into nothing keeps exactly
+      // the vocabulary it had before, because the fix is additive.
+      //
+      // This was once justified as "EVERY param of these kinds omits
+      // `choices`", which #739 / PR #751 falsified — `form_long_waves.hand`,
+      // `mad_robin.direction` and `butterfly_whirl.direction` now declare one.
+      // The guard does not depend on that being true, so the claim is dropped
+      // rather than re-counted: what matters is the omit-`choices` SHAPE, which
+      // is a permanent case whether or not any live param currently takes it.
       test('$kind without choices returns the fixed vocabulary', () {
         final spec = ParamSpec(kind, defaultValue: defaultValue);
         expect(figureParamChoices(spec), fixedVocab);

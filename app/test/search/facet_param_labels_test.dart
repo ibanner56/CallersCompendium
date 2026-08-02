@@ -132,7 +132,18 @@ void main() {
     });
 
     test('leaves a domain without the sentinel untouched', () {
-      expect(figureParamSelectableChoices(ParamVocab.sides), ['right', 'left']);
+      // Compared against `ParamVocab.sides` itself, not a literal
+      // `['right', 'left']`. The property under test is PASS-THROUGH — a domain
+      // carrying no sentinel comes back unchanged — and only this form states
+      // it. A literal would pin today's contents of shared vocabulary this test
+      // does not own, so adding a third side would fail here for a reason that
+      // has nothing to do with the filter.
+      //
+      // Not in tension with the domain-CONTENT assertions elsewhere in the
+      // suite, which spell their vocabularies out on purpose: those exist to
+      // notice when a param's declared domain changes. Assert the property you
+      // actually mean.
+      expect(figureParamSelectableChoices(ParamVocab.sides), ParamVocab.sides);
     });
 
     test('can empty a domain that is nothing but the sentinel', () {

@@ -166,6 +166,19 @@ bool paramAdmitsUnspecified(ParamSpec spec) =>
 /// in [figureParamChoices] or [ParamSpec.validate]: those two plus the editor
 /// are the three consumers of one domain contract (issue #726 / PR #746) and
 /// must not start disagreeing about what a param can hold.
+///
+/// **Do not collapse this into [figureParamChoices].** The two look like one
+/// function split for no reason — the facet calls them together and nothing
+/// else calls this one — but folding the filter into the domain function
+/// silently reintroduces the exact defect PR #746 fixed: the facet would offer
+/// LESS than the declared domain while [ParamSpec.validate] kept accepting what
+/// it no longer offered, and the figure editor would lose the value it needs to
+/// render "not stated" (see `FigureParamEditor._dropdown`, which reads the full
+/// domain and filters separately for exactly that reason). The guard PR #751
+/// merged asserts the domain side of that contract, so it would keep passing
+/// while the presentation side rotted. One function answers "what may this
+/// param hold?"; the other answers "what may a user pick?" — and #741 exists
+/// because those had been treated as the same question.
 List<String> figureParamSelectableChoices(List<String> domain) => [
   for (final choice in domain)
     if (choice != ParamVocab.unspecified) choice,
