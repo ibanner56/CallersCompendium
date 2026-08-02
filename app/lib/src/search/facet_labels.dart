@@ -145,3 +145,73 @@ List<String>? figureParamChoices(ParamSpec spec) {
       return null;
   }
 }
+
+/// Whether [spec] admits the [ParamVocab.unspecified] sentinel, i.e. whether
+/// "the source stated nothing here" is a representable state for this param.
+bool paramAdmitsUnspecified(ParamSpec spec) =>
+    spec.choices?.contains(ParamVocab.unspecified) ?? false;
+
+/// The values a *user may pick* for a figure parameter: its [domain] minus the
+/// [ParamVocab.unspecified] sentinel.
+///
+/// Deliberately distinct from the domain. The sentinel is a real, valid value —
+/// [ParamSpec.validate] accepts it, [figureParamChoices] reports it, and the
+/// renderer knows how to emit it — but it is meaningless as something a user
+/// *chooses*: it means the SOURCE stated nothing, which is a fact about
+/// provenance, not a choreographic value anyone sets on purpose. In search it
+/// is worse than meaningless, because it sits next to "Any <param>", reads like
+/// a synonym, and filters for the near-inverse set (issue #741).
+///
+/// So the sentinel is filtered out *here*, at the presentation edge, and never
+/// in [figureParamChoices] or [ParamSpec.validate]: those two plus the editor
+/// are the three consumers of one domain contract (issue #726 / PR #746) and
+/// must not start disagreeing about what a param can hold.
+List<String> figureParamSelectableChoices(List<String> domain) => [
+  for (final choice in domain)
+    if (choice != ParamVocab.unspecified) choice,
+];
+
+/// Human-readable label for a figure parameter's KEY (`meetTarget` -> "meet
+/// target"), for field labels and the facet's "Any <param>" option.
+///
+/// The taxonomy carries no display name for a param key ([ParamSpec] has no
+/// `label`), and it declares dozens of them, so per-key localized strings would
+/// be a large, silently-degrading table — a param added to the taxonomy would
+/// fall back to the raw identifier. Humanizing is what the dance editor already
+/// does for the very same keys, so this keeps the two surfaces identical. Named
+/// separately from [humanizeToken] so a future localized table has exactly one
+/// call site to replace.
+String figureParamKeyLabel(String paramKey) => humanizeToken(paramKey);
+
+/// Display label for a single figure-param [choice].
+///
+/// THE one labelling path for figure-param vocabulary, shared by the dance
+/// editor's `FigureParamEditor` and the Advanced-search facet's param
+/// dropdowns. Extracted so the two cannot drift: before issue #741 the facet
+/// rendered raw canonical tokens (`role1s`) while the editor rendered the same
+/// token through the user's dialect ("Larks" / "Gents").
+///
+/// Dancer sets/pairs are dialect vocabulary and route through
+/// [FigureRenderer.displayToken]; every other kind is structural vocabulary and
+/// is humanized. The stored value is always the canonical token regardless of
+/// the label shown.
+String figureParamChoiceLabel(
+  AppLocalizations l10n,
+  ParamSpec spec,
+  Dialect dialect,
+  String choice,
+) {
+  // Defensive: the sentinel is filtered out of every pickable list by
+  // [figureParamSelectableChoices], so this branch is only reached when
+  // labelling a param's CURRENT unstated state — never a menu entry. Gated on
+  // the spec admitting it so a free-`text` param whose value happens to be the
+  // word "unspecified" is still shown verbatim.
+  if (choice == ParamVocab.unspecified && paramAdmitsUnspecified(spec)) {
+    return l10n.danceEditorParamNotStated;
+  }
+  final isDancerKind =
+      spec.kind == ParamKind.dancerSet || spec.kind == ParamKind.dancerPair;
+  return isDancerKind
+      ? FigureRenderer.displayToken(choice, spec, dialect)
+      : humanizeToken(choice);
+}
