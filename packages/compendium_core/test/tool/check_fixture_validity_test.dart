@@ -132,14 +132,23 @@ void main() {
       );
     });
 
-    test('a too-short reason is itself a violation', () {
+    test('a too-short reason is a violation, and fails closed', () {
+      // Both granularities fail closed: a rejected marker does not waive its
+      // fixture, so the fixture is still checked and reports separately.
+      // Anything else would let the laziest possible reason buy exactly the
+      // suppression the reason requirement exists to deny.
       final v = check(
         'f() {\n'
         '  // invalid-fixture: n/a\n'
         "  Figure(move: 'swing', params: {'who': 'partner'});\n"
         '}',
       );
-      expect(v.single.kind, 'weak-marker');
+      expect(v.map((e) => e.kind), contains('weak-marker'));
+      expect(
+        v.map((e) => e.kind),
+        contains('invalid_param_value'),
+        reason: 'the fixture must stay checked, not be waived by a weak marker',
+      );
     });
 
     test('a marker above unrelated code does not carry down', () {

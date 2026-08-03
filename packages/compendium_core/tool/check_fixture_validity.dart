@@ -95,11 +95,52 @@ class FixtureVisitor extends RecursiveAstVisitor<void> {
   int dynamicCount = 0;
   int markedCount = 0;
 
-  /// Line ranges of `test(`/`group(` bodies carrying a marker, so a fixture
-  /// inside one inherits it. Populated as those calls are visited; because the
-  /// visitor is top-down, an enclosing call is always seen before the fixtures
-  /// inside it.
+  /// Line ranges of `test(`/`group(` bodies carrying a VALID marker, so a
+  /// fixture inside one inherits it. Populated as those calls are visited;
+  /// because the visitor is top-down, an enclosing call is always seen before
+  /// the fixtures inside it.
   final List<(int, int)> _markedScopes = [];
+
+  /// Validates one `// invalid-fixture:` marker, whichever granularity it was
+  /// written at, and reports every way it fails to justify itself.
+  ///
+  /// **Both granularities route through here, and that is the point.** A
+  /// scope marker waives every fixture in its `test(`/`group(`, so it is at
+  /// least as powerful as a per-fixture one and must clear at least the same
+  /// bar. The two paths were separate once and the scope path silently
+  /// inherited none of the per-fixture checks — `// invalid-fixture: n/a`
+  /// above a `test(` waived everything inside it with no violation, while the
+  /// identical string on a fixture was rejected. Any property added to
+  /// reasons from here on applies at both granularities by construction,
+  /// because there is only one place to add it.
+  ///
+  /// Returns `true` when the marker may take effect. A rejected marker is
+  /// **not** honoured — failing closed, so the fixtures it would have covered
+  /// stay checked rather than being waived by a marker that never earned it.
+  bool _acceptMarker(String reason, int line, {required String scope}) {
+    if (reason.length < minReasonLength) {
+      violations.add(
+        FixtureViolation(
+          _path,
+          line,
+          'weak-marker',
+          scope == _fixtureScope
+              ? 'the `$markerPrefix` reason must be at least '
+                    '$minReasonLength characters explaining why this fixture '
+                    'is deliberately invalid; got "$reason"'
+              : 'this `$markerPrefix` marker waives every fixture in the '
+                    'enclosing `$scope(`, so its reason must be at least '
+                    '$minReasonLength characters explaining why they are '
+                    'deliberately invalid; got "$reason"',
+        ),
+      );
+      return false;
+    }
+    return true;
+  }
+
+  /// Sentinel [scope] for a marker written directly above one fixture.
+  static const String _fixtureScope = '';
 
   @override
   void visitMethodInvocation(MethodInvocation node) {
@@ -107,30 +148,11 @@ class FixtureVisitor extends RecursiveAstVisitor<void> {
     if (name == 'test' || name == 'testWidgets' || name == 'group') {
       final startLine = _lineInfo.getLocation(node.offset).lineNumber;
       final reason = _markerAbove(startLine);
-      if (reason != null) {
-        // A scope marker suppresses EVERY fixture inside it, so it is held to
-        // the same standard as a per-fixture one — and fails closed. A short
-        // reason is reported and the scope is NOT registered, so the fixtures
-        // inside stay checked rather than being silently waived by a marker
-        // that never had to justify itself.
-        if (reason.length < minReasonLength) {
-          violations.add(
-            FixtureViolation(
-              _path,
-              startLine,
-              'weak-marker',
-              'this `$markerPrefix` marker covers every fixture in the '
-                  'enclosing `$name(`, so its reason must be at least '
-                  '$minReasonLength characters explaining why they are '
-                  'deliberately invalid; got "$reason"',
-            ),
-          );
-        } else {
-          _markedScopes.add((
-            startLine,
-            _lineInfo.getLocation(node.end).lineNumber,
-          ));
-        }
+      if (reason != null && _acceptMarker(reason, startLine, scope: name)) {
+        _markedScopes.add((
+          startLine,
+          _lineInfo.getLocation(node.end).lineNumber,
+        ));
       }
     }
     if (name == 'Figure') {
@@ -170,20 +192,12 @@ class FixtureVisitor extends RecursiveAstVisitor<void> {
 
     final reason = _markerAbove(line);
     if (reason != null) {
-      markedCount++;
-      if (reason.length < minReasonLength) {
-        violations.add(
-          FixtureViolation(
-            _path,
-            line,
-            'weak-marker',
-            'the `$markerPrefix` reason must be at least $minReasonLength '
-                'characters explaining why this fixture is deliberately '
-                'invalid; got "$reason"',
-          ),
-        );
+      // Fails closed exactly as the scope path does: a rejected marker does
+      // not waive its fixture, so the fixture stays checked below.
+      if (_acceptMarker(reason, line, scope: _fixtureScope)) {
+        markedCount++;
+        return;
       }
-      return;
     }
     if (_insideMarkedScope(line)) {
       markedCount++;
