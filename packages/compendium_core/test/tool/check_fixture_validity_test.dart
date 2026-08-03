@@ -60,7 +60,9 @@ void main() {
       // `move:` argument and classify every literal fixture as dynamic, so
       // this out-of-domain value would surface as `unchecked-dynamic`
       // instead of `invalid_param_value`.
-      final v = check("f() { Figure(move: 'swing', params: {'who': 'nope'}); }");
+      final v = check(
+        "f() { Figure(move: 'swing', params: {'who': 'nope'}); }",
+      );
       expect(v.single.kind, 'invalid_param_value');
       expect(v.single.detail, contains('swing.who'));
     });
