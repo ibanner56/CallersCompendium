@@ -928,18 +928,65 @@ An alternative was considered and rejected: stamping a fixed sentinel so all
 devices agree. That makes every settings row tie, leaving the conflict rule with
 no discriminator at all, which is worse.
 
-## Tracked follow-ups
+## Recorded limitations and operational prerequisites
 
-Filed as issues rather than left in this document, per the repository's rule that
-a limitation referenced from a design doc must have its own issue — sibling
-issues close and take their dangling pointers with them.
+Held here rather than in issues: ADR-004 is still `Proposed`, and filing
+implementation-shaped issues against an unagreed design presumes the agreement.
+These become issues when the ADR is accepted. Nothing below is resolved.
 
-- **#793 — pepper rotation is impossible as specified.** Only the derived key is
-  retained, so an inactive store has no input to re-derive from. Proposed
-  resolution is versioned peppers with lazy re-keying on next authentication.
-- **#794 — operational gaps.** `422` alerting has no destination, the retention
-  guarantee has no test, break-glass authorisation is undefined and the log is
-  bypassable, boot invariants are unstated, and lost-ID support has no answer.
+### Pepper rotation is impossible for inactive stores, as specified
+
+Storage keys are `HMAC-SHA256(pepper, syncID)` and the server retains **only the
+derived key** — plaintext sync IDs are deliberately not stored. So re-deriving a
+key under a new pepper needs an input the server does not have:
+
+- **Active stores** can be re-keyed lazily: the next authentication supplies the
+  plaintext, so the new key can be computed then.
+- **Inactive stores can never be re-keyed.** There is no input until a client
+  returns, and if none does the entry is orphaned.
+
+That leaves a bad choice at rotation: keep the old pepper and preserve whatever
+exposure prompted the rotation, or drop it and make those stores permanently
+unreachable.
+
+Proposed resolution — **versioned peppers with lazy re-keying**: store a pepper
+version beside each derived key; hold predecessors while still referenced;
+re-derive on next authentication; drop a version once unreferenced. Orphans are
+bounded by the ordinary 30-day disuse TTL rather than being indefinite, though a
+forced-reset path is still needed for a pepper that must be retired faster than
+that.
+
+Rejected: never rotating (not a plan — a secret leaks eventually); storing
+plaintext IDs so any pepper can re-derive (defeats the purpose); forcing every
+store to re-attach (correct but user-hostile — every device does a fresh attach
+with a dedupe review, for an operational event they did not cause).
+
+### Operational prerequisites — real before shipping, not before deciding
+
+- **`422` has nowhere to be loud.** The design calls it a loud failure; on the
+  client it surfaces, on the server nothing pages anyone. If a client bug starts
+  pushing venue addresses, that is the event we most want to know about within
+  minutes. Also worth alerting: `409` rate (clients re-attaching means something
+  reset), sweeper failure (the retention promise silently stops being kept),
+  quota exhaustion, and a `422` rate hitting *everything at once* — the signature
+  of a codec change breaking the allow-list mapping.
+- **The retention guarantee has no proof.** "Nothing survives 30 days of disuse"
+  is prose, and this repository's position is that prose does not hold. It needs
+  a test that the sweeper reaps and an assertion that it ran.
+- **Break-glass authorisation is undefined**, and the log is bypassable: content
+  sits in ordinary SQLite and filesystem storage, so an operator can read a store
+  without the instrumented path and can then edit the log. Append-only or
+  independently-administered storage would make the record meaningful rather than
+  advisory.
+- **Boot invariants.** A server started with no pepper must **refuse to boot**,
+  not default to empty — an empty pepper reduces every derived key to a bare
+  hash, which is the weakness the pepper exists to remove. Version skew should
+  also be detectable, since a server older than its clients now rejects valid
+  uploads by design and would otherwise present as mysterious `422`s.
+- **Lost-ID support has no answer.** "No recovery, no revocation" is honestly
+  stated, but *"I lost my ID"* and *"my dances vanished after five weeks"* are
+  predictable inbound. The second is not a fault at all — it is the disuse TTL
+  working — and it will read as data loss.
 
 ## Open questions
 

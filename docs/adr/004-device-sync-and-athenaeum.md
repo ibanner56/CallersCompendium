@@ -563,8 +563,9 @@ makes self-hosting materially harder, which constraint 4 forbids.
   never in the database. This is server-side only — the client computes no MAC
   and never holds the pepper. **Rotation is a store migration, not a config
   change, and is impossible for inactive stores as specified** (only the derived
-  key is retained, so there is nothing to re-derive from until a client returns)
-  — tracked in **#793**, with versioned peppers and lazy re-keying proposed.
+  key is retained, so there is nothing to re-derive from until a client returns).
+  Versioned peppers with lazy re-keying are the proposed resolution; see
+  [sync.md](../design/sync.md) → Recorded limitations.
 - **Even a derived identifier is linkable, so the log expires too.** The access
   log keeps its identifier for 30 days and then **degrades to a timestamp-only
   row**, preserving "an access occurred on this date" as a non-linkable aggregate
