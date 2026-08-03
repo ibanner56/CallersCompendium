@@ -135,10 +135,46 @@ holding `{B, C}` joining a store holding `{A, B}` produces `{A, B, C}`. Only
 genuine record-id collisions fall through to last-writer-wins.
 
 Fresh attach also **runs the existing dedupe machinery** — `DedupeIndex`, fuzzy
-title-and-author matching, and the confident-match rule from #685 — through the
-import pipeline's existing plan → review → commit flow. Without this, a caller
-who imported "Rory O'More" separately on a laptop and a phone before pairing
-gets two of everything, which is precisely the user we are building for.
+title-and-author matching, and the confident-match rule from #685. Without it, a
+caller who imported "Rory O'More" separately on a laptop and a phone before
+pairing gets two of everything, which is precisely the user we are building for.
+
+**Obvious duplicates merge silently. Only genuine ambiguity is surfaced.**
+Asking a user to review 11,500 dances is not a review, it is a wall, and the
+common case — the same source imported on both devices — produces records that
+are identical in everything that matters.
+
+The silent-merge test reuses the rule already in the import pipeline:
+
+1. **Exact normalized-title match** (`import_pipeline.dart:619`). A
+   fuzzy-but-inexact title is never confident; that is the "two different dances
+   share a title" trap.
+2. **`_choreographyEquals`** — form, formation, progression, phrase structure,
+   **figures including their params**, hook, calling notes, level, mixed level
+   and tunes. It deliberately ignores identity, provenance, timestamps and
+   device-local id collections, so, in the words of its own doc comment, "a
+   bundle received on another device still matches by its intrinsic content".
+
+One deliberate divergence from the import rule. Import treats exact title plus
+**author overlap** as confident *even when the choreography differs*, which is
+right when re-importing a source record. **Fresh attach must not**: same title,
+same author, different figures is exactly a dance the user edited differently on
+each device, and merging it silently would discard one side's work. So sync
+requires content equality as well, and sends title-and-author matches whose
+content diverges to review.
+
+That leaves the review queue holding only real divergence, which is the small
+set a human can actually adjudicate.
+
+On a silent merge the surviving record keeps one identity, and the id-collection
+fields the equality test ignores — tags, custom fields, links, citations — are
+**unioned** rather than taken from a winner, since they are additive by nature
+and neither side is more correct.
+
+`_choreographyEquals` is currently private to `ImportPipeline`; exposing it (or
+lifting it somewhere shared) is an implementation detail for the sync issue, but
+sync must call *that* function rather than reimplement the comparison, or the
+two definitions of "the same dance" will drift.
 
 **Three distinct events produce a fresh attach, and all three behave
 identically:**
@@ -380,6 +416,11 @@ makes self-hosting materially harder, which constraint 4 forbids.
   Mitigated by a persistent hint, not eliminated.
 - **We now operate infrastructure**, with the uptime, abuse and cost that
   implies — mitigated by the app working fully without it.
+- **Silent merge is irreversible from the user's point of view.** Two records
+  that pass the title-plus-choreography test become one without being shown. The
+  test is strict — identical figures *and* params — so a false positive means two
+  genuinely identical dances, but the user is not told it happened. Reporting a
+  count afterwards ("merged 412 duplicates") is the mitigation, not a prompt.
 
 ### Blocking prerequisite
 
@@ -409,3 +450,7 @@ link to it. Both files must be amended together, with the effective date bumped,
   use without a declaration, making E2EE cheap enough to reconsider.
 - **A pure-Dart or well-maintained cross-platform sync primitive appears** that
   would let us delete our own merge implementation.
+- **Silent merge is observed collapsing dances users considered distinct** — for
+  instance two arrangements that differ only in fields `_choreographyEquals`
+  ignores. That would mean the equality test is too loose for sync even though it
+  is right for import, and the two should stop sharing one definition.
