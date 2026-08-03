@@ -1350,15 +1350,43 @@ const String contraDbSearchUrl = 'https://contradb.com/api/v1/dances';
 /// the query, so the transport — not the caller — assembles the request.
 typedef ContraDbSearchFetcher = Future<String> Function(String query);
 
-/// POSTs [body] to the ContraDB search endpoint [uri] with [client] and buffers
-/// the response under a running [importMaxResponseBytes] cap, aborting with a
-/// generic [UrlFetchException] the moment the body would exceed it (a single
-/// oversized chunk, or a lying/absent Content-Length, can't push the allocation
-/// past the cap).
+/// POSTs [body] to the ContraDB search endpoint [uri] with [client].
 ///
-/// Deliberately kept separate from the GET-oriented [_sendGuarded]: there is no
-/// SSRF host guard because [uri] is the fixed public [contraDbSearchUrl], not a
-/// user-controlled destination. The caller wraps the returned future in
+/// Kept separate from the GET-oriented [_sendGuarded] because the two need
+/// different redirect policies, not because this request is less trusted: the
+/// caller validates [uri] with [_guardFetchUri] exactly as [_sendGuarded] does,
+/// so this POST inherits the same `https`-only, [isBlockedImportHost] and
+/// userInfo-stripping guarantees.
+///
+/// Where it differs is that it **refuses** redirects (`followRedirects =
+/// false`) rather than following them under the host allowlist (#765). A raw
+/// [http.Request] defaults `followRedirects` to `true`, so before this the
+/// search POST followed hops with no guard at all — no scheme check, no
+/// blocked-host check, no allowlist. Declining is deliberate and is *stricter*
+/// than [_sendGuarded], for two reasons:
+///
+/// - **A followed POST redirect can retransmit the request body.** The body
+///   here is the user's search text; a `307`/`308` hop would resend it to the
+///   new host. Refusing keeps it from ever leaving the endpoint it was
+///   addressed to.
+/// - **POST redirect semantics are status-dependent** (RFC 9110 §15.4):
+///   `301`/`302`/`303` change the method to `GET` and drop the body, while
+///   `307`/`308` preserve both. A hop loop that simply re-issued the POST would
+///   implement neither correctly, and getting it right would add
+///   method-switching branches that no call path can reach — [contraDbSearchUrl]
+///   is a fixed endpoint that serves no redirect (measured live, 2026-08-02).
+///   Untestable branches inside a guard are worse than a guard that declines
+///   the capability.
+///
+/// A `30x` therefore arrives back at [fetchContraDbSearch] as an ordinary
+/// non-2xx and surfaces as [UrlFetchFailureReason.contraDbHttpStatus] — an
+/// existing, localized, non-URL-echoing failure. The search fails closed and
+/// visibly rather than following an unvalidated hop.
+///
+/// The response is buffered under a running [importMaxResponseBytes] cap,
+/// aborting with a generic [UrlFetchException] the moment the body would exceed
+/// it (a single oversized chunk, or a lying/absent Content-Length, can't push
+/// the allocation past the cap). The caller wraps the returned future in
 /// [importFetchTimeout], so both the `send` and this body read are bounded by a
 /// single deadline.
 Future<http.Response> _sendContraDbSearch(
@@ -1367,6 +1395,7 @@ Future<http.Response> _sendContraDbSearch(
   http.Client client,
 ) async {
   final request = http.Request('POST', uri)
+    ..followRedirects = false
     ..headers['Content-Type'] = 'application/json'
     ..body = body;
   final streamed = await client.send(request);
@@ -1394,13 +1423,16 @@ Future<http.Response> _sendContraDbSearch(
 /// [client] is an injection point for tests (e.g. `package:http`'s
 /// `MockClient`); production callers omit it and a one-shot client is used.
 Future<String> fetchContraDbSearch(String query, {http.Client? client}) async {
-  // Not subject to the SSRF host guard / _sendGuarded: this POSTs to the fixed
-  // constant [contraDbSearchUrl] (a hard-coded public host), not a
-  // user-controlled URL, so there is no untrusted destination to validate. The
-  // response body is still read under the shared [importMaxResponseBytes] cap,
-  // so a compromised / MITM'd / misbehaving ContraDB response cannot exhaust
-  // memory (OWASP - uncontrolled resource consumption).
-  final uri = Uri.parse(contraDbSearchUrl);
+  // [contraDbSearchUrl] is a hard-coded public https constant, so this guard
+  // has nothing to reject today. It runs anyway because "the destination is a
+  // constant" is a property of the current code rather than an invariant, and
+  // this is the line that would catch a later change making the endpoint
+  // configurable or non-https (#765). Deliberately not unit-tested: observing
+  // it would mean adding a URL-injection seam to production purely so a test
+  // could feed it a bad value, which widens the very surface the guard exists
+  // to narrow. _sendContraDbSearch additionally refuses redirects, so no
+  // unvalidated hop can follow this check.
+  final uri = _guardFetchUri(Uri.parse(contraDbSearchUrl));
   final ownClient = client == null;
   final effectiveClient = client ?? http.Client();
   final http.Response response;
