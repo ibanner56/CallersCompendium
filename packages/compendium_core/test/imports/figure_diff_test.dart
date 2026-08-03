@@ -85,7 +85,12 @@ void main() {
 
     test('malformed (non-String) custom text is treated as empty, never throws '
         '(OWASP: params come from untrusted import content)', () {
-      final malformed = invalidTestFigure(move: customMove, params: {'text': 42}, reason: 'non-String custom text must be treated as empty and never throw (OWASP: import content is untrusted)');
+      final malformed = invalidTestFigure(
+        move: customMove,
+        params: {'text': 42},
+        reason:
+            'non-String custom text must be treated as empty and never throw (OWASP: import content is untrusted)',
+      );
       expect(() => figureCanonicalKey(malformed, tax), returnsNormally);
       expect(
         figureCanonicalKey(malformed, tax),
@@ -142,8 +147,11 @@ void main() {
     });
 
     test('unknown move still gets a comparable key (never throws/null)', () {
+      // invalid-fixture: move is deliberately outside the taxonomy — unknown move still gets a comparable key (never throws/null)
       final a = Figure(move: 'some_future_move', params: {'foo': 'bar'});
+      // invalid-fixture: move is deliberately outside the taxonomy — unknown move still gets a comparable key (never throws/null)
       final b = Figure(move: 'some_future_move', params: {'foo': 'bar'});
+      // invalid-fixture: move is deliberately outside the taxonomy — unknown move still gets a comparable key (never throws/null)
       final c = Figure(move: 'some_future_move', params: {'foo': 'baz'});
       expect(figureCanonicalKey(a, tax), figureCanonicalKey(b, tax));
       expect(figureCanonicalKey(a, tax), isNot(figureCanonicalKey(c, tax)));
@@ -285,11 +293,21 @@ void main() {
       final count = kMaxFigureDiffLines + 5;
       final oldFigures = [
         for (var i = 0; i < count; i++)
-          invalidTestFigure(move: 'allemande', params: {'turn': 1.0 + i}, reason: 'the loop sweeps turn past the taxonomy domain to exceed kMaxFigureDiffLines'),
+          invalidTestFigure(
+            move: 'allemande',
+            params: {'turn': 1.0 + i},
+            reason:
+                'the loop sweeps turn past the taxonomy domain to exceed kMaxFigureDiffLines',
+          ),
       ];
       final newFigures = [
         for (var i = 0; i < count; i++)
-          invalidTestFigure(move: 'do_si_do', params: {'turn': 1.0 + i}, reason: 'the loop sweeps turn past the taxonomy domain to exceed kMaxFigureDiffLines'),
+          invalidTestFigure(
+            move: 'do_si_do',
+            params: {'turn': 1.0 + i},
+            reason:
+                'the loop sweeps turn past the taxonomy domain to exceed kMaxFigureDiffLines',
+          ),
       ];
       final result = diff(oldFigures, newFigures);
       expect(result.identical, isFalse);

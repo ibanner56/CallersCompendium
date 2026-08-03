@@ -10,7 +10,8 @@ void main() {
   final tax = contraTaxonomy;
 
   int beatsFor(String move, [Map<String, Object?> params = const {}]) =>
-      tax.effectiveParams(testFigure(move: move, params: params))['beats'] as int;
+      tax.effectiveParams(testFigure(move: move, params: params))['beats']
+          as int;
 
   group('hey length -> beats (ContraDB heyLengthMeetTimes * 8)', () {
     test('lessThanHalf and half are 8 (meetTimes 1)', () {

@@ -62,8 +62,10 @@ void main() {
   });
 
   group('swing prefix modifier', () {
-    Figure swing(String prefix) =>
-        testFigure(move: 'swing', params: {'who': 'neighbors', 'prefix': prefix});
+    Figure swing(String prefix) => testFigure(
+      move: 'swing',
+      params: {'who': 'neighbors', 'prefix': prefix},
+    );
 
     test('none renders no prefix word', () {
       expect(
@@ -274,12 +276,14 @@ void main() {
   group('unknown moves', () {
     test('fall back to the raw move id rather than losing data', () {
       expect(
+        // invalid-fixture: move is deliberately outside the taxonomy — fall back to the raw move id rather than losing data
         renderer.renderCanonical(Figure(move: 'mystery_move')),
         'mystery_move',
       );
     });
 
     test('render/renderSummary degrade to raw id, params intact (#358)', () {
+      // invalid-fixture: move is deliberately outside the taxonomy — render/renderSummary degrade to raw id, params intact (#358)
       final figure = Figure(
         move: 'future_move',
         params: {'beats': 12, 'flavor': 'spicy'},
@@ -405,6 +409,7 @@ void main() {
         'weave the ring',
       );
       expect(
+        // invalid-fixture: move is deliberately outside the taxonomy — custom free text and unknown moves match render
         renderer.renderVerbose(Figure(move: 'mystery_move'), larks),
         'mystery_move',
       );
@@ -667,15 +672,18 @@ void main() {
         );
       });
       // issue #576: a set `meetTarget` names WHICH pair you run until you meet.
-      String sTarget(String length, String meetTarget) =>
-          renderer.renderSummary(
-            invalidTestFigure(
-              move: 'hey',
-              params: {'length': length, 'meetTarget': meetTarget},
-              reason: 'callers pass an out-of-domain meetTarget to prove the renderer surfaces it rather than blanking it',
-            ),
-            d,
-          );
+      String sTarget(
+        String length,
+        String meetTarget,
+      ) => renderer.renderSummary(
+        invalidTestFigure(
+          move: 'hey',
+          params: {'length': length, 'meetTarget': meetTarget},
+          reason:
+              'callers pass an out-of-domain meetTarget to prove the renderer surfaces it rather than blanking it',
+        ),
+        d,
+      );
       test('lessThanHalf names the meetTarget pair (bare "meet")', () {
         expect(
           sTarget('lessThanHalf', 'partners'),
@@ -1359,6 +1367,7 @@ void main() {
       test('zig_zag surfaces an unknown subject in the "with" suffix', () {
         expect(
           renderer.render(
+            // invalid-fixture: value is deliberately out of domain — zig_zag surfaces an unknown subject in the "with" suffix
             Figure(move: 'zig_zag', params: {'who': 'someImportedGroup'}),
             d,
           ),
@@ -1367,6 +1376,7 @@ void main() {
       });
       test('zig_zag drops the "with" suffix for an empty subject', () {
         expect(
+          // invalid-fixture: value is deliberately out of domain — zig_zag drops the "with" suffix for an empty subject
           renderer.render(Figure(move: 'zig_zag', params: {'who': ''}), d),
           'zig left zag right',
         );
@@ -1374,6 +1384,8 @@ void main() {
       test('slice surfaces unknown by/return values instead of blanking', () {
         expect(
           renderer.render(
+            // invalid-fixture: value is deliberately out of domain — slice surfaces unknown by/return values instead of blanking
+            // invalid-fixture: value is deliberately out of domain — slice surfaces unknown by/return values instead of blanking
             Figure(
               move: 'slice',
               params: {'by': 'wholeSet', 'return': 'loopBack'},
@@ -1386,6 +1398,7 @@ void main() {
       test('mad_robin surfaces an unknown subject, no dangling comma', () {
         expect(
           renderer.render(
+            // invalid-fixture: value is deliberately out of domain — mad_robin surfaces an unknown subject, no dangling comma
             Figure(move: 'mad_robin', params: {'who': 'oddDancers'}),
             d,
           ),
@@ -1393,6 +1406,7 @@ void main() {
         );
         // An empty subject omits the comma clause entirely.
         expect(
+          // invalid-fixture: value is deliberately out of domain — mad_robin surfaces an unknown subject, no dangling comma
           renderer.render(Figure(move: 'mad_robin', params: {'who': ''}), d),
           'mad robin',
         );
@@ -1400,6 +1414,9 @@ void main() {
       test('revolving_door surfaces unknown who/whom/hand values', () {
         expect(
           renderer.render(
+            // invalid-fixture: value is deliberately out of domain — revolving_door surfaces unknown who/whom/hand values
+            // invalid-fixture: value is deliberately out of domain — revolving_door surfaces unknown who/whom/hand values
+            // invalid-fixture: value is deliberately out of domain — revolving_door surfaces unknown who/whom/hand values
             Figure(
               move: 'revolving_door',
               params: {
@@ -1763,27 +1780,27 @@ void main() {
           'square through 6 - partner balance & pull by right, then neighbor pull by left',
         );
       });
-      test(
-        'cross_trails surfaces an unknown subject (structural clause kept)',
-        () {
-          // ContraDB always emits both dir/shoulder clauses; an empty second
-          // subject leaves the (still meaningful) structural clause, and the
-          // unknown first subject is humanized rather than dropped.
-          expect(
-            renderer.render(
-              Figure(
-                move: 'cross_trails',
-                params: {'who': 'someImportedGroup', 'who2': ''},
-              ),
-              d,
+      test('cross_trails surfaces an unknown subject (structural clause kept)', () {
+        // ContraDB always emits both dir/shoulder clauses; an empty second
+        // subject leaves the (still meaningful) structural clause, and the
+        // unknown first subject is humanized rather than dropped.
+        expect(
+          renderer.render(
+            // invalid-fixture: value is deliberately out of domain — cross_trails surfaces an unknown subject (structural clause kept)
+            // invalid-fixture: value is deliberately out of domain — cross_trails surfaces an unknown subject (structural clause kept)
+            Figure(
+              move: 'cross_trails',
+              params: {'who': 'someImportedGroup', 'who2': ''},
             ),
-            'cross trails - some imported group across the set right shoulders, along the set left shoulders',
-          );
-        },
-      );
+            d,
+          ),
+          'cross trails - some imported group across the set right shoulders, along the set left shoulders',
+        );
+      });
       test('poussette drops the direction clause for an unknown turn', () {
         expect(
           renderer.render(
+            // invalid-fixture: value is deliberately out of domain — poussette drops the direction clause for an unknown turn
             Figure(move: 'poussette', params: {'turn': 'sideways'}),
             d,
           ),
@@ -1793,6 +1810,7 @@ void main() {
       test('hey surfaces an unknown shoulder rather than blanking', () {
         expect(
           renderer.render(
+            // invalid-fixture: value is deliberately out of domain — hey surfaces an unknown shoulder rather than blanking
             Figure(move: 'hey', params: {'shoulder': 'eitherSide'}),
             d,
           ),
@@ -1802,6 +1820,7 @@ void main() {
       test('form_a_long_wave surfaces an unknown subject', () {
         expect(
           renderer.render(
+            // invalid-fixture: value is deliberately out of domain — form_a_long_wave surfaces an unknown subject
             Figure(
               move: 'form_a_long_wave',
               params: {'who': 'oddDancers', 'balance': false},
@@ -1816,6 +1835,7 @@ void main() {
         // maybeBalance) instead of collapsing it into a concrete "& balance".
         expect(
           renderer.render(
+            // invalid-fixture: value is deliberately out of domain — form_a_long_wave out-only surfaces a wildcard balance
             Figure(
               move: 'form_a_long_wave',
               params: {'in': false, 'out': true, 'balance': '*'},
@@ -1828,6 +1848,7 @@ void main() {
       test('form_a_long_wave out-only omits balance for false/unexpected', () {
         expect(
           renderer.render(
+            // invalid-fixture: value is deliberately out of domain — form_a_long_wave out-only omits balance for false/unexpected
             Figure(
               move: 'form_a_long_wave',
               params: {'in': false, 'out': true, 'balance': 'maybe'},
@@ -1841,8 +1862,12 @@ void main() {
   });
 
   group('decimals display flag (#368)', () {
-    Figure allemande(num turn) =>
-        invalidTestFigure(move: 'allemande', params: {'turn': turn}, reason: 'the decimals-display sweep uses turn values beyond the taxonomy domain');
+    Figure allemande(num turn) => invalidTestFigure(
+      move: 'allemande',
+      params: {'turn': turn},
+      reason:
+          'the decimals-display sweep uses turn values beyond the taxonomy domain',
+    );
 
     test('renders turn amounts as leading-zero decimals when opted in', () {
       String d(num t) => renderer.render(allemande(t), larks, decimals: true);

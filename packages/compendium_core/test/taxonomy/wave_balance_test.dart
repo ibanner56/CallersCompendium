@@ -71,7 +71,15 @@ void main() {
     test('hand is a handedness that still admits the sentinel (#739)', () {
       final spec = tax.resolve('form_long_waves')!.params['hand']!;
       expect(spec.kind, ParamKind.handedness);
-      expect(spec.choices, ['right', 'left', ParamVocab.unspecified]);
+      // Domain-content pin, so every token is spelled out — including the
+      // sentinel. The purpose of this assertion is to NOTICE when the
+      // vocabulary changes, and a term written as `ParamVocab.unspecified`
+      // moves with the constant instead of failing when it is respelled,
+      // which is the one event this line exists to catch. The identity
+      // assertions below deliberately do the opposite and use the constant:
+      // they mean "this IS the sentinel", whatever it is spelled.
+      // (`mad_robin_butterfly_whirl_test.dart` documents the distinction.)
+      expect(spec.choices, ['right', 'left', 'unspecified']);
       expect(spec.validate(ParamVocab.unspecified), isTrue);
       expect(spec.validate('right'), isTrue);
       expect(spec.validate('left'), isTrue);
@@ -137,7 +145,12 @@ void main() {
       ]) {
         expect(
           tax.validateFigure(
-            invalidTestFigure(move: 'form_long_waves', params: {'who': who}, reason: 'asserts validateFigure REJECTS dancer tokens outside the narrowed domain for this move'),
+            invalidTestFigure(
+              move: 'form_long_waves',
+              params: {'who': who},
+              reason:
+                  'asserts validateFigure REJECTS dancer tokens outside the narrowed domain for this move',
+            ),
           ),
           isNotEmpty,
           reason: '$who has no inverse and must not validate',
@@ -148,6 +161,7 @@ void main() {
     test('rejects a hand outside right/left/unspecified', () {
       expect(
         tax.validateFigure(
+          // invalid-fixture: value is deliberately out of domain — rejects a hand outside right/left/unspecified
           Figure(move: 'form_long_waves', params: const {'hand': 'sideways'}),
         ),
         isNotEmpty,
@@ -276,7 +290,12 @@ void main() {
       // clause — the renderer's fallback is defence in depth, not dead code.
       for (final who in const ['*', 'neighbors']) {
         final out = renderer.render(
-          invalidTestFigure(move: 'form_long_waves', params: {'who': who}, reason: 'an out-of-domain imported who must still render without a dangling clause (defence in depth)'),
+          invalidTestFigure(
+            move: 'form_long_waves',
+            params: {'who': who},
+            reason:
+                'an out-of-domain imported who must still render without a dangling clause (defence in depth)',
+          ),
           d,
         );
         expect(out, contains('facing in'));
@@ -289,6 +308,7 @@ void main() {
     test('a wildcard balance stays visible rather than being dropped', () {
       expect(
         renderer.render(
+          // invalid-fixture: value is deliberately out of domain — a wildcard balance stays visible rather than being dropped
           Figure(move: 'form_long_waves', params: const {'balance': '*'}),
           d,
         ),

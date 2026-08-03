@@ -121,6 +121,7 @@ void main() {
       // Stored figures are migrated away by schema v12; any that somehow slip
       // through resolve to the non-throwing raw-id fallback (issue #358) rather
       // than crashing.
+      // invalid-fixture: move is deliberately outside the taxonomy — an unknown-move figure renders losslessly via the #358 fallback
       final figure = Figure(move: 'form_an_ocean_wave');
       expect(renderer.renderCanonical(figure), 'form_an_ocean_wave');
     });

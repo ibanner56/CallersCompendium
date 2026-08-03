@@ -14,7 +14,9 @@ void main() {
     });
 
     test('rejects empty and whitespace-only move ids', () {
+      // invalid-fixture: deliberately malformed input — rejects empty and whitespace-only move ids
       expect(() => Figure(move: ''), throwsArgumentError);
+      // invalid-fixture: deliberately malformed input — rejects empty and whitespace-only move ids
       expect(() => Figure(move: '   '), throwsArgumentError);
     });
 
@@ -24,10 +26,12 @@ void main() {
         throwsArgumentError,
       );
       expect(
+        // invalid-fixture: deliberately malformed input — rejects negative and non-integer beats
         () => Figure(move: 'swing', params: {'beats': 8.5}),
         throwsArgumentError,
       );
       expect(
+        // invalid-fixture: deliberately malformed input — rejects negative and non-integer beats
         () => Figure(move: 'swing', params: {'beats': '8'}),
         throwsArgumentError,
       );

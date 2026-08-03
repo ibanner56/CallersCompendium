@@ -51,6 +51,7 @@ void main() {
         // A dance authored in a newer version / carrying a since-removed move.
         // Its move + params must survive save + reload byte-for-byte, never
         // coerced or discarded on load or save.
+        // invalid-fixture: move is deliberately outside the taxonomy — losslessly round-trips a figure whose move is unknown (#358)
         final unknown = Figure(
           move: 'a_move_from_the_future',
           params: const {'beats': 12, 'flavor': 'spicy', 'who': 'partners'},

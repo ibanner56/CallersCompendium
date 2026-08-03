@@ -393,10 +393,16 @@ void main() {
   });
 
   group('renderer — display word order + STORED facing clause', () {
-    Figure gate(String pair, String dir, num turn, {int beats = 8}) => testFigure(
-      move: 'gate',
-      params: {'pair': pair, 'direction': dir, 'turn': turn, 'beats': beats},
-    );
+    Figure gate(String pair, String dir, num turn, {int beats = 8}) =>
+        testFigure(
+          move: 'gate',
+          params: {
+            'pair': pair,
+            'direction': dir,
+            'turn': turn,
+            'beats': beats,
+          },
+        );
 
     test('mirror reads BEFORE the move name', () {
       final f = gate('neighbors', 'mirror', 1.0);
@@ -496,6 +502,7 @@ void main() {
     );
 
     test('an unexpected direction surfaces rather than vanishing', () {
+      // invalid-fixture: value is deliberately out of domain — an unexpected direction surfaces rather than vanishing
       final f = Figure(
         move: 'gate',
         params: {'pair': 'neighbors', 'direction': 'sideways', 'turn': 0.5},
@@ -504,6 +511,7 @@ void main() {
     });
 
     test('an unknown face token renders no clause (tolerant decode)', () {
+      // invalid-fixture: value is deliberately out of domain — an unknown face token renders no clause (tolerant decode)
       final f = Figure(
         move: 'gate',
         params: {

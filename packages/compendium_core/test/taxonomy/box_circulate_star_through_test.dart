@@ -68,6 +68,7 @@ void main() {
 
     test('rejects an out-of-domain hand', () {
       final issues = tax.validateFigure(
+        // invalid-fixture: value is deliberately out of domain — rejects an out-of-domain hand
         Figure(move: 'box_circulate', params: {'hand': 'sideways'}),
       );
       expect(issues.any((i) => i.severity == ValidationSeverity.error), isTrue);

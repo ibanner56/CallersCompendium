@@ -123,6 +123,7 @@ void main() {
       expect(
         tax
             .validateFigure(
+              // invalid-fixture: value is deliberately out of domain — slide_along_set rejects an out-of-domain slide value
               Figure(move: 'slide_along_set', params: {'slide': 'sideways'}),
             )
             .any((i) => i.code == 'invalid_param_value'),
@@ -134,6 +135,7 @@ void main() {
       expect(
         tax
             .validateFigure(
+              // invalid-fixture: value is deliberately out of domain — star_promenade rejects a non-quarter rotation
               Figure(move: 'star_promenade', params: {'turn': 0.3}),
             )
             .any((i) => i.code == 'invalid_param_value'),

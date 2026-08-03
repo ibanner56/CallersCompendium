@@ -107,7 +107,12 @@ void main() {
 
     test('missing center subject leaves no dangling connective', () {
       final out = renderer.render(
-        invalidTestFigure(move: 'form_short_waves', params: {'center': null}, reason: 'a null center subject must render without leaving a dangling connective'),
+        invalidTestFigure(
+          move: 'form_short_waves',
+          params: {'center': null},
+          reason:
+              'a null center subject must render without leaving a dangling connective',
+        ),
         d,
       );
       expect(out, startsWith('form short waves - by the right in the center'));
@@ -170,6 +175,7 @@ void main() {
 
     test('unknown "*" centerHand is surfaced, never blank-dropped', () {
       final out = renderer.render(
+        // invalid-fixture: value is deliberately out of domain — unknown "*" centerHand is surfaced, never blank-dropped
         Figure(move: 'pass_the_ocean', params: {'centerHand': '*'}),
         d,
       );

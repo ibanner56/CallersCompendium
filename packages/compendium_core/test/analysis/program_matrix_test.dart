@@ -19,8 +19,13 @@ void main() {
     formation: formation ?? const Formation(FormationShape.dupleImproper),
   );
 
-  Figure move(String id) => invalidTestFigure(move: id, reason: 'unknown move ids are the subject here: they must each get their own matrix column');
-  Figure swing([String? who]) => testFigure(move: 'swing', params: {'who': ?who});
+  Figure move(String id) => invalidTestFigure(
+    move: id,
+    reason:
+        'unknown move ids are the subject here: they must each get their own matrix column',
+  );
+  Figure swing([String? who]) =>
+      testFigure(move: 'swing', params: {'who': ?who});
   Figure hey([String? length]) =>
       testFigure(move: 'hey', params: {'length': ?length});
   Figure custom(String text) =>

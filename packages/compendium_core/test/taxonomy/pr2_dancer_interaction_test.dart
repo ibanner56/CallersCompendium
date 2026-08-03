@@ -122,6 +122,7 @@ void main() {
     test('gate rejects an out-of-domain face', () {
       expect(
         tax
+            // invalid-fixture: value is deliberately out of domain — gate rejects an out-of-domain face
             .validateFigure(Figure(move: 'gate', params: {'face': 'sideways'}))
             .any((i) => i.code == 'invalid_param_value'),
         isTrue,
@@ -132,6 +133,7 @@ void main() {
       expect(
         tax
             .validateFigure(
+              // invalid-fixture: value is deliberately out of domain — give_and_take restricts who to a role
               Figure(move: 'give_and_take', params: {'who': 'partners'}),
             )
             .any((i) => i.code == 'invalid_param_value'),

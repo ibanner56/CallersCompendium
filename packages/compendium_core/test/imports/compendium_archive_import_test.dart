@@ -34,8 +34,12 @@ Dance _danceWith(
   updatedAt: DateTime.utc(2026, 1, 1),
 );
 
-Figure _fig(String move, {int beats = 8}) =>
-    invalidTestFigure(move: move, params: {'beats': beats}, reason: 'archive fixtures carry move ids straight from untrusted import content, including unknown ones');
+Figure _fig(String move, {int beats = 8}) => invalidTestFigure(
+  move: move,
+  params: {'beats': beats},
+  reason:
+      'archive fixtures carry move ids straight from untrusted import content, including unknown ones',
+);
 
 /// A one-slot program referencing [danceId], for the confidence tests.
 Program _programRef(String danceId) => Program(

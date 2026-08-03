@@ -809,8 +809,12 @@ void main() {
   group('same-figure-same-phrase collision glyph (#582)', () {
     // Steer a move into a phrase by padding the beats ahead of it (default
     // 4x16 structure: A1 0-15, A2 16-31, B1 32-47, B2 48-63).
-    Figure fig(String id, int beats) =>
-        invalidTestFigure(move: id, params: {'beats': beats}, reason: 'callers pass arbitrary move ids, including ones outside the taxonomy, to steer a move into a given phrase');
+    Figure fig(String id, int beats) => invalidTestFigure(
+      move: id,
+      params: {'beats': beats},
+      reason:
+          'callers pass arbitrary move ids, including ones outside the taxonomy, to steer a move into a given phrase',
+    );
 
     testWidgets('flags both cells when a move repeats in the same phrase of an '
         'adjacent dance', (tester) async {

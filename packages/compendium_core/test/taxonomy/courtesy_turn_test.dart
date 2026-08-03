@@ -567,8 +567,12 @@ void main() {
   });
 
   group('renderer', () {
-    Figure fig(Map<String, Object?> params) =>
-        invalidTestFigure(move: 'courtesy_turn', params: {'beats': 4, ...params}, reason: 'callers pass out-of-domain direction and facing values to prove the renderer surfaces them');
+    Figure fig(Map<String, Object?> params) => invalidTestFigure(
+      move: 'courtesy_turn',
+      params: {'beats': 4, ...params},
+      reason:
+          'callers pass out-of-domain direction and facing values to prove the renderer surfaces them',
+    );
 
     test('canonical is flat and includes the default direction', () {
       // A `renderTemplate` cannot hold a conditional, so the canonical
@@ -776,7 +780,8 @@ void main() {
           'endFacing': 3.14,
           'beats': 4,
         },
-        reason: 'garbage params of the wrong Dart type must render without throwing',
+        reason:
+            'garbage params of the wrong Dart type must render without throwing',
       );
       expect(() => renderer.renderCanonical(f), returnsNormally);
       expect(() => renderer.render(f, Dialect.canonical), returnsNormally);

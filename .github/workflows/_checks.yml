@@ -188,6 +188,18 @@ jobs:
           print(f"OK: {CORE} is Flutter-free "
                 f"(checked {len(seen)} resolved deps + {scanned} Dart files).")
           PY
+      - name: Guard figure fixtures against the taxonomy (#747)
+        working-directory: packages/compendium_core
+        # Ratchet: every `Figure(...)` in either test suite must be valid under
+        # contraTaxonomy, routed through `testFigure` (which validates at run
+        # time, for fixtures built from variables), or marked
+        # `// invalid-fixture: <reason>`. Rendering SUBSTITUTES rather than
+        # validates, so an invalid param renders literally and every test still
+        # passes — which is how seven `meanwhile` fixtures drifted unnoticed for
+        # days when #697 split `orbit` into a first-class move (fixed in #745).
+        # Runs before the core test suite so a drifted fixture is reported as a
+        # fixture problem rather than as whatever downstream assertion it breaks.
+        run: dart run tool/check_fixture_validity.dart
       - name: Test compendium_core (with coverage)
         working-directory: packages/compendium_core
         run: |

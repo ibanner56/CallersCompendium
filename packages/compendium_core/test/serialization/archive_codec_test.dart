@@ -137,7 +137,10 @@ CompendiumArchive _sampleArchive() {
     id: 'd2',
     title: 'All Custom',
     figures: [
-      testFigure(move: customMove, params: {'text': 'weave the ring', 'beats': 8}),
+      testFigure(
+        move: customMove,
+        params: {'text': 'weave the ring', 'beats': 8},
+      ),
       customFigure('do something odd', origin: CustomOrigin.importGap),
     ],
     createdAt: DateTime.utc(2026, 1, 3),

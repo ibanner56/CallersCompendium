@@ -74,7 +74,8 @@ void main() {
   });
 
   group('deriveSections', () {
-    Figure fig(int beats) => testFigure(move: 'swing', params: {'beats': beats});
+    Figure fig(int beats) =>
+        testFigure(move: 'swing', params: {'beats': beats});
 
     test('assigns start beats and labels cumulatively', () {
       final sections = deriveSections([

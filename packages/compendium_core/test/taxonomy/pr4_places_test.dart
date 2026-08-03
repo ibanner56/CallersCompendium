@@ -126,6 +126,7 @@ void main() {
     test('circle rejects an out-of-range places value', () {
       expect(
         tax
+            // invalid-fixture: value is deliberately out of domain — circle rejects an out-of-range places value
             .validateFigure(Figure(move: 'circle', params: {'places': 0}))
             .any((i) => i.code == 'invalid_param_value'),
         isTrue,
@@ -135,6 +136,7 @@ void main() {
     test('star grip is restricted to its choice domain', () {
       expect(
         tax
+            // invalid-fixture: value is deliberately out of domain — star grip is restricted to its choice domain
             .validateFigure(Figure(move: 'star', params: {'grip': 'deathgrip'}))
             .any((i) => i.code == 'invalid_param_value'),
         isTrue,

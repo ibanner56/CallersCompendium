@@ -18,17 +18,22 @@ void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  Figure hey({String? length, String? meetTarget, String? pass1, int? beats}) =>
-      invalidTestFigure(
-        move: 'hey',
-        params: {
-          'pass1': ?pass1,
-          'length': ?length,
-          'meetTarget': ?meetTarget,
-          'beats': ?beats,
-        },
-        reason: 'callers pass hostile tokens such as <script> to prove they are escaped, not executed or blanked',
-      );
+  Figure hey({
+    String? length,
+    String? meetTarget,
+    String? pass1,
+    int? beats,
+  }) => invalidTestFigure(
+    move: 'hey',
+    params: {
+      'pass1': ?pass1,
+      'length': ?length,
+      'meetTarget': ?meetTarget,
+      'beats': ?beats,
+    },
+    reason:
+        'callers pass hostile tokens such as <script> to prove they are escaped, not executed or blanked',
+  );
 
   group('taxonomy', () {
     final spec = tax.resolve('hey')!.params['meetTarget'];
@@ -206,6 +211,7 @@ void main() {
       );
       expect(
         renderer.render(
+          // invalid-fixture: value is deliberately out of domain — an unknown or non-string meetTarget falls back to "someone"
           Figure(
             move: 'hey',
             params: {'length': 'lessThanHalf', 'meetTarget': 42},
@@ -335,6 +341,7 @@ void main() {
       'an UNrecognized token degrades to "someone meets", not the raw token',
       () {
         final line = nullChoicesRenderer.render(
+          // invalid-fixture: value is deliberately out of domain — an UNrecognized token degrades to "someone meets", not the raw token
           Figure(
             move: 'hey',
             params: {'length': 'lessThanHalf', 'meetTarget': 'bogusToken'},

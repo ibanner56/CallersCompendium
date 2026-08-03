@@ -14,7 +14,10 @@ void main() {
         progression: true,
       ),
       Figure(move: 'balance_the_ring', params: {'beats': 4}, note: 'gently'),
-      testFigure(move: customMove, params: {'text': 'weave the ring', 'beats': 8}),
+      testFigure(
+        move: customMove,
+        params: {'text': 'weave the ring', 'beats': 8},
+      ),
       Figure(move: 'petronella'),
       testFigure(
         move: customMove,

@@ -95,6 +95,7 @@ void main() {
 
     test('unknown move preserves an authored beats and passes params through '
         '(#358)', () {
+      // invalid-fixture: move is deliberately outside the taxonomy — alias pins take effect but figure params still win
       final figure = Figure(
         move: 'a_move_from_the_future',
         params: {'beats': 12, 'flavor': 'spicy'},
@@ -107,6 +108,7 @@ void main() {
     test(
       'unknown move with no beats gets a sensible beats fallback, not 0 (#358)',
       () {
+        // invalid-fixture: move is deliberately outside the taxonomy — unknown move with no beats gets a sensible beats fallback, not 0 (#358)
         final figure = Figure(move: 'totally_unknown', params: {'flavor': 'x'});
         final p = tax.effectiveParams(figure);
         // A neutral fallback keeps downstream duration/phrase math sane.
@@ -119,16 +121,14 @@ void main() {
       },
     );
 
-    test(
-      'effectiveParams result is decoupled from the stored params (#358)',
-      () {
-        final figure = Figure(move: 'unknown_x', params: {'beats': 8});
-        final p = tax.effectiveParams(figure)..['beats'] = 99;
-        // Mutating the returned best-effort map must not touch the figure.
-        expect(figure.params['beats'], 8);
-        expect(p['beats'], 99);
-      },
-    );
+    test('effectiveParams result is decoupled from the stored params (#358)', () {
+      // invalid-fixture: move is deliberately outside the taxonomy — effectiveParams result is decoupled from the stored params (#358)
+      final figure = Figure(move: 'unknown_x', params: {'beats': 8});
+      final p = tax.effectiveParams(figure)..['beats'] = 99;
+      // Mutating the returned best-effort map must not touch the figure.
+      expect(figure.params['beats'], 8);
+      expect(p['beats'], 99);
+    });
   });
 
   group('validateFigure', () {
@@ -142,6 +142,7 @@ void main() {
     });
 
     test('unknown move is a single error', () {
+      // invalid-fixture: move is deliberately outside the taxonomy — unknown move is a single error
       final issues = tax.validateFigure(Figure(move: 'floop'));
       expect(issues.single.code, 'unknown_move');
       expect(issues.single.severity, ValidationSeverity.error);
@@ -149,6 +150,7 @@ void main() {
 
     test('unknown param name is an error', () {
       final issues = tax.validateFigure(
+        // invalid-fixture: param name is deliberately unknown — unknown param name is an error
         Figure(move: 'swing', params: {'ghost': 1}),
       );
       expect(issues.any((i) => i.code == 'unknown_param'), isTrue);
@@ -158,6 +160,7 @@ void main() {
       expect(
         tax
             .validateFigure(
+              // invalid-fixture: value is deliberately out of domain — out-of-domain param value is an error
               Figure(move: 'allemande', params: {'hand': 'sideways'}),
             )
             .any((i) => i.code == 'invalid_param_value'),
@@ -165,6 +168,7 @@ void main() {
       );
       expect(
         tax
+            // invalid-fixture: value is deliberately out of domain — out-of-domain param value is an error
             .validateFigure(Figure(move: 'allemande', params: {'turn': 0.3}))
             .any((i) => i.code == 'invalid_param_value'),
         isTrue,

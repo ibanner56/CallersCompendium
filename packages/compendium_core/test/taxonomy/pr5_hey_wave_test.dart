@@ -79,7 +79,9 @@ void main() {
         'betweenHalfAndFull',
       ]) {
         expect(
-          tax.validateFigure(testFigure(move: 'hey', params: {'length': length})),
+          tax.validateFigure(
+            testFigure(move: 'hey', params: {'length': length}),
+          ),
           isEmpty,
           reason: "'$length' should be a valid hey length",
         );
@@ -115,6 +117,7 @@ void main() {
       expect(
         tax
             .validateFigure(
+              // invalid-fixture: value is deliberately out of domain — out-of-domain length value is rejected
               Figure(move: 'hey', params: {'length': 'threeQuarters'}),
             )
             .any((i) => i.code == 'invalid_param_value'),
@@ -175,7 +178,14 @@ void main() {
       for (final d in ['onesRole1', 'onesRole2', 'twosRole1', 'twosRole2']) {
         expect(
           tax
-              .validateFigure(invalidTestFigure(move: 'hey', params: {'pass2': d}, reason: 'asserts validateFigure REJECTS a single-dancer identity for pass2, which must name a pair'))
+              .validateFigure(
+                invalidTestFigure(
+                  move: 'hey',
+                  params: {'pass2': d},
+                  reason:
+                      'asserts validateFigure REJECTS a single-dancer identity for pass2, which must name a pair',
+                ),
+              )
               .any((i) => i.code == 'invalid_param_value'),
           isTrue,
           reason: '$d is a single dancer, not a valid pass2 pair',
@@ -192,7 +202,14 @@ void main() {
         );
         expect(
           tax
-              .validateFigure(invalidTestFigure(move: 'hey', params: {r: 'yes'}, reason: 'asserts validateFigure REJECTS a non-boolean value for a flag param'))
+              .validateFigure(
+                invalidTestFigure(
+                  move: 'hey',
+                  params: {r: 'yes'},
+                  reason:
+                      'asserts validateFigure REJECTS a non-boolean value for a flag param',
+                ),
+              )
               .any((i) => i.code == 'invalid_param_value'),
           isTrue,
         );
@@ -203,6 +220,7 @@ void main() {
       expect(
         tax
             .validateFigure(
+              // invalid-fixture: value is deliberately out of domain — unspecified is hey-scoped, not a general dancer token
               Figure(move: 'swing', params: {'who': 'unspecified'}),
             )
             .any((i) => i.code == 'invalid_param_value'),
@@ -215,7 +233,9 @@ void main() {
     test('accepts the single-dancer tokens', () {
       for (final d in ['onesRole1', 'onesRole2', 'twosRole1', 'twosRole2']) {
         expect(
-          tax.validateFigure(testFigure(move: 'dolphin_hey', params: {'whom': d})),
+          tax.validateFigure(
+            testFigure(move: 'dolphin_hey', params: {'whom': d}),
+          ),
           isEmpty,
           reason: '$d should be a valid dolphin lead',
         );
@@ -226,6 +246,7 @@ void main() {
       expect(
         tax
             .validateFigure(
+              // invalid-fixture: value is deliberately out of domain — rejects a pair for whom
               Figure(move: 'dolphin_hey', params: {'whom': 'partners'}),
             )
             .any((i) => i.code == 'invalid_param_value'),

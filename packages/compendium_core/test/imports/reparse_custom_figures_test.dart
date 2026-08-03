@@ -112,7 +112,8 @@ void main() {
           move: customMove,
           params: const {'text': 42},
           customOrigin: CustomOrigin.importGap,
-          reason: 'malformed stored data: a non-String text param must be left alone rather than throwing',
+          reason:
+              'malformed stored data: a non-String text param must be left alone rather than throwing',
         );
 
         final result = reparseImportGapFigures([figure]);

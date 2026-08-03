@@ -15,17 +15,22 @@ void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  Figure swing({String? who, String? prefix, String? endFacing, int? beats}) =>
-      invalidTestFigure(
-        move: 'swing',
-        params: {
-          'who': ?who,
-          'prefix': ?prefix,
-          'endFacing': ?endFacing,
-          'beats': ?beats,
-        },
-        reason: 'callers pass hostile tokens such as <script> to prove they are escaped, not executed or blanked',
-      );
+  Figure swing({
+    String? who,
+    String? prefix,
+    String? endFacing,
+    int? beats,
+  }) => invalidTestFigure(
+    move: 'swing',
+    params: {
+      'who': ?who,
+      'prefix': ?prefix,
+      'endFacing': ?endFacing,
+      'beats': ?beats,
+    },
+    reason:
+        'callers pass hostile tokens such as <script> to prove they are escaped, not executed or blanked',
+  );
 
   group('taxonomy', () {
     final spec = tax.resolve('swing')!.params['endFacing'];
@@ -170,6 +175,7 @@ void main() {
         );
         expect(
           renderer.render(
+            // invalid-fixture: value is deliberately out of domain — an unknown or non-string endFacing renders no clause (allow-listed)
             Figure(move: 'swing', params: {'who': 'partners', 'endFacing': 42}),
             Dialect.canonical,
           ),

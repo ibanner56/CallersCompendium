@@ -82,6 +82,7 @@ void main() {
 
     test('returns null for an unknown move', () {
       expect(
+        // invalid-fixture: move is deliberately outside the taxonomy — returns null for an unknown move
         figureSnippetSignature(Figure(move: 'not_a_real_move'), tax),
         isNull,
       );

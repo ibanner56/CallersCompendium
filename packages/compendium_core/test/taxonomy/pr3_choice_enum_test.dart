@@ -132,7 +132,9 @@ void main() {
     test('figure_8 accepts both 8 (half) and 16 (full)', () {
       for (final b in [8, 16]) {
         expect(
-          tax.validateFigure(testFigure(move: 'figure_8', params: {'beats': b})),
+          tax.validateFigure(
+            testFigure(move: 'figure_8', params: {'beats': b}),
+          ),
           isEmpty,
         );
       }
@@ -154,6 +156,7 @@ void main() {
       expect(
         tax
             .validateFigure(
+              // invalid-fixture: value is deliberately out of domain — down_the_hall rejects an unknown ender
               Figure(move: 'down_the_hall', params: {'ender': 'boogie'}),
             )
             .any((i) => i.code == 'invalid_param_value'),
@@ -165,6 +168,7 @@ void main() {
       expect(
         tax
             .validateFigure(
+              // invalid-fixture: value is deliberately out of domain — figure_8 lead is restricted to single-dancer tokens
               Figure(move: 'figure_8', params: {'lead': 'partners'}),
             )
             .any((i) => i.code == 'invalid_param_value'),
@@ -176,6 +180,7 @@ void main() {
       expect(
         tax
             .validateFigure(
+              // invalid-fixture: value is deliberately out of domain — rory_o_more who is restricted to its chooser set
               Figure(move: 'rory_o_more', params: {'who': 'shadows'}),
             )
             .any((i) => i.code == 'invalid_param_value'),
