@@ -1,8 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
-import 'package:compendium_core/testing.dart';
 
 String Function() sequentialIds(String prefix) {
   var n = 0;

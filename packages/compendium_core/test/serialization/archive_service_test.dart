@@ -1,8 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
-import 'package:compendium_core/testing.dart';
 
 /// Seeds [repos] with a representative dataset spanning every entity type and
 /// their joins, so the export/restore round-trip is exercised end to end.

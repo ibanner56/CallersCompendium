@@ -7,12 +7,12 @@ import 'package:compendium_app/src/widgets/figure_param_editors.dart';
 import 'package:compendium_app/src/widgets/import_gap_badge.dart';
 import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/l10n_harness.dart';
-import 'package:compendium_core/testing.dart';
 
 /// Host that owns a mutable draft list so the editor's in-place edits and
 /// add/delete callbacks drive real rebuilds, mirroring the dance editor screen.

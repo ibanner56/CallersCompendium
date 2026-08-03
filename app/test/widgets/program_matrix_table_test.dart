@@ -1,10 +1,10 @@
 import 'package:compendium_app/src/widgets/program_matrix_table.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../support/l10n_harness.dart';
-import 'package:compendium_core/testing.dart';
 
 void main() {
   final now = DateTime.utc(2026, 7, 13);
