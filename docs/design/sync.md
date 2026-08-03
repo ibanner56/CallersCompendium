@@ -44,6 +44,39 @@ A field with no classification cannot exist — the coverage ratchet fails CI �
 current record is in that position; venues are the closest, and their identity
 fields are `shareable`.
 
+### Record kinds, and what rides inline
+
+Top-level records, each producing its own blob:
+
+`dance` · `program` · `choreographer` · `tag` · `publishedSource` ·
+`customFieldDef` · `venue` · `setting`
+
+Join rows are **not** separate records. They ride inline with their parent
+exactly as the archive codec already models them — a dance carries its
+`authorIds`, tag ids, links, source citations and custom-field values; a program
+carries its slots. This keeps the merge unit equal to the thing a user edits,
+so "I changed this dance" is one blob and one conflict, not seven.
+
+### The serialiser must filter — the codec does not
+
+**This is the highest-risk detail in the design.**
+
+The archive codec emits `deviceLocal` fields today, and it is right to:
+`_choreographerToJson` writes `email` and `location`, and the venue serialiser
+writes the address block and both contact blocks. A local backup *should*
+contain them.
+
+So a sync implementation that reaches for `encodeArchive` and uploads the result
+would ship precisely the data this feature exists to keep off our
+infrastructure — and it would look completely reasonable in review.
+
+Sync therefore serialises through a **classification-filtered** path that
+consults `EgressClass` per field, and the property test named under Testing
+exists specifically to catch a regression here. The server's deny-list is the
+second line; neither is sufficient alone, because the server check is a
+forward-compatible deny-list and the client check is the one that knows about
+new fields first.
+
 ### The device ID is not `deviceScoped`
 
 An earlier draft of this spec called the device ID `deviceScoped`. That was
@@ -478,10 +511,31 @@ must say this plainly rather than implying sync is opaque to us.
 
 Carried for the maintainer; none blocks specification.
 
-1. **Settings merge granularity.** Settings sync as `shareable`, but the table
-   is key/value: is each key a record (fine-grained, more blobs) or is the whole
-   settings map one record (simple, but any change re-uploads all of it, and two
-   devices changing different keys conflict)? Leaning per-key.
+1. **Settings merge granularity.** Settings sync as `shareable`, but `settings`
+   is a key/value table, so "a record" has two candidate meanings. Worked
+   through here so the decision is quick rather than exploratory:
+
+   | | One blob per key | One blob for all settings |
+   | --- | --- | --- |
+   | Blobs | ~40 tiny | 1 |
+   | Two devices change *different* keys | both survive | **conflict; one is lost** |
+   | Changing one preference | one small upload | re-uploads everything |
+   | `updatedAt` for conflict resolution | **none exists per key** | none exists either |
+   | Manifest size | +40 entries | +1 entry |
+
+   The blocking issue is the same either way and is worth naming: **the settings
+   table has no `updatedAt`**. Its schema is `(key, value_json)` only, so the
+   conflict rule the rest of the design relies on cannot be applied to settings
+   without a schema change.
+
+   Options: add an `updated_at` column to `settings` (a migration, and it would
+   need classifying); or resolve settings conflicts by a different rule such as
+   "the device that synced most recently wins" (cheap, coarse, and surprising);
+   or exclude settings from v1 after all.
+
+   *Assumed for the spec: per-key blobs, plus an `updated_at` column on
+   `settings`.* This is the one open question that implies a schema migration,
+   which is why it leads the list.
 2. **Programs referencing device-local venues.** A program syncs and references
    a venue whose address did not travel. The venue record arrives partially.
    Confirmed acceptable — but should a program's *own* `venue` free-text label
