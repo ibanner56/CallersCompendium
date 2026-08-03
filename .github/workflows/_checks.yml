@@ -35,10 +35,10 @@ jobs:
         run: python3 tools/ci/check_app_version.py
       # Ratchet: no `debugPrint` may reach a release build unguarded. Debug
       # output here carries file paths, import URLs and user dance content, so
-      # an unguarded call is an information leak (issue #617, cleaned up in PR
-      # #647 but never enforced — the convention held by habit alone until
-      # #747). The baseline is clean (30 call sites, all guarded), so this
-      # hard-fails with no allowlist. Pure-stdlib and offline, so it runs
+      # an unguarded call is an information leak — issue #617, cleaned up in
+      # PR #647 but never enforced, so the convention held by habit alone
+      # until #747. The baseline is clean (30 call sites, all guarded), so
+      # this hard-fails with no allowlist. Pure-stdlib and offline, so it runs
       # before the slower Flutter setup and fails fast.
       - name: Test the unguarded-debugPrint ratchet
         run: python3 tools/ci/test_check_debug_print.py
