@@ -1,9 +1,10 @@
 # ADR-004: Sync, and the Athanaeum sync store
 
 - **Status**: Proposed
-- **Roadmap item**: Amends the v1 non-goal "cloud sync" (ROADMAP line 24) and
-  supersedes the later item "Optional device-to-device sync, beyond
-  Apple-native AirDrop support" (line 720).
+- **Roadmap item**: Amends the v1 non-goals list in `docs/ROADMAP.md` (removing
+  "cloud sync") and supersedes the Later-milestones item "Optional
+  device-to-device sync, beyond Apple-native AirDrop support". Referenced by
+  text rather than line number: both moved when this PR edited that file.
 - **Deciders**: @ibanner56
 - **Specification**: [docs/design/sync.md](../design/sync.md) — wire format,
   HTTP contract, client algorithm, server implementation and threat model.

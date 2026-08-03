@@ -13,7 +13,7 @@
 | **Sync** | The user-facing feature. |
 | **Athanaeum** | The store Sync talks to. Default `https://athanaeum.callerscompendium.com/`; user-editable. |
 | **sync ID** | Diceware passphrase identifying one store. A bearer credential. |
-| **device ID** | Random v4 UUID minted once per installation. `deviceScoped`; never leaves as user data, only as a storage key. |
+| **device ID** | Random v4 UUID minted once per installation. A **protocol identifier that is transmitted** — it appears in manifests and request paths. See the note below; it is deliberately *not* `deviceScoped`. |
 | **epoch** | Opaque 128-bit random value the server stamps on a sync ID at creation. |
 | **record** | One syncable row — a dance, program, tag, choreographer, published source, custom field def, venue, or a settings key. |
 | **blob** | One record, serialised and content-addressed. |
@@ -43,6 +43,26 @@ A field with no classification cannot exist — the coverage ratchet fails CI �
 **A record whose every field is `deviceLocal` produces no blob at all.** No
 current record is in that position; venues are the closest, and their identity
 fields are `shareable`.
+
+### The device ID is not `deviceScoped`
+
+An earlier draft of this spec called the device ID `deviceScoped`. That was
+wrong, and the term matters because it is enforced: `deviceScoped` means *never
+travels by any route*, and the device ID travels in every manifest and every
+request path.
+
+The device ID is an opaque protocol key: minted per installation, random,
+meaningless outside its store, and never reused across stores. When Sync is
+built it becomes a new persisted settings key, at which point the settings
+ratchet **will require it to be classified** — and the honest classification is
+`dpv:NonPersonalData` / `DataSubject.none` / `EgressClass.shareable`, with a note
+that it must travel for the protocol to function.
+
+Worth stating plainly rather than burying: it is a persistent per-installation
+identifier that our server sees. A store operator can observe that N devices sync
+to one store and when each was last active. That is metadata we hold, it is
+bounded by the 30-day TTL, and the privacy policy should say so rather than imply
+the store is opaque to us.
 
 ## Wire format
 
@@ -113,11 +133,13 @@ Base path `/v1`. TLS required; the client refuses a non-`https` endpoint except
 
 ### Authentication
 
-The sync ID travels in a header, **never in a URL**:
+The sync ID travels in the standard HTTP `Authorization` request header using
+the `Bearer` scheme, with the sync ID as the credential — **never in a URL**.
 
-```
-Authorization: Bearer <syncId>
-```
+> Written as prose rather than as a literal header line on purpose: credential
+> scanners in review tooling and terminals redact anything shaped like an auth
+> header, which made an earlier draft of this section display as `******` and
+> drew a review comment asking what the scheme was. The scheme is `Bearer`.
 
 Credentials in URLs leak into server logs, proxy logs, browser history and
 `Referer` headers (CWE-598). Paths are therefore scoped implicitly by the
