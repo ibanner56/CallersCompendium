@@ -27,7 +27,7 @@ each release so store builds and tags can be traced back to an entry.
   them, export a backup *before* upgrading. Nothing you can see or edit in the
   app is affected: dances, figures, notes, tags, programs and the rest are
   untouched, as is where each dance came from (source, record id, import date,
-  permission and licence).
+  permission and license).
 
 ### Removed
 
