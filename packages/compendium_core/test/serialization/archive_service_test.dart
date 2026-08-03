@@ -67,7 +67,7 @@ Future<void> _seed(CompendiumRepositories repos) async {
       progression: Progression.double,
       phraseStructure: '6*8*2',
       figures: [
-        Figure(move: 'swing', params: {'who': 'partner', 'beats': 16}),
+        Figure(move: 'swing', params: {'who': 'partners', 'beats': 16}),
         Figure(move: customMove, params: {'text': 'weave', 'beats': 8}),
       ],
       hook: 'zesty',

@@ -306,7 +306,7 @@ void main() {
       'never-silently-duplicate rule is unchanged', () async {
     final repos = openTestRepositories();
     final sharedFigures = [
-      Figure(move: 'swing', params: {'who': 'partner', 'beats': 8}),
+      Figure(move: 'swing', params: {'who': 'partners', 'beats': 8}),
       Figure(move: 'allemande', params: {'hand': 'left', 'beats': 8}),
     ];
     await repos.dances.create(
@@ -338,10 +338,10 @@ void main() {
     () async {
       final repos = openTestRepositories();
       final targetFigures = [
-        Figure(move: 'swing', params: {'who': 'partner', 'beats': 8}),
+        Figure(move: 'swing', params: {'who': 'partners', 'beats': 8}),
       ];
       final previewFigures = [
-        Figure(move: 'swing', params: {'who': 'neighbor', 'beats': 8}),
+        Figure(move: 'swing', params: {'who': 'neighbors', 'beats': 8}),
       ];
       await repos.dances.create(
         _localDance(id: 'local-existing', figures: targetFigures),

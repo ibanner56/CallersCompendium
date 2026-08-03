@@ -76,10 +76,10 @@ CompendiumArchive _sampleArchive() {
     progression: Progression.double,
     phraseStructure: '6*8*2',
     figures: [
-      Figure(move: 'swing', params: {'who': 'partner', 'beats': 16}),
+      Figure(move: 'swing', params: {'who': 'partners', 'beats': 16}),
       Figure(
         move: 'allemande',
-        params: {'who': 'neighbor', 'hand': 'right', 'turn': 1.5},
+        params: {'who': 'neighbors', 'hand': 'right', 'turn': 1.5},
         note: 'smoothly',
         progression: true,
       ),
