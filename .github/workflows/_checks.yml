@@ -33,6 +33,17 @@ jobs:
       # a version drift fails fast. See tools/ci/check_app_version.py.
       - name: Guard app version single-source (kAppVersion == pubspec semver)
         run: python3 tools/ci/check_app_version.py
+      # Ratchet: no `debugPrint` may reach a release build unguarded. Debug
+      # output here carries file paths, import URLs and user dance content, so
+      # an unguarded call is an information leak (issue #617, cleaned up in PR
+      # #647 but never enforced — the convention held by habit alone until
+      # #747). The baseline is clean (30 call sites, all guarded), so this
+      # hard-fails with no allowlist. Pure-stdlib and offline, so it runs
+      # before the slower Flutter setup and fails fast.
+      - name: Test the unguarded-debugPrint ratchet
+        run: python3 tools/ci/test_check_debug_print.py
+      - name: Guard debugPrint call sites (must be kDebugMode-guarded)
+        run: python3 tools/ci/check_debug_print.py
       # Localization tooling: pure-stdlib, offline, and fast, so it runs before
       # the (slower) Flutter setup and fails fast. First self-test the assisted
       # translation tool, then gate every committed app_<locale>.arb against the
