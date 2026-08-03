@@ -315,9 +315,10 @@ void main() {
     });
 
     test('a marker above a scope with no fixtures is reported', () {
-      // The scope form of the same loss. `test(`/`group(` markers are
-      // legitimate, so this cannot be answered by "is there a `Figure(` just
-      // below" — the scope has to be checked for what it actually contains.
+      // The scope form of the same loss. `test(`/`testWidgets(`/`group(`
+      // markers are legitimate, so this cannot be answered by "is there a
+      // `Figure(` just below" — the scope has to be checked for what it
+      // actually contains.
       expect(
         kinds(
           'void main() {\n'
@@ -543,6 +544,151 @@ void main() {
         );
         expect(k, contains('weak-marker'));
         expect(k, isNot(contains('orphan-marker')));
+      });
+    });
+
+    group('a marker violation is annotated on the MARKER line', () {
+      // Reported in review of this PR. `_acceptMarker` judges the marker's
+      // TEXT, so a `weak-marker` belongs on the marker; both call sites had a
+      // governed line conveniently in scope and passed that instead, sending
+      // the author to a `Figure(` or `test(` with nothing wrong on it. The
+      // kind-only assertions above could not see it — which is why these
+      // assert the line and nothing else new.
+      //
+      // The defect arrived with the marker-line lookup itself: `_markerAbove`
+      // was widened to return the marker's line for the orphan tracking, the
+      // new call site used it, and the two existing ones kept reading the old
+      // value. Both are unchanged lines, so the diff drew no attention to
+      // them.
+
+      /// The line reported for the sole violation of [kind] in [source].
+      int lineOf(String source, String kind) =>
+          check(source).firstWhere((e) => e.kind == kind).line;
+
+      test('a weak marker above a fixture', () {
+        expect(
+          lineOf(
+            'f() {\n'
+                '  // invalid-fixture: n/a\n'
+                "  Figure(move: 'swing', params: {'who': 'partner'});\n"
+                '}',
+            'weak-marker',
+          ),
+          2,
+          reason: 'the marker is on line 2; the fixture it governs is on 3',
+        );
+      });
+
+      test('a weak marker above a scope', () {
+        expect(
+          lineOf(
+            'void main() {\n'
+                '  // invalid-fixture: todo\n'
+                "  group('g', () {\n"
+                "    Figure(move: 'swing', params: {'who': 'partner'});\n"
+                '  });\n'
+                '}',
+            'weak-marker',
+          ),
+          2,
+          reason: 'the marker is on line 2; the `group(` it governs is on 3',
+        );
+      });
+
+      test('a weak marker above a wrapped statement', () {
+        // The statement route reaches furthest from the marker, so it is where
+        // a wrong line is most misleading: three lines below the comment the
+        // author has to edit.
+        expect(
+          lineOf(
+            'f() {\n'
+                '  // invalid-fixture: n/a\n'
+                '  final x =\n'
+                "      Figure(move: 'swing', params: {'who': 'partner'});\n"
+                '}',
+            'weak-marker',
+          ),
+          2,
+        );
+      });
+
+      test('an orphan is annotated on its own line already', () {
+        // Pinned alongside the others so the whole marker-violation family is
+        // covered by one rule rather than two conventions.
+        expect(
+          lineOf(
+            'f() {\n'
+                '  // invalid-fixture: the fixture this explained was deleted\n'
+                '  final x = 42;\n'
+                '}',
+            'orphan-marker',
+          ),
+          2,
+        );
+      });
+    });
+
+    group('`testWidgets(` is a scope form too', () {
+      // The checker has always accepted `testWidgets` alongside `test` and
+      // `group`, but every doc comment and message named only two of the
+      // three, so the documented contract was narrower than the code. Flagged
+      // in review. These make the third form checkable rather than asserted,
+      // per the repo's rule that a comment claiming runtime behaviour should
+      // be falsifiable.
+
+      test('a marker above a `testWidgets(` holding a fixture governs', () {
+        expect(
+          check(
+            'void main() {\n'
+            '  // invalid-fixture: the whole widget test is about bad input\n'
+            "  testWidgets('w', (tester) async {\n"
+            "    Figure(move: 'swing', params: {'who': 'partner'});\n"
+            '  });\n'
+            '}',
+          ),
+          isEmpty,
+        );
+      });
+
+      test('a marker above a `testWidgets(` with no fixtures is an orphan', () {
+        expect(
+          kinds(
+            'void main() {\n'
+            '  // invalid-fixture: this widget test lost its fixture\n'
+            "  testWidgets('w', (tester) async {\n"
+            '    expect(1, 1);\n'
+            '  });\n'
+            '}',
+          ),
+          ['orphan-marker'],
+        );
+      });
+
+      test('a weak marker on a `testWidgets(` names it in the message', () {
+        final v = check(
+          'void main() {\n'
+          '  // invalid-fixture: todo\n'
+          "  testWidgets('w', (tester) async {\n"
+          "    Figure(move: 'swing', params: {'who': 'partner'});\n"
+          '  });\n'
+          '}',
+        ).firstWhere((e) => e.kind == 'weak-marker');
+        expect(v.detail, contains('`testWidgets(`'));
+        expect(v.line, 2);
+      });
+
+      test('the orphan message names all three scope forms', () {
+        // The message is what a contributor reads when the ratchet fires, so
+        // it is the one place the enumeration must be complete: someone whose
+        // orphan sits above a `testWidgets(` should not read a description
+        // that excludes their case and conclude the tool is confused.
+        final detail = check(
+          'f() {\n'
+          '  // invalid-fixture: the fixture this explained was deleted\n'
+          '  final x = 42;\n'
+          '}',
+        ).single.detail;
+        expect(detail, contains('`test(`/`testWidgets(`/`group(`'));
       });
     });
   });
