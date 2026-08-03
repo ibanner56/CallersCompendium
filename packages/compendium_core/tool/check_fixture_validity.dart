@@ -26,7 +26,8 @@
 /// 1. **fully literal** — validated here and now, against the real
 ///    `contraTaxonomy.validateFigure`;
 /// 2. **deliberately invalid** — carrying an `// invalid-fixture: <reason>`
-///    marker, on the fixture, its statement, or an enclosing `test(`/`group(`;
+///    marker, on the fixture, its statement, or an enclosing
+///    `test(`/`testWidgets(`/`group(`;
 /// 3. **dynamic** — built from variables, so its values only exist at run time;
 ///    it must route through `testFigure` / `invalidTestFigure` from
 ///    `package:compendium_core/testing.dart`, which validates on construction.
@@ -36,6 +37,16 @@
 /// from variables, and routing everything through a helper cannot catch the
 /// contributor who writes `Figure(...)` directly — which is precisely the
 /// drift case. Neither half is sufficient; the gate is what binds them.
+///
+/// ## The marker must govern something
+///
+/// A marker is a *claim* — this fixture is deliberately invalid, and here is
+/// why. Delete the fixture and the claim outlives it as prose that still reads
+/// as current, and the next fixture written under it inherits a waiver
+/// authored for something else, with a reason that sounds specific and is
+/// false. So every marker is also checked in the other direction: one that
+/// introduces no fixture and no `test(`/`testWidgets(`/`group(` holding a
+/// fixture is reported as `orphan-marker` (issue #791).
 ///
 /// Exit codes: 0 = clean, 1 = at least one violation, 2 = bad input.
 library;
@@ -101,34 +112,69 @@ class FixtureVisitor extends RecursiveAstVisitor<void> {
   int dynamicCount = 0;
   int markedCount = 0;
 
-  /// Line ranges of `test(`/`group(` bodies carrying a VALID marker, so a
-  /// fixture inside one inherits it. Populated as those calls are visited;
-  /// because the visitor is top-down, an enclosing call is always seen before
-  /// the fixtures inside it.
+  /// Line ranges of `test(`/`testWidgets(`/`group(` bodies carrying a VALID
+  /// marker, so a fixture inside one inherits it. Populated as those calls are
+  /// visited; because the visitor is top-down, an enclosing call is always seen
+  /// before the fixtures inside it.
   final List<(int, int)> _markedScopes = [];
+
+  /// `(marker line, first line, last line)` for every
+  /// `test(`/`testWidgets(`/`group(` carrying a marker — including one whose
+  /// reason was rejected.
+  ///
+  /// Separate from [_markedScopes], which only holds the scopes that actually
+  /// waive, because the two answer different questions. A weak marker still
+  /// *governs* its scope; it is weak, not orphaned, and reporting one mistake
+  /// twice would bury the fix under the noise.
+  final List<(int, int, int)> _markerScopes = [];
+
+  /// Every line carrying a marker, in source order.
+  ///
+  /// Found exactly the way [_markerAbove] finds one — a trimmed line starting
+  /// with [markerPrefix] — and deliberately not by asking the analyzer for
+  /// real comment tokens. The orphan report is only sound if it covers
+  /// everything the lookup can *honour*, and the lookup is line-based: a
+  /// marker inside a multi-line string that closes on its own line is honoured
+  /// by [_markerAbove] today, so it has to be orphan-checkable too. A
+  /// stricter, AST-accurate scan would go blind to precisely the markers whose
+  /// placement is least trustworthy.
+  late final List<int> _markerLines = [
+    for (var i = 0; i < _lines.length; i++)
+      if (_lines[i].trim().startsWith(markerPrefix)) i + 1,
+  ];
+
+  /// Marker lines observed to govern at least one fixture during the walk.
+  final Set<int> _governingMarkers = {};
 
   /// Validates one `// invalid-fixture:` marker, whichever granularity it was
   /// written at, and reports every way it fails to justify itself.
   ///
   /// **Both granularities route through here, and that is the point.** A
-  /// scope marker waives every fixture in its `test(`/`group(`, so it is at
-  /// least as powerful as a per-fixture one and must clear at least the same
-  /// bar. The two paths were separate once and the scope path silently
-  /// inherited none of the per-fixture checks — `// invalid-fixture: n/a`
-  /// above a `test(` waived everything inside it with no violation, while the
-  /// identical string on a fixture was rejected. Any property added to
-  /// reasons from here on applies at both granularities by construction,
-  /// because there is only one place to add it.
+  /// scope marker waives every fixture in its `test(`/`testWidgets(`/`group(`,
+  /// so it is at least as powerful as a per-fixture one and must clear at
+  /// least the same bar. The two paths were separate once and the scope path
+  /// silently inherited none of the per-fixture checks —
+  /// `// invalid-fixture: n/a` above a `test(` waived everything inside it
+  /// with no violation, while the identical string on a fixture was rejected.
+  /// Any property added to reasons from here on applies at both granularities
+  /// by construction, because there is only one place to add it.
   ///
   /// Returns `true` when the marker may take effect. A rejected marker is
   /// **not** honoured — failing closed, so the fixtures it would have covered
   /// stay checked rather than being waived by a marker that never earned it.
-  bool _acceptMarker(String reason, int line, {required String scope}) {
+  ///
+  /// [markerLine] is the marker's OWN line, never the line of whatever it
+  /// governs. Everything reported here is a fault in the marker's text, so
+  /// that is the line the author has to edit; annotating the `Figure(` or the
+  /// `test(` below it sends them to a line with nothing wrong on it. Named
+  /// rather than left as `line` because both call sites have a governed line
+  /// conveniently in scope, and passing it compiles.
+  bool _acceptMarker(String reason, int markerLine, {required String scope}) {
     if (reason.length < minReasonLength) {
       violations.add(
         FixtureViolation(
           _path,
-          line,
+          markerLine,
           'weak-marker',
           scope == _fixtureScope
               ? 'the `$markerPrefix` reason must be at least '
@@ -149,16 +195,40 @@ class FixtureVisitor extends RecursiveAstVisitor<void> {
   static const String _fixtureScope = '';
 
   @override
+  void visitCompilationUnit(CompilationUnit node) {
+    super.visitCompilationUnit(node);
+    // After the descent, so every marker that governed something has said so.
+    // Reported from here rather than from a method `analyse` must remember to
+    // call: a check the caller can forget is a check that comes back.
+    for (final line in _markerLines) {
+      if (_governingMarkers.contains(line)) continue;
+      violations.add(
+        FixtureViolation(
+          _path,
+          line,
+          'orphan-marker',
+          'this `$markerPrefix` marker governs no fixture. A marker waives '
+              'the fixture it introduces, or every fixture in the '
+              '`test(`/`testWidgets(`/`group(` it introduces — this one '
+              'covers neither, so its reason describes something that is not '
+              'there. Delete it, or move it above the fixture it explains.',
+        ),
+      );
+    }
+  }
+
+  @override
   void visitMethodInvocation(MethodInvocation node) {
     final name = node.methodName.name;
     if (name == 'test' || name == 'testWidgets' || name == 'group') {
       final startLine = _lineInfo.getLocation(node.offset).lineNumber;
-      final reason = _markerAbove(startLine);
-      if (reason != null && _acceptMarker(reason, startLine, scope: name)) {
-        _markedScopes.add((
-          startLine,
-          _lineInfo.getLocation(node.end).lineNumber,
-        ));
+      final endLine = _lineInfo.getLocation(node.end).lineNumber;
+      final marker = _markerAbove(startLine);
+      if (marker != null) {
+        _markerScopes.add((marker.line, startLine, endLine));
+        if (_acceptMarker(marker.reason, marker.line, scope: name)) {
+          _markedScopes.add((startLine, endLine));
+        }
       }
     }
     if (name == 'Figure') {
@@ -175,12 +245,13 @@ class FixtureVisitor extends RecursiveAstVisitor<void> {
     super.visitInstanceCreationExpression(node);
   }
 
-  /// The reason from a marker governing [line], or `null` when there is none.
-  String? _markerAbove(int line) {
+  /// The marker governing [line] and the line it sits on, or `null` when there
+  /// is none.
+  ({String reason, int line})? _markerAbove(int line) {
     for (var i = line - 1; i >= 1 && i >= line - markerLookbackLines; i--) {
       final text = _lines[i - 1].trim();
       if (text.startsWith(markerPrefix)) {
-        return text.substring(markerPrefix.length).trim();
+        return (reason: text.substring(markerPrefix.length).trim(), line: i);
       }
       // Stop at the first line that is neither blank nor a comment: the marker
       // must introduce this statement, not sit above an unrelated one.
@@ -212,13 +283,25 @@ class FixtureVisitor extends RecursiveAstVisitor<void> {
     final statementLine = statement == null
         ? line
         : _lineInfo.getLocation(statement.offset).lineNumber;
-    final reason =
+    final marker =
         _markerAbove(line) ??
         (statementLine != line ? _markerAbove(statementLine) : null);
-    if (reason != null) {
+
+    // A scope marker governs as soon as one fixture falls inside its
+    // `test(`/`testWidgets(`/`group(` — including a fixture that also carries
+    // its own marker, because the scope marker still describes a non-empty
+    // set. Recorded before the early returns below, which is the whole point:
+    // whether the marker *governs* and whether it *waives* are different
+    // questions.
+    for (final scope in _markerScopes) {
+      if (line >= scope.$2 && line <= scope.$3) _governingMarkers.add(scope.$1);
+    }
+
+    if (marker != null) {
+      _governingMarkers.add(marker.line);
       // Fails closed exactly as the scope path does: a rejected marker does
       // not waive its fixture, so the fixture stays checked below.
-      if (_acceptMarker(reason, line, scope: _fixtureScope)) {
+      if (_acceptMarker(marker.reason, marker.line, scope: _fixtureScope)) {
         markedCount++;
         return;
       }
@@ -359,7 +442,12 @@ FixtureReport analyse(List<File> files, String rootPath) {
     // cannot survive `dart format`, which normalises it — but relying on that
     // makes this checker's correctness depend on a different CI gate having
     // run first, which is not a property worth depending on silently.
-    if (!source.contains('Figure')) continue;
+    //
+    // The marker clause is what makes the orphan check reach its likeliest
+    // case. Delete the last fixture in a file and the file stops containing
+    // `Figure` at all, so a `Figure`-only fast path would skip the very file
+    // whose markers just lost everything they governed.
+    if (!source.contains('Figure') && !source.contains(markerPrefix)) continue;
     final result = parseString(content: source, throwIfDiagnostics: false);
     final relative = file.path.startsWith(rootPath)
         ? file.path.substring(rootPath.length + 1)
@@ -370,7 +458,16 @@ FixtureReport analyse(List<File> files, String rootPath) {
       relative,
     );
     result.unit.accept(visitor);
-    violations.addAll(visitor.violations);
+    // Orphan markers are only knowable once the walk is over, so they arrive
+    // after every fixture violation in the same file. Sorted back into source
+    // order — with the original index as tiebreak, since `List.sort` is not
+    // stable — so a file's annotations read top to bottom.
+    final ordered = visitor.violations.indexed.toList()
+      ..sort((a, b) {
+        final byLine = a.$2.line.compareTo(b.$2.line);
+        return byLine != 0 ? byLine : a.$1.compareTo(b.$1);
+      });
+    violations.addAll(ordered.map((e) => e.$2));
     literal += visitor.literalCount;
     marked += visitor.markedCount;
     dynamic_ += visitor.dynamicCount;

@@ -19,6 +19,10 @@ import '../../tool/check_fixture_validity.dart';
 /// were incorrect, but settling them needed hand-built probes — which is
 /// exactly the gap these tests close: the dispatch rules are now executable
 /// rather than argued.
+///
+/// #791 added the orphan-marker check, and its tests are the same shape for
+/// the same reason: whether a marker governs anything is a claim about the
+/// lookup's reach, which is only answerable by running it.
 void main() {
   late Directory tmp;
 
@@ -211,7 +215,10 @@ void main() {
 
     test('a marker above unrelated code does not carry down', () {
       // The marker must introduce its own statement; a non-comment line
-      // between it and the fixture ends its reach.
+      // between it and the fixture ends its reach. The orphan report is the
+      // same fact seen from the other side — a marker that reaches no fixture
+      // waives nothing — so both violations are pinned here, and the count
+      // with them, so neither can quietly stop firing.
       final v = check(
         'f() {\n'
         '  // invalid-fixture: this marker belongs to the statement below it\n'
@@ -219,7 +226,11 @@ void main() {
         "  Figure(move: 'swing', params: {'who': 'partner'});\n"
         '}',
       );
-      expect(v.single.kind, 'invalid_param_value');
+      expect(v, hasLength(2));
+      expect(
+        v.map((e) => e.kind),
+        containsAll(['invalid_param_value', 'orphan-marker']),
+      );
     });
 
     test('a marker on an enclosing test covers fixtures inside it', () {
@@ -273,6 +284,412 @@ void main() {
         '}',
       );
       expect(v.map((e) => e.kind), contains('weak-marker'));
+    });
+  });
+
+  group('orphaned markers (#791)', () {
+    // Every fixture source below is built as one quoted Dart string per line,
+    // so no line of THIS file ever trims to something starting with the marker
+    // prefix. That is not a style preference: this file lives under
+    // `packages/*/test`, so the ratchet scans it, and its marker lookup is
+    // line-based. A marker written flush against the left margin inside a
+    // `'''` block would be a real marker as far as the checker is concerned,
+    // and would fail the live tree. Keep the opening quote first.
+
+    /// Kinds reported for [source], for tests that care about the set.
+    Iterable<String> kinds(String source) => check(source).map((e) => e.kind);
+
+    test('a marker above a non-fixture statement is reported', () {
+      // The deletion case, and the reason this check exists: the fixture the
+      // marker justified is gone, but the marker reads as current and the
+      // next fixture written under it would inherit a reason authored for
+      // something else.
+      final v = check(
+        'f() {\n'
+        '  // invalid-fixture: the fixture this explained was deleted\n'
+        '  final x = 42;\n'
+        '}',
+      );
+      expect(v.single.kind, 'orphan-marker');
+      expect(v.single.line, 2);
+    });
+
+    test('a marker above a scope with no fixtures is reported', () {
+      // The scope form of the same loss. `test(`/`testWidgets(`/`group(`
+      // markers are legitimate, so this cannot be answered by "is there a
+      // `Figure(` just below" — the scope has to be checked for what it
+      // actually contains.
+      expect(
+        kinds(
+          'void main() {\n'
+          '  // invalid-fixture: this test used to hold a bad fixture\n'
+          "  test('x', () {\n"
+          '    expect(1, 1);\n'
+          '  });\n'
+          '}',
+        ),
+        ['orphan-marker'],
+      );
+    });
+
+    test('a marker with nothing at all below it is reported', () {
+      expect(
+        kinds(
+          "f() { Figure(move: 'swing', params: {'who': 'partners'}); }\n"
+          '// invalid-fixture: left behind when its fixture was removed\n',
+        ),
+        ['orphan-marker'],
+      );
+    });
+
+    test('a marker in a file with no fixture at all is reported', () {
+      // The likeliest shape of the deletion case, and the one a `Figure`-only
+      // fast path would miss: removing the last fixture in a file also removes
+      // the token that got the file parsed, so the orphan it just created
+      // would never be looked at.
+      expect(
+        kinds(
+          'void main() {\n'
+          '  // invalid-fixture: nothing in this file constructs a fixture\n'
+          '  expect(1, 1);\n'
+          '}',
+        ),
+        ['orphan-marker'],
+      );
+    });
+
+    test('a marker beyond the lookback window is reported', () {
+      // A marker further above a fixture than `markerLookbackLines` never
+      // waives it — the fixture is reported — so it must be reported as an
+      // orphan too. Otherwise the one shape where a marker LOOKS like it is
+      // working and is not would be the one shape nothing flags.
+      final v = check(
+        'f() {\n'
+        '  // invalid-fixture: too far above the fixture to reach it\n'
+        '\n\n\n\n\n\n'
+        "  Figure(move: 'swing', params: {'who': 'partner'});\n"
+        '}',
+      );
+      expect(
+        v.map((e) => e.kind),
+        containsAll(['invalid_param_value', 'orphan-marker']),
+      );
+    });
+
+    test('a marker above a `Figure.meanwhile(...)` is reported', () {
+      // `Figure.meanwhile` is a container, not a taxonomy figure, and is never
+      // validated — so a marker on one waives nothing no matter how it reads.
+      expect(
+        kinds(
+          'f() {\n'
+          '  // invalid-fixture: meanwhile containers are never validated\n'
+          '  Figure.meanwhile(figures: [a, b], beats: 8);\n'
+          '}',
+        ),
+        ['orphan-marker'],
+      );
+    });
+
+    test('the outer marker of a stacked pair is reported', () {
+      // The lookup stops at the nearest marker, so the one above it has no
+      // effect on anything. #789 removed the four stacked markers that
+      // existed; this reports the next one rather than deduplicating it,
+      // which is a separate concern and deliberately not attempted here.
+      final v = check(
+        'f() {\n'
+        '  // invalid-fixture: the outer reason, which never takes effect\n'
+        '  // invalid-fixture: the inner reason, which does take effect\n'
+        "  Figure(move: 'swing', params: {'who': 'partner'});\n"
+        '}',
+      );
+      expect(v.single.kind, 'orphan-marker');
+      expect(
+        v.single.line,
+        2,
+        reason: 'the outer marker is the one that governs nothing',
+      );
+    });
+
+    group('markers that DO govern are not flagged', () {
+      test('above a fixture', () {
+        expect(
+          check(
+            'f() {\n'
+            '  // invalid-fixture: deliberately out of domain for the guard\n'
+            "  Figure(move: 'swing', params: {'who': 'partner'});\n"
+            '}',
+          ),
+          isEmpty,
+        );
+      });
+
+      test('above a `test(` holding a fixture', () {
+        expect(
+          check(
+            'void main() {\n'
+            '  // invalid-fixture: the whole test is about bad input\n'
+            "  test('x', () {\n"
+            "    Figure(move: 'swing', params: {'who': 'partner'});\n"
+            '  });\n'
+            '}',
+          ),
+          isEmpty,
+        );
+      });
+
+      test('above a `group(` holding a fixture', () {
+        expect(
+          check(
+            'void main() {\n'
+            '  // invalid-fixture: every fixture here is out of domain\n'
+            "  group('g', () {\n"
+            "    test('x', () {\n"
+            "      Figure(move: 'swing', params: {'who': 'partner'});\n"
+            '    });\n'
+            '  });\n'
+            '}',
+          ),
+          isEmpty,
+        );
+      });
+
+      test('above a WRAPPED statement', () {
+        // The shape `dart format` produces for a long fixture, reached by
+        // round 4 of #789's statement-level lookup. An orphan check that
+        // only looked for `Figure(` on the line below would flag every one of
+        // these — a false positive on the commonest formatting in the tree.
+        expect(
+          check(
+            'f() {\n'
+            '  // invalid-fixture: a substantive reason for this fixture\n'
+            '  final x =\n'
+            "      Figure(move: 'swing', params: {'who': 'partner'});\n"
+            '}',
+          ),
+          isEmpty,
+        );
+      });
+
+      test('above a statement whose fixture is nested in a wrapped call', () {
+        expect(
+          check(
+            'f() {\n'
+            '  // invalid-fixture: a substantive reason for this fixture\n'
+            '  expect(\n'
+            "    render(Figure(move: 'swing', params: {'who': 'partner'})),\n"
+            "    'x',\n"
+            '  );\n'
+            '}',
+          ),
+          isEmpty,
+        );
+      });
+
+      test('above a scope whose only fixture carries its own marker', () {
+        // The scope marker still describes a non-empty set, so it is not an
+        // orphan even though the per-fixture route is what actually waived.
+        // Governance is recorded before the early return for that reason.
+        expect(
+          check(
+            'void main() {\n'
+            '  // invalid-fixture: the whole test is about bad input\n'
+            "  test('x', () {\n"
+            '    // invalid-fixture: and this one says why in its own words\n'
+            "    Figure(move: 'swing', params: {'who': 'partner'});\n"
+            '  });\n'
+            '}',
+          ),
+          isEmpty,
+        );
+      });
+    });
+
+    group('a weak marker is weak, not orphaned', () {
+      // A rejected marker is not honoured, so nothing consumes it — the naive
+      // implementation would report it twice for one mistake and point the
+      // author at deleting a marker they need to rewrite. Governance is
+      // therefore recorded at lookup, not at acceptance.
+
+      test('on a fixture', () {
+        final k = kinds(
+          'f() {\n'
+          '  // invalid-fixture: n/a\n'
+          "  Figure(move: 'swing', params: {'who': 'partner'});\n"
+          '}',
+        );
+        expect(k, containsAll(['weak-marker', 'invalid_param_value']));
+        expect(k, isNot(contains('orphan-marker')));
+      });
+
+      test('on an enclosing scope', () {
+        final k = kinds(
+          'void main() {\n'
+          '  // invalid-fixture: todo\n'
+          "  group('g', () {\n"
+          "    Figure(move: 'swing', params: {'who': 'partner'});\n"
+          '  });\n'
+          '}',
+        );
+        expect(k, containsAll(['weak-marker', 'invalid_param_value']));
+        expect(k, isNot(contains('orphan-marker')));
+      });
+
+      test('on a wrapped statement', () {
+        final k = kinds(
+          'f() {\n'
+          '  // invalid-fixture: n/a\n'
+          '  final x =\n'
+          "      Figure(move: 'swing', params: {'who': 'partner'});\n"
+          '}',
+        );
+        expect(k, contains('weak-marker'));
+        expect(k, isNot(contains('orphan-marker')));
+      });
+    });
+
+    group('a marker violation is annotated on the MARKER line', () {
+      // Reported in review of this PR. `_acceptMarker` judges the marker's
+      // TEXT, so a `weak-marker` belongs on the marker; both call sites had a
+      // governed line conveniently in scope and passed that instead, sending
+      // the author to a `Figure(` or `test(` with nothing wrong on it. The
+      // kind-only assertions above could not see it — which is why these
+      // assert the line and nothing else new.
+      //
+      // The defect arrived with the marker-line lookup itself: `_markerAbove`
+      // was widened to return the marker's line for the orphan tracking, the
+      // new call site used it, and the two existing ones kept reading the old
+      // value. Both are unchanged lines, so the diff drew no attention to
+      // them.
+
+      /// The line reported for the sole violation of [kind] in [source].
+      int lineOf(String source, String kind) =>
+          check(source).firstWhere((e) => e.kind == kind).line;
+
+      test('a weak marker above a fixture', () {
+        expect(
+          lineOf(
+            'f() {\n'
+                '  // invalid-fixture: n/a\n'
+                "  Figure(move: 'swing', params: {'who': 'partner'});\n"
+                '}',
+            'weak-marker',
+          ),
+          2,
+          reason: 'the marker is on line 2; the fixture it governs is on 3',
+        );
+      });
+
+      test('a weak marker above a scope', () {
+        expect(
+          lineOf(
+            'void main() {\n'
+                '  // invalid-fixture: todo\n'
+                "  group('g', () {\n"
+                "    Figure(move: 'swing', params: {'who': 'partner'});\n"
+                '  });\n'
+                '}',
+            'weak-marker',
+          ),
+          2,
+          reason: 'the marker is on line 2; the `group(` it governs is on 3',
+        );
+      });
+
+      test('a weak marker above a wrapped statement', () {
+        // The statement route reaches furthest from the marker, so it is where
+        // a wrong line is most misleading: three lines below the comment the
+        // author has to edit.
+        expect(
+          lineOf(
+            'f() {\n'
+                '  // invalid-fixture: n/a\n'
+                '  final x =\n'
+                "      Figure(move: 'swing', params: {'who': 'partner'});\n"
+                '}',
+            'weak-marker',
+          ),
+          2,
+        );
+      });
+
+      test('an orphan is annotated on its own line already', () {
+        // Pinned alongside the others so the whole marker-violation family is
+        // covered by one rule rather than two conventions.
+        expect(
+          lineOf(
+            'f() {\n'
+                '  // invalid-fixture: the fixture this explained was deleted\n'
+                '  final x = 42;\n'
+                '}',
+            'orphan-marker',
+          ),
+          2,
+        );
+      });
+    });
+
+    group('`testWidgets(` is a scope form too', () {
+      // The checker has always accepted `testWidgets` alongside `test` and
+      // `group`, but every doc comment and message named only two of the
+      // three, so the documented contract was narrower than the code. Flagged
+      // in review. These make the third form checkable rather than asserted,
+      // per the repo's rule that a comment claiming runtime behaviour should
+      // be falsifiable.
+
+      test('a marker above a `testWidgets(` holding a fixture governs', () {
+        expect(
+          check(
+            'void main() {\n'
+            '  // invalid-fixture: the whole widget test is about bad input\n'
+            "  testWidgets('w', (tester) async {\n"
+            "    Figure(move: 'swing', params: {'who': 'partner'});\n"
+            '  });\n'
+            '}',
+          ),
+          isEmpty,
+        );
+      });
+
+      test('a marker above a `testWidgets(` with no fixtures is an orphan', () {
+        expect(
+          kinds(
+            'void main() {\n'
+            '  // invalid-fixture: this widget test lost its fixture\n'
+            "  testWidgets('w', (tester) async {\n"
+            '    expect(1, 1);\n'
+            '  });\n'
+            '}',
+          ),
+          ['orphan-marker'],
+        );
+      });
+
+      test('a weak marker on a `testWidgets(` names it in the message', () {
+        final v = check(
+          'void main() {\n'
+          '  // invalid-fixture: todo\n'
+          "  testWidgets('w', (tester) async {\n"
+          "    Figure(move: 'swing', params: {'who': 'partner'});\n"
+          '  });\n'
+          '}',
+        ).firstWhere((e) => e.kind == 'weak-marker');
+        expect(v.detail, contains('`testWidgets(`'));
+        expect(v.line, 2);
+      });
+
+      test('the orphan message names all three scope forms', () {
+        // The message is what a contributor reads when the ratchet fires, so
+        // it is the one place the enumeration must be complete: someone whose
+        // orphan sits above a `testWidgets(` should not read a description
+        // that excludes their case and conclude the tool is confused.
+        final detail = check(
+          'f() {\n'
+          '  // invalid-fixture: the fixture this explained was deleted\n'
+          '  final x = 42;\n'
+          '}',
+        ).single.detail;
+        expect(detail, contains('`test(`/`testWidgets(`/`group(`'));
+      });
     });
   });
 
