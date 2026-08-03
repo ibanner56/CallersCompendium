@@ -275,4 +275,69 @@ void main() {
       expect(v.map((e) => e.kind), contains('weak-marker'));
     });
   });
+
+  group('routes that must not escape the checker', () {
+    /// Writes [src] at [relPath] under a synthetic root and analyses it.
+    List<FixtureViolation> checkAt(String relPath, String src) {
+      final f = File('${tmp.path}/$relPath');
+      f.parent.createSync(recursive: true);
+      f.writeAsStringSync(src);
+      return analyse(testFiles(tmp), tmp.path).violations;
+    }
+
+    const bad = "Figure(move: 'swing', params: {'who': 'partner'})";
+
+    test('whitespace before the argument list does not skip the file', () {
+      // The fast-path guard used to look for `Figure(`, but Dart allows
+      // whitespace between the identifier and its argument list — so
+      // `Figure (…)` skipped the file WITHOUT PARSING and was never checked.
+      // `dart format` normalises that form, so CI's format gate happened to
+      // close this route; depending on one gate to hold another is not a
+      // property worth relying on silently.
+      expect(
+        checkAt(
+          'app/test/a_test.dart',
+          "f() { Figure (move: 'swing', params: {'who': 'partner'}); }",
+        ).map((e) => e.kind),
+        contains('invalid_param_value'),
+      );
+    });
+
+    test('a newline before the argument list does not skip the file', () {
+      expect(
+        checkAt(
+          'app/test/b_test.dart',
+          "f() { Figure\n  (move: 'swing', params: {'who': 'partner'}); }",
+        ).map((e) => e.kind),
+        contains('invalid_param_value'),
+      );
+    });
+
+    test('integration_test roots are scanned', () {
+      // Neither directory exists today; these pin the route closed before it
+      // opens, since a fixture added there would otherwise be invisible with
+      // nothing to say so.
+      expect(
+        checkAt(
+          'app/integration_test/c_test.dart',
+          'f() { $bad; }',
+        ).map((e) => e.kind),
+        contains('invalid_param_value'),
+      );
+      expect(
+        checkAt(
+          'packages/x/integration_test/d_test.dart',
+          'f() { $bad; }',
+        ).map((e) => e.kind),
+        contains('invalid_param_value'),
+      );
+    });
+
+    test('a non-_test.dart helper under a test root is still scanned', () {
+      expect(
+        checkAt('app/test/support/e.dart', 'f() { $bad; }').map((e) => e.kind),
+        contains('invalid_param_value'),
+      );
+    });
+  });
 }

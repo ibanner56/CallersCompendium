@@ -320,11 +320,19 @@ List<File> testFiles(Directory root) {
     );
   }
 
-  addAll(Directory('${root.path}/app/test'));
+  // `integration_test/` is a standard Flutter test root and holds fixtures
+  // exactly like `test/` does. Neither directory exists today, so this closes
+  // the route before it opens rather than fixing a live gap — a fixture added
+  // there would otherwise be invisible to this checker with nothing to say so.
+  for (final root_ in ['test', 'integration_test']) {
+    addAll(Directory('${root.path}/app/$root_'));
+  }
   final packages = Directory('${root.path}/packages');
   if (packages.existsSync()) {
     for (final entry in packages.listSync().whereType<Directory>()) {
-      addAll(Directory('${entry.path}/test'));
+      for (final root_ in ['test', 'integration_test']) {
+        addAll(Directory('${entry.path}/$root_'));
+      }
     }
   }
   files.sort((a, b) => a.path.compareTo(b.path));
@@ -345,7 +353,13 @@ FixtureReport analyse(List<File> files, String rootPath) {
   var literal = 0, marked = 0, dynamic_ = 0;
   for (final file in files) {
     final source = file.readAsStringSync();
-    if (!source.contains('Figure(')) continue;
+    // Deliberately `Figure` and not `Figure(`: Dart permits whitespace
+    // between the identifier and its argument list, so `Figure (move: …)`
+    // would skip this file WITHOUT PARSING IT and never be checked. That form
+    // cannot survive `dart format`, which normalises it — but relying on that
+    // makes this checker's correctness depend on a different CI gate having
+    // run first, which is not a property worth depending on silently.
+    if (!source.contains('Figure')) continue;
     final result = parseString(content: source, throwIfDiagnostics: false);
     final relative = file.path.startsWith(rootPath)
         ? file.path.substring(rootPath.length + 1)
