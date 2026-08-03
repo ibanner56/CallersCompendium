@@ -10,7 +10,6 @@ import 'dance_repository.dart';
 import 'program_repository.dart';
 import 'published_source_repository.dart';
 import 'settings_repository.dart';
-import 'snapshot_repository.dart';
 import 'tag_repository.dart';
 import 'venue_repository.dart';
 
@@ -29,8 +28,7 @@ class CompendiumRepositories {
        programs = ProgramRepository(db),
        publishedSources = PublishedSourceRepository(db),
        venues = VenueRepository(db),
-       settings = settings ?? SettingsRepository(db),
-       snapshots = SnapshotRepository(db);
+       settings = settings ?? SettingsRepository(db);
 
   final CompendiumDatabase db;
   final DanceRepository dances;
@@ -41,7 +39,6 @@ class CompendiumRepositories {
   final PublishedSourceRepository publishedSources;
   final VenueRepository venues;
   final SettingsRepository settings;
-  final SnapshotRepository snapshots;
 
   /// Opens the database (running any pending schema migration) and, if a
   /// migration owes a derived-index rebuild, back-fills it.

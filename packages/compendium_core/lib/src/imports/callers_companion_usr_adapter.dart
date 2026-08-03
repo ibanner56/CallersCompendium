@@ -35,9 +35,10 @@ import 'structured_draft.dart';
 /// (CC's `SetItem.zk_Dance_ID` references `Dance.zk_Dance_ID`, **not** the
 /// FileMaker record id). The `fetch` payload is a JSON object of that dance's
 /// **verbatim** CC column map (all columns, including ones this PR does not map)
-/// plus its id, so `provenance.raw_payload` losslessly preserves the source row
-/// for re-import and for the follow-up phases (author resolution, custom-field
-/// defs, etc.).
+/// plus its id, so the in-memory record losslessly carries the whole source row
+/// through to `parse` and the follow-up phases (author resolution,
+/// custom-field defs, etc.). It is not persisted: that payload fed
+/// `provenance.raw_payload` until schema v21 dropped the column (#781).
 ///
 /// ## Scope
 ///

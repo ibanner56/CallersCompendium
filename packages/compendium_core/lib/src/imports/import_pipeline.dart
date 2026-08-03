@@ -774,7 +774,6 @@ class ImportPipeline {
       importedAt: now,
       permission: raw.permission,
       license: raw.license,
-      rawPayload: raw.payload,
       sourceVersion: raw.sourceVersion,
     );
   }

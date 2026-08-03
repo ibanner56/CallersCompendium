@@ -1,6 +1,6 @@
 # Design: CallersBox snapshot format & hosting
 
-> **Superseded (2026-07):** This hosted-snapshot design is no longer planned. The app now imports directly from CallersBox (online search + link/record import), so we will not sanitize/rehost a full snapshot. Retained for historical context; see ROADMAP 6.2/6.3.
+> **Superseded (2026-07):** This hosted-snapshot design is no longer planned. The app now imports directly from CallersBox (online search + link/record import), so we will not sanitize/rehost a full snapshot. Retained for historical context; see ROADMAP 6.2/6.3. The `snapshots` table this design would have written to was dropped at schema v21 (#782), having never held a row — so the client-side sketch below no longer describes any storage that exists.
 
 *Roadmap item 1.13 · v0.1 (2026-07-10). The maintainer-relations step is a
 prerequisite: confirm rehosting terms with Chris Page & Michael Dyck before

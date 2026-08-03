@@ -44,19 +44,10 @@ void main() {
         ),
       );
       await repos.settings.set('active_dialect', 'larksRobins');
-      await repos.snapshots.upsert(
-        SnapshotRecord(
-          source: 'callersbox',
-          snapshotDate: DateTime.utc(2026),
-          manifestJson: '{}',
-          importedAt: DateTime.utc(2026),
-        ),
-      );
 
       expect((await repos.dances.getById('d1'))!.tagIds, ['t1']);
       expect((await repos.programs.getById('p1'))!.slots.single.danceId, 'd1');
       expect(await repos.settings.get('active_dialect'), 'larksRobins');
-      expect(await repos.snapshots.getBySource('callersbox'), isNotNull);
     },
   );
 }

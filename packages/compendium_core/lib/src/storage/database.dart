@@ -114,7 +114,7 @@ const String purgeCorruptionRepairDoneKey = '__purge_corruption_repair_done__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 20;
+const int kCompendiumSchemaVersion = 21;
 
 /// The Caller's Compendium local database.
 ///
@@ -337,7 +337,6 @@ const int kCompendiumSchemaVersion = 20;
     PublishedSources,
     DanceSources,
     Settings,
-    Snapshots,
     ProgramProvenance,
     Venues,
   ],
@@ -693,6 +692,46 @@ class CompendiumDatabase extends _$CompendiumDatabase {
             [derivedRebuildRequiredKey, 'true'],
           );
         }
+      }
+
+      if (from < 21) {
+        // Issues #781/#782: the first migration in this schema's history to
+        // REMOVE storage rather than add or rewrite it. Three drops, all of
+        // storage that no code path ever read:
+        //
+        //   * `provenance.raw_payload` — the verbatim imported source record.
+        //     For an HTML import this was the whole source page (~7.5 KB for
+        //     this repo's own ContraDB fixture), per dance, round-tripping
+        //     through every backup. It was justified as enabling "re-import
+        //     diffing"; that feature exists (`figure_diff.dart`) but compares
+        //     PARSED figures and never read this column. Re-import dedupes on
+        //     `(source, external_id)` and re-fetches, so nothing regresses.
+        //   * `program_provenance.raw_payload` — the same column on the
+        //     program side, where no import path ever wrote it. It is null for
+        //     every row that has ever existed, so this half is a pure no-op on
+        //     real data.
+        //   * the `snapshots` table — scaffolding for hosted-archive "update
+        //     available" prompts, a feature since CUT (ROADMAP 6.2/6.3;
+        //     `docs/design/callersbox-snapshot.md` is marked superseded).
+        //     `SnapshotRepository.upsert` had no call sites, so the table is
+        //     empty in every real database.
+        //
+        // This DELETES user data (the dance-side payloads) and is not
+        // reversible by downgrading. That was a deliberate call: the data was
+        // unreadable by any feature, and carrying it forever costs every user
+        // storage and backup size for nothing.
+        //
+        // `alterTable` rebuilds each provenance table from its current Dart
+        // definition and copies the surviving columns across by name — the
+        // portable route, and the one that does not depend on the host
+        // SQLite being new enough for `ALTER TABLE … DROP COLUMN` (3.35+),
+        // which we cannot assume across six platforms.
+        await m.alterTable(TableMigration(provenance));
+        await m.alterTable(TableMigration(programProvenance));
+        await m.deleteTable('snapshots');
+
+        // No derived rebuild is owed: none of the three feeds `dance_figures`
+        // or `dance_fts`, so the search indexes are unaffected.
       }
     },
     beforeOpen: (details) async {

@@ -496,8 +496,13 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     genuinely distinct moves and merging them is not obviously correct.
 - **v23 (`courtesy_turn` added):** a Caller's Box figure the taxonomy had no
   home for. Purely additive — new move, no rename, no removal — so
-  **`kCompendiumSchemaVersion` stays 20 and no migration is owed** (cf. v20's
-  `mad_robin`/`butterfly_whirl` params and v15's `rotation_gate`). The params
+  **it owed no migration of its own** (cf. v20's `mad_robin`/`butterfly_whirl`
+  params and v15's `rotation_gate`). Note the invariant is "an additive
+  taxonomy change owes no migration", not a fixed value of
+  `kCompendiumSchemaVersion`: that number also moves for reasons unrelated to
+  the taxonomy — schema v21 dropped unused storage (#781/#782) while the
+  taxonomy stood still. `courtesy_turn_test.dart` pins the current value, and
+  says how to tell the two failure modes apart. The params
   ride the existing `figures_json` figure codec, and no stored figure can
   reference a move that did not exist, so every existing figure renders
   unchanged.

@@ -5,11 +5,15 @@ import '../model/enums.dart';
 /// A source-native record captured verbatim during the `fetch` stage of the
 /// import pipeline (`docs/design/imports.md`).
 ///
-/// The [payload] is preserved exactly as fetched from the source so that
-/// re-import and diffing are always possible: it, together with
-/// [sourceVersion], feeds `provenance.raw_payload` / `provenance.source_version`
-/// on commit. [permission] / [license] carry the source's own tier/terms
-/// verbatim (interpreted by import/export policy, not by the model).
+/// The [payload] is preserved exactly as fetched so the adapter's `parse` step
+/// has the unmodified source to work from. It is **not persisted**: it fed
+/// `provenance.raw_payload` until schema v21 dropped that column (#781), since
+/// nothing ever read it back. [sourceVersion], [permission] and [license] *are*
+/// persisted, onto the matching `provenance` columns (interpreted by
+/// import/export policy, not by the model).
+///
+/// Re-import does not depend on a stored payload: it dedupes on
+/// `(source, externalId)` and re-fetches from the source.
 ///
 /// This is a pure value object with no knowledge of how the payload is parsed
 /// — that is the adapter's `parse` step, which turns a [RawRecord] into a
@@ -35,11 +39,11 @@ class RawRecord {
   final String? externalId;
 
   /// Opaque source/schema version tag (e.g. a snapshot date or format
-  /// revision). Preserved for re-import/diff; feeds `provenance.source_version`.
+  /// revision). Feeds `provenance.source_version`.
   final String? sourceVersion;
 
-  /// The record exactly as fetched, preserved byte-for-byte (as text). Feeds
-  /// `provenance.raw_payload`.
+  /// The record exactly as fetched, preserved byte-for-byte (as text), for the
+  /// adapter's `parse` step. In-memory only — never persisted (see above).
   final String payload;
 
   /// Optional MIME/content hint for the payload (e.g. `application/json`),

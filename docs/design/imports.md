@@ -14,7 +14,7 @@ fetch → RawRecord → parse → StructuredDraft → canonicalize → dedupe �
 | Stage | Contract |
 |---|---|
 | **fetch** | Adapter obtains bytes (file pick, URL, snapshot archive). Never blocks on network for local work. |
-| **RawRecord** | Source-native payload preserved verbatim + source id/version → stored in `provenance.raw_payload`. Re-import/diff is always possible. |
+| **RawRecord** | Source-native payload preserved verbatim in memory + source id/version. The payload feeds `parse` and is **not persisted** — it was stored in `provenance.raw_payload` until schema v21 dropped that column (#781), because nothing read it back. Re-import dedupes on `(source, externalId)` and re-fetches from the source, so it needs no stored copy. |
 | **parse** | Adapter maps fields and parses figures into structured `Figure[]`. **Parsing never fails a dance**: any unparseable figure line becomes a `custom` figure carrying its beats and text. A dance can arrive 100% custom and still be searchable. |
 | **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; formation strings mapped to the enum (+detail). |
 | **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (normalized title + author) → user chooses link/duplicate/skip. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers (e.g. program import) treat a confident match as a hard **skip**, never a silent duplicate (see *Multi-author tokenization*). |
@@ -292,8 +292,8 @@ declines the collapse.
     `sanitizeImportedText` (single-line, issue #444) during the incremental line
     walk (`_appendCappedBodyLines`) *before* it reaches a `CcBodySection`, so
     control/bidi-override/invisible
-    format spoofing characters can never enter the joined body, the persisted
-    JSON payload (`provenance.raw_payload`), or storage — defense in depth ahead
+    format spoofing characters can never enter the joined body, the in-memory
+    JSON payload, or storage — defense in depth ahead
     of the parser's own `scrubFigureText` chokepoint (idempotent, no double-mangle).
   - **Bounded fail-closed.** `FmpReadLimits` gains CC-layer caps enforced in
     `extractCcUsrArchive`: `maxPhraseRows` (default 20 000; sample is 162) and

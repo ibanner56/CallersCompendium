@@ -7,6 +7,7 @@
 // procedure). It holds two dances whose figures span phrase sections, an
 // author, a tag, and a custom-field value — captured before the v2
 // `dance_figures.section` column and its indexes existed.
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -1725,7 +1726,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 20);
+      expect(db.schemaVersion, 21);
 
       await db.close();
     });
@@ -1831,7 +1832,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 20);
+      expect(db.schemaVersion, 21);
 
       await db.close();
     });
@@ -1953,7 +1954,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').get();
       expect(version.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 20);
+      expect(db.schemaVersion, 21);
 
       await db.close();
     });
@@ -2837,7 +2838,7 @@ void main() {
           await repos.ensureMigrated();
 
           final version = await db.customSelect('PRAGMA user_version').get();
-          expect(version.single.data.values.first, 20, reason: 'from v$from');
+          expect(version.single.data.values.first, 21, reason: 'from v$from');
 
           final figures = (await repos.dances.getById('dance-1'))!.figures;
           // Both legacy shapes landed on the merged move, with the TCB subject
@@ -2930,6 +2931,221 @@ void main() {
 
       await db.close();
     });
+  });
+
+  group('v20 -> v21 upgrade (drop raw_payload columns and the snapshots '
+      'table)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v21_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v20 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v20.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    Future<List<String>> columnsOf(CompendiumDatabase db, String table) async {
+      final rows = await db
+          .customSelect("SELECT name FROM pragma_table_info('$table')")
+          .get();
+      return [for (final r in rows) r.read<String>('name')];
+    }
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, db.schemaVersion);
+
+      await db.close();
+    });
+
+    test('drops raw_payload from both provenance tables', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      expect(await columnsOf(db, 'provenance'), isNot(contains('raw_payload')));
+      expect(
+        await columnsOf(db, 'program_provenance'),
+        isNot(contains('raw_payload')),
+      );
+
+      await db.close();
+    });
+
+    test('preserves every sibling provenance column and its value', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      // The rebuild copies surviving columns across by name. A botched column
+      // list would silently null one of these rather than fail loudly, so
+      // every one is asserted by value, not merely by presence.
+      final prov = await db
+          .customSelect(
+            'SELECT * FROM provenance WHERE dance_id = ?',
+            variables: [Variable<String>('dance-1')],
+          )
+          .getSingle();
+      expect(prov.read<String>('source'), 'contradb');
+      expect(prov.read<String>('external_id'), '2443');
+      expect(prov.read<String>('permission'), 'CC BY-NC-SA 3.0');
+      expect(prov.read<String>('license'), 'CC BY-NC-SA 3.0');
+      expect(prov.read<String>('source_version'), 'contradb-2026-01');
+      // `imported_at` is a sibling column too, and the only non-text one — a
+      // rebuild that mis-copied or nulled the timestamp would otherwise pass
+      // every assertion above. Stored as unix seconds (2026-01-01T00:00:00Z).
+      expect(prov.read<int>('imported_at'), 1767225600);
+
+      final progProv = await db
+          .customSelect(
+            'SELECT * FROM program_provenance WHERE program_id = ?',
+            variables: [Variable<String>('program-1')],
+          )
+          .getSingle();
+      expect(progProv.read<String>('source'), 'callersCompanion');
+      expect(progProv.read<String>('external_id'), 'set-42');
+      expect(progProv.read<String>('permission'), 'personal use');
+      expect(progProv.read<String>('license'), 'unlicensed');
+      expect(progProv.read<String>('source_version'), 'cc-usr-1');
+      expect(progProv.read<int>('imported_at'), 1767225600);
+
+      await db.close();
+    });
+
+    test(
+      'the rebuilt provenance row still loads through the repository',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
+
+        // A table rebuild that lost the primary key or the FK would still pass
+        // the column assertions above; loading the dance exercises both.
+        final dance = await repos.dances.getById('dance-1');
+        expect(dance, isNotNull);
+        expect(dance!.provenance, isNotNull);
+        expect(dance.provenance!.externalId, '2443');
+        expect(dance.provenance!.source, ProvenanceSource.contradb);
+        expect(dance.provenance!.importedAt, DateTime.utc(2026));
+
+        await db.close();
+      },
+    );
+
+    test('drops the snapshots table', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final tables = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type = 'table' "
+            "AND name = 'snapshots'",
+          )
+          .get();
+      expect(tables, isEmpty);
+
+      await db.close();
+    });
+
+    test('leaves tags.color intact', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      // #782 covered both the snapshots table and tags.color; only the former
+      // was dropped, because tag colour-coding is still wanted (#786). This
+      // pins that decision: a future cleanup that takes the colour with it
+      // fails here rather than silently discarding user data.
+      expect(await columnsOf(db, 'tags'), contains('color'));
+      final tag = await db
+          .customSelect(
+            'SELECT color FROM tags WHERE id = ?',
+            variables: [Variable<String>('tag-1')],
+          )
+          .getSingle();
+      expect(tag.read<int>('color'), 0xFF2196F3);
+
+      await db.close();
+    });
+
+    test(
+      'a restored pre-v21 archive keeps its dance and drops the payload',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
+
+        // Archives written before v21 carry a `rawPayload` key inside each
+        // dance's provenance. Rather than hand-rolling that JSON (which risks
+        // testing a shape the encoder never produced), encode a real archive
+        // through the live encoder and inject the legacy key back into it.
+        final encoded = encodeArchive(
+          CompendiumArchive(
+            exportedAt: DateTime.utc(2026),
+            dances: [
+              Dance(
+                id: 'legacy-1',
+                title: 'Legacy Import',
+                figures: [
+                  Figure(
+                    move: 'swing',
+                    params: const {'who': 'partners', 'beats': 16},
+                  ),
+                ],
+                createdAt: DateTime.utc(2026),
+                updatedAt: DateTime.utc(2026),
+                provenance: Provenance(
+                  source: ProvenanceSource.contradb,
+                  externalId: '999',
+                  importedAt: DateTime.utc(2026),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        final asMap = jsonDecode(encoded) as Map<String, Object?>;
+        final danceList = asMap['dances']! as List<Object?>;
+        final provenance =
+            (danceList.single as Map<String, Object?>)['provenance']!
+                as Map<String, Object?>;
+        provenance['rawPayload'] = '<html>dropped in v21</html>';
+        expect(
+          provenance.containsKey('rawPayload'),
+          isTrue,
+          reason:
+              'the legacy key must actually be present, or this test is '
+              'asserting nothing',
+        );
+
+        // `decodeArchive` ignores unknown keys, so the dance restores intact and
+        // the payload is simply not read back — no special-casing, no failure.
+        final restored = decodeArchive(jsonEncode(asMap));
+
+        expect(restored.errors, isEmpty);
+        expect(restored.archive.dances, hasLength(1));
+        expect(restored.archive.dances.single.provenance!.externalId, '999');
+
+        await db.close();
+      },
+    );
   });
 }
 

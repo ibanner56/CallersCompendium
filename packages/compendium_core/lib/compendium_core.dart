@@ -100,7 +100,6 @@ export 'src/storage/repositories/program_repository.dart';
 export 'src/storage/repositories/published_source_repository.dart';
 export 'src/storage/repositories/repositories.dart';
 export 'src/storage/repositories/settings_repository.dart';
-export 'src/storage/repositories/snapshot_repository.dart';
 export 'src/storage/repositories/tag_repository.dart';
 export 'src/storage/repositories/venue_repository.dart';
 export 'src/taxonomy/contra_taxonomy.dart';

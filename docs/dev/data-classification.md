@@ -172,7 +172,7 @@ tell an approved decision from an assumed one.
 | `custom_field_values.value_text` is shareable | Maintainer | Custom fields are core collection data. Two obligations attach: creating a custom field must show a one-time notice that its contents travel, and per-field exclusion from sharing is tracked in #780 |
 | `venues.sponsor` is shareable | Maintainer | A sponsor is an organisation by intent and part of the venue's public identity |
 | Venue identity (`name`, `website`, `event_name`, schedule, time, price) is shareable while the address block and contacts are device-local | Agent, ratified by maintainer | Lets a program stay readable after a transfer without moving the address book |
-| `provenance.raw_payload` and `program_provenance.raw_payload` are device-local | Maintainer | Verbatim third-party content of unbounded shape (a whole ContraDB HTML page, or the source's JSON row — 7,492 bytes for this repo's real ContraDB fixture), which **nothing in the app reads**: the only consumers are the archive export round-trip and row-to-model plumbing. Nothing needs it to travel. Whether the column should exist at all is tracked in #781. `program_provenance.raw_payload` is in fact never written — both program-import paths construct `Provenance` without it |
+| `provenance.raw_payload` and `program_provenance.raw_payload` were **dropped** at schema v21 | Maintainer | Classified device-local when this catalogue was written, then removed entirely (#781). Nothing ever read either column; the program-side one was never even written. For an HTML import the dance-side column stored the whole source page — 7,492 bytes for this repo's own ContraDB fixture — per dance, round-tripping through every backup. Dropping deletes data irreversibly, which was the explicit trade accepted: unreadable data is not worth carrying forever |
 | DPV top-level buckets are omitted from rendered paths | Maintainer ruled on `Tracking`; agent extended it to `External` | Same reasoning — an uninformative bucket name. The `External` extension is reversible |
 
 ## Known limitations
@@ -184,11 +184,8 @@ tell an approved decision from an assumed one.
 - **The catalogue classifies storage, not display.** A field marked
   `deviceLocal` can still be rendered on screen, printed, or copied by the user.
   This is a transmission boundary, not an access-control system.
-- **Two columns may not need to exist.** `provenance.raw_payload` and
-  `program_provenance.raw_payload` are read by nothing, and the program one is
-  never written. Tracked in #781.
-- **Some classified storage has no writer or no reader.** The `snapshots` table
-  and `tags.color` are catalogued here but unused. Tracked in #782.
+- **`tags.color` has no writer.** The column is catalogued here but nothing
+  sets it and no UI shows it; tag colour-coding is wanted but unbuilt (#786).
 - **Freeform fields are classified by intent, not by content.** A user who types
   a phone number into a dance's calling notes has put contact data into a
   `shareable` field, and nothing detects that. The rulings above accept this
@@ -206,7 +203,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**147 columns**: 108 shareable, 19 device-local, 20 derived. 26 personal data by category.
+**141 columns**: 108 shareable, 17 device-local, 16 derived. 24 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -286,7 +283,6 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `program_provenance` | `license` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `program_provenance` | `permission` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `program_provenance` | `program_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
-| `program_provenance` | `raw_payload` | `dpv:PersonalData` | PersonalData | third party | **device-local** | Verbatim imported source record (whole HTML page, or the source JSON row). Unbounded third-party content that nothing in the app reads. Device-local by maintainer ruling. |
 | `program_provenance` | `source` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `program_provenance` | `source_version` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `program_slots` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
@@ -317,7 +313,6 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `provenance` | `imported_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `provenance` | `license` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `provenance` | `permission` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
-| `provenance` | `raw_payload` | `dpv:PersonalData` | PersonalData | third party | **device-local** | Verbatim imported source record (whole HTML page, or the source JSON row). Unbounded third-party content that nothing in the app reads. Device-local by maintainer ruling. |
 | `provenance` | `source` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `provenance` | `source_version` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `published_sources` | `author` | `pd:Name` | Identifying → Name | third party | shareable | Published authorship credit; public by definition. |
@@ -328,10 +323,6 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `published_sources` | `year` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `settings` | `key` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | The settings table is a key/value store; classifying the column says nothing about an individual preference. Per-key classification lives in the app package. |
 | `settings` | `value_json` | `dpv:NonPersonalData` | NonPersonalData | app user | **device-local** | Opaque JSON whose meaning depends on the key. Device-local at this layer so a blanket sync of the settings table cannot happen by accident; per-key rules decide what actually travels. |
-| `snapshots` | `imported_at` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
-| `snapshots` | `manifest_json` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
-| `snapshots` | `snapshot_date` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
-| `snapshots` | `source` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
 | `tags` | `color` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `tags` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `tags` | `name` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |

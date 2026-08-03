@@ -53,10 +53,22 @@ custom_field_values(dance_id, field_id, value_text, value_num,
 tags(id PK, name UNIQUE, color); dance_tags(dance_id, tag_id, PK(...))
 dance_links(id PK, dance_id, kind, url, target_dance_id, label)
 provenance(dance_id PK, source, external_id, imported_at, permission,
-           license, raw_payload, source_version)
+           license, source_version)
 settings(key PK, value_json)                   -- dialects, prefs, source URLs
-snapshots(source PK, snapshot_date, manifest_json, imported_at)
 ```
+
+Two pieces of this sketch were built and later removed, both at schema v21:
+
+- `provenance.raw_payload` (and its `program_provenance` twin) stored the
+  verbatim imported source record. Nothing ever read it, and for an HTML import
+  it held the whole source page, so it was dropped (#781). Re-import dedupes on
+  `(source, external_id)` and re-fetches from the source, which needs no stored
+  copy.
+- A `snapshots(source PK, snapshot_date, manifest_json, imported_at)` table
+  recorded the last-imported hosted-archive snapshot so the app could offer
+  "update available" prompts. That feature was cut in favour of direct in-app
+  import (ROADMAP 6.2/6.3; see `callersbox-snapshot.md`, marked superseded), and
+  nothing ever wrote a row, so the table was dropped (#782).
 
 ## Search execution
 

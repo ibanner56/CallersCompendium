@@ -77,34 +77,6 @@ const _freeformNote = DataClassification(
       'contain contact details the user typed there.',
 );
 
-/// A verbatim copy of an imported source record, stored exactly as fetched.
-///
-/// Contents vary by adapter: the entire HTML page for a ContraDB HTML import
-/// (`contradb_html_adapter.dart`), the JSON record for ContraDB/Caller's Box,
-/// and `{rowId, columns, body}` for a Caller's Companion `.USR` row. A real
-/// ContraDB dance page in this repo's fixtures is 7,492 bytes, so this is the
-/// single largest per-dance field.
-///
-/// **Nothing reads it.** The only consumers are the archive export round-trip
-/// (`archive_codec.dart`) and row-to-model plumbing; no re-parse path consumes
-/// it. Kept device-local (maintainer ruling) because it is verbatim
-/// third-party content of unbounded shape and nothing needs it to travel.
-/// Whether the column should exist at all is tracked in #781.
-///
-/// Note that `program_provenance.raw_payload` is **never written**: both
-/// program-import paths (`callers_companion_programs.dart`,
-/// `compendium_archive_import.dart`) construct `Provenance` without it. It is
-/// classified here for completeness, not because it holds anything today.
-const _rawPayload = DataClassification(
-  term: DpvTerm.unclassifiedPersonal,
-  subject: DataSubject.thirdParty,
-  egress: EgressClass.deviceLocal,
-  note:
-      'Verbatim imported source record (whole HTML page, or the source JSON '
-      'row). Unbounded third-party content that nothing in the app reads. '
-      'Device-local by maintainer ruling.',
-);
-
 /// A performer credit for a public event. Personal data about a third party,
 /// classified [EgressClass.shareable] because an event\'s billing is already
 /// public and a program without its caller and band is close to meaningless.
@@ -372,7 +344,6 @@ final Map<String, DataClassification> fieldClassifications = {
   'provenance.permission': _choreography,
   'provenance.license': _choreography,
   'provenance.source_version': _choreography,
-  'provenance.raw_payload': _rawPayload,
   'program_provenance.program_id': _key,
   'program_provenance.source': _choreography,
   'program_provenance.external_id': _choreography,
@@ -380,7 +351,6 @@ final Map<String, DataClassification> fieldClassifications = {
   'program_provenance.permission': _choreography,
   'program_provenance.license': _choreography,
   'program_provenance.source_version': _choreography,
-  'program_provenance.raw_payload': _rawPayload,
 
   // ------------------------------------------------------- settings, cache --
   'settings.key': const DataClassification(
@@ -401,10 +371,6 @@ final Map<String, DataClassification> fieldClassifications = {
         'layer so a blanket sync of the settings table cannot happen by '
         'accident; per-key rules decide what actually travels.',
   ),
-  'snapshots.source': _derivedIndex,
-  'snapshots.snapshot_date': _derivedIndex,
-  'snapshots.manifest_json': _derivedIndex,
-  'snapshots.imported_at': _derivedIndex,
 };
 
 const _contactStreet = DataClassification(

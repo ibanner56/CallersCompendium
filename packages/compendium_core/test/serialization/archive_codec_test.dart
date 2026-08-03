@@ -121,7 +121,6 @@ CompendiumArchive _sampleArchive() {
       importedAt: DateTime.utc(2025, 3, 4, 5, 6, 7),
       permission: 'full',
       license: 'CC-BY',
-      rawPayload: '{"id":3418,"title":"Full Fidelity"}',
       sourceVersion: '2025-01',
     ),
     composedOn: PartialDate(1989),
@@ -264,7 +263,6 @@ void main() {
       final prov = d1.provenance!;
       expect(prov.source, ProvenanceSource.callersbox);
       expect(prov.externalId, '3418');
-      expect(prov.rawPayload, '{"id":3418,"title":"Full Fidelity"}');
       expect(prov.importedAt, DateTime.utc(2025, 3, 4, 5, 6, 7));
 
       final f = result.archive.customFields.firstWhere(

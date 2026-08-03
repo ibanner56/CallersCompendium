@@ -31,10 +31,15 @@ void main() {
           'dance_links',
           'provenance',
           'settings',
-          'snapshots',
           'dance_fts',
         }),
       );
+
+      // A fresh database must NOT create the storage removed at v21 (#781,
+      // #782) — `containsAll` above would pass whether or not they exist, so
+      // the negative is asserted explicitly. This catches a reintroduction via
+      // `createAll()` that the migration path alone would not.
+      expect(names, isNot(contains('snapshots')));
     });
 
     test('foreign keys are enforced', () async {

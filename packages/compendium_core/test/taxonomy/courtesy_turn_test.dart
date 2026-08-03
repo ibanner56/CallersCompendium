@@ -30,16 +30,21 @@ void main() {
       expect(tax.version, 23);
     });
 
-    test(
-      'v23 is purely additive — the DB schema version is unchanged at 20',
-      () {
-        // A new move renames nothing and removes nothing, so no stored figure
-        // can reference an id the taxonomy stopped defining and no persisted
-        // data needs rewriting. Contrast v21 (a rename → schema 19) and v22
-        // (a merge → schema 20), each of which DID owe a migration.
-        expect(kCompendiumSchemaVersion, 20);
-      },
-    );
+    test('v23 is purely additive — it owed no schema migration of its own', () {
+      // A new move renames nothing and removes nothing, so no stored figure
+      // can reference an id the taxonomy stopped defining and no persisted
+      // data needs rewriting. Contrast v21 (a rename → schema 19) and v22
+      // (a merge → schema 20), each of which DID owe a migration.
+      //
+      // The pin below is on the *current* schema version, which also moves
+      // for reasons that have nothing to do with the taxonomy — schema 21
+      // dropped unused storage (#781/#782) while the taxonomy stood still.
+      // So a failure here means one of two things, and they are worth
+      // telling apart: either a taxonomy change quietly started owing a
+      // migration (the hazard this test exists for), or an unrelated schema
+      // change landed and this number simply needs updating.
+      expect(kCompendiumSchemaVersion, 21);
+    });
 
     test('registers with the maintainer-ruled param set', () {
       final def = tax.resolve('courtesy_turn')!;

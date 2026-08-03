@@ -296,7 +296,6 @@ class ProgramRepository {
               importedAt: prov.importedAt,
               permission: Value(prov.permission),
               license: Value(prov.license),
-              rawPayload: Value(prov.rawPayload),
               sourceVersion: Value(prov.sourceVersion),
             ),
           );
@@ -743,7 +742,6 @@ class ProgramRepository {
       importedAt: asUtc(row.importedAt),
       permission: row.permission,
       license: row.license,
-      rawPayload: row.rawPayload,
       sourceVersion: row.sourceVersion,
     );
   }
