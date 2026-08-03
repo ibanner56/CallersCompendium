@@ -106,11 +106,31 @@ class FixtureVisitor extends RecursiveAstVisitor<void> {
     final name = node.methodName.name;
     if (name == 'test' || name == 'testWidgets' || name == 'group') {
       final startLine = _lineInfo.getLocation(node.offset).lineNumber;
-      if (_markerAbove(startLine) != null) {
-        _markedScopes.add((
-          startLine,
-          _lineInfo.getLocation(node.end).lineNumber,
-        ));
+      final reason = _markerAbove(startLine);
+      if (reason != null) {
+        // A scope marker suppresses EVERY fixture inside it, so it is held to
+        // the same standard as a per-fixture one — and fails closed. A short
+        // reason is reported and the scope is NOT registered, so the fixtures
+        // inside stay checked rather than being silently waived by a marker
+        // that never had to justify itself.
+        if (reason.length < minReasonLength) {
+          violations.add(
+            FixtureViolation(
+              _path,
+              startLine,
+              'weak-marker',
+              'this `$markerPrefix` marker covers every fixture in the '
+                  'enclosing `$name(`, so its reason must be at least '
+                  '$minReasonLength characters explaining why they are '
+                  'deliberately invalid; got "$reason"',
+            ),
+          );
+        } else {
+          _markedScopes.add((
+            startLine,
+            _lineInfo.getLocation(node.end).lineNumber,
+          ));
+        }
       }
     }
     if (name == 'Figure') {

@@ -169,5 +169,43 @@ void main() {
         isEmpty,
       );
     });
+    test(
+      'a weak reason on an enclosing test is reported, and fails closed',
+      () {
+        // A scope marker waives EVERY fixture inside it, so it is held to the
+        // same standard as a per-fixture one. It must also fail closed: the
+        // scope is not registered, so the fixtures it would have covered stay
+        // checked rather than being waived by a marker that never justified
+        // itself. Found in review of this PR — the scope path previously only
+        // asked whether a marker existed, discarding its reason.
+        final v = check(
+          'void main() {\n'
+          '  // invalid-fixture: n/a\n'
+          "  test('x', () {\n"
+          "    Figure(move: 'swing', params: {'who': 'partner'});\n"
+          '  });\n'
+          '}',
+        );
+        expect(v.map((e) => e.kind), contains('weak-marker'));
+        expect(
+          v.map((e) => e.kind),
+          contains('invalid_param_value'),
+          reason:
+              'the fixture must stay checked, not be waived by a weak marker',
+        );
+      },
+    );
+
+    test('a weak reason on an enclosing group is reported too', () {
+      final v = check(
+        'void main() {\n'
+        '  // invalid-fixture: todo\n'
+        "  group('g', () {\n"
+        "    Figure(move: 'swing', params: {'who': 'partner'});\n"
+        '  });\n'
+        '}',
+      );
+      expect(v.map((e) => e.kind), contains('weak-marker'));
+    });
   });
 }
