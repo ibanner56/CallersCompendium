@@ -197,6 +197,9 @@ jobs:
         # validates, so an invalid param renders literally and every test still
         # passes — which is how seven `meanwhile` fixtures drifted unnoticed for
         # days when #697 split `orbit` into a first-class move (fixed in #745).
+        # Also checks the marker in the other direction (#791): one that
+        # introduces no fixture is a stale claim the next fixture written under
+        # it would silently inherit, so it fails here rather than lying quietly.
         # Runs before the core test suite so a drifted fixture is reported as a
         # fixture problem rather than as whatever downstream assertion it breaks.
         run: dart run tool/check_fixture_validity.dart
