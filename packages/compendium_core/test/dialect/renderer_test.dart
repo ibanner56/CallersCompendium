@@ -1385,7 +1385,6 @@ void main() {
         expect(
           renderer.render(
             // invalid-fixture: value is deliberately out of domain — slice surfaces unknown by/return values instead of blanking
-            // invalid-fixture: value is deliberately out of domain — slice surfaces unknown by/return values instead of blanking
             Figure(
               move: 'slice',
               params: {'by': 'wholeSet', 'return': 'loopBack'},
@@ -1414,8 +1413,6 @@ void main() {
       test('revolving_door surfaces unknown who/whom/hand values', () {
         expect(
           renderer.render(
-            // invalid-fixture: value is deliberately out of domain — revolving_door surfaces unknown who/whom/hand values
-            // invalid-fixture: value is deliberately out of domain — revolving_door surfaces unknown who/whom/hand values
             // invalid-fixture: value is deliberately out of domain — revolving_door surfaces unknown who/whom/hand values
             Figure(
               move: 'revolving_door',
@@ -1786,7 +1783,6 @@ void main() {
         // unknown first subject is humanized rather than dropped.
         expect(
           renderer.render(
-            // invalid-fixture: value is deliberately out of domain — cross_trails surfaces an unknown subject (structural clause kept)
             // invalid-fixture: value is deliberately out of domain — cross_trails surfaces an unknown subject (structural clause kept)
             Figure(
               move: 'cross_trails',

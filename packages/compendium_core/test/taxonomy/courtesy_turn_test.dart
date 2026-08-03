@@ -567,12 +567,23 @@ void main() {
   });
 
   group('renderer', () {
-    Figure fig(Map<String, Object?> params) => invalidTestFigure(
-      move: 'courtesy_turn',
-      params: {'beats': 4, ...params},
-      reason:
-          'callers pass out-of-domain direction and facing values to prove the renderer surfaces them',
-    );
+    /// Builds a `courtesy_turn` fixture.
+    ///
+    /// Validates at construction by default. A caller passing a deliberately
+    /// out-of-domain value supplies [invalidReason] to opt that ONE call out —
+    /// routing the whole helper through `invalidTestFigure` would disable
+    /// validation for every caller, most of which are valid, and turn the
+    /// opt-out into a general bypass.
+    Figure fig(Map<String, Object?> params, {String? invalidReason}) {
+      final all = <String, Object?>{'beats': 4, ...params};
+      return invalidReason == null
+          ? testFigure(move: 'courtesy_turn', params: all)
+          : invalidTestFigure(
+              move: 'courtesy_turn',
+              params: all,
+              reason: invalidReason,
+            );
+    }
 
     test('canonical is flat and includes the default direction', () {
       // A `renderTemplate` cannot hold a conditional, so the canonical
@@ -671,7 +682,11 @@ void main() {
       // vanishing into a line that looks correct.
       expect(
         renderer.render(
-          fig({'who': 'partners', 'direction': 'widdershins'}),
+          fig(
+            {'who': 'partners', 'direction': 'widdershins'},
+            invalidReason:
+                'out-of-domain direction, to prove the renderer surfaces it rather than blanking it',
+          ),
           Dialect.canonical,
         ),
         'partner courtesy turn widdershins',
