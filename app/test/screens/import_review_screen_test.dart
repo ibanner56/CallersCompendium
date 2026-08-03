@@ -1365,13 +1365,20 @@ void main() {
         await _fetch(tester, 'https://contradb.com.evil.com/dances/1');
 
         expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
-        expect(
-          find.descendant(
-            of: find.byKey(const ValueKey('import-url-error')),
-            matching: find.textContaining('contradb.com'),
-          ),
-          findsOneWidget,
-        );
+        // Assert BOTH allowlisted hosts, not just one. `textContaining` on the
+        // bare host alone would keep passing while the message named only one
+        // of the two — the message's whole job here is to tell the user every
+        // host that works (#783).
+        for (final host in ['contradb.com', 'www.contradb.com']) {
+          expect(
+            find.descendant(
+              of: find.byKey(const ValueKey('import-url-error')),
+              matching: find.textContaining(host),
+            ),
+            findsOneWidget,
+            reason: 'the error should name $host as a supported host',
+          );
+        }
         expect(fetchCalls, 0);
         expect(tester.takeException(), isNull);
       },

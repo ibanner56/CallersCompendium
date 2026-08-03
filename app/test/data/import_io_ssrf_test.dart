@@ -490,4 +490,84 @@ void main() {
       }
     });
   });
+
+  // #765: the search POST used a raw http.Request, whose `followRedirects`
+  // defaults to true, so it followed hops with no guard at all — not the https
+  // check, not isBlockedImportHost, not the per-source allowlist #743 added to
+  // _sendGuarded. It now declines redirects outright rather than following them
+  // under the allowlist, which is stricter: a followed POST hop can retransmit
+  // the request body (the user's search text) to the new host.
+  group('fetchContraDbSearch redirect guard', () {
+    test('sends the search POST with redirect-following disabled', () async {
+      // NOTE ON WHAT THIS CAN AND CANNOT PROVE. MockClient never follows
+      // redirects itself — it just returns whatever the handler returns — so no
+      // unit test here can distinguish followRedirects true from false by
+      // observing behaviour; the following happens inside dart:io's HttpClient,
+      // below this seam. So this asserts the *configuration* that governs it,
+      // which is the property the fix actually changes. It is not decoration:
+      // BaseRequest defaults followRedirects to true, so deleting the line in
+      // _sendContraDbSearch turns this red.
+      var seen = 0;
+      final client = MockClient((req) async {
+        seen++;
+        expect(req.method, 'POST');
+        expect(
+          req.followRedirects,
+          isFalse,
+          reason: 'the search POST must not follow unvalidated hops (#765)',
+        );
+        return http.Response('[]', 200);
+      });
+      await fetchContraDbSearch('petronella', client: client);
+      expect(seen, 1);
+    });
+
+    test('surfaces a 30x as a status failure instead of following it', () async {
+      // With following disabled, a redirect reaches fetchContraDbSearch as an
+      // ordinary non-2xx and takes the existing contraDbHttpStatus path — an
+      // already-localized, non-URL-echoing failure. The search fails closed and
+      // visibly rather than silently fetching from wherever Location pointed,
+      // and this needs no new failure reason or six new translations.
+      final requested = <String>[];
+      final client = MockClient((req) async {
+        requested.add(req.url.toString());
+        return http.Response(
+          '',
+          302,
+          headers: {'location': 'https://evil.example.com/harvest'},
+        );
+      });
+      await expectLater(
+        fetchContraDbSearch('petronella', client: client),
+        throwsA(
+          isA<UrlFetchException>()
+              .having(
+                (e) => e.reason,
+                'reason',
+                UrlFetchFailureReason.contraDbHttpStatus,
+              )
+              .having((e) => e.statusCode, 'statusCode', 302),
+        ),
+      );
+      // Only the fixed endpoint was contacted; the Location target never was.
+      expect(requested, [contraDbSearchUrl]);
+    });
+
+    test('the failure never echoes the redirect target', () async {
+      final client = MockClient(
+        (_) async => http.Response(
+          '',
+          307,
+          headers: {'location': 'https://evil.example.com/harvest?t=secret'},
+        ),
+      );
+      try {
+        await fetchContraDbSearch('petronella', client: client);
+        fail('expected a UrlFetchException');
+      } on UrlFetchException catch (e) {
+        expect(e.toString(), isNot(contains('evil.example.com')));
+        expect(e.toString(), isNot(contains('t=secret')));
+      }
+    });
+  });
 }
