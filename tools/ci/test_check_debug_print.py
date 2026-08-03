@@ -458,6 +458,76 @@ def test_false_positives() -> None:
         == [5],
     )
 
+    # --- block comments ---------------------------------------------------
+    #
+    # The third and last construct carrying lexical state across lines. Both
+    # directions are tested, and the false-positive case deliberately puts the
+    # stray `}` INSIDE a real guard block: at top level it pops the stack in a
+    # way that happens to leave the following call correctly unguarded, so the
+    # test would pass for the wrong reason and read as coverage it isn't.
+    check(
+        "a stray } in a block comment does not pop a real guard",
+        unguarded_lines(
+            "void f() {\n"
+            "  if (kDebugMode) {\n"
+            "    /* } */\n"
+            "    debugPrint('x');\n"
+            "  }\n"
+            "}\n"
+        )
+        == [],
+    )
+
+    check(
+        "the same across a multi-line block comment",
+        unguarded_lines(
+            "void f() {\n"
+            "  if (kDebugMode) {\n"
+            "    /*\n"
+            "      }\n"
+            "    */\n"
+            "    debugPrint('x');\n"
+            "  }\n"
+            "}\n"
+        )
+        == [],
+    )
+
+    check(
+        "guard-opening text inside a block comment is not a guard",
+        unguarded_lines(
+            "void f() {\n"
+            "  /* if (kDebugMode) { */\n"
+            "  debugPrint('leak');\n"
+            "}\n"
+        )
+        == [3],
+        "commented-out code must not bless the live call beneath it",
+    )
+
+    check(
+        "a debugPrint token inside a block comment is not a call",
+        unguarded_lines("void f() {\n  /* debugPrint('x'); */\n}\n") == [],
+    )
+
+    check(
+        "block comments nest",
+        unguarded_lines(
+            "void f() {\n"
+            "  /* outer /* inner } */ still comment { */\n"
+            "  debugPrint('leak');\n"
+            "}\n"
+        )
+        == [3],
+        "Dart nests block comments, so the first */ must not end the outer one",
+    )
+
+    check(
+        "a raw string is masked like any other",
+        unguarded_lines("void f() {\n  final s = r'raw }';\n  debugPrint('x');\n}\n")
+        == [3],
+    )
+
     check(
         "`//` inside a string is not a comment",
         unguarded_lines(

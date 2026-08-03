@@ -132,33 +132,46 @@ def dart_library_files(root: Path) -> list[Path]:
 
 
 def mask_source(text: str) -> list[str]:
-    """Mask every string literal's contents across the whole file.
+    """Mask every string literal and comment across the whole file.
 
     Returns one same-length string per input line, with the inside of every
-    string literal and every `//` comment replaced by spaces. Column positions
-    are preserved because [find_unguarded] compares the offsets of
-    `debugPrint(` matches against the offsets of `{` / `}`.
+    string literal and every comment replaced by spaces. Column positions are
+    preserved because [find_unguarded] compares the offsets of `debugPrint(`
+    matches against the offsets of `{` / `}`.
 
-    Masking has to be whole-file rather than per-line because Dart's
-    triple-quoted literals span lines:
+    Masking has to be whole-file rather than per-line because three Dart
+    constructs carry lexical state across line boundaries: the two triple-quoted
+    string forms, and block comments. Single-line constructs (ordinary quoted
+    strings, raw strings, escapes, `${...}` interpolation, `//`) are already
+    handled correctly by a per-line scan; these three are not, and they are the
+    whole remaining surface.
+
+    Why it matters in both directions. Given
 
     ```dart
-    final sql = '''
-      CREATE TRIGGER t BEGIN {
-    ''';
+    if (kDebugMode) {
+      final sql = '''
+        CREATE TRIGGER t BEGIN {
+      ''';
+    }
+    debugPrint('leak');
     ```
 
-    That `{` is text, not code. Counting it pushes a brace frame that then
-    absorbs the `}` closing a real `kDebugMode` block, leaving the guard on the
-    stack — so a later, genuinely unguarded call is reported as guarded. Such
-    literals are live in this repository (`compendium_core`'s storage layer
-    holds its schema this way).
+    that `{` is text. Counting it pushes a brace frame that then absorbs the `}`
+    closing the real guard, leaving the guard on the stack — so the later,
+    genuinely unguarded call is blessed. The mirror case is a stray `}` inside a
+    comment or literal, which pops a real guard early and makes a properly
+    guarded call be reported.
+
+    Dart block comments nest, so `/*` is tracked with a depth counter rather
+    than a boolean.
     """
     out: list[list[str]] = [[] for _ in text.split("\n")]
     line = 0
     i = 0
     n = len(text)
-    quote: str | None = None  # active delimiter: ' " ''' or \"\"\"
+    quote: str | None = None  # active string delimiter: ' " ''' or \"\"\"
+    block_depth = 0  # nesting depth of /* */
     while i < n:
         c = text[i]
         if c == "\n":
@@ -166,10 +179,23 @@ def mask_source(text: str) -> list[str]:
             line += 1
             i += 1
             continue
+        if block_depth:
+            # Dart block comments nest: `/* /* */ */` closes twice.
+            if text.startswith("/*", i):
+                block_depth += 1
+                out[line].append("  ")
+                i += 2
+                continue
+            if text.startswith("*/", i):
+                block_depth -= 1
+                out[line].append("  ")
+                i += 2
+                continue
+            out[line].append(" ")
+            i += 1
+            continue
         if quote:
             if c == "\\":
-                # An escape inside a single-quoted literal; triple-quoted
-                # literals honour escapes too, so treat both the same.
                 out[line].append("  "[: len(text[i : i + 2])])
                 i += 2
                 continue
@@ -180,6 +206,11 @@ def mask_source(text: str) -> list[str]:
                 continue
             out[line].append(" ")
             i += 1
+            continue
+        if text.startswith("/*", i):
+            block_depth = 1
+            out[line].append("  ")
+            i += 2
             continue
         if text.startswith(("'''", '"""'), i):
             quote = text[i : i + 3]
@@ -192,7 +223,6 @@ def mask_source(text: str) -> list[str]:
             i += 1
             continue
         if c == "/" and i + 1 < n and text[i + 1] == "/":
-            # Blank the rest of the line, stopping at the newline.
             end = text.find("\n", i)
             if end == -1:
                 end = n
@@ -205,7 +235,12 @@ def mask_source(text: str) -> list[str]:
 
 
 def mask_line(line: str) -> str:
-    """Single-line convenience wrapper around [mask_source]."""
+    """Single-line convenience wrapper around [mask_source].
+
+    Only correct for input that opens and closes any multi-line construct on
+    the same line; [mask_source] is the real entry point and is what
+    [find_unguarded] uses.
+    """
     return mask_source(line)[0]
 
 
