@@ -444,12 +444,22 @@ makes self-hosting materially harder, which constraint 4 forbids.
   Mitigated by a persistent hint, not eliminated.
 - **We now operate infrastructure**, with the uptime, abuse and cost that
   implies — mitigated by the app working fully without it.
-- **Settings sync requires a schema migration.** `settings` is
-  `(key, value_json)` with no timestamp, so the `updatedAt` conflict rule cannot
-  reach it. Schema v22 adds `updated_at`, stamping existing rows at migration
-  time. Consequence, deterministic and one-time: because each device stamps at
-  *its own* migration, the device that upgrades last has the newest settings and
-  wins every settings conflict on the first sync afterwards.
+- **Settings sync requires a schema migration, and it should ship first.**
+  `settings` is `(key, value_json)` with no timestamp, so the `updatedAt`
+  conflict rule cannot reach it. Schema v22 adds `updated_at`, stamping existing
+  rows at migration time.
+
+  **Sequencing is deliberate: v22 lands before any other sync work**, on its own.
+  It is the programme's only schema change, so isolating it leaves the rest as
+  feature work with no migration risk; it is defensible on its own terms, so
+  nothing is wasted if the programme stalls; and — the real reason — it defuses
+  the one-time ordering wart. Because each device stamps at *its own* migration
+  time, the device that upgrades last would otherwise win every settings conflict
+  on first sync. That only holds while the stamps still encode migration order.
+  Shipping v22 early means users spend the intervening releases changing settings
+  for real, and every real change overwrites a migration stamp with a meaningful
+  one. The gap between releases is what fixes it, so earlier is strictly
+  better.
 - **The operator can read a store if they choose to.** The design exposes only
   sizes, device counts and activity timestamps, but content is plaintext, so
   access is a matter of policy rather than capability. A break-glass path for

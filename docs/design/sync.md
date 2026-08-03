@@ -163,6 +163,34 @@ timestamp, so the `updatedAt` conflict rule cannot reach it. **Schema v22** adds
 `updated_at`, stamping existing rows at migration time. The new column needs
 classifying like any other, and the coverage ratchet will require it.
 
+#### Land the migration first, before any other sync work
+
+**Schema v22 should ship ahead of every other piece of this programme**, on its
+own, before the protocol, the client or the server exist.
+
+Three reasons, and the third is the one that matters most:
+
+1. **It is the only schema change in the whole programme.** Getting it out of the
+   way leaves the rest as pure feature work with no migration risk, and lets the
+   migration be reviewed as what it is — a small, independently testable change
+   with its own fixture and red-run proof — rather than as one commit inside a
+   large feature.
+2. **It is independently sensible.** A modification timestamp on settings is
+   defensible on its own terms; nothing about it presumes Sync ships, so nothing
+   is wasted if the programme stalls.
+3. **It defuses the one-time ordering effect.** The known wart is that each
+   device stamps `updated_at` at *its own* migration time, so the device that
+   upgrades last wins every settings conflict on first sync. That is only true
+   while the stamps still reflect *migration order*. Ship v22 early and users
+   spend the intervening releases actually changing settings — and every real
+   change overwrites the migration stamp with a genuine one. By the time Sync
+   arrives, `updated_at` largely reflects real recency, which is what the
+   conflict rule assumes. Ship it *with* Sync and every device syncs for the
+   first time carrying stamps that mean nothing but "when I upgraded".
+
+The gap between the two releases is doing the work here, so earlier is strictly
+better and there is no reason to wait.
+
 ### Content hash
 
 `hash = lowercase-hex(SHA-256(canonical-json(blob)))`
