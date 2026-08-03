@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Parity PR4 (issue #290 ocean-wave family) — Part A display renders.
 ///
@@ -45,13 +46,13 @@ void main() {
       };
       expect(
         renderer.renderCanonical(
-          Figure(move: 'form_short_waves', params: params),
+          testFigure(move: 'form_short_waves', params: params),
         ),
         'form short waves',
       );
       expect(
         renderer.renderCanonical(
-          Figure(move: 'pass_the_ocean', params: params),
+          testFigure(move: 'pass_the_ocean', params: params),
         ),
         'pass the ocean',
       );
@@ -61,7 +62,7 @@ void main() {
   group('display base line is !forCanonical-gated', () {
     test('display diverges from canonical for both moves', () {
       for (final id in const ['form_short_waves', 'pass_the_ocean']) {
-        final figure = Figure(move: id);
+        final figure = testFigure(move: id);
         expect(
           renderer.render(figure, d),
           isNot(renderer.renderCanonical(figure)),
@@ -106,7 +107,7 @@ void main() {
 
     test('missing center subject leaves no dangling connective', () {
       final out = renderer.render(
-        Figure(move: 'form_short_waves', params: {'center': null}),
+        invalidTestFigure(move: 'form_short_waves', params: {'center': null}, reason: 'a null center subject must render without leaving a dangling connective'),
         d,
       );
       expect(out, startsWith('form short waves - by the right in the center'));

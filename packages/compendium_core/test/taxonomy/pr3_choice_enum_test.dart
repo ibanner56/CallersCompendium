@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Roadmap 2.4a — PR3 "choice-enum" moves: down_the_hall, up_the_hall, zig_zag,
 /// slice, contra_corners, turn_alone, figure_8, poussette, rory_o_more. Adds the
@@ -25,9 +26,9 @@ void main() {
     for (final id in newMoves) {
       test('$id resolves and validates with all defaults populated', () {
         expect(tax.resolve(id)?.id, id, reason: '$id should be registered');
-        final defaults = tax.effectiveParams(Figure(move: id));
+        final defaults = tax.effectiveParams(testFigure(move: id));
         expect(
-          tax.validateFigure(Figure(move: id, params: defaults)),
+          tax.validateFigure(testFigure(move: id, params: defaults)),
           isEmpty,
           reason: '$id default param values must all be in-domain',
         );
@@ -131,7 +132,7 @@ void main() {
     test('figure_8 accepts both 8 (half) and 16 (full)', () {
       for (final b in [8, 16]) {
         expect(
-          tax.validateFigure(Figure(move: 'figure_8', params: {'beats': b})),
+          tax.validateFigure(testFigure(move: 'figure_8', params: {'beats': b})),
           isEmpty,
         );
       }

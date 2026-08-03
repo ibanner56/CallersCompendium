@@ -2,10 +2,11 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// A taxonomy-valid neighbor swing (16 beats).
 Figure _swing({String who = 'neighbors', int beats = 16}) =>
-    Figure(move: 'swing', params: {'who': who, 'beats': beats});
+    testFigure(move: 'swing', params: {'who': who, 'beats': beats});
 
 /// A taxonomy-valid circle (used as a second figure in multi-figure mappings).
 Figure _circle() => parseFreeTextFigureEntry('circle left 3/4').single;

@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 void main() {
   final tax = contraTaxonomy;
@@ -182,7 +183,7 @@ void main() {
     test('custom move accepts any beats without warning', () {
       expect(
         tax.validateFigure(
-          Figure(move: customMove, params: {'text': 'x', 'beats': 13}),
+          testFigure(move: customMove, params: {'text': 'x', 'beats': 13}),
         ),
         isEmpty,
       );

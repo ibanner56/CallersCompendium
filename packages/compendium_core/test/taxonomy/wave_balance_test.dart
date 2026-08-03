@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Issue #295 (subsuming #296) — wave-formation balance.
 ///
@@ -77,7 +78,7 @@ void main() {
       expect(spec.validate('sideways'), isFalse);
       expect(
         tax.validateFigure(
-          Figure(
+          testFigure(
             move: 'form_long_waves',
             params: const {'hand': ParamVocab.unspecified},
           ),
@@ -119,7 +120,7 @@ void main() {
         );
         expect(
           tax.validateFigure(
-            Figure(move: 'form_long_waves', params: {'who': who}),
+            testFigure(move: 'form_long_waves', params: {'who': who}),
           ),
           isEmpty,
         );
@@ -136,7 +137,7 @@ void main() {
       ]) {
         expect(
           tax.validateFigure(
-            Figure(move: 'form_long_waves', params: {'who': who}),
+            invalidTestFigure(move: 'form_long_waves', params: {'who': who}, reason: 'asserts validateFigure REJECTS dancer tokens outside the narrowed domain for this move'),
           ),
           isNotEmpty,
           reason: '$who has no inverse and must not validate',
@@ -179,7 +180,7 @@ void main() {
       );
       expect(
         renderer.renderCanonical(
-          Figure(move: 'form_short_waves', params: params),
+          testFigure(move: 'form_short_waves', params: params),
         ),
         'form short waves',
       );
@@ -275,7 +276,7 @@ void main() {
       // clause — the renderer's fallback is defence in depth, not dead code.
       for (final who in const ['*', 'neighbors']) {
         final out = renderer.render(
-          Figure(move: 'form_long_waves', params: {'who': who}),
+          invalidTestFigure(move: 'form_long_waves', params: {'who': who}, reason: 'an out-of-domain imported who must still render without a dangling clause (defence in depth)'),
           d,
         );
         expect(out, contains('facing in'));
@@ -321,7 +322,7 @@ void main() {
     for (final move in const ['form_short_waves', 'form_long_waves']) {
       test('$move summary carries one balance clause', () {
         final summary = renderer.renderSummary(
-          Figure(move: move, params: const {'balance': true}),
+          testFigure(move: move, params: const {'balance': true}),
           d,
         );
         expect(summary, contains('and balance'));
@@ -333,7 +334,7 @@ void main() {
 
       test('$move summary is unchanged without a balance', () {
         expect(
-          renderer.renderSummary(Figure(move: move), d),
+          renderer.renderSummary(testFigure(move: move), d),
           isNot(contains('balance')),
         );
       });

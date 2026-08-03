@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Seeds [repos] with a representative dataset spanning every entity type and
 /// their joins, so the export/restore round-trip is exercised end to end.
@@ -68,7 +69,7 @@ Future<void> _seed(CompendiumRepositories repos) async {
       phraseStructure: '6*8*2',
       figures: [
         Figure(move: 'swing', params: {'who': 'partners', 'beats': 16}),
-        Figure(move: customMove, params: {'text': 'weave', 'beats': 8}),
+        testFigure(move: customMove, params: {'text': 'weave', 'beats': 8}),
       ],
       hook: 'zesty',
       callingNotes: 'teach it',

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Issue #576 — the first-class `meetTarget` hey param.
 ///
@@ -18,7 +19,7 @@ void main() {
   final renderer = FigureRenderer(tax);
 
   Figure hey({String? length, String? meetTarget, String? pass1, int? beats}) =>
-      Figure(
+      invalidTestFigure(
         move: 'hey',
         params: {
           'pass1': ?pass1,
@@ -26,6 +27,7 @@ void main() {
           'meetTarget': ?meetTarget,
           'beats': ?beats,
         },
+        reason: 'callers pass hostile tokens such as <script> to prove they are escaped, not executed or blanked',
       );
 
   group('taxonomy', () {

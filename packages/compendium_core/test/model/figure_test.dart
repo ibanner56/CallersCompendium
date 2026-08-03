@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 void main() {
   group('Figure', () {
@@ -19,7 +20,7 @@ void main() {
 
     test('rejects negative and non-integer beats', () {
       expect(
-        () => Figure(move: 'swing', params: {'beats': -1}),
+        () => testFigure(move: 'swing', params: {'beats': -1}),
         throwsArgumentError,
       );
       expect(
@@ -38,7 +39,7 @@ void main() {
 
     test('params are unmodifiable and defensively copied', () {
       final source = <String, Object?>{'who': 'partners', 'beats': 16};
-      final f = Figure(move: 'swing', params: source);
+      final f = testFigure(move: 'swing', params: source);
       source['who'] = 'neighbors';
       expect(f.params['who'], 'partners');
       expect(() => f.params['x'] = 1, throwsUnsupportedError);
@@ -46,7 +47,7 @@ void main() {
 
     test('isCustom only for the custom move', () {
       expect(
-        Figure(move: customMove, params: {'text': 'weave'}).isCustom,
+        testFigure(move: customMove, params: {'text': 'weave'}).isCustom,
         isTrue,
       );
       expect(Figure(move: 'swing').isCustom, isFalse);
@@ -84,13 +85,13 @@ void main() {
       test('defaults to userEntered', () {
         expect(Figure(move: 'swing').customOrigin, CustomOrigin.userEntered);
         expect(
-          Figure(move: customMove, params: {'text': 'x'}).customOrigin,
+          testFigure(move: customMove, params: {'text': 'x'}).customOrigin,
           CustomOrigin.userEntered,
         );
       });
 
       test('copyWith sets and overrides the origin', () {
-        final f = Figure(move: customMove, params: {'text': 'x'});
+        final f = testFigure(move: customMove, params: {'text': 'x'});
         final g = f.copyWith(customOrigin: CustomOrigin.importGap);
         expect(g.customOrigin, CustomOrigin.importGap);
         // Untouched copyWith preserves the origin.
@@ -98,7 +99,7 @@ void main() {
       });
 
       test('== and hashCode distinguish origins', () {
-        final user = Figure(move: customMove, params: {'text': 'x'});
+        final user = testFigure(move: customMove, params: {'text': 'x'});
         final gap = user.copyWith(customOrigin: CustomOrigin.importGap);
         expect(user, isNot(equals(gap)));
         expect(user.hashCode, isNot(equals(gap.hashCode)));

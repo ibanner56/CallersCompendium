@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 void main() {
   group('figure JSON round-trip', () {
@@ -13,9 +14,9 @@ void main() {
         progression: true,
       ),
       Figure(move: 'balance_the_ring', params: {'beats': 4}, note: 'gently'),
-      Figure(move: customMove, params: {'text': 'weave the ring', 'beats': 8}),
+      testFigure(move: customMove, params: {'text': 'weave the ring', 'beats': 8}),
       Figure(move: 'petronella'),
-      Figure(
+      testFigure(
         move: customMove,
         params: {'text': 'kept verbatim', 'beats': 8},
         customOrigin: CustomOrigin.importGap,
@@ -62,14 +63,14 @@ void main() {
 
     test('omits customOrigin for the default userEntered', () {
       final json = figureToJson(
-        Figure(move: customMove, params: {'text': 'x'}),
+        testFigure(move: customMove, params: {'text': 'x'}),
       );
       expect(json.containsKey('customOrigin'), isFalse);
     });
 
     test('writes customOrigin only for importGap', () {
       final json = figureToJson(
-        Figure(
+        testFigure(
           move: customMove,
           params: {'text': 'x'},
           customOrigin: CustomOrigin.importGap,

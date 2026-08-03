@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 void main() {
   final tax = contraTaxonomy;
@@ -84,7 +85,7 @@ void main() {
 
     test('malformed (non-String) custom text is treated as empty, never throws '
         '(OWASP: params come from untrusted import content)', () {
-      final malformed = Figure(move: customMove, params: {'text': 42});
+      final malformed = invalidTestFigure(move: customMove, params: {'text': 42}, reason: 'non-String custom text must be treated as empty and never throw (OWASP: import content is untrusted)');
       expect(() => figureCanonicalKey(malformed, tax), returnsNormally);
       expect(
         figureCanonicalKey(malformed, tax),
@@ -284,11 +285,11 @@ void main() {
       final count = kMaxFigureDiffLines + 5;
       final oldFigures = [
         for (var i = 0; i < count; i++)
-          Figure(move: 'allemande', params: {'turn': 1.0 + i}),
+          invalidTestFigure(move: 'allemande', params: {'turn': 1.0 + i}, reason: 'the loop sweeps turn past the taxonomy domain to exceed kMaxFigureDiffLines'),
       ];
       final newFigures = [
         for (var i = 0; i < count; i++)
-          Figure(move: 'do_si_do', params: {'turn': 1.0 + i}),
+          invalidTestFigure(move: 'do_si_do', params: {'turn': 1.0 + i}, reason: 'the loop sweeps turn past the taxonomy domain to exceed kMaxFigureDiffLines'),
       ];
       final result = diff(oldFigures, newFigures);
       expect(result.identical, isFalse);

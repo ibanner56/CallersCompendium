@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 void main() {
   final renderer = FigureRenderer(contraTaxonomy);
@@ -35,7 +36,7 @@ void main() {
 
     test('quarter-turn rotation words', () {
       String r(num t) => renderer.renderCanonical(
-        Figure(move: 'allemande', params: {'turn': t}),
+        testFigure(move: 'allemande', params: {'turn': t}),
       );
       expect(r(0.5), contains('½'));
       expect(r(0.75), contains('¾'));
@@ -62,7 +63,7 @@ void main() {
 
   group('swing prefix modifier', () {
     Figure swing(String prefix) =>
-        Figure(move: 'swing', params: {'who': 'neighbors', 'prefix': prefix});
+        testFigure(move: 'swing', params: {'who': 'neighbors', 'prefix': prefix});
 
     test('none renders no prefix word', () {
       expect(
@@ -138,14 +139,14 @@ void main() {
     test('render their (dialect-processed) free text', () {
       expect(
         renderer.renderCanonical(
-          Figure(move: customMove, params: {'text': 'weave the ring'}),
+          testFigure(move: customMove, params: {'text': 'weave the ring'}),
         ),
         'weave the ring',
       );
     });
 
     test('blank custom text falls back to the move name', () {
-      expect(renderer.renderCanonical(Figure(move: customMove)), 'custom');
+      expect(renderer.renderCanonical(testFigure(move: customMove)), 'custom');
     });
   });
 
@@ -342,7 +343,7 @@ void main() {
 
     test('describes partial single turns as travel around the ring', () {
       String r(num t) => renderer.renderVerbose(
-        Figure(move: 'allemande', params: {'turn': t}),
+        testFigure(move: 'allemande', params: {'turn': t}),
         larks,
       );
       expect(r(0.25), endsWith('a quarter of the way'));
@@ -353,7 +354,7 @@ void main() {
     test('output carries no notation glyphs', () {
       for (final t in [0.25, 0.5, 0.75, 1, 1.5, 2, 2.5]) {
         final out = renderer.renderVerbose(
-          Figure(move: 'allemande', params: {'turn': t}),
+          testFigure(move: 'allemande', params: {'turn': t}),
           larks,
         );
         expect(
@@ -398,7 +399,7 @@ void main() {
     test('custom free text and unknown moves match render', () {
       expect(
         renderer.renderVerbose(
-          Figure(move: customMove, params: {'text': 'weave the ring'}),
+          testFigure(move: customMove, params: {'text': 'weave the ring'}),
           larks,
         ),
         'weave the ring',
@@ -611,7 +612,7 @@ void main() {
 
       test('every hall ender maps to its ContraDB string', () {
         String s(String ender) => renderer.renderSummary(
-          Figure(move: 'down_the_hall', params: {'ender': ender}),
+          testFigure(move: 'down_the_hall', params: {'ender': ender}),
           d,
         );
         expect(s('turnAlone'), endsWith('and turn alone'));
@@ -638,7 +639,7 @@ void main() {
       // + `_displayBaseRenderers['hey']`); `_summarySuffix` no longer appends a
       // parenthetical, so the summary now equals the full base line.
       String s(String length) => renderer.renderSummary(
-        Figure(move: 'hey', params: {'length': length}),
+        testFigure(move: 'hey', params: {'length': length}),
         d,
       );
       test('half (default) names the length inline', () {
@@ -668,9 +669,10 @@ void main() {
       // issue #576: a set `meetTarget` names WHICH pair you run until you meet.
       String sTarget(String length, String meetTarget) =>
           renderer.renderSummary(
-            Figure(
+            invalidTestFigure(
               move: 'hey',
               params: {'length': length, 'meetTarget': meetTarget},
+              reason: 'callers pass an out-of-domain meetTarget to prove the renderer surfaces it rather than blanking it',
             ),
             d,
           );
@@ -718,7 +720,7 @@ void main() {
           'lessThanHalf',
           'betweenHalfAndFull',
         ]) {
-          final f = Figure(move: 'hey', params: {'length': length});
+          final f = testFigure(move: 'hey', params: {'length': length});
           expect(renderer.renderSummary(f, d), renderer.render(f, d));
           expect(
             renderer.renderSummary(f, d, verbose: true),
@@ -1840,7 +1842,7 @@ void main() {
 
   group('decimals display flag (#368)', () {
     Figure allemande(num turn) =>
-        Figure(move: 'allemande', params: {'turn': turn});
+        invalidTestFigure(move: 'allemande', params: {'turn': turn}, reason: 'the decimals-display sweep uses turn values beyond the taxonomy domain');
 
     test('renders turn amounts as leading-zero decimals when opted in', () {
       String d(num t) => renderer.render(allemande(t), larks, decimals: true);

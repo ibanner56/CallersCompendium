@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Core-model behaviour of the `meanwhile` container figure (#590): the
 /// [Figure.meanwhile] factory, structural caps, the [Figure.subFigures]
@@ -27,7 +28,7 @@ void main() {
     test('allows more than two sides up to the cap', () {
       final sides = [
         for (var i = 0; i < kMaxMeanwhileSides; i++)
-          Figure(move: 'custom', params: {'text': 'side $i'}),
+          testFigure(move: 'custom', params: {'text': 'side $i'}),
       ];
       final f = Figure.meanwhile(figures: sides, beats: 4);
       expect(f.subFigures, hasLength(kMaxMeanwhileSides));
@@ -43,7 +44,7 @@ void main() {
     test('rejects more sides than the cap', () {
       final tooMany = [
         for (var i = 0; i <= kMaxMeanwhileSides; i++)
-          Figure(move: 'custom', params: {'text': 'side $i'}),
+          testFigure(move: 'custom', params: {'text': 'side $i'}),
       ];
       expect(
         () => Figure.meanwhile(figures: tooMany, beats: 8),

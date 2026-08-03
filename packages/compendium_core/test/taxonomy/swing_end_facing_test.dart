@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Issue #543 — the first-class `endFacing` swing param.
 ///
@@ -15,7 +16,7 @@ void main() {
   final renderer = FigureRenderer(tax);
 
   Figure swing({String? who, String? prefix, String? endFacing, int? beats}) =>
-      Figure(
+      invalidTestFigure(
         move: 'swing',
         params: {
           'who': ?who,
@@ -23,6 +24,7 @@ void main() {
           'endFacing': ?endFacing,
           'beats': ?beats,
         },
+        reason: 'callers pass hostile tokens such as <script> to prove they are escaped, not executed or blanked',
       );
 
   group('taxonomy', () {

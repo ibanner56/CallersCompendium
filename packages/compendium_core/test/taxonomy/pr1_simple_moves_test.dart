@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Roadmap 2.4a — PR1 "simple moves": additive ContraDB moves that reuse the
 /// existing ParamKind set (no new vocabulary). Each new move must validate at
@@ -25,7 +26,7 @@ void main() {
       test('$id resolves and validates at its defaults', () {
         expect(tax.resolve(id)?.id, id, reason: '$id should be registered');
         expect(
-          tax.validateFigure(Figure(move: id)),
+          tax.validateFigure(testFigure(move: id)),
           isEmpty,
           reason: '$id at its default params must produce no issues',
         );

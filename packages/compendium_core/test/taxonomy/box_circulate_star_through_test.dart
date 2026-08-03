@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// PR5 (parser overhaul) added `box_circulate` (ContraDB-sourced, modeled on
 /// `box_the_gnat`) and `star_through` in contraTaxonomyVersion 11. `box_circulate`
@@ -44,7 +45,7 @@ void main() {
     test('default figure validates and renders', () {
       expect(
         tax.validateFigure(
-          Figure(
+          testFigure(
             move: 'box_circulate',
             params: {...tax.effectiveParams(Figure(move: 'box_circulate'))},
           ),
@@ -107,7 +108,7 @@ void main() {
     test('default figure validates and renders', () {
       expect(
         tax.validateFigure(
-          Figure(
+          testFigure(
             move: 'star_through',
             params: {...tax.effectiveParams(Figure(move: 'star_through'))},
           ),

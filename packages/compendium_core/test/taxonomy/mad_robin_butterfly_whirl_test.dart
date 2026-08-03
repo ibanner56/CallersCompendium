@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Issue #295 — give the existing `mad_robin` and `butterfly_whirl` moves the
 /// params The Caller's Box actually states, so its normalized wordings stop
@@ -158,7 +159,7 @@ void main() {
       // `everyone`/`centers`, which cannot be a mad-robin target.
       for (final bad in ['onesRole1', 'everyone', 'centers']) {
         expect(
-          severities(Figure(move: 'mad_robin', params: {'whom': bad})),
+          severities(invalidTestFigure(move: 'mad_robin', params: {'whom': bad}, reason: 'asserts validateFigure REJECTS a single dancer for whom, which names a pair relationship')),
           contains(ValidationSeverity.error),
           reason: '$bad must not be a mad robin target',
         );
@@ -202,7 +203,7 @@ void main() {
       () {
         expect(
           renderer.renderCanonical(
-            Figure(
+            testFigure(
               move: 'butterfly_whirl',
               params: const {
                 'who': ParamVocab.unspecified,
@@ -246,7 +247,7 @@ void main() {
     });
 
     test('clockwise and counterclockwise get DISTINCT canonical keys', () {
-      Figure whirl(String dir) => Figure(
+      Figure whirl(String dir) => testFigure(
         move: 'butterfly_whirl',
         params: {'who': 'partners', 'direction': dir},
       );

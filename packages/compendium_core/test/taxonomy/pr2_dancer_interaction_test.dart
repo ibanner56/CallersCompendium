@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Roadmap 2.4a — PR2 "dancer-interaction" moves: gate, give_and_take,
 /// pull_by_dancers, pull_by_direction, cross_trails, plus the roll_away `whom`
@@ -23,9 +24,9 @@ void main() {
         expect(tax.resolve(id)?.id, id, reason: '$id should be registered');
         // validateFigure only checks explicitly-provided params, so populate
         // the figure with effectiveParams to actually validate the defaults.
-        final defaults = tax.effectiveParams(Figure(move: id));
+        final defaults = tax.effectiveParams(testFigure(move: id));
         expect(
-          tax.validateFigure(Figure(move: id, params: defaults)),
+          tax.validateFigure(testFigure(move: id, params: defaults)),
           isEmpty,
           reason: '$id default param values must all be in-domain',
         );
@@ -108,7 +109,7 @@ void main() {
       for (final b in [2, 4]) {
         expect(
           tax.validateFigure(
-            Figure(move: 'pull_by_dancers', params: {'beats': b}),
+            testFigure(move: 'pull_by_dancers', params: {'beats': b}),
           ),
           isEmpty,
           reason: '$b beats should be typical',

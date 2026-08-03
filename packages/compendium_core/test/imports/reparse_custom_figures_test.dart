@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// An import-gap custom figure carrying [text] as its stored (scrubbed) source
 /// line — exactly how #398 leaves an unparseable line at import time.
@@ -107,10 +108,11 @@ void main() {
       test('non-String text is left as import-gap without throwing', () {
         // A hand-built custom figure with a non-String text param — treat as
         // malformed stored data and leave it alone.
-        final figure = Figure(
+        final figure = invalidTestFigure(
           move: customMove,
           params: const {'text': 42},
           customOrigin: CustomOrigin.importGap,
+          reason: 'malformed stored data: a non-String text param must be left alone rather than throwing',
         );
 
         final result = reparseImportGapFigures([figure]);
@@ -119,7 +121,7 @@ void main() {
       });
 
       test('empty/whitespace text is left unchanged', () {
-        final figure = Figure(
+        final figure = testFigure(
           move: customMove,
           params: const {'text': '   '},
           customOrigin: CustomOrigin.importGap,
@@ -134,7 +136,7 @@ void main() {
         'oversized text is skipped (no unbounded work) without throwing',
         () {
           final huge = 'Neighbor swing ${'x' * (maxReparseTextLength + 1)}';
-          final figure = Figure(
+          final figure = testFigure(
             move: customMove,
             params: {'text': huge},
             customOrigin: CustomOrigin.importGap,
@@ -151,7 +153,7 @@ void main() {
         // still be rejected on its RAW length — we never do the multi-MB
         // trim/copy just to discover it is short after whitespace removal.
         final huge = '${' ' * (maxReparseTextLength + 1)}Neighbor swing ';
-        final figure = Figure(
+        final figure = testFigure(
           move: customMove,
           params: {'text': huge},
           customOrigin: CustomOrigin.importGap,
@@ -165,7 +167,7 @@ void main() {
 
     group('note handling on upgrade', () {
       test('merges a distinct original note with the recognizer note', () {
-        final figure = Figure(
+        final figure = testFigure(
           move: customMove,
           params: const {'text': 'Ladies chain to neighbor'},
           note: 'scoop them up',
@@ -181,7 +183,7 @@ void main() {
       });
 
       test('keeps the original note when the recognizer adds none', () {
-        final figure = Figure(
+        final figure = testFigure(
           move: customMove,
           params: const {'text': 'Neighbor swing'},
           note: 'big smiles',
@@ -201,7 +203,7 @@ void main() {
       });
 
       test('does not duplicate an identical note', () {
-        final figure = Figure(
+        final figure = testFigure(
           move: customMove,
           params: const {'text': 'Ladies chain to neighbor'},
           note: 'to neighbor',

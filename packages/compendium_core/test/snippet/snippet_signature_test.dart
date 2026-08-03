@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 void main() {
   final tax = contraTaxonomy;
@@ -72,7 +73,7 @@ void main() {
     test('returns null for custom / parse-gap figures', () {
       expect(
         figureSnippetSignature(
-          Figure(move: customMove, params: {'text': 'weave the ring'}),
+          testFigure(move: customMove, params: {'text': 'weave the ring'}),
           tax,
         ),
         isNull,

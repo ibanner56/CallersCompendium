@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Param-value-dependent beat counts (ContraDB-sourced). Only a handful of
 /// moves carry a [MoveDef.paramBeats] table; [Taxonomy.effectiveParams] derives
@@ -9,7 +10,7 @@ void main() {
   final tax = contraTaxonomy;
 
   int beatsFor(String move, [Map<String, Object?> params = const {}]) =>
-      tax.effectiveParams(Figure(move: move, params: params))['beats'] as int;
+      tax.effectiveParams(testFigure(move: move, params: params))['beats'] as int;
 
   group('hey length -> beats (ContraDB heyLengthMeetTimes * 8)', () {
     test('lessThanHalf and half are 8 (meetTimes 1)', () {

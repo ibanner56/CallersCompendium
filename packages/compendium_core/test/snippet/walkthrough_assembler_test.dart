@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 void main() {
   final tax = contraTaxonomy;
@@ -42,7 +43,7 @@ void main() {
     });
 
     test('custom figure uses its override (no signature)', () {
-      final figure = Figure(
+      final figure = testFigure(
         move: customMove,
         params: {'text': 'weave'},
         walkthroughOverride: 'weave the ring slowly',

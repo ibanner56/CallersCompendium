@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Issue #290 — split the overloaded `form_an_ocean_wave` into a default
 /// short-wave `form_short_waves` ("form a wave") and a distinct
@@ -30,9 +31,9 @@ void main() {
     for (final id in splitMoves) {
       test('$id resolves and validates with all defaults populated', () {
         expect(tax.resolve(id)?.id, id, reason: '$id should be registered');
-        final defaults = tax.effectiveParams(Figure(move: id));
+        final defaults = tax.effectiveParams(testFigure(move: id));
         expect(
-          tax.validateFigure(Figure(move: id, params: defaults)),
+          tax.validateFigure(testFigure(move: id, params: defaults)),
           isEmpty,
           reason: '$id default param values must all be in-domain',
         );
@@ -75,7 +76,7 @@ void main() {
         () {
           expect(tax.resolve(id)!.goodBeats, anyOf(isNull, isEmpty));
           expect(
-            tax.validateFigure(Figure(move: id, params: {'beats': 8})),
+            tax.validateFigure(testFigure(move: id, params: {'beats': 8})),
             isEmpty,
           );
         },
@@ -98,10 +99,10 @@ void main() {
       'both accept the balance flag without changing the canonical text',
       () {
         for (final id in splitMoves) {
-          final expected = renderer.renderCanonical(Figure(move: id));
+          final expected = renderer.renderCanonical(testFigure(move: id));
           expect(
             renderer.renderCanonical(
-              Figure(move: id, params: {'balance': true}),
+              testFigure(move: id, params: {'balance': true}),
             ),
             expected,
             reason: 'balance is structured-only for $id',

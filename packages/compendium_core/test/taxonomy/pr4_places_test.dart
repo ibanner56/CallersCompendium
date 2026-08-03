@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Roadmap 2.4a — PR4 "places family": circle, star, facing_star,
 /// square_through, plus the new `ParamKind.places` engine type (int 1..10,
@@ -32,9 +33,9 @@ void main() {
     for (final id in newMoves) {
       test('$id resolves and validates with all defaults populated', () {
         expect(tax.resolve(id)?.id, id, reason: '$id should be registered');
-        final defaults = tax.effectiveParams(Figure(move: id));
+        final defaults = tax.effectiveParams(testFigure(move: id));
         expect(
-          tax.validateFigure(Figure(move: id, params: defaults)),
+          tax.validateFigure(testFigure(move: id, params: defaults)),
           isEmpty,
           reason: '$id default param values must all be in-domain',
         );
