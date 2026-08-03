@@ -90,7 +90,6 @@ Future<void> _seed(CompendiumRepositories repos) async {
         externalId: '3418',
         importedAt: DateTime.utc(2025, 1, 1),
         permission: 'full',
-        rawPayload: '{"id":3418}',
       ),
       composedOn: PartialDate(1990),
       revisedOn: PartialDate(2001, 6),
@@ -201,7 +200,6 @@ void main() {
         expect(d1.tagIds, ['t1']);
         expect(d1.figures, hasLength(2));
         expect(d1.customFields, hasLength(2));
-        expect(d1.provenance?.rawPayload, '{"id":3418}');
         // Program provenance round-trips too (issue #610: this was silently
         // dropped by the archive codec).
         final p1 = await targetRepos.programs.getById('p1');

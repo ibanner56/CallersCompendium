@@ -5668,17 +5668,6 @@ class $ProvenanceTable extends Provenance
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _rawPayloadMeta = const VerificationMeta(
-    'rawPayload',
-  );
-  @override
-  late final GeneratedColumn<String> rawPayload = GeneratedColumn<String>(
-    'raw_payload',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
   static const VerificationMeta _sourceVersionMeta = const VerificationMeta(
     'sourceVersion',
   );
@@ -5698,7 +5687,6 @@ class $ProvenanceTable extends Provenance
     importedAt,
     permission,
     license,
-    rawPayload,
     sourceVersion,
   ];
   @override
@@ -5747,12 +5735,6 @@ class $ProvenanceTable extends Provenance
         license.isAcceptableOrUnknown(data['license']!, _licenseMeta),
       );
     }
-    if (data.containsKey('raw_payload')) {
-      context.handle(
-        _rawPayloadMeta,
-        rawPayload.isAcceptableOrUnknown(data['raw_payload']!, _rawPayloadMeta),
-      );
-    }
     if (data.containsKey('source_version')) {
       context.handle(
         _sourceVersionMeta,
@@ -5797,10 +5779,6 @@ class $ProvenanceTable extends Provenance
         DriftSqlType.string,
         data['${effectivePrefix}license'],
       ),
-      rawPayload: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}raw_payload'],
-      ),
       sourceVersion: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}source_version'],
@@ -5824,7 +5802,6 @@ class ProvenanceRow extends DataClass implements Insertable<ProvenanceRow> {
   final DateTime importedAt;
   final String? permission;
   final String? license;
-  final String? rawPayload;
   final String? sourceVersion;
   const ProvenanceRow({
     required this.danceId,
@@ -5833,7 +5810,6 @@ class ProvenanceRow extends DataClass implements Insertable<ProvenanceRow> {
     required this.importedAt,
     this.permission,
     this.license,
-    this.rawPayload,
     this.sourceVersion,
   });
   @override
@@ -5855,9 +5831,6 @@ class ProvenanceRow extends DataClass implements Insertable<ProvenanceRow> {
     if (!nullToAbsent || license != null) {
       map['license'] = Variable<String>(license);
     }
-    if (!nullToAbsent || rawPayload != null) {
-      map['raw_payload'] = Variable<String>(rawPayload);
-    }
     if (!nullToAbsent || sourceVersion != null) {
       map['source_version'] = Variable<String>(sourceVersion);
     }
@@ -5878,9 +5851,6 @@ class ProvenanceRow extends DataClass implements Insertable<ProvenanceRow> {
       license: license == null && nullToAbsent
           ? const Value.absent()
           : Value(license),
-      rawPayload: rawPayload == null && nullToAbsent
-          ? const Value.absent()
-          : Value(rawPayload),
       sourceVersion: sourceVersion == null && nullToAbsent
           ? const Value.absent()
           : Value(sourceVersion),
@@ -5901,7 +5871,6 @@ class ProvenanceRow extends DataClass implements Insertable<ProvenanceRow> {
       importedAt: serializer.fromJson<DateTime>(json['importedAt']),
       permission: serializer.fromJson<String?>(json['permission']),
       license: serializer.fromJson<String?>(json['license']),
-      rawPayload: serializer.fromJson<String?>(json['rawPayload']),
       sourceVersion: serializer.fromJson<String?>(json['sourceVersion']),
     );
   }
@@ -5917,7 +5886,6 @@ class ProvenanceRow extends DataClass implements Insertable<ProvenanceRow> {
       'importedAt': serializer.toJson<DateTime>(importedAt),
       'permission': serializer.toJson<String?>(permission),
       'license': serializer.toJson<String?>(license),
-      'rawPayload': serializer.toJson<String?>(rawPayload),
       'sourceVersion': serializer.toJson<String?>(sourceVersion),
     };
   }
@@ -5929,7 +5897,6 @@ class ProvenanceRow extends DataClass implements Insertable<ProvenanceRow> {
     DateTime? importedAt,
     Value<String?> permission = const Value.absent(),
     Value<String?> license = const Value.absent(),
-    Value<String?> rawPayload = const Value.absent(),
     Value<String?> sourceVersion = const Value.absent(),
   }) => ProvenanceRow(
     danceId: danceId ?? this.danceId,
@@ -5938,7 +5905,6 @@ class ProvenanceRow extends DataClass implements Insertable<ProvenanceRow> {
     importedAt: importedAt ?? this.importedAt,
     permission: permission.present ? permission.value : this.permission,
     license: license.present ? license.value : this.license,
-    rawPayload: rawPayload.present ? rawPayload.value : this.rawPayload,
     sourceVersion: sourceVersion.present
         ? sourceVersion.value
         : this.sourceVersion,
@@ -5957,9 +5923,6 @@ class ProvenanceRow extends DataClass implements Insertable<ProvenanceRow> {
           ? data.permission.value
           : this.permission,
       license: data.license.present ? data.license.value : this.license,
-      rawPayload: data.rawPayload.present
-          ? data.rawPayload.value
-          : this.rawPayload,
       sourceVersion: data.sourceVersion.present
           ? data.sourceVersion.value
           : this.sourceVersion,
@@ -5975,7 +5938,6 @@ class ProvenanceRow extends DataClass implements Insertable<ProvenanceRow> {
           ..write('importedAt: $importedAt, ')
           ..write('permission: $permission, ')
           ..write('license: $license, ')
-          ..write('rawPayload: $rawPayload, ')
           ..write('sourceVersion: $sourceVersion')
           ..write(')'))
         .toString();
@@ -5989,7 +5951,6 @@ class ProvenanceRow extends DataClass implements Insertable<ProvenanceRow> {
     importedAt,
     permission,
     license,
-    rawPayload,
     sourceVersion,
   );
   @override
@@ -6002,7 +5963,6 @@ class ProvenanceRow extends DataClass implements Insertable<ProvenanceRow> {
           other.importedAt == this.importedAt &&
           other.permission == this.permission &&
           other.license == this.license &&
-          other.rawPayload == this.rawPayload &&
           other.sourceVersion == this.sourceVersion);
 }
 
@@ -6013,7 +5973,6 @@ class ProvenanceCompanion extends UpdateCompanion<ProvenanceRow> {
   final Value<DateTime> importedAt;
   final Value<String?> permission;
   final Value<String?> license;
-  final Value<String?> rawPayload;
   final Value<String?> sourceVersion;
   final Value<int> rowid;
   const ProvenanceCompanion({
@@ -6023,7 +5982,6 @@ class ProvenanceCompanion extends UpdateCompanion<ProvenanceRow> {
     this.importedAt = const Value.absent(),
     this.permission = const Value.absent(),
     this.license = const Value.absent(),
-    this.rawPayload = const Value.absent(),
     this.sourceVersion = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -6034,7 +5992,6 @@ class ProvenanceCompanion extends UpdateCompanion<ProvenanceRow> {
     required DateTime importedAt,
     this.permission = const Value.absent(),
     this.license = const Value.absent(),
-    this.rawPayload = const Value.absent(),
     this.sourceVersion = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : danceId = Value(danceId),
@@ -6047,7 +6004,6 @@ class ProvenanceCompanion extends UpdateCompanion<ProvenanceRow> {
     Expression<DateTime>? importedAt,
     Expression<String>? permission,
     Expression<String>? license,
-    Expression<String>? rawPayload,
     Expression<String>? sourceVersion,
     Expression<int>? rowid,
   }) {
@@ -6058,7 +6014,6 @@ class ProvenanceCompanion extends UpdateCompanion<ProvenanceRow> {
       if (importedAt != null) 'imported_at': importedAt,
       if (permission != null) 'permission': permission,
       if (license != null) 'license': license,
-      if (rawPayload != null) 'raw_payload': rawPayload,
       if (sourceVersion != null) 'source_version': sourceVersion,
       if (rowid != null) 'rowid': rowid,
     });
@@ -6071,7 +6026,6 @@ class ProvenanceCompanion extends UpdateCompanion<ProvenanceRow> {
     Value<DateTime>? importedAt,
     Value<String?>? permission,
     Value<String?>? license,
-    Value<String?>? rawPayload,
     Value<String?>? sourceVersion,
     Value<int>? rowid,
   }) {
@@ -6082,7 +6036,6 @@ class ProvenanceCompanion extends UpdateCompanion<ProvenanceRow> {
       importedAt: importedAt ?? this.importedAt,
       permission: permission ?? this.permission,
       license: license ?? this.license,
-      rawPayload: rawPayload ?? this.rawPayload,
       sourceVersion: sourceVersion ?? this.sourceVersion,
       rowid: rowid ?? this.rowid,
     );
@@ -6111,9 +6064,6 @@ class ProvenanceCompanion extends UpdateCompanion<ProvenanceRow> {
     if (license.present) {
       map['license'] = Variable<String>(license.value);
     }
-    if (rawPayload.present) {
-      map['raw_payload'] = Variable<String>(rawPayload.value);
-    }
     if (sourceVersion.present) {
       map['source_version'] = Variable<String>(sourceVersion.value);
     }
@@ -6132,7 +6082,6 @@ class ProvenanceCompanion extends UpdateCompanion<ProvenanceRow> {
           ..write('importedAt: $importedAt, ')
           ..write('permission: $permission, ')
           ..write('license: $license, ')
-          ..write('rawPayload: $rawPayload, ')
           ..write('sourceVersion: $sourceVersion, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -7116,337 +7065,6 @@ class SettingsCompanion extends UpdateCompanion<SettingRow> {
   }
 }
 
-class $SnapshotsTable extends Snapshots
-    with TableInfo<$SnapshotsTable, SnapshotRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $SnapshotsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
-  @override
-  late final GeneratedColumn<String> source = GeneratedColumn<String>(
-    'source',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _snapshotDateMeta = const VerificationMeta(
-    'snapshotDate',
-  );
-  @override
-  late final GeneratedColumn<DateTime> snapshotDate = GeneratedColumn<DateTime>(
-    'snapshot_date',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _manifestJsonMeta = const VerificationMeta(
-    'manifestJson',
-  );
-  @override
-  late final GeneratedColumn<String> manifestJson = GeneratedColumn<String>(
-    'manifest_json',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _importedAtMeta = const VerificationMeta(
-    'importedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> importedAt = GeneratedColumn<DateTime>(
-    'imported_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    source,
-    snapshotDate,
-    manifestJson,
-    importedAt,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'snapshots';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<SnapshotRow> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('source')) {
-      context.handle(
-        _sourceMeta,
-        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_sourceMeta);
-    }
-    if (data.containsKey('snapshot_date')) {
-      context.handle(
-        _snapshotDateMeta,
-        snapshotDate.isAcceptableOrUnknown(
-          data['snapshot_date']!,
-          _snapshotDateMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_snapshotDateMeta);
-    }
-    if (data.containsKey('manifest_json')) {
-      context.handle(
-        _manifestJsonMeta,
-        manifestJson.isAcceptableOrUnknown(
-          data['manifest_json']!,
-          _manifestJsonMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_manifestJsonMeta);
-    }
-    if (data.containsKey('imported_at')) {
-      context.handle(
-        _importedAtMeta,
-        importedAt.isAcceptableOrUnknown(data['imported_at']!, _importedAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_importedAtMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {source};
-  @override
-  SnapshotRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return SnapshotRow(
-      source: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}source'],
-      )!,
-      snapshotDate: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}snapshot_date'],
-      )!,
-      manifestJson: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}manifest_json'],
-      )!,
-      importedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}imported_at'],
-      )!,
-    );
-  }
-
-  @override
-  $SnapshotsTable createAlias(String alias) {
-    return $SnapshotsTable(attachedDatabase, alias);
-  }
-}
-
-class SnapshotRow extends DataClass implements Insertable<SnapshotRow> {
-  final String source;
-  final DateTime snapshotDate;
-  final String manifestJson;
-  final DateTime importedAt;
-  const SnapshotRow({
-    required this.source,
-    required this.snapshotDate,
-    required this.manifestJson,
-    required this.importedAt,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['source'] = Variable<String>(source);
-    map['snapshot_date'] = Variable<DateTime>(snapshotDate);
-    map['manifest_json'] = Variable<String>(manifestJson);
-    map['imported_at'] = Variable<DateTime>(importedAt);
-    return map;
-  }
-
-  SnapshotsCompanion toCompanion(bool nullToAbsent) {
-    return SnapshotsCompanion(
-      source: Value(source),
-      snapshotDate: Value(snapshotDate),
-      manifestJson: Value(manifestJson),
-      importedAt: Value(importedAt),
-    );
-  }
-
-  factory SnapshotRow.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return SnapshotRow(
-      source: serializer.fromJson<String>(json['source']),
-      snapshotDate: serializer.fromJson<DateTime>(json['snapshotDate']),
-      manifestJson: serializer.fromJson<String>(json['manifestJson']),
-      importedAt: serializer.fromJson<DateTime>(json['importedAt']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'source': serializer.toJson<String>(source),
-      'snapshotDate': serializer.toJson<DateTime>(snapshotDate),
-      'manifestJson': serializer.toJson<String>(manifestJson),
-      'importedAt': serializer.toJson<DateTime>(importedAt),
-    };
-  }
-
-  SnapshotRow copyWith({
-    String? source,
-    DateTime? snapshotDate,
-    String? manifestJson,
-    DateTime? importedAt,
-  }) => SnapshotRow(
-    source: source ?? this.source,
-    snapshotDate: snapshotDate ?? this.snapshotDate,
-    manifestJson: manifestJson ?? this.manifestJson,
-    importedAt: importedAt ?? this.importedAt,
-  );
-  SnapshotRow copyWithCompanion(SnapshotsCompanion data) {
-    return SnapshotRow(
-      source: data.source.present ? data.source.value : this.source,
-      snapshotDate: data.snapshotDate.present
-          ? data.snapshotDate.value
-          : this.snapshotDate,
-      manifestJson: data.manifestJson.present
-          ? data.manifestJson.value
-          : this.manifestJson,
-      importedAt: data.importedAt.present
-          ? data.importedAt.value
-          : this.importedAt,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('SnapshotRow(')
-          ..write('source: $source, ')
-          ..write('snapshotDate: $snapshotDate, ')
-          ..write('manifestJson: $manifestJson, ')
-          ..write('importedAt: $importedAt')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode =>
-      Object.hash(source, snapshotDate, manifestJson, importedAt);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is SnapshotRow &&
-          other.source == this.source &&
-          other.snapshotDate == this.snapshotDate &&
-          other.manifestJson == this.manifestJson &&
-          other.importedAt == this.importedAt);
-}
-
-class SnapshotsCompanion extends UpdateCompanion<SnapshotRow> {
-  final Value<String> source;
-  final Value<DateTime> snapshotDate;
-  final Value<String> manifestJson;
-  final Value<DateTime> importedAt;
-  final Value<int> rowid;
-  const SnapshotsCompanion({
-    this.source = const Value.absent(),
-    this.snapshotDate = const Value.absent(),
-    this.manifestJson = const Value.absent(),
-    this.importedAt = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  SnapshotsCompanion.insert({
-    required String source,
-    required DateTime snapshotDate,
-    required String manifestJson,
-    required DateTime importedAt,
-    this.rowid = const Value.absent(),
-  }) : source = Value(source),
-       snapshotDate = Value(snapshotDate),
-       manifestJson = Value(manifestJson),
-       importedAt = Value(importedAt);
-  static Insertable<SnapshotRow> custom({
-    Expression<String>? source,
-    Expression<DateTime>? snapshotDate,
-    Expression<String>? manifestJson,
-    Expression<DateTime>? importedAt,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (source != null) 'source': source,
-      if (snapshotDate != null) 'snapshot_date': snapshotDate,
-      if (manifestJson != null) 'manifest_json': manifestJson,
-      if (importedAt != null) 'imported_at': importedAt,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  SnapshotsCompanion copyWith({
-    Value<String>? source,
-    Value<DateTime>? snapshotDate,
-    Value<String>? manifestJson,
-    Value<DateTime>? importedAt,
-    Value<int>? rowid,
-  }) {
-    return SnapshotsCompanion(
-      source: source ?? this.source,
-      snapshotDate: snapshotDate ?? this.snapshotDate,
-      manifestJson: manifestJson ?? this.manifestJson,
-      importedAt: importedAt ?? this.importedAt,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (source.present) {
-      map['source'] = Variable<String>(source.value);
-    }
-    if (snapshotDate.present) {
-      map['snapshot_date'] = Variable<DateTime>(snapshotDate.value);
-    }
-    if (manifestJson.present) {
-      map['manifest_json'] = Variable<String>(manifestJson.value);
-    }
-    if (importedAt.present) {
-      map['imported_at'] = Variable<DateTime>(importedAt.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('SnapshotsCompanion(')
-          ..write('source: $source, ')
-          ..write('snapshotDate: $snapshotDate, ')
-          ..write('manifestJson: $manifestJson, ')
-          ..write('importedAt: $importedAt, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $ProgramProvenanceTable extends ProgramProvenance
     with TableInfo<$ProgramProvenanceTable, ProgramProvenanceRow> {
   @override
@@ -7522,17 +7140,6 @@ class $ProgramProvenanceTable extends ProgramProvenance
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _rawPayloadMeta = const VerificationMeta(
-    'rawPayload',
-  );
-  @override
-  late final GeneratedColumn<String> rawPayload = GeneratedColumn<String>(
-    'raw_payload',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
   static const VerificationMeta _sourceVersionMeta = const VerificationMeta(
     'sourceVersion',
   );
@@ -7552,7 +7159,6 @@ class $ProgramProvenanceTable extends ProgramProvenance
     importedAt,
     permission,
     license,
-    rawPayload,
     sourceVersion,
   ];
   @override
@@ -7601,12 +7207,6 @@ class $ProgramProvenanceTable extends ProgramProvenance
         license.isAcceptableOrUnknown(data['license']!, _licenseMeta),
       );
     }
-    if (data.containsKey('raw_payload')) {
-      context.handle(
-        _rawPayloadMeta,
-        rawPayload.isAcceptableOrUnknown(data['raw_payload']!, _rawPayloadMeta),
-      );
-    }
     if (data.containsKey('source_version')) {
       context.handle(
         _sourceVersionMeta,
@@ -7651,10 +7251,6 @@ class $ProgramProvenanceTable extends ProgramProvenance
         DriftSqlType.string,
         data['${effectivePrefix}license'],
       ),
-      rawPayload: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}raw_payload'],
-      ),
       sourceVersion: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}source_version'],
@@ -7679,7 +7275,6 @@ class ProgramProvenanceRow extends DataClass
   final DateTime importedAt;
   final String? permission;
   final String? license;
-  final String? rawPayload;
   final String? sourceVersion;
   const ProgramProvenanceRow({
     required this.programId,
@@ -7688,7 +7283,6 @@ class ProgramProvenanceRow extends DataClass
     required this.importedAt,
     this.permission,
     this.license,
-    this.rawPayload,
     this.sourceVersion,
   });
   @override
@@ -7710,9 +7304,6 @@ class ProgramProvenanceRow extends DataClass
     if (!nullToAbsent || license != null) {
       map['license'] = Variable<String>(license);
     }
-    if (!nullToAbsent || rawPayload != null) {
-      map['raw_payload'] = Variable<String>(rawPayload);
-    }
     if (!nullToAbsent || sourceVersion != null) {
       map['source_version'] = Variable<String>(sourceVersion);
     }
@@ -7733,9 +7324,6 @@ class ProgramProvenanceRow extends DataClass
       license: license == null && nullToAbsent
           ? const Value.absent()
           : Value(license),
-      rawPayload: rawPayload == null && nullToAbsent
-          ? const Value.absent()
-          : Value(rawPayload),
       sourceVersion: sourceVersion == null && nullToAbsent
           ? const Value.absent()
           : Value(sourceVersion),
@@ -7756,7 +7344,6 @@ class ProgramProvenanceRow extends DataClass
       importedAt: serializer.fromJson<DateTime>(json['importedAt']),
       permission: serializer.fromJson<String?>(json['permission']),
       license: serializer.fromJson<String?>(json['license']),
-      rawPayload: serializer.fromJson<String?>(json['rawPayload']),
       sourceVersion: serializer.fromJson<String?>(json['sourceVersion']),
     );
   }
@@ -7772,7 +7359,6 @@ class ProgramProvenanceRow extends DataClass
       'importedAt': serializer.toJson<DateTime>(importedAt),
       'permission': serializer.toJson<String?>(permission),
       'license': serializer.toJson<String?>(license),
-      'rawPayload': serializer.toJson<String?>(rawPayload),
       'sourceVersion': serializer.toJson<String?>(sourceVersion),
     };
   }
@@ -7784,7 +7370,6 @@ class ProgramProvenanceRow extends DataClass
     DateTime? importedAt,
     Value<String?> permission = const Value.absent(),
     Value<String?> license = const Value.absent(),
-    Value<String?> rawPayload = const Value.absent(),
     Value<String?> sourceVersion = const Value.absent(),
   }) => ProgramProvenanceRow(
     programId: programId ?? this.programId,
@@ -7793,7 +7378,6 @@ class ProgramProvenanceRow extends DataClass
     importedAt: importedAt ?? this.importedAt,
     permission: permission.present ? permission.value : this.permission,
     license: license.present ? license.value : this.license,
-    rawPayload: rawPayload.present ? rawPayload.value : this.rawPayload,
     sourceVersion: sourceVersion.present
         ? sourceVersion.value
         : this.sourceVersion,
@@ -7812,9 +7396,6 @@ class ProgramProvenanceRow extends DataClass
           ? data.permission.value
           : this.permission,
       license: data.license.present ? data.license.value : this.license,
-      rawPayload: data.rawPayload.present
-          ? data.rawPayload.value
-          : this.rawPayload,
       sourceVersion: data.sourceVersion.present
           ? data.sourceVersion.value
           : this.sourceVersion,
@@ -7830,7 +7411,6 @@ class ProgramProvenanceRow extends DataClass
           ..write('importedAt: $importedAt, ')
           ..write('permission: $permission, ')
           ..write('license: $license, ')
-          ..write('rawPayload: $rawPayload, ')
           ..write('sourceVersion: $sourceVersion')
           ..write(')'))
         .toString();
@@ -7844,7 +7424,6 @@ class ProgramProvenanceRow extends DataClass
     importedAt,
     permission,
     license,
-    rawPayload,
     sourceVersion,
   );
   @override
@@ -7857,7 +7436,6 @@ class ProgramProvenanceRow extends DataClass
           other.importedAt == this.importedAt &&
           other.permission == this.permission &&
           other.license == this.license &&
-          other.rawPayload == this.rawPayload &&
           other.sourceVersion == this.sourceVersion);
 }
 
@@ -7868,7 +7446,6 @@ class ProgramProvenanceCompanion extends UpdateCompanion<ProgramProvenanceRow> {
   final Value<DateTime> importedAt;
   final Value<String?> permission;
   final Value<String?> license;
-  final Value<String?> rawPayload;
   final Value<String?> sourceVersion;
   final Value<int> rowid;
   const ProgramProvenanceCompanion({
@@ -7878,7 +7455,6 @@ class ProgramProvenanceCompanion extends UpdateCompanion<ProgramProvenanceRow> {
     this.importedAt = const Value.absent(),
     this.permission = const Value.absent(),
     this.license = const Value.absent(),
-    this.rawPayload = const Value.absent(),
     this.sourceVersion = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -7889,7 +7465,6 @@ class ProgramProvenanceCompanion extends UpdateCompanion<ProgramProvenanceRow> {
     required DateTime importedAt,
     this.permission = const Value.absent(),
     this.license = const Value.absent(),
-    this.rawPayload = const Value.absent(),
     this.sourceVersion = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : programId = Value(programId),
@@ -7902,7 +7477,6 @@ class ProgramProvenanceCompanion extends UpdateCompanion<ProgramProvenanceRow> {
     Expression<DateTime>? importedAt,
     Expression<String>? permission,
     Expression<String>? license,
-    Expression<String>? rawPayload,
     Expression<String>? sourceVersion,
     Expression<int>? rowid,
   }) {
@@ -7913,7 +7487,6 @@ class ProgramProvenanceCompanion extends UpdateCompanion<ProgramProvenanceRow> {
       if (importedAt != null) 'imported_at': importedAt,
       if (permission != null) 'permission': permission,
       if (license != null) 'license': license,
-      if (rawPayload != null) 'raw_payload': rawPayload,
       if (sourceVersion != null) 'source_version': sourceVersion,
       if (rowid != null) 'rowid': rowid,
     });
@@ -7926,7 +7499,6 @@ class ProgramProvenanceCompanion extends UpdateCompanion<ProgramProvenanceRow> {
     Value<DateTime>? importedAt,
     Value<String?>? permission,
     Value<String?>? license,
-    Value<String?>? rawPayload,
     Value<String?>? sourceVersion,
     Value<int>? rowid,
   }) {
@@ -7937,7 +7509,6 @@ class ProgramProvenanceCompanion extends UpdateCompanion<ProgramProvenanceRow> {
       importedAt: importedAt ?? this.importedAt,
       permission: permission ?? this.permission,
       license: license ?? this.license,
-      rawPayload: rawPayload ?? this.rawPayload,
       sourceVersion: sourceVersion ?? this.sourceVersion,
       rowid: rowid ?? this.rowid,
     );
@@ -7966,9 +7537,6 @@ class ProgramProvenanceCompanion extends UpdateCompanion<ProgramProvenanceRow> {
     if (license.present) {
       map['license'] = Variable<String>(license.value);
     }
-    if (rawPayload.present) {
-      map['raw_payload'] = Variable<String>(rawPayload.value);
-    }
     if (sourceVersion.present) {
       map['source_version'] = Variable<String>(sourceVersion.value);
     }
@@ -7987,7 +7555,6 @@ class ProgramProvenanceCompanion extends UpdateCompanion<ProgramProvenanceRow> {
           ..write('importedAt: $importedAt, ')
           ..write('permission: $permission, ')
           ..write('license: $license, ')
-          ..write('rawPayload: $rawPayload, ')
           ..write('sourceVersion: $sourceVersion, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -9252,7 +8819,6 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
   );
   late final $DanceSourcesTable danceSources = $DanceSourcesTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
-  late final $SnapshotsTable snapshots = $SnapshotsTable(this);
   late final $ProgramProvenanceTable programProvenance =
       $ProgramProvenanceTable(this);
   late final $VenuesTable venues = $VenuesTable(this);
@@ -9276,7 +8842,6 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
     publishedSources,
     danceSources,
     settings,
-    snapshots,
     programProvenance,
     venues,
   ];
@@ -14769,7 +14334,6 @@ typedef $$ProvenanceTableCreateCompanionBuilder =
       required DateTime importedAt,
       Value<String?> permission,
       Value<String?> license,
-      Value<String?> rawPayload,
       Value<String?> sourceVersion,
       Value<int> rowid,
     });
@@ -14781,7 +14345,6 @@ typedef $$ProvenanceTableUpdateCompanionBuilder =
       Value<DateTime> importedAt,
       Value<String?> permission,
       Value<String?> license,
-      Value<String?> rawPayload,
       Value<String?> sourceVersion,
       Value<int> rowid,
     });
@@ -14841,11 +14404,6 @@ class $$ProvenanceTableFilterComposer
 
   ColumnFilters<String> get license => $composableBuilder(
     column: $table.license,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get rawPayload => $composableBuilder(
-    column: $table.rawPayload,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14912,11 +14470,6 @@ class $$ProvenanceTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get rawPayload => $composableBuilder(
-    column: $table.rawPayload,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get sourceVersion => $composableBuilder(
     column: $table.sourceVersion,
     builder: (column) => ColumnOrderings(column),
@@ -14975,11 +14528,6 @@ class $$ProvenanceTableAnnotationComposer
 
   GeneratedColumn<String> get license =>
       $composableBuilder(column: $table.license, builder: (column) => column);
-
-  GeneratedColumn<String> get rawPayload => $composableBuilder(
-    column: $table.rawPayload,
-    builder: (column) => column,
-  );
 
   GeneratedColumn<String> get sourceVersion => $composableBuilder(
     column: $table.sourceVersion,
@@ -15044,7 +14592,6 @@ class $$ProvenanceTableTableManager
                 Value<DateTime> importedAt = const Value.absent(),
                 Value<String?> permission = const Value.absent(),
                 Value<String?> license = const Value.absent(),
-                Value<String?> rawPayload = const Value.absent(),
                 Value<String?> sourceVersion = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProvenanceCompanion(
@@ -15054,7 +14601,6 @@ class $$ProvenanceTableTableManager
                 importedAt: importedAt,
                 permission: permission,
                 license: license,
-                rawPayload: rawPayload,
                 sourceVersion: sourceVersion,
                 rowid: rowid,
               ),
@@ -15066,7 +14612,6 @@ class $$ProvenanceTableTableManager
                 required DateTime importedAt,
                 Value<String?> permission = const Value.absent(),
                 Value<String?> license = const Value.absent(),
-                Value<String?> rawPayload = const Value.absent(),
                 Value<String?> sourceVersion = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProvenanceCompanion.insert(
@@ -15076,7 +14621,6 @@ class $$ProvenanceTableTableManager
                 importedAt: importedAt,
                 permission: permission,
                 license: license,
-                rawPayload: rawPayload,
                 sourceVersion: sourceVersion,
                 rowid: rowid,
               ),
@@ -16033,193 +15577,6 @@ typedef $$SettingsTableProcessedTableManager =
       SettingRow,
       PrefetchHooks Function()
     >;
-typedef $$SnapshotsTableCreateCompanionBuilder =
-    SnapshotsCompanion Function({
-      required String source,
-      required DateTime snapshotDate,
-      required String manifestJson,
-      required DateTime importedAt,
-      Value<int> rowid,
-    });
-typedef $$SnapshotsTableUpdateCompanionBuilder =
-    SnapshotsCompanion Function({
-      Value<String> source,
-      Value<DateTime> snapshotDate,
-      Value<String> manifestJson,
-      Value<DateTime> importedAt,
-      Value<int> rowid,
-    });
-
-class $$SnapshotsTableFilterComposer
-    extends Composer<_$CompendiumDatabase, $SnapshotsTable> {
-  $$SnapshotsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get source => $composableBuilder(
-    column: $table.source,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get snapshotDate => $composableBuilder(
-    column: $table.snapshotDate,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get manifestJson => $composableBuilder(
-    column: $table.manifestJson,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get importedAt => $composableBuilder(
-    column: $table.importedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$SnapshotsTableOrderingComposer
-    extends Composer<_$CompendiumDatabase, $SnapshotsTable> {
-  $$SnapshotsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get source => $composableBuilder(
-    column: $table.source,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get snapshotDate => $composableBuilder(
-    column: $table.snapshotDate,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get manifestJson => $composableBuilder(
-    column: $table.manifestJson,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get importedAt => $composableBuilder(
-    column: $table.importedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$SnapshotsTableAnnotationComposer
-    extends Composer<_$CompendiumDatabase, $SnapshotsTable> {
-  $$SnapshotsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get source =>
-      $composableBuilder(column: $table.source, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get snapshotDate => $composableBuilder(
-    column: $table.snapshotDate,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get manifestJson => $composableBuilder(
-    column: $table.manifestJson,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<DateTime> get importedAt => $composableBuilder(
-    column: $table.importedAt,
-    builder: (column) => column,
-  );
-}
-
-class $$SnapshotsTableTableManager
-    extends
-        RootTableManager<
-          _$CompendiumDatabase,
-          $SnapshotsTable,
-          SnapshotRow,
-          $$SnapshotsTableFilterComposer,
-          $$SnapshotsTableOrderingComposer,
-          $$SnapshotsTableAnnotationComposer,
-          $$SnapshotsTableCreateCompanionBuilder,
-          $$SnapshotsTableUpdateCompanionBuilder,
-          (
-            SnapshotRow,
-            BaseReferences<_$CompendiumDatabase, $SnapshotsTable, SnapshotRow>,
-          ),
-          SnapshotRow,
-          PrefetchHooks Function()
-        > {
-  $$SnapshotsTableTableManager(_$CompendiumDatabase db, $SnapshotsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$SnapshotsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$SnapshotsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$SnapshotsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> source = const Value.absent(),
-                Value<DateTime> snapshotDate = const Value.absent(),
-                Value<String> manifestJson = const Value.absent(),
-                Value<DateTime> importedAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => SnapshotsCompanion(
-                source: source,
-                snapshotDate: snapshotDate,
-                manifestJson: manifestJson,
-                importedAt: importedAt,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String source,
-                required DateTime snapshotDate,
-                required String manifestJson,
-                required DateTime importedAt,
-                Value<int> rowid = const Value.absent(),
-              }) => SnapshotsCompanion.insert(
-                source: source,
-                snapshotDate: snapshotDate,
-                manifestJson: manifestJson,
-                importedAt: importedAt,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$SnapshotsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$CompendiumDatabase,
-      $SnapshotsTable,
-      SnapshotRow,
-      $$SnapshotsTableFilterComposer,
-      $$SnapshotsTableOrderingComposer,
-      $$SnapshotsTableAnnotationComposer,
-      $$SnapshotsTableCreateCompanionBuilder,
-      $$SnapshotsTableUpdateCompanionBuilder,
-      (
-        SnapshotRow,
-        BaseReferences<_$CompendiumDatabase, $SnapshotsTable, SnapshotRow>,
-      ),
-      SnapshotRow,
-      PrefetchHooks Function()
-    >;
 typedef $$ProgramProvenanceTableCreateCompanionBuilder =
     ProgramProvenanceCompanion Function({
       required String programId,
@@ -16228,7 +15585,6 @@ typedef $$ProgramProvenanceTableCreateCompanionBuilder =
       required DateTime importedAt,
       Value<String?> permission,
       Value<String?> license,
-      Value<String?> rawPayload,
       Value<String?> sourceVersion,
       Value<int> rowid,
     });
@@ -16240,7 +15596,6 @@ typedef $$ProgramProvenanceTableUpdateCompanionBuilder =
       Value<DateTime> importedAt,
       Value<String?> permission,
       Value<String?> license,
-      Value<String?> rawPayload,
       Value<String?> sourceVersion,
       Value<int> rowid,
     });
@@ -16311,11 +15666,6 @@ class $$ProgramProvenanceTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get rawPayload => $composableBuilder(
-    column: $table.rawPayload,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<String> get sourceVersion => $composableBuilder(
     column: $table.sourceVersion,
     builder: (column) => ColumnFilters(column),
@@ -16379,11 +15729,6 @@ class $$ProgramProvenanceTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get rawPayload => $composableBuilder(
-    column: $table.rawPayload,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get sourceVersion => $composableBuilder(
     column: $table.sourceVersion,
     builder: (column) => ColumnOrderings(column),
@@ -16442,11 +15787,6 @@ class $$ProgramProvenanceTableAnnotationComposer
 
   GeneratedColumn<String> get license =>
       $composableBuilder(column: $table.license, builder: (column) => column);
-
-  GeneratedColumn<String> get rawPayload => $composableBuilder(
-    column: $table.rawPayload,
-    builder: (column) => column,
-  );
 
   GeneratedColumn<String> get sourceVersion => $composableBuilder(
     column: $table.sourceVersion,
@@ -16516,7 +15856,6 @@ class $$ProgramProvenanceTableTableManager
                 Value<DateTime> importedAt = const Value.absent(),
                 Value<String?> permission = const Value.absent(),
                 Value<String?> license = const Value.absent(),
-                Value<String?> rawPayload = const Value.absent(),
                 Value<String?> sourceVersion = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramProvenanceCompanion(
@@ -16526,7 +15865,6 @@ class $$ProgramProvenanceTableTableManager
                 importedAt: importedAt,
                 permission: permission,
                 license: license,
-                rawPayload: rawPayload,
                 sourceVersion: sourceVersion,
                 rowid: rowid,
               ),
@@ -16538,7 +15876,6 @@ class $$ProgramProvenanceTableTableManager
                 required DateTime importedAt,
                 Value<String?> permission = const Value.absent(),
                 Value<String?> license = const Value.absent(),
-                Value<String?> rawPayload = const Value.absent(),
                 Value<String?> sourceVersion = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramProvenanceCompanion.insert(
@@ -16548,7 +15885,6 @@ class $$ProgramProvenanceTableTableManager
                 importedAt: importedAt,
                 permission: permission,
                 license: license,
-                rawPayload: rawPayload,
                 sourceVersion: sourceVersion,
                 rowid: rowid,
               ),
@@ -17190,8 +16526,6 @@ class $CompendiumDatabaseManager {
       $$DanceSourcesTableTableManager(_db, _db.danceSources);
   $$SettingsTableTableManager get settings =>
       $$SettingsTableTableManager(_db, _db.settings);
-  $$SnapshotsTableTableManager get snapshots =>
-      $$SnapshotsTableTableManager(_db, _db.snapshots);
   $$ProgramProvenanceTableTableManager get programProvenance =>
       $$ProgramProvenanceTableTableManager(_db, _db.programProvenance);
   $$VenuesTableTableManager get venues =>

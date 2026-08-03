@@ -352,6 +352,11 @@ class Venues extends Table {
 }
 
 /// Import provenance, one row per dance (at most).
+///
+/// Carried a `raw_payload` column (the verbatim imported source record) until
+/// schema v21, when it was dropped: nothing ever read it, and for an HTML
+/// import it stored the whole source page — kilobytes per dance that
+/// round-tripped through every backup (#781).
 @DataClassName('ProvenanceRow')
 class Provenance extends Table {
   TextColumn get danceId =>
@@ -362,7 +367,6 @@ class Provenance extends Table {
   DateTimeColumn get importedAt => dateTime()();
   TextColumn get permission => text().nullable()();
   TextColumn get license => text().nullable()();
-  TextColumn get rawPayload => text().nullable()();
   TextColumn get sourceVersion => text().nullable()();
 
   @override
@@ -374,6 +378,10 @@ class Provenance extends Table {
 /// Caller's Companion `.USR` dedupes Sets onto the same program (keyed on
 /// `(source, externalId)`) instead of creating duplicates. `null`-provenance
 /// (user-created) programs simply have no row here and never dedupe.
+///
+/// Carried a `raw_payload` column until schema v21, when it was dropped
+/// alongside [Provenance]'s. On this table it was doubly redundant: no import
+/// path ever wrote it, so it was null for every row in existence (#781).
 @DataClassName('ProgramProvenanceRow')
 class ProgramProvenance extends Table {
   TextColumn get programId =>
@@ -384,7 +392,6 @@ class ProgramProvenance extends Table {
   DateTimeColumn get importedAt => dateTime()();
   TextColumn get permission => text().nullable()();
   TextColumn get license => text().nullable()();
-  TextColumn get rawPayload => text().nullable()();
   TextColumn get sourceVersion => text().nullable()();
 
   @override
@@ -402,15 +409,10 @@ class Settings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
-/// Records the last-imported snapshot per external source (e.g. a hosted
-/// CallersBox archive), so the app can offer "update available" prompts.
-@DataClassName('SnapshotRow')
-class Snapshots extends Table {
-  TextColumn get source => text()();
-  DateTimeColumn get snapshotDate => dateTime()();
-  TextColumn get manifestJson => text()();
-  DateTimeColumn get importedAt => dateTime()();
-
-  @override
-  Set<Column> get primaryKey => {source};
-}
+// A `snapshots` table lived here until schema v21. It recorded the
+// last-imported snapshot per external source so the app could offer "update
+// available" prompts for a hosted CallersBox archive — a feature that was
+// then cut (ROADMAP 6.2/6.3, and `docs/design/callersbox-snapshot.md`, which
+// is marked superseded: the app imports directly from the source instead).
+// The table, its repository and its test were dropped in #782; nothing ever
+// wrote a row.

@@ -87,18 +87,18 @@ Future<String> buildBabyRoseSeedArchiveJson(String sourceHtml) async {
       repos,
     ).export(exportedAt: seedTimestamp);
 
-    // Drop `provenance.rawPayload` from the shipped seed. A real import stores
-    // the raw source page for re-import/diffing, but that is a *local* audit
-    // artifact — a checked-in, shipped asset must not embed a full scraped HTML
-    // page (it is bloat and a standing secret-leak surface, e.g. the page's CSRF
-    // token). Stripping it here means no source markup is shipped at all, so the
-    // asset can never carry a secret regardless of the fixture, and regenerating
-    // from a re-captured page is stable. The meaningful provenance — source,
-    // externalId, importedAt, sourceVersion — is retained.
+    // Schema v21 removed `provenance.raw_payload` (#781), so there is no longer
+    // a scraped source page to strip here. This generator used to clear it
+    // explicitly: a shipped, checked-in asset must not embed a full HTML page,
+    // which is both bloat and a standing secret-leak surface (the page's CSRF
+    // token, say). That hazard is now gone at the source rather than papered
+    // over at the seed boundary, but the re-wrap is kept so the shipped asset
+    // stays a deliberately constructed archive rather than whatever the
+    // exporter happened to produce.
     final sanitized = CompendiumArchive(
       schemaVersion: archive.schemaVersion,
       exportedAt: archive.exportedAt,
-      dances: [for (final d in archive.dances) _withoutRawPayload(d)],
+      dances: archive.dances,
       programs: archive.programs,
       choreographers: archive.choreographers,
       publishedSources: archive.publishedSources,
@@ -116,22 +116,4 @@ Future<String> buildBabyRoseSeedArchiveJson(String sourceHtml) async {
   } finally {
     await db.close();
   }
-}
-
-/// Returns [dance] with any `provenance.rawPayload` cleared (all other
-/// provenance fields preserved), so the shipped seed carries no scraped source
-/// markup.
-Dance _withoutRawPayload(Dance dance) {
-  final prov = dance.provenance;
-  if (prov == null || prov.rawPayload == null) return dance;
-  return dance.copyWith(
-    provenance: Provenance(
-      source: prov.source,
-      externalId: prov.externalId,
-      importedAt: prov.importedAt,
-      permission: prov.permission,
-      license: prov.license,
-      sourceVersion: prov.sourceVersion,
-    ),
-  );
 }

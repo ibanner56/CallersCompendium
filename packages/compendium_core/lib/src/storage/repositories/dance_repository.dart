@@ -228,7 +228,6 @@ class DanceRepository {
               importedAt: prov.importedAt,
               permission: Value(prov.permission),
               license: Value(prov.license),
-              rawPayload: Value(prov.rawPayload),
               sourceVersion: Value(prov.sourceVersion),
             ),
           );
@@ -1729,7 +1728,6 @@ class DanceRepository {
           importedAt: asUtc(r.importedAt),
           permission: r.permission,
           license: r.license,
-          rawPayload: r.rawPayload,
           sourceVersion: r.sourceVersion,
         );
       }

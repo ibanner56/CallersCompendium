@@ -121,7 +121,12 @@ void main() {
     // Security regression guard (mirrors the #314 program-fixture finding): the
     // checked-in source fixture must never ship a live CSRF token, session
     // cookie, or other secret, and the generated asset must embed no scraped
-    // source markup at all (the generator strips `provenance.rawPayload`).
+    // source markup at all. The seed generator used to strip
+    // `provenance.rawPayload` to achieve that; schema v21 removed the column
+    // outright (#781), so the guarantee now comes from there being nowhere to
+    // put a page. The assertions below are kept exactly as they were — the
+    // property they pin is unchanged, and they now also catch a reintroduction
+    // of the column.
     test('source fixture and asset contain no live secrets', () {
       // The csrf-token meta must be present but redacted to a fixed placeholder.
       final csrf = RegExp(

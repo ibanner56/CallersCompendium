@@ -82,7 +82,6 @@ void main() {
       expect(prov.permission, 'full');
       expect(prov.license, 'CC-BY');
       expect(prov.sourceVersion, 'v3');
-      expect(prov.rawPayload, contains('"title":"Rory OMore"'));
     });
 
     test('custom-figure text is searchable after commit', () async {

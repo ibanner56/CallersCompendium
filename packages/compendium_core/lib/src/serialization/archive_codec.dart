@@ -176,13 +176,16 @@ Map<String, Object?> _sourceCitationToJson(SourceCitation s) => {
   if (s.number != null) 'number': s.number,
 };
 
+/// Serializes provenance. Archives written before schema v21 also carried a
+/// `rawPayload` key (the verbatim imported source record, dropped in #781);
+/// restoring one of those is safe without any special handling, because
+/// [decodeArchive] ignores unknown keys — the payload is simply not read back.
 Map<String, Object?> _provenanceToJson(Provenance p) => {
   'source': p.source.name,
   if (p.externalId != null) 'externalId': p.externalId,
   'importedAt': _iso(p.importedAt),
   if (p.permission != null) 'permission': p.permission,
   if (p.license != null) 'license': p.license,
-  if (p.rawPayload != null) 'rawPayload': p.rawPayload,
   if (p.sourceVersion != null) 'sourceVersion': p.sourceVersion,
 };
 
@@ -810,7 +813,6 @@ Provenance _provenanceFromJson(Map<String, Object?> m) {
     importedAt: _dt(m, 'importedAt'),
     permission: _strOrNull(m, 'permission'),
     license: _strOrNull(m, 'license'),
-    rawPayload: _strOrNull(m, 'rawPayload'),
     sourceVersion: _strOrNull(m, 'sourceVersion'),
   );
 }

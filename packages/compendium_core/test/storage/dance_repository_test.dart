@@ -233,7 +233,6 @@ void main() {
           importedAt: DateTime.utc(2026, 2, 1),
           permission: 'full',
           license: 'CC-BY',
-          rawPayload: '{"raw":true}',
           sourceVersion: '2026-01-15',
         ),
       );
@@ -241,7 +240,6 @@ void main() {
       final loaded = await dances.getById(dance.id);
       expect(loaded!.provenance!.source, ProvenanceSource.callersbox);
       expect(loaded.provenance!.externalId, 'CB-123');
-      expect(loaded.provenance!.rawPayload, '{"raw":true}');
     });
 
     test('round-trips text/number/boolean/choice custom fields', () async {

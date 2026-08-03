@@ -9,7 +9,6 @@ void main() {
       DateTime? importedAt,
       String? permission = 'full',
       String? license = 'CC-BY',
-      String? rawPayload = '{"a":1}',
       String? sourceVersion = 'v1',
     }) => Provenance(
       source: source,
@@ -17,7 +16,6 @@ void main() {
       importedAt: importedAt ?? DateTime.utc(2024, 1, 1),
       permission: permission,
       license: license,
-      rawPayload: rawPayload,
       sourceVersion: sourceVersion,
     );
 
@@ -48,10 +46,6 @@ void main() {
       expect(make(), isNot(make(license: 'CC0')));
     });
 
-    test('differing rawPayload is not equal', () {
-      expect(make(), isNot(make(rawPayload: '{"a":2}')));
-    });
-
     test('differing sourceVersion is not equal', () {
       expect(make(), isNot(make(sourceVersion: 'v2')));
     });
@@ -61,14 +55,12 @@ void main() {
         externalId: null,
         permission: null,
         license: null,
-        rawPayload: null,
         sourceVersion: null,
       );
       final b = make(
         externalId: null,
         permission: null,
         license: null,
-        rawPayload: null,
         sourceVersion: null,
       );
       expect(a, b);
