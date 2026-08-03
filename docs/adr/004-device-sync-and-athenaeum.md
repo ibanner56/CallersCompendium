@@ -1,4 +1,4 @@
-# ADR-004: Sync, and the Athanaeum sync store
+# ADR-004: Sync, and the Athenaeum sync store
 
 - **Status**: Proposed
 - **Roadmap item**: Amends the v1 non-goals list in `docs/ROADMAP.md` (removing
@@ -73,10 +73,10 @@ These bound every option below.
 
 ## Decision
 
-Ship **Sync**, backed by a store called **Athanaeum**.
+Ship **Sync**, backed by a store called **Athenaeum**.
 
-*Sync* is the feature; *Athanaeum* is the service it talks to. The default
-endpoint is `https://athanaeum.callerscompendium.com/`, shown **un-abstracted as
+*Sync* is the feature; *Athenaeum* is the service it talks to. The default
+endpoint is `https://athenaeum.callerscompendium.com/`, shown **un-abstracted as
 a URL in Settings** and editable, so pointing at your own server is a visible
 first-class option rather than a hidden one.
 
@@ -86,10 +86,15 @@ A sync ID is a **diceware passphrase** (`correct-horse-battery-staple`),
 pre-filled with a randomly generated one. The user may replace it with their own,
 behind a clear warning that it must not contain personal information.
 
+**The format is fixed: four words, hyphen-separated.** Generated or chosen, the
+shape is the same, which makes it recognisable, speakable and typeable.
+
 A generated four-word ID from the EFF long wordlist carries ~2⁵² of entropy and
 is not guessable at any realistic online rate. A user-chosen one is a different
-matter — `isaac-banner-dances` is guessable in seconds — so custom IDs are
-subject to a **minimum-entropy floor**, not merely a warning.
+matter, so two checks apply rather than one: the **format** (four words) rejects
+`isaac-banner-dances` structurally, and a **strength floor of ~2⁴⁰**, scored on
+the actual string, rejects four weak words that satisfy the pattern. A warning
+alone would not have stopped either.
 
 **The sync ID is a bearer credential.** Anyone holding it has full read and
 write access to the collection. This is deliberate: it is what makes the design
@@ -235,7 +240,7 @@ should feel like the same app, and custom dialects, themes, shorthand mappings
 and walkthrough snippets represent real work a user would hate to redo.
 
 - `shareable` → travels
-- `deviceLocal` → **never reaches Athanaeum**
+- `deviceLocal` → **never reaches Athenaeum**
 - `deviceScoped` → never travels at all (window position, per-device text scale)
 - `derived` → never transmitted; rebuilt on arrival
 
@@ -251,14 +256,15 @@ contact details stay on the device where they were entered.
 
 ### Imported dances
 
-Imported dances sync in full, like any other dance. The manifest does not care
-where a record came from.
+**Imported dances sync in full**, like any other dance. The manifest does not
+care where a record came from, and there is no pristine-tracking, no re-fetch
+path and no special case.
 
-An alternative — carrying public-source dances as a re-import *reference* and
-re-fetching on the receiving device — is documented under Rationale and remains
-live; the choice will be confirmed before implementation begins. A user setting
-to **exclude imported dances from sync** ships either way, for people who want a
-lean sync.
+A user setting to **exclude imported dances from sync** ships in v1, for people
+who want a lean sync — and it is the lever offered when a store hits its quota.
+
+The reference-and-refetch alternative is recorded under Rationale and as a
+revisit trigger, not as an open choice.
 
 ### The server
 
@@ -367,7 +373,7 @@ locally-held tombstones a rollback is largely self-healing, so it buys little. I
 it is ever wanted, add an advisory creation timestamp as a separate field rather
 than overloading the epoch.
 
-### Why full sync of imported dances (and the alternative that remains live)
+### Why full sync of imported dances
 
 The case for carrying public-source dances as references was bandwidth. Measured
 rather than assumed: an archive-format dance is ~1.5 KB, so 11,500 dances is
@@ -386,8 +392,8 @@ and The Caller's Box's permission tiers are a social convention rather than a
 legal constraint. Separately, the app already imports non-`full`-tier dances as
 metadata-only stubs because the source serves no figures for them.
 
-The reference-passing variant is nonetheless documented and remains live; the
-final call is made before implementation.
+The reference-passing variant is recorded here and as a revisit trigger, not as
+an open choice: it returns only if hosting cost stops being trivial.
 
 ### Why Dart for the server
 
@@ -430,6 +436,18 @@ makes self-hosting materially harder, which constraint 4 forbids.
   Mitigated by a persistent hint, not eliminated.
 - **We now operate infrastructure**, with the uptime, abuse and cost that
   implies — mitigated by the app working fully without it.
+- **Settings sync requires a schema migration.** `settings` is
+  `(key, value_json)` with no timestamp, so the `updatedAt` conflict rule cannot
+  reach it. Schema v22 adds `updated_at`, stamping existing rows at migration
+  time. Consequence, deterministic and one-time: because each device stamps at
+  *its own* migration, the device that upgrades last has the newest settings and
+  wins every settings conflict on the first sync afterwards.
+- **The operator can read a store if they choose to.** The design exposes only
+  sizes, device counts and activity timestamps, but content is plaintext, so
+  access is a matter of policy rather than capability. A break-glass path for
+  abuse investigation exists, is logged, and is disclosed in the privacy policy.
+  The access log records a hashed sync ID, a timestamp and a reason — never
+  content.
 - **Silent merge is irreversible from the user's point of view.** Two records
   that pass the title-plus-choreography test become one without being shown. The
   test is strict — identical figures *and* params — so a false positive means two
@@ -457,7 +475,7 @@ link to it. Both files must be amended together, with the effective date bumped,
   conflict surfacing.
 - **Storage or bandwidth on the hosted instance stops being trivial**, at which
   point the reference-passing variant for imported dances becomes worth its
-  complexity.
+  complexity. This is the decided-against alternative most likely to return.
 - **The 30-day disuse window proves too short** — evidenced by users repeatedly hitting
   fresh attach after ordinary gaps in use.
 - **Export-compliance rules change**, or a platform provides encryption we can

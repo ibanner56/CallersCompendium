@@ -1,6 +1,6 @@
-# Design: Sync and the Athanaeum protocol
+# Design: Sync and the Athenaeum protocol
 
-> **Decision record:** [ADR-004](../adr/004-device-sync-and-athanaeum.md).
+> **Decision record:** [ADR-004](../adr/004-device-sync-and-athenaeum.md).
 > That ADR decides *what* we build and why; this document specifies *how*. If
 > the two disagree, the ADR wins and this document is wrong.
 
@@ -11,7 +11,7 @@
 | Term | Meaning |
 | --- | --- |
 | **Sync** | The user-facing feature. |
-| **Athanaeum** | The store Sync talks to. Default `https://athanaeum.callerscompendium.com/`; user-editable. |
+| **Athenaeum** | The store Sync talks to. Default `https://athenaeum.callerscompendium.com/`; user-editable. |
 | **sync ID** | Diceware passphrase identifying one store. A bearer credential. |
 | **device ID** | Random v4 UUID minted once per installation. A **protocol identifier that is transmitted** — it appears in manifests and request paths. See the note below; it is deliberately *not* `deviceScoped`. |
 | **epoch** | Opaque 128-bit random value the server stamps on a sync ID at creation. |
@@ -130,6 +130,17 @@ A blob is the record as the existing archive codec emits it, restricted to
 Reusing the archive codec matters: it is already hardened (bounded, clamping,
 parse-never-fails) and already round-trip tested. Sync must not grow a second
 serialiser.
+
+### Settings records
+
+Each settings key is its own blob, `kind: "setting"`, with the key as the record
+id. Per-key rather than one settings document, so two devices changing different
+preferences never collide.
+
+This requires a schema change: `settings` is `(key, value_json)` with no
+timestamp, so the `updatedAt` conflict rule cannot reach it. **Schema v22** adds
+`updated_at`, stamping existing rows at migration time. The new column needs
+classifying like any other, and the coverage ratchet will require it.
 
 ### Content hash
 
@@ -326,7 +337,9 @@ untouched and the baseline unchanged, so the next attempt retries cleanly.
 - `401` / `403` → stop, surface to the user. Do not retry.
 - `422` → **stop and surface loudly.** A client bug tried to upload a
   device-local field.
-- `507` → surface with a link to what is taking the space.
+- `507` → surface a **size breakdown by category**, with the *exclude imported
+  dances* toggle offered inline, since imports are usually the bulk and that
+  setting is the lever.
 - Partial upload → harmless. Blobs are content-addressed and immutable; the
   manifest is written last, so a half-finished sync publishes nothing.
 
@@ -337,8 +350,19 @@ makes an interrupted sync a no-op instead of a corruption.
 
 - On app start, once, after any pending migration completes.
 - Debounced 30s after a local change.
-- Manually via "Sync now".
-- Never on a metered connection unless the user opts in.
+- Manually via "Sync now" — a **delta pass**, identical to an automatic one. A
+  **full re-verify** (rehash every local record, reconcile against every peer)
+  is available behind a long-press or a Settings action, because on 11,500
+  dances a full rehash is real work and the ordinary button must stay quick.
+
+**Metered connections.** A setting, *Sync only on WiFi*, defaults to **on**, in
+the manner of any app with downloadable content. While it is on and the
+connection is metered, automatic sync does not run — and a manual "Sync now"
+does not silently override it. Instead it surfaces a snackbar explaining why,
+with a tap-through to the setting, so the data-usage decision is made once and
+stays made rather than being re-decided per press.
+
+The first sync of a large library is ~17 MB; every subsequent one is kilobytes.
 
 ## Server implementation
 
@@ -352,7 +376,7 @@ registry as the client, so the deny-list has one definition.
 
 ```
 data/
-  athanaeum.sqlite      stores, devices, blob refcounts, quota, activity
+  athenaeum.sqlite      stores, devices, blob refcounts, quota, activity
   blobs/<aa>/<bb>/<hash>
 ```
 
@@ -442,10 +466,11 @@ about making acquisition hard, not about limiting the blast radius:
 
 - Generated IDs are four EFF-wordlist words, ~2⁵². At 1,000 guesses/second an
   exhaustive search is ~10⁵ years; rate limiting makes it far worse.
-- **User-chosen IDs are subject to a minimum-entropy floor**, server-enforced
-  with `403`. A warning alone would not stop `isaac-banner-dances`, which is
-  guessable in seconds. The floor is computed on the *chosen* string, not on its
-  length: a word-count check would pass four common words.
+- **Two checks, not one.** The **format** is fixed at four hyphen-separated
+  words, which rejects `isaac-banner-dances` structurally. A **strength floor of
+  ~2⁴⁰**, scored on the actual string, then rejects four *weak* words that
+  satisfy the pattern. Both are server-enforced with `403`; a client-side check
+  alone would be bypassable, and a warning alone would have stopped neither.
 - The ID never appears in a URL, so it does not reach logs or `Referer`.
 - The server stores only SHA-256 of the ID, so a stolen store yields no IDs.
 
@@ -521,47 +546,39 @@ must say this plainly rather than implying sync is opaque to us.
   same-title-same-author-different-figures reaches the review queue.
 - **Server caps** — each limit rejected at the boundary, not after allocation.
 
+## Resolved since first draft
+
+Recorded so the reasoning is not re-litigated.
+
+| Question | Ruling |
+| --- | --- |
+| Settings merge granularity | Per-key blobs, plus an `updated_at` column on `settings` at **schema v22**, stamping existing rows at migration time. |
+| Entropy floor | Format fixed at **four hyphen-separated words**; strength floor **~2⁴⁰** scored on the string. |
+| Imported dances | **Full sync.** Reference-and-refetch demoted to a revisit trigger. *Exclude imported dances* ships in v1. |
+| Operator visibility | Opaque by design, with a **logged break-glass path** for abuse, disclosed in the privacy policy. |
+| `programs.venue` label | Stays `shareable` — a label the user typed, and a program is meaningless without it. |
+| "Sync now" | Delta pass; full re-verify behind a long-press or Settings action. |
+| Metered connections | *Sync only on WiFi*, default on; manual attempts route to the setting via a snackbar. |
+| Quota exhaustion | Size breakdown by category with the exclude-imports toggle inline. |
+| Naming | **Athenaeum** — the earlier "Athanaeum" was a typo; DNS corrected and verified. |
+
+### The settings migration has a one-time ordering effect
+
+Each device stamps `updated_at` at *its own* migration time, so the device that
+upgrades last carries the newest settings and wins every settings conflict on the
+first sync afterwards. Deterministic, one-time, and recoverable by re-setting a
+preference — but it is a real effect and should not be discovered in the field.
+
+An alternative was considered and rejected: stamping a fixed sentinel so all
+devices agree. That makes every settings row tie, leaving the conflict rule with
+no discriminator at all, which is worse.
+
 ## Open questions
 
-Carried for the maintainer; none blocks specification.
-
-1. **Settings merge granularity.** Settings sync as `shareable`, but `settings`
-   is a key/value table, so "a record" has two candidate meanings. Worked
-   through here so the decision is quick rather than exploratory:
-
-   | | One blob per key | One blob for all settings |
-   | --- | --- | --- |
-   | Blobs | ~40 tiny | 1 |
-   | Two devices change *different* keys | both survive | **conflict; one is lost** |
-   | Changing one preference | one small upload | re-uploads everything |
-   | `updatedAt` for conflict resolution | **none exists per key** | none exists either |
-   | Manifest size | +40 entries | +1 entry |
-
-   The blocking issue is the same either way and is worth naming: **the settings
-   table has no `updatedAt`**. Its schema is `(key, value_json)` only, so the
-   conflict rule the rest of the design relies on cannot be applied to settings
-   without a schema change.
-
-   Options: add an `updated_at` column to `settings` (a migration, and it would
-   need classifying); or resolve settings conflicts by a different rule such as
-   "the device that synced most recently wins" (cheap, coarse, and surprising);
-   or exclude settings from v1 after all.
-
-   *Assumed for the spec: per-key blobs, plus an `updated_at` column on
-   `settings`.* This is the one open question that implies a schema migration,
-   which is why it leads the list.
-2. **Programs referencing device-local venues.** A program syncs and references
-   a venue whose address did not travel. The venue record arrives partially.
-   Confirmed acceptable — but should a program's *own* `venue` free-text label
-   travel? It is `shareable` today.
-3. **Metered-connection default.** Proposed: never auto-sync on metered, opt-in
-   per device. Confirm.
-4. **Quota exhaustion UX.** `507` at 250 MB — what does the app say, and does it
-   offer to exclude imported dances (the setting from ADR-004)?
-5. **Does "Sync now" force a full re-verify** or only a delta pass? A user
-   pressing it usually suspects something is wrong, which argues for a full
-   pass.
-6. **Server operator visibility** — is there any admin surface at all, or is the
-   store deliberately opaque even to the operator? Affects abuse handling.
-7. **Entropy floor value.** Proposed: reject anything below ~2⁴⁰ estimated. Needs
-   a number and a wordlist decision (EFF long list, 7776 words, is the default).
+1. **Break-glass access-log retention.** The log records a hashed sync ID, a
+   timestamp and a reason — never content. But an audit log that expires is not
+   an audit log, so it cannot simply inherit the 30-day disuse TTL. Its retention
+   needs its own decision, and the privacy policy has to state it.
+2. **Where the break-glass log lives.** Same store, separate database, or
+   write-only off-box. Bears on whether reaping a store can destroy evidence of
+   access to it.
