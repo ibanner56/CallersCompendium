@@ -125,7 +125,7 @@ small manifests plus one copy of each distinct record, not N copies of the
 collection.
 
 The server performs no merging, no locking and no compare-and-swap. It is a
-key-value store with a TTL and a deny-list.
+key-value store with a TTL and a generated allow-list.
 
 ### Merging
 
@@ -141,10 +141,55 @@ three-way merge without vector clocks or wall-clock ordering:
 | absent, not in baseline | present | download (new elsewhere) |
 | present | absent, not in baseline | upload (new here) |
 
-**Absence never means deletion.** Deletions travel as `deletedAt` tombstones,
-which the schema already carries and the Recently Deleted screen already
-surfaces. A device that has not synced for a month must never conclude that
-records missing from a sibling's manifest were deleted.
+A remote version is accepted only when its `updatedAt` is **newer than the
+local record's**, not merely different from the baseline. Comparing hashes alone
+cannot distinguish "the peer edited this" from "the peer has not caught up yet",
+and the latter would roll a newer local record backwards. With N peers, the
+newest `updatedAt` wins.
+
+**Absence never means deletion.** Deletions travel as `deletedAt` tombstones.
+`Dances` and `Programs` carry `deletedAt` today and the Recently Deleted screen
+already surfaces it; the other record kinds do not, which is one reason they are
+**not independently synced** (see Record model). A device that has not synced for
+a month must never conclude that records missing from a sibling's manifest were
+deleted.
+
+### Record model: three syncable kinds, the rest inline
+
+Only **Dance**, **Program** and **Setting** are syncable records with their own
+blobs. Choreographers, tags, published sources, custom-field definitions and
+venues **ride inline** with the dance or program that references them, exactly as
+`authorIds` and figures already do in the archive codec.
+
+This is a deliberate narrowing, made because the alternative was much larger than
+it first appeared. A first-class record needs a stable cross-device identity, a
+modification timestamp and a durable tombstone. The schema provides all three on
+**two of eight** kinds: `Dances` and `Programs`. The other six have neither
+`updatedAt` nor `deletedAt`, and their repositories **hard-delete** — so
+last-writer-wins would have no discriminator and deletions could never propagate
+at all.
+
+Worse, three of them carry `UNIQUE` natural keys — `choreographers.name`,
+`tags.name`, `custom_field_defs.key`. Two devices independently creating "Bob
+Smith" mint different UUIDs; syncing by UUID then violates the constraint and
+fails the entire apply transaction. The import pipeline already solves this with
+`_resolveAuthors`, by resolving on the **natural key** rather than the surrogate
+one, and the inline model reuses that path rather than building a second.
+
+**What this costs**, stated plainly:
+
+- A venue edited on one device does not propagate unless a program referencing
+  it also changes.
+- Renaming a tag creates a second tag on the receiving device rather than
+  renaming the first, because resolution is by name.
+- **Venues have no unique natural key** (`venues.name` is not `UNIQUE`), so two
+  halls may share a name and an inline venue has no exact key to resolve
+  against. Resolution is therefore best-effort, and may duplicate venues that
+  differ only in the address fields we deliberately do not sync.
+
+Promoting these to first-class records later is a schema migration plus an
+identity-resolution layer; it is deferred rather than ruled out, and the costs
+above are the evidence that would justify it.
 
 ### Fresh attach
 
@@ -164,7 +209,7 @@ are identical in everything that matters.
 
 The silent-merge test reuses the rule already in the import pipeline:
 
-1. **Exact normalized-title match** (`import_pipeline.dart:619`). A
+1. **Exact normalized-title match** (`import_pipeline.dart:613`). A
    fuzzy-but-inexact title is never confident; that is the "two different dances
    share a title" trap.
 2. **`_choreographyEquals`** — form, formation, progression, phrase structure,
@@ -257,10 +302,17 @@ existing manual JSON backup export and import, or by AirDrop of that file
 between Apple devices. We are not building local network discovery.
 
 The visible consequence is that **venues sync partially**: name, website, event
-name, schedule, time and price arrive; the address block and both contact blocks
-stay blank. This is correct and required, and it looks exactly like data loss, so
-affected venue records carry a **persistent hint** explaining that address and
-contact details stay on the device where they were entered.
+name, schedule, time, price, sponsor and notes arrive; the address block and both
+contact blocks stay blank. This is correct and required, and it looks exactly
+like data loss, so affected venue records carry a **persistent hint**.
+
+The hint must **name the fields that stay local** rather than promise that
+contact details do not travel. `venues.notes` is `shareable` — ruled so
+deliberately, as the user's own words — and the registry's own note for that
+field predicts the interaction verbatim: *"a user who wrote 'ask for Bob,
+555-1234' into a venue note will have that text travel."* A hint saying "contact
+details stay on this device" would therefore be a false assurance about the one
+field most likely to break it.
 
 ### Imported dances
 
@@ -286,9 +338,14 @@ containing a device-local field**, from one source of truth with no second list
 to drift. "We never store venue addresses" stops being an intention the client
 is trusted to honour and becomes something both ends enforce.
 
-The check is a deny-list on known-forbidden keys, so it is forward-compatible:
-unknown keys pass. It is a backstop against a client bug, not the primary
-control, which remains client-side filtering.
+The check is an **allow-list generated from the registry**, rejecting any key not
+classified `shareable` for that kind. An earlier draft used a deny-list of
+forbidden keys, for forward-compatibility — and it failed **open**, because the
+registry is keyed in SQL names (`venues.contact1_email`) while the codec emits
+camelCase (`contact1Email`), so the two key spaces did not intersect at all and a
+full address book would have been accepted. An allow-list makes a mapping error a
+loud rejection instead of a silent pass. It remains a backstop; the client's
+classification-filtered serialiser is the primary control.
 
 ## Rationale
 
@@ -406,8 +463,8 @@ an open choice: it returns only if hosting cost stops being trivial.
 ### Why Dart for the server
 
 Go produces the nicest artefact to self-host — a single static binary — and Rust
-is a defensible choice. Both lose the property that decided it: the deny-list of
-device-local fields would have to be maintained by hand in a second language,
+is a defensible choice. Both lose the property that decided it: the allow-list of
+shareable fields would have to be maintained by hand in a second language,
 which is exactly the drift the classification registry exists to eliminate. A
 Dart server imports the registry.
 
@@ -450,7 +507,10 @@ makes self-hosting materially harder, which constraint 4 forbids.
   rows at migration time.
 
   **Sequencing is deliberate: v22 lands before any other sync work**, on its own.
-  It is the programme's only schema change, so isolating it leaves the rest as
+  Under the inline record model it is the programme's only schema change — a
+  claim that only holds *because* of that model: promoting the other five kinds
+  to first-class records would require roughly ten further columns across five
+  tables plus hard-to-soft delete conversion. Isolating v22 leaves the rest as
   feature work with no migration risk; it is defensible on its own terms, so
   nothing is wasted if the programme stalls; and — the real reason — it defuses
   the one-time ordering wart. Because each device stamps at *its own* migration
@@ -460,6 +520,32 @@ makes self-hosting materially harder, which constraint 4 forbids.
   for real, and every real change overwrites a migration stamp with a meaningful
   one. The gap between releases is what fixes it, so earlier is strictly
   better.
+- **Applying an inbound record must not erase what it omits.** A blob correctly
+  omits `deviceLocal` fields — and the repositories' `upsert` methods write
+  *every* column, which is right for a local restore and destructive here. A
+  remote edit to a venue's website would otherwise null its address and both
+  contact blocks on the device that owns them. Apply is therefore
+  read-modify-write inside the apply transaction, overlaying only the fields the
+  blob carries. The serialiser hazard and this deserialiser hazard are
+  symmetric, and the second is the more dangerous: it destroys the user's own
+  data rather than exposing it.
+- **Settings whose value is a whole collection collide destructively.**
+  `custom_dialects`, `custom_themes`, `shorthand_mappings` and
+  `walkthrough_snippets` each hold an entire set behind one key, so a
+  changed/changed conflict discards one device's complete set with no review
+  queue. Accepted, and it belongs beside "sharing is not collaboration": the
+  first pairing of two long-established devices is the case that loses work.
+- **Any holder of the sync ID can impersonate a device or wipe the store.**
+  Manifest `PUT` accepts a caller-chosen device id, and the same bearer
+  authorises `DELETE /v1/store`. This is inherent to the bearer model rather than
+  an oversight, and it is stated here as explicitly as the read-access case
+  because the write-access case is the one that destroys data.
+- **A deletion can still resurrect across a long absence.** Tombstone retention
+  is floored at the sync window while Sync is enabled, which covers the ordinary
+  case. A device offline for longer than that returns to a fresh attach, where
+  union is additive and no tombstone survives anywhere to contradict it. There is
+  no fix inside this design that does not amount to unbounded tombstone
+  retention.
 - **The operator can read a store if they choose to.** The design exposes only
   sizes, device counts and activity timestamps, but content is plaintext, so
   access is a matter of policy rather than capability. A break-glass path for
@@ -475,7 +561,10 @@ makes self-hosting materially harder, which constraint 4 forbids.
   a stolen database would yield working credentials. Keys are therefore
   `HMAC-SHA256(pepper, syncID)` with the pepper held in server configuration and
   never in the database. This is server-side only — the client computes no MAC
-  and never holds the pepper.
+  and never holds the pepper. **Rotation is a store migration, not a config
+  change, and is impossible for inactive stores as specified** (only the derived
+  key is retained, so there is nothing to re-derive from until a client returns)
+  — tracked in **#793**, with versioned peppers and lazy re-keying proposed.
 - **Even a derived identifier is linkable, so the log expires too.** The access
   log keeps its identifier for 30 days and then **degrades to a timestamp-only
   row**, preserving "an access occurred on this date" as a non-linkable aggregate
@@ -525,6 +614,11 @@ link to it. Both files must be amended together, with the effective date bumped,
   use without a declaration, making E2EE cheap enough to reconsider.
 - **A pure-Dart or well-maintained cross-platform sync primitive appears** that
   would let us delete our own merge implementation.
+- **The inline record model proves limiting** — evidenced by users renaming tags
+  and finding duplicates, editing venues that never propagate, or duplicate
+  venues accumulating because the name is not a unique key. Promoting those kinds
+  to first-class records is a schema migration plus an identity-resolution layer,
+  and these symptoms are the evidence that would justify paying for it.
 - **Silent merge is observed collapsing dances users considered distinct** — for
   instance two arrangements that differ only in fields `_choreographyEquals`
   ignores. That would mean the equality test is too loose for sync even though it

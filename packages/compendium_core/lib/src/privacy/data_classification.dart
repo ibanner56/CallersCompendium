@@ -153,12 +153,24 @@ enum EgressClass {
   /// a local backup file they control.
   deviceLocal,
 
-  /// Never transmitted, because it is meaningless or actively wrong on another
-  /// device — a window position, a per-device marker. Distinct from
-  /// [deviceLocal]: that is withheld because of what it *contains*, this
-  /// because of what it *means*. The difference is behavioural, not editorial —
-  /// [deviceLocal] data may still move by a direct device-to-device transfer,
-  /// while this must not travel by any route at all.
+  /// Never transmitted **as record content**, because the value is meaningless
+  /// or actively wrong on another device — a window position, a per-device
+  /// marker, a per-installation key.
+  ///
+  /// Distinct from [deviceLocal]: that is withheld because of what it
+  /// *contains*, this because of what it *means*. The difference is
+  /// behavioural, not editorial — [deviceLocal] data may still move by a direct
+  /// device-to-device transfer, while this must never appear in a record that
+  /// travels.
+  ///
+  /// **Scope of "transmitted".** This class governs *record content*: the
+  /// fields serialised into an exported, shared or synced record. It does not
+  /// govern protocol envelopes — a transport's own routing metadata (a device
+  /// identifier, a store epoch, a content hash) carries no user data by
+  /// construction and is outside the classification's reach. A value may
+  /// therefore be `deviceScoped` and still appear in a request header or a
+  /// sync manifest, and both statements are true because they are about
+  /// different things. See `docs/design/sync.md`.
   deviceScoped,
 
   /// Never transmitted at all. Rebuildable from other fields on arrival, so

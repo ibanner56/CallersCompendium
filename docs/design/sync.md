@@ -46,16 +46,28 @@ fields are `shareable`.
 
 ### Record kinds, and what rides inline
 
-Top-level records, each producing its own blob:
+Three kinds produce blobs:
 
-`dance` · `program` · `choreographer` · `tag` · `publishedSource` ·
-`customFieldDef` · `venue` · `setting`
+`dance` · `program` · `setting`
 
-Join rows are **not** separate records. They ride inline with their parent
-exactly as the archive codec already models them — a dance carries its
-`authorIds`, tag ids, links, source citations and custom-field values; a program
-carries its slots. This keeps the merge unit equal to the thing a user edits,
-so "I changed this dance" is one blob and one conflict, not seven.
+Everything else **rides inline** with the record that references it —
+choreographers, tags, published sources, custom-field definitions and venues, as
+well as join rows. A dance carries its authors, tags, links, citations and
+custom-field values; a program carries its slots and its venue.
+
+Inline entities travel as **content, resolved by natural key** on arrival, not as
+portable UUIDs. `choreographers.name`, `tags.name` and `custom_field_defs.key`
+are `UNIQUE`, so two devices that both created "Bob Smith" hold different UUIDs
+for one person; syncing the UUID would violate the constraint and fail the whole
+apply. Resolution reuses `import_pipeline`'s `_resolveAuthors` path, which exists
+for exactly this reason.
+
+**Venues have no unique natural key** — `venues.name` is not `UNIQUE` — so an
+inline venue resolves best-effort by name, and two halls sharing a name may
+duplicate. Recorded in ADR-004's consequences as a cost of the inline model.
+
+This keeps the merge unit equal to the thing a user edits: "I changed this dance"
+is one blob and one conflict, not seven.
 
 ### The serialiser must filter — the codec does not
 
@@ -72,10 +84,10 @@ infrastructure — and it would look completely reasonable in review.
 
 Sync therefore serialises through a **classification-filtered** path that
 consults `EgressClass` per field, and the property test named under Testing
-exists specifically to catch a regression here. The server's deny-list is the
-second line; neither is sufficient alone, because the server check is a
-forward-compatible deny-list and the client check is the one that knows about
-new fields first.
+exists specifically to catch a regression here. The server's generated
+allow-list is the second line; neither is sufficient alone, because the client
+knows about new fields first while the server fails closed on anything it does
+not recognise.
 
 ### The device ID, and what `EgressClass` actually governs
 
@@ -85,8 +97,9 @@ this contradicts the term, since the ID plainly travels. Over-correcting to
 sync would then carry `device_id` into a settings blob, and the receiving device
 would adopt the sender's ID — two devices writing the same manifest.
 
-The resolution is a distinction the registry has always implied and this
-document now states outright:
+The resolution is a distinction the registry always implied but did not say, and
+**the enum's own doc comment has been amended in this PR** to say it —
+documentation being part of the change:
 
 **`EgressClass` governs record *content*. Protocol envelopes are not records.**
 
@@ -118,6 +131,22 @@ Every settings key Sync introduces is `deviceScoped`:
 The rule is simple enough to state as one: **sync configuration is never itself
 synced.** Anything else is a bootstrapping paradox at best and a redirection
 vector at worst.
+
+**Sync also introduces persisted state that is not a settings key**, and the
+repository requires everything persisted to be classified in the PR that adds
+it:
+
+| State | Where | Classification |
+| --- | --- | --- |
+| The baseline manifest (~1.4 MB at 11,500 records) | Its own table, not `settings` — too large for a key/value row | `deviceScoped` |
+| The store epoch | Alongside the baseline | `deviceScoped` |
+| Per-record last-seen hashes | Baseline table | `deviceScoped` |
+
+Both are per-installation protocol state, meaningless on another device, and
+adding them means a schema change **beyond v22** — which the implementation issue
+must account for rather than discover. Note also that the settings ratchet scans
+only `app/lib/src`, so if the sync client lives elsewhere its keys are not
+covered by the existing guard and the ratchet's scope must be widened.
 
 ## Wire format
 
@@ -158,6 +187,24 @@ Each settings key is its own blob, `kind: "setting"`, with the key as the record
 id. Per-key rather than one settings document, so two devices changing different
 preferences never collide.
 
+**The per-key registry overrides the column classification, and that precedence
+is normative here rather than implied.** `settings.value_json` is classified
+`deviceLocal` at the column level — deliberately, so a blanket sync of the
+settings table cannot happen by accident. Read literally against the "What
+travels" table, the only `shareable` column on a setting is `key`, and a
+`custom_dialects` blob would ship as `{"key":"custom_dialects"}` with no value,
+silently breaking the promise that dialects and themes travel.
+
+So: for `kind: "setting"`, the **per-key classification in
+`settings_registry.dart` governs**, and `settings.value_json`'s column-level
+`deviceLocal` is what stops the *table* being synced wholesale. A key classified
+`shareable` ships its value; a `deviceScoped` key is not serialised at all.
+
+Note also that settings whose value is an entire collection —
+`custom_dialects`, `custom_themes`, `shorthand_mappings`,
+`walkthrough_snippets` — collide as a unit: a changed/changed conflict discards
+one device's whole set. Accepted; see ADR-004 consequences.
+
 This requires a schema change: `settings` is `(key, value_json)` with no
 timestamp, so the `updatedAt` conflict rule cannot reach it. **Schema v22** adds
 `updated_at`, stamping existing rows at migration time. The new column needs
@@ -196,11 +243,30 @@ better and there is no reason to wait.
 `hash = lowercase-hex(SHA-256(canonical-json(blob)))`
 
 Canonical JSON means keys sorted lexicographically, no insignificant whitespace,
-and no floating-point re-formatting. Two devices that hold an identical record
-**must** produce an identical hash, or delta sync degrades to full sync.
+and a pinned number form. Two devices that hold an identical record **must**
+produce an identical hash, or delta sync degrades to full sync.
 
-Golden tests pin the canonicalisation. A change to it is a wire-format break
-and needs a `v` bump.
+**This is entirely new code.** The archive codec emits keys in *insertion* order,
+not lexicographic, and there is no SHA-256 anywhere in `packages/`. "Reuse the
+archive codec" applies to the record *body*; the canonicalisation and hashing
+layer is built for sync.
+
+Three concrete divergences the golden tests must pin, each of which silently
+degrades delta sync to full sync by giving two devices different hashes for the
+same record:
+
+- **Numbers.** `encodeCustomFieldValue` forces `.toDouble()`, so an integer `8`
+  reaches the wire as `8.0`. An RFC 8785 canonicaliser rewrites that back to `8`.
+  Pick one form and pin it.
+- **Absent versus null.** The codec *omits* `deletedAt` when null; the blob
+  envelope above shows `"deletedAt": null` present. Same record, two hashes.
+  Policy: the envelope's fields are always present, `null` where empty; the
+  body follows the sender rule in "Applying a record" — explicit `null` for
+  empty `shareable` fields, omission only for `deviceLocal`.
+- **Key order.** Lexicographic, applied recursively, regardless of what the
+  codec produced.
+
+A change to canonicalisation is a wire-format break and needs a `v` bump.
 
 ### Manifest
 
@@ -265,6 +331,7 @@ client's cryptography is therefore unchanged from what the app ships today.
 | `GET` | `/v1/blobs/{hash}` | Fetch one blob. Immutable; long `Cache-Control`. |
 | `PUT` | `/v1/blobs/{hash}` | Upload one blob. Idempotent. |
 | `POST` | `/v1/blobs/missing` | Given a list of hashes, return the subset the store lacks. |
+| `DELETE` | `/v1/manifests/{deviceId}` | Remove a device's manifest — for a lost or reinstalled device. Without it a dead device holds one of 32 slots forever and its unique blobs never GC, with a whole-store wipe the only remedy. |
 
 `POST /v1/blobs/missing` is the only non-REST-shaped call and it earns its place:
 without it, a device with 11,500 records issues 11,500 `HEAD` requests to find
@@ -284,7 +351,7 @@ out what to upload.
 | `404` | No such blob, manifest or device. |
 | `409` | **Epoch mismatch** — the client's epoch is not the store's. |
 | `413` | Payload exceeds a cap. |
-| `422` | **Payload rejected by the deny-list** — a device-local field was present. |
+| `422` | **Payload rejected by the allow-list** — a key not classified `shareable` for that kind was present. |
 | `429` | Rate limited. `Retry-After` set. |
 | `507` | Store quota exhausted. |
 
@@ -370,22 +437,38 @@ The user is told the count afterwards ("merged 412 duplicates"), not asked.
 1. `GET /v1/store`. **Epoch differs → fresh attach.** Stop.
 2. Compute the local manifest.
 3. `GET /v1/manifests/{peer}` for each peer, with `If-None-Match`.
-4. Per record, compare local / remote / baseline hashes:
+4. Per record, compare local / remote / baseline hashes **and `updatedAt`**:
 
    | Local vs baseline | Remote vs baseline | Action |
    | --- | --- | --- |
    | same | same | nothing |
    | changed | same | upload |
-   | same | changed | download and apply |
+   | same | changed | download **only if `remote.updatedAt > local.updatedAt`** |
    | changed | changed | **conflict** → higher `updatedAt` wins |
    | absent from baseline, present locally | — | upload (new here) |
    | — | absent from baseline, present remotely | download (new elsewhere) |
+
+   **`updatedAt` is load-bearing, not a tiebreak.** An earlier draft compared
+   hashes alone and downloaded whenever the remote differed from the baseline.
+   That is wrong in a way that silently destroys work: a peer which has *not
+   caught up* is indistinguishable from a peer which *edited*, so a stale
+   manifest deterministically rolls a newer local record backwards. Requiring
+   `remote.updatedAt > local.updatedAt` distinguishes them.
+
+   With **N peers**, evaluate against all of them and take the newest
+   `updatedAt`; the baseline is per-device and one baseline against several peers
+   is otherwise undefined.
+
+   This rule is only universally applicable because of the record model: all
+   three syncable kinds carry `updatedAt` (Settings via schema v22). It would not
+   work for the kinds that ride inline, which is part of why they do.
 
 5. `POST /v1/blobs/missing` with the hashes to upload; `PUT` only what is
    missing.
 6. `GET /v1/blobs/{hash}` for each needed hash. **Verify the hash before
    applying.**
-7. Apply in one transaction. Rebuild derived indexes.
+7. Apply in one transaction, **read-modify-write** (below). Rebuild derived
+   indexes.
 8. `PUT /v1/manifests/{self}`.
 9. Store the new baseline.
 
@@ -400,6 +483,58 @@ so this reuses the existing soft-delete rather than inventing a parallel one.
 
 The invariant, stated so it can be tested: **a device honours a deletion only
 when it can trace it to a tombstone within the same epoch.**
+
+### Applying a record must not erase what it omits
+
+**This is the symmetric twin of the serialiser hazard, and it is the more
+dangerous of the two.** The serialiser leaking a device-local field exposes data;
+the deserialiser *dropping* one destroys it, on the device that owns it, silently.
+
+A blob correctly omits `deviceLocal` fields. The repositories' `upsert` methods
+write **every** column — `VenueRepository.upsert` uses `insertOnConflictUpdate`
+with `address1`, `city`, the contact blocks and the rest — and the archive
+decoder maps an absent key to `null`. Composed naively, a remote edit to a
+venue's *website* nulls its address and both contact blocks locally.
+
+So sync does **not** use the repository `upsert` path. Apply is
+**read-modify-write, inside the apply transaction**:
+
+1. read the local record;
+2. overlay only the fields the blob actually carries;
+3. write the merged result.
+
+Both halves of that matter:
+
+**Inside the transaction.** SQLite serialises writers, so a user edit landing
+mid-apply blocks rather than interleaving. Outside a transaction the read and the
+write straddle a window in which the user can edit, and the write silently
+reverts them.
+
+**"Carries" must be unambiguous.** The codec omits null fields today
+(`if (v.website != null)`), so on the wire *absent* means either "device-local,
+preserve the local value" or "shareable but empty, clear the local value".
+Read-modify-write cannot act on an ambiguous signal, so both ends are pinned:
+
+- the **sender** emits an explicit `null` for a `shareable` field that is empty,
+  and omits **only** `deviceLocal` fields;
+- the **receiver** independently consults the registry to decide which absences
+  mean *preserve*, rather than trusting the sender to have been careful.
+
+Two mechanisms that cross-check. A sender bug that wrongly omits a shareable
+field does not silently clear it, because the receiver knows that field was
+supposed to be there.
+
+### Apply ordering
+
+Records carry references to rows that must exist first. `dance_authors` has a
+hard foreign key to `choreographers` with `onDelete: cascade`, and violations
+under `defer_foreign_keys` surface at COMMIT — outside any per-record guard —
+discarding the entire batch.
+
+Apply therefore proceeds in dependency order within the transaction: inline
+entities are resolved or created first (by natural key), then the records that
+reference them, then join rows. A record whose reference cannot be resolved is
+skipped and reported, never applied with a dangling id.
 
 ### Failure and offline
 
@@ -445,7 +580,7 @@ The first sync of a large library is ~17 MB; every subsequent one is kilobytes.
 top-level `server/` package with a path dependency on `compendium_core`.
 
 The path dependency is the point: the server reads the **same** classification
-registry as the client, so the deny-list has one definition.
+registry as the client, so the allow-list is generated from one definition.
 
 ### Storage layout
 
@@ -455,9 +590,14 @@ data/
   blobs/<aa>/<bb>/<hash>
 ```
 
-Blobs are fanned out two levels to keep directory sizes sane. The path is
-derived from the hash, which the server has **verified** — so it cannot contain
-traversal sequences.
+Blobs are fanned out two levels to keep directory sizes sane.
+
+**Every handler validates `{hash}` against `^[0-9a-f]{64}$` before touching the
+filesystem.** An earlier draft argued traversal-safety from the hash being
+"verified" — but verification happens on `PUT`, where the body is hashed. On
+`GET` and `DELETE` the hash is attacker-controlled path input fanned into
+`blobs/<aa>/<bb>/<hash>` with nothing checking it. The guard belongs on every
+handler, not on the one that happens to compute a hash.
 
 ```sql
 CREATE TABLE stores (
@@ -551,26 +691,70 @@ of access to it. Its retention is therefore not the 30-day disuse TTL — an aud
 log that expires with its subject is not an audit log — and needs its own stated
 period in the privacy policy.
 
-### Deny-list validation
+### Allow-list validation
 
 On `PUT /v1/blobs/{hash}` the server:
 
-1. checks the size cap **before** reading the body;
-2. streams and hashes, aborting if the running total exceeds the cap;
-3. rejects with `400` if the computed hash differs from the path;
-4. parses as JSON with a depth cap (a new server-side bound — the codec's
+1. rejects any `{hash}` not matching `^[0-9a-f]{64}$` **before touching the
+   filesystem** — see Security;
+2. checks the size cap **before** reading the body;
+3. streams and hashes, aborting if the running total exceeds the cap;
+4. rejects with `400` if the computed hash differs from the path;
+5. parses as JSON with a depth cap (a server-side bound — the codec's
    `kMaxMeanwhileDepth` guards figure nesting, not parse depth);
-5. **walks every key and rejects with `422` if any key is device-local**,
-   per the shared registry.
+6. **validates every key against a per-kind allow-list, rejecting anything not
+   on it** with `422`.
 
-Step 5 is a backstop, not the control. The client's serialiser is the control.
-It exists so a client bug fails loudly on our side rather than silently
-persisting a venue address.
+#### Why an allow-list, and why the first attempt was worse than useless
 
-It is a **deny-list on known-forbidden keys**, so it is forward-compatible: keys
-the server does not recognise pass. A device-local field added in a client newer
-than the server would not be caught — but that client would not send it either.
-Stated so the limit of the guarantee is legible.
+An earlier draft specified a **deny-list** of known-forbidden keys, chosen for
+forward-compatibility: unknown keys pass, so a server one release behind does not
+reject a newer client. That design failed **open**, and did so in a way no amount
+of care in the handler would have caught — because the two key spaces do not
+intersect.
+
+The registry is keyed `table.column` in **SQL** names, and says so explicitly:
+`venues.contact1_email`. The codec emits **bare camelCase** field names:
+`contact1Email`. A deny-list built from registry keys, applied to codec output,
+matches **nothing**. A blob carrying a venue's complete address book would have
+returned `200 OK`.
+
+The spec's own test fixture used `contact1_email` — a string the codec **cannot
+emit** — so the single test proving the backstop worked was **vacuous by
+construction**, which is precisely the failure mode this repository's guide warns
+about.
+
+The allow-list inverts the failure: an unrecognised key is **rejected**, so a
+mapping error becomes a loud `422` instead of a silent pass. The cost is real and
+accepted — a server older than its clients rejects valid uploads until it is
+updated — and it is the right way round, because the alternative failure is
+silent and permanent.
+
+#### The mapping must be generated, and proven
+
+The allow-list is **generated from the registry**, not hand-written, with the
+SQL-name-to-wire-name mapping declared once. A hand-maintained list would drift
+from the codec exactly as the deny-list did.
+
+Two CI tests, neither of which can be satisfied by a fixture someone invented:
+
+1. **Bijection.** For every kind, every `shareable` registry key maps to a key
+   the codec actually emits, and every key the codec emits maps back to a
+   registry entry. A registry key with no codec counterpart — or a codec key with
+   no classification — fails the build. This is the test that would have caught
+   the original defect on the day it was written.
+2. **No device-local field reaches the wire.** Build a record with **every**
+   field populated, including every `deviceLocal` one, run it through the real
+   sync serialiser, and assert that none of those values appears anywhere in the
+   output. Driven off the registry, so a newly classified field is covered
+   automatically.
+
+Both operate on **real `encodeArchive`-shaped output**. Neither takes a
+hand-written key string, because that is how the first attempt convinced itself
+it worked.
+
+The server check remains a backstop; the client's classification-filtered
+serialiser is the control.
 
 ## Security
 
@@ -596,6 +780,19 @@ about making acquisition hard, not about limiting the blast radius:
   configuration rather than the database, so a stolen database yields no IDs. A
   **bare** hash would not achieve this: at the ~2⁴⁰ floor, exhausting the space
   is minutes of GPU time.
+
+### What a peer can do to another peer
+
+The bearer model has a consequence beyond read access, and it is worth stating
+as plainly as the read case. `PUT /v1/manifests/{deviceId}` accepts a
+**caller-chosen** device id, and the same shared bearer authorises
+`DELETE /v1/store`. So anyone holding the sync ID can publish a manifest as
+another device, or destroy the entire store.
+
+This is inherent to "one credential, no accounts", which ADR-004 chose knowingly.
+It is not mitigated here; it is disclosed, because the write case destroys data
+while the read case only exposes it. A user sharing a sync ID with a second
+person is granting exactly this.
 
 ### Enumeration
 
@@ -625,6 +822,21 @@ Every limit is enforced **before** allocation, streaming-abort style, following
 Text arriving from a peer is passed through `sanitizeImportedText`, exactly as
 imported text is. A peer is not more trusted than an import source: a shared
 sync ID means a second person can write to the store.
+
+**"Parse never fails" does not hold for peer input, and this was verified rather
+than assumed.** `decodeArchive` catches `on Exception` and deliberately lets Dart
+`Error`s escape, on the reasoning that an `Error` signals a bug. But
+`PartialDate.parse` throws **`ArgumentError`** — an `Error`, not an `Exception` —
+for a well-shaped but invalid date. A blob containing `"composedOn":
+"0000-13-99"` escapes the decoder uncaught. Confirmed by direct execution against
+a valid archive: five such inputs (`0000-13-99`, `2026-13-01`, `2026-02-30`,
+`0000`, `2026-04-31`) all escaped as `ArgumentError` while the same archive
+decoded cleanly without them — a remotely triggerable crash from a peer blob.
+
+The sync apply path therefore catches `Error` as well as `Exception` around
+per-record decode, and reports the record as rejected rather than letting it
+abort the batch. This applies to the sync boundary only; the existing archive
+path's stance is deliberate and unchanged.
 
 ### Transport
 
@@ -668,6 +880,22 @@ must say this plainly rather than implying sync is opaque to us.
   `{A,B,C}`; identical-choreography duplicates merge without a prompt;
   same-title-same-author-different-figures reaches the review queue.
 - **Server caps** — each limit rejected at the boundary, not after allocation.
+- **≥3-device convergence** — three devices, interleaved edits, all reach the
+  same state. Two devices cannot exercise the max-`updatedAt`-across-N rule.
+- **A stale peer does not roll back newer data** — the B2 case: peer publishes an
+  old manifest, local record is newer, local wins. Mutation-proved by removing
+  the `updatedAt` comparison and watching it go red.
+- **Inbound apply preserves device-local columns** — apply a venue blob that
+  changes only `website`; assert the address block and both contact blocks are
+  untouched. This is the data-loss guard.
+- **Tombstone purge versus resurrection** — delete, purge the tombstone, reattach
+  a stale peer; assert the documented behaviour rather than an accident.
+- **Allow-list bijection and no-device-local-on-the-wire**, both over real
+  `encodeArchive`-shaped output. Never a hand-written key string.
+- **Canonical JSON determinism** — integer/float form, absent-versus-null, key
+  order. Two independently constructed identical records hash identically.
+- **Hostile peer blob** — the `ArgumentError` case; a malformed date rejects one
+  record and does not abort the batch or escape the isolate.
 
 ## Resolved since first draft
 
@@ -700,13 +928,19 @@ An alternative was considered and rejected: stamping a fixed sentinel so all
 devices agree. That makes every settings row tie, leaving the conflict rule with
 no discriminator at all, which is worse.
 
+## Tracked follow-ups
+
+Filed as issues rather than left in this document, per the repository's rule that
+a limitation referenced from a design doc must have its own issue — sibling
+issues close and take their dangling pointers with them.
+
+- **#793 — pepper rotation is impossible as specified.** Only the derived key is
+  retained, so an inactive store has no input to re-derive from. Proposed
+  resolution is versioned peppers with lazy re-keying on next authentication.
+- **#794 — operational gaps.** `422` alerting has no destination, the retention
+  guarantee has no test, break-glass authorisation is undefined and the log is
+  bypassable, boot invariants are unstated, and lost-ID support has no answer.
+
 ## Open questions
 
-None outstanding. Every question raised during specification has been ruled on;
-see "Resolved since first draft" above.
-
-The nearest thing to an open item is operational rather than design: the pepper
-is a server secret, so its generation, storage and rotation belong in the server
-deployment issue. Rotating it re-derives every storage key, which is a migration
-of the store rather than a config change — worth knowing before it is needed
-rather than during an incident.
+None outstanding at the design level.
