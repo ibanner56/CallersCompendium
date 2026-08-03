@@ -223,6 +223,222 @@ void main() {
     });
   });
 
+  // #743: the source allowlists used to be enforced only where a fetch URL is
+  // built, so an allowlisted archive could 302 anywhere on the public internet
+  // and have the body parsed as trusted import data. Every hop is now re-checked
+  // against the allowlist of the source the fetch started on.
+  group('redirect hops stay inside the origin source allowlist', () {
+    const callersBoxJson =
+        'https://www.ibiblio.org/contradance/thecallersbox/dance.php'
+        '?id=1&format=JSON';
+    const contraDbDance = 'https://contradb.com/dances/1';
+
+    /// A client that answers the first request with a 302 to [location] and
+    /// anything after that with [body], recording every URL it was asked for.
+    (http.Client, List<String>) redirectOnceTo(
+      String location, {
+      String body = 'FINAL BODY',
+    }) {
+      final requested = <String>[];
+      final client = MockClient((req) async {
+        requested.add(req.url.toString());
+        if (requested.length == 1) {
+          return http.Response('', 302, headers: {'location': location});
+        }
+        return http.Response(body, 200);
+      });
+      return (client, requested);
+    }
+
+    Matcher throwsBlockedHost() => throwsA(
+      isA<UrlFetchException>().having(
+        (e) => e.reason,
+        'reason',
+        UrlFetchFailureReason.blockedHost,
+      ),
+    );
+
+    test("refuses a Caller's Box hop to an off-allowlist host", () async {
+      final (client, requested) = redirectOnceTo('https://evil.example.com/x');
+      await expectLater(
+        fetchImportUrl(callersBoxJson, client: client),
+        throwsBlockedHost(),
+      );
+      // Refused before the request was issued: the attacker host is never
+      // contacted, so it learns nothing (not even that the app followed).
+      expect(requested, [callersBoxJson]);
+    });
+
+    test('refuses a ContraDB hop to an off-allowlist host', () async {
+      final (client, requested) = redirectOnceTo('https://evil.example.com/x');
+      await expectLater(
+        fetchImportUrl(contraDbDance, client: client),
+        throwsBlockedHost(),
+      );
+      expect(requested, [contraDbDance]);
+    });
+
+    test('refuses an off-allowlist hop on the search fetcher too', () async {
+      // fetchCallersBoxSearch is a second _sendGuarded entry point; the guard
+      // lives in the shared transport, so it must cover this path as well.
+      final (client, requested) = redirectOnceTo('https://evil.example.com/x');
+      await expectLater(
+        fetchCallersBoxSearch(
+          'https://www.ibiblio.org/contradance/thecallersbox/index.php'
+          '?title=test',
+          client: client,
+        ),
+        throwsBlockedHost(),
+      );
+      expect(requested, hasLength(1));
+    });
+
+    test('refuses a cross-source hop (ContraDB into Caller\'s Box)', () async {
+      // The pin is per source, not "any allowlisted source": a ContraDB fetch
+      // has no business landing on a Caller's Box page.
+      final (client, requested) = redirectOnceTo(callersBoxJson);
+      await expectLater(
+        fetchImportUrl(contraDbDance, client: client),
+        throwsBlockedHost(),
+      );
+      expect(requested, [contraDbDance]);
+    });
+
+    test('refuses an ibiblio hop off the mirror prefix', () async {
+      // ibiblio.org hosts many unrelated archives, so host alone never makes a
+      // URL "Caller's Box" — the path-segment half of the predicate has to be
+      // enforced on hops too, not just on the pasted URL.
+      final (client, requested) = redirectOnceTo(
+        'https://www.ibiblio.org/contradance/someotherarchive/dance.php?id=1',
+      );
+      await expectLater(
+        fetchImportUrl(callersBoxJson, client: client),
+        throwsBlockedHost(),
+      );
+      expect(requested, [callersBoxJson]);
+    });
+
+    test('refusals never echo the refused host or the pasted URL', () async {
+      final (client, _) = redirectOnceTo(
+        'https://evil.example.com/x?token=abc123',
+      );
+      try {
+        await fetchImportUrl(callersBoxJson, client: client);
+        fail('expected a UrlFetchException');
+      } on UrlFetchException catch (e) {
+        expect(e.reason, UrlFetchFailureReason.blockedHost);
+        expect(e.toString(), isNot(contains('evil.example.com')));
+        expect(e.toString(), isNot(contains('token=abc123')));
+        expect(e.toString(), isNot(contains('ibiblio')));
+      }
+    });
+
+    test('follows www.contradb.com -> contradb.com (live 301)', () async {
+      // Measured against the real site on 2026-08-02: www.contradb.com 301s to
+      // contradb.com on /dances, /programs and /api paths. Both hosts are on
+      // the ContraDB allowlist, and a pasted URL keeps its own host, so users
+      // hit this whenever they paste a www. link. Pinning to host equality
+      // instead of to the allowlist would break it.
+      final (client, requested) = redirectOnceTo(
+        contraDbDance,
+        body: '<html>dance</html>',
+      );
+      expect(
+        await fetchImportUrl(
+          'https://www.contradb.com/dances/1',
+          client: client,
+        ),
+        '<html>dance</html>',
+      );
+      expect(requested, ['https://www.contradb.com/dances/1', contraDbDance]);
+    });
+
+    test('follows a www.ibiblio.org -> ibiblio.org hop', () async {
+      // The Caller's Box arm of the same rule: cross-host is fine as long as
+      // it stays inside the source's allowlist. Both hosts serve the dance
+      // JSON live (measured 2026-08-02, byte-identical), so this is a real
+      // shape, not a hypothetical one.
+      //
+      // This was originally an ibiblio -> thecallersbox.com hop; #766 removed
+      // those hosts (no DNS records, and the ibiblio mirror is canonical), so
+      // it is retargeted at the surviving pair rather than deleted — otherwise
+      // www.contradb.com -> contradb.com becomes the suite's only
+      // cross-host-within-allowlist case and _isCallersBoxUrl stops being
+      // exercised across hosts at all.
+      final (client, requested) = redirectOnceTo(
+        'https://ibiblio.org/contradance/thecallersbox/dance.php'
+        '?id=1&format=JSON',
+        body: '{"dance":1}',
+      );
+      expect(
+        await fetchImportUrl(callersBoxJson, client: client),
+        '{"dance":1}',
+      );
+      expect(requested, hasLength(2));
+    });
+
+    test(
+      'refuses a hop to a thecallersbox segment outside /contradance/',
+      () async {
+        // The hop-level twin of the builder guard: a compromised mirror must not
+        // be able to bounce an import into some other ibiblio archive that
+        // merely has a `thecallersbox` directory.
+        final (client, requested) = redirectOnceTo(
+          'https://www.ibiblio.org/anyarchive/thecallersbox/dance.php?id=1',
+        );
+        await expectLater(
+          fetchImportUrl(callersBoxJson, client: client),
+          throwsBlockedHost(),
+        );
+        expect(requested, [callersBoxJson]);
+      },
+    );
+
+    test(
+      'refuses a hop to the removed thecallersbox.com hosts (#766)',
+      () async {
+        // Guards the removal itself at the hop layer: were those entries ever
+        // restored, a compromised mirror could bounce an import onto a domain
+        // anyone can now register.
+        final (client, requested) = redirectOnceTo(
+          'https://thecallersbox.com/dance.php?id=1&format=JSON',
+        );
+        await expectLater(
+          fetchImportUrl(callersBoxJson, client: client),
+          throwsBlockedHost(),
+        );
+        expect(requested, [callersBoxJson]);
+      },
+    );
+
+    test('follows a same-host hop within an allowlisted source', () async {
+      final (client, requested) = redirectOnceTo(
+        'https://contradb.com/dances/1?canonical=1',
+        body: '<html>dance</html>',
+      );
+      expect(
+        await fetchImportUrl(contraDbDance, client: client),
+        '<html>dance</html>',
+      );
+      expect(requested, hasLength(2));
+    });
+
+    test('leaves a generic (unpinned) import free to hop hosts', () async {
+      // A Caller's Compendium JSON URL is untrusted-by-design and may live
+      // anywhere, so it belongs to no source and gets no pin — only the
+      // source-neutral https/private-address guards.
+      final (client, requested) = redirectOnceTo(
+        'https://cdn.example.org/final.json',
+        body: '{"dances":[]}',
+      );
+      expect(
+        await fetchImportUrl('https://example.com/export.json', client: client),
+        '{"dances":[]}',
+      );
+      expect(requested, hasLength(2));
+    });
+  });
+
   group('buildCallersBoxJsonUrl userinfo hardening', () {
     test('drops embedded credentials but keeps id + format=JSON', () {
       final url = buildCallersBoxJsonUrl(

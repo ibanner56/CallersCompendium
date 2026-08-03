@@ -5492,10 +5492,10 @@ abstract class AppLocalizations {
   /// **'That Caller\'s Box URL is missing a dance id (…dance.php?id=N).'**
   String get importErrorCallersBoxMissingId;
 
-  /// Error shown when a pasted Caller's Box URL's host is not thecallersbox.com or the ibiblio.org mirror. Never echoes the pasted URL/host.
+  /// Error shown when a pasted Caller's Box URL is not on the ibiblio.org mirror under its /contradance/thecallersbox/ path. Names BOTH accepted hostnames literally (the app itself generates the www. form) so a user scanning for their own hostname finds it, AND the path, which is the actionable half whenever the host was right and only the path was wrong. Says 'link' rather than 'host' because either half can be the failure. Never echoes the pasted URL/host.
   ///
   /// In en, this message translates to:
-  /// **'That link isn\'t from a supported Caller\'s Box host. Paste a link from thecallersbox.com or ibiblio.org, or enter the dance\'s numeric id.'**
+  /// **'That link isn\'t a supported Caller\'s Box link. Paste a link from ibiblio.org or www.ibiblio.org under /contradance/thecallersbox/, or enter the dance\'s numeric id.'**
   String get importErrorCallersBoxUnsupportedHost;
 
   /// Error shown when a Caller's Box search is attempted with no query.

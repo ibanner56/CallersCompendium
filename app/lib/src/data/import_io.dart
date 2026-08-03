@@ -192,6 +192,13 @@ enum UrlFetchFailureReason {
   emptyUrl,
   invalidUrl,
   insecureScheme,
+
+  /// A destination the fetch layer refuses to reach: a private/reserved network
+  /// address ([isBlockedImportHost]), or a redirect hop that left the source
+  /// allowlist a fetch was pinned to (see [_redirectAllowlistFor]). Both are
+  /// "that URL points somewhere this app will not import from" as far as the
+  /// user is concerned, so they share one non-leaking message rather than
+  /// telling an attacker which guard caught them.
   blockedHost,
   tooManyRedirects,
   responseTooLarge,
@@ -417,6 +424,10 @@ bool _isBlockedIpv4(List<int> b) {
 /// import (OWASP A02 cryptographic failures / A08 data-integrity). Because
 /// [_sendGuarded] re-runs this guard on every redirect hop, it also refuses an
 /// `https` → `http` downgrade in a `30x` `Location`.
+///
+/// This is the *source-neutral* half of the hop guard: it knows nothing about
+/// which community archive a fetch belongs to. [_redirectAllowlistFor] supplies
+/// the source-specific half, and [_sendGuarded] applies both to every hop.
 Uri _guardFetchUri(Uri uri) {
   if (!uri.isScheme('https')) {
     throw const UrlFetchException(UrlFetchFailureReason.insecureScheme);
@@ -425,6 +436,44 @@ Uri _guardFetchUri(Uri uri) {
     throw const UrlFetchException(UrlFetchFailureReason.blockedHost);
   }
   return uri.userInfo.isEmpty ? uri : uri.replace(userInfo: '');
+}
+
+/// Selects the source predicate that every redirect hop of a fetch starting at
+/// [origin] must keep satisfying, or `null` when [origin] belongs to no known
+/// online source.
+///
+/// It is a predicate over the whole [Uri], not just its host: [_isCallersBoxUrl]
+/// accepts an `ibiblio.org` URL only under the `/contradance/thecallersbox/`
+/// mirror prefix, because that host also serves many unrelated archives. A
+/// host-only check would let a hop wander off the mirror into one of them.
+///
+/// The source allowlists ([_isCallersBoxUrl] / [_isContraDbUrl]) are enforced
+/// by the URL builders at construction, but a builder only ever sees the URL
+/// the user pasted — not where that URL later `30x`-redirects to. Without this,
+/// an allowlisted archive that is compromised or carries an open redirect can
+/// bounce the fetch to **any** public https host and have the body parsed as
+/// trusted structured import data (issue #743; the follow-up #332 deferred when
+/// it hardened redirects against internal addresses only). "The community
+/// source is trustworthy" is precisely the assumption this project's security
+/// posture declines to make.
+///
+/// Pinning is derived from the origin rather than threaded through the fetch
+/// because Caller's Box JSON, ContraDB HTML, the ContraDB program index, and
+/// the review screen all share the single generic [fetchImportUrl] seam
+/// ([UrlFetcher] is a bare url→body function). Deriving it here means every
+/// call site — including a Caller's Box link pasted while the review screen's
+/// source selector sits on generic JSON — inherits the guard, and a new caller
+/// cannot forget to pass it.
+///
+/// The pin is *per source*, not "any known source": a ContraDB fetch may not
+/// hop into Caller's Box territory, or vice versa. An [origin] on no allowlist
+/// (a generic Caller's Compendium JSON URL, which is untrusted-by-design and
+/// may legitimately live anywhere) is left unpinned and keeps the
+/// source-neutral [_guardFetchUri] protections only.
+bool Function(Uri)? _redirectAllowlistFor(Uri origin) {
+  if (_isCallersBoxUrl(origin)) return _isCallersBoxUrl;
+  if (_isContraDbUrl(origin)) return _isContraDbUrl;
+  return null;
 }
 
 /// Performs a guarded HTTP GET of [url] using [client], shared by every online
@@ -436,12 +485,28 @@ Uri _guardFetchUri(Uri uri) {
 /// internal address), the hop count is capped at [importMaxRedirects], and the
 /// response body is read with a running [importMaxResponseBytes] cap. Returns a
 /// buffered [http.Response] so callers decode charset/body exactly as before.
+///
+/// When [url] belongs to a known online source, [_redirectAllowlistFor] pins
+/// the fetch to that source's host allowlist and **every hop is re-checked
+/// against it**, so an allowlisted archive cannot redirect the fetch off its
+/// own hosts (#743). This mirrors `artifact_downloader.dart`'s
+/// `_sendFollowingHttpsRedirects`, which re-calls `isAllowedArtifactHost` on
+/// each hop for the same reason.
+///
+/// The pin is the *source* allowlist, deliberately not host equality: the
+/// canonical-domain redirect `www.contradb.com` → `contradb.com` is live today
+/// (measured 2026-08-02) and is cross-host but entirely within the ContraDB
+/// allowlist, so a same-host rule would refuse a redirect real users hit.
 Future<http.Response> _sendGuarded(String url, http.Client client) async {
   final parsed = Uri.tryParse(url.trim());
   if (parsed == null || !parsed.hasScheme) {
     throw const UrlFetchException(UrlFetchFailureReason.invalidUrl);
   }
   var uri = _guardFetchUri(parsed);
+  // Not `isAllowedHost`: the predicate validates the whole redirect URI, and
+  // for Caller's Box the path matters as much as the host (ibiblio.org is only
+  // Caller's Box under the /contradance/thecallersbox/ mirror prefix).
+  final isAllowedRedirect = _redirectAllowlistFor(uri);
   var redirects = 0;
   while (true) {
     final request = http.Request('GET', uri)..followRedirects = false;
@@ -457,7 +522,16 @@ Future<http.Response> _sendGuarded(String url, http.Client client) async {
       redirects++;
       // Re-validate the resolved target so a redirect can't reach a blocked
       // host; userInfo on the hop is stripped by _guardFetchUri.
-      uri = _guardFetchUri(uri.resolve(location));
+      final next = _guardFetchUri(uri.resolve(location));
+      // ...and, for a fetch pinned to a source, that it has not left that
+      // source's allowlist. Checked after _guardFetchUri so a downgrade or
+      // internal-address hop still reports its own (equally non-leaking)
+      // reason, and before the request is issued so the refused target is
+      // never contacted at all.
+      if (isAllowedRedirect != null && !isAllowedRedirect(next)) {
+        throw const UrlFetchException(UrlFetchFailureReason.blockedHost);
+      }
+      uri = next;
       continue;
     }
     // Buffer with a running byte total checked before each add, so a single
@@ -586,8 +660,8 @@ class ImportSource {
   /// there is no host to recognize).
   ///
   /// A predicate (rather than a simple host set) is used because The Caller's
-  /// Box is also mirrored on ibiblio.org under a `/thecallersbox/` path, which
-  /// a host-only match cannot express.
+  /// Box is served from ibiblio.org under a `/contradance/thecallersbox/`
+  /// path, which a host-only match cannot express.
   final bool Function(Uri uri)? matchesUrl;
 
   /// When non-null, this source imports from a **binary file** the user picks
@@ -605,7 +679,8 @@ class ImportSource {
 
 /// The host used to build a Caller's Box JSON endpoint from a **bare id**. The
 /// Caller's Box is served from ibiblio.org under [callersBoxPathPrefix].
-/// Confirmed live: `.../thecallersbox/dance.php?id=1&format=JSON` returns real
+/// Confirmed live: `.../contradance/thecallersbox/dance.php?id=1&format=JSON`
+/// returns real
 /// TCB JSON. A pasted full URL keeps its own host; only bare-id input needs a
 /// host supplied here.
 const String callersBoxHost = 'www.ibiblio.org';
@@ -620,8 +695,9 @@ const String callersBoxPathPrefix = '/contradance/thecallersbox';
 /// The Caller's Box serves per-dance JSON at `dance.php?id=N&format=JSON`. This
 /// accepts either:
 /// - a **bare numeric id** (`"1"`) → `https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1&format=JSON`;
-/// - a pasted **https URL**, with a host in [_isCallersBoxUrl]'s allowlist
-///   (`thecallersbox.com` or the `ibiblio.org` `/thecallersbox/` mirror), and
+/// - a pasted **https URL** matching [_isCallersBoxUrl] — an `ibiblio.org` /
+///   `www.ibiblio.org` URL under the `/contradance/thecallersbox/` mirror
+///   prefix — and
 ///   an `id` query param (`.../dance.php?id=N`, with or without an existing
 ///   `format=…`) → the same URL with `format=JSON` set (any existing `format`
 ///   is overwritten, so it is never doubled and an already-`format=JSON` link
@@ -630,10 +706,10 @@ const String callersBoxPathPrefix = '/contradance/thecallersbox';
 ///   or the input is rejected before any URL is built.
 ///
 /// Throws a [UrlFetchException] (message safe to show) for empty input, a
-/// non-https URL, a URL whose host isn't a known Caller's Box host, or a URL
+/// non-https URL, a URL that isn't a recognized Caller's Box URL, or a URL
 /// with no dance id. Only `https` is accepted (a bare `http://` URL is
 /// rejected as an insecure scheme, matching the transport-security guard
-/// every online-import fetch already enforces) and the host must be on the
+/// every online-import fetch already enforces) and the URL must satisfy the
 /// known allowlist (OWASP: never trust/fetch an arbitrary user-supplied host
 /// as "Caller's Box JSON" — see #621).
 String buildCallersBoxJsonUrl(String input) {
@@ -1364,48 +1440,73 @@ Future<String> fetchContraDbSearch(String query, {http.Client? client}) async {
   return body;
 }
 
-/// Hosts serving The Caller's Box directly.
-const Set<String> _callersBoxHosts = {
-  'thecallersbox.com',
-  'www.thecallersbox.com',
-};
-
-/// Hosts serving the ibiblio.org mirror; a Caller's Box URL there lives under a
-/// `/thecallersbox/` path segment (so host alone is not enough to recognize it).
+/// Hosts serving The Caller's Box: the ibiblio.org mirror, which is the
+/// canonical home. A Caller's Box URL there lives under the
+/// [callersBoxPathPrefix] mirror prefix (so host alone is not enough to
+/// recognize it — ibiblio.org serves many unrelated archives).
+///
+/// `thecallersbox.com` / `www.thecallersbox.com` were removed here (#766):
+/// they have no DNS records at all, and the canonical prefix is
+/// `https://www.ibiblio.org/contradance/thecallersbox/`. A registrable domain
+/// left on an import allowlist is a standing risk — anyone who registers the
+/// lapsed name inherits a host this app treats as a trusted import source —
+/// so the entries are deleted rather than kept "just in case".
 const Set<String> _ibiblioHosts = {'ibiblio.org', 'www.ibiblio.org'};
 
 /// Hosts serving ContraDB dance pages.
 const Set<String> _contraDbHosts = {'contradb.com', 'www.contradb.com'};
 
-/// Returns `true` if [uri] names a known Caller's Box host: [_callersBoxHosts]
-/// directly, or [_ibiblioHosts] under the `/thecallersbox/` mirror path.
+/// The canonical mirror path as lowercase segments, derived from
+/// [callersBoxPathPrefix] so [_isCallersBoxUrl] and the URL builders cannot
+/// drift apart on what "the Caller's Box mirror" means.
+final List<String> _callersBoxPathSegments = callersBoxPathPrefix
+    .split('/')
+    .where((segment) => segment.isNotEmpty)
+    .map((segment) => segment.toLowerCase())
+    .toList(growable: false);
+
+/// Returns `true` if [uri] is a Caller's Box URL: an [_ibiblioHosts] host whose
+/// path begins with the canonical mirror prefix [callersBoxPathPrefix].
 ///
-/// Compares the **parsed** `uri.host` against the allowlists by exact string
+/// Compares the **parsed** `uri.host` against the allowlist by exact string
 /// equality (never substring/`contains`), so a lookalike host — e.g.
-/// `evilcallersbox.com` or `thecallersbox.com.evil.com` — never matches, and a
-/// userinfo trick (`https://thecallersbox.com@evil.com/...`) can't slip
-/// through either: `Uri.host` already resolves to the real authority
-/// (`evil.com`), not the string before the `@`.
+/// `ibiblio.org.evil.com` or `evilibiblio.org` — never matches, and a userinfo
+/// trick (`https://www.ibiblio.org@evil.com/...`) can't slip through either:
+/// `Uri.host` already resolves to the real authority (`evil.com`), not the
+/// string before the `@`.
 ///
-/// The ibiblio mirror check normalizes dot-segments (`.`/`..`) via
-/// [Uri.normalizePath] and then requires an **exact path segment** named
-/// `thecallersbox` (not a raw substring match on the joined path string), so
-/// neither a crafted `/contradance/thecallersbox/../someotherarchive/x` (which
-/// resolves away from the mirror directory) nor an unrelated path that merely
-/// contains the substring (e.g. `/notthecallersboxfeed/x`) can slip past it.
+/// The path check normalizes dot-segments (`.`/`..`) via [Uri.normalizePath]
+/// and then matches **exact leading path segments** (not a raw substring match
+/// on the joined path string), so neither a crafted
+/// `/contradance/thecallersbox/../someotherarchive/x` (which resolves away from
+/// the mirror directory) nor an unrelated path that merely contains the
+/// substring (e.g. `/notthecallersboxfeed/x`) can slip past it.
 ///
-/// Shared by [ImportSource.matchesUrl] (UI auto-detection) and
-/// [buildCallersBoxJsonUrl] (the actual fetch-URL builder) so the two can
-/// never drift — a URL the UI recognizes as Caller's Box is exactly the set
-/// of hosts the builder will ever fetch from.
+/// It requires the **whole** prefix rather than a `thecallersbox` segment
+/// anywhere in the path. ibiblio.org hosts many independent archives, so
+/// accepting `/anyarchive/thecallersbox/...` would let unrelated ibiblio
+/// content be fetched and parsed as trusted Caller's Box import data — and
+/// would be broader than what [buildCallersBoxJsonUrl] builds, what the update
+/// to `docs/user/imports.md` promises users, and what
+/// [UrlFetchFailureReason.callersBoxUnsupportedHost]'s message tells them.
+///
+/// Both limbs matter, which is why callers must treat this as a predicate over
+/// the whole [Uri] and never as a host check.
+///
+/// Shared by [ImportSource.matchesUrl] (UI auto-detection),
+/// [buildCallersBoxJsonUrl] (the actual fetch-URL builder), and
+/// [_redirectAllowlistFor] (the per-hop redirect guard) so the three can never
+/// drift — a URL the UI recognizes as Caller's Box is exactly the set the
+/// builder will ever fetch from, and exactly the set a Caller's Box fetch may
+/// redirect within.
 bool _isCallersBoxUrl(Uri uri) {
-  final host = uri.host.toLowerCase();
-  if (_callersBoxHosts.contains(host)) return true;
-  if (!_ibiblioHosts.contains(host)) return false;
-  final segments = uri.normalizePath().pathSegments.map(
-    (segment) => segment.toLowerCase(),
-  );
-  return segments.contains('thecallersbox');
+  if (!_ibiblioHosts.contains(uri.host.toLowerCase())) return false;
+  final segments = uri.normalizePath().pathSegments;
+  if (segments.length < _callersBoxPathSegments.length) return false;
+  for (var i = 0; i < _callersBoxPathSegments.length; i++) {
+    if (segments[i].toLowerCase() != _callersBoxPathSegments[i]) return false;
+  }
+  return true;
 }
 
 /// Returns `true` if [uri] names a known ContraDB host ([_contraDbHosts]).
@@ -1417,10 +1518,14 @@ bool _isCallersBoxUrl(Uri uri) {
 /// either: `Uri.host` already resolves to the real authority (`evil.com`),
 /// not the string before the `@`.
 ///
-/// Shared by [ImportSource.matchesUrl] (UI auto-detection) and
+/// Shared by [ImportSource.matchesUrl] (UI auto-detection),
 /// [buildContraDbUrl] / [buildContraDbProgramUrl] (the actual fetch-URL
-/// builders) so the three can never drift — a URL the UI recognizes as
-/// ContraDB is exactly the set of hosts the builders will ever fetch from.
+/// builders), and [_redirectAllowlistFor] (the per-hop redirect guard) so they
+/// can never drift — a URL the UI recognizes as ContraDB is exactly the set of
+/// hosts the builders will ever fetch from, and exactly the set a ContraDB
+/// fetch may redirect within. That last part matters in practice:
+/// `www.contradb.com` 301s to `contradb.com`, so the allowlist (not host
+/// equality) is what keeps a live canonical-domain redirect working.
 ///
 /// #667/#621: this intentionally drops self-hosted-ContraDB-mirror support —
 /// only the official host set is trusted/fetched as "ContraDB".

@@ -882,7 +882,7 @@
   "importErrorCallersBoxEmptyInput": "インポートするCaller's BoxのダンスURLまたはIDを入力してください。",
   "importErrorCallersBoxInvalidUrl": "Caller's BoxのダンスURLまたは数値IDのように見えません。",
   "importErrorCallersBoxMissingId": "そのCaller's BoxのURLにはダンスID（…dance.php?id=N）がありません。",
-  "importErrorCallersBoxUnsupportedHost": "そのリンクはサポートされているCaller's Boxのホストではありません。thecallersbox.comまたはibiblio.orgのリンクを貼り付けるか、ダンスの数値IDを入力してください。",
+  "importErrorCallersBoxUnsupportedHost": "そのリンクはサポートされているCaller's Boxのリンクではありません。ibiblio.orgまたはwww.ibiblio.orgの/contradance/thecallersbox/以下のリンクを貼り付けるか、ダンスの数値IDを入力してください。",
   "importErrorCallersBoxEmptySearch": "The Caller's Boxを検索するにはタイトルまたはフレーズのフィギュアを入力してください。",
   "importErrorSearchTimeout": "検索が{seconds}秒後にタイムアウトしました。接続を確認して、もう一度お試しください。",
   "importErrorCallersBoxUnreachable": "The Caller's Boxに到達できませんでした。接続を確認して、もう一度お試しください。",
