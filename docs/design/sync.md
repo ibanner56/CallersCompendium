@@ -213,14 +213,23 @@ out what to upload.
 | `403` | Sync ID below the entropy floor (see Security). |
 | `404` | No such blob, manifest or device. |
 | `409` | **Epoch mismatch** — the client's epoch is not the store's. |
-| `410` | Store expired and was reaped. Treat as fresh attach. |
 | `413` | Payload exceeds a cap. |
 | `422` | **Payload rejected by the deny-list** — a device-local field was present. |
 | `429` | Rate limited. `Retry-After` set. |
 | `507` | Store quota exhausted. |
 
-`409` and `410` both mean "discard your baseline and re-attach". They are
-distinguished for diagnosis, not for behaviour.
+There is deliberately **no distinct "expired" status.** An earlier draft had a
+`410` for it, which was wrong twice: `GET /v1/store` creates the store when
+absent, so a client starting every sync there would never observe it — it sees a
+new epoch and re-attaches via `409` — and for the server to tell "expired" from
+"never existed" it would have to **remember reaped sync IDs**, which is the exact
+persistent-metadata-past-expiry problem used to rule out monotonic epochs. The
+same objection applies to both, and it was missed here first time.
+
+So: the other endpoints return `404` when the store is absent, indistinguishable
+from a missing blob, and the client recovers by calling `GET /v1/store`, which
+creates it and returns a fresh epoch. Reset detection is the epoch's job alone,
+and the epoch needs no server memory to do it.
 
 `422` should never occur in normal operation. It fires only when a client bug
 would otherwise put a venue address on our infrastructure, so it is a **loud**
@@ -234,7 +243,7 @@ failure: surfaced to the user, logged, never silently retried.
 2. `GET /v1/store`. Server creates the store if it does not exist, returning its
    epoch.
 3. **Fresh attach**, always, on first attach for this ID, on re-attach after
-   detach, and on `409`/`410`. Detaching **forgets the sync ID entirely**: no
+   detach, and on `409`. Detaching **forgets the sync ID entirely**: no
    list of previously-attached IDs is kept, so re-attaching cannot resurrect a
    stale baseline.
 4. Upload every local record; download every remote record.
