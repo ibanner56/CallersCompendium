@@ -94,7 +94,8 @@ that it must travel for the protocol to function.
 Worth stating plainly rather than burying: it is a persistent per-installation
 identifier that our server sees. A store operator can observe that N devices sync
 to one store and when each was last active. That is metadata we hold, it is
-bounded by the 30-day TTL, and the privacy policy should say so rather than imply
+bounded by the 30-day-of-disuse TTL, and the privacy policy should say so
+rather than imply
 the store is opaque to us.
 
 ## Wire format
@@ -355,7 +356,7 @@ CREATE TABLE stores (
   id_hash     TEXT PRIMARY KEY,   -- SHA-256 of the sync ID; never the plaintext
   epoch       TEXT NOT NULL,
   created_at  INTEGER NOT NULL,
-  last_seen   INTEGER NOT NULL,   -- drives the 30-day TTL
+  last_seen   INTEGER NOT NULL,   -- any request refreshes it; drives the TTL
   bytes_used  INTEGER NOT NULL
 );
 CREATE TABLE manifests (
@@ -383,9 +384,13 @@ DELETE FROM stores WHERE last_seen < (now - 30 days);
 
 then cascades manifests, blob refs and blob files.
 
-`last_seen` is updated by **any** authenticated request for the store. Deletion
-is unconditional and needs no per-user action, which is what makes retention
-obligations self-satisfying rather than procedural.
+`last_seen` is updated by **any** authenticated request for the store, so this
+is a rolling TTL on activity rather than an absolute age cap: a store synced
+weekly persists indefinitely, and that is intended.
+
+Retention obligations are covered by two paths rather than by the sweeper alone
+— abandoned stores reap themselves, and an owner can wipe an active store at any
+time with `DELETE /v1/store`. Neither requires an operator to act on a request.
 
 ### Garbage collection
 
@@ -439,7 +444,7 @@ about making acquisition hard, not about limiting the blast radius:
 
 `GET /v1/store` creates a store if absent, so a probe cannot distinguish "exists"
 from "does not exist" by status code. Creation is cheap and the sweeper reaps
-unused stores in 30 days.
+unused stores after 30 days of disuse.
 
 Rate limits are per-IP and per-ID-hash, with a global cap on store creation per
 IP per hour.

@@ -66,7 +66,9 @@ These bound every option below.
    serves Apple users and strands the rest.
 4. **Self-hostable, and optional.** Whatever we run, a user must be able to run
    their own, and the app must work fully when it is unreachable or gone.
-5. **Nothing we host persists beyond 30 days.**
+5. **Nothing we host survives 30 days of disuse.** Retention is a rolling
+   TTL on activity, not an absolute age cap: an actively-synced store persists
+   as long as it is used. See Retention.
 6. **No user accounts and no sign-in**, per the published policy.
 
 ## Decision
@@ -214,8 +216,17 @@ Rationale.
 epoch, manifests and blobs. The next device to connect performs a fresh attach,
 and the first to do so seeds the store.
 
-Nothing we host outlives 30 days of disuse, which makes deletion obligations
-self-satisfying by default rather than by process.
+Two paths, together covering every case without us processing a request by hand:
+
+- **Abandoned stores reap themselves** after 30 days of disuse. No action by
+  anyone.
+- **Active stores are wiped by their owner**, at any time, via detach — which
+  issues `DELETE /v1/store` and removes everything under the sync ID.
+
+Stated precisely because the looser phrasing is tempting and wrong: this is a
+rolling TTL on *activity*, not an absolute age cap. A store synced weekly
+persists indefinitely. What holds is that nothing survives disuse and nothing
+requires us to act on a deletion request — not that no byte outlives 30 days.
 
 ### Scope of what syncs
 
@@ -409,10 +420,10 @@ makes self-hosting materially harder, which constraint 4 forbids.
 - **A bearer credential has no recovery and no revocation.** Lose the ID and the
   store is unreachable; leak it and the only remedy is to move to a new ID on
   every device.
-- **Sync is not backup.** With a 30-day TTL the store is a relay with a grace
-  period, not an archive. The file backup remains the recovery path and the UI
+- **Sync is not backup.** With a 30-day-of-disuse TTL the store is a relay with
+  a grace period, not an archive. The file backup remains the recovery path and the UI
   must say so.
-- **30 days is a liveness requirement on the user.** A caller who does not open
+- **30 days of disuse is a liveness requirement on the user.** A caller who does not open
   the app for five weeks returns to a fresh attach and a dedupe review —
   correct and safe, but surprising. The UI should warn as expiry approaches.
 - **Venues sync partially**, and correct behaviour looks like data loss.
@@ -447,7 +458,7 @@ link to it. Both files must be amended together, with the effective date bumped,
 - **Storage or bandwidth on the hosted instance stops being trivial**, at which
   point the reference-passing variant for imported dances becomes worth its
   complexity.
-- **The 30-day TTL proves too short** — evidenced by users repeatedly hitting
+- **The 30-day disuse window proves too short** — evidenced by users repeatedly hitting
   fresh attach after ordinary gaps in use.
 - **Export-compliance rules change**, or a platform provides encryption we can
   use without a declaration, making E2EE cheap enough to reconsider.

@@ -28,8 +28,8 @@ Cloud sync was a v1 non-goal and is now **designed** — see
 [ADR-004](adr/004-device-sync-and-athanaeum.md), which specifies **Sync** and the
 **Athanaeum** sync store. It remains unbuilt, and it keeps the properties the
 original non-goal was protecting: no user accounts, no sign-in, nothing we host
-outliving 30 days, and no venue address or contact data ever reaching our
-infrastructure.
+surviving 30 days of disuse, and no venue address or contact data ever reaching
+our infrastructure.
 
 ## Phase 0 — Project foundations
 
