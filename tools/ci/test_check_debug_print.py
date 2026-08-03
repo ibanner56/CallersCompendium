@@ -25,6 +25,7 @@ sys.path.insert(0, str(HERE))
 from check_debug_print import (  # noqa: E402
     dart_library_files,
     find_unguarded,
+    mask_line,
     strip_line_comment,
 )
 
@@ -120,6 +121,41 @@ def test_guarded_forms() -> None:
         == [],
     )
 
+    check(
+        "one-line braced guard",
+        unguarded_lines(
+            "void f() {\n  if (kDebugMode) { debugPrint('hi'); }\n}\n"
+        )
+        == [],
+        "the block opens BEFORE the call on the same line, so the call is "
+        "inside it",
+    )
+
+    check(
+        "one-line braced guard, compound condition",
+        unguarded_lines(
+            "void f() {\n"
+            "  if (kDebugMode && x != null) { debugPrint('hi'); }\n"
+            "}\n"
+        )
+        == [],
+    )
+
+    check(
+        "guard condition split across lines",
+        unguarded_lines(
+            "void f() {\n"
+            "  if (kDebugMode &&\n"
+            "      record.error != null) {\n"
+            "    debugPrint('hi');\n"
+            "  }\n"
+            "}\n"
+        )
+        == [],
+        "`pending` carries across lines, so a wrapped condition is still one "
+        "condition",
+    )
+
 
 # --------------------------------------------------------------------------
 # Unguarded shapes — the ratchet's whole reason to exist.
@@ -194,6 +230,50 @@ def test_unguarded_forms() -> None:
         == [5],
     )
 
+    # --- the intra-line false negative -------------------------------------
+    #
+    # THE most important case in this file. A guarded block that CLOSES on the
+    # same line as a later call: the `}` must be processed before the call, or
+    # the closed block's guard is still on the stack and an unguarded call is
+    # waved through. That is a false NEGATIVE in a security ratchet — the one
+    # direction it exists to prevent, and strictly worse than a false positive,
+    # which merely annoys. Line-oriented scanning gets this wrong silently.
+    check(
+        "block CLOSES before a call on the same line",
+        unguarded_lines(
+            "void f() {\n"
+            "  if (kDebugMode) {\n"
+            "    ok();\n"
+            "  } debugPrint('leak');\n"
+            "}\n"
+        )
+        == [4],
+        "the guard closed at the `}`; the call after it is NOT protected",
+    )
+
+    check(
+        "block closes and reopens unguarded on one line",
+        unguarded_lines(
+            "void f() {\n"
+            "  if (kDebugMode) {\n"
+            "    ok();\n"
+            "  } else { debugPrint('leak'); }\n"
+            "}\n"
+        )
+        == [4],
+    )
+
+    check(
+        "call between a closed guard and a new guarded block",
+        unguarded_lines(
+            "void f() {\n"
+            "  if (kDebugMode) { ok(); } debugPrint('leak');\n"
+            "  if (kDebugMode) { debugPrint('fine'); }\n"
+            "}\n"
+        )
+        == [2],
+    )
+
 
 # --------------------------------------------------------------------------
 # False positives — shapes that name `debugPrint` without calling it.
@@ -237,12 +317,39 @@ def test_false_positives() -> None:
     )
 
     check(
+        "a brace inside a string does not close a block",
+        unguarded_lines(
+            "void f() {\n"
+            "  if (kDebugMode) {\n"
+            "    debugPrint('}');\n"
+            "    debugPrint('still inside');\n"
+            "  }\n"
+            "}\n"
+        )
+        == [],
+        "masking string contents is what keeps the brace stack honest",
+    )
+
+    check(
         "`//` inside a string is not a comment",
         unguarded_lines(
             "void f() {\n  final u = 'http://x';\n  debugPrint(u);\n}\n"
         )
         == [3],
         "the URL must not swallow the rest of the line",
+    )
+
+
+def test_masking() -> None:
+    print("masking:")
+    check(
+        "string contents are blanked, length preserved",
+        mask_line("f('}{');") == "f('  ');" ,
+        repr(mask_line("f('}{');")),
+    )
+    check(
+        "comment is blanked to end of line",
+        mask_line("a; // }").rstrip() == "a;",
     )
 
 
@@ -284,6 +391,7 @@ def main() -> int:
     test_guarded_forms()
     test_unguarded_forms()
     test_false_positives()
+    test_masking()
     test_strip_line_comment()
     test_real_tree_is_clean()
     print()

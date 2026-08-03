@@ -33,12 +33,6 @@ _CALL_RE = re.compile(r"\bdebugPrint\s*\(")
 # An `if` whose condition mentions kDebugMode. Covers the bare `if (kDebugMode)`
 # and compound forms like `if (kDebugMode && record.error != null)`.
 _GUARD_RE = re.compile(r"\bif\s*\(.*\bkDebugMode\b.*\)")
-# Same, but requiring the statement to END at the `)` — i.e. the body is on a
-# following line (`if (kDebugMode)\n  debugPrint(...);`) or is a block we track
-# via brace depth.
-_GUARD_OPEN_RE = re.compile(r"\bif\s*\(.*\bkDebugMode\b.*\)\s*\{?\s*$")
-# A guard and the call on one line: `if (kDebugMode) debugPrint('...');`
-_GUARD_INLINE_RE = re.compile(r"\bif\s*\(.*\bkDebugMode\b.*\)\s*debugPrint\s*\(")
 
 # `import ... show debugPrint` names the symbol without calling it.
 _IMPORT_RE = re.compile(r"^\s*import\s")
@@ -65,11 +59,50 @@ def dart_library_files(root: Path) -> list[Path]:
     return files
 
 
+def mask_line(line: str) -> str:
+    """Blank out comments and string *contents*, preserving column positions.
+
+    Returns a same-length string in which a trailing `//` comment and the
+    inside of every string literal are replaced by spaces. Positions are
+    preserved because [find_unguarded] compares the offsets of `debugPrint(`
+    matches against the offsets of `{` / `}`, so the two must agree on columns.
+
+    Masking is what keeps a brace or a `debugPrint(` *inside a string* from
+    being read as code — `debugPrint('}')` must not close a block.
+    """
+    out: list[str] = []
+    quote: str | None = None
+    i = 0
+    while i < len(line):
+        c = line[i]
+        if quote:
+            if c == "\\":
+                out.append("  "[: len(line[i : i + 2])])
+                i += 2
+                continue
+            if c == quote:
+                quote = None
+                out.append(c)
+            else:
+                out.append(" ")
+        else:
+            if c in "'\"":
+                quote = c
+                out.append(c)
+            elif c == "/" and i + 1 < len(line) and line[i + 1] == "/":
+                out.append(" " * (len(line) - i))
+                break
+            else:
+                out.append(c)
+        i += 1
+    return "".join(out)
+
+
 def strip_line_comment(line: str) -> str:
     """Blank out a trailing `//` comment, ignoring `//` inside a string.
 
-    Only single-quoted and double-quoted Dart strings are tracked; that is
-    enough to keep a `'http://…'` literal from being mistaken for a comment.
+    Kept as the narrow, readable form of [mask_line] for the cases that only
+    care about comments.
     """
     out: list[str] = []
     quote: str | None = None
@@ -99,48 +132,66 @@ def strip_line_comment(line: str) -> str:
 def find_unguarded(text: str) -> list[tuple[int, str]]:
     """Return `(line_number, source_line)` for each unguarded `debugPrint(`.
 
-    A call counts as guarded when any of these holds:
+    Walks the file as a character stream rather than line by line, because
+    guardedness is a **position** property, not a line property. Braces and
+    calls are interleaved within a single line in both directions:
 
-    * it sits inside a `{ … }` block opened by an `if (… kDebugMode …)`;
-    * the guard and the call share a line (`if (kDebugMode) debugPrint(…)`);
-    * the immediately preceding statement is a braceless `if (… kDebugMode …)`.
+    ```dart
+    if (kDebugMode) { debugPrint('a'); }   // opens BEFORE the call: guarded
+    } debugPrint('b');                     // closes BEFORE the call: NOT
+    ```
+
+    Scanning a line's calls before its braces gets the first wrong (a false
+    positive) and the second wrong (a false *negative* — an unguarded call
+    waved through, which is the direction this ratchet exists to prevent).
+    Processing each `{`, `}` and call in offset order is what makes both fall
+    out of one rule.
+
+    A call is guarded when either:
+
+    * it is inside a `{ … }` block whose `{` was preceded by a condition
+      mentioning `kDebugMode` — this covers the braced form at any nesting
+      depth, including a block opened earlier on the same line; or
+    * the statement it belongs to is introduced by such a condition — this
+      covers `if (kDebugMode) debugPrint(…)` and the braceless two-line form,
+      and requires no special case for either.
+
+    `pending` accumulates the code since the last statement boundary (`;`, `{`
+    or `}`) and carries across lines, so a condition split over several lines
+    is still seen as one.
     """
     unguarded: list[tuple[int, str]] = []
     raw_lines = text.split("\n")
-    # One entry per open brace: True when that block was opened by a kDebugMode
-    # `if`. Any enclosing guarded block makes the call guarded.
+    # One entry per open brace: True when that block was opened by a condition
+    # mentioning kDebugMode. Any enclosing guarded block guards the call.
     depth_guarded: list[bool] = []
+    # Code since the last `;`, `{` or `}` — i.e. the statement being built.
+    pending = ""
 
     for idx, raw in enumerate(raw_lines):
-        line = strip_line_comment(raw)
-        opens_guard = bool(_GUARD_OPEN_RE.search(line))
-        inline_guard = bool(_GUARD_INLINE_RE.search(line))
+        masked = mask_line(raw)
+        call_starts = {m.start() for m in _CALL_RE.finditer(masked)}
+        is_import = bool(_IMPORT_RE.match(masked))
 
-        for match in _CALL_RE.finditer(line):
-            if _IMPORT_RE.match(line):
-                # `import 'package:flutter/foundation.dart' show debugPrint;`
-                continue
-            guarded = any(depth_guarded) or inline_guard
-            if not guarded:
-                # Braceless single-statement guard on the previous line.
-                prev = ""
-                for back in range(idx - 1, -1, -1):
-                    candidate = strip_line_comment(raw_lines[back]).strip()
-                    if candidate:
-                        prev = candidate
-                        break
-                if _GUARD_RE.search(prev) and prev.endswith(")"):
-                    guarded = True
-            if not guarded:
-                unguarded.append((idx + 1, raw.strip()))
-            del match
-
-        for char in line:
+        for pos, char in enumerate(masked):
+            if pos in call_starts and not is_import:
+                # `import ... show debugPrint;` names the symbol, never calls it.
+                if not (any(depth_guarded) or _GUARD_RE.search(pending)):
+                    unguarded.append((idx + 1, raw.strip()))
             if char == "{":
-                depth_guarded.append(opens_guard)
+                depth_guarded.append(bool(_GUARD_RE.search(pending)))
+                pending = ""
             elif char == "}":
                 if depth_guarded:
                     depth_guarded.pop()
+                pending = ""
+            elif char == ";":
+                pending = ""
+            else:
+                pending += char
+        # A space, not a newline: `_GUARD_RE`'s `.*` does not cross newlines,
+        # and a condition wrapped over two lines is still one condition.
+        pending += " "
 
     return unguarded
 
