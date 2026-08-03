@@ -169,13 +169,19 @@ label?`. Covers CC's source area + related dances and TCB's video lists.
 
 ### Provenance
 `danceId, source (callersbox|contradb|callers_companion|manual|json),
-externalId?, importedAt, permission?, license?, rawPayload (as imported),
-sourceVersion?` — enables re-import/diff, attribution display, and honoring
-permission tiers.
+externalId?, importedAt, permission?, license?, sourceVersion?` — drives
+attribution display, honouring permission tiers, and re-import dedupe on
+`(source, externalId)`.
+
+Carried a `rawPayload` (the record as imported) until schema v21. It was
+described here as enabling "re-import/diff"; no diffing path was ever built and
+nothing else read it either, so it was dropped (#781). Re-import re-fetches
+from the source, which needs no stored copy.
 
 ### Settings (not per-dance)
-Dialect config (see design/dialect.md), performance-mode prefs, snapshot
-source URLs.
+Dialect config (see design/dialect.md), performance-mode prefs, import source
+URLs. (Every settings key is classified in
+[data-classification.md](../dev/data-classification.md).)
 
 ## Invariants (enforced in the core package, fully unit-tested)
 
