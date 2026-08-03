@@ -176,10 +176,12 @@ Map<String, Object?> _sourceCitationToJson(SourceCitation s) => {
   if (s.number != null) 'number': s.number,
 };
 
-/// Serializes provenance. Archives written before schema v21 also carried a
-/// `rawPayload` key (the verbatim imported source record, dropped in #781);
-/// restoring one of those is safe without any special handling, because
-/// [decodeArchive] ignores unknown keys — the payload is simply not read back.
+/// Serializes provenance. Archives exported by an app on **database** schema
+/// v20 or earlier also carried a `rawPayload` key (the verbatim imported source
+/// record, dropped in #781) — note that is the migration version in
+/// `database.dart`, not this file's [archiveSchemaVersion], which is unchanged.
+/// Restoring one of those archives needs no special handling, because
+/// [decodeArchive] ignores unknown keys: the payload is simply not read back.
 Map<String, Object?> _provenanceToJson(Provenance p) => {
   'source': p.source.name,
   if (p.externalId != null) 'externalId': p.externalId,
