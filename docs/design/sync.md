@@ -212,9 +212,19 @@ Credentials in URLs leak into server logs, proxy logs, browser history and
 authenticated sync ID and contain no secret.
 
 The server does not "look up an account". The sync ID *is* the namespace: it is
-hashed (SHA-256) to produce the storage key prefix, so the plaintext ID is never
-written to disk and a stolen backup of the store does not yield working
-credentials for the IDs inside it.
+derived into a storage key with **`HMAC-SHA256(pepper, syncID)`**, so the
+plaintext ID is never written to disk.
+
+**Why HMAC rather than a bare hash.** The sync ID is deliberately low-entropy —
+memorable by design, with a floor of ~2⁴⁰ for user-chosen IDs. Exhausting 2⁴⁰
+SHA-256 candidates is minutes on a commodity GPU, so a bare hash would let anyone
+with a stolen database recover working credentials. The pepper lives in server
+configuration, never in the database, so the database alone is useless.
+
+This is **server-side only**. The client sends the sync ID over TLS and computes
+no MAC; it neither needs nor should hold the pepper, since the entire value of
+the scheme is that the key lives somewhere a stolen database does not. The
+client's cryptography is therefore unchanged from what the app ships today.
 
 ### Endpoints
 
@@ -423,20 +433,20 @@ traversal sequences.
 
 ```sql
 CREATE TABLE stores (
-  id_hash     TEXT PRIMARY KEY,   -- SHA-256 of the sync ID; never the plaintext
+  id_key      TEXT PRIMARY KEY,   -- HMAC-SHA256(pepper, syncID); never plaintext
   epoch       TEXT NOT NULL,
   created_at  INTEGER NOT NULL,
   last_seen   INTEGER NOT NULL,   -- any request refreshes it; drives the TTL
   bytes_used  INTEGER NOT NULL
 );
 CREATE TABLE manifests (
-  id_hash TEXT NOT NULL, device_id TEXT NOT NULL,
+  id_key TEXT NOT NULL, device_id TEXT NOT NULL,
   etag TEXT NOT NULL, written_at INTEGER NOT NULL, body BLOB NOT NULL,
-  PRIMARY KEY (id_hash, device_id)
+  PRIMARY KEY (id_key, device_id)
 );
 CREATE TABLE blob_refs (
-  id_hash TEXT NOT NULL, hash TEXT NOT NULL, size INTEGER NOT NULL,
-  PRIMARY KEY (id_hash, hash)
+  id_key TEXT NOT NULL, hash TEXT NOT NULL, size INTEGER NOT NULL,
+  PRIMARY KEY (id_key, hash)
 );
 ```
 
@@ -480,15 +490,29 @@ not the store's, holding exactly two things:
 
 | Column | |
 | --- | --- |
-| `id_hash` | SHA-256 of the sync ID — **the same hash the store uses**, never the plaintext |
-| `accessed_at` | Timestamp |
+| `id_key` | `HMAC-SHA256(pepper, syncID)` — **the same derivation the store uses**, never the plaintext. **Nulled after 30 days.** |
+| `accessed_at` | Timestamp. Retained. |
 
-Hashed rather than plaintext for a specific reason: the sync ID is a bearer
+Derived rather than plaintext for a specific reason: the sync ID is a bearer
 credential, and the store already avoids holding it in the clear so that a stolen
 copy yields nothing usable. A plaintext access log would undo exactly that, and
 would be worse than the store, because the log is meant to outlive the stores it
-describes. Hashing costs nothing operationally — to find entries for a store
-under investigation, hash the ID and match.
+describes. Correlation is unaffected — to find entries for a store under
+investigation, derive its key and match.
+
+**The identifier expires; the fact of access does not.** Even a peppered
+identifier is a linkable pseudonymous identifier, so it cannot be held
+indefinitely under the same reasoning that bounds everything else here. After 30
+days `id_key` is nulled, leaving a timestamp-only row.
+
+The split is deliberate, because the audit value is two different things:
+
+- *"Did the operator open store X?"* — linkable, and expires on schedule.
+- *"How often is break-glass used at all?"* — an aggregate about our own conduct,
+  with no data subject, which survives.
+
+The second is what matters for accountability over time, and it is the one that
+costs nothing to keep.
 
 The log is deliberately minimal: it records **that** access happened and to
 which store, not why. Justification lives in whatever incident process wraps it,
@@ -540,7 +564,10 @@ about making acquisition hard, not about limiting the blast radius:
   satisfy the pattern. Both are server-enforced with `403`; a client-side check
   alone would be bypassable, and a warning alone would have stopped neither.
 - The ID never appears in a URL, so it does not reach logs or `Referer`.
-- The server stores only SHA-256 of the ID, so a stolen store yields no IDs.
+- The server stores only `HMAC-SHA256(pepper, syncID)`, with the pepper in
+  configuration rather than the database, so a stolen database yields no IDs. A
+  **bare** hash would not achieve this: at the ~2⁴⁰ floor, exhausting the space
+  is minutes of GPU time.
 
 ### Enumeration
 
@@ -630,7 +657,9 @@ Recorded so the reasoning is not re-litigated.
 | Quota exhaustion | Size breakdown by category with the exclude-imports toggle inline. |
 | Naming | **Athenaeum** — the earlier "Athanaeum" was a typo; DNS corrected and verified. |
 | Default state | **Off on every installation.** Opt-in only; an unconfigured app makes no sync network call at all. Sync gets its own top-level Settings blade. |
-| Access log | **Separate database**, holding only a **hashed** sync ID and a timestamp. Hashed so the log is not itself a credential store; separate so reaping a store cannot destroy evidence of access to it. |
+| Access log | **Separate database**, holding a derived sync-ID key and a timestamp. Separate so reaping a store cannot destroy evidence of access to it. |
+| Identifier derivation | **`HMAC-SHA256(pepper, syncID)`**, server-side only — a bare hash is brute-forceable at the ~2⁴⁰ floor. No client-side change; the app's cryptography is unchanged. |
+| Access-log retention | Identifier **nulled at 30 days**, timestamp retained — the linkable part expires, the non-linkable aggregate survives. |
 
 ### The settings migration has a one-time ordering effect
 
@@ -645,8 +674,11 @@ no discriminator at all, which is worse.
 
 ## Open questions
 
-1. **Break-glass access-log retention period.** The log holds a hashed sync ID
-   and a timestamp, in a separate database so that reaping a store cannot
-   destroy the record of access to it. It therefore cannot inherit the 30-day
-   disuse TTL — an audit log that expires with its subject is not an audit log —
-   so it needs a stated period, and the privacy policy has to name it.
+None outstanding. Every question raised during specification has been ruled on;
+see "Resolved since first draft" above.
+
+The nearest thing to an open item is operational rather than design: the pepper
+is a server secret, so its generation, storage and rotation belong in the server
+deployment issue. Rotating it re-derives every storage key, which is a migration
+of the store rather than a config change — worth knowing before it is needed
+rather than during an incident.

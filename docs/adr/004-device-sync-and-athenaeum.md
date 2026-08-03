@@ -455,10 +455,32 @@ makes self-hosting materially harder, which constraint 4 forbids.
   access is a matter of policy rather than capability. A break-glass path for
   abuse investigation exists, is logged, and is disclosed in the privacy policy.
   The log lives in a **separate database** — so reaping a store cannot destroy
-  the record of access to it — and holds exactly two fields: the **hashed** sync
-  ID and a timestamp. Hashed because the store deliberately avoids holding the
+  the record of access to it — and holds two fields: the derived sync-ID key and
+  a timestamp. Never the plaintext ID: the store deliberately avoids holding the
   credential in the clear, and a plaintext log would undo that while outliving
   the stores it describes.
+- **Identifiers are derived with HMAC, not a bare hash.** A bare SHA-256 of a
+  sync ID is weak *because the ID is deliberately low-entropy*: at the ~2⁴⁰ floor
+  for user-chosen IDs, exhausting the space is minutes of commodity GPU time, so
+  a stolen database would yield working credentials. Keys are therefore
+  `HMAC-SHA256(pepper, syncID)` with the pepper held in server configuration and
+  never in the database. This is server-side only — the client computes no MAC
+  and never holds the pepper.
+- **Even a derived identifier is linkable, so the log expires too.** The access
+  log keeps its identifier for 30 days and then **degrades to a timestamp-only
+  row**, preserving "an access occurred on this date" as a non-linkable aggregate
+  while the linkable part expires on the same schedule as everything else.
+- **Export compliance is unchanged, and was checked rather than assumed.** Sync
+  adds no new cryptographic *category*: TLS is OS-provided, SHA-256 content
+  addressing is hashing, and the binary already ships both plus Ed25519 for
+  update-signature verification. `ITSAppUsesNonExemptEncryption = false` remains
+  accurate on the analysis already recorded in
+  [store-submission/README.md](../dev/store-submission/README.md) §2, which names
+  the trigger that would change it — reintroducing *confidentiality* crypto. The
+  server-side pepper does not enter into it: it is not in the distributed binary,
+  and export declarations attach to that artifact. The tripwire is close to us,
+  which is why it is written down: encrypting payloads before upload — the E2EE
+  option rejected under constraint 1 — would flip the answer to yes.
 - **Silent merge is irreversible from the user's point of view.** Two records
   that pass the title-plus-choreography test become one without being shown. The
   test is strict — identical figures *and* params — so a false positive means two
