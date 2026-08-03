@@ -898,7 +898,7 @@
   "importErrorContraDbInvalidProgramUrl": "Dat ziet er niet uit als een ContraDB programma-URL of een numeriek id.",
   "importErrorContraDbMissingProgramId": "Die ContraDB-URL mist een programma-id (…/programs/N).",
   "importErrorContraDbInvalidProgramLink": "Dat ziet er niet uit als een ContraDB-programmalink.",
-  "importErrorContraDbUnsupportedHost": "Die link is niet afkomstig van een ondersteunde ContraDB-host. Plak een link van contradb.com, of voer het numerieke dans- of programma-id in.",
+  "importErrorContraDbUnsupportedHost": "Die link is niet afkomstig van een ondersteunde ContraDB-host. Plak een link van contradb.com of www.contradb.com, of voer het numerieke dans- of programma-id in.",
   "importErrorContraDbUnreachable": "ContraDB kon niet worden bereikt. Controleer je verbinding en probeer het opnieuw.",
   "importErrorContraDbHttpStatus": "ContraDB heeft gereageerd met HTTP {status}.",
   "importErrorContraDbEmptyResponse": "ContraDB heeft een lege response geretourneerd.",

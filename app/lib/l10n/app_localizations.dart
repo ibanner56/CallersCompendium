@@ -5588,10 +5588,10 @@ abstract class AppLocalizations {
   /// **'That doesn\'t look like a ContraDB program link.'**
   String get importErrorContraDbInvalidProgramLink;
 
-  /// Error shown when a pasted ContraDB dance or program URL's host is not contradb.com (or www.contradb.com). Never echoes the pasted URL/host.
+  /// Error shown when a pasted ContraDB URL's host is not on the ContraDB allowlist. Names BOTH accepted hostnames literally (www.contradb.com is a real source: it 301s to contradb.com) so a user scanning for their own hostname finds it. Says 'host' rather than 'link' because the ContraDB predicate is genuinely host-only -- unlike the Caller's Box one, which also requires a path; do not harmonise the two. Never echoes the pasted URL/host.
   ///
   /// In en, this message translates to:
-  /// **'That link isn\'t from a supported ContraDB host. Paste a link from contradb.com, or enter the dance\'s or program\'s numeric id.'**
+  /// **'That link isn\'t from a supported ContraDB host. Paste a link from contradb.com or www.contradb.com, or enter the dance\'s or program\'s numeric id.'**
   String get importErrorContraDbUnsupportedHost;
 
   /// Error shown when ContraDB could not be reached.

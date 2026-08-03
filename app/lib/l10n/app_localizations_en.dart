@@ -3565,7 +3565,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importErrorContraDbUnsupportedHost =>
-      'That link isn\'t from a supported ContraDB host. Paste a link from contradb.com, or enter the dance\'s or program\'s numeric id.';
+      'That link isn\'t from a supported ContraDB host. Paste a link from contradb.com or www.contradb.com, or enter the dance\'s or program\'s numeric id.';
 
   @override
   String get importErrorContraDbUnreachable =>

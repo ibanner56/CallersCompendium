@@ -898,7 +898,7 @@
   "importErrorContraDbInvalidProgramUrl": "Das sieht nicht wie eine ContraDB-Programm-URL oder eine numerische ID aus.",
   "importErrorContraDbMissingProgramId": "Diese ContraDB-URL fehlt eine Programm-ID (…/programs/N).",
   "importErrorContraDbInvalidProgramLink": "Das sieht nicht wie ein ContraDB-Programm-Link aus.",
-  "importErrorContraDbUnsupportedHost": "Dieser Link stammt nicht von einem unterstützten ContraDB-Host. Füge einen Link von contradb.com ein oder gib die numerische ID des Tanzes oder Programms ein.",
+  "importErrorContraDbUnsupportedHost": "Dieser Link stammt nicht von einem unterstützten ContraDB-Host. Füge einen Link von contradb.com oder www.contradb.com ein oder gib die numerische ID des Tanzes oder Programms ein.",
   "importErrorContraDbUnreachable": "ContraDB konnte nicht erreicht werden. Überprüfen Sie Ihre Verbindung, dann versuchen Sie es erneut.",
   "importErrorContraDbHttpStatus": "ContraDB antwortete mit HTTP {status}.",
   "importErrorContraDbEmptyResponse": "ContraDB gab eine leere Antwort zurück.",
