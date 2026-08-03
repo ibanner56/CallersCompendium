@@ -5,6 +5,8 @@
   supersedes the later item "Optional device-to-device sync, beyond
   Apple-native AirDrop support" (line 720).
 - **Deciders**: @ibanner56
+- **Specification**: [docs/design/sync.md](../design/sync.md) — wire format,
+  HTTP contract, client algorithm, server implementation and threat model.
 
 ## Context
 
