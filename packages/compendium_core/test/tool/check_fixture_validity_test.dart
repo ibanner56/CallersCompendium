@@ -5,6 +5,8 @@ import 'dart:io';
 
 import 'package:test/test.dart';
 
+import 'package:compendium_core/testing.dart';
+
 import '../../tool/check_fixture_validity.dart';
 
 /// Unit tests for the figure-fixture validity ratchet.
@@ -120,6 +122,16 @@ void main() {
   });
 
   group('the invalid-fixture marker', () {
+    test('both opt-out routes demand the same reason length', () {
+      // A fixture can be waived two ways — this marker, and
+      // `invalidTestFigure`'s `reason`. Two independent constants would let
+      // one be relaxed while the other was not, which is the shape of every
+      // hole found in this mechanism: a second route to the opt-out, gated
+      // separately. Pinned as identity, not equality of two numbers, so the
+      // alias cannot be replaced by a matching literal that later drifts.
+      expect(minReasonLength, same(minFixtureReasonLength));
+    });
+
     test('a substantive reason suppresses the violation', () {
       expect(
         check(

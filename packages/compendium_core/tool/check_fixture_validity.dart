@@ -47,14 +47,20 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/source/line_info.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Marker opting a fixture out of validation. Must be followed by a reason.
 const String markerPrefix = '// invalid-fixture:';
 
-/// Shortest reason accepted after [markerPrefix]. Mirrors the runtime bound in
-/// `lib/testing.dart` so the two opt-outs demand the same standard of
-/// explanation.
-const int minReasonLength = 15;
+/// Shortest reason accepted after [markerPrefix].
+///
+/// Deliberately an alias of [minFixtureReasonLength] rather than its own
+/// number. There are two ways to opt a fixture out — this marker, and
+/// `invalidTestFigure`'s `reason` — and they must demand the same standard of
+/// explanation. Two independent constants would let one be relaxed while the
+/// other was not, which is the same shape as every other hole found in this
+/// mechanism: a second route to the opt-out, gated separately.
+const int minReasonLength = minFixtureReasonLength;
 
 /// How far above a fixture the marker may sit. A fixture spanning several lines
 /// puts its opening line well below the comment that introduces the statement,
