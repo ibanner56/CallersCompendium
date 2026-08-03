@@ -443,8 +443,8 @@ Uri _guardFetchUri(Uri uri) {
 /// online source.
 ///
 /// It is a predicate over the whole [Uri], not just its host: [_isCallersBoxUrl]
-/// accepts an `ibiblio.org` URL only under the `/contradance/thecallersbox/`
-/// mirror prefix, because that host also serves many unrelated archives. A
+/// accepts an `ibiblio.org` URL only under the [callersBoxPathPrefix] mirror
+/// prefix, because that host also serves many unrelated archives. A
 /// host-only check would let a hop wander off the mirror into one of them.
 ///
 /// The source allowlists ([_isCallersBoxUrl] / [_isContraDbUrl]) are enforced
@@ -505,7 +505,7 @@ Future<http.Response> _sendGuarded(String url, http.Client client) async {
   var uri = _guardFetchUri(parsed);
   // Not `isAllowedHost`: the predicate validates the whole redirect URI, and
   // for Caller's Box the path matters as much as the host (ibiblio.org is only
-  // Caller's Box under the /contradance/thecallersbox/ mirror prefix).
+  // Caller's Box under the callersBoxPathPrefix mirror prefix).
   final isAllowedRedirect = _redirectAllowlistFor(uri);
   var redirects = 0;
   while (true) {
@@ -660,8 +660,8 @@ class ImportSource {
   /// there is no host to recognize).
   ///
   /// A predicate (rather than a simple host set) is used because The Caller's
-  /// Box is served from ibiblio.org under a `/contradance/thecallersbox/`
-  /// path, which a host-only match cannot express.
+  /// Box is served from ibiblio.org under the [callersBoxPathPrefix] path,
+  /// which a host-only match cannot express.
   final bool Function(Uri uri)? matchesUrl;
 
   /// When non-null, this source imports from a **binary file** the user picks
@@ -696,9 +696,8 @@ const String callersBoxPathPrefix = '/contradance/thecallersbox';
 /// accepts either:
 /// - a **bare numeric id** (`"1"`) → `https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1&format=JSON`;
 /// - a pasted **https URL** matching [_isCallersBoxUrl] — an `ibiblio.org` /
-///   `www.ibiblio.org` URL under the `/contradance/thecallersbox/` mirror
-///   prefix — and
-///   an `id` query param (`.../dance.php?id=N`, with or without an existing
+///   `www.ibiblio.org` URL under the [callersBoxPathPrefix] mirror prefix —
+///   and an `id` query param (`.../dance.php?id=N`, with or without an existing
 ///   `format=…`) → the same URL with `format=JSON` set (any existing `format`
 ///   is overwritten, so it is never doubled and an already-`format=JSON` link
 ///   is returned effectively unchanged). The pasted path/other params are
