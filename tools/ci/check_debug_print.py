@@ -131,43 +131,82 @@ def dart_library_files(root: Path) -> list[Path]:
     return files
 
 
-def mask_line(line: str) -> str:
-    """Blank out comments and string *contents*, preserving column positions.
+def mask_source(text: str) -> list[str]:
+    """Mask every string literal's contents across the whole file.
 
-    Returns a same-length string in which a trailing `//` comment and the
-    inside of every string literal are replaced by spaces. Positions are
-    preserved because [find_unguarded] compares the offsets of `debugPrint(`
-    matches against the offsets of `{` / `}`, so the two must agree on columns.
+    Returns one same-length string per input line, with the inside of every
+    string literal and every `//` comment replaced by spaces. Column positions
+    are preserved because [find_unguarded] compares the offsets of
+    `debugPrint(` matches against the offsets of `{` / `}`.
 
-    Masking is what keeps a brace or a `debugPrint(` *inside a string* from
-    being read as code — `debugPrint('}')` must not close a block.
+    Masking has to be whole-file rather than per-line because Dart's
+    triple-quoted literals span lines:
+
+    ```dart
+    final sql = '''
+      CREATE TRIGGER t BEGIN {
+    ''';
+    ```
+
+    That `{` is text, not code. Counting it pushes a brace frame that then
+    absorbs the `}` closing a real `kDebugMode` block, leaving the guard on the
+    stack — so a later, genuinely unguarded call is reported as guarded. Such
+    literals are live in this repository (`compendium_core`'s storage layer
+    holds its schema this way).
     """
-    out: list[str] = []
-    quote: str | None = None
+    out: list[list[str]] = [[] for _ in text.split("\n")]
+    line = 0
     i = 0
-    while i < len(line):
-        c = line[i]
+    n = len(text)
+    quote: str | None = None  # active delimiter: ' " ''' or \"\"\"
+    while i < n:
+        c = text[i]
+        if c == "\n":
+            out[line].append("\n")
+            line += 1
+            i += 1
+            continue
         if quote:
             if c == "\\":
-                out.append("  "[: len(line[i : i + 2])])
+                # An escape inside a single-quoted literal; triple-quoted
+                # literals honour escapes too, so treat both the same.
+                out[line].append("  "[: len(text[i : i + 2])])
                 i += 2
                 continue
-            if c == quote:
+            if text.startswith(quote, i):
+                out[line].append(quote)
+                i += len(quote)
                 quote = None
-                out.append(c)
-            else:
-                out.append(" ")
-        else:
-            if c in "'\"":
-                quote = c
-                out.append(c)
-            elif c == "/" and i + 1 < len(line) and line[i + 1] == "/":
-                out.append(" " * (len(line) - i))
-                break
-            else:
-                out.append(c)
+                continue
+            out[line].append(" ")
+            i += 1
+            continue
+        if text.startswith(("'''", '"""'), i):
+            quote = text[i : i + 3]
+            out[line].append(quote)
+            i += 3
+            continue
+        if c in "'\"":
+            quote = c
+            out[line].append(c)
+            i += 1
+            continue
+        if c == "/" and i + 1 < n and text[i + 1] == "/":
+            # Blank the rest of the line, stopping at the newline.
+            end = text.find("\n", i)
+            if end == -1:
+                end = n
+            out[line].append(" " * (end - i))
+            i = end
+            continue
+        out[line].append(c)
         i += 1
-    return "".join(out)
+    return ["".join(parts).rstrip("\n") for parts in out]
+
+
+def mask_line(line: str) -> str:
+    """Single-line convenience wrapper around [mask_source]."""
+    return mask_source(line)[0]
 
 
 def strip_line_comment(line: str) -> str:
@@ -234,6 +273,9 @@ def find_unguarded(text: str) -> list[tuple[int, str]]:
     """
     unguarded: list[tuple[int, str]] = []
     raw_lines = text.split("\n")
+    # Masked once for the whole file: triple-quoted literals span lines, so
+    # per-line masking cannot see them.
+    masked_lines = mask_source(text)
     # One entry per open brace: True when that block was opened by a condition
     # mentioning kDebugMode. Any enclosing guarded block guards the call.
     depth_guarded: list[bool] = []
@@ -241,7 +283,7 @@ def find_unguarded(text: str) -> list[tuple[int, str]]:
     pending = ""
 
     for idx, raw in enumerate(raw_lines):
-        masked = mask_line(raw)
+        masked = masked_lines[idx]
         call_starts = {m.start() for m in _CALL_RE.finditer(masked)}
         is_import = bool(_IMPORT_RE.match(masked))
 

@@ -393,6 +393,71 @@ def test_false_positives() -> None:
         "masking string contents is what keeps the brace stack honest",
     )
 
+    # --- multi-line string literals ---------------------------------------
+    #
+    # Dart triple-quoted literals span lines, so masking has to be whole-file;
+    # per-line masking cannot see them. These literals are live in this repo —
+    # compendium_core's storage layer holds its schema this way.
+    check(
+        "a debugPrint token inside a multi-line string is not a call",
+        unguarded_lines(
+            "void f() {\n"
+            "  final sql = '''\n"
+            "    -- debugPrint('not code');\n"
+            "  ''';\n"
+            "  if (kDebugMode) {\n"
+            "    debugPrint('real');\n"
+            "  }\n"
+            "}\n"
+        )
+        == [],
+    )
+
+    check(
+        "the same for a double-quoted multi-line string",
+        unguarded_lines(
+            'void f() {\n'
+            '  final sql = """\n'
+            "    debugPrint('not code');\n"
+            '  """;\n'
+            '}\n'
+        )
+        == [],
+    )
+
+    # THE serious one. A bare `{` inside a triple-quoted literal pushes a brace
+    # frame that then absorbs the `}` closing a real kDebugMode block, leaving
+    # the guard on the stack — so a later, genuinely unguarded call is blessed.
+    # A false NEGATIVE, which is the direction this ratchet exists to prevent.
+    check(
+        "a bare brace inside a multi-line string does not corrupt the stack",
+        unguarded_lines(
+            "void h() {\n"
+            "  if (kDebugMode) {\n"
+            "    final sql = '''\n"
+            "      CREATE TRIGGER t BEGIN {\n"
+            "    ''';\n"
+            "  }\n"
+            "  debugPrint('leak');\n"
+            "}\n"
+        )
+        == [7],
+        "the guard block closed at line 6; the call after it is unprotected",
+    )
+
+    check(
+        "a real call after a multi-line string is still found",
+        unguarded_lines(
+            "void f() {\n"
+            "  final sql = '''\n"
+            "    SELECT 1;\n"
+            "  ''';\n"
+            "  debugPrint('leak');\n"
+            "}\n"
+        )
+        == [5],
+    )
+
     check(
         "`//` inside a string is not a comment",
         unguarded_lines(
