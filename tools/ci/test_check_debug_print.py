@@ -25,6 +25,7 @@ sys.path.insert(0, str(HERE))
 from check_debug_print import (  # noqa: E402
     dart_library_files,
     find_unguarded,
+    is_debug_guard,
     mask_line,
     strip_line_comment,
 )
@@ -280,6 +281,68 @@ def test_unguarded_forms() -> None:
 # --------------------------------------------------------------------------
 
 
+# --------------------------------------------------------------------------
+# Guard SEMANTICS, not guard shape.
+#
+# The predicate must fail CLOSED: accept only conditions that provably cannot
+# hold when `kDebugMode` is false, and report everything else. A false
+# positive costs a contributor one restructure; a false negative ships a
+# release-build log leak. Earlier revisions matched the shape of a guard
+# (`if` … `kDebugMode` … `)`) and so accepted any condition that merely
+# MENTIONED the constant — including its own negation.
+# --------------------------------------------------------------------------
+
+
+def test_guard_semantics() -> None:
+    print("guard semantics (fail closed):")
+
+    def guarded(cond: str) -> bool:
+        return unguarded_lines(
+            f"void f() {{\n  if ({cond}) {{\n    debugPrint('x');\n  }}\n}}\n"
+        ) == []
+
+    # Accepted: kDebugMode is necessarily true inside the block.
+    check("bare kDebugMode", guarded("kDebugMode"))
+    check("conjunction, guard first", guarded("kDebugMode && x != null"))
+    check("conjunction, guard second", guarded("x != null && kDebugMode"))
+    check("conjunction of three", guarded("a && kDebugMode && b"))
+
+    # Rejected: each of these previously passed as a guard.
+    check(
+        "negated guard runs ONLY in release",
+        not guarded("!kDebugMode"),
+        "the single worst case: the ratchet would bless a call that runs in "
+        "release and nowhere else",
+    )
+    check(
+        "spaced negation",
+        not guarded("! kDebugMode"),
+    )
+    check(
+        "disjunction can be satisfied by the other operand",
+        not guarded("kDebugMode || verbose"),
+        "release logging whenever `verbose` is set",
+    )
+    check("disjunction, guard second", not guarded("verbose || kDebugMode"))
+    check("negated via ==", not guarded("kDebugMode == false"))
+    check("negated via !=", not guarded("kDebugMode != true"))
+    check(
+        "a disjunction anywhere disqualifies the whole condition",
+        not guarded("kDebugMode && (a || b)"),
+        "conservative by design: rejecting a safe-but-unproven form is the "
+        "cheap direction to be wrong in",
+    )
+    check("ternary is not a guard", not guarded("kDebugMode ? a : b"))
+    check("unrelated condition", not guarded("verbose"))
+
+    # The predicate reads the LAST `if (` in the accumulated statement, so a
+    # guarded block followed by an unguarded `if` must not inherit the guard.
+    check(
+        "a later unrelated `if` does not inherit an earlier guard",
+        not is_debug_guard("if (kDebugMode) { ok(); } if (verbose)"),
+    )
+
+
 def test_false_positives() -> None:
     print("non-calls are not reported:")
 
@@ -390,6 +453,7 @@ def test_real_tree_is_clean() -> None:
 def main() -> int:
     test_guarded_forms()
     test_unguarded_forms()
+    test_guard_semantics()
     test_false_positives()
     test_masking()
     test_strip_line_comment()

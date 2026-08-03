@@ -30,12 +30,84 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SEARCH_ROOTS = ("app/lib", "packages")
 
 _CALL_RE = re.compile(r"\bdebugPrint\s*\(")
-# An `if` whose condition mentions kDebugMode. Covers the bare `if (kDebugMode)`
-# and compound forms like `if (kDebugMode && record.error != null)`.
-_GUARD_RE = re.compile(r"\bif\s*\(.*\bkDebugMode\b.*\)")
+# Locates a candidate guard; the ACCEPTANCE decision is made by
+# [is_debug_guard], not by this pattern. Matching `if (` is cheap; deciding
+# whether the condition actually implies debug-only is not, and must fail
+# closed.
+_IF_RE = re.compile(r"\bif\s*\(")
+_KDEBUG_RE = re.compile(r"\bkDebugMode\b")
 
 # `import ... show debugPrint` names the symbol without calling it.
 _IMPORT_RE = re.compile(r"^\s*import\s")
+
+
+def _last_if_condition(code: str) -> str | None:
+    """Text inside the parentheses of the LAST `if (` in [code], or `None`.
+
+    Walks balanced parentheses, so a condition containing its own parentheses
+    (`if (kDebugMode && (a || b))`) is returned whole rather than truncated at
+    the first `)`.
+    """
+    starts = [m.end() - 1 for m in _IF_RE.finditer(code)]
+    if not starts:
+        return None
+    open_at = starts[-1]
+    depth = 0
+    for i in range(open_at, len(code)):
+        c = code[i]
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return code[open_at + 1 : i]
+    # Unbalanced (condition still being accumulated): not yet a guard.
+    return None
+
+
+def is_debug_guard(code: str) -> bool:
+    """Whether the last `if (…)` in [code] guarantees `kDebugMode` is true.
+
+    **Fails closed.** This accepts only conditions it can *prove* cannot hold
+    when `kDebugMode` is false, and treats everything else as not a guard. The
+    asymmetry is deliberate: a false positive costs a contributor one
+    restructure, while a false negative ships a release-build log leak — and
+    an unrecognised-but-safe form is far likelier than a novel unsafe one.
+
+    Accepted: a bare `kDebugMode` token, alone or in a conjunction
+    (`kDebugMode && x`, `x && kDebugMode`).
+
+    Rejected, and each of these previously passed:
+
+    * `!kDebugMode` — inverted. This is the dangerous one: it runs the call
+      **only in release**, the exact outcome the ratchet exists to prevent.
+    * `kDebugMode || x` — a disjunction is true whenever `x` is, so the call
+      can run in release whenever some other flag is set.
+    * `kDebugMode == false`, `kDebugMode != true` — inverted via comparison.
+    * anything containing `?`, since a ternary's value is not the token's.
+
+    Earlier revisions matched the *shape* of a guard (`if` … `kDebugMode` …
+    `)`), which accepts any condition that merely mentions the constant.
+    """
+    condition = _last_if_condition(code)
+    if condition is None:
+        return False
+    # A disjunction can be satisfied by its other operand, so the whole
+    # condition is unusable regardless of where `kDebugMode` sits in it.
+    if "||" in condition or "?" in condition:
+        return False
+    for match in _KDEBUG_RE.finditer(condition):
+        before = condition[: match.start()].rstrip()
+        after = condition[match.end() :].lstrip()
+        # Negated, directly (`!kDebugMode`) or via a comparison operator.
+        if before.endswith("!"):
+            continue
+        if before.endswith(("==", "!=", ">", "<", ">=", "<=")):
+            continue
+        if after.startswith(("==", "!=", ">", "<", ">=", "<=")):
+            continue
+        return True
+    return False
 
 
 def _fail(msg: str, code: int = 2) -> None:
@@ -176,10 +248,10 @@ def find_unguarded(text: str) -> list[tuple[int, str]]:
         for pos, char in enumerate(masked):
             if pos in call_starts and not is_import:
                 # `import ... show debugPrint;` names the symbol, never calls it.
-                if not (any(depth_guarded) or _GUARD_RE.search(pending)):
+                if not (any(depth_guarded) or is_debug_guard(pending)):
                     unguarded.append((idx + 1, raw.strip()))
             if char == "{":
-                depth_guarded.append(bool(_GUARD_RE.search(pending)))
+                depth_guarded.append(is_debug_guard(pending))
                 pending = ""
             elif char == "}":
                 if depth_guarded:
@@ -189,8 +261,8 @@ def find_unguarded(text: str) -> list[tuple[int, str]]:
                 pending = ""
             else:
                 pending += char
-        # A space, not a newline: `_GUARD_RE`'s `.*` does not cross newlines,
-        # and a condition wrapped over two lines is still one condition.
+        # A space, not a newline, so a condition wrapped over two lines is
+        # still one condition to `is_debug_guard`.
         pending += " "
 
     return unguarded
