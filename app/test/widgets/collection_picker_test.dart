@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,7 +11,6 @@ import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
-import 'package:compendium_core/testing.dart';
 
 Dance _dance({
   required String id,

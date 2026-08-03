@@ -2,12 +2,12 @@ import 'package:compendium_app/src/data/formation_colors_controller.dart';
 import 'package:compendium_app/src/data/formation_colors_scope.dart';
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
-import 'package:compendium_core/testing.dart';
 
 final _renderer = FigureRenderer(contraTaxonomy);
 final _now = DateTime.utc(2026, 1, 1);
