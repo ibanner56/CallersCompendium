@@ -13,7 +13,7 @@
 | **Sync** | The user-facing feature. |
 | **Athenaeum** | The store Sync talks to. Default `https://athenaeum.callerscompendium.com/`; user-editable. |
 | **sync ID** | Diceware passphrase identifying one store. A bearer credential. |
-| **device ID** | Random v4 UUID minted once per installation. A **protocol identifier that is transmitted** — it appears in manifests and request paths. See the note below; it is deliberately *not* `deviceScoped`. |
+| **device ID** | Random v4 UUID minted per installation, on opt-in. Classified `deviceScoped` — it is never synced as a record — while the same string travels in manifest envelopes and request paths as an opaque routing key. See "what `EgressClass` actually governs". |
 | **epoch** | Opaque 128-bit random value the server stamps on a sync ID at creation. |
 | **record** | One syncable row — a dance, program, tag, choreographer, published source, custom field def, venue, or a settings key. |
 | **blob** | One record, serialised and content-addressed. |
@@ -77,26 +77,47 @@ second line; neither is sufficient alone, because the server check is a
 forward-compatible deny-list and the client check is the one that knows about
 new fields first.
 
-### The device ID is not `deviceScoped`
+### The device ID, and what `EgressClass` actually governs
 
-An earlier draft of this spec called the device ID `deviceScoped`. That was
-wrong, and the term matters because it is enforced: `deviceScoped` means *never
-travels by any route*, and the device ID travels in every manifest and every
-request path.
+An earlier draft called the device ID `deviceScoped`; a review pointed out that
+this contradicts the term, since the ID plainly travels. Over-correcting to
+`shareable` would have been worse, and would have caused a real bug: settings
+sync would then carry `device_id` into a settings blob, and the receiving device
+would adopt the sender's ID — two devices writing the same manifest.
 
-The device ID is an opaque protocol key: minted per installation, random,
-meaningless outside its store, and never reused across stores. When Sync is
-built it becomes a new persisted settings key, at which point the settings
-ratchet **will require it to be classified** — and the honest classification is
-`dpv:NonPersonalData` / `DataSubject.none` / `EgressClass.shareable`, with a note
-that it must travel for the protocol to function.
+The resolution is a distinction the registry has always implied and this
+document now states outright:
 
-Worth stating plainly rather than burying: it is a persistent per-installation
-identifier that our server sees. A store operator can observe that N devices sync
-to one store and when each was last active. That is metadata we hold, it is
-bounded by the 30-day-of-disuse TTL, and the privacy policy should say so
-rather than imply
-the store is opaque to us.
+**`EgressClass` governs record *content*. Protocol envelopes are not records.**
+
+The device ID, the epoch and the content hashes are routing metadata: they carry
+no user data by construction, and they must travel or the protocol does not
+function. The classification question — "may this field's value be included in a
+synced record?" — is answered for `device_id` by **`deviceScoped`**, which is
+correct and matches the enum's own wording ("a per-device marker"): a device must
+never adopt another's ID.
+
+So: `device_id` is classified `deviceScoped` and never appears in a blob. The
+same string appears in manifest envelopes and request paths as an opaque routing
+key. Both statements are true and they are about different things.
+
+### Sync's own configuration never syncs
+
+Every settings key Sync introduces is `deviceScoped`:
+
+| Key | Why it must not travel |
+| --- | --- |
+| `sync_enabled` | Each installation opts in for itself. |
+| `sync_endpoint` | Syncing it would let one device silently redirect another. |
+| `sync_id` | The bearer credential. Uploading it to the store it authenticates is self-defeating. |
+| `sync_device_id` | Two devices sharing an ID collide in the manifest namespace. |
+| `sync_wifi_only` | A per-device network policy; a laptop and a phone want different answers. |
+| `sync_exclude_imports` | Governs what *this* device uploads. |
+| `sync_last_synced_at` | Local state. |
+
+The rule is simple enough to state as one: **sync configuration is never itself
+synced.** Anything else is a bootstrapping paradox at best and a redirection
+vector at worst.
 
 ## Wire format
 
@@ -247,6 +268,22 @@ would otherwise put a venue address on our infrastructure, so it is a **loud**
 failure: surfaced to the user, logged, never silently retried.
 
 ## Client algorithm
+
+### Off by default
+
+**Sync is disabled on every installation until the user turns it on.** No sync
+setting is populated, no endpoint is contacted, no device ID is minted. An app
+that has never been configured for Sync makes no sync-related network call of any
+kind, which keeps "the app works fully offline and phones home to nobody" true by
+construction for every user who does not opt in — not merely true by policy.
+
+Sync gets its **own top-level blade in Settings**, not a row buried under
+General. It is the one feature that sends a user's collection off the device, so
+it is surfaced at the same level as the decision it represents, showing the
+endpoint URL, the sync ID, paired-device count and last-sync status in one place.
+
+Turning it off again stops all network activity and detaches. Detach forgets the
+sync ID entirely, so re-enabling is a fresh attach.
 
 ### Attach
 
@@ -431,6 +468,37 @@ A blob is reachable while any manifest for its store references it. After each
 manifest `PUT`, and during the sweep, unreferenced blobs for that store are
 deleted. Mark-and-sweep scoped to one store is cheap; no global scan.
 
+### The break-glass access log
+
+Athenaeum is opaque in normal operation: the operator sees store sizes, device
+counts and activity timestamps, never content. Content is plaintext, so this is
+policy rather than capability — and the policy is enforced by making access
+leave a record.
+
+Break-glass access for abuse investigation writes to a **separate database**,
+not the store's, holding exactly two things:
+
+| Column | |
+| --- | --- |
+| `id_hash` | SHA-256 of the sync ID — **the same hash the store uses**, never the plaintext |
+| `accessed_at` | Timestamp |
+
+Hashed rather than plaintext for a specific reason: the sync ID is a bearer
+credential, and the store already avoids holding it in the clear so that a stolen
+copy yields nothing usable. A plaintext access log would undo exactly that, and
+would be worse than the store, because the log is meant to outlive the stores it
+describes. Hashing costs nothing operationally — to find entries for a store
+under investigation, hash the ID and match.
+
+The log is deliberately minimal: it records **that** access happened and to
+which store, not why. Justification lives in whatever incident process wraps it,
+not in a field nobody validates.
+
+It is a **separate database** so that reaping a store cannot destroy the evidence
+of access to it. Its retention is therefore not the 30-day disuse TTL — an audit
+log that expires with its subject is not an audit log — and needs its own stated
+period in the privacy policy.
+
 ### Deny-list validation
 
 On `PUT /v1/blobs/{hash}` the server:
@@ -561,6 +629,8 @@ Recorded so the reasoning is not re-litigated.
 | Metered connections | *Sync only on WiFi*, default on; manual attempts route to the setting via a snackbar. |
 | Quota exhaustion | Size breakdown by category with the exclude-imports toggle inline. |
 | Naming | **Athenaeum** — the earlier "Athanaeum" was a typo; DNS corrected and verified. |
+| Default state | **Off on every installation.** Opt-in only; an unconfigured app makes no sync network call at all. Sync gets its own top-level Settings blade. |
+| Access log | **Separate database**, holding only a **hashed** sync ID and a timestamp. Hashed so the log is not itself a credential store; separate so reaping a store cannot destroy evidence of access to it. |
 
 ### The settings migration has a one-time ordering effect
 
@@ -575,10 +645,8 @@ no discriminator at all, which is worse.
 
 ## Open questions
 
-1. **Break-glass access-log retention.** The log records a hashed sync ID, a
-   timestamp and a reason — never content. But an audit log that expires is not
-   an audit log, so it cannot simply inherit the 30-day disuse TTL. Its retention
-   needs its own decision, and the privacy policy has to state it.
-2. **Where the break-glass log lives.** Same store, separate database, or
-   write-only off-box. Bears on whether reaping a store can destroy evidence of
-   access to it.
+1. **Break-glass access-log retention period.** The log holds a hashed sync ID
+   and a timestamp, in a separate database so that reaping a store cannot
+   destroy the record of access to it. It therefore cannot inherit the 30-day
+   disuse TTL — an audit log that expires with its subject is not an audit log —
+   so it needs a stated period, and the privacy policy has to name it.

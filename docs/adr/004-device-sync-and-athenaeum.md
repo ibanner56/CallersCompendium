@@ -75,6 +75,14 @@ These bound every option below.
 
 Ship **Sync**, backed by a store called **Athenaeum**.
 
+**Sync is off by default on every installation.** Nothing is configured, no
+endpoint is contacted and no device ID is minted until a user opts in. The app
+that has not opted in makes no sync-related network call at all — so "works fully
+offline, phones home to nobody" stays true by construction for everyone who never
+turns it on, rather than being a promise about our conduct. Sync gets its **own
+top-level Settings blade**, because it is the one feature that sends a
+collection off the device and should be surfaced at the level of that decision.
+
 *Sync* is the feature; *Athenaeum* is the service it talks to. The default
 endpoint is `https://athenaeum.callerscompendium.com/`, shown **un-abstracted as
 a URL in Settings** and editable, so pointing at your own server is a visible
@@ -446,8 +454,11 @@ makes self-hosting materially harder, which constraint 4 forbids.
   sizes, device counts and activity timestamps, but content is plaintext, so
   access is a matter of policy rather than capability. A break-glass path for
   abuse investigation exists, is logged, and is disclosed in the privacy policy.
-  The access log records a hashed sync ID, a timestamp and a reason — never
-  content.
+  The log lives in a **separate database** — so reaping a store cannot destroy
+  the record of access to it — and holds exactly two fields: the **hashed** sync
+  ID and a timestamp. Hashed because the store deliberately avoids holding the
+  credential in the clear, and a plaintext log would undo that while outliving
+  the stores it describes.
 - **Silent merge is irreversible from the user's point of view.** Two records
   that pass the title-plus-choreography test become one without being shown. The
   test is strict — identical figures *and* params — so a false positive means two
