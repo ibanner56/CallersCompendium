@@ -21,8 +21,15 @@ ordered; each phase gates the next. Status: `[ ]` todo · `[~]` in progress · `
 | Migration | Seamless out-of-the-box import from Caller's Companion exports |
 | License | AGPL-3.0 |
 
-Non-goals for v1: cloud sync, user accounts, choreography validation (developed
+Non-goals for v1: user accounts, choreography validation (developed
 separately; planned for a later milestone), authoring/publishing back to online sources.
+
+Cloud sync was a v1 non-goal and is now **designed** — see
+[ADR-004](adr/004-device-sync-and-athanaeum.md), which specifies **Sync** and the
+**Athanaeum** sync store. It remains unbuilt, and it keeps the properties the
+original non-goal was protecting: no user accounts, no sign-in, nothing we host
+outliving 30 days, and no venue address or contact data ever reaching our
+infrastructure.
 
 ## Phase 0 — Project foundations
 
@@ -718,7 +725,11 @@ taxonomy are unchanged.
 ## Later milestones
 
 - ECD and Squares support
-- Optional device-to-device sync, beyond Apple-native AirDrop support.
+- ~~Optional device-to-device sync, beyond Apple-native AirDrop support.~~ —
+  **Cut**: [ADR-004](adr/004-device-sync-and-athanaeum.md) rules out local
+  network discovery. Device-local data (venue addresses and contacts) moves by
+  the existing JSON backup export/import, or AirDrop of that file; everything
+  shareable syncs through Athanaeum instead.
 - **Glossary / terms** (CC `Term`: term + definition + source) — a browsable
   reference of caller terminology, dialect-aware. **Tracked in #695**; today the
   app ships only the static `docs/user/glossary.md` guide (no glossary entity),

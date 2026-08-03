@@ -1,0 +1,411 @@
+# ADR-004: Sync, and the Athanaeum sync store
+
+- **Status**: Proposed
+- **Roadmap item**: Amends the v1 non-goal "cloud sync" (ROADMAP line 24) and
+  supersedes the later item "Optional device-to-device sync, beyond
+  Apple-native AirDrop support" (line 720).
+- **Deciders**: @ibanner56
+
+## Context
+
+Caller's Compendium is built on a promise: **the app collects nothing about
+you, has no accounts, and stores your data only on your own device.** That
+promise is published, linked from both app stores, and mirrored in
+`site/privacy/index.html`.
+
+Users keep asking for their collection to appear on more than one device. The
+app already exports a complete backup to a single JSON file that can be restored
+elsewhere, and that satisfies technically-confident users. For everyone else it
+is a chore they get wrong: it is a manual, whole-collection, point-in-time
+operation, and a caller who edits a dance on a laptop the night before a gig has
+no way to get it onto the phone in their pocket without thinking about files.
+
+So the problem is not "can data move between devices" — it can. It is that the
+only mechanism we offer demands the user understand and drive it.
+
+### What we may and may not carry
+
+The maintainer's position is that **dance choreography and programs are not user
+data**. A dance is a sequence of figures; a program is a list of dances. Neither
+describes the person using the app, and both may travel unscrubbed.
+
+But the app stores more than figures and dance lists. It stores venue postal
+addresses, venue contact names, phone numbers and email addresses, and
+choreographer contact details — data about **people who have never used this
+app and cannot consent to a transfer they do not know about**.
+
+Until recently that boundary was prose. A doc comment on `Choreographer` said
+its `email` and `location` "MUST NOT be emitted in any shareable export";
+nothing enforced it, and the same question had no answer at all for the 22
+columns of `venues`. That was fixed first, deliberately, before any of this was
+designed. The classification registry in `packages/compendium_core/lib/src/privacy/` now
+records, for every persisted field, what kind of data it is, whose data it is,
+and whether it may leave the device — enforced by CI ratchets and rendered to
+[data-classification.md](../dev/data-classification.md).
+
+**That registry is the precondition for this design.** Sync does not get its own
+allow-list; it reads `EgressClass` and carries exactly what is marked
+`shareable`. A field added without classification fails CI, so it can never
+reach the network by omission.
+
+### Constraints
+
+These bound every option below.
+
+1. **No encryption that carries operational overhead.** An earlier beta shipped
+   a passphrase-encrypted backup (Argon2id + XChaCha20-Poly1305) and it was
+   removed in #536 to return the app to export-compliance-exempt status — no
+   encryption declaration, no annual BIS self-classification report. Any design
+   that reintroduces confidentiality crypto reopens that, and is out.
+2. **Asynchronous.** Devices are rarely awake at the same time. "Put both
+   devices on the same wifi and press sync" does not solve the problem.
+3. **All platforms.** iOS, Android, macOS, Windows, Linux. No mechanism that
+   serves Apple users and strands the rest.
+4. **Self-hostable, and optional.** Whatever we run, a user must be able to run
+   their own, and the app must work fully when it is unreachable or gone.
+5. **Nothing we host persists beyond 30 days.**
+6. **No user accounts and no sign-in**, per the published policy.
+
+## Decision
+
+Ship **Sync**, backed by a store called **Athanaeum**.
+
+*Sync* is the feature; *Athanaeum* is the service it talks to. The default
+endpoint is `https://athanaeum.callerscompendium.com/`, shown **un-abstracted as
+a URL in Settings** and editable, so pointing at your own server is a visible
+first-class option rather than a hidden one.
+
+### Identity
+
+A sync ID is a **diceware passphrase** (`correct-horse-battery-staple`),
+pre-filled with a randomly generated one. The user may replace it with their own,
+behind a clear warning that it must not contain personal information.
+
+A generated four-word ID from the EFF long wordlist carries ~2⁵² of entropy and
+is not guessable at any realistic online rate. A user-chosen one is a different
+matter — `isaac-banner-dances` is guessable in seconds — so custom IDs are
+subject to a **minimum-entropy floor**, not merely a warning.
+
+**The sync ID is a bearer credential.** Anyone holding it has full read and
+write access to the collection. This is deliberate: it is what makes the design
+work with no accounts and no sign-in, and it is what allows two people to share
+a collection if they choose (below). It also means there is no recovery if it is
+lost and no revocation if it leaks.
+
+### What the server holds
+
+```
+<syncId>/epoch                     opaque 128-bit random value
+<syncId>/blobs/<content-hash>      one copy per distinct record, shared
+<syncId>/devices/<deviceId>.json   one manifest per device
+```
+
+A **manifest** maps record ids to content hashes. A device writes only its own
+manifest and reads every sibling. Records are stored as **content-addressed
+blobs**, so two devices holding the same dance store it once: N devices cost N
+small manifests plus one copy of each distinct record, not N copies of the
+collection.
+
+The server performs no merging, no locking and no compare-and-swap. It is a
+key-value store with a TTL and a deny-list.
+
+### Merging
+
+**The manifest is the merge base.** For each record a device has three hashes —
+its own, the sibling's, and the baseline it last synced — which is a complete
+three-way merge without vector clocks or wall-clock ordering:
+
+| Local | Remote | Result |
+| --- | --- | --- |
+| changed | unchanged | upload |
+| unchanged | changed | download |
+| changed | changed | **direct conflict** → last-writer-wins on `updatedAt` |
+| absent, not in baseline | present | download (new elsewhere) |
+| present | absent, not in baseline | upload (new here) |
+
+**Absence never means deletion.** Deletions travel as `deletedAt` tombstones,
+which the schema already carries and the Recently Deleted screen already
+surfaces. A device that has not synced for a month must never conclude that
+records missing from a sibling's manifest were deleted.
+
+### Fresh attach
+
+When a device has no baseline for a sync ID, the merge is **additive**: a device
+holding `{B, C}` joining a store holding `{A, B}` produces `{A, B, C}`. Only
+genuine record-id collisions fall through to last-writer-wins.
+
+Fresh attach also **runs the existing dedupe machinery** — `DedupeIndex`, fuzzy
+title-and-author matching, and the confident-match rule from #685 — through the
+import pipeline's existing plan → review → commit flow. Without this, a caller
+who imported "Rory O'More" separately on a laptop and a phone before pairing
+gets two of everything, which is precisely the user we are building for.
+
+**Three distinct events produce a fresh attach, and all three behave
+identically:**
+
+1. A device attaches to a sync ID for the first time.
+2. A device that had detached re-attaches. **Detaching forgets the sync ID
+   entirely** — there is no memory of previously-attached IDs.
+3. The sync ID expired server-side and someone reconnects.
+
+### The epoch
+
+Case (3) is a data-loss hazard, and the epoch exists to close it.
+
+A device offline for 31 days reconnects holding a baseline that says "records X,
+Y, Z at these hashes". The server has since expired that sync ID, and another
+device has re-seeded it. A three-way merge would read "in my baseline, absent
+from the server" as *deletions* and remove them locally.
+
+So the server stamps an **opaque 128-bit random epoch** on a sync ID when it is
+created, regenerated whenever the ID is created afresh after expiry. Devices
+store it alongside their baseline. **Epoch mismatch means the store was reset:
+the device discards its baseline and performs a fresh attach.**
+
+The invariant, stated so it can be tested: *a device honours a deletion only
+when it can trace it to a tombstone within the same epoch. Absence never
+deletes, and a changed epoch is never mistaken for mass deletion.*
+
+The epoch is **random, not monotonic, and compared only for equality** — see
+Rationale.
+
+### Retention
+
+**A sync ID that no device has used for 30 days is dropped in its entirety** —
+epoch, manifests and blobs. The next device to connect performs a fresh attach,
+and the first to do so seeds the store.
+
+Nothing we host outlives 30 days of disuse, which makes deletion obligations
+self-satisfying by default rather than by process.
+
+### Scope of what syncs
+
+Everything classified `shareable`, **settings included** — a paired device
+should feel like the same app, and custom dialects, themes, shorthand mappings
+and walkthrough snippets represent real work a user would hate to redo.
+
+- `shareable` → travels
+- `deviceLocal` → **never reaches Athanaeum**
+- `deviceScoped` → never travels at all (window position, per-device text scale)
+- `derived` → never transmitted; rebuilt on arrival
+
+**There is no device-to-device channel.** `deviceLocal` data moves only by the
+existing manual JSON backup export and import, or by AirDrop of that file
+between Apple devices. We are not building local network discovery.
+
+The visible consequence is that **venues sync partially**: name, website, event
+name, schedule, time and price arrive; the address block and both contact blocks
+stay blank. This is correct and required, and it looks exactly like data loss, so
+affected venue records carry a **persistent hint** explaining that address and
+contact details stay on the device where they were entered.
+
+### Imported dances
+
+Imported dances sync in full, like any other dance. The manifest does not care
+where a record came from.
+
+An alternative — carrying public-source dances as a re-import *reference* and
+re-fetching on the receiving device — is documented under Rationale and remains
+live; the choice will be confirmed before implementation begins. A user setting
+to **exclude imported dances from sync** ships either way, for people who want a
+lean sync.
+
+### The server
+
+**Dart + `shelf`, a single container, SQLite or the filesystem for storage**, in
+a new top-level `server/` package in this repository with a path dependency on
+`compendium_core`.
+
+Sharing the package is the point. The server reads the **same
+`fieldClassifications` registry** as the client and **rejects any upload
+containing a device-local field**, from one source of truth with no second list
+to drift. "We never store venue addresses" stops being an intention the client
+is trusted to honour and becomes something both ends enforce.
+
+The check is a deny-list on known-forbidden keys, so it is forward-compatible:
+unknown keys pass. It is a backstop against a client bug, not the primary
+control, which remains client-side filtering.
+
+## Rationale
+
+### Why not end-to-end encryption
+
+It would let us hold venue addresses and contacts as ciphertext we cannot read,
+which would solve the hardest constraint outright. It is out because of
+constraint 1: reintroducing confidentiality crypto reverses #536, makes the
+honest answer to "does your app use encryption?" *yes*, and may owe an annual
+BIS self-classification report. The cost is that private fields do not sync at
+all. We accept the cost.
+
+### Why not a change log, or a version control system underneath
+
+A change log is the textbook answer and it is more machinery than it looks. It
+requires ordering across devices with no trustworthy shared clock (Lamport or
+vector clocks), compaction — the log grows without bound, so you build snapshots
+*as well* — replay determinism across app versions, and versioning of the
+operations themselves alongside the schema. Conflicts stop being rare because
+you have built the apparatus to reason about them.
+
+Using git as the substrate was considered seriously. It solves distributed
+asynchronous merge, deduplicates by content address, deltas efficiently, and is
+trivially self-hostable. It loses on two points:
+
+- **Git is designed never to forget, and this feature's entire purpose is a hard
+  privacy boundary.** If a device-local field ever reaches the store — a
+  classification bug, a bad merge — snapshots self-heal, because the next upload
+  simply does not contain it. In git it is permanent in the object store of
+  every clone, and removing it means rewriting history everywhere. Building our
+  strictest privacy guarantee on a substrate engineered to make deletion hard is
+  the wrong foundation.
+- **Git merges text line-by-line.** Our records are structured. A three-way merge
+  of two edited JSON documents produces conflict markers, which is a corrupt
+  document; avoiding that means a custom merge driver that implements per-record
+  last-writer-wins — at which point git supplies transport and history, not
+  conflict resolution.
+
+Dependency weight is a secondary concern: the only pure-Dart implementation is
+`git_on_dart` (v0.1.4, single maintainer, MIT); the alternative is libgit2 via
+FFI, which means native builds on five platforms.
+
+**Content-addressed blobs keep the good part** — deduplication and cheap deltas
+— without the merge machinery or the permanent history.
+
+### Why per-device manifests rather than one shared snapshot
+
+A single shared snapshot halves storage but needs optimistic concurrency:
+uploads rejected when the store changed underneath, clients re-merging and
+retrying. Per-device manifests remove the possibility of clobbering entirely and
+keep the server a dumb key-value store. Because blobs are content-addressed, the
+storage saving of a shared snapshot largely disappears anyway.
+
+### Why a diceware ID rather than a system-minted opaque one
+
+A purely system-minted ID (`k7m2-9xqp-4wnf`) removes the "is this user data?"
+question by construction. A purely user-supplied one is memorable but guessable
+and can contain personal data.
+
+Diceware is not a compromise between them — it is both properties at once:
+generated, it is high-entropy *and* memorable *and* speakable over the phone,
+which matters for a user pairing a device with no camera. Allowing an override
+respects users who want a memorable ID, and the entropy floor prevents the
+override from being a foot-gun.
+
+### Why the epoch is random rather than monotonic
+
+Two arguments, either sufficient.
+
+**Self-hosting makes counters meaningless.** Two independent servers can both
+hold a sync ID named `correct-horse-battery-staple`. A device holding "epoch 3
+from server A" that meets "epoch 3 from server B" concludes nothing changed and
+three-way merges against an unrelated store — the data-loss bug in a different
+guise. Counters are comparable only within one authority; this design has no
+single authority. 128-bit random values collide negligibly across any number of
+servers, and re-pointing the endpoint correctly becomes a fresh attach.
+
+**A counter contradicts the retention rule.** To increment, the server must
+remember the previous value for a sync ID *after* that ID has expired —
+retaining `syncId → lastEpoch` indefinitely. That is persistent data about a
+user beyond 30 days, specifically about IDs we promised to forget.
+
+Timestamp-based monotonicity avoids the persistence problem but leaks creation
+time, depends on the server clock never stepping backwards, and at second
+granularity two re-creations within one second produce identical epochs —
+collision on exactly the axis where collision causes data loss.
+
+What ordering would buy is rollback detection. With union semantics and
+locally-held tombstones a rollback is largely self-healing, so it buys little. If
+it is ever wanted, add an advisory creation timestamp as a separate field rather
+than overloading the epoch.
+
+### Why full sync of imported dances (and the alternative that remains live)
+
+The case for carrying public-source dances as references was bandwidth. Measured
+rather than assumed: an archive-format dance is ~1.5 KB, so 11,500 dances is
+~17 MB uncompressed and 3–4 MB gzipped — and under delta sync that is a
+**one-time** cost, with subsequent syncs moving only what changed. At 500 users
+that is ~8.5 GB, which is pennies a month.
+
+Against that, reference-passing costs per-dance "is this still pristine?"
+tracking, a failure mode where a dance silently does not arrive because the
+source is slow or gone, and — decisively — **it breaks the app's offline
+promise**. A caller in a hall with no signal opening a dance that is not there
+is a worse outcome than 17 MB.
+
+Licensing was considered and is not a driver: choreography is not copyrightable,
+and The Caller's Box's permission tiers are a social convention rather than a
+legal constraint. Separately, the app already imports non-`full`-tier dances as
+metadata-only stubs because the source serves no figures for them.
+
+The reference-passing variant is nonetheless documented and remains live; the
+final call is made before implementation.
+
+### Why Dart for the server
+
+Go produces the nicest artefact to self-host — a single static binary — and Rust
+is a defensible choice. Both lose the property that decided it: the deny-list of
+device-local fields would have to be maintained by hand in a second language,
+which is exactly the drift the classification registry exists to eliminate. A
+Dart server imports the registry.
+
+Managed object storage plus a small function would mean nothing to patch, but
+makes self-hosting materially harder, which constraint 4 forbids.
+
+## Consequences
+
+### Easier
+
+- A caller edits on a laptop and finds it on their phone, with no files.
+- Adding a device is nearly free: one small manifest, and blobs are shared.
+- The privacy boundary is enforced at both ends from one registry.
+- Self-hosting is a first-class, visible option rather than a hidden flag.
+- The server is small enough to reason about: no merge logic, no locking.
+
+### Harder, and knowingly accepted
+
+- **Sharing is not collaboration.** Two people on one sync ID works — it falls
+  out of the layout, and blocking it would be more complex than allowing it —
+  but merging is last-writer-wins with no attribution and no prompt. If two
+  people edit the same dance, one edit disappears silently. This must be said at
+  pairing time, not discovered.
+- **A bearer credential has no recovery and no revocation.** Lose the ID and the
+  store is unreachable; leak it and the only remedy is to move to a new ID on
+  every device.
+- **Sync is not backup.** With a 30-day TTL the store is a relay with a grace
+  period, not an archive. The file backup remains the recovery path and the UI
+  must say so.
+- **30 days is a liveness requirement on the user.** A caller who does not open
+  the app for five weeks returns to a fresh attach and a dedupe review —
+  correct and safe, but surprising. The UI should warn as expiry approaches.
+- **Venues sync partially**, and correct behaviour looks like data loss.
+  Mitigated by a persistent hint, not eliminated.
+- **We now operate infrastructure**, with the uptime, abuse and cost that
+  implies — mitigated by the app working fully without it.
+
+### Blocking prerequisite
+
+**The published privacy policy contradicts this design.**
+`docs/dev/store-submission/privacy-policy.md` §2 and its mirror
+`site/privacy/index.html` both state that "there is no cloud sync" and that "we
+have no servers that receive or hold your content", and both app store listings
+link to it. Both files must be amended together, with the effective date bumped,
+**before Sync ships**. This is a prerequisite of shipping, not of this ADR.
+
+## Revisit triggers
+
+- **Users ask for venue addresses on their second device often enough that the
+  answer "re-enter them" stops being acceptable.** The options are a device-to-
+  device channel (rejected here) or encryption (rejected by constraint 1);
+  either would reopen this ADR.
+- **Two-person sharing becomes common in practice.** Last-writer-wins without
+  attribution is defensible for one person's devices and indefensible for a
+  couple sharing a library; observing real use would justify per-field merge or
+  conflict surfacing.
+- **Storage or bandwidth on the hosted instance stops being trivial**, at which
+  point the reference-passing variant for imported dances becomes worth its
+  complexity.
+- **The 30-day TTL proves too short** — evidenced by users repeatedly hitting
+  fresh attach after ordinary gaps in use.
+- **Export-compliance rules change**, or a platform provides encryption we can
+  use without a declaration, making E2EE cheap enough to reconsider.
+- **A pure-Dart or well-maintained cross-platform sync primitive appears** that
+  would let us delete our own merge implementation.
