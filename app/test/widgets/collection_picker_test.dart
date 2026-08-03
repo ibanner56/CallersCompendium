@@ -10,6 +10,7 @@ import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
+import 'package:compendium_core/testing.dart';
 
 Dance _dance({
   required String id,
@@ -38,10 +39,10 @@ List<Figure> _phrases({
   required String b1,
   required String b2,
 }) => [
-  Figure(move: a1, params: const {'beats': 16}),
-  Figure(move: a2, params: const {'beats': 16}),
-  Figure(move: b1, params: const {'beats': 16}),
-  Figure(move: b2, params: const {'beats': 16}),
+  testFigure(move: a1, params: const {'beats': 16}),
+  testFigure(move: a2, params: const {'beats': 16}),
+  testFigure(move: b1, params: const {'beats': 16}),
+  testFigure(move: b2, params: const {'beats': 16}),
 ];
 
 Future<void> _pumpPicker(

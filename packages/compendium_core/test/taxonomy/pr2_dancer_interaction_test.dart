@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Roadmap 2.4a — PR2 "dancer-interaction" moves: gate, give_and_take,
 /// pull_by_dancers, pull_by_direction, cross_trails, plus the roll_away `whom`
@@ -23,9 +24,9 @@ void main() {
         expect(tax.resolve(id)?.id, id, reason: '$id should be registered');
         // validateFigure only checks explicitly-provided params, so populate
         // the figure with effectiveParams to actually validate the defaults.
-        final defaults = tax.effectiveParams(Figure(move: id));
+        final defaults = tax.effectiveParams(testFigure(move: id));
         expect(
-          tax.validateFigure(Figure(move: id, params: defaults)),
+          tax.validateFigure(testFigure(move: id, params: defaults)),
           isEmpty,
           reason: '$id default param values must all be in-domain',
         );
@@ -108,7 +109,7 @@ void main() {
       for (final b in [2, 4]) {
         expect(
           tax.validateFigure(
-            Figure(move: 'pull_by_dancers', params: {'beats': b}),
+            testFigure(move: 'pull_by_dancers', params: {'beats': b}),
           ),
           isEmpty,
           reason: '$b beats should be typical',
@@ -121,6 +122,7 @@ void main() {
     test('gate rejects an out-of-domain face', () {
       expect(
         tax
+            // invalid-fixture: value is deliberately out of domain — gate rejects an out-of-domain face
             .validateFigure(Figure(move: 'gate', params: {'face': 'sideways'}))
             .any((i) => i.code == 'invalid_param_value'),
         isTrue,
@@ -131,6 +133,7 @@ void main() {
       expect(
         tax
             .validateFigure(
+              // invalid-fixture: value is deliberately out of domain — give_and_take restricts who to a role
               Figure(move: 'give_and_take', params: {'who': 'partners'}),
             )
             .any((i) => i.code == 'invalid_param_value'),

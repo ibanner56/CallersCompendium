@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
+import 'package:compendium_core/testing.dart';
 
 final _renderer = FigureRenderer(contraTaxonomy);
 final _now = DateTime.utc(2026, 1, 1);
@@ -60,7 +61,7 @@ void main() {
           beats: 8,
           origin: CustomOrigin.importGap,
         ), // importGap
-        Figure(move: customMove, params: const {'text': 'hand-written'}),
+        testFigure(move: customMove, params: const {'text': 'hand-written'}),
         Figure(move: 'swing', params: const {'beats': 8}),
       ]),
     );
@@ -75,7 +76,7 @@ void main() {
     await _pump(
       tester,
       _danceWith([
-        Figure(move: customMove, params: const {'text': 'hand-written'}),
+        testFigure(move: customMove, params: const {'text': 'hand-written'}),
         Figure(move: 'swing', params: const {'beats': 8}),
       ]),
     );

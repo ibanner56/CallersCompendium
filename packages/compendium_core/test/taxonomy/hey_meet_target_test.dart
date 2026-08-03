@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Issue #576 — the first-class `meetTarget` hey param.
 ///
@@ -17,16 +18,30 @@ void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  Figure hey({String? length, String? meetTarget, String? pass1, int? beats}) =>
-      Figure(
-        move: 'hey',
-        params: {
-          'pass1': ?pass1,
-          'length': ?length,
-          'meetTarget': ?meetTarget,
-          'beats': ?beats,
-        },
-      );
+  /// Builds a `hey` fixture.
+  ///
+  /// Validates at construction by default. A caller passing a deliberately
+  /// out-of-domain or hostile value supplies [invalidReason] to opt that ONE
+  /// call out — routing the whole helper through `invalidTestFigure` would
+  /// disable validation for every caller, most of which are valid, and turn
+  /// the opt-out into a general bypass.
+  Figure hey({
+    String? length,
+    String? meetTarget,
+    String? pass1,
+    int? beats,
+    String? invalidReason,
+  }) {
+    final params = <String, Object?>{
+      'pass1': ?pass1,
+      'length': ?length,
+      'meetTarget': ?meetTarget,
+      'beats': ?beats,
+    };
+    return invalidReason == null
+        ? testFigure(move: 'hey', params: params)
+        : invalidTestFigure(move: 'hey', params: params, reason: invalidReason);
+  }
 
   group('taxonomy', () {
     final spec = tax.resolve('hey')!.params['meetTarget'];
@@ -120,7 +135,12 @@ void main() {
     test('an unknown/malicious meetTarget token cannot alter canonical', () {
       expect(
         renderer.renderCanonical(
-          hey(length: 'lessThanHalf', meetTarget: '<script>'),
+          hey(
+            length: 'lessThanHalf',
+            meetTarget: '<script>',
+            invalidReason:
+                'hostile token, to prove it is escaped rather than executed or blanked',
+          ),
         ),
         canonicalDefault,
       );
@@ -197,13 +217,18 @@ void main() {
     test('an unknown or non-string meetTarget falls back to "someone"', () {
       expect(
         renderer.render(
-          hey(length: 'lessThanHalf', meetTarget: 'everyone'),
+          hey(
+            length: 'lessThanHalf',
+            meetTarget: 'everyone',
+            invalidReason: 'out-of-domain: a hey meets a PAIR, never everyone',
+          ),
           Dialect.canonical,
         ),
         'role2s start a hey - rights in center, lefts on ends - until someone meets',
       );
       expect(
         renderer.render(
+          // invalid-fixture: value is deliberately out of domain — an unknown or non-string meetTarget falls back to "someone"
           Figure(
             move: 'hey',
             params: {'length': 'lessThanHalf', 'meetTarget': 42},
@@ -250,7 +275,12 @@ void main() {
   group('validation (OWASP allow-list)', () {
     test('an out-of-domain meetTarget is a hard validation error', () {
       final issues = tax.validateFigure(
-        hey(length: 'lessThanHalf', meetTarget: 'sideways'),
+        hey(
+          length: 'lessThanHalf',
+          meetTarget: 'sideways',
+          invalidReason:
+              'out-of-domain token, to prove it degrades rather than rendering raw',
+        ),
       );
       expect(
         issues.any(
@@ -264,7 +294,11 @@ void main() {
 
     test('an excluded pair (everyone) is rejected by the allow-list', () {
       final issues = tax.validateFigure(
-        hey(length: 'lessThanHalf', meetTarget: 'everyone'),
+        hey(
+          length: 'lessThanHalf',
+          meetTarget: 'everyone',
+          invalidReason: 'out-of-domain: a hey meets a PAIR, never everyone',
+        ),
       );
       expect(issues.any((i) => i.code == 'invalid_param_value'), isTrue);
     });
@@ -333,6 +367,7 @@ void main() {
       'an UNrecognized token degrades to "someone meets", not the raw token',
       () {
         final line = nullChoicesRenderer.render(
+          // invalid-fixture: value is deliberately out of domain — an UNrecognized token degrades to "someone meets", not the raw token
           Figure(
             move: 'hey',
             params: {'length': 'lessThanHalf', 'meetTarget': 'bogusToken'},

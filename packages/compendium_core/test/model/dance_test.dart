@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 void main() {
   final now = DateTime.utc(2026, 7, 10);
@@ -17,7 +18,7 @@ void main() {
     updatedAt: now,
   );
 
-  Figure fig(int beats) => Figure(move: 'swing', params: {'beats': beats});
+  Figure fig(int beats) => testFigure(move: 'swing', params: {'beats': beats});
 
   group('Dance invariants', () {
     test('rejects empty or whitespace-only titles', () {

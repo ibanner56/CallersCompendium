@@ -5,10 +5,11 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_repositories.dart';
+import 'package:compendium_core/testing.dart';
 
 /// A taxonomy-valid neighbor swing.
 Figure _swing({String who = 'neighbors', int beats = 16}) =>
-    Figure(move: 'swing', params: {'who': who, 'beats': beats});
+    testFigure(move: 'swing', params: {'who': who, 'beats': beats});
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

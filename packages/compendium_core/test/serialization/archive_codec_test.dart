@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// A comprehensive archive exercising every entity type and many edge cases
 /// (non-standard phrase structure, custom-only figures, metadata-only dances,
@@ -76,10 +77,10 @@ CompendiumArchive _sampleArchive() {
     progression: Progression.double,
     phraseStructure: '6*8*2',
     figures: [
-      Figure(move: 'swing', params: {'who': 'partner', 'beats': 16}),
+      Figure(move: 'swing', params: {'who': 'partners', 'beats': 16}),
       Figure(
         move: 'allemande',
-        params: {'who': 'neighbor', 'hand': 'right', 'turn': 1.5},
+        params: {'who': 'neighbors', 'hand': 'right', 'turn': 1.5},
         note: 'smoothly',
         progression: true,
       ),
@@ -135,7 +136,10 @@ CompendiumArchive _sampleArchive() {
     id: 'd2',
     title: 'All Custom',
     figures: [
-      Figure(move: customMove, params: {'text': 'weave the ring', 'beats': 8}),
+      testFigure(
+        move: customMove,
+        params: {'text': 'weave the ring', 'beats': 8},
+      ),
       customFigure('do something odd', origin: CustomOrigin.importGap),
     ],
     createdAt: DateTime.utc(2026, 1, 3),

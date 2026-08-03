@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Roadmap 2.4a — PR5 "hey/wave family" (final slice): pass_by, hey,
 /// dolphin_hey, form_long_waves, form_a_long_wave. (The wave family also
@@ -23,9 +24,9 @@ void main() {
     for (final id in newMoves) {
       test('$id resolves and validates with all defaults populated', () {
         expect(tax.resolve(id)?.id, id, reason: '$id should be registered');
-        final defaults = tax.effectiveParams(Figure(move: id));
+        final defaults = tax.effectiveParams(testFigure(move: id));
         expect(
-          tax.validateFigure(Figure(move: id, params: defaults)),
+          tax.validateFigure(testFigure(move: id, params: defaults)),
           isEmpty,
           reason: '$id default param values must all be in-domain',
         );
@@ -78,7 +79,9 @@ void main() {
         'betweenHalfAndFull',
       ]) {
         expect(
-          tax.validateFigure(Figure(move: 'hey', params: {'length': length})),
+          tax.validateFigure(
+            testFigure(move: 'hey', params: {'length': length}),
+          ),
           isEmpty,
           reason: "'$length' should be a valid hey length",
         );
@@ -114,6 +117,7 @@ void main() {
       expect(
         tax
             .validateFigure(
+              // invalid-fixture: value is deliberately out of domain — out-of-domain length value is rejected
               Figure(move: 'hey', params: {'length': 'threeQuarters'}),
             )
             .any((i) => i.code == 'invalid_param_value'),
@@ -126,7 +130,7 @@ void main() {
       'figures_json round-trip preserves lessThanHalf and betweenHalfAndFull',
       () {
         for (final length in ['lessThanHalf', 'betweenHalfAndFull']) {
-          final figure = Figure(move: 'hey', params: {'length': length});
+          final figure = testFigure(move: 'hey', params: {'length': length});
           expect(
             figureFromJson(figureToJson(figure)),
             figure,
@@ -146,7 +150,7 @@ void main() {
         'betweenHalfAndFull',
       ]) {
         final canonical = renderer.renderCanonical(
-          Figure(move: 'hey', params: {'length': length}),
+          testFigure(move: 'hey', params: {'length': length}),
         );
         expect(
           canonical,
@@ -174,7 +178,14 @@ void main() {
       for (final d in ['onesRole1', 'onesRole2', 'twosRole1', 'twosRole2']) {
         expect(
           tax
-              .validateFigure(Figure(move: 'hey', params: {'pass2': d}))
+              .validateFigure(
+                invalidTestFigure(
+                  move: 'hey',
+                  params: {'pass2': d},
+                  reason:
+                      'asserts validateFigure REJECTS a single-dancer identity for pass2, which must name a pair',
+                ),
+              )
               .any((i) => i.code == 'invalid_param_value'),
           isTrue,
           reason: '$d is a single dancer, not a valid pass2 pair',
@@ -185,13 +196,20 @@ void main() {
     test('all four ricochet flags are present and boolean', () {
       for (final r in ['rico1', 'rico2', 'rico3', 'rico4']) {
         expect(
-          tax.validateFigure(Figure(move: 'hey', params: {r: true})),
+          tax.validateFigure(testFigure(move: 'hey', params: {r: true})),
           isEmpty,
           reason: '$r should be a valid flag',
         );
         expect(
           tax
-              .validateFigure(Figure(move: 'hey', params: {r: 'yes'}))
+              .validateFigure(
+                invalidTestFigure(
+                  move: 'hey',
+                  params: {r: 'yes'},
+                  reason:
+                      'asserts validateFigure REJECTS a non-boolean value for a flag param',
+                ),
+              )
               .any((i) => i.code == 'invalid_param_value'),
           isTrue,
         );
@@ -202,6 +220,7 @@ void main() {
       expect(
         tax
             .validateFigure(
+              // invalid-fixture: value is deliberately out of domain — unspecified is hey-scoped, not a general dancer token
               Figure(move: 'swing', params: {'who': 'unspecified'}),
             )
             .any((i) => i.code == 'invalid_param_value'),
@@ -214,7 +233,9 @@ void main() {
     test('accepts the single-dancer tokens', () {
       for (final d in ['onesRole1', 'onesRole2', 'twosRole1', 'twosRole2']) {
         expect(
-          tax.validateFigure(Figure(move: 'dolphin_hey', params: {'whom': d})),
+          tax.validateFigure(
+            testFigure(move: 'dolphin_hey', params: {'whom': d}),
+          ),
           isEmpty,
           reason: '$d should be a valid dolphin lead',
         );
@@ -225,6 +246,7 @@ void main() {
       expect(
         tax
             .validateFigure(
+              // invalid-fixture: value is deliberately out of domain — rejects a pair for whom
               Figure(move: 'dolphin_hey', params: {'whom': 'partners'}),
             )
             .any((i) => i.code == 'invalid_param_value'),

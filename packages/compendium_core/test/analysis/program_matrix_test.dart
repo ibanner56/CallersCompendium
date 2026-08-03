@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 void main() {
   final now = DateTime.utc(2026, 7, 13);
@@ -18,12 +19,17 @@ void main() {
     formation: formation ?? const Formation(FormationShape.dupleImproper),
   );
 
-  Figure move(String id) => Figure(move: id);
-  Figure swing([String? who]) => Figure(move: 'swing', params: {'who': ?who});
+  Figure move(String id) => invalidTestFigure(
+    move: id,
+    reason:
+        'unknown move ids are the subject here: they must each get their own matrix column',
+  );
+  Figure swing([String? who]) =>
+      testFigure(move: 'swing', params: {'who': ?who});
   Figure hey([String? length]) =>
-      Figure(move: 'hey', params: {'length': ?length});
+      testFigure(move: 'hey', params: {'length': ?length});
   Figure custom(String text) =>
-      Figure(move: customMove, params: {'text': text});
+      testFigure(move: customMove, params: {'text': text});
 
   List<String> ids(ProgramMatrix m) => m.columns.map((c) => c.moveId).toList();
   int colOf(ProgramMatrix m, String moveId) =>
@@ -596,7 +602,7 @@ void main() {
     // default 4x16 structure (A1 0-15, A2 16-31, B1 32-47, B2 48-63). `fig`
     // sets an explicit beat length so a move can be steered into a phrase.
     Figure fig(String id, int beats) =>
-        Figure(move: id, params: {'beats': beats});
+        testFigure(move: id, params: {'beats': beats});
 
     int colOfMove(ProgramMatrix m, String moveId) =>
         m.columns.indexWhere((c) => c.moveId == moveId);

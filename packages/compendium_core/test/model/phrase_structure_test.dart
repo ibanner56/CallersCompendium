@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 void main() {
   group('PhraseStructure.parse', () {
@@ -73,7 +74,8 @@ void main() {
   });
 
   group('deriveSections', () {
-    Figure fig(int beats) => Figure(move: 'swing', params: {'beats': beats});
+    Figure fig(int beats) =>
+        testFigure(move: 'swing', params: {'beats': beats});
 
     test('assigns start beats and labels cumulatively', () {
       final sections = deriveSections([

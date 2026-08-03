@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../support/l10n_harness.dart';
+import 'package:compendium_core/testing.dart';
 
 void main() {
   final now = DateTime.utc(2026, 7, 13);
@@ -29,11 +30,11 @@ void main() {
   // from firing spuriously just because every beats-less figure would derive
   // to A1.
   Figure move(String id, [int beats = 16]) =>
-      Figure(move: id, params: {'beats': beats});
+      testFigure(move: id, params: {'beats': beats});
   Figure swing([String? who, int beats = 16]) =>
-      Figure(move: 'swing', params: {'who': ?who, 'beats': beats});
+      testFigure(move: 'swing', params: {'who': ?who, 'beats': beats});
   Figure hey([String? length, int beats = 16]) =>
-      Figure(move: 'hey', params: {'length': ?length, 'beats': beats});
+      testFigure(move: 'hey', params: {'length': ?length, 'beats': beats});
 
   Future<void> pump(
     WidgetTester tester, {
@@ -808,8 +809,12 @@ void main() {
   group('same-figure-same-phrase collision glyph (#582)', () {
     // Steer a move into a phrase by padding the beats ahead of it (default
     // 4x16 structure: A1 0-15, A2 16-31, B1 32-47, B2 48-63).
-    Figure fig(String id, int beats) =>
-        Figure(move: id, params: {'beats': beats});
+    Figure fig(String id, int beats) => invalidTestFigure(
+      move: id,
+      params: {'beats': beats},
+      reason:
+          'callers pass arbitrary move ids, including ones outside the taxonomy, to steer a move into a given phrase',
+    );
 
     testWidgets('flags both cells when a move repeats in the same phrase of an '
         'adjacent dance', (tester) async {

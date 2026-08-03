@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// The UNIFIED `gate` move (taxonomy v22) — the merge of ContraDB's `gate` and
 /// the TCB-only `rotation_gate` (issue #294) into one figure carrying a
@@ -58,7 +59,7 @@ void main() {
     test('defaults validate (incl. the rotation sentinel on `turn`)', () {
       final figure = Figure(move: 'gate');
       final issues = tax.validateFigure(
-        Figure(move: 'gate', params: tax.effectiveParams(figure)),
+        testFigure(move: 'gate', params: tax.effectiveParams(figure)),
       );
       expect(
         issues.where((i) => i.severity == ValidationSeverity.error),
@@ -102,7 +103,7 @@ void main() {
     // libfigure `figure.js:841` renders the facing after the literal words "to
     // face", over `{up: "up the set", …}` (`param.js:711`) — so `face` is the
     // ENDING facing, not a direction of travel.
-    Figure contraDbGate({String face = 'up'}) => Figure(
+    Figure contraDbGate({String face = 'up'}) => testFigure(
       move: 'gate',
       params: {'who': 'ones', 'whom': 'neighbors', 'face': face, 'beats': 8},
     );
@@ -392,10 +393,16 @@ void main() {
   });
 
   group('renderer — display word order + STORED facing clause', () {
-    Figure gate(String pair, String dir, num turn, {int beats = 8}) => Figure(
-      move: 'gate',
-      params: {'pair': pair, 'direction': dir, 'turn': turn, 'beats': beats},
-    );
+    Figure gate(String pair, String dir, num turn, {int beats = 8}) =>
+        testFigure(
+          move: 'gate',
+          params: {
+            'pair': pair,
+            'direction': dir,
+            'turn': turn,
+            'beats': beats,
+          },
+        );
 
     test('mirror reads BEFORE the move name', () {
       final f = gate('neighbors', 'mirror', 1.0);
@@ -495,6 +502,7 @@ void main() {
     );
 
     test('an unexpected direction surfaces rather than vanishing', () {
+      // invalid-fixture: value is deliberately out of domain — an unexpected direction surfaces rather than vanishing
       final f = Figure(
         move: 'gate',
         params: {'pair': 'neighbors', 'direction': 'sideways', 'turn': 0.5},
@@ -503,6 +511,7 @@ void main() {
     });
 
     test('an unknown face token renders no clause (tolerant decode)', () {
+      // invalid-fixture: value is deliberately out of domain — an unknown face token renders no clause (tolerant decode)
       final f = Figure(
         move: 'gate',
         params: {

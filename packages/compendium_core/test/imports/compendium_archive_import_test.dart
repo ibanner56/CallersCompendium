@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
+import 'package:compendium_core/testing.dart';
 
 String Function() sequentialIds(String prefix) {
   var n = 0;
@@ -33,8 +34,12 @@ Dance _danceWith(
   updatedAt: DateTime.utc(2026, 1, 1),
 );
 
-Figure _fig(String move, {int beats = 8}) =>
-    Figure(move: move, params: {'beats': beats});
+Figure _fig(String move, {int beats = 8}) => invalidTestFigure(
+  move: move,
+  params: {'beats': beats},
+  reason:
+      'archive fixtures carry move ids straight from untrusted import content, including unknown ones',
+);
 
 /// A one-slot program referencing [danceId], for the confidence tests.
 Program _programRef(String danceId) => Program(

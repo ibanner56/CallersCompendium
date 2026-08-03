@@ -1,6 +1,7 @@
 import 'package:compendium_app/src/export/program_matrix_pdf.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:compendium_core/testing.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -21,10 +22,11 @@ void main() {
     formation: formation ?? const Formation(FormationShape.dupleImproper),
   );
 
-  Figure move(String id) => Figure(move: id);
-  Figure swing([String? who]) => Figure(move: 'swing', params: {'who': ?who});
+  Figure move(String id) => testFigure(move: id);
+  Figure swing([String? who]) =>
+      testFigure(move: 'swing', params: {'who': ?who});
   Figure hey([String? length]) =>
-      Figure(move: 'hey', params: {'length': ?length});
+      testFigure(move: 'hey', params: {'length': ?length});
 
   group('buildProgramMatrixPdf', () {
     test('returns non-empty bytes for a populated matrix', () async {
@@ -108,31 +110,32 @@ void main() {
       expect(bytes, isNotEmpty);
     });
 
-    test(
-      'builds a matrix that carries a same-phrase collision marker',
-      () async {
-        Figure fig(String id, int beats) =>
-            Figure(move: id, params: {'beats': beats});
-        // balance lands in B1 (beat 32) in two strictly-adjacent dances, so its
-        // cells are same-figure-same-phrase collisions — the alert marker path.
-        final matrix = buildProgramMatrix([
-          dance('d1', 'Opener', [fig('do_si_do', 32), fig('balance', 16)]),
-          dance('d2', 'Second', [fig('circle_left', 32), fig('balance', 16)]),
-        ]);
-        final balance = matrix.columns.indexWhere((c) => c.moveId == 'balance');
-        expect(matrix.isPhraseCollision(0, balance), isTrue);
-        expect(matrix.isPhraseCollision(1, balance), isTrue);
+    test('builds a matrix that carries a same-phrase collision marker', () async {
+      Figure fig(String id, int beats) => invalidTestFigure(
+        move: id,
+        params: {'beats': beats},
+        reason:
+            'callers pass arbitrary move ids, including ones outside the taxonomy, to drive matrix column discovery',
+      );
+      // balance lands in B1 (beat 32) in two strictly-adjacent dances, so its
+      // cells are same-figure-same-phrase collisions — the alert marker path.
+      final matrix = buildProgramMatrix([
+        dance('d1', 'Opener', [fig('do_si_do', 32), fig('balance', 16)]),
+        dance('d2', 'Second', [fig('circle_left', 32), fig('balance', 16)]),
+      ]);
+      final balance = matrix.columns.indexWhere((c) => c.moveId == 'balance');
+      expect(matrix.isPhraseCollision(0, balance), isTrue);
+      expect(matrix.isPhraseCollision(1, balance), isTrue);
 
-        final bytes = await buildProgramMatrixPdf(
-          matrix,
-          taxonomy: contraTaxonomy,
-          dialect: Dialect.canonical,
-          programTitle: 'Collision program',
-        );
+      final bytes = await buildProgramMatrixPdf(
+        matrix,
+        taxonomy: contraTaxonomy,
+        dialect: Dialect.canonical,
+        programTitle: 'Collision program',
+      );
 
-        expect(bytes, isNotEmpty);
-      },
-    );
+      expect(bytes, isNotEmpty);
+    });
 
     group('formation column (#663)', () {
       test('defaults to an English fallback formation label', () async {

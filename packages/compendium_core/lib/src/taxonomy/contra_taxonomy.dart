@@ -322,9 +322,10 @@ import 'taxonomy.dart';
 ///       clockwise by construction (the couple wheels as a unit), so those 10
 ///       lines are redundant confirmations rather than a distinction, and
 ///       `clockwise` is a REAL default, not a fabrication. Deliberately carries
-///       NO `unspecified` sentinel — not for any editor-safety reason (that gap
-///       closed with #726), but simply because the move has no semantic need
-///       for one; see the param comment.
+///       NO `unspecified` sentinel — not for any editor-safety reason (the
+///       editor and validator halves of that gap closed with #726, the
+///       Advanced-search facet with PR #746), but simply because the move has
+///       no semantic need for one; see the param comment.
 ///     - `endFacing` — a **DANCER**, not a facing. Every attested value is a
 ///       neighbor relationship: `, face N2` x8, `, face N3` x4, `, face N0` x1.
 ///       See the param comment: this is the single easiest thing to get wrong

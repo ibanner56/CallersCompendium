@@ -3,6 +3,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_repositories.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Repository-backed tests for [collectSensitiveTerms] (issue #458). These pin
 /// down the security-critical contract for the *scrubbed* export: every promised
@@ -39,7 +40,7 @@ void main() {
         callingNotes: 'watch the timing on B2',
         tunes: const ['Whiskey Before Breakfast'],
         figures: [
-          Figure(
+          testFigure(
             move: customMove,
             params: const {'text': 'gypsy meltdown with Robin', 'beats': 8},
           ),

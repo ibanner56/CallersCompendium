@@ -2,10 +2,11 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// A taxonomy-valid neighbor swing (16 beats).
 Figure _swing({String who = 'neighbors', int beats = 16}) =>
-    Figure(move: 'swing', params: {'who': who, 'beats': beats});
+    testFigure(move: 'swing', params: {'who': who, 'beats': beats});
 
 /// A taxonomy-valid circle (used as a second figure in multi-figure mappings).
 Figure _circle() => parseFreeTextFigureEntry('circle left 3/4').single;
@@ -179,274 +180,267 @@ void main() {
     });
   });
 
-  group(
-    'ShorthandMappings.decode — defensive guards (OWASP), never throws',
-    () {
-      test('null / non-List / wrong-typed input yields empty', () {
-        expect(
-          ShorthandMappings.decode(null, taxonomy: contraTaxonomy).isEmpty,
-          isTrue,
-        );
-        expect(
-          ShorthandMappings.decode(42, taxonomy: contraTaxonomy).isEmpty,
-          isTrue,
-        );
-        expect(
-          ShorthandMappings.decode({
-            'not': 'a list',
-          }, taxonomy: contraTaxonomy).isEmpty,
-          isTrue,
-        );
-      });
-
-      test('malformed JSON string yields empty', () {
-        expect(
-          ShorthandMappings.decode(
-            '{not json',
-            taxonomy: contraTaxonomy,
-          ).isEmpty,
-          isTrue,
-        );
-        expect(
-          ShorthandMappings.decode(
-            '"a bare string"',
-            taxonomy: contraTaxonomy,
-          ).isEmpty,
-          isTrue,
-        );
-      });
-
-      test('entries that are not objects are skipped', () {
-        final decoded = ShorthandMappings.decode(
-          jsonEncode([
-            'not an object',
-            42,
-            {
-              'token': 'bns',
-              'figures': [figureToJson(_swing())],
-            },
-          ]),
-          taxonomy: contraTaxonomy,
-        );
-        expect(decoded.mappings, hasLength(1));
-        expect(decoded.mappings.single.token, 'bns');
-      });
-
-      test(
-        'empty / whitespace / oversized / non-string tokens are dropped',
-        () {
-          final figs = [figureToJson(_swing())];
-          final decoded = ShorthandMappings.decode(
-            jsonEncode([
-              {'token': '', 'figures': figs},
-              {'token': '   ', 'figures': figs},
-              {'token': 'x' * (maxShorthandTokenLength + 1), 'figures': figs},
-              {'token': 123, 'figures': figs},
-              {'token': 'ok', 'figures': figs},
-            ]),
-            taxonomy: contraTaxonomy,
-          );
-          expect(decoded.mappings, hasLength(1));
-          expect(decoded.mappings.single.token, 'ok');
-        },
+  group('ShorthandMappings.decode — defensive guards (OWASP), never throws', () {
+    test('null / non-List / wrong-typed input yields empty', () {
+      expect(
+        ShorthandMappings.decode(null, taxonomy: contraTaxonomy).isEmpty,
+        isTrue,
       );
+      expect(
+        ShorthandMappings.decode(42, taxonomy: contraTaxonomy).isEmpty,
+        isTrue,
+      );
+      expect(
+        ShorthandMappings.decode({
+          'not': 'a list',
+        }, taxonomy: contraTaxonomy).isEmpty,
+        isTrue,
+      );
+    });
 
-      test('a token exactly at the length bound is kept', () {
-        final token = 'x' * maxShorthandTokenLength;
-        final decoded = ShorthandMappings.decode(
-          jsonEncode([
-            {
-              'token': token,
-              'figures': [figureToJson(_swing())],
-            },
-          ]),
+    test('malformed JSON string yields empty', () {
+      expect(
+        ShorthandMappings.decode('{not json', taxonomy: contraTaxonomy).isEmpty,
+        isTrue,
+      );
+      expect(
+        ShorthandMappings.decode(
+          '"a bare string"',
           taxonomy: contraTaxonomy,
-        );
-        expect(decoded.mappings.single.token, token);
-      });
+        ).isEmpty,
+        isTrue,
+      );
+    });
 
-      test('empty, oversized, or non-list figure lists drop the mapping', () {
-        final tooMany = [
-          for (var i = 0; i < maxShorthandTargetFigures + 1; i++)
-            figureToJson(_swing()),
-        ];
-        final decoded = ShorthandMappings.decode(
-          jsonEncode([
-            {'token': 'empty', 'figures': <Object?>[]},
-            {'token': 'nolist', 'figures': 'nope'},
-            {'token': 'toomany', 'figures': tooMany},
-            {
-              'token': 'ok',
-              'figures': [figureToJson(_swing())],
-            },
-          ]),
-          taxonomy: contraTaxonomy,
-        );
-        expect(decoded.mappings, hasLength(1));
-        expect(decoded.mappings.single.token, 'ok');
-      });
+    test('entries that are not objects are skipped', () {
+      final decoded = ShorthandMappings.decode(
+        jsonEncode([
+          'not an object',
+          42,
+          {
+            'token': 'bns',
+            'figures': [figureToJson(_swing())],
+          },
+        ]),
+        taxonomy: contraTaxonomy,
+      );
+      expect(decoded.mappings, hasLength(1));
+      expect(decoded.mappings.single.token, 'bns');
+    });
 
-      test('a figure with an unknown move drops the whole mapping', () {
-        final decoded = ShorthandMappings.decode(
-          jsonEncode([
-            {
-              'token': 'bad',
-              'figures': [figureToJson(Figure(move: 'not_a_real_move'))],
-            },
-            {
-              'token': 'ok',
-              'figures': [figureToJson(_swing())],
-            },
-          ]),
-          taxonomy: contraTaxonomy,
-        );
-        expect(decoded.mappings, hasLength(1));
-        expect(decoded.mappings.single.token, 'ok');
-      });
+    test('empty / whitespace / oversized / non-string tokens are dropped', () {
+      final figs = [figureToJson(_swing())];
+      final decoded = ShorthandMappings.decode(
+        jsonEncode([
+          {'token': '', 'figures': figs},
+          {'token': '   ', 'figures': figs},
+          {'token': 'x' * (maxShorthandTokenLength + 1), 'figures': figs},
+          {'token': 123, 'figures': figs},
+          {'token': 'ok', 'figures': figs},
+        ]),
+        taxonomy: contraTaxonomy,
+      );
+      expect(decoded.mappings, hasLength(1));
+      expect(decoded.mappings.single.token, 'ok');
+    });
 
-      test('an unknown param key drops the whole mapping', () {
+    test('a token exactly at the length bound is kept', () {
+      final token = 'x' * maxShorthandTokenLength;
+      final decoded = ShorthandMappings.decode(
+        jsonEncode([
+          {
+            'token': token,
+            'figures': [figureToJson(_swing())],
+          },
+        ]),
+        taxonomy: contraTaxonomy,
+      );
+      expect(decoded.mappings.single.token, token);
+    });
+
+    test('empty, oversized, or non-list figure lists drop the mapping', () {
+      final tooMany = [
+        for (var i = 0; i < maxShorthandTargetFigures + 1; i++)
+          figureToJson(_swing()),
+      ];
+      final decoded = ShorthandMappings.decode(
+        jsonEncode([
+          {'token': 'empty', 'figures': <Object?>[]},
+          {'token': 'nolist', 'figures': 'nope'},
+          {'token': 'toomany', 'figures': tooMany},
+          {
+            'token': 'ok',
+            'figures': [figureToJson(_swing())],
+          },
+        ]),
+        taxonomy: contraTaxonomy,
+      );
+      expect(decoded.mappings, hasLength(1));
+      expect(decoded.mappings.single.token, 'ok');
+    });
+
+    test('a figure with an unknown move drops the whole mapping', () {
+      final decoded = ShorthandMappings.decode(
+        jsonEncode([
+          {
+            'token': 'bad',
+            // invalid-fixture: move is deliberately outside the taxonomy — a figure with an unknown move drops the whole mapping
+            'figures': [figureToJson(Figure(move: 'not_a_real_move'))],
+          },
+          {
+            'token': 'ok',
+            'figures': [figureToJson(_swing())],
+          },
+        ]),
+        taxonomy: contraTaxonomy,
+      );
+      expect(decoded.mappings, hasLength(1));
+      expect(decoded.mappings.single.token, 'ok');
+    });
+
+    test('an unknown param key drops the whole mapping', () {
+      final decoded = ShorthandMappings.decode(
+        jsonEncode([
+          {
+            'token': 'bad',
+            'figures': [
+              // invalid-fixture: param name is deliberately unknown — an unknown param key drops the whole mapping
+              figureToJson(Figure(move: 'swing', params: {'bogus': 1})),
+            ],
+          },
+        ]),
+        taxonomy: contraTaxonomy,
+      );
+      expect(decoded.isEmpty, isTrue);
+    });
+
+    test('an out-of-range param value drops the whole mapping', () {
+      final decoded = ShorthandMappings.decode(
+        jsonEncode([
+          {
+            'token': 'bad',
+            'figures': [
+              // beats domain is 0..64; 999 is non-conforming.
+              // invalid-fixture: value is deliberately out of domain — an out-of-range param value drops the whole mapping
+              figureToJson(Figure(move: 'swing', params: {'beats': 999})),
+            ],
+          },
+        ]),
+        taxonomy: contraTaxonomy,
+      );
+      expect(decoded.isEmpty, isTrue);
+    });
+
+    test('a non-conforming enum/dancer value drops the whole mapping', () {
+      final decoded = ShorthandMappings.decode(
+        jsonEncode([
+          {
+            'token': 'bad',
+            'figures': [
+              // invalid-fixture: value is deliberately out of domain — a non-conforming enum/dancer value drops the whole mapping
+              figureToJson(Figure(move: 'swing', params: {'who': 'aliens'})),
+            ],
+          },
+        ]),
+        taxonomy: contraTaxonomy,
+      );
+      expect(decoded.isEmpty, isTrue);
+    });
+
+    test('all-or-nothing: one bad figure drops the whole (partial) mapping', () {
+      final decoded = ShorthandMappings.decode(
+        jsonEncode([
+          {
+            'token': 'partial',
+            'figures': [
+              figureToJson(_swing()), // good
+              // invalid-fixture: move is deliberately outside the taxonomy — all-or-nothing: one bad figure drops the whole (partial) mapping
+              figureToJson(Figure(move: 'not_a_real_move')), // bad
+            ],
+          },
+        ]),
+        taxonomy: contraTaxonomy,
+      );
+      expect(decoded.isEmpty, isTrue);
+    });
+
+    test(
+      'a structurally malformed figure (missing move) drops the mapping',
+      () {
         final decoded = ShorthandMappings.decode(
           jsonEncode([
             {
               'token': 'bad',
               'figures': [
-                figureToJson(Figure(move: 'swing', params: {'bogus': 1})),
+                <String, Object?>{'params': <String, Object?>{}}, // no "move"
               ],
             },
           ]),
           taxonomy: contraTaxonomy,
         );
         expect(decoded.isEmpty, isTrue);
-      });
+      },
+    );
 
-      test('an out-of-range param value drops the whole mapping', () {
-        final decoded = ShorthandMappings.decode(
-          jsonEncode([
-            {
-              'token': 'bad',
-              'figures': [
-                // beats domain is 0..64; 999 is non-conforming.
-                figureToJson(Figure(move: 'swing', params: {'beats': 999})),
-              ],
-            },
-          ]),
-          taxonomy: contraTaxonomy,
-        );
-        expect(decoded.isEmpty, isTrue);
-      });
-
-      test('a non-conforming enum/dancer value drops the whole mapping', () {
-        final decoded = ShorthandMappings.decode(
-          jsonEncode([
-            {
-              'token': 'bad',
-              'figures': [
-                figureToJson(Figure(move: 'swing', params: {'who': 'aliens'})),
-              ],
-            },
-          ]),
-          taxonomy: contraTaxonomy,
-        );
-        expect(decoded.isEmpty, isTrue);
-      });
-
-      test(
-        'all-or-nothing: one bad figure drops the whole (partial) mapping',
-        () {
-          final decoded = ShorthandMappings.decode(
-            jsonEncode([
-              {
-                'token': 'partial',
-                'figures': [
-                  figureToJson(_swing()), // good
-                  figureToJson(Figure(move: 'not_a_real_move')), // bad
-                ],
-              },
-            ]),
-            taxonomy: contraTaxonomy,
-          );
-          expect(decoded.isEmpty, isTrue);
-        },
+    test('case-insensitive duplicate tokens keep the FIRST occurrence', () {
+      final decoded = ShorthandMappings.decode(
+        jsonEncode([
+          {
+            'token': 'BnS',
+            'figures': [figureToJson(_swing(beats: 16))],
+          },
+          {
+            'token': 'bns',
+            'figures': [figureToJson(_swing(beats: 8))],
+          },
+        ]),
+        taxonomy: contraTaxonomy,
       );
+      expect(decoded.mappings, hasLength(1));
+      expect(decoded.mappings.single.token, 'BnS');
+      expect(decoded.mappings.single.figures.single.params['beats'], 16);
+    });
 
-      test(
-        'a structurally malformed figure (missing move) drops the mapping',
-        () {
-          final decoded = ShorthandMappings.decode(
-            jsonEncode([
-              {
-                'token': 'bad',
-                'figures': [
-                  <String, Object?>{'params': <String, Object?>{}}, // no "move"
-                ],
-              },
-            ]),
-            taxonomy: contraTaxonomy,
-          );
-          expect(decoded.isEmpty, isTrue);
-        },
+    test('the mapping count is bounded to maxShorthandMappings', () {
+      final entries = [
+        for (var i = 0; i < maxShorthandMappings + 50; i++)
+          {
+            'token': 'tok$i',
+            'figures': [figureToJson(_swing())],
+          },
+      ];
+      final decoded = ShorthandMappings.decode(
+        jsonEncode(entries),
+        taxonomy: contraTaxonomy,
       );
+      expect(decoded.mappings, hasLength(maxShorthandMappings));
+    });
 
-      test('case-insensitive duplicate tokens keep the FIRST occurrence', () {
-        final decoded = ShorthandMappings.decode(
-          jsonEncode([
-            {
-              'token': 'BnS',
-              'figures': [figureToJson(_swing(beats: 16))],
-            },
-            {
-              'token': 'bns',
-              'figures': [figureToJson(_swing(beats: 8))],
-            },
-          ]),
-          taxonomy: contraTaxonomy,
+    test('never throws on assorted hostile payloads', () {
+      final payloads = <Object?>[
+        null,
+        '',
+        '[',
+        '[{}]',
+        jsonEncode([
+          {'token': null, 'figures': null},
+        ]),
+        jsonEncode([
+          {
+            'token': 'x',
+            'figures': [null, 1, 'str'],
+          },
+        ]),
+        {'token': 'x'},
+        [1, 2, 3],
+      ];
+      for (final p in payloads) {
+        expect(
+          () => ShorthandMappings.decode(p, taxonomy: contraTaxonomy),
+          returnsNormally,
+          reason: 'payload: $p',
         );
-        expect(decoded.mappings, hasLength(1));
-        expect(decoded.mappings.single.token, 'BnS');
-        expect(decoded.mappings.single.figures.single.params['beats'], 16);
-      });
-
-      test('the mapping count is bounded to maxShorthandMappings', () {
-        final entries = [
-          for (var i = 0; i < maxShorthandMappings + 50; i++)
-            {
-              'token': 'tok$i',
-              'figures': [figureToJson(_swing())],
-            },
-        ];
-        final decoded = ShorthandMappings.decode(
-          jsonEncode(entries),
-          taxonomy: contraTaxonomy,
-        );
-        expect(decoded.mappings, hasLength(maxShorthandMappings));
-      });
-
-      test('never throws on assorted hostile payloads', () {
-        final payloads = <Object?>[
-          null,
-          '',
-          '[',
-          '[{}]',
-          jsonEncode([
-            {'token': null, 'figures': null},
-          ]),
-          jsonEncode([
-            {
-              'token': 'x',
-              'figures': [null, 1, 'str'],
-            },
-          ]),
-          {'token': 'x'},
-          [1, 2, 3],
-        ];
-        for (final p in payloads) {
-          expect(
-            () => ShorthandMappings.decode(p, taxonomy: contraTaxonomy),
-            returnsNormally,
-            reason: 'payload: $p',
-          );
-        }
-      });
-    },
-  );
+      }
+    });
+  });
 }

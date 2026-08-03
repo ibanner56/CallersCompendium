@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/l10n_harness.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Host that owns a mutable draft list so the editor's in-place edits and
 /// add/delete callbacks drive real rebuilds, mirroring the dance editor screen.
@@ -346,7 +347,7 @@ void main() {
 
   test('taxonomy beats defaults match canonical values', () {
     int beatsFor(String move) =>
-        contraTaxonomy.effectiveParams(Figure(move: move))['beats'] as int;
+        contraTaxonomy.effectiveParams(testFigure(move: move))['beats'] as int;
     expect(beatsFor('swing'), 8);
     expect(beatsFor('balance'), 4);
   });
@@ -2331,6 +2332,7 @@ void main() {
         // A figure authored in a newer version / carrying a since-removed move.
         final drafts = <FigureDraft>[
           FigureDraft.fromFigure(
+            // invalid-fixture: move is deliberately outside the taxonomy — opens read-only without throwing and preserves the stored data
             Figure(
               move: 'a_move_from_the_future',
               params: const {'beats': 12, 'flavor': 'spicy'},
@@ -2366,6 +2368,7 @@ void main() {
       final drafts = <FigureDraft>[
         FigureDraft.fromFigure(Figure(move: 'swing', params: const {})),
         FigureDraft.fromFigure(
+          // invalid-fixture: move is deliberately outside the taxonomy — reorder and delete remain available for an unknown move
           Figure(move: 'a_move_from_the_future', params: const {'beats': 12}),
         ),
       ];

@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 void main() {
   group('parseInlineEmphasis', () {
@@ -210,7 +211,7 @@ void main() {
           note: 'say *this* and _that_',
           params: const {'beats': 16},
         ),
-        Figure(
+        testFigure(
           move: customMove,
           params: const {'text': r'gents \* _ladies_ *cross*', 'beats': 8},
         ),

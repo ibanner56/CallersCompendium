@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 
 /// A trivial, in-memory [SourceAdapter] used **only** to unit-test the import
 /// framework end-to-end (it is not a real source and is never exported from
@@ -124,7 +125,7 @@ class FakeSourceAdapter implements SourceAdapter {
       final move = (f['move'] as String?)?.trim();
       if (move != null && move.isNotEmpty && move != customMove) {
         figures.add(
-          Figure(
+          testFigure(
             move: move,
             params: beats > 0 ? {'beats': beats} : const {},
             note: text.isEmpty ? null : text,

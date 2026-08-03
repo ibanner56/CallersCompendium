@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+import 'package:compendium_core/testing.dart';
 
 /// Issue #543 — the first-class `endFacing` swing param.
 ///
@@ -14,16 +15,34 @@ void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  Figure swing({String? who, String? prefix, String? endFacing, int? beats}) =>
-      Figure(
-        move: 'swing',
-        params: {
-          'who': ?who,
-          'prefix': ?prefix,
-          'endFacing': ?endFacing,
-          'beats': ?beats,
-        },
-      );
+  /// Builds a `swing` fixture.
+  ///
+  /// Validates at construction by default. A caller passing a deliberately
+  /// out-of-domain or hostile value supplies [invalidReason] to opt that ONE
+  /// call out — routing the whole helper through `invalidTestFigure` would
+  /// disable validation for every caller, most of which are valid, and turn
+  /// the opt-out into a general bypass.
+  Figure swing({
+    String? who,
+    String? prefix,
+    String? endFacing,
+    int? beats,
+    String? invalidReason,
+  }) {
+    final params = <String, Object?>{
+      'who': ?who,
+      'prefix': ?prefix,
+      'endFacing': ?endFacing,
+      'beats': ?beats,
+    };
+    return invalidReason == null
+        ? testFigure(move: 'swing', params: params)
+        : invalidTestFigure(
+            move: 'swing',
+            params: params,
+            reason: invalidReason,
+          );
+  }
 
   group('taxonomy', () {
     final spec = tax.resolve('swing')!.params['endFacing'];
@@ -76,7 +95,14 @@ void main() {
 
     test('an unknown/malicious endFacing token cannot alter canonical', () {
       expect(
-        renderer.renderCanonical(swing(who: 'partners', endFacing: '<script>')),
+        renderer.renderCanonical(
+          swing(
+            who: 'partners',
+            endFacing: '<script>',
+            invalidReason:
+                'hostile token, to prove it is escaped rather than executed or blanked',
+          ),
+        ),
         canonicalDefault,
       );
     });
@@ -156,25 +182,28 @@ void main() {
       );
     });
 
-    test(
-      'an unknown or non-string endFacing renders no clause (allow-listed)',
-      () {
-        expect(
-          renderer.render(
-            swing(who: 'partners', endFacing: 'sideways'),
-            Dialect.canonical,
+    test('an unknown or non-string endFacing renders no clause (allow-listed)', () {
+      expect(
+        renderer.render(
+          swing(
+            who: 'partners',
+            endFacing: 'sideways',
+            invalidReason:
+                'out-of-domain endFacing, to prove it is rejected and renders no clause',
           ),
-          'partner swing',
-        );
-        expect(
-          renderer.render(
-            Figure(move: 'swing', params: {'who': 'partners', 'endFacing': 42}),
-            Dialect.canonical,
-          ),
-          'partner swing',
-        );
-      },
-    );
+          Dialect.canonical,
+        ),
+        'partner swing',
+      );
+      expect(
+        renderer.render(
+          // invalid-fixture: value is deliberately out of domain — an unknown or non-string endFacing renders no clause (allow-listed)
+          Figure(move: 'swing', params: {'who': 'partners', 'endFacing': 42}),
+          Dialect.canonical,
+        ),
+        'partner swing',
+      );
+    });
 
     test(
       'a facing swing with an assumed subject keeps the (assumed) marker',
@@ -224,7 +253,12 @@ void main() {
   group('validation (OWASP allow-list)', () {
     test('an out-of-domain endFacing is a hard validation error', () {
       final issues = tax.validateFigure(
-        swing(who: 'partners', endFacing: 'sideways'),
+        swing(
+          who: 'partners',
+          endFacing: 'sideways',
+          invalidReason:
+              'out-of-domain endFacing, to prove it is rejected and renders no clause',
+        ),
       );
       expect(
         issues.any(

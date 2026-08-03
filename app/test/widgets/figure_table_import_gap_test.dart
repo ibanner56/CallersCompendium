@@ -6,6 +6,7 @@ import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/widgets/figure_table.dart';
 import 'package:compendium_app/src/widgets/import_gap_badge.dart';
 import '../support/l10n_harness.dart';
+import 'package:compendium_core/testing.dart';
 
 Future<void> _pump(WidgetTester tester, List<Figure> figures) async {
   await tester.pumpWidget(
@@ -35,7 +36,7 @@ void main() {
         beats: 8,
         origin: CustomOrigin.importGap,
       ), // importGap
-      Figure(move: customMove, params: const {'text': 'hand-written'}),
+      testFigure(move: customMove, params: const {'text': 'hand-written'}),
       Figure(move: 'swing', params: const {'beats': 8}),
     ]);
 
@@ -51,7 +52,7 @@ void main() {
     tester,
   ) async {
     await _pump(tester, [
-      Figure(move: customMove, params: const {'text': 'hand-written'}),
+      testFigure(move: customMove, params: const {'text': 'hand-written'}),
       Figure(move: 'swing', params: const {'beats': 8}),
     ]);
 
