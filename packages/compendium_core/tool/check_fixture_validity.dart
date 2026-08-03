@@ -156,7 +156,7 @@ class FixtureVisitor extends RecursiveAstVisitor<void> {
       }
     }
     if (name == 'Figure') {
-      _handle(node.argumentList, node.offset);
+      _handle(node.argumentList, node.offset, node);
     }
     super.visitMethodInvocation(node);
   }
@@ -164,7 +164,7 @@ class FixtureVisitor extends RecursiveAstVisitor<void> {
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
     if (node.constructorName.type.name.lexeme == 'Figure') {
-      _handle(node.argumentList, node.offset);
+      _handle(node.argumentList, node.offset, node);
     }
     super.visitInstanceCreationExpression(node);
   }
@@ -186,11 +186,29 @@ class FixtureVisitor extends RecursiveAstVisitor<void> {
   bool _insideMarkedScope(int line) =>
       _markedScopes.any((s) => line >= s.$1 && line <= s.$2);
 
-  void _handle(ArgumentList args, int offset) {
+  void _handle(ArgumentList args, int offset, AstNode node) {
     final line = _lineInfo.getLocation(offset).lineNumber;
     final parsed = _parse(args);
 
-    final reason = _markerAbove(line);
+    // A marker introduces a STATEMENT, but `line` is where the `Figure(`
+    // token sits — and `dart format` routinely wraps a long statement so the
+    // two differ:
+    //
+    //     // invalid-fixture: <reason>
+    //     final f =
+    //         Figure(move: 'swing', params: {'who': 'partner'});
+    //
+    // Looking only above `Figure(` finds `final f =`, a non-comment line, and
+    // gives up. So try the enclosing statement's first line as well, which is
+    // where an author would naturally put the marker and what the documented
+    // contract promises.
+    final statement = node.thisOrAncestorOfType<Statement>();
+    final statementLine = statement == null
+        ? line
+        : _lineInfo.getLocation(statement.offset).lineNumber;
+    final reason =
+        _markerAbove(line) ??
+        (statementLine != line ? _markerAbove(statementLine) : null);
     if (reason != null) {
       // Fails closed exactly as the scope path does: a rejected marker does
       // not waive its fixture, so the fixture stays checked below.

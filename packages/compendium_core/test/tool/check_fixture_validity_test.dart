@@ -151,6 +151,52 @@ void main() {
       );
     });
 
+    test('a marker applies to a WRAPPED statement', () {
+      // `dart format` wraps a long statement so the `Figure(` token lands on a
+      // different line from the statement it belongs to. Looking only above
+      // the token finds `final x =` — a non-comment line — and gives up, so
+      // the marker silently stops working. Found in review; the formatter
+      // produces this shape routinely, including elsewhere in this PR.
+      expect(
+        check(
+          'f() {\n'
+          '  // invalid-fixture: a substantive reason for this fixture\n'
+          '  final x =\n'
+          "      Figure(move: 'swing', params: {'who': 'partner'});\n"
+          '}',
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a marker applies to a fixture nested in a wrapped call', () {
+      expect(
+        check(
+          'f() {\n'
+          '  // invalid-fixture: a substantive reason for this fixture\n'
+          '  expect(\n'
+          "    render(Figure(move: 'swing', params: {'who': 'partner'})),\n"
+          "    'x',\n"
+          '  );\n'
+          '}',
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a weak reason on a wrapped statement is still caught', () {
+      // The statement-level lookup must not become a second, ungated route
+      // into suppression — the whole defect class on this PR.
+      final v = check(
+        'f() {\n'
+        '  // invalid-fixture: n/a\n'
+        '  final x =\n'
+        "      Figure(move: 'swing', params: {'who': 'partner'});\n"
+        '}',
+      );
+      expect(v.map((e) => e.kind), contains('weak-marker'));
+    });
+
     test('a marker above unrelated code does not carry down', () {
       // The marker must introduce its own statement; a non-comment line
       // between it and the fixture ends its reach.
