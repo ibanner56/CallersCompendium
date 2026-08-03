@@ -12,11 +12,22 @@
 // strips forward, which works because no previous migration removed anything.
 // This one cannot — once v21 lands, `createAll()` no longer creates the very
 // columns the fixture must contain. So it seeds realistic rows through the
-// repositories at the current schema, then **reconstructs v20** with raw SQL:
-// `ALTER TABLE … ADD COLUMN` puts the two `raw_payload` columns back, a
-// `CREATE TABLE` restores `snapshots`, and `user_version` is reset to 20. That
-// keeps the generator re-runnable against any later tree, which is the
-// property every other generator in this directory has.
+// repositories at the current schema, then re-adds what v21 removed with raw
+// SQL: `ALTER TABLE … ADD COLUMN` puts the two `raw_payload` columns back, a
+// `CREATE TABLE` restores `snapshots`, and `user_version` is reset to 20.
+//
+// **Scope of that reconstruction, precisely:** it undoes v21 and nothing else.
+// It is therefore correct only while the current schema is v21. If a later
+// migration structurally changes any table (a new column on `dances`, say),
+// re-running this emits a hybrid — that table in its newer shape, stamped
+// `user_version = 20` — and the migration under test would then run against a
+// schema it never saw in the field. Every other generator in this directory
+// shares that limitation for the same reason (see `generate_v19_fixture.dart`,
+// which is explicit that it relies on v18/v19/v20 being structurally
+// identical); none of them is unconditionally re-runnable, and this one is not
+// either. The checked-in `v20.sqlite` is the artefact of record. Re-running is
+// for regenerating it on a tree still at v21; past that, this file needs the
+// same care any of its siblings would.
 //
 // The fixture is deliberately loaded on every axis the migration touches, and
 // on the ones it must NOT touch:
