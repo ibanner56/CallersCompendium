@@ -3007,6 +3007,10 @@ void main() {
       expect(prov.read<String>('permission'), 'CC BY-NC-SA 3.0');
       expect(prov.read<String>('license'), 'CC BY-NC-SA 3.0');
       expect(prov.read<String>('source_version'), 'contradb-2026-01');
+      // `imported_at` is a sibling column too, and the only non-text one — a
+      // rebuild that mis-copied or nulled the timestamp would otherwise pass
+      // every assertion above. Stored as unix seconds (2026-01-01T00:00:00Z).
+      expect(prov.read<int>('imported_at'), 1767225600);
 
       final progProv = await db
           .customSelect(
@@ -3019,6 +3023,7 @@ void main() {
       expect(progProv.read<String>('permission'), 'personal use');
       expect(progProv.read<String>('license'), 'unlicensed');
       expect(progProv.read<String>('source_version'), 'cc-usr-1');
+      expect(progProv.read<int>('imported_at'), 1767225600);
 
       await db.close();
     });
@@ -3037,6 +3042,7 @@ void main() {
         expect(dance!.provenance, isNotNull);
         expect(dance.provenance!.externalId, '2443');
         expect(dance.provenance!.source, ProvenanceSource.contradb);
+        expect(dance.provenance!.importedAt, DateTime.utc(2026));
 
         await db.close();
       },
