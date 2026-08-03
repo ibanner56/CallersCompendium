@@ -11,7 +11,30 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
-_Nothing yet._
+### Changed
+
+- **Imported dances no longer keep a copy of the page they came from.** When you
+  imported a dance from ContraDB, The Caller's Box or a Caller's Companion file,
+  the app also stored the original record verbatim — for a web import, the entire
+  page. Nothing in the app ever read it back, so it was pure weight: several
+  kilobytes per imported dance, carried in your library and in every backup you
+  made. It is now removed on upgrade, and no longer stored on new imports.
+
+  Re-importing and duplicate detection are unaffected — those match on the
+  source and its record id, and re-fetch from the source when you ask them to.
+
+  **This is not reversible.** Upgrading deletes those stored copies. If you want
+  them, export a backup *before* upgrading. Nothing you can see or edit in the
+  app is affected: dances, figures, notes, tags, programs and the rest are
+  untouched, as is where each dance came from (source, record id, import date,
+  permission and licence).
+
+### Removed
+
+- An internal `snapshots` table that was never written to. It existed for a
+  planned "a newer version of this collection is available" prompt against a
+  hosted archive — a feature that was dropped in favour of importing directly
+  from the source.
 
 ## [0.1.0] - 2026-08-01
 
