@@ -702,10 +702,10 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         //   * `provenance.raw_payload` — the verbatim imported source record.
         //     For an HTML import this was the whole source page (~7.5 KB for
         //     this repo's own ContraDB fixture), per dance, round-tripping
-        //     through every backup. Its doc comment claimed it enabled
-        //     "re-import diffing"; no such path was ever built. Re-import
-        //     dedupes on `(source, external_id)` and re-fetches, so nothing
-        //     regresses.
+        //     through every backup. It was justified as enabling "re-import
+        //     diffing"; that feature exists (`figure_diff.dart`) but compares
+        //     PARSED figures and never read this column. Re-import dedupes on
+        //     `(source, external_id)` and re-fetches, so nothing regresses.
         //   * `program_provenance.raw_payload` — the same column on the
         //     program side, where no import path ever wrote it. It is null for
         //     every row that has ever existed, so this half is a pure no-op on

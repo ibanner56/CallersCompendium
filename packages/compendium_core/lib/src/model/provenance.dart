@@ -7,10 +7,12 @@ import 'enums.dart';
 /// tiers, and re-import dedupe (keyed on `(source, externalId)`).
 ///
 /// Carried a `rawPayload` — the record exactly as fetched — until schema v21.
-/// Its doc comment claimed it enabled "re-import diffing"; no such path was
-/// ever built, and nothing else read it either, so it was dropped (#781). The
-/// live re-import path dedupes on `(source, externalId)` and re-fetches from
-/// the source, which needs no stored copy.
+/// Its doc comment justified it as enabling "re-import diffing". Re-import
+/// diffing does exist (`figure_diff.dart`, surfaced by the import review
+/// screen), but it compares **parsed figures** and never read this column;
+/// nothing else read it either, so it was dropped (#781). Re-import dedupes on
+/// `(source, externalId)` and re-fetches from the source, which needs no
+/// stored copy.
 @immutable
 class Provenance {
   const Provenance({

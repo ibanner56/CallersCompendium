@@ -174,9 +174,11 @@ attribution display, honouring permission tiers, and re-import dedupe on
 `(source, externalId)`.
 
 Carried a `rawPayload` (the record as imported) until schema v21. It was
-described here as enabling "re-import/diff"; no diffing path was ever built and
-nothing else read it either, so it was dropped (#781). Re-import re-fetches
-from the source, which needs no stored copy.
+described here as enabling "re-import/diff". Diffing does exist — see
+`figure_diff.dart` and the import review screen's variation prompt — but it
+compares **parsed figures** and never read this column, and nothing else read
+it either, so it was dropped (#781). Re-import re-fetches from the source,
+which needs no stored copy.
 
 ### Settings (not per-dance)
 Dialect config (see design/dialect.md), performance-mode prefs, import source
