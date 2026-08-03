@@ -42,6 +42,32 @@ When you change the schema:
 - **Never bump `schemaVersion` in a PATCH release.** A schema change is a
   data-format change and rides at least a MINOR version bump.
 
+### Data classification
+Every field the app persists is classified by what kind of data it is, whose
+data it is, and whether it may leave the device. The catalogue lives in
+[`packages/compendium_core/lib/src/privacy/`](packages/compendium_core/lib/src/privacy/)
+and is documented in
+[docs/dev/data-classification.md](docs/dev/data-classification.md).
+
+**Any new column, settings key, or data-entry surface must be classified in the
+same PR that introduces it.** This is enforced, not aspirational — CI fails on
+an unclassified column or settings key. When you add one:
+
+- Add an entry to `fieldClassifications` (database columns, keyed
+  `table.column` with the SQL names) or `settingsClassifications` (settings
+  keys).
+- Say **why** in the entry's `note` when the call is not obvious. A reviewer
+  should never have to guess why a personal-data field is `shareable`.
+- Regenerate the catalogue:
+  `fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart`
+- If you added a whole new table — including a raw or virtual one drift does not
+  type — declare it in `untypedTables` in the coverage test, or its columns
+  escape classification silently.
+
+Categories use the [W3C Data Privacy Vocabulary](https://w3c-cg.github.io/dpv/2.3/dpv/)
+v2.3, pinned. It is freely readable, so you can check your own classification
+against the source.
+
 ### Architecture decisions
 Non-trivial, hard-to-reverse choices are recorded as ADRs in
 [docs/adr/](docs/adr/) using [the template](docs/adr/template.md). Propose one
