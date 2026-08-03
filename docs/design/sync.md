@@ -46,28 +46,48 @@ fields are `shareable`.
 
 ### Record kinds, and what rides inline
 
-Three kinds produce blobs:
+Eight kinds produce blobs:
 
-`dance` · `program` · `setting`
+`dance` · `program` · `choreographer` · `tag` · `publishedSource` ·
+`customFieldDef` · `venue` · `setting`
 
-Everything else **rides inline** with the record that references it —
-choreographers, tags, published sources, custom-field definitions and venues, as
-well as join rows. A dance carries its authors, tags, links, citations and
-custom-field values; a program carries its slots and its venue.
+Join rows are **not** separate records. They ride inline with their parent
+exactly as the archive codec already models them — a dance carries its
+`authorIds`, `tagIds`, links, citations and custom-field values; a program
+carries its slots. This keeps the merge unit equal to the thing a user edits.
 
-Inline entities travel as **content, resolved by natural key** on arrival, not as
-portable UUIDs. `choreographers.name`, `tags.name` and `custom_field_defs.key`
-are `UNIQUE`, so two devices that both created "Bob Smith" hold different UUIDs
-for one person; syncing the UUID would violate the constraint and fail the whole
-apply. Resolution reuses `import_pipeline`'s `_resolveAuthors` path, which exists
-for exactly this reason.
+Per-record blobs mirror the codec's existing shape rather than fighting it:
+`archiveToJson` already emits choreographers, tags, published sources and venues
+as **top-level arrays**, siblings of `dances`.
 
-**Venues have no unique natural key** — `venues.name` is not `UNIQUE` — so an
-inline venue resolves best-effort by name, and two halls sharing a name may
-duplicate. Recorded in ADR-004's consequences as a cost of the inline model.
+### Identity and collision reconciliation
 
-This keeps the merge unit equal to the thing a user edits: "I changed this dance"
-is one blob and one conflict, not seven.
+Records sync under their existing UUID, so identity survives a rename — the name
+is a field, not the key.
+
+Three kinds carry `UNIQUE` natural keys — `choreographers.name`, `tags.name`,
+`custom_field_defs.key` — so two devices that independently created "Bob Smith"
+hold one entity under two UUIDs. Inserting the second violates the constraint and
+fails the entire apply transaction. Applying a record of those kinds therefore:
+
+1. **UUID known locally** → update, last-writer-wins on `updatedAt`.
+2. **UUID unknown, natural key matches a local row** → same entity, created
+   independently. Adopt one UUID, rewrite local references (`dance_authors`,
+   `dance_tags`, `custom_field_values`), drop the other row. One-time.
+3. **Neither** → insert.
+
+Step 2 is **silent** — no prompt, no review queue. At beta scale the collision is
+routine and per-entity prompts would be noise. The cost is that the losing row's
+field values are discarded rather than merged; that is disclosed to users as a
+general behaviour, not surfaced per event.
+
+`venues` and `published_sources` have **no** `UNIQUE` natural key, so their UUIDs
+cannot collide destructively. They insert without reconciliation, and the same
+hall created on two devices arrives twice.
+
+Reconciliation runs **inside the apply transaction, before** any record that
+references the reconciled row, so no write ever lands against an id that is about
+to be rewritten.
 
 ### The serialiser must filter — the codec does not
 
@@ -205,10 +225,36 @@ Note also that settings whose value is an entire collection —
 `walkthrough_snippets` — collide as a unit: a changed/changed conflict discards
 one device's whole set. Accepted; see ADR-004 consequences.
 
-This requires a schema change: `settings` is `(key, value_json)` with no
-timestamp, so the `updatedAt` conflict rule cannot reach it. **Schema v22** adds
-`updated_at`, stamping existing rows at migration time. The new column needs
-classifying like any other, and the coverage ratchet will require it.
+This requires a schema change: `settings` is `(key, value_json)` with **no
+timestamp and no tombstone**, so neither the conflict rule nor deletion can reach
+it. **Schema v22** adds `updated_at` *and* `deleted_at`, stamping existing rows
+at migration time. Both need classifying like any other column, and the coverage
+ratchet will require it.
+
+`deleted_at` is not optional. `SettingsRepository.remove` is a hard delete today,
+so without a tombstone a removed setting cannot be expressed on the wire: the
+peer still holds it, "absence never deletes" preserves it, and the next sync
+**downloads it back**. The deletion would reverse every time, permanently.
+
+#### The real scope of v22
+
+An earlier draft called v22 "one column on `settings`". Under first-class records
+it is six tables and eleven columns:
+
+| Table | Adds |
+| --- | --- |
+| `settings` | `updated_at`, `deleted_at` |
+| `choreographers` | `updated_at`, `deleted_at` |
+| `tags` | `updated_at`, `deleted_at` |
+| `published_sources` | `updated_at`, `deleted_at` |
+| `custom_field_defs` | `updated_at`, `deleted_at` |
+| `venues` | `updated_at`, `deleted_at` |
+
+Plus **six `_db.delete(` call sites** converted from hard to soft delete across
+five repositories, with `DanceRepository` as the pattern to copy — it already
+carries `deletedAt`, filtered reads, restore and `purgeDeleted`.
+
+`Dances` and `Programs` already have both columns and need no change.
 
 #### Land the migration first, before any other sync work
 
@@ -460,8 +506,10 @@ The user is told the count afterwards ("merged 412 duplicates"), not asked.
    is otherwise undefined.
 
    This rule is only universally applicable because of the record model: all
-   three syncable kinds carry `updatedAt` (Settings via schema v22). It would not
-   work for the kinds that ride inline, which is part of why they do.
+   eight syncable kinds carry `updatedAt` — the five that lacked it, plus
+   `settings`, gain it in schema v22. A kind without a modification timestamp
+   cannot participate in this rule at all, which is why v22 is a prerequisite
+   rather than a convenience.
 
 5. `POST /v1/blobs/missing` with the hashes to upload; `PUT` only what is
    missing.
@@ -523,6 +571,38 @@ Read-modify-write cannot act on an ambiguous signal, so both ends are pinned:
 Two mechanisms that cross-check. A sender bug that wrongly omits a shareable
 field does not silently clear it, because the receiver knows that field was
 supposed to be there.
+
+#### The receiver must also reject keys that are *present*
+
+Absence is only half of it. Nothing above stops a blob that **includes** a key it
+should not — an inline choreographer `email`, a venue `contact1Email` — and since
+apply overlays whatever the blob carries, those values would be written straight
+onto the victim's record. That plants or overwrites exactly the private contact
+data the classification exists to keep off the wire.
+
+Relying on the server to catch it is not enough, and the design says so itself:
+the client serialiser is the control and "neither is sufficient alone". A
+self-hosted server, a `localhost` endpoint with TLS waived, an older server, or a
+hostile operator all leave no client-side gate at all.
+
+So **before overlaying, the receiver drops any inbound key not classified
+`shareable`** for its record kind and nesting context — symmetric with the
+sender, and enforced client-side.
+
+**Settings need a second check, on the key rather than the field.** For
+`kind: "setting"` the egress decision is per settings key, but every setting blob
+has the same field shape (`key`, `value`, `updatedAt`), so a field-level
+allow-list cannot tell a `shareable` setting from a `deviceScoped` one. Without a
+key-level check, a peer holding the shared sync ID can push `update_auto_check`,
+`update_beta_channel` or `update_dismissed_version` — all `deviceScoped`
+(`_installState`) — and have the victim apply them, **suppressing update checks
+or pinning a dismissed version**. That is a patch-suppression primitive, and it
+sits outside the disclosed trust boundary, which covers a second person writing
+*shareable records* rather than altering another device's update policy.
+
+On applying a `setting`, therefore, look the record id up in
+`settingsClassifications` and **refuse anything not `shareable`**, independently
+of the server.
 
 ### Apply ordering
 
@@ -738,11 +818,23 @@ from the codec exactly as the deny-list did.
 
 Two CI tests, neither of which can be satisfied by a fixture someone invented:
 
-1. **Bijection.** For every kind, every `shareable` registry key maps to a key
-   the codec actually emits, and every key the codec emits maps back to a
-   registry entry. A registry key with no codec counterpart — or a codec key with
-   no classification — fails the build. This is the test that would have caught
-   the original defect on the day it was written.
+1. **Mapping completeness.** The registry-to-wire mapping is a **declared,
+   reviewed artifact**, not a name transform, because the relationship is
+   structural: `dances.figures_json` → `figures`; `formation_shape` +
+   `formation_detail` → one nested `formation`; `value_text` + `value_num` → one
+   `value`; join tables → bare `authorIds`/`tagIds`. Two `shareable` registry
+   keys are **never emitted at all** — `dance_authors.position` and
+   `dance_sources.position`, whose ordering rides implicitly in the array order.
+
+   So the test is not "every key round-trips" — that is unsatisfiable and an
+   earlier draft was wrong to specify it. It is: **every `shareable` registry key
+   has an entry in the mapping, either to a wire key or to an explicit,
+   commented exception; and every wire key the codec emits maps back to a
+   classified registry key.** An unmapped key on either side fails the build.
+
+   The exception list is small, security-relevant, and reviewed like code — which
+   is the honest version of "generated". Pretending the mapping is mechanical is
+   what produced the original defect.
 2. **No device-local field reaches the wire.** Build a record with **every**
    field populated, including every `deviceLocal` one, run it through the real
    sync serialiser, and assert that none of those values appears anywhere in the
@@ -872,8 +964,6 @@ must say this plainly rather than implying sync is opaque to us.
   every field classified `deviceLocal`, a record carrying a value there produces
   a blob not containing it. This is the test that must never be allowed to
   become vacuous.
-- **Deny-list backstop** — a hand-built blob containing `contact1_email` is
-  rejected `422`.
 - **Interrupted sync is a no-op** — kill after blob upload, before manifest
   `PUT`; assert peers see nothing.
 - **Fresh-attach union and silent merge** — `{B,C}` joining `{A,B}` yields
@@ -888,6 +978,17 @@ must say this plainly rather than implying sync is opaque to us.
 - **Inbound apply preserves device-local columns** — apply a venue blob that
   changes only `website`; assert the address block and both contact blocks are
   untouched. This is the data-loss guard.
+- **Inbound apply rejects present non-shareable keys** — a hand-built blob
+  carrying `contact1Email` (the **wire** spelling, which is the point) is
+  stripped by the receiver, not merely by the server.
+- **A peer cannot push a `deviceScoped` setting** — applying a `setting` blob for
+  `update_auto_check` is refused client-side. Guards the update-suppression
+  primitive.
+- **Collision reconciliation** — two devices create the same choreographer name
+  under different UUIDs; after sync there is one row, references are rewritten,
+  and no `UNIQUE` violation aborts the batch.
+- **Identity survives a rename** — renaming a choreographer on one device
+  propagates as a field change rather than creating a second entity.
 - **Tombstone purge versus resurrection** — delete, purge the tombstone, reattach
   a stale peer; assert the documented behaviour rather than an accident.
 - **Allow-list bijection and no-device-local-on-the-wire**, both over real

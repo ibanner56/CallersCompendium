@@ -148,48 +148,77 @@ and the latter would roll a newer local record backwards. With N peers, the
 newest `updatedAt` wins.
 
 **Absence never means deletion.** Deletions travel as `deletedAt` tombstones.
-`Dances` and `Programs` carry `deletedAt` today and the Recently Deleted screen
-already surfaces it; the other record kinds do not, which is one reason they are
-**not independently synced** (see Record model). A device that has not synced for
-a month must never conclude that records missing from a sibling's manifest were
+`Dances` and `Programs` carry `deletedAt` today; schema v22 adds it to the other
+six kinds and converts their repositories from hard to soft delete, because a
+kind that cannot express deletion cannot propagate it — the record would simply
+reappear from any peer that still held it. A device that has not synced for a
+month must never conclude that records missing from a sibling's manifest were
 deleted.
 
-### Record model: three syncable kinds, the rest inline
+### Record model: eight first-class kinds
 
-Only **Dance**, **Program** and **Setting** are syncable records with their own
-blobs. Choreographers, tags, published sources, custom-field definitions and
-venues **ride inline** with the dance or program that references them, exactly as
-`authorIds` and figures already do in the archive codec.
+Every persisted entity is a **first-class synced record** with its own blob:
+`dance`, `program`, `choreographer`, `tag`, `publishedSource`,
+`customFieldDef`, `venue`, `setting`. Join rows ride inline with their parent —
+a dance carries its `authorIds`, `tagIds`, citations and custom-field values; a
+program carries its slots — exactly as the archive codec already models them.
 
-This is a deliberate narrowing, made because the alternative was much larger than
-it first appeared. A first-class record needs a stable cross-device identity, a
-modification timestamp and a durable tombstone. The schema provides all three on
-**two of eight** kinds: `Dances` and `Programs`. The other six have neither
-`updatedAt` nor `deletedAt`, and their repositories **hard-delete** — so
-last-writer-wins would have no discriminator and deletions could never propagate
-at all.
+This mirrors the codec's existing shape rather than fighting it: `archiveToJson`
+already emits choreographers, tags, published sources and venues as **top-level
+arrays**, siblings of `dances`. Per-record blobs are that shape, one entity at a
+time.
 
-Worse, three of them carry `UNIQUE` natural keys — `choreographers.name`,
-`tags.name`, `custom_field_defs.key`. Two devices independently creating "Bob
-Smith" mint different UUIDs; syncing by UUID then violates the constraint and
-fails the entire apply transaction. The import pipeline already solves this with
-`_resolveAuthors`, by resolving on the **natural key** rather than the surrogate
-one, and the inline model reuses that path rather than building a second.
+An earlier revision of this ADR narrowed sync to three kinds and had the other
+five ride inline as content. That was withdrawn, and the reasoning is recorded
+because the failure is instructive:
 
-**What this costs**, stated plainly:
+- The analogy it rested on was **backwards**. `authorIds` and `tagIds` are flat
+  arrays of **UUID references**, not inline content — precisely the
+  surrogate-identity mechanism that cannot survive a cross-device transfer. Only
+  `figures` is genuinely inline. Inline would therefore have required
+  sub-archive assembly and a reference-rewriting layer, neither of which existed.
+- It **cancelled this ADR's own conflict rule**. Editing a choreographer calls
+  `ChoreographerRepository.upsert` and touches nothing else — by design, since
+  contact data sits outside the dance's draft/undo stack. Inlined, that rename
+  changes the blob's hash while leaving the referencing dance's `updatedAt`
+  untouched, so the `remote.updatedAt > local.updatedAt` gate would discard it
+  permanently.
+- It **silently dropped standalone entities**. Venues are created and edited
+  through their own manager screen with no program involved; inline, such a venue
+  never syncs at all — not even its creation.
 
-- A venue edited on one device does not propagate unless a program referencing
-  it also changes.
-- Renaming a tag creates a second tag on the receiving device rather than
-  renaming the first, because resolution is by name.
-- **Venues have no unique natural key** (`venues.name` is not `UNIQUE`), so two
-  halls may share a name and an inline venue has no exact key to resolve
-  against. Resolution is therefore best-effort, and may duplicate venues that
-  differ only in the address fields we deliberately do not sync.
+First-class costs a larger migration and buys all of that back.
 
-Promoting these to first-class records later is a schema migration plus an
-identity-resolution layer; it is deferred rather than ruled out, and the costs
-above are the evidence that would justify it.
+### Identity: sync the UUID, reconcile the collision once
+
+Records sync under their existing UUID. Identity is therefore stable across
+renames — the name is a field, not the key.
+
+Three kinds carry `UNIQUE` natural keys (`choreographers.name`, `tags.name`,
+`custom_field_defs.key`), so two devices that independently created "Bob Smith"
+hold one person under two UUIDs. Inserting the second violates the constraint and
+fails the whole apply transaction, so applying a record of those kinds
+reconciles:
+
+1. **UUID known locally** → update, last-writer-wins on `updatedAt`.
+2. **UUID unknown, natural key matches an existing local row** → the same entity,
+   created independently on both devices. Adopt one UUID, rewrite local
+   references to it, drop the other. One-time; the two devices agree from then on.
+3. **Neither** → insert.
+
+Reconciliation is **silent**. No prompt, no review queue: at beta scale the
+collision is common (any two devices that both typed "Cary Ravitz") and a prompt
+per entity would be noise. The cost is that the losing row's field values are
+discarded rather than merged — a clobber — which is disclosed to users rather
+than surfaced per event.
+
+`venues` and `published_sources` have **no** `UNIQUE` natural key —
+`venues.name` and `published_sources.title` are plain `text()`, unlike the three
+above — so their UUIDs cannot collide destructively; two records simply coexist.
+They are therefore inserted without reconciliation, and a user who created the
+same hall, or cited the same book, on two devices will see it twice. Choosing a
+resolution key for them (`title`? `title` + `author` + `year`?) is deferred with
+the fuzzy dedupe that would use it.
 
 ### Fresh attach
 
@@ -507,11 +536,13 @@ makes self-hosting materially harder, which constraint 4 forbids.
   rows at migration time.
 
   **Sequencing is deliberate: v22 lands before any other sync work**, on its own.
-  Under the inline record model it is the programme's only schema change — a
-  claim that only holds *because* of that model: promoting the other five kinds
-  to first-class records would require roughly ten further columns across five
-  tables plus hard-to-soft delete conversion. Isolating v22 leaves the rest as
-  feature work with no migration risk; it is defensible on its own terms, so
+  Its real scope, stated honestly after an earlier draft understated it: `settings`
+  gains `updated_at` **and `deleted_at`**, and the five kinds that lack them —
+  choreographers, tags, published sources, custom-field defs, venues — gain both,
+  with their repositories converted from hard delete to soft. That is six tables
+  and eleven columns, plus six `_db.delete(` call sites, not one column. It
+  remains the programme's only schema change, and isolating it still leaves the
+  rest as feature work with no migration risk; it is defensible on its own terms, so
   nothing is wasted if the programme stalls; and — the real reason — it defuses
   the one-time ordering wart. Because each device stamps at *its own* migration
   time, the device that upgrades last would otherwise win every settings conflict
@@ -540,6 +571,17 @@ makes self-hosting materially harder, which constraint 4 forbids.
   authorises `DELETE /v1/store`. This is inherent to the bearer model rather than
   an oversight, and it is stated here as explicitly as the read-access case
   because the write-access case is the one that destroys data.
+- **Collision reconciliation clobbers silently.** When two devices independently
+  created the same choreographer, tag or custom-field definition, applying the
+  peer's copy adopts one UUID and discards the other row's field values rather
+  than merging them. Chosen deliberately for beta: the collision is common and a
+  prompt per entity would be noise. It is disclosed to users as a general
+  behaviour rather than surfaced per event, and it means a locally-entered
+  website or note on the losing row can vanish without a prompt.
+- **Venues and published sources can duplicate.** Neither has a `UNIQUE` natural
+  key, so there is nothing to reconcile against: the same hall created on two
+  devices arrives twice. Deduplicating them would need the fuzzy matching the
+  import pipeline uses, which is deferred.
 - **A deletion can still resurrect across a long absence.** Tombstone retention
   is floored at the sync window while Sync is enabled, which covers the ordinary
   case. A device offline for longer than that returns to a fresh attach, where
@@ -615,11 +657,11 @@ link to it. Both files must be amended together, with the effective date bumped,
   use without a declaration, making E2EE cheap enough to reconsider.
 - **A pure-Dart or well-maintained cross-platform sync primitive appears** that
   would let us delete our own merge implementation.
-- **The inline record model proves limiting** — evidenced by users renaming tags
-  and finding duplicates, editing venues that never propagate, or duplicate
-  venues accumulating because the name is not a unique key. Promoting those kinds
-  to first-class records is a schema migration plus an identity-resolution layer,
-  and these symptoms are the evidence that would justify paying for it.
+- **Silent collision reconciliation loses work people notice.** If beta users
+  report a choreographer's website or notes vanishing after pairing, the clobber
+  is too aggressive and reconciliation needs to merge fields, or ask.
+- **Venue and published-source duplication becomes a nuisance** rather than a
+  curiosity, justifying fuzzy dedupe for the two kinds with no natural key.
 - **Silent merge is observed collapsing dances users considered distinct** — for
   instance two arrangements that differ only in fields `_choreographyEquals`
   ignores. That would mean the equality test is too loose for sync even though it
