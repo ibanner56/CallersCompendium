@@ -312,12 +312,23 @@ and Device Sync runs unattended, with no import in progress to attach a decision
 to.
 
 Device Sync therefore adds a `review_queue` table — `deviceScoped`, beyond v23,
-alongside `id_aliases` — with idempotent queuing so an unattended device does not
-accumulate a duplicate item per pass. The existing screen is the natural surface,
-so this is storage and a way in rather than new UI. It is a real addition to the
-programme's scope, and it is not work Device Sync creates: the dance dedupe path
-has needed it since the first draft and would have hit the gap on the first fresh
-attach.
+alongside `id_aliases` — carrying an immutable candidate blob as well as the pair
+of ids, because a rejected rename cannot be written locally under the `UNIQUE`
+constraint and so exists nowhere else to show the user. Queuing is idempotent
+under the canonical tie-break ordering, so an unattended device does not
+accumulate a duplicate item per pass.
+
+It also needs a **new review surface**. An earlier draft said the existing screen
+would serve, so the work was storage and a way in; that was wrong.
+`import_review_screen.dart` reviews dances — it is built on `ImportRecordPlan`
+and `DanceEditorScreen` — and cannot review a choreographer, tag or
+custom-field collision. What those need is far smaller than the dance screen,
+since their collisions are name-level rather than content-level: a generic
+keep-both-or-merge list with no per-kind editors. Small, but new.
+
+The queue is a real addition to the programme's scope, and it is not work Device
+Sync creates: the dance dedupe path has needed it since the first draft and would
+have hit the gap on the first fresh attach.
 
 On a silent merge the survivor is chosen by the same canonical tie-break — the
 lexicographically smaller UUID — so both devices agree without coordinating, and
@@ -642,8 +653,18 @@ makes self-hosting materially harder, which constraint 4 forbids.
   mechanisms advance `updatedAt` without a user touching anything — reference
   rewriting, merge-by-recency, the dance merge's scalar recency — so a
   timestamp-based rule would let a third device silently reverse another's
-  deletion. The pending marker, the id aliases and the review queue are each
-  persisted, classified `deviceScoped`, and land beyond v23.
+  deletion. The same gate governs tombstones that have already been *applied*,
+  not only pending ones: a live record never out-ranks a tombstone unless the
+  write carrying it was user-initiated. The pending marker, the id aliases and
+  the review queue are each persisted, classified `deviceScoped`, scoped to the
+  store and epoch, and land beyond v23.
+
+  A device holding a deletion pending advertises the entity as a **tombstone**
+  rather than omitting it. Omitting it stops the resurrection but leaves the
+  manifest referentially incomplete — the device still advertises the dances that
+  cite the entity, and a fresh-attaching device that cannot resolve the author
+  fails its whole batch on the cascading foreign key. Publishing the tombstone
+  makes the same claim while keeping the target addressable.
 - **Applying an inbound record must not erase what it omits.** A blob correctly
   omits `deviceLocal` fields — and the repositories' `upsert` methods write
   *every* column, which is right for a local restore and destructive here. A

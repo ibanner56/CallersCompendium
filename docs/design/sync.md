@@ -213,21 +213,43 @@ recorded) so chains stay short and cycles cannot form. Rewriting on insert also
 makes the fixed point reachable in one hop in the steady state, leaving the chase
 as a correctness guarantee rather than a per-lookup cost.
 
-**The table is bounded by pruning, against the right clock.** An alias is needed
-while any peer might still reference the losing id, which is a **per-device**
-bound and not the store's. The store TTL is rolling on aggregate activity —
-`last_seen` is refreshed by *any* device's request — so two devices syncing weekly
-keep the store alive indefinitely while a third sits offline for months, never
-learning of a merge. Pruning on the store's clock would drop the alias while that
-device still holds the losing id; when it returned, its records would resolve to
-nothing and the merged-away duplicate would be silently re-inserted, which is the
-exact failure the table exists to prevent.
+**The table is bounded by pruning, and the bound is content-based.** An alias is
+needed only while some peer might still publish a record referencing the losing
+id, so it is retired once **no current peer manifest lists that id**. Every pass
+already fetches every peer manifest and re-evaluates reconciliation against all
+of them, so the check costs nothing extra and self-heals: a peer that has not yet
+reconciled still lists the losing id and keeps the alias alive; once the last one
+drops it, the alias goes.
 
-Retention is therefore bounded by the **oldest attached device's last-sync
-watermark**, which `GET /v1/store` already returns: an alias is kept while any
-device's baseline predates the merge that created it. A misbehaving peer still
-cannot grow the table without bound, because a device that never syncs eventually
-ages out of the store itself and stops being counted.
+This is deliberately *not* time-based. An earlier draft bounded retention by "the
+oldest attached device's last-sync watermark, which `GET /v1/store` already
+returns" — and every clause of that was wrong. The endpoint returns epoch, device
+list and quota usage, and nothing per-device. The server holds
+`stores.last_seen`, refreshed by *any* device, and `manifests.written_at`, which
+is when a device last *published* rather than when it last caught up — a device
+can `PUT` hourly while never downloading the merge. And the quantity actually
+wanted, "has this device reconciled past this merge", is a function of that
+device's baseline, which is `deviceScoped` and never leaves it. The server cannot
+know it, so no endpoint could return it.
+
+The same draft claimed a stale peer "eventually ages out of the store itself".
+There is no per-device aging: the only reaping is `DELETE FROM stores` on the
+whole store, and any device's request refreshes the clock that drives it. Two
+active devices keep a store alive indefinitely, so one peer that syncs once and
+vanishes would have pinned every alias forever — reintroducing the unbounded
+growth pruning was added to prevent.
+
+The content-based rule has none of those problems because it reads only what the
+client already holds: the peer manifests it just downloaded, whose `records` map
+lists every id each device knows, tombstones included.
+
+The residual case is a peer that has dropped the losing *record* while some blob
+of its own still references it — impossible under correct behaviour, since
+reconciliation remaps its own references in the same transaction, but not
+impossible from a buggy or much older client. That degrades gracefully rather
+than dangerously: an unresolvable reference is skipped and reported, never
+applied with a dangling id, so the cost is one skipped record rather than a
+discarded batch.
 
 `id_aliases` is **`deviceScoped`** — a local remap of local row identity,
 meaningless on another device and never serialised. Like the baseline manifest it
@@ -392,8 +414,25 @@ it:
 | The store epoch | Alongside the baseline | `deviceScoped` |
 | Per-record last-seen hashes | Baseline table | `deviceScoped` |
 | Id aliases (`losing_id`, `surviving_id`, `kind`) | `id_aliases` | `deviceScoped` |
-| Pending deletions (`kind`, `record_id`, `tombstoned_at`) | `pending_deletions` | `deviceScoped` |
-| Deferred review items (`kind`, `record_id`, `counterpart_id`, `reason`, `queued_at`) | `review_queue` | `deviceScoped` |
+| Pending deletions (`kind`, `record_id`, `tombstoned_at`, `tombstone_hash`) | `pending_deletions` | `deviceScoped` |
+| Deferred review items (`kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, `queued_at`) | `review_queue` | `deviceScoped` |
+
+**All three are scoped to the store identity and epoch**, alongside the baseline,
+and are cleared with it. Each records a conclusion drawn *about a particular
+store at a particular epoch* — that two ids were merged, that a deletion is owed,
+that a pair needs adjudicating — and none of those conclusions survives the thing
+that justified them. Fresh attach already discards the baseline; these go the same
+way, for the same reason.
+
+Leaving them unscoped is wrong in both directions, which is why it is stated
+rather than left to the implementation. Retained across a detach or an epoch
+reset, a stale `pending_deletions` row would suppress an entity from the manifest
+of an unrelated store indefinitely, and a stale alias would silently redirect ids
+that mean nothing in the new store. Cleared without being scoped in the first
+place, a deferred deletion would be lost and its entity republished as live. The
+`tombstone_hash` records which tombstone the deferral came from, so a pending
+deletion can be matched against the tombstone that is actually current rather
+than assumed to still apply.
 
 Every row is per-installation protocol state, meaningless on another device, and
 adding them means a schema change **beyond v23** — which the implementation issue
@@ -424,6 +463,29 @@ leak.
 The check is mechanical. For each new mechanism, ask what it must remember across
 a restart, and if the answer is anything at all, it appears in the table above
 before the revision lands.
+
+#### A rule may only read what its own path can reach
+
+> **Every rule must name the data it reads, and that data must be reachable on
+> the path where the rule runs** — in the HTTP contract if a client needs it, in
+> the server schema if the server needs it, and on the code path in question
+> rather than a neighbouring one.
+
+The fourth invariant, and the one that would have caught the two worst defects of
+the round it was written in. Alias pruning was bounded on a per-device watermark
+that `GET /v1/store` was asserted to return and does not; the pending-hold
+mechanism relied on a revive-on-citation rule that runs on the steady-state apply
+path, on behalf of a fresh-attaching device that explicitly skips it.
+
+Both read as correct when written, and that is the point: the quantity each rule
+needed obviously *existed somewhere* — on some device, in some table, on some
+code path — just not anywhere the rule could see it. "Which `GET /v1/store`
+already returns" is checkable against the endpoint's own definition four hundred
+lines further down the same document. "The revive-on-citation rule handles it" is
+checkable against the fresh-attach section that says no deletion logic runs.
+
+So when a rule cites a quantity, name where it comes from, and check that the
+path in question can actually reach it — rather than that it exists.
 
 ## Wire format
 
@@ -594,11 +656,40 @@ record on any device. Cancellation therefore keys off a **user-initiated edit
 flag carried through the write**, and a sync-initiated write never sets it,
 however new the resulting timestamp.
 
-**A pending-held row is excluded from what the device advertises.** It stays live
-locally, but its manifest entry is withheld: the holding device does not publish
-the entity, so the deleting device cannot download its own deletion back. This is
-the load-bearing half of the mechanism — without it, "does not republish" is a
-statement of intent that the upload path silently contradicts.
+**The same gate governs an *applied* tombstone, not only a pending one.** On the
+device that actually performed the deletion the tombstone is applied, and there
+the ordinary merge rule — `changed`/`changed` → higher `updatedAt` wins — would
+otherwise let any live copy with a newer timestamp win. Since reconciliation,
+reference rewriting and the dance merge all advance `updatedAt` without a user
+edit, a third device could manufacture a live record newer than an applied
+tombstone and the deleting device would download it. So the rule is stated once,
+generally: **a live record never out-ranks a tombstone unless the write carrying
+it was user-initiated.** Pending and applied tombstones are the same rule seen at
+two moments, not two rules.
+
+**A pending-held row is advertised as a tombstone, not withheld.** The holding
+device publishes the deletion it has not yet applied: its manifest carries the
+entity as a **tombstone**, while the row stays live locally until its last
+citation goes. It never publishes the entity as *live*, which is the property
+that stops the deleting device downloading its own deletion back.
+
+An earlier draft omitted the entity from the manifest entirely. That stopped the
+resurrection but broke **referential closure**, because the device goes on
+advertising the dances that cite the entity. `dance_authors.choreographer_id` is
+a hard FK with `onDelete: cascade`, so a fresh-attaching device that downloads
+one of those dances and can find no record for its author fails at COMMIT and
+**discards the entire batch** — and if the deleting device has since purged the
+tombstone, the blob is unreachable from any manifest and garbage-collected, so
+there is nothing to fetch at all. Publishing the tombstone keeps the FK target
+addressable while carrying exactly the same "this is deleted" claim.
+
+**Fresh attach runs the revive-on-citation rule too.** A device attaching for the
+first time can download a tombstoned entity and a dance citing it in the same
+batch, and it has no baseline, so none of the steady-state deletion logic applies
+to it. Without this it would land holding a dance that credits a tombstone — the
+state the whole mechanism exists to prevent, reached on a clean device. Fresh
+attach therefore revives a tombstoned record that an incoming record cites, and
+marks the tombstone pending, exactly as the steady-state path does.
 
 **The baseline is not advanced for a pending-held record.** Advancing it would
 leave the local row permanently differing from baseline, so `changed`/`same`
@@ -859,21 +950,54 @@ block the sync that found them.
 
 Device Sync therefore **specifies the durable queue** rather than assuming it:
 a `review_queue` table (`kind`, `record_id`, `counterpart_id`, `reason`,
-`queued_at`), classified `deviceScoped`, a schema change beyond v23 alongside
-`id_aliases`. The existing screen is the natural surface for it, so the work is
-storage plus a way in, not a new UI. Deferring an item is a write, not a prompt;
-the user is shown a count and works through it whenever they choose.
+`candidate_blob`, `candidate_hash`, `queued_at`), classified `deviceScoped`, a
+schema change beyond v23 alongside `id_aliases`. Deferring an item is a write,
+not a prompt; the user is shown a count and works through it whenever they
+choose.
 
-Two properties it has to have, both of which follow from sync being repeated
-rather than one-shot:
+**It needs a new review surface, and an earlier draft understated that.** Having
+correctly established that the review *UI* exists, that draft went on to say the
+work was "storage plus a way in, not a new UI". It is not.
+`import_review_screen.dart` is built on `ImportRecordPlan`, figure diffs and
+`DanceEditorScreen`; its only choreographer references are repository arguments
+to `ImportPipeline`. It reviews **dances**, and cannot review a choreographer,
+tag or custom-field collision.
 
-- **Queuing is idempotent.** An item is keyed by the pair it concerns, so a
-  collision that is still unresolved after the next pass updates the existing row
-  rather than adding a second. Without this, an unattended device accumulates a
-  duplicate per sync indefinitely.
+What these kinds need is much smaller than the dance screen, because their
+collisions are name-level rather than content-level: a generic list — *these two
+records look like the same choreographer; keep both, or merge* — with no per-kind
+editors. That is genuinely new UI, and it is named as such rather than folded
+into "storage".
+
+**A queued item carries an immutable candidate, not just a pair of ids.** The
+rename case cannot otherwise be represented: incoming X renamed to "Bob" collides
+with local Y "Bob", and X *cannot* be written locally because of the `UNIQUE`
+constraint — so the version the user is being asked to judge exists nowhere. The
+queue would show local "Alice" against local "Bob" and never show the incoming
+change at all. Storing the candidate blob and its hash also stops queued rows
+rotting when the underlying record is later deleted, reconciled away, aliased or
+its blob garbage-collected; an item whose counterpart has since vanished is
+invalidated and dropped rather than shown against a missing row.
+
+Two further properties, both of which follow from sync being repeated rather than
+one-shot:
+
+- **Queuing is idempotent, under a canonical key.** An item is keyed by the pair
+  it concerns, **ordered by the same tie-break the rest of the design uses** —
+  lexicographically smaller UUID first. Without a canonical order the same
+  collision discovered with the roles swapped inserts a second row, which is
+  precisely the duplication the idempotency exists to prevent. With it, an
+  unresolved collision updates its existing row on every later pass.
 - **A queued pair is not re-resolved behind the user's back.** While an item is
   pending, neither record is silently merged or dropped by a later pass; the
   deferral holds until it is answered.
+
+**The queue must not denormalise contact fields.** Its `deviceScoped`
+classification holds because every column is an id, kind, reason, hash or
+timestamp — and the candidate blob carries only what the wire format carries,
+which excludes `deviceLocal` fields by construction. A review surface hydrates
+display values from the live rows by id. Copying an email or location into the
+queue for convenience would break the classification the table was granted.
 
 This is a genuine addition to the programme's scope and is named as one. It is
 not new work *caused* by Device Sync, though — the dance dedupe path has depended
@@ -1520,11 +1644,35 @@ must say this plainly rather than implying sync is opaque to us.
   that syncs for a week before anyone looks.
 - **A queued pair is not resolved behind the user** — assert neither record is
   merged or dropped by a later pass while the item is pending.
-- **Alias retention outlives the oldest device** — merge on A, let the store stay
-  alive through A and B for longer than the TTL, then return C from a long
-  absence still holding the losing id. Assert C's records resolve and no
-  duplicate is re-inserted. Mutation-proved by pruning on the store's clock
-  instead of the oldest device watermark.
+- **Alias retention is content-bounded** — merge on A, let the store stay alive
+  through A and B for longer than the TTL, then return C from a long absence
+  still holding the losing id. Assert C's records resolve and no duplicate is
+  re-inserted, because C's own manifest still listed the losing id and so kept
+  the alias alive. Mutation-proved by pruning on the store's clock instead, which
+  drops the alias while C still needs it. An earlier draft asserted a per-device
+  watermark rule that no endpoint could satisfy; this asserts the rule that can
+  actually be computed from the manifests each pass already fetches.
+- **A pending-held row is advertised as a tombstone, never as live** — assert the
+  holder's manifest carries the tombstone and its baseline entry is not advanced.
+  Mutation-proved twice: publishing it live lets the deleting device download its
+  own deletion back, and omitting it entirely breaks the fresh-attach case below.
+- **Fresh attach stays referentially closed across a pending hold** — A holds a
+  deletion pending and still advertises a dance citing the entity; a clean device
+  F attaches. Assert F's batch commits and F does not land with a dance crediting
+  a tombstone. This is the case that fails if the entity is withheld from the
+  manifest, and the one fresh attach's own "no deletion processing" rule would
+  otherwise skip.
+- **Fresh attach resolves one id carrying conflicting content** — two peers
+  advertise the same id with different hashes; assert the higher `updatedAt`
+  wins. There is no baseline at fresh attach, so this rule has nothing else to
+  fall back on.
+- **A live record never out-ranks an applied tombstone** — the same provenance
+  gate as the pending case, asserted on the device that performed the deletion.
+  Mutation-proved by letting the merge table's plain `updatedAt` comparison
+  decide, which lets a third device's reconciliation undo the deletion.
+- **Review items are keyed canonically** — queue the same collision from both
+  sides, with the roles swapped; assert one row. Mutation-proved by keying on
+  (local, incoming) order, which yields two.
 - **A rename collision is not silently merged** — assert it reaches the review
   queue and that no `deviceLocal` field from either row is copied onto the other.
   This is the guard against blending two people's contact data.
