@@ -1179,4 +1179,93 @@ void main() {
 
     expect(countsOf(tester, 'inline-picker'), isEmpty);
   });
+
+  // --- Already-in-program visual marker (#796) -------------------------------
+
+  testWidgets('the in-program marker appears on a row after the dance is added, '
+      'and is absent before (#796)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Petronella Reel'));
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    // Before any add: no marker. We verify this finder would succeed below, so
+    // this is not a vacuous findsNothing (AGENTS.md §Tests).
+    expect(find.byKey(const ValueKey('picker-in-program-d1')), findsNothing);
+    expect(find.byKey(const ValueKey('picker-in-program-d2')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('picker-add-d1')));
+    await tester.pumpAndSettle();
+
+    // The marker now appears for d1 — same finder that was absent above.
+    expect(find.byKey(const ValueKey('picker-in-program-d1')), findsOneWidget);
+    // d2 was not added, so it still has no marker.
+    expect(find.byKey(const ValueKey('picker-in-program-d2')), findsNothing);
+  });
+
+  testWidgets('the in-program marker shows a count when the dance appears more '
+      'than once (#796)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    // Add once: marker present, no count badge.
+    await tester.tap(find.byKey(const ValueKey('picker-add-d1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('picker-in-program-d1')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('picker-in-program-d1')),
+        matching: find.text('1'),
+      ),
+      findsNothing,
+    );
+
+    // Add again: count badge "2" appears alongside the marker.
+    await tester.tap(find.byKey(const ValueKey('picker-add-d1')));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('picker-in-program-d1')),
+        matching: find.text('2'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the sheet picker renders the in-program marker while the sheet '
+      'stays open (#796)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    // Narrow layout: picker is the modal sheet.
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      size: const Size(600, 2000),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('add-dance-slot')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('sheet-picker')), findsOneWidget);
+
+    // No marker yet — verified against the positive case below.
+    expect(find.byKey(const ValueKey('picker-in-program-d1')), findsNothing);
+
+    // Add d1 while the sheet is still open.
+    await tester.tap(find.byKey(const ValueKey('picker-add-d1')));
+    await tester.pumpAndSettle();
+
+    // The marker must render in the sheet without closing and reopening it.
+    // This test would fail if the sheet's CollectionPicker were wired with a
+    // plain read of _danceSlotCounts() at construction time rather than through
+    // the ValueNotifier + ValueListenableBuilder: showModalBottomSheet pushes a
+    // separate Navigator route, so setState in the screen never rebuilds it,
+    // and the marker would stay absent no matter how many dances were added.
+    expect(find.byKey(const ValueKey('picker-in-program-d1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('sheet-picker')), findsOneWidget);
+  });
 }

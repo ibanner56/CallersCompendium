@@ -13,6 +13,12 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Dances already in your program are now marked in the picker.** When you open
+  the add-dance sheet or the inline pane, any dance already in the program shows a
+  marker on its row. If you've added the same dance more than once, the marker shows
+  a count. Nothing changes in the brief confirmation you already see when you tap
+  the add button — that still flashes a check for a moment, and the new marker is
+  separate from it.
 - **Custom figures now have a beats field.** When you edit a custom figure, you
   can set how many beats it takes — the same control you get for any structured
   figure. Previously the model tracked beats for custom figures but the editor
