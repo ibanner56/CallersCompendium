@@ -16,6 +16,7 @@ class _FakeOnlineService implements OnlineSearchService {
     this.throwOnSearch = false,
     this.confidentTitles = const {},
     this.previewFiguresByTitle = const {},
+    this.needsConfirmationTitles = const {},
   });
 
   /// Search rows keyed by the (lower-cased) query title.
@@ -35,6 +36,13 @@ class _FakeOnlineService implements OnlineSearchService {
   /// exercising issue #686's identical-vs-differing figure comparison. Titles
   /// not present here preview with no figures.
   final Map<String, List<Figure>> previewFiguresByTitle;
+
+  /// (Lower-cased) titles for which [import] should return
+  /// [OnlineImportKind.needsConfirmation] when [ambiguousResolution] is null,
+  /// simulating the #797 detection block firing on a non-confident path.
+  /// Used to test the explicit opt-out at program-import call sites without
+  /// requiring a real repos/figures setup.
+  final Set<String> needsConfirmationTitles;
 
   final searchedTitles = <String>[];
   final loadedIds = <String>[];
@@ -80,6 +88,20 @@ class _FakeOnlineService implements OnlineSearchService {
   }) async {
     final title = plan.draft.dance.title;
     importedIds.add(title);
+    // Simulate the #797 service detection when requested: if
+    // ambiguousResolution is null and the title is in needsConfirmationTitles,
+    // return needsConfirmation (as the real service would for a confident +
+    // differing-figures plan). This lets call-site tests verify the explicit
+    // opt-out without setting up real repos state.
+    if (ambiguousResolution == null &&
+        needsConfirmationTitles.contains(title.trim().toLowerCase())) {
+      return OnlineImportResult(
+        kind: OnlineImportKind.needsConfirmation,
+        title: title,
+        danceId: 'local-existing',
+        danceCount: 1,
+      );
+    }
     return OnlineImportResult(
       kind: OnlineImportKind.created,
       title: title,
@@ -443,5 +465,50 @@ void main() {
     expect(resolved[0].importedOnline, isFalse);
     expect(resolved[1].resolution, PlaintextLineResolution.ambiguous);
     expect(resolved[2].importedOnline, isTrue);
+  });
+
+  // #797: the non-confident-match fallback path (line 180 of
+  // program_import_online_resolver.dart) must not return the pre-existing
+  // candidate dance id when the service returns needsConfirmation.
+  // Structurally, the real services cannot return needsConfirmation on this
+  // path (verdict.hasConfidentMatch == false at line 180, and the detection
+  // block requires hasConfidentMatch == true). The explicit
+  // ambiguousResolution: duplicate() opt-out is belt-and-suspenders against
+  // future refactors that change that guarantee.
+  //
+  // RED: without the fix, import() is called without ambiguousResolution →
+  // fake returns needsConfirmation with danceId='local-existing' → resolver
+  // links the slot to 'local-existing' (a pre-existing dance, not imported).
+  // GREEN: fix passes ambiguousResolution: duplicate() → fake returns created
+  // with danceId='imported-some dance'.
+  test('#797 non-confident-match path: needsConfirmation is never returned '
+      'to the caller — explicit opt-out protects against future refactors '
+      '(red-run)', () async {
+    final repos = openTestRepositories();
+    final service = _FakeOnlineService(
+      rowsByTitle: {
+        'some dance': [_row('Some Dance', id: '99')],
+      },
+      // NOT in confidentTitles → non-confident path → reaches line 180.
+      // IS in needsConfirmationTitles → import() returns needsConfirmation
+      // when ambiguousResolution is null (simulating hypothetical future).
+      needsConfirmationTitles: {'some dance'},
+    );
+
+    final resolved = await resolveUnmatchedOnline(
+      [_unmatched('Some Dance')],
+      service: service,
+      repos: repos,
+    );
+
+    // Must link to the actually-imported dance, not to the candidate.
+    // Without the fix the line is linked to 'local-existing' (wrong dance).
+    expect(
+      resolved.single.danceId,
+      isNot('local-existing'),
+      reason: 'program import must not silently return pre-existing dance id',
+    );
+    expect(resolved.single.danceId, 'imported-some dance');
+    expect(resolved.single.importedOnline, isTrue);
   });
 }

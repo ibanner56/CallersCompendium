@@ -14,6 +14,7 @@ import '../widgets/brand_mark.dart';
 import 'dance_detail_screen.dart';
 import 'dance_list_screen.dart';
 import 'import_review_screen.dart';
+import 'online_import_variation_dialog.dart';
 
 /// Responsive collection shell (`docs/design/ux.md` — list/detail split pane
 /// for desktop/tablet; `docs/ROADMAP.md` deferred follow-up
@@ -234,9 +235,29 @@ class _CollectionShellState extends State<CollectionShell> {
     final repos = RepositoriesScope.of(context);
     final l10n = AppLocalizations.of(context);
     try {
-      final result = await _serviceFor(
-        preview.result.source,
-      ).import(repos, preview.plan);
+      final service = _serviceFor(preview.result.source);
+      var result = await service.import(repos, preview.plan);
+      if (result.kind == OnlineImportKind.needsConfirmation) {
+        if (!mounted) return;
+        final existingId = result.danceId;
+        final existingTitle = existingId != null
+            ? (await repos.dances.getById(existingId))?.title ?? result.title
+            : result.title;
+        if (!mounted) return;
+        final resolution = await showOnlineImportVariationDialog(
+          context,
+          l10n,
+          incomingTitle: result.title,
+          existingTitle: existingTitle,
+          existingId: existingId,
+        );
+        if (resolution == null || !mounted) return; // user cancelled
+        result = await service.import(
+          repos,
+          preview.plan,
+          ambiguousResolution: resolution,
+        );
+      }
       if (!mounted) return;
       if (result.kind == OnlineImportKind.created) {
         CollectionRefreshScope.bump(context);

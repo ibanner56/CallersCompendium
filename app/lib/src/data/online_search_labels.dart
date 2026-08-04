@@ -21,13 +21,20 @@ String onlineSourceAttribution(AppLocalizations l10n, OnlineSource source) =>
 /// untrusted external value; it flows through a gen-l10n placeholder and is
 /// rendered as plain text by the caller's `Text` widget.
 ///
-/// [OnlineImportKind.needsConfirmation] is intercepted by the screen before
-/// the final result is shown, so it should never reach this function. Treat it
-/// as [OnlineImportKind.created] defensively.
+/// [OnlineImportKind.needsConfirmation] must never reach this function — every
+/// call site is responsible for intercepting it and showing a resolution dialog
+/// before calling this function with the final result. This is enforced by the
+/// [StateError] below; a call site that forgets to intercept will fail loudly
+/// rather than silently showing "imported" when nothing was written.
 String onlineImportMessage(AppLocalizations l10n, OnlineImportResult result) =>
     switch (result.kind) {
       OnlineImportKind.alreadyInCollection =>
         l10n.onlineImportAlreadyInCollection(result.title),
-      OnlineImportKind.created || OnlineImportKind.needsConfirmation =>
-        l10n.onlineImportCreated(result.title),
+      OnlineImportKind.created => l10n.onlineImportCreated(result.title),
+      OnlineImportKind.needsConfirmation => throw StateError(
+        'onlineImportMessage reached with needsConfirmation for '
+        '"${result.title}". The call site must intercept '
+        'OnlineImportKind.needsConfirmation and show a resolution dialog '
+        'before passing the final result to this function.',
+      ),
     };

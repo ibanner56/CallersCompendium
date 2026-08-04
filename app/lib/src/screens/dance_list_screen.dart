@@ -48,6 +48,7 @@ import '../screens/recently_deleted_screen.dart';
 import 'app_shell_search_scope.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
+import 'online_import_variation_dialog.dart';
 
 /// Collection screen: browse and search the dance library
 /// (`docs/design/ux.md` §1). A unified full-text search bar, a one-tap facet
@@ -777,7 +778,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
             ? (await _repos.dances.getById(existingId))?.title ?? result.title
             : result.title;
         if (!mounted) return;
-        final resolution = await _showImportVariationDialog(
+        final resolution = await showOnlineImportVariationDialog(
+          context,
           l10n,
           incomingTitle: result.title,
           existingTitle: existingTitle,
@@ -819,59 +821,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _importing = false;
     }
   }
-
-  /// Shows the resolution dialog for a confident title+author match with
-  /// differing figures (issue #797). Returns the chosen [DedupeResolution], or
-  /// `null` if the user cancelled.
-  Future<DedupeResolution?> _showImportVariationDialog(
-    AppLocalizations l10n, {
-    required String incomingTitle,
-    required String existingTitle,
-    required String? existingId,
-  }) => showDialog<DedupeResolution>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      key: const ValueKey('online-import-variation-dialog'),
-      title: Text(l10n.importReviewVariationTitle(existingTitle)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l10n.onlineImportVariationDialogBody(existingTitle)),
-          const SizedBox(height: 8),
-          Text(
-            l10n.onlineImportVariationDialogLinkWarning(existingTitle),
-            style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-              color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          key: const ValueKey('online-import-variation-cancel'),
-          onPressed: () => Navigator.of(ctx).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        TextButton(
-          key: const ValueKey('online-import-variation-as-variation'),
-          onPressed: () => Navigator.of(ctx).pop(
-            existingId != null
-                ? DedupeResolution.variation(existingId)
-                : DedupeResolution.duplicate(),
-          ),
-          child: Text(l10n.onlineImportVariationDialogActionVariation),
-        ),
-        if (existingId != null)
-          FilledButton(
-            key: const ValueKey('online-import-variation-same-dance'),
-            onPressed: () =>
-                Navigator.of(ctx).pop(DedupeResolution.link(existingId)),
-            child: Text(l10n.onlineImportVariationDialogActionLink),
-          ),
-      ],
-    ),
-  );
 
   void _clearAll() {
     _debounceTimer?.cancel();

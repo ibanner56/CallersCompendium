@@ -144,7 +144,16 @@ Future<ResolvedContraDbActivity> _resolveDance(
       formation: '',
     );
     final preview = await contraDb.loadPreview(repos, row, now: now);
-    final result = await contraDb.import(repos, preview.plan, now: now);
+    final result = await contraDb.import(
+      repos,
+      preview.plan,
+      now: now,
+      // Program import is non-interactive — no per-dance prompt (#797).
+      // Pass duplicate() explicitly so the confident-match detection block
+      // in the service is bypassed and pre-#797 behaviour is preserved by
+      // construction rather than by assumption.
+      ambiguousResolution: DedupeResolution.duplicate(),
+    );
     final danceId = result.danceId;
     if (danceId != null) {
       return ResolvedContraDbActivity.linked(
