@@ -95,7 +95,7 @@ A figure whose move is not in this version's move list is shown read-only, with 
 plain explanation. Its data is preserved untouched, it edits normally again if the
 move becomes known, and you can still reorder and delete it in the meantime.
 
-### Custom figure text
+### Custom figure
 
 A custom figure has two fields: **Custom figure text** and **Beats**.
 

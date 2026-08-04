@@ -15,8 +15,9 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/l10n_harness.dart';
 
 // A taxonomy where the custom move's beats default is 16, not the standard 8.
-// Used by the relationship-pinning test to prove the editor sources spec and
-// fallback from the taxonomy (not a hardcoded copy of the constant).
+// The divergent value means any hardcoded ?? 8 or
+// ParamSpec(ParamKind.beats, defaultValue: 8) will produce the wrong value
+// in the test that verifies the editor tracks the taxonomy rather than a copy.
 final _tweakedBeatsTaxonomy = Taxonomy(
   version: contraTaxonomy.version,
   form: contraTaxonomy.form,
@@ -1266,6 +1267,26 @@ void main() {
     // The field must reflect what the taxonomy says, not a copy of 8.
     expect(field.controller!.text, taxonomyDefault.toString());
   });
+
+  testWidgets(
+    'custom figure without saved beats seeds the default so save matches display',
+    (tester) async {
+      // Simulate old data: a draft loaded without a 'beats' key.
+      // The editor displays the taxonomy default; without seeding the draft
+      // that value is never written to params, so toFigure().beats reads 0.
+      final drafts = <FigureDraft>[
+        FigureDraft(move: customMove, params: {'text': 'shadow step'}),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+
+      // Pin the relationship: saved beats must equal the taxonomy default,
+      // not 0 (missing) and not a hardcoded constant.
+      final def = contraTaxonomy.resolve(customMoveId)!;
+      final expectedBeats = def.params['beats']!.defaultValue as int;
+      expect(drafts.single.toFigure()!.beats, expectedBeats);
+    },
+  );
 
   // -------------------------------------------------------------------------
   // Reordering tests
