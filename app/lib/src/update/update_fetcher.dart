@@ -12,6 +12,7 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 
 import 'update_config.dart';
@@ -89,17 +90,20 @@ Future<List<int>?> fetchUpdateManifest(
 /// `null` without buffering the rest — so an oversized body cannot force a
 /// large allocation (OWASP A08 / resource exhaustion). Returns the collected
 /// bytes on a 2xx within the cap, or `null` for a non-2xx status or an
-/// over-cap body. Redirects are followed by the client as usual; the privacy
-/// contract (no query params, no identifying headers) is preserved because the
-/// request carries only the bare method + URL. Propagates transport errors to
-/// the caller's `catch` (which turns them into a silent `null`).
+/// over-cap body. Redirects are followed **manually** (`followRedirects =
+/// false`) so every hop is re-validated against [isAllowedArtifactHost] —
+/// an https URL on [kAllowedArtifactHosts] with no userinfo and only the
+/// default 443 port. This closes the downgrade/exfil hole that
+/// `followRedirects = true` would otherwise leave open (mirrors
+/// `artifact_downloader.dart:_sendFollowingHttpsRedirects`). The hop count is
+/// capped at [kMaxArtifactRedirects]. Propagates transport and redirect errors
+/// to the caller's `catch` (which turns them into a silent `null`).
 Future<List<int>?> _readBoundedBody(
   http.Client client,
   Uri uri,
   int maxBytes,
 ) async {
-  final request = http.Request('GET', uri)..followRedirects = true;
-  final response = await client.send(request);
+  final response = await sendManifestFollowingHttpsRedirects(client, uri);
   if (response.statusCode < 200 || response.statusCode >= 300) {
     // Drain (and thereby cancel) the body so the connection is freed; ignore
     // any error draining a failed response.
@@ -115,6 +119,75 @@ Future<List<int>?> _readBoundedBody(
     bytes.addAll(chunk);
   }
   return bytes;
+}
+
+/// Sends a `GET` for [uri], following redirects **manually**
+/// (`followRedirects = false`) so every request goes to an allowed host:
+/// an https URL on [kAllowedArtifactHosts] with no userinfo and only the
+/// default 443 port. The initial [uri] is validated before the first request
+/// (mirroring `downloadArtifact`'s upfront guard) and every redirect target
+/// is re-validated before the next request, so the invariant "every request
+/// goes to an allowed host" holds for the whole chain, not just for hops.
+/// This closes the downgrade/exfil hole that the `package:http` default
+/// (`followRedirects = true`) would otherwise leave open — a manifest URL
+/// that 30x-redirects to `http://…`, to an off-allowlist host, or via a
+/// userinfo/port trick is refused rather than silently followed (mirrors
+/// `artifact_downloader.dart:_sendFollowingHttpsRedirects`). The hop count is
+/// capped at [kMaxArtifactRedirects]. Returns the final, non-redirect
+/// [http.StreamedResponse] for the caller to stream.
+///
+/// Exposed for testing ([visibleForTesting]) so the upfront allowlist guard
+/// on the initial [uri] can be verified directly, independently of the
+/// hardcoded manifest URL the public API uses.
+@visibleForTesting
+Future<http.StreamedResponse> sendManifestFollowingHttpsRedirects(
+  http.Client client,
+  Uri uri,
+) async {
+  if (!isAllowedArtifactHost(uri)) {
+    throw const _ManifestRedirectException(
+      'initial URL is not an allowed host',
+    );
+  }
+  var current = uri;
+  for (var hops = 0; ; hops++) {
+    final request = http.Request('GET', current)..followRedirects = false;
+    final response = await client.send(request);
+    if (!_isRedirectStatus(response.statusCode)) return response;
+
+    await response.stream.drain<void>();
+    if (hops >= kMaxArtifactRedirects) {
+      throw const _ManifestRedirectException('too many redirects');
+    }
+    final location = response.headers['location'];
+    if (location == null || location.isEmpty) {
+      throw const _ManifestRedirectException('redirect without a location');
+    }
+    final next = current.resolve(location);
+    if (!isAllowedArtifactHost(next)) {
+      throw const _ManifestRedirectException(
+        'refused redirect to a disallowed host',
+      );
+    }
+    current = next;
+  }
+}
+
+bool _isRedirectStatus(int status) =>
+    status == 301 ||
+    status == 302 ||
+    status == 303 ||
+    status == 307 ||
+    status == 308;
+
+/// Signals a redirect that [sendManifestFollowingHttpsRedirects] refused. Propagates
+/// to the callers' `on Object` catch, which turns it into a silent `null`.
+class _ManifestRedirectException implements Exception {
+  const _ManifestRedirectException(this.message);
+  final String message;
+
+  @override
+  String toString() => '_ManifestRedirectException: $message';
 }
 
 /// Whether [bytes] is empty or contains only ASCII whitespace (space, tab, CR,
