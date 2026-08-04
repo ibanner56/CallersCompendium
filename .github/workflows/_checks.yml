@@ -70,7 +70,7 @@ jobs:
       # exits non-zero on failure (no `|| true`), so a broken suite fails this
       # PR gate.
       - name: Install Ed25519 verification dependency (for checker and its test suite)
-        run: pip install --quiet cryptography==50.0.0
+        run: python3 -m pip install --quiet cryptography==50.0.0
 
       - name: Test release supply-chain tooling (SBOM / metadata / notes / pages publish)
         run: |

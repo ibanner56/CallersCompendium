@@ -19,7 +19,7 @@ hardcoded constant.
 
 Requires the ``cryptography`` package::
 
-    pip install cryptography==50.0.0
+    python3 -m pip install cryptography==50.0.0
 
 Run directly::
 
@@ -49,7 +49,7 @@ try:
 except ImportError:
     print(
         "::error::the 'cryptography' package is required. "
-        "Install it with: pip install cryptography==50.0.0",
+        "Install it with: python3 -m pip install cryptography==50.0.0",
         file=sys.stderr,
     )
     sys.exit(2)

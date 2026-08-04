@@ -2,7 +2,7 @@
 """Offline tests for ``check_pages_signature_files.py`` — the gh-pages
 signature-file presence and validity checker.
 
-Requires the ``cryptography`` package (``pip install cryptography==50.0.0``)
+Requires the ``cryptography`` package (``python3 -m pip install cryptography==50.0.0``)
 for both the checker itself and this test suite (key-pair generation for
 synthetic signatures).
 

@@ -59,7 +59,7 @@ jobs:
         # skipped: cryptography ships compiled binary wheels for many platforms
         # and its transitive deps (cffi, pycparser) each need their own hashes
         # — the hash list would be disproportionate for a single-dep CI tool.
-        run: pip install --quiet cryptography==50.0.0
+        run: python3 -m pip install --quiet cryptography==50.0.0
 
       - name: Fetch gh-pages and assert signature invariant
         run: |

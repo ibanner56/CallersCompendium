@@ -81,7 +81,7 @@ jobs:
       # pages-sig-gate.yml (daily schedule + workflow_dispatch — see that
       # workflow for why no push trigger).
       - name: Install Ed25519 verification dependency
-        run: pip install --quiet cryptography==50.0.0
+        run: python3 -m pip install --quiet cryptography==50.0.0
 
       - name: Assert gh-pages signature invariant
         run: |
