@@ -66,11 +66,21 @@ Future<void> _pumpDefaults(
 
 /// Scrolls the Defaults content list until [key] is visible. The
 /// Dance-authoring subsection sits below the fold on the test surface.
+///
+/// The settings screen on a wide surface (1200 px) shows two vertical
+/// [Scrollable]s (the sidebar and the content list) and several horizontal
+/// ones from text-field overflow controllers. We select the last vertical
+/// scrollable to scroll the content list, regardless of how many scrollables
+/// are in the tree, so adding a new section doesn't break this helper.
 Future<void> _scrollTo(WidgetTester tester, Key key) async {
+  final verticals = find.byWidgetPredicate(
+    (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+  );
   await tester.scrollUntilVisible(
     find.byKey(key),
     120,
-    scrollable: find.byType(Scrollable).last,
+    scrollable: verticals.last,
+    maxScrolls: 100,
   );
   await tester.pumpAndSettle();
 }

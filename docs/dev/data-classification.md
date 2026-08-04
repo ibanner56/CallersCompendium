@@ -169,7 +169,7 @@ tell an approved decision from an assumed one.
 | --- | --- | --- |
 | Performer names (`programs.caller`, `programs.band`, `program_slots.guest_caller`) are shareable | Maintainer | A program without its caller and band is useless, and event billing is already public |
 | All notes fields are shareable, including those on person and place records | Maintainer | They are the user's own words about their own collection |
-| `custom_field_values.value_text` is shareable | Maintainer | Custom fields are core collection data. Two obligations were attached to this ruling: (1) creating a custom field must show a one-time notice that its contents travel, and (2) per-field exclusion from sharing (so a user can keep a field private). Both were implemented in #780. The `custom_field_defs.shareable` flag controls egress: when `false`, neither the field def nor its values are emitted in an archive. |
+| `custom_field_values.value_text` is shareable | Maintainer | Custom fields are core collection data. Two obligations attached: (1) creating a custom field shows a one-time disclosure that its contents travel with exports — shipped in #780; (2) per-field exclusion from sharing via `custom_field_defs.shareable` — also shipped in #780; the archive encoder omits non-shareable defs and their values entirely |
 | `venues.sponsor` is shareable | Maintainer | A sponsor is an organisation by intent and part of the venue's public identity |
 | Venue identity (`name`, `website`, `event_name`, schedule, time, price) is shareable while the address block and contacts are device-local | Agent, ratified by maintainer | Lets a program stay readable after a transfer without moving the address book |
 | `provenance.raw_payload` and `program_provenance.raw_payload` were **dropped** at schema v21 | Maintainer | Classified device-local when this catalogue was written, then removed entirely (#781). Nothing ever read either column; the program-side one was never even written. For an HTML import the dance-side column stored the whole source page — 7,492 bytes for this repo's own ContraDB fixture — per dance, round-tripping through every backup. Dropping deletes data irreversibly, which was the explicit trade accepted: unreadable data is not worth carrying forever |
@@ -355,7 +355,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**48 settings keys**: 40 shareable, 8 device-scoped. 2 personal data by category.
+**49 settings keys**: 41 shareable, 8 device-scoped. 2 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -366,6 +366,7 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `app_locale` | `dpv:NonPersonalData` | app user | shareable |  |
 | `auto_size_perform_cards` | `dpv:NonPersonalData` | app user | shareable |  |
 | `backup_reminder_cadence` | `dpv:NonPersonalData` | app user | shareable |  |
+| `collection_tile_visible_fields` | `dpv:NonPersonalData` | app user | shareable |  |
 | `colour_dance_theme` | `dpv:NonPersonalData` | app user | shareable |  |
 | `confirm_before_delete` | `dpv:NonPersonalData` | app user | shareable |  |
 | `custom_dialects` | `dpv:NonPersonalData` | app user | shareable |  |

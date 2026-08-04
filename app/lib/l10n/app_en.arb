@@ -686,6 +686,46 @@
   "@settingsDefaultsCanonicalSubtitle": {
     "description": "Explanation for the canonical-terms default toggle."
   },
+  "settingsDefaultsCollectionCardHeader": "Collection card fields",
+  "@settingsDefaultsCollectionCardHeader": {
+    "description": "Section header for the collection-card field-visibility preference (#767)."
+  },
+  "settingsDefaultsCollectionCardSubtitle": "Choose which details appear on each dance row. All fields are shown by default.",
+  "@settingsDefaultsCollectionCardSubtitle": {
+    "description": "Subtitle describing the collection card field-visibility checkboxes (#767)."
+  },
+  "settingsDefaultsCollectionCardAuthors": "Authors",
+  "@settingsDefaultsCollectionCardAuthors": {
+    "description": "Label for the Authors field-visibility toggle (#767)."
+  },
+  "settingsDefaultsCollectionCardCalledCount": "Times called",
+  "@settingsDefaultsCollectionCardCalledCount": {
+    "description": "Label for the 'called ×N' chip field-visibility toggle (#767)."
+  },
+  "settingsDefaultsCollectionCardFormation": "Formation",
+  "@settingsDefaultsCollectionCardFormation": {
+    "description": "Label for the Formation chip field-visibility toggle (#767)."
+  },
+  "settingsDefaultsCollectionCardStatus": "Status",
+  "@settingsDefaultsCollectionCardStatus": {
+    "description": "Label for the Status chip field-visibility toggle (#767)."
+  },
+  "settingsDefaultsCollectionCardLevel": "Level",
+  "@settingsDefaultsCollectionCardLevel": {
+    "description": "Label for the Level/mixed-level chip field-visibility toggle (#767)."
+  },
+  "settingsDefaultsCollectionCardRating": "Rating",
+  "@settingsDefaultsCollectionCardRating": {
+    "description": "Label for the Rating chip field-visibility toggle (#767)."
+  },
+  "settingsDefaultsCollectionCardTags": "Tags",
+  "@settingsDefaultsCollectionCardTags": {
+    "description": "Label for the Tags chip field-visibility toggle (#767)."
+  },
+  "settingsDefaultsCollectionCardCustomFields": "Custom fields",
+  "@settingsDefaultsCollectionCardCustomFields": {
+    "description": "Label for the showInList custom-field chips field-visibility toggle (#767)."
+  },
   "settingsDefaultsAuthoringHeader": "Dance-authoring defaults",
   "@settingsDefaultsAuthoringHeader": {
     "description": "Section header for defaults applied when authoring a new dance."

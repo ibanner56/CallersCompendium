@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+
 import '../data/repositories_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
@@ -235,6 +236,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
   Widget build(BuildContext context) {
     final data = widget.data;
     final l10n = AppLocalizations.of(context);
+    // Picker call sites pass no visibleFields to DanceListTile, so they
+    // default to all-visible — no scope override needed here.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

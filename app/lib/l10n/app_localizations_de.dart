@@ -519,6 +519,37 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wenn aktiviert, wird ein Tanz mit kanonischen Rollen- und Bewegungsnamen statt Ihrem aktiven Dialekt geöffnet. Sie können die Ansicht noch wechseln, während der Tanz geöffnet ist.';
 
   @override
+  String get settingsDefaultsCollectionCardHeader => 'Collection card fields';
+
+  @override
+  String get settingsDefaultsCollectionCardSubtitle =>
+      'Choose which details appear on each dance row. All fields are shown by default.';
+
+  @override
+  String get settingsDefaultsCollectionCardAuthors => 'Authors';
+
+  @override
+  String get settingsDefaultsCollectionCardCalledCount => 'Times called';
+
+  @override
+  String get settingsDefaultsCollectionCardFormation => 'Formation';
+
+  @override
+  String get settingsDefaultsCollectionCardStatus => 'Status';
+
+  @override
+  String get settingsDefaultsCollectionCardLevel => 'Level';
+
+  @override
+  String get settingsDefaultsCollectionCardRating => 'Rating';
+
+  @override
+  String get settingsDefaultsCollectionCardTags => 'Tags';
+
+  @override
+  String get settingsDefaultsCollectionCardCustomFields => 'Custom fields';
+
+  @override
   String get settingsDefaultsAuthoringHeader =>
       'Standardwerte für die Tanzerstellung';
 

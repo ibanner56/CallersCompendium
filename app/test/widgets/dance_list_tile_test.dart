@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/collection_tile_fields_scope.dart';
 import 'package:compendium_app/src/data/formation_colors_controller.dart';
 import 'package:compendium_app/src/data/formation_colors_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
@@ -54,6 +55,48 @@ Future<void> _pump(
     ),
   );
 }
+
+/// Pumps a [DanceListTile] with [visibleFields] passed directly to the tile.
+/// When [visibleFields] is omitted the parameter is null and the tile defaults
+/// to showing all fields (same as all non-collection call sites).
+Future<void> _pumpWithFields(
+  WidgetTester tester,
+  DanceListEntry entry, {
+  Set<CollectionTileField>? visibleFields,
+}) async {
+  final tile = DanceListTile(
+    entry: entry,
+    onTap: () {},
+    visibleFields: visibleFields,
+  );
+  await tester.pumpWidget(
+    MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+      home: Scaffold(body: tile),
+    ),
+  );
+}
+
+/// A [DanceListEntry] populated with every field that [DanceListTile] can
+/// show so tests can selectively hide them via the [DanceListTile.visibleFields] parameter.
+DanceListEntry _richEntry() => DanceListEntry(
+  dance: Dance(
+    id: 'rich1',
+    title: 'Rich Dance',
+    form: DanceForm.contra,
+    formation: const Formation(FormationShape.dupleImproper),
+    rating: 3,
+    level: DanceLevel.intermediate,
+    createdAt: _now,
+    updatedAt: _now,
+  ),
+  authorNames: const ['Alice'],
+  tagNames: const ['tag-one'],
+  tags: const [(id: 't1', name: 'tag-one')],
+  listCustomFields: const ['custom-val'],
+  callCounts: const DanceCallCounts(all: 7, performed: 7),
+);
 
 void main() {
   testWidgets('rating indicator shows the value with a semantic label', (
@@ -291,6 +334,221 @@ void main() {
       // The label stays present (colour is never the only signal) and legible.
       final label = tester.widget<Text>(find.text('Becket (CW)'));
       expect(label.style?.color, readableForegroundOn(yellow));
+    });
+  });
+
+  // ── CollectionTileFieldsScope field-visibility (issue #767) ─────────────
+  group('CollectionTileFieldsScope', () {
+    testWidgets(
+      'title is always shown regardless of which fields are visible',
+      (tester) async {
+        await _pumpWithFields(
+          tester,
+          _richEntry(),
+          visibleFields: const {}, // nothing visible
+        );
+
+        expect(find.text('Rich Dance'), findsOneWidget);
+      },
+    );
+
+    testWidgets('all fields shown when visibleFields is null (safe default)', (
+      tester,
+    ) async {
+      // null visibleFields → effectiveFields defaults to CollectionTileField.all.
+      await _pumpWithFields(tester, _richEntry());
+
+      expect(find.text('Alice'), findsOneWidget);
+      expect(find.byKey(const ValueKey('rating-indicator')), findsOneWidget);
+      expect(find.text('tag-one'), findsOneWidget);
+    });
+
+    testWidgets('tags hidden when CollectionTileField.tags absent', (
+      tester,
+    ) async {
+      await _pumpWithFields(
+        tester,
+        _richEntry(),
+        visibleFields: CollectionTileField.all.difference({
+          CollectionTileField.tags,
+        }),
+      );
+
+      expect(find.text('tag-one'), findsNothing);
+      // Title must still be present.
+      expect(find.text('Rich Dance'), findsOneWidget);
+    });
+
+    testWidgets('authors hidden when CollectionTileField.authors absent', (
+      tester,
+    ) async {
+      await _pumpWithFields(
+        tester,
+        _richEntry(),
+        visibleFields: CollectionTileField.all.difference({
+          CollectionTileField.authors,
+        }),
+      );
+
+      expect(find.text('Alice'), findsNothing);
+      expect(find.text('Rich Dance'), findsOneWidget);
+    });
+
+    testWidgets('rating hidden when CollectionTileField.rating absent', (
+      tester,
+    ) async {
+      await _pumpWithFields(
+        tester,
+        _richEntry(),
+        visibleFields: CollectionTileField.all.difference({
+          CollectionTileField.rating,
+        }),
+      );
+
+      expect(find.byKey(const ValueKey('rating-indicator')), findsNothing);
+      expect(find.text('Rich Dance'), findsOneWidget);
+    });
+
+    testWidgets(
+      'called-count chip hidden when CollectionTileField.calledCount absent',
+      (tester) async {
+        await _pumpWithFields(
+          tester,
+          _richEntry(),
+          visibleFields: CollectionTileField.all.difference({
+            CollectionTileField.calledCount,
+          }),
+        );
+
+        expect(find.byKey(const ValueKey('called-count-rich1')), findsNothing);
+        expect(find.text('Rich Dance'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'formation chip hidden when CollectionTileField.formation absent',
+      (tester) async {
+        await _pumpWithFields(
+          tester,
+          _richEntry(),
+          visibleFields: CollectionTileField.all.difference({
+            CollectionTileField.formation,
+          }),
+        );
+
+        // The formation label text is absent when the chip is hidden.
+        expect(find.text('Duple improper'), findsNothing);
+        expect(find.text('Rich Dance'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'tile with visibleFields: null shows all chips even when an ancestor '
+      'scope holds a restricted set — call sites that do not opt in are unaffected',
+      (tester) async {
+        // This pins the opt-in contract: a call site that passes no visibleFields
+        // always gets full density regardless of any CollectionTileFieldsScope
+        // in the tree. A future refactor that makes the widget read the scope
+        // again "as a convenience" would break this test.
+        final restrictedNotifier = ValueNotifier<Set<CollectionTileField>>(
+          {CollectionTileField.formation}, // only formation would be visible
+        );
+        addTearDown(restrictedNotifier.dispose);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              body: CollectionTileFieldsScope(
+                notifier: restrictedNotifier,
+                // visibleFields omitted — simulates picker, search, program list
+                child: DanceListTile(entry: _richEntry(), onTap: () {}),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // All chips shown despite the restricted scope.
+        expect(find.text('tag-one'), findsOneWidget);
+        expect(find.text('Rich Dance'), findsOneWidget);
+        expect(find.text('Alice'), findsOneWidget);
+        expect(find.text('Duple improper'), findsOneWidget);
+      },
+    );
+
+    test('fromJson returns null for unrecognised field names', () {
+      // Guards against a silent rename hiding a chip forever: if an old stored
+      // name is not recognised, fromJson must return null so the loading code
+      // can fall back to the full set rather than silently dropping the field.
+      expect(CollectionTileField.fromJson('nonexistentField'), isNull);
+      expect(CollectionTileField.fromJson(''), isNull);
+      // Recognised values still round-trip correctly.
+      for (final f in CollectionTileField.values) {
+        expect(CollectionTileField.fromJson(f.toJson()), f);
+      }
+    });
+
+    group('decodeStored', () {
+      // These are unit tests of the persistence-decoding logic that lives in
+      // CollectionTileFieldsScope.decodeStored.  Each case corresponds to a
+      // real storage state that must produce a specific outcome.
+
+      test('null (key absent) falls back to all-visible', () {
+        expect(
+          CollectionTileFieldsScope.decodeStored(null),
+          CollectionTileField.all,
+        );
+      });
+
+      test('non-List value (corrupt) falls back to all-visible', () {
+        expect(
+          CollectionTileFieldsScope.decodeStored('notAList'),
+          CollectionTileField.all,
+        );
+      });
+
+      test('empty list honours the user choice of zero visible fields', () {
+        // The user unchecked every field and the setting was persisted as [].
+        // Reloading must honour the empty choice, not revert to all-visible.
+        expect(CollectionTileFieldsScope.decodeStored(<dynamic>[]), isEmpty);
+      });
+
+      test('list of only unknown names falls back to all-visible', () {
+        // Forward-compat: stored on a future build, opened on an older one.
+        // All values unrecognised → safer to show everything than nothing.
+        expect(
+          CollectionTileFieldsScope.decodeStored(['futureField', 'anotherNew']),
+          CollectionTileField.all,
+        );
+      });
+
+      test('list of known names decodes to the matching set', () {
+        expect(CollectionTileFieldsScope.decodeStored(['tags', 'rating']), {
+          CollectionTileField.tags,
+          CollectionTileField.rating,
+        });
+      });
+
+      test('mixed known/unknown names: keeps only the recognised subset', () {
+        expect(
+          CollectionTileFieldsScope.decodeStored(['tags', 'futureField']),
+          {CollectionTileField.tags},
+        );
+      });
+    });
+
+    testWidgets('tile shows only the title when the scope holds an empty set '
+        '(the state produced by loading [] from settings after the bug fix)', (
+      tester,
+    ) async {
+      await _pumpWithFields(tester, _richEntry(), visibleFields: const {});
+      expect(find.text('Rich Dance'), findsOneWidget); // title always shown
+      expect(find.text('tag-one'), findsNothing); // tags hidden
+      expect(find.text('Alice'), findsNothing); // authors hidden
+      // Spot-check a second chip group to confirm it's not just tags.
+      expect(find.text('Duple improper'), findsNothing); // formation hidden
     });
   });
 }

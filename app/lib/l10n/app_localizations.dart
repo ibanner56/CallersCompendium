@@ -974,6 +974,66 @@ abstract class AppLocalizations {
   /// **'When on, a dance opens showing canonical role and move names instead of your active dialect. You can still switch views on the dance while it is open.'**
   String get settingsDefaultsCanonicalSubtitle;
 
+  /// Section header for the collection-card field-visibility preference (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Collection card fields'**
+  String get settingsDefaultsCollectionCardHeader;
+
+  /// Subtitle describing the collection card field-visibility checkboxes (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which details appear on each dance row. All fields are shown by default.'**
+  String get settingsDefaultsCollectionCardSubtitle;
+
+  /// Label for the Authors field-visibility toggle (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Authors'**
+  String get settingsDefaultsCollectionCardAuthors;
+
+  /// Label for the 'called ×N' chip field-visibility toggle (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Times called'**
+  String get settingsDefaultsCollectionCardCalledCount;
+
+  /// Label for the Formation chip field-visibility toggle (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Formation'**
+  String get settingsDefaultsCollectionCardFormation;
+
+  /// Label for the Status chip field-visibility toggle (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get settingsDefaultsCollectionCardStatus;
+
+  /// Label for the Level/mixed-level chip field-visibility toggle (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Level'**
+  String get settingsDefaultsCollectionCardLevel;
+
+  /// Label for the Rating chip field-visibility toggle (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Rating'**
+  String get settingsDefaultsCollectionCardRating;
+
+  /// Label for the Tags chip field-visibility toggle (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get settingsDefaultsCollectionCardTags;
+
+  /// Label for the showInList custom-field chips field-visibility toggle (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Custom fields'**
+  String get settingsDefaultsCollectionCardCustomFields;
+
   /// Section header for defaults applied when authoring a new dance.
   ///
   /// In en, this message translates to:

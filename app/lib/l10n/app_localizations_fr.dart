@@ -523,6 +523,37 @@ class AppLocalizationsFr extends AppLocalizations {
       'Activé : une danse s’ouvre avec les noms de rôles et de mouvements canoniques plutôt que votre dialecte actif. Vous pouvez toujours changer de vue pendant que la danse est ouverte.';
 
   @override
+  String get settingsDefaultsCollectionCardHeader => 'Collection card fields';
+
+  @override
+  String get settingsDefaultsCollectionCardSubtitle =>
+      'Choose which details appear on each dance row. All fields are shown by default.';
+
+  @override
+  String get settingsDefaultsCollectionCardAuthors => 'Authors';
+
+  @override
+  String get settingsDefaultsCollectionCardCalledCount => 'Times called';
+
+  @override
+  String get settingsDefaultsCollectionCardFormation => 'Formation';
+
+  @override
+  String get settingsDefaultsCollectionCardStatus => 'Status';
+
+  @override
+  String get settingsDefaultsCollectionCardLevel => 'Level';
+
+  @override
+  String get settingsDefaultsCollectionCardRating => 'Rating';
+
+  @override
+  String get settingsDefaultsCollectionCardTags => 'Tags';
+
+  @override
+  String get settingsDefaultsCollectionCardCustomFields => 'Custom fields';
+
+  @override
   String get settingsDefaultsAuthoringHeader =>
       'Paramètres par défaut de création de danse';
 

@@ -514,6 +514,37 @@ class AppLocalizationsDa extends AppLocalizations {
       'Når aktiveret åbner en dans med kanoniske rolle- og bevægelsesnavne i stedet for din aktive dialekt. Du kan stadig skifte visning, mens dansen er åben.';
 
   @override
+  String get settingsDefaultsCollectionCardHeader => 'Collection card fields';
+
+  @override
+  String get settingsDefaultsCollectionCardSubtitle =>
+      'Choose which details appear on each dance row. All fields are shown by default.';
+
+  @override
+  String get settingsDefaultsCollectionCardAuthors => 'Authors';
+
+  @override
+  String get settingsDefaultsCollectionCardCalledCount => 'Times called';
+
+  @override
+  String get settingsDefaultsCollectionCardFormation => 'Formation';
+
+  @override
+  String get settingsDefaultsCollectionCardStatus => 'Status';
+
+  @override
+  String get settingsDefaultsCollectionCardLevel => 'Level';
+
+  @override
+  String get settingsDefaultsCollectionCardRating => 'Rating';
+
+  @override
+  String get settingsDefaultsCollectionCardTags => 'Tags';
+
+  @override
+  String get settingsDefaultsCollectionCardCustomFields => 'Custom fields';
+
+  @override
   String get settingsDefaultsAuthoringHeader => 'Standarder for dansforfatning';
 
   @override

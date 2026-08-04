@@ -78,6 +78,7 @@ final Map<String, DataClassification> settingsClassifications = {
   'confirm_before_delete': _preference,
   'soft_delete_retention_days': _preference,
   'venue_entity_mode': _preference,
+  'collection_tile_visible_fields': _preference,
 
   // -- Programs and performance --------------------------------------------
   'default_program_band': const DataClassification(

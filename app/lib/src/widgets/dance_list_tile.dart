@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/collection_tile_fields_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/formation_colors_scope.dart';
 import '../models/dance_list_entry.dart';
@@ -35,6 +36,7 @@ class DanceListTile extends StatelessWidget {
     this.onDuplicate,
     this.onAddToProgram,
     this.onTagTap,
+    this.visibleFields,
   }) : assert(
          !selectionMode || selected == selectedForBatch,
          'In selection mode the row highlight (selected) must match the '
@@ -80,6 +82,12 @@ class DanceListTile extends StatelessWidget {
   /// the whole row drives batch selection.
   final void Function(String tagId)? onTagTap;
 
+  /// Which data chips to render on this row. When null every chip is shown,
+  /// preserving the existing behaviour at all call sites that don't opt in.
+  /// The collection screen passes [CollectionTileFieldsScope.of(context)] here;
+  /// all other call sites leave this null.
+  final Set<CollectionTileField>? visibleFields;
+
   @override
   Widget build(BuildContext context) {
     final dance = entry.dance;
@@ -94,6 +102,9 @@ class DanceListTile extends StatelessWidget {
     final calledCount = entry.callCounts.countFor(
       RequirePerformedForHistoryScope.of(context),
     );
+    // Which fields the user wants shown on this row (issue #767).
+    // Null means show everything — the call site didn't opt in.
+    final effectiveFields = visibleFields ?? CollectionTileField.all;
     // Per-formation label colour (issue #367): highlight the formation chip
     // only when the user explicitly overrode this shape (override-only). The
     // label text + icon stay, so colour remains a redundant cue.
@@ -133,12 +144,14 @@ class DanceListTile extends StatelessWidget {
           runSpacing: 4,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            if (entry.authorNames.isNotEmpty)
+            if (effectiveFields.contains(CollectionTileField.authors) &&
+                entry.authorNames.isNotEmpty)
               Text(
                 entry.authorNames.join(', '),
                 style: theme.textTheme.bodyMedium,
               ),
-            if (calledCount > 0)
+            if (effectiveFields.contains(CollectionTileField.calledCount) &&
+                calledCount > 0)
               Chip(
                 key: ValueKey('called-count-${dance.id}'),
                 avatar: const Icon(Icons.campaign_outlined, size: 16),
@@ -151,21 +164,24 @@ class DanceListTile extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-            Chip(
-              avatar: Icon(formationIcon, size: 16, color: formationFg),
-              label: Text(
-                formationLabel(l10n, dance.formation),
-                style: formationFg == null
-                    ? null
-                    : TextStyle(color: formationFg),
+            if (effectiveFields.contains(CollectionTileField.formation))
+              Chip(
+                avatar: Icon(formationIcon, size: 16, color: formationFg),
+                label: Text(
+                  formationLabel(l10n, dance.formation),
+                  style: formationFg == null
+                      ? null
+                      : TextStyle(color: formationFg),
+                ),
+                backgroundColor: formationColor,
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              backgroundColor: formationColor,
-              visualDensity: VisualDensity.compact,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            if (dance.status != DanceStatus.active)
+            if (effectiveFields.contains(CollectionTileField.status) &&
+                dance.status != DanceStatus.active)
               DanceStatusChip(status: dance.status),
-            if (dance.level != null)
+            if (effectiveFields.contains(CollectionTileField.level) &&
+                dance.level != null)
               Chip(
                 avatar: const Icon(
                   Icons.signal_cellular_alt_outlined,
@@ -175,14 +191,16 @@ class DanceListTile extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-            if (dance.mixedLevel)
+            if (effectiveFields.contains(CollectionTileField.level) &&
+                dance.mixedLevel)
               Chip(
                 avatar: const Icon(Icons.swap_vert_outlined, size: 16),
                 label: Text(l10n.commonMixedLevel),
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-            if (dance.rating != null)
+            if (effectiveFields.contains(CollectionTileField.rating) &&
+                dance.rating != null)
               Chip(
                 key: const ValueKey('rating-indicator'),
                 avatar: const Icon(Icons.star_outline, size: 16),
@@ -193,30 +211,32 @@ class DanceListTile extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-            for (final tag in entry.tags)
-              if (onTagTap != null && !selectionMode)
-                ActionChip(
-                  key: ValueKey('tag-filter-chip-${tag.id}'),
-                  avatar: const Icon(Icons.label_outline, size: 16),
-                  label: Text(tag.name),
-                  tooltip: l10n.commonShowDancesTaggedTooltip(tag.name),
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  onPressed: () => onTagTap!(tag.id),
-                )
-              else
+            if (effectiveFields.contains(CollectionTileField.tags))
+              for (final tag in entry.tags)
+                if (onTagTap != null && !selectionMode)
+                  ActionChip(
+                    key: ValueKey('tag-filter-chip-${tag.id}'),
+                    avatar: const Icon(Icons.label_outline, size: 16),
+                    label: Text(tag.name),
+                    tooltip: l10n.commonShowDancesTaggedTooltip(tag.name),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    onPressed: () => onTagTap!(tag.id),
+                  )
+                else
+                  Chip(
+                    avatar: const Icon(Icons.label_outline, size: 16),
+                    label: Text(tag.name),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+            if (effectiveFields.contains(CollectionTileField.customFields))
+              for (final field in entry.listCustomFields)
                 Chip(
-                  avatar: const Icon(Icons.label_outline, size: 16),
-                  label: Text(tag.name),
+                  label: Text(field),
                   visualDensity: VisualDensity.compact,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-            for (final field in entry.listCustomFields)
-              Chip(
-                label: Text(field),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
           ],
         ),
       ),
