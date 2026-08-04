@@ -111,6 +111,22 @@ each release so store builds and tags can be traced back to an entry.
   a `+` so you can add the same dance again. The message still appears as before
   everywhere it was already visible.
 
+- **Importing a dance from a different source that you already have now prompts
+  you instead of silently adding a second copy.** When a dance from ContraDB or
+  Caller's Box matches one you already imported from the other source — same
+  title, same caller, same figures — the app now asks what you want to do rather
+  than creating a duplicate. You can choose **Same dance** to link the import to
+  your existing copy — this replaces your version of the dance with the online
+  record's, including its figures, notes, tags, rating, and custom fields; its
+  place in your programs and its calling history are kept — **Import a second
+  copy** to
+  add it alongside your existing dance and keep both source records, or
+  **Cancel** to leave your collection as it is.
+
+  This prompt is for the identical-figures case only. When a confident match has
+  *different* figures, you still see the three-option variation prompt introduced
+  earlier. Program import is not affected.
+
 ## [0.1.0] - 2026-08-01
 
 Flutter build: `0.1.0+1`.

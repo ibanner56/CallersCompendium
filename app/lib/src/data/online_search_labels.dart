@@ -21,11 +21,13 @@ String onlineSourceAttribution(AppLocalizations l10n, OnlineSource source) =>
 /// untrusted external value; it flows through a gen-l10n placeholder and is
 /// rendered as plain text by the caller's `Text` widget.
 ///
-/// [OnlineImportKind.needsConfirmation] must never reach this function — every
-/// call site is responsible for intercepting it and showing a resolution dialog
-/// before calling this function with the final result. This is enforced by the
-/// [StateError] below; a call site that forgets to intercept will fail loudly
-/// rather than silently showing "imported" when nothing was written.
+/// [OnlineImportKind.needsConfirmation] and
+/// [OnlineImportKind.needsConfirmationIdentical] must never reach this function
+/// — every call site is responsible for intercepting them and showing a
+/// resolution dialog before calling this function with the final result. This is
+/// enforced by the [StateError]s below; a call site that forgets to intercept
+/// will fail loudly rather than silently showing "imported" when nothing was
+/// written.
 String onlineImportMessage(AppLocalizations l10n, OnlineImportResult result) =>
     switch (result.kind) {
       OnlineImportKind.alreadyInCollection =>
@@ -36,5 +38,11 @@ String onlineImportMessage(AppLocalizations l10n, OnlineImportResult result) =>
         '"${result.title}". The call site must intercept '
         'OnlineImportKind.needsConfirmation and show a resolution dialog '
         'before passing the final result to this function.',
+      ),
+      OnlineImportKind.needsConfirmationIdentical => throw StateError(
+        'onlineImportMessage reached with needsConfirmationIdentical for '
+        '"${result.title}". The call site must intercept '
+        'OnlineImportKind.needsConfirmationIdentical and show a resolution '
+        'dialog before passing the final result to this function.',
       ),
     };

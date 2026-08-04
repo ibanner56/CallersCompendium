@@ -402,7 +402,11 @@ void main() {
     /// Create an existing dance in repos with a specific figure and optional
     /// rating. Uses figures whose canonical keys differ from the draft figures
     /// in [_conflictPlan] so the detection block fires.
-    Future<Dance> seedDance(CompendiumRepositories repos, {int? rating}) async {
+    Future<Dance> seedDance(
+      CompendiumRepositories repos, {
+      int? rating,
+      ProvenanceSource? provenanceSource,
+    }) async {
       final dance = Dance(
         id: 'existing-001',
         title: 'Tangled Yarns',
@@ -414,6 +418,9 @@ void main() {
         rating: rating,
         createdAt: now,
         updatedAt: now,
+        provenance: provenanceSource == null
+            ? null
+            : Provenance(source: provenanceSource, importedAt: now),
       );
       await repos.dances.create(dance);
       return dance;
@@ -539,22 +546,114 @@ void main() {
     );
 
     test(
-      'confident match + identical figures: creates duplicate (no prompt — regression)',
+      'confident match + identical figures + different source: returns needsConfirmationIdentical, nothing written (red-run)',
       () async {
-        // Acceptance criteria: "exact match keeps today's behaviour" — identical
-        // figures bypass the detection block; the duplicate is created silently.
+        // RED (naive regression): removing the `else if (sources differ)` guard
+        // restores the duplicate() fallthrough, creating a second dance →
+        // hasLength(2). GREEN: import() returns needsConfirmationIdentical and
+        // writes nothing.
+        // Existing dance has ContraDB provenance; incoming plan is Caller's Box
+        // → sources genuinely differ, so the cross-source dialog fires.
         final repos = openTestRepositories();
+        final existing = await seedDance(
+          repos,
+          provenanceSource: ProvenanceSource.contradb,
+        );
+
+        final plan = ambiguousPlan(
+          candidateId: existing.id,
+          figures: [customFigure('neighbors balance and swing')], // SAME
+        );
+        final result = await CallersBoxOnline().import(repos, plan);
+
+        expect(result.kind, OnlineImportKind.needsConfirmationIdentical);
+        expect(result.danceId, existing.id);
+        // Nothing written — user must confirm before we commit.
+        final saved = await repos.dances.listAll();
+        expect(saved, hasLength(1));
+      },
+    );
+
+    test(
+      'confident match + identical figures + same source: falls through to duplicate (no prompt)',
+      () async {
+        // A same-source re-import with a drifted externalId produces an
+        // ambiguous verdict (not reimport) but must NOT trigger the
+        // cross-source dialog. Guard: existing.provenance.source == incoming
+        // source → falls through to DedupeResolution.duplicate().
+        final repos = openTestRepositories();
+        final existing = await seedDance(
+          repos,
+          provenanceSource: ProvenanceSource.callersbox,
+        );
+
+        final plan = ambiguousPlan(
+          candidateId: existing.id,
+          figures: [customFigure('neighbors balance and swing')], // SAME
+        );
+        final result = await CallersBoxOnline().import(repos, plan);
+
+        // Falls through: no prompt, second copy created.
+        expect(result.kind, isNot(OnlineImportKind.needsConfirmationIdentical));
+        expect(result.kind, isNot(OnlineImportKind.needsConfirmation));
+        final saved = await repos.dances.listAll();
+        expect(saved, hasLength(2));
+      },
+    );
+
+    test(
+      'confident match + identical figures + null provenance (hand-entered): falls through to duplicate (no prompt)',
+      () async {
+        // A hand-entered dance has null provenance. Triggering the cross-source
+        // dialog for it would falsely assert "from a different source". Guard:
+        // existing.provenance == null → falls through to duplicate().
+        final repos = openTestRepositories();
+        // seedDance with no provenanceSource → provenance == null
         final existing = await seedDance(repos);
 
         final plan = ambiguousPlan(
           candidateId: existing.id,
           figures: [customFigure('neighbors balance and swing')], // SAME
         );
-        await CallersBoxOnline().import(repos, plan);
+        final result = await CallersBoxOnline().import(repos, plan);
 
-        // A second dance was created (existing behavior, unchanged).
+        expect(result.kind, isNot(OnlineImportKind.needsConfirmationIdentical));
+        expect(result.kind, isNot(OnlineImportKind.needsConfirmation));
         final saved = await repos.dances.listAll();
         expect(saved, hasLength(2));
+      },
+    );
+
+    test(
+      'confident match + identical figures + link resolution: updates existing, no second dance',
+      () async {
+        // User chose "Same dance" in the cross-source duplicate dialog (issue
+        // #811). The existing dance is linked to the incoming record; no second
+        // dance is created.
+        final repos = openTestRepositories();
+        final existing = await seedDance(
+          repos,
+          rating: 4,
+          provenanceSource: ProvenanceSource.contradb,
+        );
+
+        final plan = ambiguousPlan(
+          candidateId: existing.id,
+          figures: [customFigure('neighbors balance and swing')], // SAME
+        );
+        final result = await CallersBoxOnline().import(
+          repos,
+          plan,
+          ambiguousResolution: DedupeResolution.link(existing.id),
+          now: now,
+        );
+
+        expect(result.kind, OnlineImportKind.created);
+        final saved = await repos.dances.listAll();
+        // Only the original dance exists — the incoming record updated it.
+        expect(saved, hasLength(1));
+        // The dance id is preserved (program slots still reference it).
+        expect(saved.first.id, existing.id);
       },
     );
 

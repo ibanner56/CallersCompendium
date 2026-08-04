@@ -275,6 +275,17 @@ watches for matches:
   from the same source, the app recognises it and offers to **update** the one
   you already have rather than adding a copy. (This is how the Caller's Box
   online import can tell you a dance *"is already in your collection."*)
+- **Same dance, different source.** If a dance matches one already in your
+  collection by title, author, and figures — the same moves in the same order,
+  even if the timing or notes differ — but comes from a different archive
+  — the app prompts rather than adding a second copy. You can choose **Same
+  dance (update existing)** to link the import to your existing copy — this
+  replaces your version of the dance with the online record's, including its
+  figures, notes, tags, rating, and custom fields; its place in your programs
+  and its calling history are kept — **Import a second copy** to add it alongside
+  your existing dance and keep both source records, or **Cancel** to leave your
+  collection unchanged. This applies to single-dance online imports only; the
+  batch review screen still marks the row for you to decide.
 - **Looks like something you already have.** If a dance closely matches one
   already in your collection by title and author but did not come from the same
   source, the app marks it as **unsure** and asks you to choose: **link** the two,

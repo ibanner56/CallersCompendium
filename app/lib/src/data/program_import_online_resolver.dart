@@ -181,12 +181,13 @@ Future<String?> resolveConfidentOnlineDanceId(
       repos,
       preview.plan,
       now: now,
-      // Program import is non-interactive — no per-dance prompt (#797).
+      // Program import is non-interactive — no per-dance prompt (#797/#811).
       // The verdict at this point has !hasConfidentMatch (the block above
-      // handles the confident case without calling import()), so
-      // needsConfirmation cannot be returned by the real services here.
-      // Passing duplicate() makes the opt-out explicit and safe against
-      // future refactors that might change that structural guarantee.
+      // handles the confident case without calling import()), so neither
+      // needsConfirmation nor needsConfirmationIdentical can be returned by
+      // the real services here. Passing duplicate() makes the opt-out explicit
+      // and safe against future refactors that might change that structural
+      // guarantee.
       ambiguousResolution: DedupeResolution.duplicate(),
     );
     return result.danceId;

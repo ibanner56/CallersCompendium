@@ -262,6 +262,31 @@ class _CollectionShellState extends State<CollectionShell> {
           preview.plan,
           ambiguousResolution: resolution,
         );
+      } else if (result.kind == OnlineImportKind.needsConfirmationIdentical) {
+        if (!mounted) return;
+        final existingId = result.danceId;
+        // needsConfirmationIdentical requires a candidate id — a null here is a
+        // service bug. Assert in debug; silently cancel in release.
+        assert(
+          existingId != null,
+          'needsConfirmationIdentical must carry an existing dance id',
+        );
+        if (existingId == null) return;
+        final existingTitle =
+            (await repos.dances.getById(existingId))?.title ?? result.title;
+        if (!mounted) return;
+        final resolution = await showOnlineImportCrossSourceDuplicateDialog(
+          context,
+          l10n,
+          existingTitle: existingTitle,
+          existingId: existingId,
+        );
+        if (resolution == null || !mounted) return; // user cancelled
+        result = await service.import(
+          repos,
+          preview.plan,
+          ambiguousResolution: resolution,
+        );
       }
       if (!mounted) return;
       if (result.kind == OnlineImportKind.created) {

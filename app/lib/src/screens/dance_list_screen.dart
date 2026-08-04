@@ -764,6 +764,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// figures, it returns [OnlineImportKind.needsConfirmation] without writing
   /// anything. In that case, this method shows a resolution dialog and retries
   /// the import with the chosen [DedupeResolution] (issue #797).
+  ///
+  /// When the service detects a confident title+author match with identical
+  /// figures from a different source, it returns
+  /// [OnlineImportKind.needsConfirmationIdentical]. In that case, this method
+  /// shows a cross-source duplicate dialog and retries if the user confirms
+  /// (issue #811).
   Future<void> _importOnline(OnlinePreview preview) async {
     if (_importing) return;
     _importing = true;
@@ -786,6 +792,31 @@ class _DanceListScreenState extends State<DanceListScreen> {
             (await _repos.dances.getById(existingId))?.title ?? result.title;
         if (!mounted) return;
         final resolution = await showOnlineImportVariationDialog(
+          context,
+          l10n,
+          existingTitle: existingTitle,
+          existingId: existingId,
+        );
+        if (resolution == null || !mounted) return; // user cancelled
+        result = await _online.import(
+          _repos,
+          preview.plan,
+          ambiguousResolution: resolution,
+        );
+      } else if (result.kind == OnlineImportKind.needsConfirmationIdentical) {
+        if (!mounted) return;
+        final existingId = result.danceId;
+        // needsConfirmationIdentical requires a candidate id — a null here is a
+        // service bug. Assert in debug; silently cancel in release.
+        assert(
+          existingId != null,
+          'needsConfirmationIdentical must carry an existing dance id',
+        );
+        if (existingId == null) return;
+        final existingTitle =
+            (await _repos.dances.getById(existingId))?.title ?? result.title;
+        if (!mounted) return;
+        final resolution = await showOnlineImportCrossSourceDuplicateDialog(
           context,
           l10n,
           existingTitle: existingTitle,
