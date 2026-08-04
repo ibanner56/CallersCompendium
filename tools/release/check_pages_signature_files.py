@@ -92,7 +92,7 @@ def parse_pinned_key(source: Path) -> bytes:
         sys.exit(2)
 
     try:
-        raw = base64.b64decode(m.group(1))
+        raw = base64.b64decode(m.group(1).strip(), validate=True)
     except Exception as exc:
         print(
             f"::error::kUpdateManifestPublicKey in {source} is not valid base64: {exc}",

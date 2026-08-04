@@ -504,6 +504,43 @@ def _cases() -> None:
             f"the UnicodeDecodeError guard is missing or bypassed: {err!r}"
         )
 
+    # ------------------------------------------------------------------
+    # Case 16 (RED RUN — contract): key with non-base64 chars → exit 2
+    #
+    # Python's lax base64.b64decode() silently discards non-alphabet
+    # characters rather than raising. A corrupted kUpdateManifestPublicKey
+    # that has junk chars injected (e.g. "!!!") decodes laxly to the same
+    # 32-byte key (the junk is dropped), so the gate reports rc=0 —
+    # green, as if the key string were intact.
+    #
+    # The validate=True fix causes the decode to raise binascii.Error on
+    # non-base64 chars, converting this silent pass into exit 2.
+    #
+    # RED (without fix, lax decode): rc=0 — gate passes on corrupt key
+    # GREEN (with fix, strict decode): rc=2 — loud rejection
+    # ------------------------------------------------------------------
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        # Inject '!!!' into the middle of the key — non-base64, silently
+        # dropped by lax b64decode, rejected by strict (validate=True).
+        corrupted_key = pub_b64[:15] + '!!!' + pub_b64[15:]
+        key_src = _make_key_source(root, corrupted_key)
+        stable_bytes = b'{"channel":"stable"}\n'
+        (root / "stable.json").write_bytes(stable_bytes)
+        sig_b64 = base64.b64encode(priv_key.sign(stable_bytes)).decode()
+        (root / "stable.json.sig").write_text(sig_b64, encoding="utf-8")
+
+        rc, out, err = _run_main([str(root), "--key-source", str(key_src)])
+        assert rc == 2, (
+            f"case 16 expected exit 2 on corrupted key (non-base64 chars), "
+            f"got rc={rc}; without validate=True the lax decoder would "
+            f"silently drop the junk and report rc=0 (green on a corrupt key). "
+            f"out={out!r} err={err!r}"
+        )
+        assert "not valid base64" in err, (
+            f"case 16: expected 'not valid base64' in error output, got: {err!r}"
+        )
+
 
 def main() -> int:
     _cases()
