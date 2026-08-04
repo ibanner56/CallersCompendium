@@ -69,10 +69,11 @@ enum CollectionTileField {
 /// so the settings screen — a sibling of the collection screen in the navigation
 /// tree — can write to the notifier via [notifierOf].
 ///
-/// **Scope of the preference:** the collection list reads the root scope and
-/// applies the user's field selection. The add-to-program picker sheet overrides
-/// the scope with [CollectionTileFieldsScope.showAll] so it always renders at
-/// full density, regardless of the setting.
+/// **Scope of the preference:** only the collection screen opts in by passing
+/// [CollectionTileFieldsScope.of] to [DanceListTile.visibleFields]. All other
+/// [DanceListTile] call sites pass `null`, which defaults to
+/// [CollectionTileField.all] inside the tile — so search results, program
+/// lists, and the picker always render at full density without any override.
 ///
 /// **Reading the value:** call [CollectionTileFieldsScope.of] inside `build`.
 /// It returns [CollectionTileField.all] when no ancestor is present, preserving
@@ -87,23 +88,6 @@ class CollectionTileFieldsScope
     required ValueNotifier<Set<CollectionTileField>> notifier,
     required super.child,
   }) : super(notifier: notifier);
-
-  /// Wraps [child] with a [CollectionTileFieldsScope] that always exposes
-  /// [CollectionTileField.all], shadowing any ancestor scope.
-  ///
-  /// Use this in surfaces (such as the add-to-program picker sheet) that should
-  /// always show full tile density regardless of the user's collection-card
-  /// setting. Removing this wrapper is all it takes to extend the preference
-  /// to that surface.
-  static Widget showAll({required Widget child}) =>
-      CollectionTileFieldsScope(notifier: _showAllNotifier, child: child);
-
-  /// A static notifier held by [showAll]. It is never mutated — it serves only
-  /// as a permanent override that makes every [of] call inside the subtree
-  /// return [CollectionTileField.all].
-  static final _showAllNotifier = ValueNotifier<Set<CollectionTileField>>(
-    CollectionTileField.all,
-  );
 
   /// The set of fields currently marked visible. Registers a rebuild dependency
   /// so the caller rebuilds whenever the notifier changes.

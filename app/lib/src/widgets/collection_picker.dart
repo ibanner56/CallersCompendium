@@ -4,7 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../data/collection_tile_fields_scope.dart';
+
 import '../data/repositories_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
@@ -236,55 +236,51 @@ class _CollectionPickerState extends State<CollectionPicker> {
   Widget build(BuildContext context) {
     final data = widget.data;
     final l10n = AppLocalizations.of(context);
-    // Override the root CollectionTileFieldsScope so picker rows always show
-    // all fields regardless of the user's collection-card-fields setting.
-    // The setting is intentionally collection-only; removing this wrapper
-    // extends it to the picker too.
-    return CollectionTileFieldsScope.showAll(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: TextField(
-              key: const ValueKey('picker-search'),
-              controller: _ftsController,
-              onChanged: _onFtsChanged,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                labelText: l10n.collectionPickerSearchLabel,
-                hintText: l10n.collectionSearchFieldHint,
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _hasActiveQuery
-                    ? IconButton(
-                        tooltip: l10n.collectionClearSearchTooltip,
-                        icon: const Icon(Icons.clear),
-                        onPressed: _clearAll,
-                      )
-                    : null,
-                border: const OutlineInputBorder(),
+    // Picker call sites pass no visibleFields to DanceListTile, so they
+    // default to all-visible — no scope override needed here.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: TextField(
+            key: const ValueKey('picker-search'),
+            controller: _ftsController,
+            onChanged: _onFtsChanged,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              labelText: l10n.collectionPickerSearchLabel,
+              hintText: l10n.collectionSearchFieldHint,
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _hasActiveQuery
+                  ? IconButton(
+                      tooltip: l10n.collectionClearSearchTooltip,
+                      icon: const Icon(Icons.clear),
+                      onPressed: _clearAll,
+                    )
+                  : null,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+        ),
+        Expanded(
+          child: CustomScrollView(
+            controller: widget.scrollController,
+            slivers: [
+              SliverList(
+                delegate: SliverChildListDelegate([
+                  _buildFiltersPanel(data),
+                  _buildByPhrasePanel(data),
+                  _buildAdvancedPanel(data),
+                  _buildResultCount(),
+                  const Divider(height: 1),
+                ]),
               ),
-            ),
+              _buildResultsSliver(),
+            ],
           ),
-          Expanded(
-            child: CustomScrollView(
-              controller: widget.scrollController,
-              slivers: [
-                SliverList(
-                  delegate: SliverChildListDelegate([
-                    _buildFiltersPanel(data),
-                    _buildByPhrasePanel(data),
-                    _buildAdvancedPanel(data),
-                    _buildResultCount(),
-                    const Divider(height: 1),
-                  ]),
-                ),
-                _buildResultsSliver(),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

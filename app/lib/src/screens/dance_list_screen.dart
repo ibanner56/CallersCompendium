@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_filter_scope.dart';
+import '../data/collection_tile_fields_scope.dart';
 import '../data/collection_refresh_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/dialect_library_scope.dart';
@@ -2213,6 +2214,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   Widget _buildDanceRow(DanceListEntry entry, AppLocalizations l10n) {
     final tile = DanceListTile(
       entry: entry,
+      visibleFields: CollectionTileFieldsScope.of(context),
       // Row action menu (⋮): non-swipe access to the row actions for
       // mouse/keyboard/AT users. Delete routes through the identical
       // confirm + soft-delete + undo flow as the Dismissible swipe below.
