@@ -103,6 +103,39 @@ python3 tools/site/render_user_docs.py --check
 Write only what the app actually does today. If a guide and the app disagree, one
 of them is a bug — say which in your PR.
 
+### Changelog
+
+`app/CHANGELOG.md` records what changed from the user's seat, not from the
+developer's. It has exactly **two triggers**:
+
+1. **A user-visible change** earns a bullet under `## [Unreleased]`. Write it
+   as user-facing prose in second person — "You can now…", "X no longer…" —
+   and put it in the matching subsection (`Added` / `Changed` / `Fixed` /
+   `Removed`).
+
+2. **Cutting a release** moves the accumulated `[Unreleased]` content into a
+   dated version section and resets `[Unreleased]` to `_Nothing yet._`. That is
+   the only reason to edit the file on a release PR; it touches the file on a
+   different trigger, not the same one.
+
+**What does not qualify for an `[Unreleased]` entry:**
+
+- Pure refactors or internal restructuring the user cannot observe
+- Docs, design docs, CI, tooling, or release infrastructure changes
+- Tests, fixtures, or CI ratchets
+- Performance improvements the user cannot notice without a benchmark
+
+When in doubt, ask: *"Would a user notice if I shipped this without telling
+them?"* If the honest answer is no, no entry is needed.
+
+**A failure mode to watch for:** if a question about the changelog arrives
+pre-framed — *"should this entry go in section A or B?"*, *"which of these
+lands first?"* — answer the narrower question **and** state the rule it rests
+on. If the rule cannot be stated, that is the signal to derive it rather than
+answer the narrower question. A convention measured only against recent output
+will look like whatever you have been doing; widening the sample can reverse
+the answer.
+
 ### Localization (i18n)
 User-visible strings are internationalized with `flutter_localizations` +
 `gen-l10n`, with **English as the source locale**. Add or change strings in
