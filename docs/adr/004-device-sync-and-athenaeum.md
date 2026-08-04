@@ -302,6 +302,23 @@ content diverges to review.
 That leaves the review queue holding only real divergence, which is the small
 set a human can actually adjudicate.
 
+**That queue needs storage it does not have.** The design said these items go "to
+the review queue" from its first draft, which read as reuse of the import
+pipeline's plan → review → commit flow. The review *screen* does exist — the
+adapter-agnostic import review-queue UI shipped — but the batch behind it is an
+explicitly non-persisted, session-scoped `ImportSession`, and there is no
+`review_queue` table. It is a surface for a user who has just started an import,
+and Device Sync runs unattended, with no import in progress to attach a decision
+to.
+
+Device Sync therefore adds a `review_queue` table — `deviceScoped`, beyond v22,
+alongside `id_aliases` — with idempotent queuing so an unattended device does not
+accumulate a duplicate item per pass. The existing screen is the natural surface,
+so this is storage and a way in rather than new UI. It is a real addition to the
+programme's scope, and it is not work Device Sync creates: the dance dedupe path
+has needed it since the first draft and would have hit the gap on the first fresh
+attach.
+
 On a silent merge the survivor is chosen by the same canonical tie-break — the
 lexicographically smaller UUID — so both devices agree without coordinating, and
 the id-collection fields the equality test ignores — tags, custom fields, links,
@@ -619,6 +636,14 @@ makes self-hosting materially harder, which constraint 4 forbids.
   own deletion back, and nothing ever re-tombstones because the user already
   deleted it once. Holding the deletion pending keeps the guarantee that no dance
   credits a tombstone without buying it by resurrecting deleted data.
+
+  A held deletion is cancelled **only by a deliberate user edit**, gated on the
+  provenance of the write rather than on the resulting timestamp. Several sync
+  mechanisms advance `updatedAt` without a user touching anything — reference
+  rewriting, merge-by-recency, the dance merge's scalar recency — so a
+  timestamp-based rule would let a third device silently reverse another's
+  deletion. The pending marker, the id aliases and the review queue are each
+  persisted, classified `deviceScoped`, and land beyond v22.
 - **Applying an inbound record must not erase what it omits.** A blob correctly
   omits `deviceLocal` fields — and the repositories' `upsert` methods write
   *every* column, which is right for a local restore and destructive here. A

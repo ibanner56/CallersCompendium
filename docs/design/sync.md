@@ -213,11 +213,21 @@ recorded) so chains stay short and cycles cannot form. Rewriting on insert also
 makes the fixed point reachable in one hop in the steady state, leaving the chase
 as a correctness guarantee rather than a per-lookup cost.
 
-**The table is bounded by pruning.** An alias is needed only while some peer
-might still reference the losing id, so entries older than the store's
-30-day-of-disuse TTL are dropped — past that, no peer's manifest can still carry
-it. Without a bound, a misbehaving peer that repeatedly recreates "Bob Smith"
-under fresh UUIDs would grow another device's table indefinitely.
+**The table is bounded by pruning, against the right clock.** An alias is needed
+while any peer might still reference the losing id, which is a **per-device**
+bound and not the store's. The store TTL is rolling on aggregate activity —
+`last_seen` is refreshed by *any* device's request — so two devices syncing weekly
+keep the store alive indefinitely while a third sits offline for months, never
+learning of a merge. Pruning on the store's clock would drop the alias while that
+device still holds the losing id; when it returned, its records would resolve to
+nothing and the merged-away duplicate would be silently re-inserted, which is the
+exact failure the table exists to prevent.
+
+Retention is therefore bounded by the **oldest attached device's last-sync
+watermark**, which `GET /v1/store` already returns: an alias is kept while any
+device's baseline predates the merge that created it. A misbehaving peer still
+cannot grow the table without bound, because a device that never syncs eventually
+ages out of the store itself and stops being counted.
 
 `id_aliases` is **`deviceScoped`** — a local remap of local row identity,
 meaningless on another device and never serialised. Like the baseline manifest it
@@ -248,7 +258,15 @@ known, so a naive LWW update writes a name Y already holds and violates `UNIQUE`
 The apply transaction fails, and *Failure and offline* covers network and HTTP
 faults only — so a retry fails identically forever and the device pair deadlocks
 until a human renames one side. Step 1 must therefore test the incoming natural
-key against other local rows and reconcile on collision rather than update.
+key against other local rows **before** attempting the update.
+
+**On collision it does not reconcile.** "Reconcile" throughout this document
+means the silent step-2 mechanism — tie-break survivor, merge by recency,
+coalesce `deviceLocal`, drop the loser — and that is exactly what must not happen
+here, because two *pre-existing local* rows are involved and both may hold
+contact data for different real people. The collision is queued for review
+instead, per *`deviceLocal` fields must be coalesced*. The rename is not applied
+and neither row is touched until a human rules.
 
 #### Natural-key equality is an approximation, and it is the app's own
 
@@ -284,8 +302,10 @@ counter would not be collision-safe: `custom_field_defs.key` is `UNIQUE`
 by the user, or by an earlier reconciliation — violates the constraint, fails the
 apply transaction, and fails every retry identically. That is precisely the
 deadlock *Renames collide too* exists to prevent, and it would be reintroduced by
-the mechanism meant to avoid a crash. Should a derived key collide even so, it
-routes back through reconciliation rather than aborting the batch.
+the mechanism meant to avoid a crash. Should a derived key collide even so — two
+distinct losing UUIDs sharing a 32-bit prefix — the derivation lengthens the
+prefix until it is free rather than routing back through reconciliation, which is
+what produced the collision and would simply produce it again.
 
 `venues` and `published_sources` have **no** `UNIQUE` natural key, so their UUIDs
 cannot collide destructively. They insert without reconciliation, and the same
@@ -293,7 +313,11 @@ hall created on two devices arrives twice.
 
 Reconciliation runs **inside the apply transaction, before** any record that
 references the reconciled row, so no write ever lands against an id that is about
-to be rewritten.
+to be rewritten. It is re-evaluated against **every current peer manifest on
+every pass**, the same way the content rule evaluates against all peers rather
+than one — the alias table's self-healing depends on it, since a device that
+learns of a merge late must still reconcile against it rather than treating the
+losing id as unknown.
 
 ### The serialiser must filter — the codec does not
 
@@ -367,13 +391,39 @@ it:
 | The baseline manifest (~1.4 MB at 11,500 records) | Its own table, not `settings` — too large for a key/value row | `deviceScoped` |
 | The store epoch | Alongside the baseline | `deviceScoped` |
 | Per-record last-seen hashes | Baseline table | `deviceScoped` |
+| Id aliases (`losing_id`, `surviving_id`, `kind`) | `id_aliases` | `deviceScoped` |
+| Pending deletions (`kind`, `record_id`, `tombstoned_at`) | `pending_deletions` | `deviceScoped` |
+| Deferred review items (`kind`, `record_id`, `counterpart_id`, `reason`, `queued_at`) | `review_queue` | `deviceScoped` |
 
-All three are per-installation protocol state, meaningless on another device,
-and
+Every row is per-installation protocol state, meaningless on another device, and
 adding them means a schema change **beyond v22** — which the implementation issue
 must account for rather than discover. Note also that the settings ratchet scans
 only `app/lib/src`, so if the sync client lives elsewhere its keys are not
 covered by the existing guard and the ratchet's scope must be widened.
+
+#### State must be named where the mechanism is introduced
+
+> **Any mechanism that needs state to survive a restart must name where that
+> state lives, add it to the schema scope, and classify it — in the same
+> revision that introduces the mechanism.**
+
+The third normative invariant, adopted for the same reason as the other two: the
+mistake has now been made three times. The baseline manifest and epoch were
+introduced as behaviour with no storage; so was `id_aliases`; so was the pending
+tombstone, in the same revision that documented the rule for `id_aliases` two
+sections earlier.
+
+It is easy to miss because the mechanism reads as complete — "hold the tombstone
+pending" describes a behaviour fully, and only a second reading asks *where the
+pending flag is written*. Two things make the omission expensive here rather than
+merely untidy: the coverage ratchet walks `db.allTables` and fails CI on any
+unclassified column, so the gap surfaces late; and an unclassified field has no
+egress ruling, which is the difference between a bookkeeping oversight and a
+leak.
+
+The check is mechanical. For each new mechanism, ask what it must remember across
+a restart, and if the answer is anything at all, it appears in the table above
+before the revision lands.
 
 ## Wire format
 
@@ -516,16 +566,37 @@ tombstone — without achieving it by resurrecting deleted data. The cost is rea
 and is disclosed rather than hidden: a deletion can sit unapplied on another
 device indefinitely, and the user is not told why. See the Consequences section.
 
-**A local edit cancels the pending tombstone.** If the user on the holding device
-edits the entity while a deletion is pending, that edit is a deliberate act on a
-record they can see, and it out-ranks a remote deletion under the same
-last-writer-wins rule everything else obeys: the tombstone is discarded and the
-entity is republished as live. Without this rule the mechanism has a hole — the
-edit would be published anyway, advance `updatedAt`, out-rank the tombstone and
-resurrect the entity through the back door, which is exactly the failure holding
-the tombstone was meant to prevent. Stated explicitly so the implementation
-resurrects **only** on a deliberate edit, never as a side effect of still
-referencing the row.
+**A local edit cancels the pending tombstone — and nothing else does.** If the
+user on the holding device edits the entity while a deletion is pending, that is
+a deliberate act on a record they can see, and it revives the entity: the
+tombstone is discarded and the row is republished as live. Without this rule the
+mechanism has a hole, because the edit would be published anyway, advance
+`updatedAt`, out-rank the tombstone and resurrect the entity through the back
+door.
+
+**The gate is the provenance of the write, not the resulting timestamp.**
+Phrasing the rule as "a newer `updatedAt` out-ranks the tombstone" would make
+every mechanism that bumps `updatedAt` a cancellation path, and the design
+requires several: reference rewriting after reconciliation, merge-by-recency, and
+the dance merge's scalar recency all advance the discriminator without a user
+touching anything. A third device silently reconciling a same-named duplicate
+would otherwise reverse another device's deletion, with nobody having edited the
+record on any device. Cancellation therefore keys off a **user-initiated edit
+flag carried through the write**, and a sync-initiated write never sets it,
+however new the resulting timestamp.
+
+**A pending-held row is excluded from what the device advertises.** It stays live
+locally, but its manifest entry is withheld: the holding device does not publish
+the entity, so the deleting device cannot download its own deletion back. This is
+the load-bearing half of the mechanism — without it, "does not republish" is a
+statement of intent that the upload path silently contradicts.
+
+**The baseline is not advanced for a pending-held record.** Advancing it would
+leave the local row permanently differing from baseline, so `changed`/`same`
+would fire every pass and the device would republish its stale live blob
+indefinitely — the same resurrection reached through upload rather than download.
+The pending marker in `pending_deletions` is the durable record of the deferred
+state, so the baseline does not need to carry it.
 
 **A purge must not cascade off live records.** `DanceRepository.purgeDeleted`
 guards its hard delete with `_cleanupDanglingReferences` and a GC that never
@@ -727,7 +798,19 @@ sync ID entirely, so re-enabling is a fresh attach.
    stale baseline.
 4. Upload every local record; download every remote record.
 5. **Union**, then dedupe (below). No deletion occurs during a fresh attach —
-   there is no baseline to justify one.
+   there is no baseline to justify one. Where two peers advertise the **same id
+   with different content**, there is likewise no baseline to compare against, so
+   the higher `updatedAt` wins — the same rule as a steady-state conflict, minus
+   the baseline that normally distinguishes "changed" from "not caught up".
+
+   Pending tombstones make this routine rather than rare: a device holding a
+   deletion pending advertises nothing for that record, by design and possibly
+   for a long time, while another advertises it live. An attaching device
+   therefore sees one id present on some peers and absent from others, which
+   *is* the ordinary union case and correctly yields the live record. It has no
+   citation of its own to justify keeping it and no future tombstone will correct
+   it, so the attaching device queues it for review rather than adopting it
+   silently.
 6. Persist the epoch and the resulting manifest as the new baseline.
 
 ### Fresh-attach dedupe
@@ -741,8 +824,52 @@ hold different ids for it, so union alone yields duplicates.
 2. `_choreographyEquals` — form, formation, progression, phrase structure,
    figures *including params*, hook, calling notes, level, mixed level, tunes.
 
-Everything else that the existing `DedupeIndex` flags goes to the review queue,
-through the import pipeline's plan → review → commit flow.
+Everything else that the existing `DedupeIndex` flags is **deferred for review**.
+
+#### The review queue needs durable storage; today it has none
+
+An earlier draft said these go "to the review queue, through the import
+pipeline's plan → review → commit flow." That overstates what exists, in the same
+way an earlier draft overstated `_resolveAuthors`, and the claim is worth
+correcting precisely because it reads as reuse of proven machinery.
+
+The review *UI* does exist and is not the problem:
+`app/lib/src/screens/import_review_screen.dart` shipped as the adapter-agnostic
+import review-queue UI. What is missing is **storage**. It is a synchronous
+screen driven by a user who has just started an import, and the batch it works
+from is `ImportSession`, whose own doc comment says it is "Deliberately NOT a
+persisted table … a durable cross-session undo log's shape depends on the
+review-queue UX". There is no `review_queue` table in `tables.dart` today.
+
+That is the mismatch, and it is not small. Sync runs non-interactively — on app
+start, and debounced after a change — with nobody watching, so there is no
+in-progress import to attach a decision to and no session to scope it to. Fresh
+attach is the worst case rather than an edge one: pairing two independently built
+collections can flag a large number of ambiguous pairs at once, none of which can
+block the sync that found them.
+
+Device Sync therefore **specifies the durable queue** rather than assuming it:
+a `review_queue` table (`kind`, `record_id`, `counterpart_id`, `reason`,
+`queued_at`), classified `deviceScoped`, a schema change beyond v22 alongside
+`id_aliases`. The existing screen is the natural surface for it, so the work is
+storage plus a way in, not a new UI. Deferring an item is a write, not a prompt;
+the user is shown a count and works through it whenever they choose.
+
+Two properties it has to have, both of which follow from sync being repeated
+rather than one-shot:
+
+- **Queuing is idempotent.** An item is keyed by the pair it concerns, so a
+  collision that is still unresolved after the next pass updates the existing row
+  rather than adding a second. Without this, an unattended device accumulates a
+  duplicate per sync indefinitely.
+- **A queued pair is not re-resolved behind the user's back.** While an item is
+  pending, neither record is silently merged or dropped by a later pass; the
+  deferral holds until it is answered.
+
+This is a genuine addition to the programme's scope and is named as one. It is
+not new work *caused* by Device Sync, though — the dance dedupe path has depended
+on it since the first draft, which no earlier round caught, and the same gap
+would have surfaced on the first fresh attach.
 
 Device Sync **calls** `_choreographyEquals` rather than reimplementing it. Two
 definitions of "the same dance" would drift, and the drift would be silent.
@@ -1370,6 +1497,25 @@ must say this plainly rather than implying sync is opaque to us.
   is pending cancels the tombstone and republishes; merely continuing to
   reference it does not. Both halves asserted, since the mechanism is only sound
   if the second never happens.
+- **A sync-initiated write never cancels a tombstone** — a third device
+  reconciles a same-named duplicate onto a record another device holds pending,
+  advancing its `updatedAt` past the tombstone. Assert the tombstone stands.
+  Mutation-proved by gating cancellation on `updatedAt` rather than on the
+  user-edit flag, which resurrects the record with nobody having edited it.
+- **A pending-held row is never advertised** — assert the holder's manifest omits
+  it and its baseline entry is not advanced. Without both, the deleting device
+  downloads its own deletion back; the manifest half fails via download and the
+  baseline half via a perpetual re-upload.
+- **Queuing a review item is idempotent** — run three passes over the same
+  unresolved collision; assert one row, not three. Guards the unattended device
+  that syncs for a week before anyone looks.
+- **A queued pair is not resolved behind the user** — assert neither record is
+  merged or dropped by a later pass while the item is pending.
+- **Alias retention outlives the oldest device** — merge on A, let the store stay
+  alive through A and B for longer than the TTL, then return C from a long
+  absence still holding the losing id. Assert C's records resolve and no
+  duplicate is re-inserted. Mutation-proved by pruning on the store's clock
+  instead of the oldest device watermark.
 - **A rename collision is not silently merged** — assert it reaches the review
   queue and that no `deviceLocal` field from either row is copied onto the other.
   This is the guard against blending two people's contact data.
