@@ -814,25 +814,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // the dismissed banner version), all defaulting to the safe off/none state.
     await _updateController.load();
     // Load the collection tile visible fields preference (issue #767).
-    // Stored as a JSON list of CollectionTileField name strings. Absent/unknown
-    // entries fall back to the full set so all chips remain visible by default.
+    // Stored as a JSON list of CollectionTileField name strings.
+    // See CollectionTileFieldsScope.decodeStored for the three-case logic.
     final storedTileFields = await _appData.repositories.settings
         .get(kCollectionTileVisibleFieldsKey)
         .catchError((_) => null);
-    if (storedTileFields is List) {
-      final decoded = <CollectionTileField>{};
-      for (final raw in storedTileFields) {
-        final field = raw is String ? CollectionTileField.fromJson(raw) : null;
-        if (field != null) decoded.add(field);
-      }
-      // Only apply if we decoded at least one recognised field; an empty or
-      // fully-unrecognised list is treated as "not yet set" so all fields stay
-      // visible (forward-compatibility: a future field hidden on an older build
-      // will just keep showing until the user re-saves the preference).
-      if (decoded.isNotEmpty) {
-        _collectionTileFieldsNotifier.value = decoded;
-      }
-    }
+    _collectionTileFieldsNotifier.value =
+        CollectionTileFieldsScope.decodeStored(storedTileFields);
   }
 
   /// Re-reads all preferences and app-local controllers from the (freshly

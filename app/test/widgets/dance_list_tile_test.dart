@@ -485,5 +485,66 @@ void main() {
         expect(CollectionTileField.fromJson(f.toJson()), f);
       }
     });
+
+    group('decodeStored', () {
+      // These are unit tests of the persistence-decoding logic that lives in
+      // CollectionTileFieldsScope.decodeStored.  Each case corresponds to a
+      // real storage state that must produce a specific outcome.
+
+      test('null (key absent) falls back to all-visible', () {
+        expect(
+          CollectionTileFieldsScope.decodeStored(null),
+          CollectionTileField.all,
+        );
+      });
+
+      test('non-List value (corrupt) falls back to all-visible', () {
+        expect(
+          CollectionTileFieldsScope.decodeStored('notAList'),
+          CollectionTileField.all,
+        );
+      });
+
+      test('empty list honours the user choice of zero visible fields', () {
+        // The user unchecked every field and the setting was persisted as [].
+        // Reloading must honour the empty choice, not revert to all-visible.
+        expect(CollectionTileFieldsScope.decodeStored(<dynamic>[]), isEmpty);
+      });
+
+      test('list of only unknown names falls back to all-visible', () {
+        // Forward-compat: stored on a future build, opened on an older one.
+        // All values unrecognised → safer to show everything than nothing.
+        expect(
+          CollectionTileFieldsScope.decodeStored(['futureField', 'anotherNew']),
+          CollectionTileField.all,
+        );
+      });
+
+      test('list of known names decodes to the matching set', () {
+        expect(CollectionTileFieldsScope.decodeStored(['tags', 'rating']), {
+          CollectionTileField.tags,
+          CollectionTileField.rating,
+        });
+      });
+
+      test('mixed known/unknown names: keeps only the recognised subset', () {
+        expect(
+          CollectionTileFieldsScope.decodeStored(['tags', 'futureField']),
+          {CollectionTileField.tags},
+        );
+      });
+    });
+
+    testWidgets('tile shows only the title when the scope holds an empty set '
+        '(the state produced by loading [] from settings after the bug fix)', (
+      tester,
+    ) async {
+      await _pumpWithFields(tester, _richEntry(), visibleFields: const {});
+      expect(find.text('Rich Dance'), findsOneWidget); // title always shown
+      expect(find.text('tag-one'), findsNothing); // tags hidden
+      expect(find.text('Alice'), findsNothing); // authors hidden
+      // Spot-check a second chip group to confirm it's not just tags.
+      expect(find.text('Becket'), findsNothing); // formation hidden
+    });
   });
 }

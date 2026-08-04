@@ -134,4 +134,27 @@ class CollectionTileFieldsScope
     }
     return scope.notifier!;
   }
+
+  /// Decodes a raw settings value (from [kCollectionTileVisibleFieldsKey]) into
+  /// a [Set<CollectionTileField>] for use as the initial notifier value.
+  ///
+  /// Three cases:
+  ///
+  /// - [stored] is not a `List` (key absent or corrupt) → [CollectionTileField.all]:
+  ///   the preference has never been saved, so default to all visible.
+  /// - [stored] is an empty `List` → empty set: the user deliberately turned off
+  ///   every field and that choice must be honoured on restart.
+  /// - [stored] is a non-empty `List` → decode recognised names; if every name is
+  ///   unrecognised (e.g. stored on a future build, opened on an older one) fall
+  ///   back to [CollectionTileField.all] so unknown fields don't disappear.
+  static Set<CollectionTileField> decodeStored(dynamic stored) {
+    if (stored is! List) return CollectionTileField.all;
+    if (stored.isEmpty) return const {};
+    final decoded = stored
+        .whereType<String>()
+        .map(CollectionTileField.fromJson)
+        .whereType<CollectionTileField>()
+        .toSet();
+    return decoded.isEmpty ? CollectionTileField.all : decoded;
+  }
 }
