@@ -1,16 +1,30 @@
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
+
+import '../test_package_root.dart';
 
 /// Tests for [parseContraDbProgramIndex] against a real, redacted capture of the
 /// public ContraDB program index (`GET https://contradb.com/programs`, ~845
 /// programs) checked in at `support/contradb/programs_index.html`. No live
 /// network is used.
 void main() {
-  final fixtureHtml = File(
-    'test/imports/support/contradb/programs_index.html',
-  ).readAsStringSync();
+  late String fixtureHtml;
+
+  setUpAll(() async {
+    fixtureHtml = await File(
+      p.join(
+        await packageRootPath(),
+        'test',
+        'imports',
+        'support',
+        'contradb',
+        'programs_index.html',
+      ),
+    ).readAsString();
+  });
 
   group('parseContraDbProgramIndex', () {
     test('parses every /programs/{id} anchor from the real index', () {

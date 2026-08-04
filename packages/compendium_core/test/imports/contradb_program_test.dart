@@ -1,16 +1,30 @@
 import 'dart:io';
 
 import 'package:compendium_core/src/imports/contradb_program.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
+
+import '../test_package_root.dart';
 
 /// Parses a **real, verbatim** ContraDB program page captured from
 /// `contradb.com/programs/33` (see `support/contradb/programs_33.html`). The
 /// fixture is fetched HTML, not hand-built, so the parser is verified against
 /// the true live DOM (fidelity rule). No network access at test time.
 void main() {
-  final fixture = File(
-    'test/imports/support/contradb/programs_33.html',
-  ).readAsStringSync();
+  late String fixture;
+
+  setUpAll(() async {
+    fixture = await File(
+      p.join(
+        await packageRootPath(),
+        'test',
+        'imports',
+        'support',
+        'contradb',
+        'programs_33.html',
+      ),
+    ).readAsString();
+  });
 
   group('parseContraDbProgram (real /programs/33 fixture)', () {
     test('extracts the program title from the page h1', () {
