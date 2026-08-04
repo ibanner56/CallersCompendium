@@ -108,6 +108,26 @@
 
 ### Fixed
 
+- **Caller's Box `Square through <n> (<pass list>)` no longer drops its pass
+  list (#799).** The `()`/`[]` strip is recognition-only, so a structured
+  `square_through` never saw the parenthetical `(N2R;SL)` and fell to the
+  taxonomy defaults for `who`/`who2`/`hand`/`balance` — fabricating dancers the
+  source never named and, because `square_through` defaults `balance:true`,
+  doubling the balance the Caller's Box writes as a *separate* preceding line.
+  A `tcbFigureFrontEnd` pre-recognizer now decodes the pass list the way the
+  `hey` and `grand right and left` decoders already do: odd 1-based passes fill
+  `who`, even passes fill `who2` (each parity must be internally consistent),
+  hands alternate by parity from the first pass, `places` comes from the pass
+  count, and `balance:false` is emitted explicitly for import fidelity (the
+  `_roryOMore` precedent). This is the whole class of pass-list square-throughs,
+  not only *Square Through 2*. OWASP bounds on `n` (2..10) and the cell count.
+  The pass-list codes this consumes are the line's structured payload and are
+  distinct from the prose parenthetical qualifiers tracked in #744, which this
+  does not touch. Caller's Box and ContraDB still disagree on the *first*
+  dancer for this dance (`N2` = `nextNeighbors` vs. `neighbors`), so the two
+  imports are not byte-identical even after this fix — only the fabrication and
+  the doubled balance are removed.
+
 - **The rotation param editor represents the `unspecified` sentinel instead of
   coercing it to `1.0`.** `FigureParamEditor`'s `ParamKind.rotation` branch fell
   back to `1.0` for any non-numeric value, so `gate.turn`'s sentinel displayed as

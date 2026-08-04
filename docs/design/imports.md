@@ -480,6 +480,60 @@ merge is lossless:
   line the pre-recognizer can't fully resolve falls through untouched — never a
   half-structured figure, never a throw.
 
+#### Square through pass list (#799)
+
+TCB writes a square through's dancer sets and hands as a compact pass list —
+`Square through 2 (N2R;SL)` is "pass N2 by the right, then the shadow by the
+left". The `()`/`[]` strip is recognition-only, so before #799 that payload was
+dropped **before** recognition and the line structured as a bare
+`square through 2` with only `places` set. The other params then fell to their
+`square_through` MoveDef defaults — `who: partners`, `who2: neighbors`,
+`hand: right`, `balance: true` — which do not merely lose the pass detail: they
+assert the **wrong** dancers, and the `balance: true` default renders a balance
+the line never states. Inside the `interrupted square through` compound that
+motivated the issue that balance is **doubled**, because the balance is already
+its own sub-figure on the line above.
+
+The `_squareThroughPassList` pre-recognizer (a `FigureMatch` decoder, mirroring
+the `hey` pass-list decoder — same `tcbPassPeople` map) reads the codes:
+
+- **Odd 1-based passes → `who`, even passes → `who2`,** and the two must each
+  name a single consistent dancer (a square through of `n` alternates between
+  two sets).
+- **Hands alternate by position parity;** the base (`hand`) is position 1's, and
+  every cell must agree with the alternation or the line declines.
+- **`balance: false` is emitted explicitly** for import fidelity — TCB writes the
+  balance as a separate line, never inline on a square-through line, so a
+  standalone `Square through n (…)` carries none. This mirrors `rory_o_more`,
+  which forces `balance: false` for the same reason. (The decoder does not itself
+  fold a preceding balance line in; a `<who> balance` line stays its own figure,
+  matching TCB's two-line source.)
+
+**Whole-line strictness / prefer-custom.** The text outside the pass list must be
+exactly `square through <n>` (modulo filler), `n` in 2..10; the cell count must
+equal `n`; every cell must be `<people-code><R|L>` with the code in
+`tcbPassPeople`. A second parenthetical, an `interrupted`/`modified` qualifier, a
+trailing clause, an unmappable code (`C1`–`C3`, out-of-range neighbors, a bare
+`R`/`L`), an inconsistent dancer or a non-alternating hand all return `null`, so
+the line falls through to the shared recognizer's bare, defaulted reading rather
+than being half-structured. Untrusted import text is length-capped **before**
+the pass list is split into cells (`_boundedPassListCells`), so a hostile line
+with millions of `;` is rejected in O(1) rather than allocating the oversized
+list first — a bound shared with the hey and grand-right-and-left decoders (the
+`n <= 10` cap then keeps the accepted count small).
+
+The defect is the whole class of `Square through <n> (<pass list>)` lines, not
+only the reported "2". This decoder changes no line's structured/custom status
+(the line already structured, just with defaults), so the corpus structured
+share is unchanged.
+
+**Not full ContraDB parity.** ContraDB and TCB encode this dance's first dancer
+**differently** — ContraDB's `square through two - neighbors …` gives
+`who: neighbors`, while TCB's `N2R` gives `who: nextNeighbors`. This is a
+source-level discrepancy, not something the importer reconciles, so the two
+imports of *Tangled Yarns* remain distinguishable on `who` even after the fix;
+what the fix removes is the fabricated dancers and the doubled balance.
+
 ### 4. Generic JSON (6.6)
 - Our own canonical export format (full fidelity: figures, programs, custom
   fields, provenance, dialect definitions). Serves backup/restore and
