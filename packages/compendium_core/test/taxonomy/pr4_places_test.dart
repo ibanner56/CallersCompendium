@@ -94,15 +94,151 @@ void main() {
       });
     });
 
-    test('star renders hand + places but omits an unspecified grip', () {
+    test(
+      'star renderCanonical omits grip regardless of value (byte-stable)',
+      () {
+        // Canonical text is the dedupe/FTS key — grip must never appear there
+        // (Gap B: adding grip to canonical requires a contraTaxonomyVersion bump
+        // + migration + derived rebuild, handled in a second PR).
+        expect(
+          renderer.renderCanonical(
+            Figure(move: 'star', params: {'hand': 'left', 'grip': 'wristGrip'}),
+          ),
+          'star left 4 places',
+        );
+        expect(
+          renderer.renderCanonical(
+            Figure(
+              move: 'star',
+              params: {'hand': 'right', 'grip': 'handsAcross'},
+            ),
+          ),
+          'star right 4 places',
+        );
+      },
+    );
+
+    test('circle renderCanonical unchanged when singleFile is true', () {
       expect(
         renderer.renderCanonical(
-          Figure(move: 'star', params: {'hand': 'left', 'grip': 'wristGrip'}),
+          testFigure(move: 'circle', params: {'singleFile': true}),
         ),
-        // grip is structured, not a render token.
-        'star left 4 places',
+        'circle left 4 places',
       );
     });
+
+    test('promenade renderCanonical unchanged when singleFile is true', () {
+      expect(
+        renderer.renderCanonical(
+          testFigure(move: 'promenade', params: {'singleFile': true}),
+        ),
+        'partners promenade across',
+      );
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Display rendering: grip and singleFile are shown in render / renderVerbose /
+  // renderSummary but NOT in renderCanonical (Gap A of issue #749).
+  // ---------------------------------------------------------------------------
+  group('display rendering surfaces grip and singleFile (issue #749)', () {
+    final d = Dialect.canonical;
+
+    group('star.grip — mirrors ContraDB starWords " - <grip> - " clause', () {
+      test('grip: none (default) — no grip clause', () {
+        expect(renderer.render(Figure(move: 'star'), d), 'star right 4 places');
+      });
+
+      test('grip: wristGrip — "star right - wrist grip - 4 places"', () {
+        final f = testFigure(move: 'star', params: {'grip': 'wristGrip'});
+        expect(renderer.render(f, d), 'star right - wrist grip - 4 places');
+      });
+
+      test('grip: handsAcross — "star right - hands across - 4 places"', () {
+        final f = testFigure(move: 'star', params: {'grip': 'handsAcross'});
+        expect(renderer.render(f, d), 'star right - hands across - 4 places');
+      });
+
+      test('grip shows in renderVerbose and renderSummary too', () {
+        final f = testFigure(
+          move: 'star',
+          params: {'hand': 'left', 'grip': 'handsAcross'},
+        );
+        expect(
+          renderer.renderVerbose(f, d),
+          'star left - hands across - 4 places',
+        );
+        expect(
+          renderer.renderSummary(f, d),
+          'star left - hands across - 4 places',
+        );
+      });
+
+      test('grip: none with non-default hand still omits the grip clause', () {
+        expect(
+          renderer.render(
+            testFigure(move: 'star', params: {'hand': 'left', 'grip': 'none'}),
+            d,
+          ),
+          'star left 4 places',
+        );
+      });
+    });
+
+    group(
+      'promenade.singleFile — "single file promenade" (issue #749 / #634)',
+      () {
+        test('singleFile: false — renders normally', () {
+          expect(
+            renderer.render(Figure(move: 'promenade'), d),
+            'partner promenade',
+          );
+        });
+
+        test('singleFile: true — "single file promenade"', () {
+          final f = testFigure(move: 'promenade', params: {'singleFile': true});
+          expect(renderer.render(f, d), 'single file promenade');
+        });
+
+        test('singleFile: true shows in renderSummary', () {
+          final f = testFigure(move: 'promenade', params: {'singleFile': true});
+          expect(renderer.renderSummary(f, d), 'single file promenade');
+        });
+      },
+    );
+
+    group(
+      'circle.singleFile — "circle … - single file" (issue #749 / #634)',
+      () {
+        test('singleFile: false — renders normally', () {
+          expect(
+            renderer.render(Figure(move: 'circle'), d),
+            'circle left 4 places',
+          );
+        });
+
+        test('singleFile: true — "circle left 4 places - single file"', () {
+          final f = testFigure(move: 'circle', params: {'singleFile': true});
+          expect(renderer.render(f, d), 'circle left 4 places - single file');
+        });
+
+        test('singleFile: true with non-default places', () {
+          final f = testFigure(
+            move: 'circle',
+            params: {'singleFile': true, 'places': 3},
+          );
+          expect(renderer.render(f, d), 'circle left 3 places - single file');
+        });
+
+        test('singleFile: true shows in renderSummary', () {
+          final f = testFigure(move: 'circle', params: {'singleFile': true});
+          expect(
+            renderer.renderSummary(f, d),
+            'circle left 4 places - single file',
+          );
+        });
+      },
+    );
   });
 
   group('goodBeats warnings', () {

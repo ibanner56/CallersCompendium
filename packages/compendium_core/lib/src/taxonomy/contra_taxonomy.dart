@@ -832,9 +832,9 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         // Issue #634: a true "single file promenade" travels the whole major
         // set (no per-couple dancer relationship), vs. the ordinary partnered
-        // promenade. Additive, not a render token (cf. star.grip): canonical
-        // text stays byte-stable, and the flag is surfaced by structural
-        // search / the verbose renderer in a future pass.
+        // promenade. A display-only render token (issue #749): the display
+        // renders show "single file promenade" when true; canonical text stays
+        // byte-stable at the default (Gap B of #749 tracks canonical inclusion).
         'singleFile': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
@@ -1474,7 +1474,9 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // circle N places" (real render: Travels with Rick and Kim #455) — a
         // single-file circle, not the `promenade` move (no separate
         // `circle_left` id exists in this taxonomy; `turn` already covers
-        // left/right). Additive, not a render token (cf. star.grip).
+        // left/right). A display-only render token (issue #749): the display
+        // renders append "- single file" when true; canonical text stays
+        // byte-stable at the default (Gap B of #749 tracks canonical inclusion).
         'singleFile': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
@@ -1489,10 +1491,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // community default.
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
         'places': ParamSpec(ParamKind.places, defaultValue: 4),
-        // grip is a structured param, not a render token (cf. PR3 enders): it
-        // is never emitted in canonical text, and is surfaced by the
-        // verbose/dialect renderer + structural search. 'none' is the
-        // unspecified value.
+        // grip is a structured param and a DISPLAY-ONLY render token: it is
+        // emitted in the display renders (render / renderVerbose / renderSummary)
+        // as a " - wrist grip - " / " - hands across - " clause (ContraDB
+        // `starWords` parity, issue #749), but is intentionally absent from
+        // canonical text (the dedupe/FTS key). 'none' is the unspecified value
+        // (no clause in any render path). Canonical-text inclusion is Gap B of
+        // #749 and requires a contraTaxonomyVersion bump + migration + derived
+        // rebuild; it is tracked separately.
         'grip': ParamSpec(
           ParamKind.choice,
           defaultValue: 'none',
