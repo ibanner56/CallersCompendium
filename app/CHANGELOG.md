@@ -42,7 +42,7 @@ each release so store builds and tags can be traced back to an entry.
 
 - **Qualifier notes on The Caller's Box figures now come through structured.**
   Lines from The Caller's Box that carry a qualifier — for example, a promenade
-  "across the set", or one followed by a right-left-through — previously imported
+  "across the set", or one followed by a right and left through — previously imported
   as unstructured custom figures because the note tripped a guard designed for
   other sources. The guard is now skipped for Caller's Box lines, so those figures
   arrive as named moves with the qualifier in a note, exactly as the source states.
