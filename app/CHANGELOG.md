@@ -13,6 +13,11 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Custom figures now have a beats field.** When you edit a custom figure, you
+  can set how many beats it takes — the same control you get for any structured
+  figure. Previously the model tracked beats for custom figures but the editor
+  never showed the field, so there was no way to set or change it.
+
 - **Importing a single dance that closely matches one you already have now asks
   what you want to do.** When you import from Caller's Box or ContraDB and the
   title and caller match a dance already in your collection — but the figures
@@ -34,6 +39,17 @@ each release so store builds and tags can be traced back to an entry.
   dance you already have, it links to your existing copy as before.
 
 ### Changed
+
+- **Qualifier notes on The Caller's Box figures now come through structured.**
+  Lines from The Caller's Box that carry a qualifier — for example, a promenade
+  "across the set", or one followed by a right-left-through — previously imported
+  as unstructured custom figures because the note tripped a guard designed for
+  other sources. The guard is now skipped for Caller's Box lines, so those figures
+  arrive as named moves with the qualifier in a note, exactly as the source states.
+
+  If you re-import a dance from The Caller's Box, figures that previously appeared
+  as custom text may now appear as structured ones. Nothing changes in dances you
+  do not re-import.
 
 - **Imported dances no longer keep a copy of the page they came from.** When you
   imported a dance from ContraDB, The Caller's Box or a Caller's Companion file,
@@ -59,6 +75,27 @@ each release so store builds and tags can be traced back to an entry.
   from the source.
 
 ### Fixed
+
+- **Square-through pass lists from The Caller's Box now decode correctly.**
+  Lines of the form "Square through 2 (N2R;SL)" carry a compact pass list that
+  specifies which dancers and which hands for each pass. Previously the pass list
+  was stripped before recognition, leaving the figure with the move's generic
+  defaults: the wrong dancer pair and a balance the line never calls. The pass
+  list is now decoded — dancer pairs come from the codes, hands alternate by
+  parity, and no balance is added unless the source line states one.
+
+- **"Followed by" search no longer matches both directions of a simultaneous
+  figure.** If a dance has two figures that happen at the same time (a "meanwhile"
+  or "while" container), searching for one followed by the other used to match
+  both `Then(X, Y)` and `Then(Y, X)`, even though neither side comes before the
+  other. It now only matches genuine sequences where one figure actually precedes
+  the next.
+
+- **Star grip and single-file flag now appear in the figure display.** When a
+  star figure specifies a grip (`wrist grip` or `hands across`) and when a
+  promenade or circle specifies single-file, those details are now shown in the
+  figure text. Previously they were stored correctly on import but invisible in
+  every rendered form.
 
 - **Adding a dance to a program now visibly confirms itself.** On a phone the
   dance picker opens as a panel covering almost the whole screen, and the
