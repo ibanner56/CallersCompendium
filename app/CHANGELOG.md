@@ -11,6 +11,28 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
+### Added
+
+- **Importing a single dance that closely matches one you already have now asks
+  what you want to do.** When you import from Caller's Box or ContraDB and the
+  title and caller match a dance already in your collection — but the figures
+  differ — the app now shows a prompt rather than silently adding a second copy.
+
+  You get three choices:
+
+  - **Import as a variation** — adds the incoming dance as a new entry in your
+    collection, separate from the existing one.
+  - **Same dance** — treats the incoming version as the authoritative one. It
+    links the import record to your existing dance and replaces that dance's
+    figures, notes, tags and rating with the incoming version. Your call
+    history is preserved, since program slots refer to the dance by identity
+    rather than content. **This cannot be undone** — if the existing dance has
+    edits you want to keep, import as a variation instead.
+  - **Cancel** — writes nothing.
+
+  Program import is unchanged and does not prompt. When a program references a
+  dance you already have, it links to your existing copy as before.
+
 ### Changed
 
 - **Imported dances no longer keep a copy of the page they came from.** When you
