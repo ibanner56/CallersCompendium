@@ -1561,19 +1561,23 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       widget.onChanged();
                     },
                   ),
-                  const SizedBox(height: 8),
-                  FigureParamEditor(
-                    keyPrefix: 'figure-${widget.index}',
-                    paramKey: 'beats',
-                    spec: const ParamSpec(ParamKind.beats, defaultValue: 8),
-                    dialect: widget.dialect,
-                    value: draft.params['beats'] ?? 8,
-                    onChanged: (v) {
-                      draft.params['beats'] = v;
-                      draft.beatsTouched = true;
-                      widget.onChanged();
-                    },
-                  ),
+                  // Source spec and default directly from the taxonomy so the
+                  // editor and the taxonomy agree without a hardcoded copy (#795).
+                  if (def.params['beats'] case final beatsSpec?) ...[
+                    const SizedBox(height: 8),
+                    FigureParamEditor(
+                      keyPrefix: 'figure-${widget.index}',
+                      paramKey: 'beats',
+                      spec: beatsSpec,
+                      dialect: widget.dialect,
+                      value: draft.params['beats'] ?? beatsSpec.defaultValue,
+                      onChanged: (v) {
+                        draft.params['beats'] = v;
+                        draft.beatsTouched = true;
+                        widget.onChanged();
+                      },
+                    ),
+                  ],
                 ] else if (def.params.isNotEmpty)
                   _buildParams(context, def),
                 const SizedBox(height: 12),

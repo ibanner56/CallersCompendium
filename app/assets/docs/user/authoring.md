@@ -100,7 +100,7 @@ move becomes known, and you can still reorder and delete it in the meantime.
 A custom figure has two fields: **Custom figure text** and **Beats**.
 
 The **Beats** field sets how many beats the custom figure occupies — use it the
-same way you would for any other figure. It defaults to 8.
+same way you would for any other figure.
 
 The **Custom figure text** field also accepts two formatting marks, with buttons
 for both:

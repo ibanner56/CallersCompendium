@@ -14,20 +14,46 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../support/l10n_harness.dart';
 
+// A taxonomy where the custom move's beats default is 16, not the standard 8.
+// Used by the relationship-pinning test to prove the editor sources spec and
+// fallback from the taxonomy (not a hardcoded copy of the constant).
+final _tweakedBeatsTaxonomy = Taxonomy(
+  version: contraTaxonomy.version,
+  form: contraTaxonomy.form,
+  moves: contraTaxonomy.moves.entries
+      .map(
+        (e) => e.key == customMoveId
+            ? const MoveDef(
+                id: customMoveId,
+                displayName: 'custom',
+                params: {
+                  'text': ParamSpec(ParamKind.text, defaultValue: ''),
+                  'beats': ParamSpec(ParamKind.beats, defaultValue: 16),
+                },
+                renderTemplate: '{text}',
+              )
+            : e.value,
+      )
+      .toList(),
+  aliases: contraTaxonomy.aliases.values.toList(),
+);
+
 /// Host that owns a mutable draft list so the editor's in-place edits and
 /// add/delete callbacks drive real rebuilds, mirroring the dance editor screen.
 class _Host extends StatefulWidget {
-  const _Host({
+  _Host({
     required this.drafts,
+    Taxonomy? taxonomy,
     this.phrase = PhraseStructure.standard,
     this.wireDuplicate = true,
     this.moveParamDefaults,
     this.freeTextEntry = false,
     this.wireMeanwhile = true,
     this.aggressiveBeatsUpdate = false,
-  });
+  }) : taxonomy = taxonomy ?? contraTaxonomy;
 
   final List<FigureDraft> drafts;
+  final Taxonomy taxonomy;
   final PhraseStructure phrase;
   final bool wireDuplicate;
   final Map<String, Map<String, Object?>>? moveParamDefaults;
@@ -76,7 +102,7 @@ class _HostState extends State<_Host> {
           body: SingleChildScrollView(
             child: FigureListEditor(
               drafts: widget.drafts,
-              taxonomy: contraTaxonomy,
+              taxonomy: widget.taxonomy,
               phraseStructure: widget.phrase,
               moveParamDefaults: widget.moveParamDefaults,
               freeTextEntry: widget.freeTextEntry,
@@ -153,12 +179,14 @@ Future<void> _pump(
   bool freeTextEntry = false,
   bool wireMeanwhile = true,
   bool aggressiveBeatsUpdate = false,
+  Taxonomy? taxonomy,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     _Host(
       drafts: drafts,
+      taxonomy: taxonomy,
       phrase: phrase,
       wireDuplicate: wireDuplicate,
       moveParamDefaults: moveParamDefaults,
@@ -1216,6 +1244,27 @@ void main() {
 
     expect(drafts.single.params['beats'], 12);
     expect(drafts.single.beatsTouched, isTrue);
+  });
+
+  testWidgets('custom figure beats field default tracks the taxonomy spec, '
+      'not a hardcoded constant', (tester) async {
+    // A draft without an explicit 'beats' key exercises the fallback path.
+    // The tweaked taxonomy's custom-move default is 16, so a hardcoded
+    // ?? 8 (or ParamSpec defaultValue: 8) diverges and the test catches it.
+    final drafts = <FigureDraft>[
+      FigureDraft(move: customMove, params: {'text': 'shadow step'}),
+    ];
+    await _pump(tester, drafts, taxonomy: _tweakedBeatsTaxonomy);
+    await _openFigure(tester, 0);
+
+    final taxonomyDefault =
+        _tweakedBeatsTaxonomy.resolve(customMove)!.params['beats']!.defaultValue
+            as int;
+    final field = tester.widget<TextField>(
+      find.byKey(const ValueKey('figure-0-beats')),
+    );
+    // The field must reflect what the taxonomy says, not a copy of 8.
+    expect(field.controller!.text, taxonomyDefault.toString());
   });
 
   // -------------------------------------------------------------------------
