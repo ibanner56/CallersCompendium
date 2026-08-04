@@ -13,7 +13,7 @@ Future<DedupeResolution?> showOnlineImportVariationDialog(
   BuildContext context,
   AppLocalizations l10n, {
   required String existingTitle,
-  required String? existingId,
+  required String existingId,
 }) => showDialog<DedupeResolution>(
   context: context,
   builder: (ctx) => AlertDialog(
@@ -41,20 +41,16 @@ Future<DedupeResolution?> showOnlineImportVariationDialog(
       ),
       TextButton(
         key: const ValueKey('online-import-variation-as-variation'),
-        onPressed: () => Navigator.of(ctx).pop(
-          existingId != null
-              ? DedupeResolution.variation(existingId)
-              : DedupeResolution.duplicate(),
-        ),
+        onPressed: () =>
+            Navigator.of(ctx).pop(DedupeResolution.variation(existingId)),
         child: Text(l10n.onlineImportVariationDialogActionVariation),
       ),
-      if (existingId != null)
-        FilledButton(
-          key: const ValueKey('online-import-variation-same-dance'),
-          onPressed: () =>
-              Navigator.of(ctx).pop(DedupeResolution.link(existingId)),
-          child: Text(l10n.onlineImportVariationDialogActionLink),
-        ),
+      FilledButton(
+        key: const ValueKey('online-import-variation-same-dance'),
+        onPressed: () =>
+            Navigator.of(ctx).pop(DedupeResolution.link(existingId)),
+        child: Text(l10n.onlineImportVariationDialogActionLink),
+      ),
     ],
   ),
 );

@@ -240,9 +240,15 @@ class _CollectionShellState extends State<CollectionShell> {
       if (result.kind == OnlineImportKind.needsConfirmation) {
         if (!mounted) return;
         final existingId = result.danceId;
-        final existingTitle = existingId != null
-            ? (await repos.dances.getById(existingId))?.title ?? result.title
-            : result.title;
+        // needsConfirmation requires a candidate id — a null here is a service
+        // bug. Assert in debug; silently cancel in release (better than crashing).
+        assert(
+          existingId != null,
+          'needsConfirmation must carry an existing dance id',
+        );
+        if (existingId == null) return;
+        final existingTitle =
+            (await repos.dances.getById(existingId))?.title ?? result.title;
         if (!mounted) return;
         final resolution = await showOnlineImportVariationDialog(
           context,
