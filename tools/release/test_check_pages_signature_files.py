@@ -421,6 +421,48 @@ def _cases() -> None:
             f"case 13: expected emitted message to name stable.json.sig, got: {out!r}"
         )
 
+    # ------------------------------------------------------------------
+    # Case 14: gate resolves the default key source from any working directory
+    #
+    # _DEFAULT_KEY_SOURCE is derived from Path(__file__).resolve().parents[2]
+    # so it is always an absolute path. A relative default would resolve
+    # against the process cwd, silently breaking the gate when invoked from
+    # outside the repo root (e.g. in a future re-factoring of the workflow
+    # steps). This case catches a reintroduction of that defect (issue #809
+    # pattern, fixed here alongside #810).
+    #
+    # The fixture is signed with the *wrong* key (not the actual pinned key),
+    # so rc=1 proves the default source was **found and parsed** (not rc=2)
+    # while the signature correctly fails verification. rc=2 would mean the
+    # default path was a relative path that broke under a different cwd.
+    # ------------------------------------------------------------------
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        manifest_bytes = b'{"channel":"stable"}\n'
+        (root / "stable.json").write_bytes(manifest_bytes)
+        # Sign with the WRONG key (not the real pinned key): valid shape, won't verify.
+        (root / "stable.json.sig").write_text(sign_wrong(manifest_bytes), encoding="utf-8")
+
+        import os
+        original_cwd = os.getcwd()
+        try:
+            os.chdir("/tmp")
+            # No --key-source: must find the real update_config.dart by absolute path.
+            rc, out, err = _run_main([str(root)])
+        finally:
+            os.chdir(original_cwd)
+
+        assert rc == 1, (
+            f"case 14 expected exit 1 (validity error) from cwd=/tmp, got: {rc} "
+            f"(rc=2 means the default key source resolved relatively, not absolutely)"
+        )
+        assert "does not verify" in out, (
+            f"case 14: expected validity error (key found, sig wrong), got out={out!r} err={err!r}"
+        )
+        assert "cannot read key source" not in err, (
+            f"case 14: got key-not-found error, meaning default path is still relative: {err!r}"
+        )
+
 
 def main() -> int:
     _cases()

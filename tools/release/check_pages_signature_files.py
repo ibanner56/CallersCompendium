@@ -64,7 +64,9 @@ _KEY_PATTERN = re.compile(
     re.DOTALL,
 )
 
-_DEFAULT_KEY_SOURCE = Path("app/lib/src/update/update_config.dart")
+_DEFAULT_KEY_SOURCE = (
+    Path(__file__).resolve().parents[2] / "app/lib/src/update/update_config.dart"
+)
 
 
 def parse_pinned_key(source: Path) -> bytes:
