@@ -3356,11 +3356,6 @@ void main() {
 
     test('no derived rebuild is scheduled by the v22->v23 migration', () async {
       // The shareable column carries no figure data — the index is untouched.
-      final raw = sqlite3.sqlite3.open(dbPath);
-      // Run the onUpgrade path directly (no repos.ensureMigrated, which would
-      // clear the marker before we could read it).
-      raw.close();
-
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       addTearDown(db.close);
       // After opening (which triggers onUpgrade), the rebuild key must NOT be

@@ -302,10 +302,12 @@ final Map<String, DataClassification> fieldClassifications = {
     egress: EgressClass.shareable,
     note:
         'Per-field flag: whether this field and its values may travel in a '
-        'shared archive. The flag itself must be shareable so the recipient '
-        'knows which fields the sender excluded — without it, an absent field '
-        'in an archive would be ambiguous (deleted vs. excluded). This is the '
-        'only field that directly controls egress of another field '
+        'shared archive. Classified shareable because the flag is carried on '
+        'the defs that *are* emitted — excluded defs are omitted entirely from '
+        'the encoded archive. Recipients see no indication that any fields were '
+        'withheld; disclosing the count of excluded fields would itself leak '
+        'information the sender chose not to share. This is the only field that '
+        'directly controls egress of another field '
         '(custom_field_values.value_text). Added in #780.',
   ),
   'custom_field_values.dance_id': _key,
