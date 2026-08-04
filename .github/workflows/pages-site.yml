@@ -74,3 +74,16 @@ jobs:
         env:
           SOURCE_REF: ${{ github.sha }}
         run: bash tools/release/publish_pages_site.sh --site build/site
+
+      # Defence in depth (#759): assert the published gh-pages state immediately
+      # after a site deploy, catching a missing *.json.sig synchronously within
+      # this job. The primary ongoing gate is pages-sig-gate.yml (daily schedule
+      # + workflow_dispatch — see that workflow for why no push trigger).
+      - name: Assert gh-pages signature invariant
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin gh-pages
+          tmpdir="$RUNNER_TEMP/gh-pages-check"
+          mkdir -p "$tmpdir"
+          git archive FETCH_HEAD | tar -x -C "$tmpdir"
+          python3 tools/release/check_pages_signature_files.py "$tmpdir"
