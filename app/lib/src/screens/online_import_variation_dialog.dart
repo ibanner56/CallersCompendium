@@ -19,19 +19,24 @@ Future<DedupeResolution?> showOnlineImportVariationDialog(
   builder: (ctx) => AlertDialog(
     key: const ValueKey('online-import-variation-dialog'),
     title: Text(l10n.importReviewVariationTitle(existingTitle)),
-    content: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l10n.onlineImportVariationDialogBody(existingTitle)),
-        const SizedBox(height: 8),
-        Text(
-          l10n.onlineImportVariationDialogLinkWarning(existingTitle),
-          style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-            color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+    // Dance titles come from online archives — unbounded external input.
+    // SingleChildScrollView prevents overflow at large text scale or
+    // with unusually long titles (mirrors published_source_details_dialog.dart).
+    content: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.onlineImportVariationDialogBody(existingTitle)),
+          const SizedBox(height: 8),
+          Text(
+            l10n.onlineImportVariationDialogLinkWarning(existingTitle),
+            style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+              color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
     actions: [
       TextButton(
