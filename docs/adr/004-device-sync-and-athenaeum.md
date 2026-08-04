@@ -705,6 +705,22 @@ makes self-hosting materially harder, which constraint 4 forbids.
   record's operative existence value until that record next changes state. A
   hardcoded pre-release constant instead of a sampled clock would remove it.
 
+  **A badly wrong clock is repaired rather than tolerated.** Because the field is
+  monotone, a device that stamps a record from a broken clock poisons it
+  permanently — correcting the clock does not help, since the `max` preserves the
+  bad value. Such a record is quarantined and **restamped on the next sync pass
+  above the greatest value its peers actually hold**, preserving the local
+  live-or-deleted state and needing no user gesture.
+
+  Repairing against observed peer values rather than the local clock is the
+  load-bearing part. An earlier version reset from the clock and justified it by
+  the poisoned value having been "rejected everywhere" — which does not follow,
+  because rejection is a per-receiver test against a per-receiver clock. A value
+  merely *ahead* of local time, but under the threshold, is accepted by every
+  peer, so a clock-based reset could land below one still in circulation and
+  silently revert a deliberate deletion: the failure this field exists to
+  prevent, reintroduced by its own repair path.
+
   It is a **separate column** rather than a reuse of `deletedAt` because that
   field is a retention timestamp with real consumers — the purge sweep and the
   Recently Deleted countdown both read it — so stamping it forward could pin a

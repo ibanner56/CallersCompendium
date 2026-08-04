@@ -650,7 +650,8 @@ For existence:
 | Fresh-attach dance dedupe | Tombstones excluded from candidacy; no cross-UUID effect |
 | Record creation | Seeds the field |
 | Migration backfill | `T₀` for live rows, `deleted_at` for deleted ones — see the accepted consequence |
-| Inbound validation | Out-of-range values rejected, never clamped; poisoned records quarantined and resettable |
+| Inbound validation | Out-of-range values rejected, never clamped |
+| Quarantine repair | Restamped on the next pass above the greatest acceptable peer value |
 
 Written as a table because the alternative is discovering the paths one review
 round at a time, which is what happened.
@@ -668,6 +669,27 @@ Both were load-bearing for accepting a decision, and both were checkable in unde
 a minute. So **when a rationale rests on nothing reading a value, enumerate the
 readers and say you checked** — the claim is a factual one about the codebase,
 not a design intention, and it is the kind that stays wrong quietly.
+
+##### A global claim needs a global enforcer
+
+The sibling habit, and the one that has now produced the more expensive error.
+
+> **When a safety argument says "every peer", "nowhere", or "always", identify
+> what actually enforces it.** If the enforcing check runs locally — against
+> local state or a local clock — then the guarantee is local, and the argument
+> needs its real precondition stated or a mechanism that makes it global.
+
+The repair path is the worked example: "safe precisely because the poisoned value
+was rejected **everywhere**" rested on a threshold defined as `localNow + 24h`,
+which is one receiver's opinion evaluated against one receiver's clock. Both
+halves sat thirty lines apart in the same section. The retired `T₀` constraint
+had the same structure — "older than every `deleted_at` **in the table**" was a
+per-device check standing in for a fleet-wide property — which suggests this is a
+recurring shape rather than one slip.
+
+The tell is a quantifier in the justification that does not appear in the
+mechanism. When the argument says *every* and the code says *mine*, the gap is
+where the defect lives.
 
 ## Wire format
 
@@ -828,17 +850,76 @@ that record stays above the rejection threshold. Without a repair path the recor
 drops out of sync until wall-clock time catches up, which is not a bounded
 divergence in the way the restore case is.
 
-Two rules close it:
+Three rules close it, and the repair happens **during a sync pass rather than on
+a user gesture** — because that is the only moment the device can see what the
+other copies actually hold:
 
-- **A record whose own `existenceAt` exceeds `localNow + 24h` is quarantined**,
-  and the next user-initiated transition on it **resets** the field from the
-  local clock instead of `max`-ing against the poisoned value. Resetting is safe
-  precisely because the poisoned value was rejected everywhere: no honest peer
-  ever accepted it, so every peer still holds a value older than the local clock,
-  and the reset lands above all of them.
-- **A rejected hash is reported once, not once per pass.** The blob stays in the
-  peer's manifest and is otherwise re-fetched and re-rejected for ever, which
-  would turn one bad record into an unbounded stream of identical warnings.
+- **A record whose own `existenceAt` exceeds `localNow + 24h` is quarantined.**
+  This is a derived predicate over an existing column, not new state, so it needs
+  no schema.
+- **A quarantined record repairs itself on the next pass, above what is in
+  circulation.** The device fetches the peers' copies of that record, takes the
+  greatest `existenceAt` among those *within its own acceptance window*, and
+  restamps the local value as `max(localNow, thatValue + 1ms)`. The local
+  live-or-deleted state is preserved exactly as the user last set it; only the
+  ordering value is rebuilt. If no acceptable peer copy exists, `localNow` alone
+  is used.
+- **A rejected hash is reported once per session**, held in memory. The blob
+  stays in the peer's manifest and would otherwise be re-fetched and re-rejected
+  for ever, turning one bad record into an endless stream of identical warnings.
+  Per-session is deliberate: repair now happens automatically on the next pass,
+  so the window in which a rejection recurs is short, and suppressing it across
+  restarts would mean persisting a set of a peer's content hashes — new state,
+  needing a classification, to solve a problem that no longer lasts long enough
+  to warrant it.
+
+**Why the repair reads peer values rather than trusting the local clock.** An
+earlier version reset from the local clock alone, arguing it was safe "precisely
+because the poisoned value was rejected everywhere, so every peer still holds a
+value older than the local clock". That inference is invalid, and the sentence
+contained both halves of its own refutation: rejection fires only above
+`localNow + 24h`, **evaluated by each receiver against its own clock**, so
+"rejected" is one receiver's local opinion and never a global fact.
+
+Three routes defeat it. A device whose clock is *mildly* fast — eighteen hours,
+under the bar — has its values **accepted** by every peer; if that device later
+poisons the record, corrects its clock, and deletes, a reset from the corrected
+clock lands *below* the accepted live value and the deletion loses. A peer whose
+own clock is equally wrong — a shared firmware defect is the motivating case —
+accepts the poisoned blob as ordinary and holds it permanently, rejecting
+nothing. And a gradually drifting clock emits a chain of values each inside every
+peer's window at the moment it is sent, so nothing is ever rejected while the
+absolute value climbs. In all three the repaired record loses to something still
+in circulation, silently reverting a deliberate deletion — the exact failure this
+field exists to prevent, reintroduced by its repair path.
+
+Reading the peers' values makes the guarantee match the check: the repaired value
+outranks what is observably there, rather than what an argument assumed was there.
+
+**Repairing on a pass rather than on a gesture also closes two gaps the earlier
+version had.** It never triggered in its own motivating case: a device that
+poisoned a record while reviving it already displays that record exactly as its
+user intended, so the user has no reason to perform another transition, and the
+divergence is invisible from the device causing it. And a record poisoned while
+*live* was worse than stranded — content edits do not touch `existenceAt`, while
+rejection is whole-blob, so every later edit to that record went unsyncable with
+nothing to signal it and no gesture that would fix it. Automatic repair needs
+neither the user to notice nor the user to guess the remedy.
+
+**The residual is stated rather than argued away.** If a peer holds a value that
+this device would itself reject, the repair cannot outrank it without exceeding
+its own ceiling, so it does not try: the record stays quarantined, diverged from
+that peer, and reported. That is the Route B case, where the other device's clock
+is the broken one — and it resolves when that device's own quarantine fires. A
+reset that ties a peer's value loses to a tombstone under the standing tie rule,
+so the `+ 1ms` is load-bearing rather than decorative. Two devices repairing the
+same record concurrently converge, because each stamps above what it observed and
+real clocks move forward.
+
+Keeping the plain `max` instead was considered and rejected: it leaves the record
+diverged but *stable*, which is genuinely safer than a silent wrong winner, and
+that is exactly why the naive reset could not ship. Repairing against observed
+values recovers the record without making that trade.
 
 **Which writes set it.** Every write that changes whether the record exists, in
 both directions:
@@ -2294,15 +2375,24 @@ must say this plainly rather than implying sync is opaque to us.
   unchanged. Mutation-proved by clamping to the ceiling instead, which lets the
   hostile value win every existence comparison and, when two out-of-range values
   clamp to one ceiling, converts a strict ordering into a tie.
-- **A clock-poisoned record can be repaired** — stamp a record from a badly wrong
-  clock, correct the clock, then make a user-initiated transition; assert the
-  field is reset from the local clock rather than `max`-ed against the poisoned
-  value, and that the record syncs again. Mutation-proved by keeping the `max`,
-  which leaves the record permanently unsyncable long after the clock is right —
-  the failure is not that the bad value was written but that nothing can
-  supersede it.
-- **A repeated rejection is reported once** — run three passes against a peer
-  still advertising the bad blob; assert one report, not three.
+- **A clock-poisoned record repairs itself against what is in circulation** —
+  poison a record from a badly wrong clock, correct the clock, and run a sync
+  pass **without any user gesture**; assert the record syncs again and the local
+  live-or-deleted state is preserved. Mutation-proved three ways, each of which
+  the others leave passing: keep the `max` (the record stays unsyncable long
+  after the clock is right — the failure is not that a bad value was written but
+  that nothing can supersede it); reset from the local clock alone (Route A —
+  a peer that accepted an eighteen-hour-fast value still outranks the repair, and
+  a deliberate deletion bounces back); and require a user transition to trigger it
+  (the repair never fires, because the poisoned device already displays the state
+  its user intended).
+- **A quarantined record cannot outrank an unacceptable peer value** — a peer
+  whose own clock is wrong holds a value this device would reject; assert the
+  repair declines rather than exceeding its own ceiling, and that the record is
+  reported as diverged. This is the stated residual, asserted rather than assumed
+  away.
+- **A repeated rejection is reported once per session** — run three passes
+  against a peer still advertising the bad blob; assert one report, not three.
 - **A tombstoned dance neither merges nor suppresses** — same title and identical
   choreography, one copy deleted: assert no silent merge, the deletion stands,
   and a *different* device's independently created live duplicate is untouched.
