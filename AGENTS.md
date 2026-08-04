@@ -48,27 +48,6 @@ gh api --paginate repos/<owner>/<repo>/pulls/<N>/reviews -q '.[].body'
 default), so on a PR with several review rounds the older bodies — and any
 suppressed sections in them — are silently omitted.
 
-**Suppressed comments are not blocking**, but suppression reflects the
-reviewer's *confidence*, not the finding's *importance*. On this repository the
-suppressed block has held both the most substantive findings and the most
-misguided ones — on #746 every substantive finding in the review arrived
-suppressed, and all of them were correct. Read and judge them; neither trust nor
-dismiss them wholesale.
-
-Act on the ones that are right, and record why you dismissed the others — so the
-next reader can tell "considered" from "missed".
-
-A useful pattern when judging: this reviewer's *observations* are reliable — a
-file really does mix literals and constants, a changelog really does say "two"
-while listing three. Where it errs is the *remedy*, because consistency and DRY
-are its only objectives and it cannot tell a redundant duplicated literal from a
-load-bearing one. **When a suggestion would make two sides of an assertion move
-together, treat it as a claim about test strength and measure it** rather than
-accepting it as a style preference: on #751 a suggested refactor would have made
-a pinning assertion vacuous (spelled out, the vocabulary mutation produced 2
-failures; in the suggested form, 47/47 passed and the mutation went
-undetected).
-
 ## Before merging
 
 - **No unresolved review threads.** Ask for `totalCount` too, so a page-size
@@ -83,7 +62,6 @@ undetected).
   If `hasNextPage` is true (or `totalCount` exceeds the nodes returned), fetch
   the rest with `after: "<endCursor>"` before concluding anything.
 
-- **Suppressed comments read and considered** (above).
 - **CI green on the commit being merged.** Re-check after any push; a green run
   on a superseded commit proves nothing about the current head.
 - **The review is on the commit being merged.** A completed review is reported
@@ -231,16 +209,6 @@ worktree and cannot touch anyone else's state:
 ```sh
 git checkout HEAD~1 -- <path>     # or any ref
 ```
-
-## Tracking follow-up work
-
-When you accept a known limitation, **file the follow-up issue at that moment**
-and reference it from the code or design doc. Do not defer to a sibling issue:
-sibling issues close.
-
-A limitation recorded in `docs/design/search.md` was deferred to a sibling that
-shipped and closed without addressing it. Nothing caught the dangling pointer,
-and the limitation went untracked until an audit found it (now #748).
 
 ## Attributing decisions
 
