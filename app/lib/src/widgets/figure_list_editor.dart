@@ -943,6 +943,19 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     super.initState();
     _showNote = widget.draft.note.trim().isNotEmpty;
     _showSnippet = _resolvedSnippet().trim().isNotEmpty;
+    // Seed beats for custom figures loaded from data that predates #795.
+    // Old custom figures carry no 'beats' key; the editor would display
+    // the taxonomy default but toFigure() would persist nothing — leaving
+    // figure.beats to read 0 downstream. Seed the draft now so the
+    // displayed value and the saved value agree from the first render.
+    // beatsTouched stays false: this is a default fill, not a user override.
+    if (widget.draft.move == customMove &&
+        !widget.draft.params.containsKey('beats')) {
+      final def = widget.taxonomy.resolve(customMove);
+      if (def?.params['beats'] case final beatsSpec?) {
+        widget.draft.params['beats'] = beatsSpec.defaultValue;
+      }
+    }
   }
 
   /// The snippet text currently shown for this figure: the per-dance override
@@ -1086,8 +1099,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
 
   /// The move's canonical `beats` default for [params], ignoring any explicit
   /// `beats` so the taxonomy re-derives the value from the driver params.
-  /// Returns null when there is no move, no beats spec (e.g. a custom figure),
-  /// or a non-int result. Delegates to the Flutter-free core resolver.
+  /// Returns null when there is no move, no beats spec, or a non-int result.
+  /// Delegates to the Flutter-free core resolver.
   int? _canonicalBeats(Map<String, Object?> params) {
     final move = widget.draft.move;
     if (move == null) return null;
@@ -1543,8 +1556,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
               ),
               if (def != null) ...[
                 const SizedBox(height: 12),
-                // Custom figures: lingo text field in place of param editors.
-                if (draft.move == customMove)
+                // Custom figures: lingo text field + beats editor (#795).
+                if (draft.move == customMove) ...[
                   _LingoCustomTextField(
                     key: ValueKey('figure-${widget.index}-text-${draft.id}'),
                     fieldKey: 'figure-${widget.index}-text',
@@ -1560,8 +1573,25 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       _applyNonBeatsParamChange('text', v);
                       widget.onChanged();
                     },
-                  )
-                else if (def.params.isNotEmpty)
+                  ),
+                  // Source spec and default directly from the taxonomy so the
+                  // editor and the taxonomy agree without a hardcoded copy (#795).
+                  if (def.params['beats'] case final beatsSpec?) ...[
+                    const SizedBox(height: 8),
+                    FigureParamEditor(
+                      keyPrefix: 'figure-${widget.index}',
+                      paramKey: 'beats',
+                      spec: beatsSpec,
+                      dialect: widget.dialect,
+                      value: draft.params['beats'] ?? beatsSpec.defaultValue,
+                      onChanged: (v) {
+                        draft.params['beats'] = v;
+                        draft.beatsTouched = true;
+                        widget.onChanged();
+                      },
+                    ),
+                  ],
+                ] else if (def.params.isNotEmpty)
                   _buildParams(context, def),
                 const SizedBox(height: 12),
                 _buildProgressionToggle(context),

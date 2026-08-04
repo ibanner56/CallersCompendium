@@ -52,8 +52,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   beat count per section shown continuously (overflow = inline warning, not
   error). Full entry of a standard dance must be achievable in <1 min without
   the mouse.
-- Custom figure = just typing free text where no move matches; lingo-line
-  feedback (recognized terms underlined, discouraged struck) as you type.
+- Custom figure = just typing free text where no move matches; a beats field
+  sets the figure's duration; lingo-line feedback (recognized terms underlined,
+  discouraged struck) as you type.
 - Figure reordering: drag handle **plus** move-up/down buttons + cut/paste
   (WCAG 2.5.7).
 - **Meanwhile (simultaneous figures)**: a figure row's overflow menu can group
