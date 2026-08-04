@@ -143,8 +143,17 @@ def verify_signatures(root: Path, pubkey_raw: bytes) -> list[tuple[str, str]]:
         if not sig_file.is_file():
             continue  # missing-sig case is handled by check()
 
-        manifest_bytes = json_file.read_bytes()
-        sig_text = sig_file.read_text(encoding="utf-8").strip()
+        try:
+            manifest_bytes = json_file.read_bytes()
+        except OSError as exc:
+            failed.append((json_file.name, f"could not read manifest: {exc}"))
+            continue
+
+        try:
+            sig_text = sig_file.read_text(encoding="utf-8").strip()
+        except (OSError, UnicodeDecodeError) as exc:
+            failed.append((json_file.name, f"could not read signature file: {exc}"))
+            continue
 
         try:
             sig_bytes = base64.b64decode(sig_text, validate=True)

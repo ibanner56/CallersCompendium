@@ -43,7 +43,6 @@ from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
-    Ed25519PublicKey,
 )
 
 HERE = Path(__file__).resolve().parent
