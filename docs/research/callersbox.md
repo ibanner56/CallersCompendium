@@ -669,6 +669,161 @@ qualifier. Top offenders: `circle` 2,251, `star` 1,556, `balance_the_ring`
 28 more moves at lower counts. This is ~9.2x the figure count `chain`/
 `promenade`/`right_left_through` touch — a follow-up issue, not this PR.
 
+> **Superseded as a current figure — kept as the record of what #729
+> measured.** Re-derived under #744 (next section): the corrected count is
+> **9,483**, and `meanwhile` is **not** a contributor — its 642 are containers
+> counted as structured without recursing into their sides.
+
+### Figure-line census: the remaining annotation drop (2026-08-04, issue #744)
+
+Re-derivation of the audit immediately above, on the **local mirror** rather
+than #729's live crawl, with the `meanwhile` recursion the harness caveat at the
+top of this section requires. Measurement only — no parser change accompanies
+this section.
+
+**Population (every figure below shares it).** 24,107 mirror files → 20,516
+parseable records → **11,499** `Permission: full` dances, all of which carry
+figures → **114,900** figure lines → 116,213 top-level figures →
+**118,602 leaf figures** after recursing into `meanwhile` sides, of which
+88,885 are structured and 29,717 custom. This reproduces the 20,516 / 11,499
+denominators stated earlier in this document exactly.
+
+Method: `parseFigureLines(..., frontEnd: tcbFigureFrontEnd)` over every
+extracted line — the same entry point #729 used — with the `(beats)` /
+`(START-END)` prefix stripped first, exactly as `CallersBoxAdapter` does.
+**Stripping the prefix before extracting annotations is load-bearing:**
+`_numericOnly` skips `(4)`, but `5-16` is not numeric-only, so a harness that
+forgets the prefix counts every ranged beat span as a qualifier.
+
+The harness was validated against eight pinned cases whose expected notes are
+fixed by `callersbox_qualifier_annotations_test.dart` before being pointed at
+the corpus; all eight reproduced, and the harness's annotation extractor found
+8/8 bodies in the expected notes.
+
+#### The inherited 9,726 reproduces — but only by counting `meanwhile` wrong
+
+Run in a deliberately **top-level-only** mode (not recursing into `meanwhile`
+sides — the flawed shape this document's harness caveat records as having
+produced "193 → 643"), the audit's own filter yields **9,735** figures across
+40 moves, against the 9,726 / 39 reported above: a **+0.09%** match, with
+`meanwhile` present at **610** against the reported 642. Ten of the eleven named
+contributors land within ±5%. That is strong evidence the earlier audit was
+top-level-only, though it could not be confirmed directly: that harness was
+never committed.
+
+Corrected — recursing into the sides — the same filter yields **9,483**:
+
+| | figures | `meanwhile` |
+|---|---:|---:|
+| reported by #729's audit | 9,726 | 642 |
+| this harness, top-level-only | 9,735 | 610 |
+| this harness, recursive (correct) | **9,483** | **0** |
+
+The −252 decomposes cleanly: 610 `meanwhile` containers leave the count, and
+~358 structured *sides* previously hidden inside containers enter it (`swing`
++78, `allemande` +61, `balance` +47, `star` +34, `down_the_hall` +33). So
+**`meanwhile`, listed as the 6th-largest contributor, is not a contributor at
+all** — on the Caller's Box import path the qualifier necessarily belongs to a
+side. This is the same over-count issue #769 tracks in the coverage metric.
+
+**That last claim depends on one call site, so state it precisely rather than
+structurally.** `Figure.meanwhile` *does* take a `note`
+(`figure.dart:112`), and three construction sites populate it: the ContraDB
+allemande-while-orbit templates (`contradb_figure_dialect.dart:378`,
+`contradb_adapter.dart:481`) and the in-app editor
+(`figure_draft.dart:221`), where a user hand-authoring a meanwhile group can
+give it one. What makes the census's reasoning hold is narrower: the **TCB**
+`||` fan-out (`callersbox_figure_dialect.dart:463`) constructs the container
+with `figures`/`beats`/`progression` and no `note:`, as does the generic
+ContraDB `whiles` fan-out (`contradb_figure_dialect.dart:171`). If a future
+change teaches the TCB fan-out to annotate a container, a dropped qualifier
+could then belong to the container and this section's reasoning would stop
+holding — silently, since nothing tests for it.
+
+Commit `903ebb9f` (#777), which touches the TCB front-end note path and landed
+after #729 measured, was ruled out as a cause: an A/B of this harness at
+`903ebb9f^` and at `cb9556aa` moved **none** of these numbers. The gap is
+population and harness definition, not parser drift.
+
+`swing` is the one contributor that does not reconcile (385 reported, 474
+top-level, 552 recursive). Unexplained — the earlier harness is not available
+to re-run on this population, so population composition and a harness difference
+cannot be told apart.
+
+#### What the dropped qualifiers actually are
+
+18,313 annotation instances on structured leaves outside the six moves that
+already have a pre-recognizer. **This table, not the figure count, is the
+decision-relevant result:**
+
+| shape | instances | dropped | share | example |
+|---|---:|---:|---:|---|
+| TCB shorthand code | 8,236 | 8,232 | **45.0%** | `WR;PL;MR;N2L~`, `M1-W2-M2-W1`, `rh` |
+| dancer / subject | 6,786 | 6,672 | 37.1% | `with N2`, `Ones and twos`, `groups of four` |
+| travel / place | 1,850 | 1,847 | 10.1% | `in center`, `across the set`, `past N` |
+| per-role choreography | 777 | 777 | 4.2% | `W roll R, M side-step L` |
+| free prose | 644 | 643 | 3.5% | `Middle eight`, `Ends` |
+| negating | 7 | 7 | 0.0% | `men do not take hands` |
+| formation restatement | 5 | 5 | 0.0% | `Line of three` |
+| optional / variant | 5 | 5 | 0.0% | `Groups of two or more couples` |
+| timing prose | 3 | 3 | 0.0% | `cross-hand hold` |
+
+**Nearly half is TCB's own machine notation**, which dedicated decoders (the
+`hey` pass list, wave codes) exist to consume rather than surface. A generic
+"preserve every leftover annotation as a note" fallback applied unfiltered would
+paste `wr;pl;mr;nl~` into user-visible notes on ~8,200 figures. The existing
+`_numericOnly` skip inside `_annotations` is the precedent for filtering a shape
+out before it can reach a note.
+
+**The realistic target population is therefore much smaller than 9,483
+figures.** Free prose (644) plus travel/place (1,850) is **2,494 instances,
+13.6%**; adding per-role choreography (777) — `W roll R, M side-step L`, which
+is choreographic content the custom fallback preserves today — gives **3,271,
+17.9%**. The 45.0% shorthand class should not reach a note at all, and the
+37.1% dancer/subject class largely restates what the structured figure already
+encodes, so it needs a keep-or-structure decision before it is counted as
+target.
+
+436 of the dropping figures already carry a note, so any fix must combine rather
+than overwrite — the `_withAnnotationNote` path #729 added.
+
+#### The contradiction class is vanishingly rare at this scale
+
+The negating shape — the `(without courtesy turn)` wording that motivated
+#729, where a preserved note contradicts its own structured figure — is **11
+instances corpus-wide across all moves**, 9 of them currently dropped, 7
+distinct bodies. `without courtesy turn` itself occurs exactly twice, matching
+"this issue's own two example lines" recorded for #729 above. Scaling the
+preserve-everything ruling from 1,061 figures to ~9,500 therefore does **not**
+scale the contradiction risk proportionally.
+
+#### Preservation is per-ANCHOR, not per-move
+
+#729's audit and #744 both exclude six moves as "already preserving": `gate`,
+`courtesy_turn`, `pass_through`, `chain`, `promenade`, `right_left_through`.
+The exclusion is by move; the mechanism is by anchor. `_walkForwardAnnotation`
+is anchored on `walk forward`, "not on `pass_through` as a move" — so a line
+on one of those six reached by a different wording still drops.
+
+Measured: **3,637** annotations on those six moves, **1,168** preserved into the
+note (32.1%), 51 consumed structurally by the gate path's `<dancers> forward`
+→ `whom`, and **2,418 still dropped**. Those 2,418 are overwhelmingly
+shorthand (2,267); only ~151 are prose (116 dancer/subject, 23 free prose, 10
+travel/place, 2 negating). So the excluded set is not clean, but the actionable
+residue inside it is small.
+
+#### Not measured
+
+No before/after import diff is quoted here, because there is no "after": this is
+a measurement, not a change. #729's 0 move-id / 0 beats / 0 custom-flag result
+cannot be carried forward to a differently-shaped fix. A note-only fallback
+cannot alter move ids, beats or custom flags *by construction* — it writes one
+field — but that is an argument from the code's shape, not a measurement, and
+should be measured against the real implementation when one exists.
+
+The harness itself was not committed, so this census is reproducible only by
+rebuilding it — the same gap every earlier census in this document has.
+
 ## Open questions
 
 - Fraction of dances at each permission tier (only a crawl or the maintainers can
