@@ -685,15 +685,19 @@ class _DefaultsView extends StatelessWidget {
         Builder(
           builder: (context) {
             final visibleFields = CollectionTileFieldsScope.of(context);
-            void toggle(CollectionTileField field, bool checked) {
+            Future<void> toggle(CollectionTileField field, bool checked) async {
               final updated = Set.of(visibleFields);
               if (checked) {
                 updated.add(field);
               } else {
                 updated.remove(field);
               }
-              CollectionTileFieldsScope.notifierOf(context).value = updated;
-              RepositoriesScope.of(context).settings.set(
+              // Capture context-dependent objects before the await so
+              // use_build_context_synchronously is satisfied.
+              final notifier = CollectionTileFieldsScope.notifierOf(context);
+              final settings = RepositoriesScope.of(context).settings;
+              notifier.value = updated;
+              await settings.set(
                 kCollectionTileVisibleFieldsKey,
                 updated.map((f) => f.toJson()).toList(),
               );
