@@ -48,6 +48,7 @@ import '../screens/recently_deleted_screen.dart';
 import 'app_shell_search_scope.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
+import 'online_import_variation_dialog.dart';
 
 /// Collection screen: browse and search the dance library
 /// (`docs/design/ux.md` §1). A unified full-text search bar, a one-tap facet
@@ -757,6 +758,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// (dedup-aware). On success it pops the preview route, returning the outcome
   /// to [_pushOnlinePreview], which lands the user on the persisted dance. An
   /// [_importing] guard blocks a rapid double-tap before the commit resolves.
+  ///
+  /// When the service detects a confident title+author match with differing
+  /// figures, it returns [OnlineImportKind.needsConfirmation] without writing
+  /// anything. In that case, this method shows a resolution dialog and retries
+  /// the import with the chosen [DedupeResolution] (issue #797).
   Future<void> _importOnline(OnlinePreview preview) async {
     if (_importing) return;
     _importing = true;
@@ -764,7 +770,33 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final navigator = Navigator.of(context);
     final l10n = AppLocalizations.of(context);
     try {
-      final result = await _online.import(_repos, preview.plan);
+      var result = await _online.import(_repos, preview.plan);
+      if (result.kind == OnlineImportKind.needsConfirmation) {
+        if (!mounted) return;
+        final existingId = result.danceId;
+        // needsConfirmation requires a candidate id — a null here is a service
+        // bug. Assert in debug; silently cancel in release (better than crashing).
+        assert(
+          existingId != null,
+          'needsConfirmation must carry an existing dance id',
+        );
+        if (existingId == null) return;
+        final existingTitle =
+            (await _repos.dances.getById(existingId))?.title ?? result.title;
+        if (!mounted) return;
+        final resolution = await showOnlineImportVariationDialog(
+          context,
+          l10n,
+          existingTitle: existingTitle,
+          existingId: existingId,
+        );
+        if (resolution == null || !mounted) return; // user cancelled
+        result = await _online.import(
+          _repos,
+          preview.plan,
+          ambiguousResolution: resolution,
+        );
+      }
       if (!mounted) return;
       if (result.kind == OnlineImportKind.created) {
         CollectionRefreshScope.bump(context);

@@ -70,9 +70,22 @@ class _FakeService implements OnlineSearchService {
     CompendiumRepositories repos,
     ImportRecordPlan plan, {
     DateTime? now,
+    DedupeResolution? ambiguousResolution,
   }) async {
     final title = plan.draft.dance.title;
     importedTitles.add(title);
+    // Simulate the real service's confident-match detection (#797): when
+    // ambiguousResolution is null and the verdict has a confident candidate,
+    // return needsConfirmation. This lets program-import tests verify the
+    // explicit opt-out behaviour without touching the network.
+    if (ambiguousResolution == null && plan.verdict.hasConfidentMatch) {
+      return OnlineImportResult(
+        kind: OnlineImportKind.needsConfirmation,
+        title: title,
+        danceId: 'local-existing',
+        danceCount: 1,
+      );
+    }
     final prefix = source == OnlineSource.contraDb ? 'cdb' : 'tcb';
     return OnlineImportResult(
       kind: OnlineImportKind.created,
@@ -384,5 +397,51 @@ void main() {
       ),
     );
     expect(requests, 0, reason: 'no request should be sent to a blocked host');
+  });
+
+  // #797: the ContraDB identity-import path must not silently link a program
+  // slot to an existing dance when the service returns needsConfirmation.
+  // Without the explicit ambiguousResolution opt-out in contradb_program_import,
+  // import() is called without a resolution → fake returns needsConfirmation
+  // with danceId='local-existing' (the pre-existing candidate) → code at
+  // result.danceId != null branches to linked(danceId: 'local-existing'),
+  // attaching the slot to a dance it didn't actually import. RED: the slot's
+  // danceId is 'local-existing' (wrong). GREEN: the fix passes
+  // ambiguousResolution: duplicate() → fake bypasses confirmation → returns
+  // created with danceId: 'cdb-tangled yarns' (a newly imported dance).
+  test('#797 program import: confident-match dance is imported as duplicate, '
+      'not silently linked to the pre-existing candidate (red-run)', () async {
+    final repos = openTestRepositories();
+    // confidentTitles causes loadPreview to return a plan with a confident
+    // candidate (danceId: 'local-existing') and causes import() to return
+    // needsConfirmation when no ambiguousResolution is supplied.
+    final contraDb = _FakeService(
+      OnlineSource.contraDb,
+      confidentTitles: {'tangled yarns'},
+    );
+    final callersBox = _FakeService(OnlineSource.callersBox);
+
+    final resolved = await resolveContraDbProgram(
+      _program([
+        ContraDbProgramActivity.dance(danceId: '42', title: 'Tangled Yarns'),
+      ]),
+      contraDb: contraDb,
+      callersBox: callersBox,
+      repos: repos,
+    );
+
+    // The slot must be linked to the actually-imported dance, not to the
+    // pre-existing candidate ('local-existing'). Without the fix the call
+    // site receives needsConfirmation, reads danceId='local-existing', and
+    // links there — this assertion catches that.
+    expect(
+      resolved.single.danceId,
+      isNot('local-existing'),
+      reason: 'program import must not silently attach to pre-existing dance',
+    );
+    expect(
+      resolved.single.resolution,
+      ContraDbActivityResolution.linkedContraDb,
+    );
   });
 }

@@ -94,6 +94,13 @@ enum OnlineImportKind {
 
   /// The exact online dance was already imported before; nothing written.
   alreadyInCollection,
+
+  /// A confident title+author match exists in the collection with differing
+  /// figures; nothing was written. The caller must show a resolution dialog
+  /// and retry [OnlineSearchService.import] with [ambiguousResolution] set
+  /// (issue #797). [OnlineImportResult.danceId] holds the existing dance's id
+  /// so the dialog can display its title.
+  needsConfirmation,
 }
 
 /// Outcome of [OnlineSearchService.import].
@@ -110,7 +117,11 @@ class OnlineImportResult {
 
   /// Id of the imported dance for [OnlineImportKind.created], or the id of the
   /// existing matching dance for [OnlineImportKind.alreadyInCollection] when it
-  /// can be resolved. `null` when no dance id is available.
+  /// can be resolved, or the **existing** dance's id for
+  /// [OnlineImportKind.needsConfirmation] — a dance the user already has that
+  /// is a confident match. Under `needsConfirmation` nothing has been written;
+  /// the id identifies what to resolve *against*, not what was imported.
+  /// `null` when no dance id is available.
   final String? danceId;
 
   /// Number of dances this import created or matched. Always `1` for the
@@ -166,9 +177,15 @@ abstract interface class OnlineSearchService {
   });
 
   /// Commits [plan] into the local collection (dedup-aware, single dance).
+  ///
+  /// Returns [OnlineImportKind.needsConfirmation] without writing anything
+  /// when a confident title+author match already exists with differing figures
+  /// and no [ambiguousResolution] has been supplied. The caller must show a
+  /// resolution dialog and retry with [ambiguousResolution] set (issue #797).
   Future<OnlineImportResult> import(
     CompendiumRepositories repos,
     ImportRecordPlan plan, {
     DateTime? now,
+    DedupeResolution? ambiguousResolution,
   });
 }

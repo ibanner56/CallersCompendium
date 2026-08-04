@@ -20,7 +20,21 @@ String onlineSourceAttribution(AppLocalizations l10n, OnlineSource source) =>
 /// source so imports are reported identically. The dance [title] is an
 /// untrusted external value; it flows through a gen-l10n placeholder and is
 /// rendered as plain text by the caller's `Text` widget.
+///
+/// [OnlineImportKind.needsConfirmation] must never reach this function — every
+/// call site is responsible for intercepting it and showing a resolution dialog
+/// before calling this function with the final result. This is enforced by the
+/// [StateError] below; a call site that forgets to intercept will fail loudly
+/// rather than silently showing "imported" when nothing was written.
 String onlineImportMessage(AppLocalizations l10n, OnlineImportResult result) =>
-    result.kind == OnlineImportKind.alreadyInCollection
-    ? l10n.onlineImportAlreadyInCollection(result.title)
-    : l10n.onlineImportCreated(result.title);
+    switch (result.kind) {
+      OnlineImportKind.alreadyInCollection =>
+        l10n.onlineImportAlreadyInCollection(result.title),
+      OnlineImportKind.created => l10n.onlineImportCreated(result.title),
+      OnlineImportKind.needsConfirmation => throw StateError(
+        'onlineImportMessage reached with needsConfirmation for '
+        '"${result.title}". The call site must intercept '
+        'OnlineImportKind.needsConfirmation and show a resolution dialog '
+        'before passing the final result to this function.',
+      ),
+    };

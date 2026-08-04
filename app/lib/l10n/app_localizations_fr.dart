@@ -3183,6 +3183,24 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String onlineImportVariationDialogBody(String existingTitle) {
+    return 'This dance\'s title and caller match \"$existingTitle\", but its figures are different. How do you want to import it?';
+  }
+
+  @override
+  String get onlineImportVariationDialogActionVariation =>
+      'Import as a variation';
+
+  @override
+  String get onlineImportVariationDialogActionLink =>
+      'Same dance (update existing)';
+
+  @override
+  String onlineImportVariationDialogLinkWarning(String existingTitle) {
+    return 'Your edits, tags, and rating for \"$existingTitle\" will be replaced.';
+  }
+
+  @override
   String get onlineAttributionCallersBox =>
       'Depuis The Caller\'s Box (en ligne)';
 

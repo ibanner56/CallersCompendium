@@ -394,6 +394,190 @@ void main() {
     });
   });
 
+  // Issue #797: confident title+author match with differing figures should
+  // not silently create a duplicate on the quick-import path.
+  group('CallersBoxOnline.import — confident-match detection (#797)', () {
+    final now = DateTime.utc(2024, 1, 1);
+
+    /// Create an existing dance in repos with a specific figure and optional
+    /// rating. Uses figures whose canonical keys differ from the draft figures
+    /// in [_conflictPlan] so the detection block fires.
+    Future<Dance> seedDance(CompendiumRepositories repos, {int? rating}) async {
+      final dance = Dance(
+        id: 'existing-001',
+        title: 'Tangled Yarns',
+        form: DanceForm.contra,
+        formation: const Formation(FormationShape.dupleImproper),
+        status: DanceStatus.active,
+        figures: [customFigure('neighbors balance and swing')],
+        hook: '',
+        rating: rating,
+        createdAt: now,
+        updatedAt: now,
+      );
+      await repos.dances.create(dance);
+      return dance;
+    }
+
+    /// A plan with an ambiguous+confident verdict pointing at [candidateId],
+    /// carrying [figures] as the incoming draft's figure list.
+    ImportRecordPlan ambiguousPlan({
+      required String candidateId,
+      required List<Figure> figures,
+    }) {
+      final draft = StructuredDraft(
+        dance: Dance(
+          id: 'draft-001',
+          title: 'Tangled Yarns',
+          form: DanceForm.contra,
+          formation: const Formation(FormationShape.dupleImproper),
+          status: DanceStatus.active,
+          figures: figures,
+          hook: '',
+          createdAt: now,
+          updatedAt: now,
+        ),
+        raw: const RawRecord(
+          source: ProvenanceSource.callersbox,
+          externalId: '99999',
+          payload: '{}',
+        ),
+      );
+      return ImportRecordPlan(
+        draft: draft,
+        verdict: DedupeVerdict.ambiguous([
+          DedupeCandidate(danceId: candidateId, score: 0.95, confident: true),
+        ]),
+      );
+    }
+
+    test(
+      'confident match + differing figures: nothing written (red-run)',
+      () async {
+        // RED on origin/main: import() calls DedupeResolution.duplicate() and
+        // creates a second dance → hasLength(2). GREEN with fix: import()
+        // returns needsConfirmation and writes nothing → hasLength(1).
+        final repos = openTestRepositories();
+        final existing = await seedDance(repos);
+
+        final plan = ambiguousPlan(
+          candidateId: existing.id,
+          figures: [customFigure('partners balance and swing')], // different
+        );
+        await CallersBoxOnline().import(repos, plan);
+
+        final saved = await repos.dances.listAll();
+        expect(saved, hasLength(1));
+      },
+    );
+
+    test(
+      'confident match + variation resolution: new dance created, existing unchanged',
+      () async {
+        // "Import as a variation" is the headline path from #797 — the reporter
+        // ended up with two copies because the importer created a duplicate
+        // silently. Variation is the opt-in form of that: a second dance is
+        // created, but the existing one is left intact (id, tags, rating all
+        // preserved). This is the mirror of the link test, which documents the
+        // deliberate data-loss; here there is no data-loss on the existing dance.
+        final repos = openTestRepositories();
+        final existing = await seedDance(repos, rating: 4);
+
+        final plan = ambiguousPlan(
+          candidateId: existing.id,
+          figures: [customFigure('partners balance and swing')], // different
+        );
+        final result = await CallersBoxOnline().import(
+          repos,
+          plan,
+          ambiguousResolution: DedupeResolution.variation(
+            existing.id,
+            linkBack: true,
+          ),
+          now: now,
+        );
+
+        // A new dance was created (the variation).
+        expect(result.kind, OnlineImportKind.created);
+        final saved = await repos.dances.listAll();
+        expect(saved, hasLength(2));
+        // The existing dance is unchanged — id, rating all intact.
+        final unchanged = await repos.dances.getById(existing.id);
+        expect(unchanged, isNotNull);
+        expect(unchanged!.rating, 4); // not overwritten
+      },
+    );
+
+    test(
+      'confident match + link resolution: preserves dance id, overwrites user data',
+      () async {
+        // Documents the intentional data-loss: link overwrites the existing
+        // dance's fields (rating, figures, etc.) with the incoming draft.
+        // The dance id is preserved so program-slot calling history still
+        // references the same dance (call history is derived, not stored on
+        // the dance record).
+        final repos = openTestRepositories();
+        final existing = await seedDance(repos, rating: 4);
+
+        final plan = ambiguousPlan(
+          candidateId: existing.id,
+          figures: [customFigure('partners balance and swing')], // different
+        );
+        await CallersBoxOnline().import(
+          repos,
+          plan,
+          ambiguousResolution: DedupeResolution.link(existing.id),
+          now: now,
+        );
+
+        // Dance id is preserved (program slots continue to reference it).
+        final updated = await repos.dances.getById(existing.id);
+        expect(updated, isNotNull);
+        // Rating was overwritten by the incoming draft (which carries none).
+        expect(updated!.rating, isNull);
+      },
+    );
+
+    test(
+      'confident match + identical figures: creates duplicate (no prompt — regression)',
+      () async {
+        // Acceptance criteria: "exact match keeps today's behaviour" — identical
+        // figures bypass the detection block; the duplicate is created silently.
+        final repos = openTestRepositories();
+        final existing = await seedDance(repos);
+
+        final plan = ambiguousPlan(
+          candidateId: existing.id,
+          figures: [customFigure('neighbors balance and swing')], // SAME
+        );
+        await CallersBoxOnline().import(repos, plan);
+
+        // A second dance was created (existing behavior, unchanged).
+        final saved = await repos.dances.listAll();
+        expect(saved, hasLength(2));
+      },
+    );
+
+    test(
+      'confident match but candidate absent from repos: falls through to duplicate (regression)',
+      () async {
+        // If the candidate dance has been deleted from repos, the detection
+        // block is bypassed and the import falls through to duplicate().
+        final repos = openTestRepositories();
+
+        final plan = ambiguousPlan(
+          candidateId: 'nonexistent-dance-id',
+          figures: [customFigure('partners balance and swing')],
+        );
+        await CallersBoxOnline().import(repos, plan);
+
+        // One new dance created (fell through to duplicate behavior).
+        final saved = await repos.dances.listAll();
+        expect(saved, hasLength(1));
+      },
+    );
+  });
+
   group('onlineImportMessage', () {
     test('created vs already-in-collection wording', () async {
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
