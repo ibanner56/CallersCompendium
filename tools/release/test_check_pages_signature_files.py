@@ -74,7 +74,14 @@ def _run_main(args: list[str]) -> tuple[int, str, str]:
         try:
             rc = check_pages_signature_files.main(args)
         except SystemExit as exc:
-            rc = exc.code if isinstance(exc.code, int) else 2
+            if not isinstance(exc.code, int):
+                raise AssertionError(
+                    f"check_pages_signature_files exited with a non-int code "
+                    f"({exc.code!r}); the checker's documented contract is "
+                    f"exit 0 (all good), 1 (failures), or 2 (fatal error). "
+                    f"A bare sys.exit() violates that contract."
+                ) from exc
+            rc = exc.code
     return rc, buf_out.getvalue(), buf_err.getvalue()
 
 
