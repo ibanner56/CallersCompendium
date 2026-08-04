@@ -433,4 +433,122 @@ void main() {
       expect(fs.single.params['beats'], 6);
     });
   });
+
+  group('TCB combined-note agreement with import path (#777)', () {
+    test('chain clause-note: import and entry agree on combined note (#734+#777)', () {
+      // 'Ladies chain to partner; face down' — TCB splits on `;` and combines
+      // the recognizer note ('to partner') with the clause note ('face down')
+      // via combineFigureNotes, producing note='to partner; face down'.
+      // Before #777's fix _classify demoted that result to none (note had `; `),
+      // and ContraDB's non-splitting attempt produced the same note and was also
+      // demoted — both paths went to none and the fan-out fell back to custom.
+      // After the fix the TCB result is accepted (TCB is exempt from the check).
+      const line = 'Ladies chain to partner; face down';
+      final importResult = parseFigureLines(line, frontEnd: tcbFigureFrontEnd);
+      final entryResult = parseFigureLinesFanOut(line);
+
+      expect(importResult, hasLength(1));
+      expect(importResult.single.isCustom, isFalse);
+      expect(importResult.single.move, 'chain');
+      expect(importResult.single.note, 'to partner; face down');
+
+      // The entry path must agree — structured, same move, same note.
+      expect(entryResult, hasLength(1));
+      expect(entryResult.single.isCustom, isFalse);
+      expect(entryResult.single.move, importResult.single.move);
+      expect(entryResult.single.note, importResult.single.note);
+    });
+
+    test('promenade bracket+annotation: import and entry agree (#740+#777)', () {
+      // '[Ones and twos] Partner promenade across (without courtesy turn)' —
+      // TCB's _promenadeAnnotation joins both annotations with _joinAnnotations
+      // into note='Ones and twos; without courtesy turn'. ContraDB cannot
+      // structure the bracketed subject and degrades to custom; TCB's result
+      // was also demoted by _noteSwallowedCompound (note had `; `) on origin/main,
+      // making the fan-out return custom. After the fix TCB is accepted.
+      const line =
+          '[Ones and twos] Partner promenade across (without courtesy turn)';
+      final importResult = parseFigureLines(line, frontEnd: tcbFigureFrontEnd);
+      final entryResult = parseFigureLinesFanOut(line);
+
+      expect(importResult.single.isCustom, isFalse);
+      expect(importResult.single.move, 'promenade');
+      expect(importResult.single.note, 'Ones and twos; without courtesy turn');
+
+      expect(entryResult.single.isCustom, isFalse);
+      expect(entryResult.single.move, importResult.single.move);
+      expect(entryResult.single.note, importResult.single.note);
+    });
+
+    test('non-TCB front-end: ;-note demoted by guard, custom fallback returned '
+        '(#777)', () {
+      // Use a stub (non-tcbFigureFrontEnd) whose pre-recognizer always returns
+      // a swing figure carrying a top-level ';' in the note. _classify calls
+      // _noteSwallowedCompound, which fires → _AttemptTier.none. A second stub
+      // that always MISSES supplies the custom fallback (shared recognizers
+      // produce an import-gap custom for the sentinel, which is an unrecognised
+      // nonsense word).
+      //
+      // This test goes RED when the guard is disabled for ALL front-ends
+      // (e.g. `if (false && !identical(frontEnd, tcbFigureFrontEnd) && …)` in
+      // _classify): the note-bearing swing slips through as noteBearing and
+      // f.isCustom is false.  The reverse mutation — dropping the
+      // `!identical(frontEnd, tcbFigureFrontEnd)` exemption so the guard fires
+      // for every front-end — is pinned by the two TCB combined-note tests above,
+      // which go RED under that mutation.
+      final f = parseFigureLineFanOut(
+        sentinel,
+        frontEnds: [
+          _stub(
+            'has; separator',
+            when: _always,
+          ), // fires _noteSwallowedCompound → none
+          _stub(
+            'irrelevant',
+            when: _never,
+          ), // misses → custom fallback from shared recognizers
+        ],
+      );
+      expect(f, isNotNull);
+      expect(
+        f!.isCustom,
+        isTrue,
+      ); // guard rejected the note-bearing swing result
+    });
+    test('annotation-borne || in TCB note: import and entry agree (#777)', () {
+      // 'Partner promenade across (a || b)' — the || is inside parens, so
+      // _splitTopLevel ignores it; meanwhileFromDoublePipe never sees it.
+      // TCB's _promenadeAnnotation preserves the bracketed text as-is, producing
+      // note='a || b'.  _noteSwallowedCompound fires on that note (top-level ||
+      // after the note field is examined), but the TCB exemption skips the check.
+      // On origin/main (no exemption) the import path still returned
+      // promenade with note='a || b' — parseFigureLines never calls _classify,
+      // so the guard can't reach it. The entry path (parseFigureLinesFanOut)
+      // returned custom; the exemption restores agreement between them.
+      const line = 'Partner promenade across (a || b)';
+      final importResult = parseFigureLines(line, frontEnd: tcbFigureFrontEnd);
+      final entryResult = parseFigureLinesFanOut(line);
+
+      expect(importResult.single.isCustom, isFalse);
+      expect(importResult.single.move, 'promenade');
+      expect(importResult.single.note, 'a || b');
+
+      expect(entryResult.single.isCustom, isFalse);
+      expect(entryResult.single.move, importResult.single.move);
+      expect(entryResult.single.note, importResult.single.note);
+    });
+    test('TCB oversized-|| line is custom — isCustom guard fires before note '
+        'check (#777)', () {
+      // kMaxMeanwhileSides = 6; 7 sides decline meanwhileFromDoublePipe.
+      // _attemptLine falls back to parseFigureLine on the raw '||'-bearing text;
+      // no recogniser structures it → custom figure.  _classify's first check
+      // (result.any((f) => f.isCustom)) short-circuits before
+      // _noteSwallowedCompound — the TCB exemption is inert for ||.
+      final result = parseFigureLineFanOut(
+        'Balance || Swing || Allemande || Star || Circle || Dosado || Chain',
+        frontEnds: [tcbFigureFrontEnd],
+      );
+      expect(result?.isCustom, isTrue);
+    });
+  });
 }

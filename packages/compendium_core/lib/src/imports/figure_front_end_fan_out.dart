@@ -44,30 +44,69 @@ enum _AttemptTier {
   /// Non-empty, every figure structured (non-custom), and none carries a note.
   clean,
 
-  /// Structured, but at least one figure carries a note whose text does NOT
-  /// contain a top-level `;`/`||` — an acceptable last-resort structuring.
+  /// Structured, but at least one figure carries a note — an acceptable
+  /// last-resort structuring. Notes built by [combineFigureNotes] /
+  /// `_joinAnnotations` (e.g. a `chain`'s recognizer note joined to a
+  /// qualifier annotation) legitimately contain `'; '` as a combiner; the
+  /// [none] demotion for a `;`/`||`-containing note only fires for
+  /// **all non-TCB** front-ends — for those, a `;`/`||` in a produced note
+  /// may indicate absorbed `;`-compound or simultaneity source syntax.
   noteBearing,
 
   /// Not a usable structured win: either custom/empty, OR a structured parse
-  /// whose captured note swallowed a top-level `;`/`||`. The latter means a
-  /// non-splitting front-end absorbed compound (`;`) or simultaneity (`||`)
-  /// syntax it must not represent as one figure, so it is rejected here and the
-  /// line is left to the TCB splitter / custom fallback.
+  /// from a **non-TCB** front-end (ContraDB, CallersCompanion) whose
+  /// captured note swallowed a top-level `;`/`||`. The latter means the
+  /// front-end absorbed compound (`;`) or simultaneity (`||`) syntax it must
+  /// not represent as one figure, so it is rejected here and the line is left
+  /// to the TCB splitter / custom fallback.
+  ///
+  /// [tcbFigureFrontEnd] is exempt from the swallow check because it already
+  /// handles top-level `;`/`||` splitting before producing any note. A `||`
+  /// inside brackets can still appear in a TCB note as literal annotation text
+  /// (it is caller text, not simultaneity syntax) — see [_classify] for the
+  /// full account.
   none,
 }
 
 /// Whether [note] carries a top-level (bracket-depth-0) `;` or `||` — the
-/// TCB-dialect compound/simultaneity separators. A captured note containing one
-/// means the front-end swallowed multi-figure/simultaneity syntax as a single
-/// figure's note, which must never count as a clean structuring.
+/// TCB-dialect compound/simultaneity separators. Applied to results from
+/// **all non-TCB** front-ends (ContraDB, CallersCompanion): a captured note
+/// from those containing one may indicate the front-end absorbed `;`-compound
+/// or simultaneity source syntax that must not appear in a single figure's note.
+///
+/// [tcbFigureFrontEnd] results are exempt — see [_classify].
 bool _noteSwallowedCompound(String? note) =>
     note != null &&
     (hasTopLevelSeparator(note, '||') || hasTopLevelSeparator(note, ';'));
 
 /// Classifies a fan-out attempt [result] into an [_AttemptTier].
-_AttemptTier _classify(List<Figure> result) {
+///
+/// [frontEnd] identifies which front-end produced [result]. When it is
+/// [tcbFigureFrontEnd], the [_noteSwallowedCompound] check is skipped: the TCB
+/// front-end already splits on `;` (via `parseFigureLines`) and on `||` (via
+/// `meanwhileFromDoublePipe`) before producing any figure, so a `'; '` in its
+/// output is a deliberately-constructed joiner from `combineFigureNotes` /
+/// `_joinAnnotations` — not a sign that compound source syntax was absorbed.
+/// A top-level `||` from the raw line never demotes a structured TCB result:
+/// when [meanwhileFromDoublePipe] accepts (≤ `kMaxMeanwhileSides` well-formed
+/// sides), every top-level `||` becomes a [Figure.meanwhile] container. When
+/// it declines, [_attemptLine] falls back to [parseFigureLine] on the raw
+/// text; the `||`-bearing line is unrecognised, the result is a custom figure,
+/// and `_classify`'s `result.any((f) => f.isCustom)` check fires before the
+/// note check applies. A `||` inside `(...)`/`[...]` is different: it is
+/// invisible to `_splitTopLevel` and CAN appear in a TCB note as literal
+/// annotation text — deliberately exempted here, since a `||` inside brackets
+/// is caller text, not simultaneity syntax. For all other front-ends the
+/// check is applied as before — ContraDB and CallersCompanion do not split on
+/// `;`, so a top-level `;`/`||` in their note still means the front-end absorbed
+/// compound/simultaneity source syntax it must not represent as one figure.
+_AttemptTier _classify(
+  List<Figure> result, {
+  required FigureFrontEnd frontEnd,
+}) {
   if (result.isEmpty || result.any((f) => f.isCustom)) return _AttemptTier.none;
-  if (result.any((f) => _noteSwallowedCompound(f.note))) {
+  if (!identical(frontEnd, tcbFigureFrontEnd) &&
+      result.any((f) => _noteSwallowedCompound(f.note))) {
     return _AttemptTier.none;
   }
   return result.any((f) => f.note != null)
@@ -200,10 +239,13 @@ Figure? _attemptLine(
 ///   remainder into a note (e.g. TCB's `swing{prefix: balance}` is taken over
 ///   ContraDB's bare `balance` + `"and swing"` note);
 /// - failing any clean parse, the highest-precedence NOTE-BEARING structured
-///   figure is returned (a legitimate ContraDB note-tail such as an allemande's
-///   `- don't let go`), UNLESS its note swallowed a top-level `;`/`||` — that is
-///   compound/simultaneity syntax a single figure must not absorb, so it is
-///   rejected in favour of custom;
+///   figure is returned (e.g. a legitimate ContraDB note-tail such as an
+///   allemande's `- don't let go`), UNLESS it came from a non-TCB
+///   front-end (ContraDB, CallersCompanion) whose note swallowed a top-level
+///   `;`/`||` — compound/simultaneity syntax a single figure must not absorb,
+///   so it is rejected in favour of custom. [tcbFigureFrontEnd] is exempt: its
+///   note-bearing results are always accepted because its own splitters run
+///   before any note is built;
 /// - failing any structured parse, the custom fallback is returned.
 ///   [parseFigureLine]'s custom fallback uses the UN-normalized scrubbed text,
 ///   so it is byte-identical across all front-ends; the first front-end's custom
@@ -239,7 +281,7 @@ Figure? parseFigureLineFanOut(
     );
     // Empty after scrubbing is front-end-independent: nothing to store.
     if (parsed == null) return null;
-    switch (_classify([parsed])) {
+    switch (_classify([parsed], frontEnd: fe)) {
       case _AttemptTier.clean:
         // Highest-precedence clean parse: nothing lower can beat it.
         return parsed;
@@ -267,9 +309,12 @@ Figure? parseFigureLineFanOut(
 ///   whole by a higher-precedence front-end that would capture the `;`-tail as a
 ///   single figure's note;
 /// - failing any clean attempt, the highest-precedence NOTE-BEARING attempt
-///   wins, UNLESS its note swallowed a top-level `;`/`||` (compound/simultaneity
-///   syntax) — such an attempt is rejected so the line stays custom (a top-level
-///   `||` therefore never structures);
+///   wins, UNLESS it came from a non-TCB front-end (ContraDB,
+///   CallersCompanion) whose note swallowed a top-level `;`/`||`
+///   (compound/simultaneity syntax that the front-end absorbed instead of
+///   splitting) — such an attempt is rejected so the line stays custom.
+///   [tcbFigureFrontEnd] is exempt: its note-bearing results are always
+///   accepted because its own splitters run before any note is built;
 /// - failing any structured attempt, the custom fallback is returned. Every
 ///   front-end's failing attempt collapses to the SAME single whole-line custom
 ///   (identical un-normalized scrubbed text, beats, progression, and
@@ -303,7 +348,7 @@ List<Figure> parseFigureLinesFanOut(
     );
     // Empty after scrubbing is front-end-independent: nothing to insert.
     if (result.isEmpty) return const [];
-    switch (_classify(result)) {
+    switch (_classify(result, frontEnd: fe)) {
       case _AttemptTier.clean:
         return result;
       case _AttemptTier.noteBearing:
