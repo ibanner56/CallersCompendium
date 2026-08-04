@@ -25,7 +25,7 @@ Non-goals for v1: user accounts, choreography validation (developed
 separately; planned for a later milestone), authoring/publishing back to online sources.
 
 Cloud sync was a v1 non-goal and is now **designed** — see
-[ADR-004](adr/004-device-sync-and-athenaeum.md), which specifies **Sync** and the
+[ADR-004](adr/004-device-sync-and-athenaeum.md), which specifies **Device Sync** and the
 **Athenaeum** sync store. It remains unbuilt, and it keeps the properties the
 original non-goal was protecting: no user accounts, no sign-in, nothing we host
 surviving 30 days of disuse, and no venue address or contact data ever reaching

@@ -1,4 +1,4 @@
-# ADR-004: Sync, and the Athenaeum sync store
+# ADR-004: Device Sync, and the Athenaeum sync store
 
 - **Status**: Proposed
 - **Roadmap item**: Amends the v1 non-goals list in `docs/ROADMAP.md` (removing
@@ -46,7 +46,7 @@ records, for every persisted field, what kind of data it is, whose data it is,
 and whether it may leave the device — enforced by CI ratchets and rendered to
 [data-classification.md](../dev/data-classification.md).
 
-**That registry is the precondition for this design.** Sync does not get its own
+**That registry is the precondition for this design.** Device Sync does not get its own
 allow-list; it reads `EgressClass` and carries exactly what is marked
 `shareable`. A field added without classification fails CI, so it can never
 reach the network by omission.
@@ -73,17 +73,17 @@ These bound every option below.
 
 ## Decision
 
-Ship **Sync**, backed by a store called **Athenaeum**.
+Ship **Device Sync**, backed by a store called **Athenaeum**.
 
-**Sync is off by default on every installation.** Nothing is configured, no
+**Device Sync is off by default on every installation.** Nothing is configured, no
 endpoint is contacted and no device ID is minted until a user opts in. The app
 that has not opted in makes no sync-related network call at all — so "works fully
 offline, phones home to nobody" stays true by construction for everyone who never
-turns it on, rather than being a promise about our conduct. Sync gets its **own
+turns it on, rather than being a promise about our conduct. Device Sync gets its **own
 top-level Settings blade**, because it is the one feature that sends a
 collection off the device and should be surfaced at the level of that decision.
 
-*Sync* is the feature; *Athenaeum* is the service it talks to. The default
+*Device Sync* is the feature; *Athenaeum* is the service it talks to. The default
 endpoint is `https://athenaeum.callerscompendium.com/`, shown **un-abstracted as
 a URL in Settings** and editable, so pointing at your own server is a visible
 first-class option rather than a hidden one.
@@ -520,7 +520,7 @@ makes self-hosting materially harder, which constraint 4 forbids.
 - **A bearer credential has no recovery and no revocation.** Lose the ID and the
   store is unreachable; leak it and the only remedy is to move to a new ID on
   every device.
-- **Sync is not backup.** With a 30-day-of-disuse TTL the store is a relay with
+- **Device Sync is not backup.** With a 30-day-of-disuse TTL the store is a relay with
   a grace period, not an archive. The file backup remains the recovery path and the UI
   must say so.
 - **30 days of disuse is a liveness requirement on the user.** A caller who does not open
@@ -583,7 +583,7 @@ makes self-hosting materially harder, which constraint 4 forbids.
   devices arrives twice. Deduplicating them would need the fuzzy matching the
   import pipeline uses, which is deferred.
 - **A deletion can still resurrect across a long absence.** Tombstone retention
-  is floored at the sync window while Sync is enabled, which covers the ordinary
+  is floored at the sync window while Device Sync is enabled, which covers the ordinary
   case. A device offline for longer than that returns to a fresh attach, where
   union is additive and no tombstone survives anywhere to contradict it. There is
   no fix inside this design that does not amount to unbounded tombstone
@@ -612,7 +612,7 @@ makes self-hosting materially harder, which constraint 4 forbids.
   log keeps its identifier for 30 days and then **degrades to a timestamp-only
   row**, preserving "an access occurred on this date" as a non-linkable aggregate
   while the linkable part expires on the same schedule as everything else.
-- **Export compliance is unchanged, and was checked rather than assumed.** Sync
+- **Export compliance is unchanged, and was checked rather than assumed.** Device Sync
   adds no new cryptographic *category*: TLS is OS-provided, SHA-256 content
   addressing is hashing, and the binary already ships both plus Ed25519 for
   update-signature verification. `ITSAppUsesNonExemptEncryption = false` remains
@@ -636,7 +636,7 @@ makes self-hosting materially harder, which constraint 4 forbids.
 `site/privacy/index.html` both state that "there is no cloud sync" and that "we
 have no servers that receive or hold your content", and both app store listings
 link to it. Both files must be amended together, with the effective date bumped,
-**before Sync ships**. This is a prerequisite of shipping, not of this ADR.
+**before Device Sync ships**. This is a prerequisite of shipping, not of this ADR.
 
 ## Revisit triggers
 

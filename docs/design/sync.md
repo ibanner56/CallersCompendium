@@ -1,4 +1,4 @@
-# Design: Sync and the Athenaeum protocol
+# Design: Device Sync and the Athenaeum protocol
 
 > **Decision record:** [ADR-004](../adr/004-device-sync-and-athenaeum.md).
 > That ADR decides *what* we build and why; this document specifies *how*. If
@@ -10,8 +10,8 @@
 
 | Term | Meaning |
 | --- | --- |
-| **Sync** | The user-facing feature. |
-| **Athenaeum** | The store Sync talks to. Default `https://athenaeum.callerscompendium.com/`; user-editable. |
+| **Device Sync** | The user-facing feature. |
+| **Athenaeum** | The store Device Sync talks to. Default `https://athenaeum.callerscompendium.com/`; user-editable. |
 | **sync ID** | Diceware passphrase identifying one store. A bearer credential. |
 | **device ID** | Random v4 UUID minted per installation, on opt-in. Classified `deviceScoped` — it is never synced as a record — while the same string travels in manifest envelopes and request paths as an opaque routing key. See "what `EgressClass` actually governs". |
 | **epoch** | Opaque 128-bit random value the server stamps on a sync ID at creation. |
@@ -22,7 +22,7 @@
 
 ## What travels
 
-Sync holds no allow-list. It reads `EgressClass` from
+Device Sync holds no allow-list. It reads `EgressClass` from
 [`field_registry.dart`][registry] and
 [`settings_registry.dart`][settings], the same source of truth the CI ratchets
 enforce and [data-classification.md](../dev/data-classification.md) renders.
@@ -102,7 +102,7 @@ So a sync implementation that reaches for `encodeArchive` and uploads the result
 would ship precisely the data this feature exists to keep off our
 infrastructure — and it would look completely reasonable in review.
 
-Sync therefore serialises through a **classification-filtered** path that
+Device Sync therefore serialises through a **classification-filtered** path that
 consults `EgressClass` per field, and the property test named under Testing
 exists specifically to catch a regression here. The server's generated
 allow-list is the second line; neither is sufficient alone, because the client
@@ -134,9 +134,9 @@ So: `device_id` is classified `deviceScoped` and never appears in a blob. The
 same string appears in manifest envelopes and request paths as an opaque routing
 key. Both statements are true and they are about different things.
 
-### Sync's own configuration never syncs
+### Device Sync's own configuration never syncs
 
-Every settings key Sync introduces is `deviceScoped`:
+Every settings key Device Sync introduces is `deviceScoped`:
 
 | Key | Why it must not travel |
 | --- | --- |
@@ -152,7 +152,7 @@ The rule is simple enough to state as one: **sync configuration is never itself
 synced.** Anything else is a bootstrapping paradox at best and a redirection
 vector at worst.
 
-**Sync also introduces persisted state that is not a settings key**, and the
+**Device Sync also introduces persisted state that is not a settings key**, and the
 repository requires everything persisted to be classified in the PR that adds
 it:
 
@@ -198,7 +198,7 @@ A blob is the record as the existing archive codec emits it, restricted to
 - `body` — archive-codec output for the record, `shareable` fields only.
 
 Reusing the archive codec matters: it is already hardened (bounded, clamping,
-parse-never-fails) and already round-trip tested. Sync must not grow a second
+parse-never-fails) and already round-trip tested. Device Sync must not grow a second
 serialiser.
 
 ### Settings records
@@ -269,16 +269,16 @@ Three reasons, and the third is the one that matters most:
    with its own fixture and red-run proof — rather than as one commit inside a
    large feature.
 2. **It is independently sensible.** A modification timestamp on settings is
-   defensible on its own terms; nothing about it presumes Sync ships, so nothing
+   defensible on its own terms; nothing about it presumes Device Sync ships, so nothing
    is wasted if the programme stalls.
 3. **It defuses the one-time ordering effect.** The known wart is that each
    device stamps `updated_at` at *its own* migration time, so the device that
    upgrades last wins every settings conflict on first sync. That is only true
    while the stamps still reflect *migration order*. Ship v22 early and users
    spend the intervening releases actually changing settings — and every real
-   change overwrites the migration stamp with a genuine one. By the time Sync
+   change overwrites the migration stamp with a genuine one. By the time Device Sync
    arrives, `updated_at` largely reflects real recency, which is what the
-   conflict rule assumes. Ship it *with* Sync and every device syncs for the
+   conflict rule assumes. Ship it *with* Device Sync and every device syncs for the
    first time carrying stamps that mean nothing but "when I upgraded".
 
 The gap between the two releases is doing the work here, so earlier is strictly
@@ -422,13 +422,13 @@ failure: surfaced to the user, logged, never silently retried.
 
 ### Off by default
 
-**Sync is disabled on every installation until the user turns it on.** No sync
+**Device Sync is disabled on every installation until the user turns it on.** No sync
 setting is populated, no endpoint is contacted, no device ID is minted. An app
-that has never been configured for Sync makes no sync-related network call of any
+that has never been configured for Device Sync makes no sync-related network call of any
 kind, which keeps "the app works fully offline and phones home to nobody" true by
 construction for every user who does not opt in — not merely true by policy.
 
-Sync gets its **own top-level blade in Settings**, not a row buried under
+Device Sync gets its **own top-level blade in Settings**, not a row buried under
 General. It is the one feature that sends a user's collection off the device, so
 it is surfaced at the same level as the decision it represents, showing the
 endpoint URL, the sync ID, paired-device count and last-sync status in one place.
@@ -464,7 +464,7 @@ hold different ids for it, so union alone yields duplicates.
 Everything else that the existing `DedupeIndex` flags goes to the review queue,
 through the import pipeline's plan → review → commit flow.
 
-Sync **calls** `_choreographyEquals` rather than reimplementing it. Two
+Device Sync **calls** `_choreographyEquals` rather than reimplementing it. Two
 definitions of "the same dance" would drift, and the drift would be silent.
 
 Deliberately stricter than import: import treats title + author-overlap as
@@ -618,7 +618,7 @@ skipped and reported, never applied with a dangling id.
 
 ### Failure and offline
 
-Sync is best-effort and never blocks the UI. Any failure leaves local data
+Device Sync is best-effort and never blocks the UI. Any failure leaves local data
 untouched and the baseline unchanged, so the next attempt retries cleanly.
 
 - Network unreachable, DNS failure, TLS failure, `5xx` → retry with exponential
@@ -1013,7 +1013,7 @@ Recorded so the reasoning is not re-litigated.
 | Metered connections | *Sync only on WiFi*, default on; manual attempts route to the setting via a snackbar. |
 | Quota exhaustion | Size breakdown by category with the exclude-imports toggle inline. |
 | Naming | **Athenaeum** — the earlier "Athanaeum" was a typo; DNS corrected and verified. |
-| Default state | **Off on every installation.** Opt-in only; an unconfigured app makes no sync network call at all. Sync gets its own top-level Settings blade. |
+| Default state | **Off on every installation.** Opt-in only; an unconfigured app makes no sync network call at all. Device Sync gets its own top-level Settings blade. |
 | Access log | **Separate database**, holding a derived sync-ID key and a timestamp. Separate so reaping a store cannot destroy evidence of access to it. |
 | Identifier derivation | **`HMAC-SHA256(pepper, syncID)`**, server-side only — a bare hash is brute-forceable at the ~2⁴⁰ floor. No client-side change; the app's cryptography is unchanged. |
 | Access-log retention | Identifier **nulled at 30 days**, timestamp retained — the linkable part expires, the non-linkable aggregate survives. |
