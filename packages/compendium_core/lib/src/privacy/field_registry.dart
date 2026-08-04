@@ -296,6 +296,20 @@ final Map<String, DataClassification> fieldClassifications = {
   'custom_field_defs.choices_json': _choreography,
   'custom_field_defs.show_in_list': _choreography,
   'custom_field_defs.searchable': _choreography,
+  'custom_field_defs.shareable': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note:
+        'Per-field flag: whether this field and its values may travel in a '
+        'shared archive. Classified shareable because the flag is carried on '
+        'the defs that *are* emitted — excluded defs are omitted entirely from '
+        'the encoded archive. Recipients see no indication that any fields were '
+        'withheld; disclosing the count of excluded fields would itself leak '
+        'information the sender chose not to share. This is the only field that '
+        'directly controls egress of another field '
+        '(custom_field_values.value_text). Added in #780.',
+  ),
   'custom_field_values.dance_id': _key,
   'custom_field_values.field_id': _key,
   'custom_field_values.value_text': const DataClassification(
@@ -305,11 +319,12 @@ final Map<String, DataClassification> fieldClassifications = {
     note:
         'Holds either unbounded free text or a user-defined choice value, for '
         'a field the user invented and named. Shareable by maintainer ruling: '
-        'custom fields are core collection data. Two obligations attach to '
-        'that ruling — (1) creating a custom field must show a one-time notice '
-        'that its contents travel, and (2) per-field exclusion from sharing is '
-        'a tracked backlog item (#780). Both are prerequisites of sync shipping, '
-        'not of this catalogue.',
+        'custom fields are core collection data. Egress is conditional on the '
+        'field definition\'s shareable flag (custom_field_defs.shareable, added '
+        'in #780): when shareable = false, neither this field def nor its '
+        'values are emitted in an archive. The one-time disclosure notice on '
+        'field creation (obligation 1) and the per-field exclusion control '
+        '(obligation 2) were both implemented in #780.',
   ),
   'custom_field_values.value_num': _choreography,
 

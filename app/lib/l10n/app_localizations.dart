@@ -8189,6 +8189,36 @@ abstract class AppLocalizations {
   /// **'Add an option to {label}'**
   String customFieldsAddOptionTitle(String label);
 
+  /// Label for the 'include in sharing' toggle on the custom field form. When on (the default), this field and its values travel with the collection in exports and transfers.
+  ///
+  /// In en, this message translates to:
+  /// **'Include in sharing'**
+  String get customFieldsShareable;
+
+  /// Subtitle for the 'include in sharing' toggle on the custom field form.
+  ///
+  /// In en, this message translates to:
+  /// **'This field\'s values travel with your collection when you export or share it'**
+  String get customFieldsShareableSubtitle;
+
+  /// Title of the one-time disclosure dialog shown when a user creates their first custom field, explaining that custom field values are included in exports and shares.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom fields travel with your collection'**
+  String get customFieldsSharingNoticeTitle;
+
+  /// Body of the one-time disclosure dialog shown when a user creates their first custom field.
+  ///
+  /// In en, this message translates to:
+  /// **'The contents of any custom field you create are included when you export or share your collection. To keep a field private, turn off \"Include in sharing\" in that field\'s settings.'**
+  String get customFieldsSharingNoticeBody;
+
+  /// Dismiss button for the one-time custom field sharing disclosure dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get customFieldsSharingNoticeOk;
+
   /// App-bar title for the dialect editor; {name} is the dialect name, plain text.
   ///
   /// In en, this message translates to:

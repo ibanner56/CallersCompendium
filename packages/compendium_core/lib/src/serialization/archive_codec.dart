@@ -42,44 +42,59 @@ String encodeArchive(CompendiumArchive archive) =>
     jsonEncode(archiveToJson(archive));
 
 /// The canonical JSON object for [archive] (entities sorted by id).
-Map<String, Object?> archiveToJson(CompendiumArchive archive) => {
-  // Stamp at least the version the content requires (v2 when venue data is
-  // present) so an older reader warns rather than silently dropping venues,
-  // while honoring an explicitly higher requested version.
-  'schemaVersion': archive.schemaVersion > requiredSchemaVersion(archive)
-      ? archive.schemaVersion
-      : requiredSchemaVersion(archive),
-  'exportedAt': _iso(archive.exportedAt),
-  'choreographers': [
-    for (final c in _sortedById(archive.choreographers, (c) => c.id))
-      _choreographerToJson(c),
-  ],
-  'publishedSources': [
-    for (final s in _sortedById(archive.publishedSources, (s) => s.id))
-      _publishedSourceToJson(s),
-  ],
-  'tags': [
-    for (final t in _sortedById(archive.tags, (t) => t.id)) _tagToJson(t),
-  ],
-  'customFields': [
-    for (final f in _sortedById(archive.customFields, (f) => f.id))
-      _customFieldDefToJson(f),
-  ],
-  'dances': [
-    for (final d in _sortedById(archive.dances, (d) => d.id)) _danceToJson(d),
-  ],
-  'programs': [
-    for (final p in _sortedById(archive.programs, (p) => p.id))
-      _programToJson(p),
-  ],
-  // Omit the `venues` array entirely when empty so archives produced before
-  // the venue entity (and any that simply have no venues) stay byte-identical
-  // to the pre-v14 format and older readers are unaffected.
-  if (archive.venues.isNotEmpty)
-    'venues': [
-      for (final v in _sortedById(archive.venues, (v) => v.id)) _venueToJson(v),
+///
+/// Fields where [CustomFieldDef.shareable] is `false` are excluded from the
+/// encoded output: neither the field definition nor any dance's value for that
+/// field is emitted (#780). This makes the control observable on the existing
+/// archive/export surface without requiring a separate sync path.
+Map<String, Object?> archiveToJson(CompendiumArchive archive) {
+  // Compute the set of field IDs excluded from sharing once, then reference it
+  // for both the field-def list and each dance's value list.
+  final excludedFieldIds = {
+    for (final f in archive.customFields)
+      if (!f.shareable) f.id,
+  };
+  return {
+    // Stamp at least the version the content requires (v2 when venue data is
+    // present) so an older reader warns rather than silently dropping venues,
+    // while honoring an explicitly higher requested version.
+    'schemaVersion': archive.schemaVersion > requiredSchemaVersion(archive)
+        ? archive.schemaVersion
+        : requiredSchemaVersion(archive),
+    'exportedAt': _iso(archive.exportedAt),
+    'choreographers': [
+      for (final c in _sortedById(archive.choreographers, (c) => c.id))
+        _choreographerToJson(c),
     ],
-};
+    'publishedSources': [
+      for (final s in _sortedById(archive.publishedSources, (s) => s.id))
+        _publishedSourceToJson(s),
+    ],
+    'tags': [
+      for (final t in _sortedById(archive.tags, (t) => t.id)) _tagToJson(t),
+    ],
+    'customFields': [
+      for (final f in _sortedById(archive.customFields, (f) => f.id))
+        if (f.shareable) _customFieldDefToJson(f),
+    ],
+    'dances': [
+      for (final d in _sortedById(archive.dances, (d) => d.id))
+        _danceToJson(d, excludedFieldIds),
+    ],
+    'programs': [
+      for (final p in _sortedById(archive.programs, (p) => p.id))
+        _programToJson(p),
+    ],
+    // Omit the `venues` array entirely when empty so archives produced before
+    // the venue entity (and any that simply have no venues) stay byte-identical
+    // to the pre-v14 format and older readers are unaffected.
+    if (archive.venues.isNotEmpty)
+      'venues': [
+        for (final v in _sortedById(archive.venues, (v) => v.id))
+          _venueToJson(v),
+      ],
+  };
+}
 
 List<T> _sortedById<T>(List<T> items, String Function(T) id) =>
     [...items]..sort((a, b) => id(a).compareTo(id(b)));
@@ -121,7 +136,7 @@ Map<String, Object?> _customFieldDefToJson(CustomFieldDef f) => {
   'searchable': f.searchable,
 };
 
-Map<String, Object?> _danceToJson(Dance d) => {
+Map<String, Object?> _danceToJson(Dance d, Set<String> excludedFieldIds) => {
   'id': d.id,
   'title': d.title,
   'authorIds': d.authorIds,
@@ -138,7 +153,10 @@ Map<String, Object?> _danceToJson(Dance d) => {
   'mixedLevel': d.mixedLevel,
   if (d.rating != null) 'rating': d.rating,
   'tunes': d.tunes,
-  'customFields': [for (final v in d.customFields) _customFieldValueToJson(v)],
+  'customFields': [
+    for (final v in d.customFields)
+      if (!excludedFieldIds.contains(v.fieldId)) _customFieldValueToJson(v),
+  ],
   'tagIds': d.tagIds,
   'links': [for (final l in d.links) _danceLinkToJson(l)],
   'sourceCitations': [

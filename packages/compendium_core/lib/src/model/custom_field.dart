@@ -38,6 +38,7 @@ class CustomFieldDef {
     List<String>? choices,
     this.showInList = false,
     this.searchable = true,
+    this.shareable = true,
   }) : choices = choices == null ? null : List.unmodifiable(choices) {
     if (key.trim().isEmpty) {
       throw ArgumentError.value(key, 'key', 'must be non-empty');
@@ -63,6 +64,11 @@ class CustomFieldDef {
   final bool showInList;
   final bool searchable;
 
+  /// Whether this field's values may travel in a shared archive. `true` by
+  /// default (all new fields are shareable). When `false`, both this definition
+  /// and every value for it are omitted from archive serialisation (#780).
+  final bool shareable;
+
   static const _choicesEquality = ListEquality<String>();
 
   @override
@@ -74,7 +80,8 @@ class CustomFieldDef {
       other.type == type &&
       _choicesEquality.equals(other.choices, choices) &&
       other.showInList == showInList &&
-      other.searchable == searchable;
+      other.searchable == searchable &&
+      other.shareable == shareable;
 
   @override
   int get hashCode => Object.hash(
@@ -85,6 +92,7 @@ class CustomFieldDef {
     choices == null ? null : _choicesEquality.hash(choices),
     showInList,
     searchable,
+    shareable,
   );
 }
 

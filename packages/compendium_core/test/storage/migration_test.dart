@@ -1745,7 +1745,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 22);
+      expect(db.schemaVersion, 23);
 
       await db.close();
     });
@@ -1851,7 +1851,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 22);
+      expect(db.schemaVersion, 23);
 
       await db.close();
     });
@@ -1973,7 +1973,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').get();
       expect(version.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 22);
+      expect(db.schemaVersion, 23);
 
       await db.close();
     });
@@ -2863,7 +2863,7 @@ void main() {
           await repos.ensureMigrated();
 
           final version = await db.customSelect('PRAGMA user_version').get();
-          expect(version.single.data.values.first, 22, reason: 'from v$from');
+          expect(version.single.data.values.first, 23, reason: 'from v$from');
 
           final figures = (await repos.dances.getById('dance-1'))!.figures;
           // Both legacy shapes landed on the merged move, with the TCB subject
@@ -3271,6 +3271,109 @@ void main() {
       );
 
       await db.close();
+    });
+  });
+
+  group('v22 -> v23 upgrade (issue #780 custom_field_defs.shareable)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v23_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v22 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          await packageRootPath(),
+          'test',
+          'storage',
+          'fixtures',
+          'v22.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    Future<List<String>> columnsOf(CompendiumDatabase db, String table) async {
+      final rows = await db
+          .customSelect("SELECT name FROM pragma_table_info('$table')")
+          .get();
+      return [for (final r in rows) r.read<String>('name')];
+    }
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, db.schemaVersion);
+    });
+
+    test('adds the shareable column to custom_field_defs', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      expect(await columnsOf(db, 'custom_field_defs'), contains('shareable'));
+    });
+
+    test('existing custom field row gets shareable = 1 (DEFAULT 1)', () async {
+      // The DEFAULT 1 on addColumn means every pre-v23 row comes out shareable.
+      // Defaulting to 0 would silently stop those fields from being exported,
+      // which is the worse surprise; the correct default preserves today's
+      // behaviour. This test verifies the migration's DEFAULT was correct.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+
+      final rows = await db
+          .customSelect(
+            "SELECT shareable FROM custom_field_defs WHERE id = 'cf-notes'",
+          )
+          .get();
+      expect(
+        rows,
+        isNotEmpty,
+        reason: 'fixture field cf-notes must be present',
+      );
+      expect(
+        rows.single.read<bool>('shareable'),
+        isTrue,
+        reason: 'pre-v23 field must default to shareable=true after migration',
+      );
+    });
+
+    test('existing dance values are preserved after migration', () async {
+      // Structural-only migration — no data should be touched.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      addTearDown(db.close);
+
+      final dance = await repos.dances.getById('dance-v22');
+      expect(dance, isNotNull);
+      expect(dance!.customFields, hasLength(1));
+      expect(dance.customFields.first.fieldId, 'cf-notes');
+      expect(dance.customFields.first.value, 'good fun');
+    });
+
+    test('no derived rebuild is scheduled by the v22->v23 migration', () async {
+      // The shareable column carries no figure data — the index is untouched.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      // After opening (which triggers onUpgrade), the rebuild key must NOT be
+      // set — this migration owes no rebuild.
+      final settings = await db
+          .customSelect(
+            "SELECT value_json FROM settings "
+            "WHERE key = '$derivedRebuildRequiredKey'",
+          )
+          .get();
+      final hasRebuildMarker =
+          settings.isNotEmpty &&
+          settings.first.read<String>('value_json') == 'true';
+      expect(
+        hasRebuildMarker,
+        isFalse,
+        reason: 'v22->v23 migration must not schedule a derived rebuild',
+      );
     });
   });
 }

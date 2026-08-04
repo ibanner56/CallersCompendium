@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
+import 'settings/settings_keys.dart';
 
 /// Localized label for a [CustomFieldType]. Mirrors the app-side enum-label
 /// helper pattern (see `search/facet_labels.dart`): the enum lives in the
@@ -27,7 +28,7 @@ String customFieldTypeLabel(AppLocalizations l10n, CustomFieldType type) =>
 ///   strand/mis-decode stored values — no value-migration in v1).
 /// - Key is editable only while the field is unused (it is the stable
 ///   storage/search key).
-/// - Label, showInList, and searchable are always editable.
+/// - Label, showInList, searchable, and shareable are always editable.
 /// - For choice fields: adding choices is always fine; removing a choice that
 ///   is currently in use on any dance is blocked with a clear message.
 class CustomFieldsScreen extends StatefulWidget {
@@ -97,9 +98,40 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
       ),
     );
     if (result != null) {
+      final isNew = existing == null;
       await _repos.customFieldDefs.upsert(result);
+      // Show the one-time sharing disclosure when the user creates their very
+      // first custom field. The latch is set before the dialog is awaited so a
+      // crash during the dialog never re-shows it on next launch.
+      if (isNew && mounted) {
+        final disclosed = await _repos.settings.contains(
+          kCustomFieldSharingDisclosureKey,
+        );
+        if (!disclosed) {
+          await _repos.settings.set(kCustomFieldSharingDisclosureKey, true);
+          if (mounted) await _showSharingDisclosure();
+        }
+      }
       await _load();
     }
+  }
+
+  Future<void> _showSharingDisclosure() async {
+    final l10n = AppLocalizations.of(context);
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.customFieldsSharingNoticeTitle),
+        content: Text(l10n.customFieldsSharingNoticeBody),
+        actions: [
+          FilledButton(
+            key: const ValueKey('sharing-disclosure-ok'),
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.customFieldsSharingNoticeOk),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _delete(CustomFieldDef def) async {
@@ -300,6 +332,7 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
   final List<String> _choices = [];
   bool _showInList = false;
   bool _searchable = true;
+  bool _shareable = true;
 
   // Inline error for the choices list (not a form field).
   String? _choicesError;
@@ -314,6 +347,7 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
     if (def?.choices != null) _choices.addAll(def!.choices!);
     _showInList = def?.showInList ?? false;
     _searchable = def?.searchable ?? true;
+    _shareable = def?.shareable ?? true;
   }
 
   @override
@@ -350,6 +384,7 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
             : null,
         showInList: _showInList,
         searchable: _searchable,
+        shareable: _shareable,
       );
       Navigator.of(context).pop(def);
     } on ArgumentError catch (e) {
@@ -499,6 +534,14 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
                 subtitle: Text(l10n.customFieldsSearchableSubtitle),
                 value: _searchable,
                 onChanged: (v) => setState(() => _searchable = v),
+              ),
+              SwitchListTile(
+                key: const ValueKey('cf-shareable'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.customFieldsShareable),
+                subtitle: Text(l10n.customFieldsShareableSubtitle),
+                value: _shareable,
+                onChanged: (v) => setState(() => _shareable = v),
               ),
               const SizedBox(height: 16),
               Row(

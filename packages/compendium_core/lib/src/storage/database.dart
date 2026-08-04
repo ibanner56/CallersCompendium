@@ -116,7 +116,7 @@ const String purgeCorruptionRepairDoneKey = '__purge_corruption_repair_done__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 22;
+const int kCompendiumSchemaVersion = 23;
 
 /// The Caller's Compendium local database.
 ///
@@ -329,6 +329,14 @@ const int kCompendiumSchemaVersion = 22;
 ///   Like the v2 `section` add, existing rows get the column DEFAULT (0) — wrong
 ///   for correlation — so it schedules a derived rebuild (marker) that
 ///   repopulates `group_idx` from `figures_json`.
+/// - v23 (issue #780): adds `custom_field_defs.shareable` — a per-field flag
+///   controlling whether this field's definition and values may travel in a
+///   shared archive (file export, share sheet, future sync). Purely additive
+///   `addColumn`; existing rows get `DEFAULT 1` (shareable = true), preserving
+///   today's behaviour exactly — every previously-created custom field
+///   continues to travel in archives. Users opt out per-field via the custom
+///   fields settings screen. No figure index is involved; no derived rebuild
+///   is required.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -782,6 +790,16 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
           [derivedRebuildRequiredKey, 'true'],
         );
+      }
+
+      if (from < 23) {
+        // Issue #780: add `custom_field_defs.shareable` — a per-field flag
+        // controlling whether the field and its values travel in shared
+        // archives. DEFAULT 1 (shareable = true) so every existing row
+        // preserves today's behaviour: a pre-v23 custom field continues to
+        // travel in archives after upgrade. Users opt out per-field. No figure
+        // index is touched; no derived rebuild is required.
+        await m.addColumn(customFieldDefs, customFieldDefs.shareable);
       }
     },
     beforeOpen: (details) async {

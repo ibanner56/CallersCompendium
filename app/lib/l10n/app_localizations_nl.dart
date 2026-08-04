@@ -5388,6 +5388,24 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get customFieldsShareable => 'Include in sharing';
+
+  @override
+  String get customFieldsShareableSubtitle =>
+      'This field\'s values travel with your collection when you export or share it';
+
+  @override
+  String get customFieldsSharingNoticeTitle =>
+      'Custom fields travel with your collection';
+
+  @override
+  String get customFieldsSharingNoticeBody =>
+      'The contents of any custom field you create are included when you export or share your collection. To keep a field private, turn off \"Include in sharing\" in that field\'s settings.';
+
+  @override
+  String get customFieldsSharingNoticeOk => 'Got it';
+
+  @override
   String dialectEditorTitle(String name) {
     return '$name bewerken';
   }
