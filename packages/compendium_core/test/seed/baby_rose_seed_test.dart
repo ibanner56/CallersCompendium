@@ -14,9 +14,7 @@ void main() {
     late String fixtureHtml;
 
     setUpAll(() async {
-      final repoRoot = p.normalize(
-        p.join(await packageRootPath(), '..', '..'),
-      );
+      final repoRoot = p.normalize(p.join(await packageRootPath(), '..', '..'));
       _fixturePath = p.join(
         repoRoot,
         'tools',
@@ -24,13 +22,7 @@ void main() {
         'fixtures',
         'contradb_dance_8.html',
       );
-      _assetPath = p.join(
-        repoRoot,
-        'app',
-        'assets',
-        'seed',
-        'baby_rose.json',
-      );
+      _assetPath = p.join(repoRoot, 'app', 'assets', 'seed', 'baby_rose.json');
       fixtureHtml = File(_fixturePath).readAsStringSync();
     });
 
