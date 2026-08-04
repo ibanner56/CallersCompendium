@@ -723,8 +723,22 @@ The −252 decomposes cleanly: 610 `meanwhile` containers leave the count, and
 ~358 structured *sides* previously hidden inside containers enter it (`swing`
 +78, `allemande` +61, `balance` +47, `star` +34, `down_the_hall` +33). So
 **`meanwhile`, listed as the 6th-largest contributor, is not a contributor at
-all** — a container has no note slot of its own and the qualifier belongs to a
+all** — on the Caller's Box import path the qualifier necessarily belongs to a
 side. This is the same over-count issue #769 tracks in the coverage metric.
+
+**That last claim depends on one call site, so state it precisely rather than
+structurally.** `Figure.meanwhile` *does* take a `note`
+(`figure.dart:112`), and three construction sites populate it: the ContraDB
+allemande-while-orbit templates (`contradb_figure_dialect.dart:378`,
+`contradb_adapter.dart:481`) and the in-app editor
+(`figure_draft.dart:221`), where a user hand-authoring a meanwhile group can
+give it one. What makes the census's reasoning hold is narrower: the **TCB**
+`||` fan-out (`callersbox_figure_dialect.dart:463`) constructs the container
+with `figures`/`beats`/`progression` and no `note:`, as does the generic
+ContraDB `whiles` fan-out (`contradb_figure_dialect.dart:171`). If a future
+change teaches the TCB fan-out to annotate a container, a dropped qualifier
+could then belong to the container and this section's reasoning would stop
+holding — silently, since nothing tests for it.
 
 Commit `903ebb9f` (#777), which touches the TCB front-end note path and landed
 after #729 measured, was ruled out as a cause: an A/B of this harness at
@@ -760,6 +774,15 @@ decision-relevant result:**
 paste `wr;pl;mr;nl~` into user-visible notes on ~8,200 figures. The existing
 `_numericOnly` skip inside `_annotations` is the precedent for filtering a shape
 out before it can reach a note.
+
+**The realistic target population is therefore much smaller than 9,483
+figures.** Free prose (644) plus travel/place (1,850) is **2,494 instances,
+13.6%**; adding per-role choreography (777) — `W roll R, M side-step L`, which
+is choreographic content the custom fallback preserves today — gives **3,271,
+17.9%**. The 45.0% shorthand class should not reach a note at all, and the
+37.1% dancer/subject class largely restates what the structured figure already
+encodes, so it needs a keep-or-structure decision before it is counted as
+target.
 
 436 of the dropping figures already carry a note, so any fix must combine rather
 than overwrite — the `_withAnnotationNote` path #729 added.
