@@ -56,21 +56,19 @@ Future<void> _pump(
   );
 }
 
-/// Pumps a [DanceListTile] wrapped in a [CollectionTileFieldsScope] that
-/// exposes exactly [visibleFields]. When [visibleFields] is omitted the scope
-/// is absent and the tile falls back to showing all fields (default behaviour).
+/// Pumps a [DanceListTile] with [visibleFields] passed directly to the tile.
+/// When [visibleFields] is omitted the parameter is null and the tile defaults
+/// to showing all fields (same as the behaviour at all non-collection call sites).
 Future<void> _pumpWithFields(
   WidgetTester tester,
   DanceListEntry entry, {
   Set<CollectionTileField>? visibleFields,
 }) async {
-  Widget tile = DanceListTile(entry: entry, onTap: () {});
-  if (visibleFields != null) {
-    tile = CollectionTileFieldsScope(
-      notifier: ValueNotifier<Set<CollectionTileField>>(visibleFields),
-      child: tile,
-    );
-  }
+  final tile = DanceListTile(
+    entry: entry,
+    onTap: () {},
+    visibleFields: visibleFields,
+  );
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
@@ -81,7 +79,7 @@ Future<void> _pumpWithFields(
 }
 
 /// A [DanceListEntry] populated with every field that [DanceListTile] can
-/// show so tests can selectively hide them via [CollectionTileFieldsScope].
+/// show so tests can selectively hide them via the [DanceListTile.visibleFields] parameter.
 DanceListEntry _richEntry() => DanceListEntry(
   dance: Dance(
     id: 'rich1',
@@ -354,10 +352,10 @@ void main() {
       },
     );
 
-    testWidgets('all fields shown when no scope is present (safe default)', (
+    testWidgets('all fields shown when visibleFields is null (safe default)', (
       tester,
     ) async {
-      // No scope → falls back to CollectionTileField.all.
+      // visibleFields: null → effectiveFields defaults to CollectionTileField.all.
       await _pumpWithFields(tester, _richEntry());
 
       expect(find.text('Alice'), findsOneWidget);
@@ -444,35 +442,41 @@ void main() {
       },
     );
 
-    testWidgets('showAll() overrides an ancestor scope that hides fields — '
-        'picker always renders at full density', (tester) async {
-      // Build: outer scope hides tags; showAll() inner scope shadows it.
-      // The tile should see the inner (showAll) scope and show tags.
-      final outer = ValueNotifier<Set<CollectionTileField>>(
-        CollectionTileField.all.difference({CollectionTileField.tags}),
-      );
-      addTearDown(outer.dispose);
+    testWidgets(
+      'tile with visibleFields: null shows all chips even when the scope '
+      'holds a restricted set — other call sites are unaffected by the setting',
+      (tester) async {
+        // This is the boundary test for the parameter approach: the collection
+        // screen passes visibleFields explicitly; all other call sites (picker,
+        // program list, search results) pass null, which must always produce
+        // full-density rendering regardless of any ancestor scope.
+        final restrictedNotifier = ValueNotifier<Set<CollectionTileField>>(
+          {CollectionTileField.formation}, // only formation visible
+        );
+        addTearDown(restrictedNotifier.dispose);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: testLocalizationsDelegates,
-          supportedLocales: testSupportedLocales,
-          home: Scaffold(
-            body: CollectionTileFieldsScope(
-              notifier: outer,
-              child: CollectionTileFieldsScope.showAll(
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              body: CollectionTileFieldsScope(
+                notifier: restrictedNotifier,
+                // visibleFields omitted — simulates all other call sites
                 child: DanceListTile(entry: _richEntry(), onTap: () {}),
               ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // Tags are visible because showAll() shadows the outer scope.
-      expect(find.text('tag-one'), findsOneWidget);
-      expect(find.text('Rich Dance'), findsOneWidget);
-    });
+        // All chips shown — null visibleFields defaults to all-visible.
+        expect(find.text('tag-one'), findsOneWidget);
+        expect(find.text('Rich Dance'), findsOneWidget);
+        expect(find.text('Alice'), findsOneWidget);
+        expect(find.text('Duple improper'), findsOneWidget);
+      },
+    );
 
     test('fromJson returns null for unrecognised field names', () {
       // Guards against a silent rename hiding a chip forever: if an old stored
@@ -544,7 +548,7 @@ void main() {
       expect(find.text('tag-one'), findsNothing); // tags hidden
       expect(find.text('Alice'), findsNothing); // authors hidden
       // Spot-check a second chip group to confirm it's not just tags.
-      expect(find.text('Becket'), findsNothing); // formation hidden
+      expect(find.text('Duple improper'), findsNothing); // formation hidden
     });
   });
 }

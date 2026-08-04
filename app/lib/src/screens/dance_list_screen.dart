@@ -11,6 +11,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/collection_refresh_scope.dart';
+import '../data/collection_tile_fields_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
@@ -2211,8 +2212,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// the flat and grouped list paths so row interaction stays identical
   /// everywhere (issue #373: tap → detail → Perform; long-press → multi-select).
   Widget _buildDanceRow(DanceListEntry entry, AppLocalizations l10n) {
+    final tileFields = CollectionTileFieldsScope.of(context);
     final tile = DanceListTile(
       entry: entry,
+      visibleFields: tileFields,
       // Row action menu (⋮): non-swipe access to the row actions for
       // mouse/keyboard/AT users. Delete routes through the identical
       // confirm + soft-delete + undo flow as the Dismissible swipe below.
