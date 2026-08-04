@@ -615,8 +615,10 @@ makes self-hosting materially harder, which constraint 4 forbids.
   Its real scope, stated honestly after an earlier draft understated it: `settings`
   gains `updated_at` **and `deleted_at`**, and the five kinds that lack them —
   choreographers, tags, published sources, custom-field defs, venues — gain both,
-  with their repositories converted from hard delete to soft. That is six tables
-  and twelve columns, plus six `_db.delete(` call sites, not one column. It
+  with their repositories converted from hard delete to soft. All eight syncable
+  kinds additionally gain `revived_at` for the provenance gate, which brings
+  `dances` and `programs` into the migration for that one column. That is eight
+  tables and twenty columns, plus six `_db.delete(` call sites, not one column. It
   remains the programme's only schema change, and isolating it still leaves the
   rest as feature work with no migration risk; it is defensible on its own terms, so
   nothing is wasted if the programme stalls; and — the real reason — it defuses
@@ -648,16 +650,34 @@ makes self-hosting materially harder, which constraint 4 forbids.
   deleted it once. Holding the deletion pending keeps the guarantee that no dance
   credits a tombstone without buying it by resurrecting deleted data.
 
-  A held deletion is cancelled **only by a deliberate user edit**, gated on the
-  provenance of the write rather than on the resulting timestamp. Several sync
+  A held deletion is cancelled **only by a deliberate user edit**, recorded as a
+  `revivedAt` timestamp that travels in the blob envelope: a live record
+  out-ranks a tombstone only when `revivedAt > deletedAt`. Several sync
   mechanisms advance `updatedAt` without a user touching anything — reference
-  rewriting, merge-by-recency, the dance merge's scalar recency — so a
-  timestamp-based rule would let a third device silently reverse another's
-  deletion. The same gate governs tombstones that have already been *applied*,
-  not only pending ones: a live record never out-ranks a tombstone unless the
-  write carrying it was user-initiated. The pending marker, the id aliases and
-  the review queue are each persisted, classified `deviceScoped`, scoped to the
-  store, and land beyond v23. `pending_deletions` deliberately survives an epoch
+  rewriting, merge-by-recency, the dance merge's scalar recency — so a plain
+  recency rule would let a third device silently reverse another's deletion.
+
+  Two properties of that signal are load-bearing. It **travels**, because
+  extending the gate to *applied* tombstones made it a cross-device rule: a
+  receiver must judge a peer's write, and a fresh-attaching device has no local
+  history to judge it from. And it is a **timestamp rather than a flag**, because
+  the content invariant guarantees later sync writes to the same record, each of
+  which would overwrite a boolean and erase the revival it recorded, while a
+  timestamp survives untouched.
+
+  `revivedAt` is set only by a deliberate un-delete and by no sync-apply path,
+  which makes deletions sticky: an edit made on a device that never learned of
+  the deletion is swept up when it arrives — recoverable from Recently Deleted,
+  but not announced. Chosen because a deletion silently reversed on every device
+  is both worse and harder to notice than an edit that follows its record into
+  the bin. It costs a `revived_at` column on all eight syncable kinds, which is
+  why v23 is eight tables rather than six.
+
+  The pending marker, the id aliases and the review queue are each persisted,
+  classified `deviceScoped`, scoped to the store, and land beyond v23 — except
+  the retained tombstone bytes, which are `shareable`, since they are record
+  content that is re-uploaded rather than device bookkeeping.
+  `pending_deletions` deliberately survives an epoch
   reset — a pending-held row is still *live* locally, so clearing it and then
   re-uploading every local record would republish the entity and discard the
   user's deletion — and is uploaded as a tombstone on fresh attach, exactly as it

@@ -432,7 +432,8 @@ it:
 | The store epoch | Alongside the baseline | `deviceScoped` |
 | Per-record last-seen hashes | Baseline table | `deviceScoped` |
 | Id aliases (`losing_id`, `surviving_id`, `kind`) | `id_aliases` | `deviceScoped` |
-| Pending deletions (`kind`, `record_id`, `tombstoned_at`, `tombstone_hash`, `tombstone_blob`) | `pending_deletions` | `deviceScoped` |
+| Pending deletions — markers (`kind`, `record_id`, `tombstoned_at`, `tombstone_hash`) | `pending_deletions` | `deviceScoped` |
+| Pending deletions — retained tombstone bytes (`tombstone_blob`) | `pending_deletions` | `shareable` |
 | Deferred review items (`kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, `queued_at`) | `review_queue` | `deviceScoped` |
 
 **All three are scoped to the store identity**, and `id_aliases` and
@@ -538,6 +539,26 @@ The repository already requires this discipline for claims about *code* — grep
 for the property, not the citation. The same applies to claims about the design:
 the place a stale rule survives is never where the change was made.
 
+#### Scope: check every rule the change makes load-bearing
+
+The five checks above apply to more than the lines a revision edits.
+
+> **Apply them to every rule the revision's changes make load-bearing, not only
+> to the rules the revision rewrites.**
+
+The provenance gate is the worked example. Its text was written when it only had
+to hold for the device performing a deletion, which knows the provenance of its
+own writes — no wire representation needed, and check #4 had nothing to catch.
+Extending it to *applied* tombstones a round later never touched that sentence,
+but it turned a local rule into a cross-device one, and from that moment the gate
+read a quantity that existed only on the writing device. The defect was
+introduced by a change somewhere else, and both checks were run — against the
+rules that had been edited.
+
+So the trigger for re-checking a rule is not "did I change these words" but "did
+I change who has to evaluate this, or where". A rule can rot without being
+touched.
+
 ## Wire format
 
 All payloads are UTF-8 JSON. All requests and responses may use
@@ -555,6 +576,7 @@ A blob is the record as the existing archive codec emits it, restricted to
   "id": "8f14e45f-ceea-467a-9f8c-1f3f9a2b7c11",
   "updatedAt": "2026-08-03T04:11:22.000Z",
   "deletedAt": null,
+  "revivedAt": null,
   "body": { }
 }
 ```
@@ -565,7 +587,58 @@ A blob is the record as the existing archive codec emits it, restricted to
 - `updatedAt` — the conflict discriminator. UTC, millisecond precision.
 - `deletedAt` — non-null means a **tombstone**: the record is deleted, and this
   blob is how that fact travels.
+- `revivedAt` — when a user last deliberately un-deleted this record. The
+  provenance gate reads this and nothing else; see below.
 - `body` — archive-codec output for the record, `shareable` fields only.
+
+#### `revivedAt`, and why the provenance gate needs a timestamp
+
+The provenance gate — *a live record never out-ranks a tombstone unless the write
+carrying it was user-initiated* — was written when it only had to hold for the
+device performing the deletion, which knows the provenance of its own writes.
+Extending it to applied tombstones made it a **cross-device** rule: a receiver
+must now decide, from a downloaded blob, whether some peer's write was a
+deliberate human act. Nothing in the envelope carried that, so the rule read data
+that was not reachable on the path where it runs. `revivedAt` is that data.
+
+**It must be a timestamp, not a flag.** A boolean "this write was user-initiated"
+describes only the *most recent* write, and the content invariant guarantees
+there will be later ones: a user revives X at T1, publishing `userInitiated:
+true`; the device later reconciles an unrelated collision that rewrites one of
+X's references, which *must* bump `updatedAt` and re-upload — now publishing
+`userInitiated: false`. The revival becomes invisible and the tombstone wins, so
+the flag destroys the very signal it exists to carry. A timestamp is monotone: a
+later sync write advances `updatedAt` and leaves `revivedAt` untouched.
+
+**The rule is a comparison, evaluable by any receiver with both blobs:**
+
+> A live record out-ranks a tombstone **iff `revivedAt > deletedAt`**.
+
+That works with no local history, which is what the fresh-attach case demands —
+an attaching device has no baseline and no prior relationship with any peer, and
+still gets the right answer from the two blobs in front of it.
+
+**Which writes set it.** Only a user edit to a record the device can see is
+deleted — the "a local edit cancels the pending tombstone" case, and an explicit
+restore from Recently Deleted. **Every sync-apply path leaves it alone**,
+including reference rewriting, merge-by-recency, reconciliation and the dance
+merge's scalar recency. A device that never learned of a deletion cannot set it,
+because it has nothing to revive from: an ordinary edit on a stale device is not
+a decision about a deletion it never saw, and it does not out-rank one.
+
+The cost of that choice is stated plainly: such an edit is swept up when the
+deletion arrives. It is not destroyed — the record soft-deletes into Recently
+Deleted with the edit intact — but the user is not told it happened. Deletions
+staying sticky is the deliberate trade, since a deletion silently reversed on
+every device is the failure this whole mechanism exists to prevent, and it is
+also the harder of the two to notice.
+
+`revivedAt` is `shareable`: it is a bare timestamp with no subject, it must
+travel for the rule to work, and it is stored per record on all eight syncable
+kinds (see the v23 scope).
+
+Because nothing has shipped, this lands in envelope `v: 1` rather than bumping
+the version — there is no deployed client that could receive a blob without it.
 
 Reusing the archive codec matters: it is already hardened (bounded, clamping,
 parse-never-fails) and already round-trip tested. Device Sync must not grow a second
@@ -618,21 +691,34 @@ and review. Nothing else about the two migrations interacts: v22 touches
 `dance_figures`, which this design does not migrate.
 
 An earlier draft also called it "one column on `settings`". Under first-class
-records it is six tables and twelve columns:
+records, and with the provenance gate needing `revived_at` on every kind that can
+be tombstoned, it is **eight tables and twenty columns**:
 
 | Table | Adds |
 | --- | --- |
-| `settings` | `updated_at`, `deleted_at` |
-| `choreographers` | `updated_at`, `deleted_at` |
-| `tags` | `updated_at`, `deleted_at` |
-| `published_sources` | `updated_at`, `deleted_at` |
-| `custom_field_defs` | `updated_at`, `deleted_at` |
-| `venues` | `updated_at`, `deleted_at` |
+| `settings` | `updated_at`, `deleted_at`, `revived_at` |
+| `choreographers` | `updated_at`, `deleted_at`, `revived_at` |
+| `tags` | `updated_at`, `deleted_at`, `revived_at` |
+| `published_sources` | `updated_at`, `deleted_at`, `revived_at` |
+| `custom_field_defs` | `updated_at`, `deleted_at`, `revived_at` |
+| `venues` | `updated_at`, `deleted_at`, `revived_at` |
+| `dances` | `revived_at` |
+| `programs` | `revived_at` |
+
+`dances` and `programs` already carry `updated_at` and `deleted_at`, so they join
+the migration only for `revived_at` — but join it they must, since both can be
+deleted and both can be deliberately restored, and the provenance gate has to be
+able to tell those apart on every kind rather than most of them.
+
+`revived_at` is classified `dpv:NonPersonalData` / `shareable`: a bare timestamp
+with no data subject, which has to travel for the gate to be evaluable by a
+receiver.
 
 Plus **six `_db.delete(` call sites** converted from hard to soft delete across
 five repositories.
 
-`Dances` and `Programs` already have both columns and need no change.
+`Dances` and `Programs` already have `updated_at` and `deleted_at`; they need
+only `revived_at`.
 
 ##### `DanceRepository` is not the pattern to copy
 
@@ -703,9 +789,9 @@ requires several: reference rewriting after reconciliation, merge-by-recency, an
 the dance merge's scalar recency all advance the discriminator without a user
 touching anything. A third device silently reconciling a same-named duplicate
 would otherwise reverse another device's deletion, with nobody having edited the
-record on any device. Cancellation therefore keys off a **user-initiated edit
-flag carried through the write**, and a sync-initiated write never sets it,
-however new the resulting timestamp.
+record on any device. Cancellation therefore keys off **`revivedAt`** — the
+timestamp a deliberate un-delete sets and no sync-apply path ever writes —
+however new the resulting `updatedAt`.
 
 **The same gate governs an *applied* tombstone, not only a pending one.** On the
 device that actually performed the deletion the tombstone is applied, and there
@@ -714,9 +800,10 @@ otherwise let any live copy with a newer timestamp win. Since reconciliation,
 reference rewriting and the dance merge all advance `updatedAt` without a user
 edit, a third device could manufacture a live record newer than an applied
 tombstone and the deleting device would download it. So the rule is stated once,
-generally: **a live record never out-ranks a tombstone unless the write carrying
-it was user-initiated.** Pending and applied tombstones are the same rule seen at
-two moments, not two rules.
+generally: **a live record out-ranks a tombstone only when
+`revivedAt > deletedAt`.** Pending and applied tombstones are the same rule seen
+at two moments, not two rules — and because the test is a comparison of two
+fields both blobs carry, a receiver can apply it with no local history at all.
 
 **A pending-held row is advertised as a tombstone, not withheld.** The holding
 device publishes the deletion it has not yet applied: its manifest carries the
@@ -759,15 +846,44 @@ would leave the local row permanently differing from it, so `changed`/`same`
 would fire every pass and the device would republish its stale live blob forever
 — the same resurrection reached through upload rather than download.
 
-**`pending_deletions` retains the tombstone's bytes, not just its hash.** The
-holder may need to re-`PUT` the blob: garbage collection is reference-counting
-over current manifests, and the holder's own manifest only begins referencing the
-tombstone hash once it publishes. In the window before that, if the original
-deleter has already purged its local tombstone and a sweep fires, the blob can be
-collected — leaving the holder advertising a hash with nothing behind it, which
-is precisely the "target still addressable" property the advertisement rule
-exists to provide. Keeping the bytes lets the holder restore it. A tombstone is a
-few hundred bytes, so the cost is negligible next to the failure it prevents.
+**`tombstone_blob` is `shareable`, not `deviceScoped`, and that split is
+deliberate.** The other columns in `pending_deletions` are per-device
+bookkeeping — which record, when, which tombstone — and are meaningless
+elsewhere. The blob is not: it is the record's own serialised content,
+`deviceLocal` fields already omitted, and the **entire reason** for keeping it is
+so the holder can re-`PUT` it to project infrastructure. `deviceScoped` asserts a
+value is never transmitted as record content, with a carve-out only for routing
+metadata that carries no user data by construction; these bytes are exactly
+record content and are transmitted verbatim, so that label would have been false.
+
+The distinction matters against `review_queue.candidate_blob`, which *is*
+`deviceScoped` and correctly so: that candidate is a local adjudication artifact
+that is never uploaded. Retention is what separates them from transmission.
+
+Classifying it honestly also keeps the registry's accounting intact. A tombstoned
+choreographer still carries its name, so these bytes hold third-party personal
+data at rest in a second location. Folding them into an opaque `deviceScoped`
+row would have told a future audit both that they never leave the device — they
+do — and nothing about whose data they hold.
+
+**Why the bytes are retained at all.** The holder may need to re-`PUT` the blob:
+garbage collection is reference-counting over current manifests, and the holder's
+own manifest only begins referencing the tombstone hash once it publishes. In the
+window before that, if the original deleter has already purged its local
+tombstone and a sweep fires, the blob can be collected — leaving the holder
+advertising a hash with nothing behind it, which is precisely the "target still
+addressable" property the advertisement rule exists to provide. Keeping the bytes
+lets the holder restore it.
+
+The cost is bounded by the per-kind blob cap rather than being small in absolute
+terms. An earlier draft called a tombstone "a few hundred bytes"; that
+understates it, because soft delete only stamps `deletedAt` and `updatedAt` and
+leaves every other column intact — which this design depends on elsewhere, since
+it is the same soft delete that backs the Recently Deleted screen. A tombstoned
+choreographer or venue therefore still carries its full notes, URL and address
+content. The retention decision is unchanged, since the count is bounded by
+currently-pending items and each entry by the existing cap, but the justification
+should not lean on a size claim that is not true.
 
 **A purge must not cascade off live records.** `DanceRepository.purgeDeleted`
 guards its hard delete with `_cleanupDanglingReferences` and a GC that never
@@ -987,9 +1103,9 @@ sync ID entirely, so re-enabling is a fresh attach.
    The stale live copy is not a reason to keep the entity. It is exactly the
    "peer that has not caught up" the recency rule exists to distinguish from a
    peer that edited, and the provenance gate applies here too: a live record
-   never out-ranks a tombstone unless the write carrying it was user-initiated.
-   A device that genuinely revived the entity by editing it carries that flag and
-   wins; one that merely never learned of the deletion does not.
+   out-ranks a tombstone only when `revivedAt > deletedAt`. A device whose user
+   genuinely un-deleted the entity carries that timestamp and wins; one that
+   merely never learned of the deletion carries none, and does not.
 
    An earlier draft said the holder "advertises nothing for that record", making
    this the ordinary union case and yielding the live entity. That premise is
@@ -998,7 +1114,10 @@ sync ID entirely, so re-enabling is a fresh attach.
 6. Persist the epoch and the resulting manifest as the new baseline. A record
    revived by the citation rule during this attach is **pending-held**, so the
    same carve-out applies as in steady state: its baseline entry records the live
-   hash it holds locally, not the tombstone it advertises.
+   hash it holds locally, not the tombstone it advertises. The same holds for
+   rows carried over in `pending_deletions` from before the reset — the baseline
+   is rebuilt from scratch here, so both sources of pending holds need the
+   carve-out stated, not just the ones this attach created.
 
 ### Fresh-attach dedupe
 
@@ -1720,8 +1839,23 @@ must say this plainly rather than implying sync is opaque to us.
 - **A sync-initiated write never cancels a tombstone** — a third device
   reconciles a same-named duplicate onto a record another device holds pending,
   advancing its `updatedAt` past the tombstone. Assert the tombstone stands.
-  Mutation-proved by gating cancellation on `updatedAt` rather than on the
-  user-edit flag, which resurrects the record with nobody having edited it.
+  Mutation-proved by gating cancellation on `updatedAt` rather than on
+  `revivedAt`, which resurrects the record with nobody having edited it.
+- **`revivedAt` crosses a device boundary** — A un-deletes a record B tombstoned;
+  assert the blob A publishes carries `revivedAt`, and that B, reading only that
+  blob, revives its own copy. The gate is a cross-device rule, so it needs a test
+  that actually crosses devices rather than asserting the outcome locally.
+- **A later sync write does not erase a revival** — after A revives a record,
+  reconcile an unrelated collision that rewrites one of its references, forcing
+  `updatedAt` to advance and the blob to be re-uploaded. Assert `revivedAt` is
+  unchanged and the record still out-ranks the tombstone. Mutation-proved by
+  carrying the signal as a boolean `userInitiated` on the write, which the
+  re-upload flips to false and the revival is lost — this is why the field is a
+  timestamp.
+- **A stale device's ordinary edit does not revive** — D edits a record it never
+  learned was deleted; assert `revivedAt` stays null and the deletion is applied
+  on D. This is the sticky-deletion trade asserted rather than assumed, and its
+  counterpart is the deliberate-revival test above.
 - **Queuing a review item is idempotent** — run three passes over the same
   unresolved collision; assert one row, not three. Guards the unattended device
   that syncs for a week before anyone looks.
@@ -1752,10 +1886,12 @@ must say this plainly rather than implying sync is opaque to us.
 - **Fresh attach against a deleter, a pending holder and a stale peer** — F
   attaches while B advertises a tombstone, A advertises the same tombstone from
   its pending hold, and D still advertises the entity live. Assert F applies the
-  deletion, and that D's stale live copy does not revive it because it carries no
-  user-edit flag. The three-peer combination is the one the two other fresh-attach
-  tests miss, and it is where the superseded "advertise nothing" model produced
-  the opposite outcome.
+  deletion, and that D's stale live copy does not revive it because its
+  `revivedAt` is null. The three-peer combination is the one the two other
+  fresh-attach tests miss, and it is where the superseded "advertise nothing"
+  model produced the opposite outcome. F has no baseline and no prior
+  relationship with any peer, so this is also the test that proves the gate is
+  evaluable from the blobs alone.
 - **An epoch reset does not discard a pending deletion** — hold a deletion
   pending, force a `409`, and assert that after the fresh attach the entity is
   still deleted rather than republished live. Mutation-proved by clearing
