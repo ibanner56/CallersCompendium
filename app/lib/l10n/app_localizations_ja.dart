@@ -504,6 +504,37 @@ class AppLocalizationsJa extends AppLocalizations {
       'オンにすると、アクティブなダイアレクトではなく正式なロール名とムーブ名でダンスが表示されます。ダンスを開いている間もビューを切り替えられます。';
 
   @override
+  String get settingsDefaultsCollectionCardHeader => 'Collection card fields';
+
+  @override
+  String get settingsDefaultsCollectionCardSubtitle =>
+      'Choose which details appear on each dance row. All fields are shown by default.';
+
+  @override
+  String get settingsDefaultsCollectionCardAuthors => 'Authors';
+
+  @override
+  String get settingsDefaultsCollectionCardCalledCount => 'Times called';
+
+  @override
+  String get settingsDefaultsCollectionCardFormation => 'Formation';
+
+  @override
+  String get settingsDefaultsCollectionCardStatus => 'Status';
+
+  @override
+  String get settingsDefaultsCollectionCardLevel => 'Level';
+
+  @override
+  String get settingsDefaultsCollectionCardRating => 'Rating';
+
+  @override
+  String get settingsDefaultsCollectionCardTags => 'Tags';
+
+  @override
+  String get settingsDefaultsCollectionCardCustomFields => 'Custom fields';
+
+  @override
   String get settingsDefaultsAuthoringHeader => 'ダンス作成のデフォルト設定';
 
   @override

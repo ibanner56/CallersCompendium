@@ -75,3 +75,9 @@ const String kFreeTextEntryKey = 'free_text_entry';
 /// successful field save, and never consulted for its value.
 const String kCustomFieldSharingDisclosureKey =
     'custom_fields.sharing.disclosed';
+
+/// Key used to persist the set of [CollectionTileField]s the user wants shown
+/// on each collection dance row (issue #767). Stored as a JSON list of field
+/// name strings; absent/unset means all fields are visible, so existing users
+/// see no change until they adjust the preference.
+const String kCollectionTileVisibleFieldsKey = 'collection_tile_visible_fields';

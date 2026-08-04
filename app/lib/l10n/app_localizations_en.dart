@@ -512,6 +512,37 @@ class AppLocalizationsEn extends AppLocalizations {
       'When on, a dance opens showing canonical role and move names instead of your active dialect. You can still switch views on the dance while it is open.';
 
   @override
+  String get settingsDefaultsCollectionCardHeader => 'Collection card fields';
+
+  @override
+  String get settingsDefaultsCollectionCardSubtitle =>
+      'Choose which details appear on each dance row. All fields are shown by default.';
+
+  @override
+  String get settingsDefaultsCollectionCardAuthors => 'Authors';
+
+  @override
+  String get settingsDefaultsCollectionCardCalledCount => 'Times called';
+
+  @override
+  String get settingsDefaultsCollectionCardFormation => 'Formation';
+
+  @override
+  String get settingsDefaultsCollectionCardStatus => 'Status';
+
+  @override
+  String get settingsDefaultsCollectionCardLevel => 'Level';
+
+  @override
+  String get settingsDefaultsCollectionCardRating => 'Rating';
+
+  @override
+  String get settingsDefaultsCollectionCardTags => 'Tags';
+
+  @override
+  String get settingsDefaultsCollectionCardCustomFields => 'Custom fields';
+
+  @override
   String get settingsDefaultsAuthoringHeader => 'Dance-authoring defaults';
 
   @override

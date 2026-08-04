@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
 import '../../data/aggressive_beats_update_scope.dart';
+import '../../data/collection_tile_fields_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
@@ -665,6 +666,104 @@ class _DefaultsView extends StatelessWidget {
           title: Text(l10n.settingsDefaultsCanonicalTitle),
           subtitle: Text(l10n.settingsDefaultsCanonicalSubtitle),
           isThreeLine: true,
+        ),
+        SectionHeader(title: l10n.settingsDefaultsCollectionCardHeader),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
+          child: Text(
+            l10n.settingsDefaultsCollectionCardSubtitle,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+        // Scope-backed: reads from CollectionTileFieldsScope (app root) and
+        // writes to both the notifier (live rebuild) and settings (persistence).
+        Builder(
+          builder: (context) {
+            final visibleFields = CollectionTileFieldsScope.of(context);
+            void toggle(CollectionTileField field, bool checked) {
+              final updated = Set.of(visibleFields);
+              if (checked) {
+                updated.add(field);
+              } else {
+                updated.remove(field);
+              }
+              CollectionTileFieldsScope.notifierOf(context).value = updated;
+              RepositoriesScope.of(context).settings.set(
+                kCollectionTileVisibleFieldsKey,
+                updated.map((f) => f.toJson()).toList(),
+              );
+            }
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CheckboxListTile(
+                  key: const ValueKey('defaults-tile-field-authors'),
+                  value: visibleFields.contains(CollectionTileField.authors),
+                  onChanged: (v) =>
+                      toggle(CollectionTileField.authors, v ?? true),
+                  title: Text(l10n.settingsDefaultsCollectionCardAuthors),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-tile-field-calledCount'),
+                  value: visibleFields.contains(
+                    CollectionTileField.calledCount,
+                  ),
+                  onChanged: (v) =>
+                      toggle(CollectionTileField.calledCount, v ?? true),
+                  title: Text(l10n.settingsDefaultsCollectionCardCalledCount),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-tile-field-formation'),
+                  value: visibleFields.contains(CollectionTileField.formation),
+                  onChanged: (v) =>
+                      toggle(CollectionTileField.formation, v ?? true),
+                  title: Text(l10n.settingsDefaultsCollectionCardFormation),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-tile-field-status'),
+                  value: visibleFields.contains(CollectionTileField.status),
+                  onChanged: (v) =>
+                      toggle(CollectionTileField.status, v ?? true),
+                  title: Text(l10n.settingsDefaultsCollectionCardStatus),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-tile-field-level'),
+                  value: visibleFields.contains(CollectionTileField.level),
+                  onChanged: (v) =>
+                      toggle(CollectionTileField.level, v ?? true),
+                  title: Text(l10n.settingsDefaultsCollectionCardLevel),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-tile-field-rating'),
+                  value: visibleFields.contains(CollectionTileField.rating),
+                  onChanged: (v) =>
+                      toggle(CollectionTileField.rating, v ?? true),
+                  title: Text(l10n.settingsDefaultsCollectionCardRating),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-tile-field-tags'),
+                  value: visibleFields.contains(CollectionTileField.tags),
+                  onChanged: (v) => toggle(CollectionTileField.tags, v ?? true),
+                  title: Text(l10n.settingsDefaultsCollectionCardTags),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-tile-field-customFields'),
+                  value: visibleFields.contains(
+                    CollectionTileField.customFields,
+                  ),
+                  onChanged: (v) =>
+                      toggle(CollectionTileField.customFields, v ?? true),
+                  title: Text(l10n.settingsDefaultsCollectionCardCustomFields),
+                ),
+              ],
+            );
+          },
         ),
         SectionHeader(title: l10n.settingsDefaultsAuthoringHeader),
         SwitchListTile(

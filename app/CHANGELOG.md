@@ -17,6 +17,11 @@ each release so store builds and tags can be traced back to an entry.
   can set how many beats it takes — the same control you get for any structured
   figure. Previously the model tracked beats for custom figures but the editor
   never showed the field, so there was no way to set or change it.
+- **You can now choose which details appear on each dance row in the collection.**
+  Settings → Defaults → Collection card fields lets you turn off any of the eight
+  chips — authors, times called, formation, status, level, rating, tags, and custom
+  fields — to keep your list compact and easy to scan. All chips are on by default.
+  Nothing changes in the add-to-program sheet.
 
 - **Importing a single dance that closely matches one you already have now asks
   what you want to do.** When you import from Caller's Box or ContraDB and the

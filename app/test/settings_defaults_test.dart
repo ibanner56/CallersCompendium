@@ -66,11 +66,21 @@ Future<void> _pumpDefaults(
 
 /// Scrolls the Defaults content list until [key] is visible. The
 /// Dance-authoring subsection sits below the fold on the test surface.
+///
+/// The settings screen on a wide surface (1200 px) shows two vertical
+/// [Scrollable]s (the sidebar and the content list) plus two horizontal
+/// ones from text-field overflow controllers. `find.byType(Scrollable).last`
+/// returns a horizontal scroller, which won't reveal a vertically-placed
+/// widget. We pick the second scrollable (index 1), which is the content
+/// list, to scroll the right view. The collection-card-fields section
+/// (#767) pushed the authoring toggles beyond the initial cache extent, so
+/// the old approach of relying on the widget already being in-tree broke.
 Future<void> _scrollTo(WidgetTester tester, Key key) async {
   await tester.scrollUntilVisible(
     find.byKey(key),
     120,
-    scrollable: find.byType(Scrollable).last,
+    scrollable: find.byType(Scrollable).at(1),
+    maxScrolls: 100,
   );
   await tester.pumpAndSettle();
 }

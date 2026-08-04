@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/collection_tile_fields_scope.dart';
 import 'package:compendium_app/src/data/formation_colors_controller.dart';
 import 'package:compendium_app/src/data/formation_colors_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
@@ -54,6 +55,50 @@ Future<void> _pump(
     ),
   );
 }
+
+/// Pumps a [DanceListTile] wrapped in a [CollectionTileFieldsScope] that
+/// exposes exactly [visibleFields]. When [visibleFields] is omitted the scope
+/// is absent and the tile falls back to showing all fields (default behaviour).
+Future<void> _pumpWithFields(
+  WidgetTester tester,
+  DanceListEntry entry, {
+  Set<CollectionTileField>? visibleFields,
+}) async {
+  Widget tile = DanceListTile(entry: entry, onTap: () {});
+  if (visibleFields != null) {
+    tile = CollectionTileFieldsScope(
+      notifier: ValueNotifier<Set<CollectionTileField>>(visibleFields),
+      child: tile,
+    );
+  }
+  await tester.pumpWidget(
+    MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+      home: Scaffold(body: tile),
+    ),
+  );
+}
+
+/// A [DanceListEntry] populated with every field that [DanceListTile] can
+/// show so tests can selectively hide them via [CollectionTileFieldsScope].
+DanceListEntry _richEntry() => DanceListEntry(
+  dance: Dance(
+    id: 'rich1',
+    title: 'Rich Dance',
+    form: DanceForm.contra,
+    formation: const Formation(FormationShape.dupleImproper),
+    rating: 3,
+    level: DanceLevel.intermediate,
+    createdAt: _now,
+    updatedAt: _now,
+  ),
+  authorNames: const ['Alice'],
+  tagNames: const ['tag-one'],
+  tags: const [(id: 't1', name: 'tag-one')],
+  listCustomFields: const ['custom-val'],
+  callCounts: const DanceCallCounts(all: 7, performed: 7),
+);
 
 void main() {
   testWidgets('rating indicator shows the value with a semantic label', (
@@ -291,6 +336,154 @@ void main() {
       // The label stays present (colour is never the only signal) and legible.
       final label = tester.widget<Text>(find.text('Becket (CW)'));
       expect(label.style?.color, readableForegroundOn(yellow));
+    });
+  });
+
+  // ── CollectionTileFieldsScope field-visibility (issue #767) ─────────────
+  group('CollectionTileFieldsScope', () {
+    testWidgets(
+      'title is always shown regardless of which fields are visible',
+      (tester) async {
+        await _pumpWithFields(
+          tester,
+          _richEntry(),
+          visibleFields: const {}, // nothing visible
+        );
+
+        expect(find.text('Rich Dance'), findsOneWidget);
+      },
+    );
+
+    testWidgets('all fields shown when no scope is present (safe default)', (
+      tester,
+    ) async {
+      // No scope → falls back to CollectionTileField.all.
+      await _pumpWithFields(tester, _richEntry());
+
+      expect(find.text('Alice'), findsOneWidget);
+      expect(find.byKey(const ValueKey('rating-indicator')), findsOneWidget);
+      expect(find.text('tag-one'), findsOneWidget);
+    });
+
+    testWidgets('tags hidden when CollectionTileField.tags absent', (
+      tester,
+    ) async {
+      await _pumpWithFields(
+        tester,
+        _richEntry(),
+        visibleFields: CollectionTileField.all.difference({
+          CollectionTileField.tags,
+        }),
+      );
+
+      expect(find.text('tag-one'), findsNothing);
+      // Title must still be present.
+      expect(find.text('Rich Dance'), findsOneWidget);
+    });
+
+    testWidgets('authors hidden when CollectionTileField.authors absent', (
+      tester,
+    ) async {
+      await _pumpWithFields(
+        tester,
+        _richEntry(),
+        visibleFields: CollectionTileField.all.difference({
+          CollectionTileField.authors,
+        }),
+      );
+
+      expect(find.text('Alice'), findsNothing);
+      expect(find.text('Rich Dance'), findsOneWidget);
+    });
+
+    testWidgets('rating hidden when CollectionTileField.rating absent', (
+      tester,
+    ) async {
+      await _pumpWithFields(
+        tester,
+        _richEntry(),
+        visibleFields: CollectionTileField.all.difference({
+          CollectionTileField.rating,
+        }),
+      );
+
+      expect(find.byKey(const ValueKey('rating-indicator')), findsNothing);
+      expect(find.text('Rich Dance'), findsOneWidget);
+    });
+
+    testWidgets(
+      'called-count chip hidden when CollectionTileField.calledCount absent',
+      (tester) async {
+        await _pumpWithFields(
+          tester,
+          _richEntry(),
+          visibleFields: CollectionTileField.all.difference({
+            CollectionTileField.calledCount,
+          }),
+        );
+
+        expect(find.byKey(const ValueKey('called-count-rich1')), findsNothing);
+        expect(find.text('Rich Dance'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'formation chip hidden when CollectionTileField.formation absent',
+      (tester) async {
+        await _pumpWithFields(
+          tester,
+          _richEntry(),
+          visibleFields: CollectionTileField.all.difference({
+            CollectionTileField.formation,
+          }),
+        );
+
+        // The formation label text is absent when the chip is hidden.
+        expect(find.text('Duple improper'), findsNothing);
+        expect(find.text('Rich Dance'), findsOneWidget);
+      },
+    );
+
+    testWidgets('showAll() overrides an ancestor scope that hides fields — '
+        'picker always renders at full density', (tester) async {
+      // Build: outer scope hides tags; showAll() inner scope shadows it.
+      // The tile should see the inner (showAll) scope and show tags.
+      final outer = ValueNotifier<Set<CollectionTileField>>(
+        CollectionTileField.all.difference({CollectionTileField.tags}),
+      );
+      addTearDown(outer.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: CollectionTileFieldsScope(
+              notifier: outer,
+              child: CollectionTileFieldsScope.showAll(
+                child: DanceListTile(entry: _richEntry(), onTap: () {}),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tags are visible because showAll() shadows the outer scope.
+      expect(find.text('tag-one'), findsOneWidget);
+      expect(find.text('Rich Dance'), findsOneWidget);
+    });
+
+    test('fromJson returns null for unrecognised field names', () {
+      // Guards against a silent rename hiding a chip forever: if an old stored
+      // name is not recognised, fromJson must return null so the loading code
+      // can fall back to the full set rather than silently dropping the field.
+      expect(CollectionTileField.fromJson('nonexistentField'), isNull);
+      expect(CollectionTileField.fromJson(''), isNull);
+      // Recognised values still round-trip correctly.
+      for (final f in CollectionTileField.values) {
+        expect(CollectionTileField.fromJson(f.toJson()), f);
+      }
     });
   });
 }

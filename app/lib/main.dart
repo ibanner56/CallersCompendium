@@ -15,6 +15,7 @@ import 'src/data/archive_intake_service.dart';
 import 'src/data/backup_controller_scope.dart';
 import 'src/data/collection_filter_scope.dart';
 import 'src/data/collection_refresh_scope.dart';
+import 'src/data/collection_tile_fields_scope.dart';
 import 'src/data/confirm_before_delete_scope.dart';
 import 'src/data/custom_themes_controller.dart';
 import 'src/data/custom_themes_scope.dart';
@@ -59,6 +60,7 @@ import 'src/screens/settings_screen.dart'
     show
         kAppThemeKey,
         kColourDanceThemeKey,
+        kCollectionTileVisibleFieldsKey,
         kRequirePerformedForHistoryKey,
         kSortIgnoreArticlesKey,
         kTrackHistoryForAllCallersKey,
@@ -261,6 +263,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<bool> _requirePerformedForHistoryNotifier = ValueNotifier(
     false,
   );
+  final ValueNotifier<Set<CollectionTileField>> _collectionTileFieldsNotifier =
+      ValueNotifier(CollectionTileField.all);
   final ValueNotifier<bool> _trackHistoryForAllCallersNotifier = ValueNotifier(
     false,
   );
@@ -809,6 +813,26 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // Load the update-check preferences (beta opt-in, auto-check opt-in, and
     // the dismissed banner version), all defaulting to the safe off/none state.
     await _updateController.load();
+    // Load the collection tile visible fields preference (issue #767).
+    // Stored as a JSON list of CollectionTileField name strings. Absent/unknown
+    // entries fall back to the full set so all chips remain visible by default.
+    final storedTileFields = await _appData.repositories.settings
+        .get(kCollectionTileVisibleFieldsKey)
+        .catchError((_) => null);
+    if (storedTileFields is List) {
+      final decoded = <CollectionTileField>{};
+      for (final raw in storedTileFields) {
+        final field = raw is String ? CollectionTileField.fromJson(raw) : null;
+        if (field != null) decoded.add(field);
+      }
+      // Only apply if we decoded at least one recognised field; an empty or
+      // fully-unrecognised list is treated as "not yet set" so all fields stay
+      // visible (forward-compatibility: a future field hidden on an older build
+      // will just keep showing until the user re-saves the preference).
+      if (decoded.isNotEmpty) {
+        _collectionTileFieldsNotifier.value = decoded;
+      }
+    }
   }
 
   /// Re-reads all preferences and app-local controllers from the (freshly
@@ -828,6 +852,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _dialectNotifier.dispose();
     _themeNotifier.dispose();
     _requirePerformedForHistoryNotifier.dispose();
+    _collectionTileFieldsNotifier.dispose();
     _trackHistoryForAllCallersNotifier.dispose();
     _sortIgnoreArticlesNotifier.dispose();
     _reduceMotionNotifier.dispose();
@@ -1000,48 +1025,54 @@ class _CompendiumAppState extends State<CompendiumApp> {
                             notifier: _dialectNotifier,
                             child: RequirePerformedForHistoryScope(
                               notifier: _requirePerformedForHistoryNotifier,
-                              child: TrackHistoryForAllCallersScope(
-                                notifier: _trackHistoryForAllCallersNotifier,
-                                child: SortIgnoreArticlesScope(
-                                  notifier: _sortIgnoreArticlesNotifier,
-                                  child: ReduceMotionScope(
-                                    notifier: _reduceMotionNotifier,
-                                    child: VerboseFigureRenderingScope(
-                                      notifier: _verboseFigureRenderingNotifier,
-                                      child: DecimalTurnsScope(
-                                        notifier: _decimalTurnsNotifier,
-                                        child: AggressiveBeatsUpdateScope(
-                                          notifier:
-                                              _aggressiveBeatsUpdateNotifier,
-                                          child: ConfirmBeforeDeleteScope(
+                              child: CollectionTileFieldsScope(
+                                notifier: _collectionTileFieldsNotifier,
+                                child: TrackHistoryForAllCallersScope(
+                                  notifier: _trackHistoryForAllCallersNotifier,
+                                  child: SortIgnoreArticlesScope(
+                                    notifier: _sortIgnoreArticlesNotifier,
+                                    child: ReduceMotionScope(
+                                      notifier: _reduceMotionNotifier,
+                                      child: VerboseFigureRenderingScope(
+                                        notifier:
+                                            _verboseFigureRenderingNotifier,
+                                        child: DecimalTurnsScope(
+                                          notifier: _decimalTurnsNotifier,
+                                          child: AggressiveBeatsUpdateScope(
                                             notifier:
-                                                _confirmBeforeDeleteNotifier,
-                                            child: ColourDanceThemeScope(
+                                                _aggressiveBeatsUpdateNotifier,
+                                            child: ConfirmBeforeDeleteScope(
                                               notifier:
-                                                  _colourDanceThemeNotifier,
-                                              child: SetListColorCodingScope(
+                                                  _confirmBeforeDeleteNotifier,
+                                              child: ColourDanceThemeScope(
                                                 notifier:
-                                                    _setListColorCodingNotifier,
-                                                child: DateFormatScope(
-                                                  notifier: _dateFormatNotifier,
-                                                  child: FirstDayOfWeekScope(
+                                                    _colourDanceThemeNotifier,
+                                                child: SetListColorCodingScope(
+                                                  notifier:
+                                                      _setListColorCodingNotifier,
+                                                  child: DateFormatScope(
                                                     notifier:
-                                                        _firstDayOfWeekNotifier,
-                                                    child: LocaleScope(
-                                                      notifier: _localeNotifier,
-                                                      child: BackupControllerScope(
-                                                        onRestored:
-                                                            reloadFromSettings,
-                                                        child: CollectionRefreshScope(
-                                                          revision:
-                                                              _collectionRefreshNotifier,
-                                                          child: CollectionFilterScope(
-                                                            controller:
-                                                                _collectionFilterController,
-                                                            child: VenueEntityModeScope(
-                                                              notifier:
-                                                                  _venueEntityModeNotifier,
-                                                              child: child!,
+                                                        _dateFormatNotifier,
+                                                    child: FirstDayOfWeekScope(
+                                                      notifier:
+                                                          _firstDayOfWeekNotifier,
+                                                      child: LocaleScope(
+                                                        notifier:
+                                                            _localeNotifier,
+                                                        child: BackupControllerScope(
+                                                          onRestored:
+                                                              reloadFromSettings,
+                                                          child: CollectionRefreshScope(
+                                                            revision:
+                                                                _collectionRefreshNotifier,
+                                                            child: CollectionFilterScope(
+                                                              controller:
+                                                                  _collectionFilterController,
+                                                              child: VenueEntityModeScope(
+                                                                notifier:
+                                                                    _venueEntityModeNotifier,
+                                                                child: child!,
+                                                              ),
                                                             ),
                                                           ),
                                                         ),
