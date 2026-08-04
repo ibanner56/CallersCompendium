@@ -36,7 +36,6 @@ class DanceListTile extends StatelessWidget {
     this.onDuplicate,
     this.onAddToProgram,
     this.onTagTap,
-    this.visibleFields,
   }) : assert(
          !selectionMode || selected == selectedForBatch,
          'In selection mode the row highlight (selected) must match the '
@@ -82,12 +81,6 @@ class DanceListTile extends StatelessWidget {
   /// the whole row drives batch selection.
   final void Function(String tagId)? onTagTap;
 
-  /// Which data chips to render on this row. When null every chip is shown,
-  /// which is the existing behaviour at all call sites that don't opt in.
-  /// The collection screen passes [CollectionTileFieldsScope.of(context)] here;
-  /// all other call sites leave this null so their rendering is unaffected.
-  final Set<CollectionTileField>? visibleFields;
-
   @override
   Widget build(BuildContext context) {
     final dance = entry.dance;
@@ -103,8 +96,7 @@ class DanceListTile extends StatelessWidget {
       RequirePerformedForHistoryScope.of(context),
     );
     // Which fields the user wants shown on this row (issue #767).
-    // Null means show everything — the caller didn't opt in to the preference.
-    final effectiveFields = visibleFields ?? CollectionTileField.all;
+    final visibleFields = CollectionTileFieldsScope.of(context);
     // Per-formation label colour (issue #367): highlight the formation chip
     // only when the user explicitly overrode this shape (override-only). The
     // label text + icon stay, so colour remains a redundant cue.
@@ -144,13 +136,13 @@ class DanceListTile extends StatelessWidget {
           runSpacing: 4,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            if (effectiveFields.contains(CollectionTileField.authors) &&
+            if (visibleFields.contains(CollectionTileField.authors) &&
                 entry.authorNames.isNotEmpty)
               Text(
                 entry.authorNames.join(', '),
                 style: theme.textTheme.bodyMedium,
               ),
-            if (effectiveFields.contains(CollectionTileField.calledCount) &&
+            if (visibleFields.contains(CollectionTileField.calledCount) &&
                 calledCount > 0)
               Chip(
                 key: ValueKey('called-count-${dance.id}'),
@@ -164,7 +156,7 @@ class DanceListTile extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-            if (effectiveFields.contains(CollectionTileField.formation))
+            if (visibleFields.contains(CollectionTileField.formation))
               Chip(
                 avatar: Icon(formationIcon, size: 16, color: formationFg),
                 label: Text(
@@ -177,10 +169,10 @@ class DanceListTile extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-            if (effectiveFields.contains(CollectionTileField.status) &&
+            if (visibleFields.contains(CollectionTileField.status) &&
                 dance.status != DanceStatus.active)
               DanceStatusChip(status: dance.status),
-            if (effectiveFields.contains(CollectionTileField.level) &&
+            if (visibleFields.contains(CollectionTileField.level) &&
                 dance.level != null)
               Chip(
                 avatar: const Icon(
@@ -191,7 +183,7 @@ class DanceListTile extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-            if (effectiveFields.contains(CollectionTileField.level) &&
+            if (visibleFields.contains(CollectionTileField.level) &&
                 dance.mixedLevel)
               Chip(
                 avatar: const Icon(Icons.swap_vert_outlined, size: 16),
@@ -199,7 +191,7 @@ class DanceListTile extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-            if (effectiveFields.contains(CollectionTileField.rating) &&
+            if (visibleFields.contains(CollectionTileField.rating) &&
                 dance.rating != null)
               Chip(
                 key: const ValueKey('rating-indicator'),
@@ -211,7 +203,7 @@ class DanceListTile extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-            if (effectiveFields.contains(CollectionTileField.tags))
+            if (visibleFields.contains(CollectionTileField.tags))
               for (final tag in entry.tags)
                 if (onTagTap != null && !selectionMode)
                   ActionChip(
@@ -230,7 +222,7 @@ class DanceListTile extends StatelessWidget {
                     visualDensity: VisualDensity.compact,
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-            if (effectiveFields.contains(CollectionTileField.customFields))
+            if (visibleFields.contains(CollectionTileField.customFields))
               for (final field in entry.listCustomFields)
                 Chip(
                   label: Text(field),
