@@ -584,6 +584,31 @@ argued the `changed`/`changed` collision while the resurrection actually arrives
 through `same`/`changed`, the bystander case, which is the mainline for any
 tombstone that travels more than one hop.
 
+#### Check what a condition is composed with
+
+> **When hardening a condition, check what it is ANDed or ORed with.** A
+> guarantee that holds for one term does not hold for the compound. If another
+> term can independently block or admit the outcome, it needs the same treatment
+> — or the guarantee is void.
+
+The seventh check, and the natural sequel to the sixth. That one put a rule in
+the step it governs; this one asks whether the rule *decides* anything once it is
+there.
+
+The worked example is one round of this design's own history. The existence rule
+was written in prose, so it was placed into the merge table — correctly — as a
+**second condition ANDed with recency**. Both terms were then visible on the same
+line, and the conjunction still had a hole: recency could block a download before
+the hardened term was ever evaluated, so a deliberate un-delete from a
+slow-clocked device was silently reverted. Hardening one term of a conjunction
+hardens nothing.
+
+The fix was not a third condition but the removal of the conjunction: existence
+disagreements are decided by `existenceAt` alone, before the table. When a
+guarantee needs to hold, the question to ask is not "is my term strong enough"
+but **"can anything else decide this first?"** — and where the answer is yes, the
+usual remedy is to separate the decisions rather than to strengthen both terms.
+
 ## Wire format
 
 All payloads are UTF-8 JSON. All requests and responses may use
@@ -601,7 +626,7 @@ A blob is the record as the existing archive codec emits it, restricted to
   "id": "8f14e45f-ceea-467a-9f8c-1f3f9a2b7c11",
   "updatedAt": "2026-08-03T04:11:22.000Z",
   "deletedAt": null,
-  "revivedAt": null,
+  "existenceAt": "2026-08-03T04:11:22.000Z",
   "body": { }
 }
 ```
@@ -612,11 +637,12 @@ A blob is the record as the existing archive codec emits it, restricted to
 - `updatedAt` — the conflict discriminator. UTC, millisecond precision.
 - `deletedAt` — non-null means a **tombstone**: the record is deleted, and this
   blob is how that fact travels.
-- `revivedAt` — when a user last deliberately un-deleted this record. The
-  provenance gate reads this and nothing else; see below.
+- `existenceAt` — orders the record's live↔deleted transitions causally.
+  Always present, advanced on every such transition and by nothing else, and it
+  alone decides an existence disagreement; see below.
 - `body` — archive-codec output for the record, `shareable` fields only.
 
-#### `revivedAt`, and why the provenance gate needs a timestamp
+#### `existenceAt`, and why existence needs its own clock
 
 The provenance gate — *a live record never out-ranks a tombstone unless the write
 carrying it was user-initiated* — was written when it only had to hold for the
@@ -624,7 +650,7 @@ device performing the deletion, which knows the provenance of its own writes.
 Extending it to applied tombstones made it a **cross-device** rule: a receiver
 must now decide, from a downloaded blob, whether some peer's write was a
 deliberate human act. Nothing in the envelope carried that, so the rule read data
-that was not reachable on the path where it runs. `revivedAt` is that data.
+that was not reachable on the path where it runs. `existenceAt` is that data.
 
 **It must be a timestamp, not a flag.** A boolean "this write was user-initiated"
 describes only the *most recent* write, and the content invariant guarantees
@@ -633,48 +659,83 @@ true`; the device later reconciles an unrelated collision that rewrites one of
 X's references, which *must* bump `updatedAt` and re-upload — now publishing
 `userInitiated: false`. The revival becomes invisible and the tombstone wins, so
 the flag destroys the very signal it exists to carry. A timestamp is monotone: a
-later sync write advances `updatedAt` and leaves `revivedAt` untouched.
+later sync write advances `updatedAt` and leaves `existenceAt` untouched.
 
 **The rule is a comparison, evaluable by any receiver with both blobs:**
 
-> A live record out-ranks a tombstone **iff `revivedAt > deletedAt`**.
+> When two copies of a record disagree about whether it exists, **the greater
+> `existenceAt` wins**, and its `deletedAt` says which state that is. Equal
+> values go to the tombstone.
 
 That works with no local history *beyond the two blobs*, which is what the
 fresh-attach case demands — an attaching device has no baseline and no prior
 relationship with any peer, and still gets the right answer from what is in front
-of it.
+of it. Ties resolve to the tombstone because deletions are sticky here, and
+because both devices must reach the same answer without coordinating.
 
-**Both timestamps are stamped causally, not read from a bare clock.** The
-comparison is between a value written by the deleting device and one written by
-the reviving device, so on independent clocks it is only as good as the skew
-between them. Thirty seconds between two phones is unremarkable, and a revival is
-*causally* after the deletion it supersedes — the device had to download the
-tombstone to revive from it — so a slow clock would rank a deliberate un-delete
-as earlier and silently revert it. This design elsewhere treats clocks as
-untrustworthy: it rejected timestamp epochs partly because they depend on a
-server clock never stepping backwards.
+**`existenceAt` is a third timestamp, deliberately separate from the other two.**
+Each of the three answers a different question, and an earlier version of this
+design collapsed the first two, which broke both:
 
-So each transition stamps itself **strictly after the opposing timestamp already
-on the record**, which it has necessarily observed:
+| Field | Question | Clock |
+| --- | --- | --- |
+| `updatedAt` | when did this record's content last change? | plain local clock |
+| `deletedAt` | when did the user delete this, in real time? | plain local clock |
+| `existenceAt` | which existence transition is later, causally? | causally stamped |
 
-- Reviving: `revivedAt = max(localNow, deletedAt + 1ms)`
-- Deleting: `deletedAt = max(localNow, revivedAt + 1ms)`
+`deletedAt` cannot serve as the ordering value because it is a **retention**
+timestamp with two real consumers: `purgeDeleted` hard-deletes on
+`deletedAt <= now - retention`, and the Recently Deleted screen renders a
+countdown from `deletedAt.add(retention)`. An earlier draft claimed these fields
+were "never displayed or used for retention" — that was simply false, and the
+consequence was severe: causally stamping `deletedAt` forward could pin it in the
+future, after which the purge never fires and the record sits in Recently Deleted
+for ever, showing a nonsense countdown. Since a tombstoned choreographer still
+carries a name, that also quietly defeats the retention the privacy posture
+leans on.
 
-The gate is then true by construction for a genuine revival and false by
-construction for a genuine deletion, whatever the clocks say. Both directions
-need it: an earlier version of this fix stamped only the revival, which left a
-device with a *slow* clock unable to delete a previously revived record — its
-`deletedAt` would land below the existing `revivedAt`, peers would keep the live
-copy, and the deleting device would download its own deletion back.
+`updatedAt` cannot serve either, because it answers a content question and is
+compared for every record whether or not deletion is involved.
 
-This makes the pair a two-value causal chain rather than two clock readings, and
-it is deliberately narrow: `updatedAt` keeps its ordinary clock semantics and its
-ordinary tolerable exposure, because a skew-induced wrong winner there costs one
-recoverable edit, while here it either resurrects a deletion everywhere or
-reverts a deliberate revival. The two fields are only ever compared against each
-other, never displayed or used for retention, so a `max` that lands slightly
-ahead of local time has no other consequence — and they are bounds-checked like
-every other inbound value, so a peer cannot pin them far into the future.
+**`existenceAt` is stamped causally, not read from a bare clock.** The comparison
+is between values written by two different devices, so on independent clocks it
+is only as good as the skew between them. Thirty seconds between two phones is
+unremarkable, and a revival is *causally* after the deletion it supersedes — the
+device had to receive the tombstone to revive from it — so a slow clock would
+rank a deliberate un-delete as earlier and silently revert it. This design
+elsewhere treats clocks as untrustworthy: it rejected timestamp epochs partly
+because they depend on a server clock never stepping backwards.
+
+So **every** live↔deleted transition stamps
+
+```
+existenceAt = max(localNow, currentExistenceAt + 1ms)
+```
+
+reading the value already on the record, which the device has necessarily
+observed in order to act on it. A revival therefore outranks the deletion it
+supersedes by construction, and a deletion outranks the revival it supersedes by
+construction, whatever the clocks say. Both directions need it: an earlier
+version stamped only the revival, which left a device with a *slow* clock unable
+to delete a previously revived record at all — its value would land below the
+existing one, peers would keep the live copy, and the deleting device would
+download its own deletion back.
+
+One field rather than a pair also removes a failure this mechanism had while it
+was two: with `revivedAt` and `deletedAt` as separate comparands, a device could
+advance one while the other stood still. A single monotone value per record
+cannot disagree with itself.
+
+**A future-dated `existenceAt` is now harmless locally and rejected remotely.**
+Because nothing else reads it — not retention, not display, not the merge
+discriminator — a `max` landing slightly ahead of local time has no other
+consequence, which is the property the old wording claimed for fields that did
+not have it. Inbound values are **clamped to `localNow + 24h` and rejected beyond
+it**, stated as a check to implement rather than assumed: `_dtOrNull` validates
+only ISO-8601 parseability and calls `.toUtc()`, and the codec's clamping is all
+string and list length — no date range check exists today. Without that check a
+hostile peer could pin a record's existence state permanently by publishing a
+value far in the future.
 
 **Which writes set it.** Only a user edit to a record the device can see is
 deleted — the "a local edit cancels the pending tombstone" case, and an explicit
@@ -691,7 +752,7 @@ staying sticky is the deliberate trade, since a deletion silently reversed on
 every device is the failure this whole mechanism exists to prevent, and it is
 also the harder of the two to notice.
 
-`revivedAt` is `shareable`: it is a bare timestamp with no subject, it must
+`existenceAt` is `shareable`: it is a bare timestamp with no subject, it must
 travel for the rule to work, and it is stored per record on all eight syncable
 kinds (see the v23 scope).
 
@@ -749,38 +810,46 @@ and review. Nothing else about the two migrations interacts: v22 touches
 `dance_figures`, which this design does not migrate.
 
 An earlier draft also called it "one column on `settings`". Under first-class
-records, and with the provenance gate needing `revived_at` on every kind that can
+records, and with the provenance gate needing `existence_at` on every kind that can
 be tombstoned, it is **eight tables and twenty columns**:
 
 | Table | Adds |
 | --- | --- |
-| `settings` | `updated_at`, `deleted_at`, `revived_at` |
-| `choreographers` | `updated_at`, `deleted_at`, `revived_at` |
-| `tags` | `updated_at`, `deleted_at`, `revived_at` |
-| `published_sources` | `updated_at`, `deleted_at`, `revived_at` |
-| `custom_field_defs` | `updated_at`, `deleted_at`, `revived_at` |
-| `venues` | `updated_at`, `deleted_at`, `revived_at` |
-| `dances` | `revived_at` |
-| `programs` | `revived_at` |
+| `settings` | `updated_at`, `deleted_at`, `existence_at` |
+| `choreographers` | `updated_at`, `deleted_at`, `existence_at` |
+| `tags` | `updated_at`, `deleted_at`, `existence_at` |
+| `published_sources` | `updated_at`, `deleted_at`, `existence_at` |
+| `custom_field_defs` | `updated_at`, `deleted_at`, `existence_at` |
+| `venues` | `updated_at`, `deleted_at`, `existence_at` |
+| `dances` | `existence_at` |
+| `programs` | `existence_at` |
 
 `dances` and `programs` already carry `updated_at` and `deleted_at`, so they join
-the migration only for `revived_at` — but join it they must, since both can be
-deleted and both can be deliberately restored, and the provenance gate has to be
-able to tell those apart on every kind rather than most of them.
+the migration only for `existence_at` — but join it they must, since both can be
+deleted and both can be deliberately restored, and the rule has to be able to
+tell those apart on every kind rather than most of them.
 
-`revived_at` is classified `dpv:NonPersonalData` / `shareable`: a bare timestamp
+Every write that deletes or restores a record must stamp it as
+`max(localNow, currentExistenceAt + 1ms)` — **not** from a bare clock, which is
+the whole point of the column and the easiest part of it to get wrong when
+working from a migration checklist. `updated_at` and `deleted_at` are stamped
+from a plain clock as they are today: the existing `softDelete` writes one shared
+value into `deletedAt` and `updatedAt`, and that stays correct precisely because
+nothing causal flows into either of them.
+
+`existence_at` is classified `dpv:NonPersonalData` / `shareable`: a bare timestamp
 with no data subject, which has to travel for the gate to be evaluable by a
 receiver.
 
 Plus **six `_db.delete(` call sites** converted from hard to soft delete across
 five repositories, and the **`restore()` paths on every kind** — the two that
 exist (`DanceRepository`, `ProgramRepository`) plus the six added by this
-migration — updated to stamp `revived_at`. Restore is the write that *sets* the
+migration — updated to stamp `existence_at`. Restore is the write that *sets* the
 provenance signal, so it is as much a part of this migration's surface as the
 deletes are; listing one without the other would leave the gate with no writer.
 
 `Dances` and `Programs` already have `updated_at` and `deleted_at`; they need
-only `revived_at`.
+only `existence_at`.
 
 ##### `DanceRepository` is not the pattern to copy
 
@@ -851,7 +920,7 @@ requires several: reference rewriting after reconciliation, merge-by-recency, an
 the dance merge's scalar recency all advance the discriminator without a user
 touching anything. A third device silently reconciling a same-named duplicate
 would otherwise reverse another device's deletion, with nobody having edited the
-record on any device. Cancellation therefore keys off **`revivedAt`** — the
+record on any device. Cancellation therefore keys off **`existenceAt`** — the
 timestamp a deliberate un-delete sets and no sync-apply path ever writes —
 however new the resulting `updatedAt`.
 
@@ -862,8 +931,8 @@ otherwise let any live copy with a newer timestamp win. Since reconciliation,
 reference rewriting and the dance merge all advance `updatedAt` without a user
 edit, a third device could manufacture a live record newer than an applied
 tombstone and the deleting device would download it. So the rule is stated once,
-generally: **a live record out-ranks a tombstone only when
-`revivedAt > deletedAt`.** Pending and applied tombstones are the same rule seen
+generally: **when two copies disagree about existence, the greater
+`existenceAt` wins.** Pending and applied tombstones are the same rule seen
 at two moments, not two rules — and because the test is a comparison of two
 fields both blobs carry — each stamped strictly after the transition it
 supersedes, so the comparison does not rest on the two devices' clocks
@@ -1167,9 +1236,9 @@ sync ID entirely, so re-enabling is a fresh attach.
    The stale live copy is not a reason to keep the entity. It is exactly the
    "peer that has not caught up" the recency rule exists to distinguish from a
    peer that edited, and the provenance gate applies here too: a live record
-   out-ranks a tombstone only when `revivedAt > deletedAt`. A device whose user
-   genuinely un-deleted the entity carries that timestamp and wins; one that
-   merely never learned of the deletion carries none, and does not.
+   loses to a tombstone with a greater `existenceAt`. A device whose user
+   genuinely un-deleted the entity stamped a later value and wins; one that
+   merely never learned of the deletion never advanced it, and does not.
 
    An earlier draft said the holder "advertises nothing for that record", making
    this the ordinary union case and yielding the live entity. That premise is
@@ -1321,31 +1390,50 @@ The user is told the count afterwards ("merged 412 duplicates"), not asked.
    | --- | --- | --- |
    | same | same | nothing |
    | changed | same | upload |
-   | same | changed | download **only if `remote.updatedAt > local.updatedAt`** — and, if local is a tombstone and remote is live, **only if `remote.revivedAt > local.deletedAt`** |
-   | changed | changed | **conflict** → higher `updatedAt` wins — except a live record versus a tombstone, where the tombstone wins unless `revivedAt > deletedAt` |
+   | same | changed | download **only if `remote.updatedAt > local.updatedAt`** |
+   | changed | changed | **conflict** → higher `updatedAt` wins |
    | absent from baseline, present locally | — | upload (new here) |
    | — | absent from baseline, present remotely | download (new elsewhere) |
 
-   **The tombstone gate is part of this table, not commentary on it.** It applies
-   on both download rows, and the `same`/`changed` row is the one that matters
-   most — an earlier draft stated the gate only in prose, framed around the
-   `changed`/`changed` collision, which is the rarer case. The mainline for any
-   tombstone travelling more than one hop is the *bystander*:
+   **Existence disagreements are decided before this table is consulted, and by
+   `existenceAt` alone.** If one side is a tombstone and the other is live, the
+   greater `existenceAt` wins outright; `updatedAt` does not participate, on any
+   row. The table above then governs only the ordinary case where both sides
+   agree the record exists.
 
-   1. A deletes choreographer X while it is unreferenced, so the deletion applies
-      at once. B and C download the tombstone and apply it; it is now their
+   It has to cover `same`/`changed` and not just the `changed`/`changed`
+   collision, because the *bystander* is the mainline for any tombstone that
+   travels more than one hop. A deletes X while it is unreferenced, so the
+   deletion applies at once; C downloads the tombstone and it becomes C's
+   baseline. D never learned of the deletion, still holds X live, and later
+   reconciles an unrelated duplicate that rewrites a reference into X — which,
+   per *Content changes must move the discriminator*, **must** bump X's
+   `updatedAt` past the tombstone. C then sees local `same`, remote `changed`,
+   and on plain recency downloads a live X: a resurrection with nobody having
+   revived anything, which neither A nor D is in a position to prevent.
+
+   The ordering matters, and getting it wrong is subtle. An earlier draft added
+   the existence check to the `same`/`changed` row as a **second condition ANDed
+   with recency** — which leaves the hole open, because the recency term can
+   block the download before the existence term is ever reached:
+
+   1. D, with a correct clock, deletes X at real time `T`. Its `updatedAt` and
+      `deletedAt` are both `T`. Bystander C applies the tombstone; it becomes C's
       baseline.
-   2. D never learned of the deletion and still holds X live. D later reconciles
-      an unrelated duplicate that rewrites a reference into X, which — per
-      *Content changes must move the discriminator* — **must** bump X's
-      `updatedAt` past the tombstone. D never touches `revivedAt`.
-   3. C's next pass: local versus baseline is `same`, since C has not touched X.
-      Remote versus baseline is `changed`. Plain recency downloads it and **C
-      resurrects X**, with nobody having revived anything.
+   2. R's clock is thirty seconds slow. Its user watches the deletion arrive and
+      taps Restore ten seconds later. `restore()` stamps `updatedAt = T − 20s`
+      from that bare clock. Causal stamping sets `existenceAt` above the
+      deletion's, so the existence test passes.
+   3. C hits `same`/`changed` and asks first whether
+      `remote.updatedAt (T − 20s) > local.updatedAt (T)`. It is not. **The
+      download is blocked before the existence test is consulted**, and a
+      deliberate un-delete is silently reverted.
 
-   C is a bystander to both the deletion and D's reconciliation, which is why
-   neither of the parties involved can prevent it and why the rule has to live in
-   the row rather than in a section about the deleting device.
+   Hardening one term of a conjunction hardens nothing. Deciding existence first,
+   on its own field, removes the conjunction rather than strengthening half of
+   it — and it is why `existenceAt` is separate from `updatedAt` in the first
+   place: a record's content recency and its existence are different questions,
+   and answering the second with the first is what created the hole.
 
    **`updatedAt` is load-bearing, not a tiebreak.** An earlier draft compared
    hashes alone and downloaded whenever the remote differed from the baseline.
@@ -1402,16 +1490,17 @@ Restore is a **local, direct-to-repository path that bypasses the merge engine
 entirely.** `ArchiveRestorer` writes every entity through unconditional
 `upsert`/`create` — `ChoreographerRepository.upsert` is a bare
 `insertOnConflictUpdate` — with no awareness of `updatedAt`, `deletedAt`,
-`revivedAt`, the sync baseline or `pending_deletions`. That predates this design
+`existenceAt`, the sync baseline or `pending_deletions`. That predates this design
 and is right for what restore is: putting a device back to a known state.
 
 Left alone, the two features contradict each other. A user restores a backup
 taken before X was deleted and synced away. X returns as a live row carrying its
-old `updatedAt` and no `revivedAt`, while the sync baseline — a separate table
+old `updatedAt` and no `existenceAt`, while the sync baseline — a separate table
 restore never touches — still records X as a tombstone. The next pass reads local
 as `changed`, remote as `same`, and the table says **upload**, unconditionally.
 Peers correctly refuse it, since the backup's `updatedAt` predates the deletion
-and its `revivedAt` is null, so the deletion does not reverse network-wide. But
+and its `existenceAt` predates the deletion, so it does not reverse
+network-wide. But
 the restoring device now shows X alive **permanently, diverged from every peer,
 with no error and no path back**.
 
@@ -1420,18 +1509,37 @@ pass. The baseline is a claim about what this device last agreed with its peers,
 and a wholesale replacement of local state makes that claim false — dropping it
 is not a workaround but the accurate response to state it no longer describes.
 Fresh attach is already the specified path for "no valid baseline", and it
-resolves this case correctly: X uploads, the peers' tombstone out-ranks it
-because the restored row has no `revivedAt`, and the device converges on the
-deletion instead of diverging from it forever.
+resolves this case correctly **while any peer still advertises the tombstone**:
+X uploads, that tombstone carries the greater `existenceAt`, and the device
+converges on the deletion instead of diverging from it for ever.
+
+**That bound is real and is not a formality.** Once the deletion has been applied
+everywhere and each device's sweep has purged the soft-deleted row past the
+retention window, no tombstone survives to out-rank anything. A user restoring a
+pre-deletion backup then uploads X as live against nothing, and **X returns on
+every device.** This is the tombstone-retention tradeoff already disclosed for a
+long-absent peer reattaching — but restore is an ordinary action a user takes
+deliberately, which moves the case from exotic to reachable, so the convergence
+claim is stated with its precondition rather than flatly.
 
 `id_aliases` and `review_queue` clear with the baseline. **`pending_deletions`
 does not** — for the same reason it survives an epoch reset: those rows record
 deletions the user performed that are owed but not yet applied, and a restore is
 no more evidence against them than a re-seeded store is.
 
+The analogy is not exact, though, and the difference has to be handled rather
+than waved at: an epoch reset never touches local rows, whereas
+`RestoreMode.replace` wipes and reloads them. A pending row can therefore end up
+pointing at a record the backup predates, or at one whose citations were replaced
+wholesale, so the "last citation goes away" event that would discharge it may
+never fire. **After a restore, pending rows are revalidated against the restored
+data**: one whose record no longer exists is dropped, and one whose record is now
+uncited applies immediately rather than waiting for an event that has already
+happened.
+
 A user who genuinely wants the restored version to win can delete and re-enter
 the record, or restore it from Recently Deleted once the deletion applies — both
-of which stamp `revivedAt` and carry the intent explicitly. That is the same
+of which stamp `existenceAt` and carry the intent explicitly. That is the same
 sticky-deletion trade made everywhere else here, applied consistently rather than
 re-litigated at the restore boundary.
 
@@ -1964,7 +2072,7 @@ must say this plainly rather than implying sync is opaque to us.
   reconciles a same-named duplicate onto a record another device holds pending,
   advancing its `updatedAt` past the tombstone. Assert the tombstone stands.
   Mutation-proved by gating cancellation on `updatedAt` rather than on
-  `revivedAt`, which resurrects the record with nobody having edited it.
+  `existenceAt`, which resurrects the record with nobody having edited it.
 - **A bystander does not resurrect a tombstone** — A deletes X and it applies
   immediately; C downloads and applies the tombstone, so it is C's baseline. D,
   which never learned of the deletion, reconciles an unrelated duplicate that
@@ -1972,31 +2080,37 @@ must say this plainly rather than implying sync is opaque to us.
   C keeps X deleted. Mutation-proved by dropping the gate from the `same`/`changed`
   row, which resurrects it. This is the mainline path for a tombstone travelling
   more than one hop, and it is not the case the pending-holder test covers.
-- **The gate survives clock skew in both directions** — run the revival with the
-  reviving device's clock set behind the deleting device's, and the deletion with
-  the deleting device's clock behind a prior revival's. Assert the revival wins in
-  the first and the deletion wins in the second. Mutation-proved by stamping
-  either field from a bare local clock instead of from the opposing timestamp,
-  each of which fails one direction while leaving the other passing — so the test
-  must assert both or it certifies half a fix.
+- **The rule survives clock skew in both directions, end to end** — run the
+  revival with the reviving device's clock set behind the deleting device's, and
+  the deletion with the deleting device's clock behind a prior revival's. Assert
+  the revival wins in the first and the deletion wins in the second, **through a
+  full sync pass on a bystander device**, not by calling the comparison directly.
+  Mutation-proved three ways, because each leaves the others passing: stamp
+  `existenceAt` from a bare clock (fails one direction); stamp it causally on
+  only one of the two transitions (fails the other); and re-add the existence
+  test as a condition ANDed with `updatedAt` recency on the `same`/`changed` row
+  rather than deciding before it — which passes a direct comparison test and
+  still reverts the revival end to end. That last mutation is the one an
+  implementer is most likely to write, and a test scoped to the comparison alone
+  certifies it as correct.
 - **A restore converges rather than diverging** — restore a backup taken before a
   record was deleted and synced away; assert the device fresh-attaches and ends
   agreeing with its peers that the record is deleted, rather than republishing it
   forever. Mutation-proved by leaving the baseline in place, which produces a
   permanent one-device divergence with no error.
-- **`revivedAt` crosses a device boundary** — A un-deletes a record B tombstoned;
-  assert the blob A publishes carries `revivedAt`, and that B, reading only that
+- **`existenceAt` crosses a device boundary** — A un-deletes a record B tombstoned;
+  assert the blob A publishes carries `existenceAt`, and that B, reading only that
   blob, revives its own copy. The gate is a cross-device rule, so it needs a test
   that actually crosses devices rather than asserting the outcome locally.
 - **A later sync write does not erase a revival** — after A revives a record,
   reconcile an unrelated collision that rewrites one of its references, forcing
-  `updatedAt` to advance and the blob to be re-uploaded. Assert `revivedAt` is
+  `updatedAt` to advance and the blob to be re-uploaded. Assert `existenceAt` is
   unchanged and the record still out-ranks the tombstone. Mutation-proved by
   carrying the signal as a boolean `userInitiated` on the write, which the
   re-upload flips to false and the revival is lost — this is why the field is a
   timestamp.
 - **A stale device's ordinary edit does not revive** — D edits a record it never
-  learned was deleted; assert `revivedAt` stays null and the deletion is applied
+  learned was deleted; assert `existenceAt` is not advanced and the deletion applies
   on D. This is the sticky-deletion trade asserted rather than assumed, and its
   counterpart is the deliberate-revival test above.
 - **Queuing a review item is idempotent** — run three passes over the same
@@ -2030,11 +2144,11 @@ must say this plainly rather than implying sync is opaque to us.
   attaches while B advertises a tombstone, A advertises the same tombstone from
   its pending hold, and D still advertises the entity live. Assert F applies the
   deletion, and that D's stale live copy does not revive it because its
-  `revivedAt` is null. The three-peer combination is the one the two other
-  fresh-attach tests miss, and it is where the superseded "advertise nothing"
-  model produced the opposite outcome. F has no baseline and no prior
-  relationship with any peer, so this is also the test that proves the gate is
-  evaluable from the blobs alone.
+  `existenceAt` still predates the tombstone's. The three-peer combination is the
+  one the two other fresh-attach tests miss, and it is where the superseded
+  "advertise nothing" model produced the opposite outcome. F has no baseline and
+  no prior relationship with any peer, so this is also the test that proves the
+  rule is evaluable from the blobs alone.
 - **An epoch reset does not discard a pending deletion** — hold a deletion
   pending, force a `409`, and assert that after the fresh attach the entity is
   still deleted rather than republished live. Mutation-proved by clearing

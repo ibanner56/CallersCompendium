@@ -616,7 +616,7 @@ makes self-hosting materially harder, which constraint 4 forbids.
   gains `updated_at` **and `deleted_at`**, and the five kinds that lack them —
   choreographers, tags, published sources, custom-field defs, venues — gain both,
   with their repositories converted from hard delete to soft. All eight syncable
-  kinds additionally gain `revived_at` for the provenance gate, which brings
+  kinds additionally gain `existence_at` for the provenance gate, which brings
   `dances` and `programs` into the migration for that one column. That is eight
   tables and twenty columns, plus six `_db.delete(` call sites, not one column. It
   remains the programme's only schema change, and isolating it still leaves the
@@ -650,40 +650,49 @@ makes self-hosting materially harder, which constraint 4 forbids.
   deleted it once. Holding the deletion pending keeps the guarantee that no dance
   credits a tombstone without buying it by resurrecting deleted data.
 
-  A held deletion is cancelled **only by a deliberate user edit**, recorded as a
-  `revivedAt` timestamp that travels in the blob envelope: a live record
-  out-ranks a tombstone only when `revivedAt > deletedAt`. Several sync
-  mechanisms advance `updatedAt` without a user touching anything — reference
-  rewriting, merge-by-recency, the dance merge's scalar recency — so a plain
-  recency rule would let a third device silently reverse another's deletion.
+  A held deletion is cancelled **only by a deliberate user edit**, ordered by an
+  `existenceAt` timestamp that travels in the blob envelope: when two copies
+  disagree about whether a record exists, the greater `existenceAt` decides, and
+  its `deletedAt` says which state that is. Several sync mechanisms advance
+  `updatedAt` without a user touching anything — reference rewriting,
+  merge-by-recency, the dance merge's scalar recency — so a plain recency rule
+  would let a third device silently reverse another's deletion.
 
-  Two properties of that signal are load-bearing. It **travels**, because
-  extending the gate to *applied* tombstones made it a cross-device rule: a
-  receiver must judge a peer's write, and a fresh-attaching device has no local
-  history to judge it from. And it is a **timestamp rather than a flag**, because
-  the content invariant guarantees later sync writes to the same record, each of
-  which would overwrite a boolean and erase the revival it recorded, while a
-  timestamp survives untouched.
+  Three properties of that field are load-bearing. It **travels**, because
+  extending the rule to *applied* tombstones made it cross-device: a receiver
+  must judge a peer's write, and a fresh-attaching device has no local history to
+  judge it from. It is a **timestamp rather than a flag**, because the content
+  invariant guarantees later sync writes to the same record, each of which would
+  overwrite a boolean and erase the revival it recorded. And it **decides alone**
+  rather than qualifying the recency comparison: a first attempt added it as a
+  second condition ANDed with `updatedAt` recency, where the recency term could
+  block the outcome before the hardened term was ever reached, so a deliberate
+  un-delete from a slow-clocked device was still silently reverted. Hardening one
+  term of a conjunction hardens nothing.
 
-  `revivedAt` is set only by a deliberate un-delete and by no sync-apply path,
-  which makes deletions sticky: an edit made on a device that never learned of
-  the deletion is swept up when it arrives — recoverable from Recently Deleted,
-  but not announced. Chosen because a deletion silently reversed on every device
-  is both worse and harder to notice than an edit that follows its record into
-  the bin. It costs a `revived_at` column on all eight syncable kinds, which is
+  It is set only by a live↔deleted transition and by no sync-apply path, which
+  makes deletions sticky: an edit made on a device that never learned of the
+  deletion is swept up when it arrives — recoverable from Recently Deleted, but
+  not announced. Chosen because a deletion silently reversed on every device is
+  both worse and harder to notice than an edit that follows its record into the
+  bin. It costs an `existence_at` column on all eight syncable kinds, which is
   why v23 is eight tables rather than six.
 
-  Both timestamps are stamped **causally rather than from a bare clock** —
-  each transition lands strictly after the opposing value already on the record
-  (`revivedAt = max(now, deletedAt + 1ms)`, and symmetrically for a deletion). A
-  revival is necessarily *after* the deletion it supersedes, since the device had
-  to receive the tombstone to revive from it, but on independent clocks a slow
-  device would stamp it earlier and silently revert a deliberate un-delete; the
-  reverse skew would stop a device deleting a previously revived record at all.
-  This keeps the pair a two-value causal chain and confines it to the decision
-  that needs it — `updatedAt` keeps ordinary clock semantics, because a wrong
-  winner there costs one recoverable edit rather than a deletion reversed
-  everywhere.
+  It is stamped **causally rather than from a bare clock** — every transition
+  lands strictly after the value already on the record,
+  `max(now, currentExistenceAt + 1ms)`. A revival is necessarily *after* the
+  deletion it supersedes, since the device had to receive the tombstone to revive
+  from it, but on independent clocks a slow device would stamp it earlier and
+  silently revert a deliberate un-delete; the reverse skew would stop a device
+  deleting a previously revived record at all.
+
+  It is a **separate column** rather than a reuse of `deletedAt` because that
+  field is a retention timestamp with real consumers — the purge sweep and the
+  Recently Deleted countdown both read it — so stamping it forward could pin a
+  record in the future, never purge it, and defeat the retention this design's
+  privacy posture depends on. `updatedAt` and `deletedAt` keep ordinary clock
+  semantics; only existence ordering is causal, because a wrong winner there
+  reverses a deletion everywhere rather than costing one recoverable edit.
 
   **Restoring a backup drops the sync baseline**, forcing a fresh attach. Restore
   writes straight to the repositories, outside the merge engine and with no
