@@ -94,6 +94,13 @@ enum OnlineImportKind {
 
   /// The exact online dance was already imported before; nothing written.
   alreadyInCollection,
+
+  /// A confident title+author match exists in the collection with differing
+  /// figures; nothing was written. The caller must show a resolution dialog
+  /// and retry [OnlineSearchService.import] with [ambiguousResolution] set
+  /// (issue #797). [OnlineImportResult.danceId] holds the existing dance's id
+  /// so the dialog can display its title.
+  needsConfirmation,
 }
 
 /// Outcome of [OnlineSearchService.import].
@@ -166,9 +173,15 @@ abstract interface class OnlineSearchService {
   });
 
   /// Commits [plan] into the local collection (dedup-aware, single dance).
+  ///
+  /// Returns [OnlineImportKind.needsConfirmation] without writing anything
+  /// when a confident title+author match already exists with differing figures
+  /// and no [ambiguousResolution] has been supplied. The caller must show a
+  /// resolution dialog and retry with [ambiguousResolution] set (issue #797).
   Future<OnlineImportResult> import(
     CompendiumRepositories repos,
     ImportRecordPlan plan, {
     DateTime? now,
+    DedupeResolution? ambiguousResolution,
   });
 }

@@ -757,6 +757,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// (dedup-aware). On success it pops the preview route, returning the outcome
   /// to [_pushOnlinePreview], which lands the user on the persisted dance. An
   /// [_importing] guard blocks a rapid double-tap before the commit resolves.
+  ///
+  /// When the service detects a confident title+author match with differing
+  /// figures, it returns [OnlineImportKind.needsConfirmation] without writing
+  /// anything. In that case, this method shows a resolution dialog and retries
+  /// the import with the chosen [DedupeResolution] (issue #797).
   Future<void> _importOnline(OnlinePreview preview) async {
     if (_importing) return;
     _importing = true;
@@ -764,7 +769,27 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final navigator = Navigator.of(context);
     final l10n = AppLocalizations.of(context);
     try {
-      final result = await _online.import(_repos, preview.plan);
+      var result = await _online.import(_repos, preview.plan);
+      if (result.kind == OnlineImportKind.needsConfirmation) {
+        if (!mounted) return;
+        final existingId = result.danceId;
+        final existingTitle = existingId != null
+            ? (await _repos.dances.getById(existingId))?.title ?? result.title
+            : result.title;
+        if (!mounted) return;
+        final resolution = await _showImportVariationDialog(
+          l10n,
+          incomingTitle: result.title,
+          existingTitle: existingTitle,
+          existingId: existingId,
+        );
+        if (resolution == null || !mounted) return; // user cancelled
+        result = await _online.import(
+          _repos,
+          preview.plan,
+          ambiguousResolution: resolution,
+        );
+      }
       if (!mounted) return;
       if (result.kind == OnlineImportKind.created) {
         CollectionRefreshScope.bump(context);
@@ -794,6 +819,59 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _importing = false;
     }
   }
+
+  /// Shows the resolution dialog for a confident title+author match with
+  /// differing figures (issue #797). Returns the chosen [DedupeResolution], or
+  /// `null` if the user cancelled.
+  Future<DedupeResolution?> _showImportVariationDialog(
+    AppLocalizations l10n, {
+    required String incomingTitle,
+    required String existingTitle,
+    required String? existingId,
+  }) => showDialog<DedupeResolution>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      key: const ValueKey('online-import-variation-dialog'),
+      title: Text(l10n.importReviewVariationTitle(existingTitle)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.onlineImportVariationDialogBody(existingTitle)),
+          const SizedBox(height: 8),
+          Text(
+            l10n.onlineImportVariationDialogLinkWarning(existingTitle),
+            style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+              color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('online-import-variation-cancel'),
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(l10n.commonCancel),
+        ),
+        TextButton(
+          key: const ValueKey('online-import-variation-as-variation'),
+          onPressed: () => Navigator.of(ctx).pop(
+            existingId != null
+                ? DedupeResolution.variation(existingId)
+                : DedupeResolution.duplicate(),
+          ),
+          child: Text(l10n.onlineImportVariationDialogActionVariation),
+        ),
+        if (existingId != null)
+          FilledButton(
+            key: const ValueKey('online-import-variation-same-dance'),
+            onPressed: () =>
+                Navigator.of(ctx).pop(DedupeResolution.link(existingId)),
+            child: Text(l10n.onlineImportVariationDialogActionLink),
+          ),
+      ],
+    ),
+  );
 
   void _clearAll() {
     _debounceTimer?.cancel();

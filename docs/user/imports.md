@@ -288,6 +288,13 @@ watches for matches:
   differ only in timing or in which figure carries the progression count as the
   same dance and never raise the prompt.
 
+  For a **single-dance online import** (the Import button in the online preview),
+  this same confirmation appears as a dialog rather than a review-screen block.
+  The choices are identical: **Import as a variation**, **Same dance (update
+  existing)**, or **Cancel**. "Same dance" overwrites the existing dance with the
+  incoming version — your edits, tags, and rating for the existing dance will be
+  replaced — but your calling history is preserved.
+
 ### Re-import to pick up a correction
 
 When the review screen recognises a dance you already imported, it offers

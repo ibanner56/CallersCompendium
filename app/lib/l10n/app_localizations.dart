@@ -5000,6 +5000,30 @@ abstract class AppLocalizations {
   /// **'\"{title}\" is already in your collection.'**
   String onlineImportAlreadyInCollection(String title);
 
+  /// Body text in the resolution dialog shown when a confident title+author match with differing figures is found during a single-dance online import (issue #797). existingTitle is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance\'s title and caller match \"{existingTitle}\", but its figures are different. How do you want to import it?'**
+  String onlineImportVariationDialogBody(String existingTitle);
+
+  /// Button label in the issue #797 resolution dialog: import the incoming dance as a new, distinct dance (variation of the matched one).
+  ///
+  /// In en, this message translates to:
+  /// **'Import as a variation'**
+  String get onlineImportVariationDialogActionVariation;
+
+  /// Button label in the issue #797 resolution dialog: treat the incoming dance as the same dance and overwrite the existing record.
+  ///
+  /// In en, this message translates to:
+  /// **'Same dance (update existing)'**
+  String get onlineImportVariationDialogActionLink;
+
+  /// Secondary text in the issue #797 resolution dialog warning that choosing 'same dance' will overwrite user-added data. existingTitle is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Your edits, tags, and rating for \"{existingTitle}\" will be replaced.'**
+  String onlineImportVariationDialogLinkWarning(String existingTitle);
+
   /// Attribution line under an online result row sourced from The Caller's Box.
   ///
   /// In en, this message translates to:

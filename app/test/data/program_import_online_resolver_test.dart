@@ -76,6 +76,7 @@ class _FakeOnlineService implements OnlineSearchService {
     CompendiumRepositories repos,
     ImportRecordPlan plan, {
     DateTime? now,
+    DedupeResolution? ambiguousResolution,
   }) async {
     final title = plan.draft.dance.title;
     importedIds.add(title);

@@ -100,8 +100,15 @@ class ContraDbOnline implements OnlineSearchService {
   /// Commits [plan] into the local collection using the dedup-aware default
   /// (identical policy to [CallersBoxOnline.import]): a brand-new dance is
   /// created; an exact re-import match is reported as already-in-collection
-  /// (nothing written); a fuzzy near-match is imported as a new dance (the user
-  /// explicitly asked for this ContraDB dance).
+  /// (nothing written); a fuzzy near-match with a confident title+author
+  /// candidate and differing figures returns
+  /// [OnlineImportKind.needsConfirmation] (nothing written) so the caller can
+  /// show a resolution dialog (issue #797); any other fuzzy near-match is
+  /// imported as a new dance (the user explicitly asked for this ContraDB
+  /// dance).
+  ///
+  /// Pass [ambiguousResolution] to skip the needsConfirmation check and commit
+  /// immediately with the given resolution (used on the retry after the dialog).
   ///
   /// This is a strictly SINGLE-dance import (one previewed [plan]); the returned
   /// [OnlineImportResult.danceCount] reflects that.
@@ -110,6 +117,7 @@ class ContraDbOnline implements OnlineSearchService {
     CompendiumRepositories repos,
     ImportRecordPlan plan, {
     DateTime? now,
+    DedupeResolution? ambiguousResolution,
   }) async {
     final title = plan.draft.dance.title;
     if (plan.verdict.kind == DedupeKind.reimport) {
@@ -121,8 +129,37 @@ class ContraDbOnline implements OnlineSearchService {
       );
     }
 
+    // When the verdict is ambiguous and a confident candidate exists, check
+    // whether the figures differ. If they do and no resolution has been
+    // supplied yet, return needsConfirmation so the caller can prompt the user
+    // before writing anything (issue #797). Mirrors the detection in
+    // program_import_online_resolver.dart:resolveConfidentOnlineDanceId.
+    if (ambiguousResolution == null &&
+        plan.verdict.kind == DedupeKind.ambiguous &&
+        plan.verdict.hasConfidentMatch) {
+      final candidateId = plan.verdict.candidates
+          .firstWhere((c) => c.confident)
+          .danceId;
+      final existing = await repos.dances.getById(candidateId);
+      if (existing != null) {
+        final identical = figuresCanonicallyIdentical(
+          oldFigures: existing.figures,
+          newFigures: plan.draft.dance.figures,
+          taxonomy: contraTaxonomy,
+        );
+        if (!identical) {
+          return OnlineImportResult(
+            kind: OnlineImportKind.needsConfirmation,
+            title: title,
+            danceId: candidateId,
+            danceCount: 1,
+          );
+        }
+      }
+    }
+
     final resolutions = plan.verdict.kind == DedupeKind.ambiguous
-        ? {0: DedupeResolution.duplicate()}
+        ? {0: ambiguousResolution ?? DedupeResolution.duplicate()}
         : const <int, DedupeResolution>{};
 
     final pipeline = ImportPipeline(repos.dances, repos.choreographers);

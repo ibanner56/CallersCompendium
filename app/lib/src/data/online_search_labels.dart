@@ -20,7 +20,14 @@ String onlineSourceAttribution(AppLocalizations l10n, OnlineSource source) =>
 /// source so imports are reported identically. The dance [title] is an
 /// untrusted external value; it flows through a gen-l10n placeholder and is
 /// rendered as plain text by the caller's `Text` widget.
+///
+/// [OnlineImportKind.needsConfirmation] is intercepted by the screen before
+/// the final result is shown, so it should never reach this function. Treat it
+/// as [OnlineImportKind.created] defensively.
 String onlineImportMessage(AppLocalizations l10n, OnlineImportResult result) =>
-    result.kind == OnlineImportKind.alreadyInCollection
-    ? l10n.onlineImportAlreadyInCollection(result.title)
-    : l10n.onlineImportCreated(result.title);
+    switch (result.kind) {
+      OnlineImportKind.alreadyInCollection =>
+        l10n.onlineImportAlreadyInCollection(result.title),
+      OnlineImportKind.created || OnlineImportKind.needsConfirmation =>
+        l10n.onlineImportCreated(result.title),
+    };

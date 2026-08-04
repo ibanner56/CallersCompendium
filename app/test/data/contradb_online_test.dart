@@ -194,4 +194,63 @@ void main() {
       expect(saved.where((d) => d.title == 'The Rendezvous'), hasLength(1));
     });
   });
+
+  // Issue #797: symmetrical red-run test for the ContraDB path.
+  group('ContraDbOnline.import — confident-match detection (#797)', () {
+    final now = DateTime.utc(2024, 1, 1);
+
+    test(
+      'confident match + differing figures: nothing written (red-run)',
+      () async {
+        // RED on origin/main: import() calls DedupeResolution.duplicate() and
+        // creates a second dance → hasLength(2). GREEN with fix: import()
+        // returns needsConfirmation and writes nothing → hasLength(1).
+        final repos = openTestRepositories();
+        final existing = Dance(
+          id: 'existing-002',
+          title: 'The Rendezvous',
+          form: DanceForm.contra,
+          formation: const Formation(FormationShape.dupleImproper),
+          status: DanceStatus.active,
+          figures: [customFigure('neighbors balance and swing')],
+          hook: '',
+          createdAt: now,
+          updatedAt: now,
+        );
+        await repos.dances.create(existing);
+
+        final plan = ImportRecordPlan(
+          draft: StructuredDraft(
+            dance: Dance(
+              id: 'draft-002',
+              title: 'The Rendezvous',
+              form: DanceForm.contra,
+              formation: const Formation(FormationShape.dupleImproper),
+              status: DanceStatus.active,
+              figures: [
+                customFigure('partners balance and swing'),
+              ], // different
+              hook: '',
+              createdAt: now,
+              updatedAt: now,
+            ),
+            raw: const RawRecord(
+              source: ProvenanceSource.contradb,
+              externalId: '99999',
+              payload: '{}',
+            ),
+          ),
+          verdict: DedupeVerdict.ambiguous([
+            DedupeCandidate(danceId: existing.id, score: 0.95, confident: true),
+          ]),
+        );
+
+        await ContraDbOnline().import(repos, plan);
+
+        // No second dance should have been written.
+        final saved = await repos.dances.listAll();
+        expect(saved, hasLength(1));
+      },
+    );
+  });
 }
