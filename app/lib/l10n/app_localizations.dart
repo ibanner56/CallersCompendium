@@ -7613,6 +7613,12 @@ abstract class AppLocalizations {
   /// **'Add {title}'**
   String collectionPickerAddTooltip(String title);
 
+  /// Tooltip for the picker's add button during the brief confirmation that follows a tap, while it shows a check instead of a plus (#796). The button stays active — a dance may legitimately be added to a program more than once — so this reports what just happened rather than disabling the action.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {title}'**
+  String collectionPickerAddedTooltip(String title);
+
   /// App-bar title for the user-guide hub.
   ///
   /// In en, this message translates to:

@@ -89,6 +89,24 @@ Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
+/// Comfortably longer than the picker's own add-confirmation linger, so a pump
+/// of this length always lands after the revert.
+const _confirmationLingers = Duration(seconds: 2);
+
+/// The glyph currently drawn on a result row's trailing add affordance.
+IconData _addIcon(WidgetTester tester, String danceId) => tester
+    .widget<Icon>(
+      find.descendant(
+        of: find.byKey(ValueKey('picker-add-$danceId')),
+        matching: find.byType(Icon),
+      ),
+    )
+    .icon!;
+
+String _addTooltip(WidgetTester tester, String danceId) => tester
+    .widget<IconButton>(find.byKey(ValueKey('picker-add-$danceId')))
+    .tooltip!;
+
 /// Types [text] into the keyed By-Phrase move input and picks [option] from the
 /// type-ahead overlay.
 Future<void> _addPhraseMove(
@@ -320,5 +338,127 @@ void main() {
         expect(_titles(tester), isEmpty);
       },
     );
+  });
+
+  // --- Transient add confirmation (#796) -------------------------------------
+
+  group('transient add confirmation', () {
+    Future<CompendiumRepositories> reposWithTwoDances() async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
+      await repos.dances.create(_dance(id: 'b', title: 'Bravo Jig'));
+      return repos;
+    }
+
+    testWidgets('the tapped row shows a check, then reverts to the plus', (
+      tester,
+    ) async {
+      final repos = await reposWithTwoDances();
+      await _pumpPicker(tester, repos, onAddDance: (_) {});
+      await tester.pumpAndSettle();
+
+      expect(_addIcon(tester, 'a'), Icons.add_circle_outline);
+
+      await _tapVisible(tester, find.byKey(const ValueKey('picker-add-a')));
+
+      // The confirmation is an icon *shape* change, never colour alone
+      // (WCAG 1.4.1, docs/design/ux.md:125).
+      expect(_addIcon(tester, 'a'), Icons.check_circle);
+
+      await tester.pump(_confirmationLingers);
+      await tester.pumpAndSettle();
+
+      expect(_addIcon(tester, 'a'), Icons.add_circle_outline);
+    });
+
+    testWidgets('the confirming row keeps a tooltip naming the dance', (
+      tester,
+    ) async {
+      final repos = await reposWithTwoDances();
+      await _pumpPicker(tester, repos, onAddDance: (_) {});
+      await tester.pumpAndSettle();
+
+      final addTooltip = _addTooltip(tester, 'a');
+      await _tapVisible(tester, find.byKey(const ValueKey('picker-add-a')));
+
+      // Leaving the "Add Alpha Reel" tooltip in place under a check icon would
+      // describe an action the glyph no longer offers.
+      final confirmTooltip = _addTooltip(tester, 'a');
+      expect(confirmTooltip, isNot(addTooltip));
+      expect(confirmTooltip, contains('Alpha Reel'));
+    });
+
+    testWidgets('the button stays enabled, so the same dance can be added '
+        'twice in a row', (tester) async {
+      final added = <String>[];
+      final repos = await reposWithTwoDances();
+      await _pumpPicker(tester, repos, onAddDance: added.add);
+      await tester.pumpAndSettle();
+
+      await _tapVisible(tester, find.byKey(const ValueKey('picker-add-a')));
+      expect(
+        tester
+            .widget<IconButton>(find.byKey(const ValueKey('picker-add-a')))
+            .onPressed,
+        isNotNull,
+        reason: 'a dance may legitimately appear twice in one program',
+      );
+
+      // Re-tapping mid-confirmation restarts the linger rather than stacking a
+      // second timer that would revert the icon early.
+      await _tapVisible(tester, find.byKey(const ValueKey('picker-add-a')));
+      expect(added, ['a', 'a']);
+      expect(_addIcon(tester, 'a'), Icons.check_circle);
+
+      await tester.pump(_confirmationLingers);
+      await tester.pumpAndSettle();
+      expect(_addIcon(tester, 'a'), Icons.add_circle_outline);
+    });
+
+    testWidgets('the confirmation is scoped to the row that was tapped', (
+      tester,
+    ) async {
+      final repos = await reposWithTwoDances();
+      await _pumpPicker(tester, repos, onAddDance: (_) {});
+      await tester.pumpAndSettle();
+
+      await _tapVisible(tester, find.byKey(const ValueKey('picker-add-a')));
+
+      expect(_addIcon(tester, 'a'), Icons.check_circle);
+      expect(_addIcon(tester, 'b'), Icons.add_circle_outline);
+    });
+
+    testWidgets('tapping the row body confirms the same way as the button', (
+      tester,
+    ) async {
+      final added = <String>[];
+      final repos = await reposWithTwoDances();
+      await _pumpPicker(tester, repos, onAddDance: added.add);
+      await tester.pumpAndSettle();
+
+      await _tapVisible(tester, find.byKey(const ValueKey('picker-tile-a')));
+
+      expect(added, ['a']);
+      expect(_addIcon(tester, 'a'), Icons.check_circle);
+    });
+
+    testWidgets('a pending confirmation does not outlive the picker', (
+      tester,
+    ) async {
+      final repos = await reposWithTwoDances();
+      // Perform's insert sheet pops inside onAddDance
+      // (perform_adjust_sheet.dart:245), disposing the picker while the
+      // confirmation timer is still pending.
+      await _pumpPicker(tester, repos, onAddDance: (_) {});
+      await tester.pumpAndSettle();
+
+      await _tapVisible(tester, find.byKey(const ValueKey('picker-add-a')));
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+
+      // Reaching here without a pending-timer teardown failure is the
+      // assertion: dispose() must cancel the confirmation timers.
+      expect(find.byType(CollectionPicker), findsNothing);
+    });
   });
 }

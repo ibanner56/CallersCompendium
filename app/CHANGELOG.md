@@ -58,6 +58,17 @@ each release so store builds and tags can be traced back to an entry.
   hosted archive — a feature that was dropped in favour of importing directly
   from the source.
 
+### Fixed
+
+- **Adding a dance to a program now visibly confirms itself.** On a phone the
+  dance picker opens as a panel covering almost the whole screen, and the
+  "Added …" message appeared *behind* it — so on the one screen where you build
+  a program, tapping `+` looked like it did nothing. The dance was always added,
+  and the message was always announced to screen readers; you just couldn't see
+  it. The `+` on the row you tapped now briefly becomes a check, then returns to
+  a `+` so you can add the same dance again. The message still appears as before
+  everywhere it was already visible.
+
 ## [0.1.0] - 2026-08-01
 
 Flutter build: `0.1.0+1`.

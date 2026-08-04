@@ -4993,6 +4993,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String collectionPickerAddedTooltip(String title) {
+    return 'Added $title';
+  }
+
+  @override
   String get userGuideTitle => 'Benutzerhandbuch';
 
   @override
