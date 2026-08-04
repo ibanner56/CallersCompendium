@@ -117,7 +117,11 @@ class OnlineImportResult {
 
   /// Id of the imported dance for [OnlineImportKind.created], or the id of the
   /// existing matching dance for [OnlineImportKind.alreadyInCollection] when it
-  /// can be resolved. `null` when no dance id is available.
+  /// can be resolved, or the **existing** dance's id for
+  /// [OnlineImportKind.needsConfirmation] — a dance the user already has that
+  /// is a confident match. Under `needsConfirmation` nothing has been written;
+  /// the id identifies what to resolve *against*, not what was imported.
+  /// `null` when no dance id is available.
   final String? danceId;
 
   /// Number of dances this import created or matched. Always `1` for the

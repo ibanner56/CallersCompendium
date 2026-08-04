@@ -247,7 +247,6 @@ class _CollectionShellState extends State<CollectionShell> {
         final resolution = await showOnlineImportVariationDialog(
           context,
           l10n,
-          incomingTitle: result.title,
           existingTitle: existingTitle,
           existingId: existingId,
         );

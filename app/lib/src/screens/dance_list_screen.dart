@@ -781,7 +781,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
         final resolution = await showOnlineImportVariationDialog(
           context,
           l10n,
-          incomingTitle: result.title,
           existingTitle: existingTitle,
           existingId: existingId,
         );
