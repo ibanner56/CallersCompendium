@@ -472,6 +472,43 @@ void main() {
     );
 
     test(
+      'confident match + variation resolution: new dance created, existing unchanged',
+      () async {
+        // "Import as a variation" is the headline path from #797 — the reporter
+        // ended up with two copies because the importer created a duplicate
+        // silently. Variation is the opt-in form of that: a second dance is
+        // created, but the existing one is left intact (id, tags, rating all
+        // preserved). This is the mirror of the link test, which documents the
+        // deliberate data-loss; here there is no data-loss on the existing dance.
+        final repos = openTestRepositories();
+        final existing = await seedDance(repos, rating: 4);
+
+        final plan = ambiguousPlan(
+          candidateId: existing.id,
+          figures: [customFigure('partners balance and swing')], // different
+        );
+        final result = await CallersBoxOnline().import(
+          repos,
+          plan,
+          ambiguousResolution: DedupeResolution.variation(
+            existing.id,
+            linkBack: true,
+          ),
+          now: now,
+        );
+
+        // A new dance was created (the variation).
+        expect(result.kind, OnlineImportKind.created);
+        final saved = await repos.dances.listAll();
+        expect(saved, hasLength(2));
+        // The existing dance is unchanged — id, rating all intact.
+        final unchanged = await repos.dances.getById(existing.id);
+        expect(unchanged, isNotNull);
+        expect(unchanged!.rating, 4); // not overwritten
+      },
+    );
+
+    test(
       'confident match + link resolution: preserves dance id, overwrites user data',
       () async {
         // Documents the intentional data-loss: link overwrites the existing

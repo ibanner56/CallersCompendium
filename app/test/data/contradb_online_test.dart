@@ -252,5 +252,66 @@ void main() {
         expect(saved, hasLength(1));
       },
     );
+
+    test(
+      'confident match + variation resolution: new dance created, existing unchanged',
+      () async {
+        // Symmetric variation test for ContraDB: confirms ambiguousResolution
+        // plumbing works on both source paths.
+        final repos = openTestRepositories();
+        final existing = Dance(
+          id: 'existing-003',
+          title: 'The Rendezvous',
+          form: DanceForm.contra,
+          formation: const Formation(FormationShape.dupleImproper),
+          status: DanceStatus.active,
+          figures: [customFigure('neighbors balance and swing')],
+          hook: '',
+          createdAt: now,
+          updatedAt: now,
+        );
+        await repos.dances.create(existing);
+
+        final plan = ImportRecordPlan(
+          draft: StructuredDraft(
+            dance: Dance(
+              id: 'draft-003',
+              title: 'The Rendezvous',
+              form: DanceForm.contra,
+              formation: const Formation(FormationShape.dupleImproper),
+              status: DanceStatus.active,
+              figures: [customFigure('partners balance and swing')],
+              hook: '',
+              createdAt: now,
+              updatedAt: now,
+            ),
+            raw: const RawRecord(
+              source: ProvenanceSource.contradb,
+              externalId: '99999',
+              payload: '{}',
+            ),
+          ),
+          verdict: DedupeVerdict.ambiguous([
+            DedupeCandidate(danceId: existing.id, score: 0.95, confident: true),
+          ]),
+        );
+
+        await ContraDbOnline().import(
+          repos,
+          plan,
+          ambiguousResolution: DedupeResolution.variation(
+            existing.id,
+            linkBack: true,
+          ),
+        );
+
+        // Two dances: the original and the new variation.
+        final saved = await repos.dances.listAll();
+        expect(saved, hasLength(2));
+        // Existing dance untouched.
+        final unchanged = await repos.dances.getById(existing.id);
+        expect(unchanged, isNotNull);
+      },
+    );
   });
 }
