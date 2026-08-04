@@ -61,11 +61,19 @@ class CollectionPicker extends StatefulWidget {
 class _CollectionPickerState extends State<CollectionPicker> {
   static const Duration _debounce = Duration(milliseconds: 250);
 
+  /// How long a row's add affordance shows a check before returning to a plus.
+  /// Long enough to register, short enough not to obstruct a second add.
+  static const Duration _addConfirmation = Duration(milliseconds: 1200);
+
   final _ftsController = TextEditingController();
   final _facets = FacetSelections();
   final _byPhrase = ByPhraseSelections();
   final _advancedRoot = BuilderGroup();
   bool _advancedEnabled = false;
+
+  /// Dance ids whose row is currently showing its post-add check, each mapped
+  /// to the timer that will clear it.
+  final Map<String, Timer> _confirmTimers = {};
 
   late CompendiumRepositories _repos;
   bool _started = false;
@@ -100,8 +108,36 @@ class _CollectionPickerState extends State<CollectionPicker> {
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    for (final timer in _confirmTimers.values) {
+      timer.cancel();
+    }
+    _confirmTimers.clear();
     _ftsController.dispose();
     super.dispose();
+  }
+
+  /// Adds [danceId] and flags its row as just-added.
+  ///
+  /// The picker's own row is the only confirmation a user reliably sees: on
+  /// narrow layouts the picker is a bottom sheet covering 85–95% of the screen,
+  /// so the SnackBar the host fires draws behind it (#796). The host's SnackBar
+  /// and semantics announcement are left alone — outside the sheet both are
+  /// visible and correct, and the announcement is what carries this to assistive
+  /// technology either way.
+  ///
+  /// State is set *before* [CollectionPicker.onAddDance] because one host pops
+  /// its sheet synchronously inside that callback.
+  void _handleAdd(String danceId) {
+    setState(() {
+      // Re-tapping mid-confirmation restarts the linger instead of leaving an
+      // older timer to cut the new confirmation short.
+      _confirmTimers.remove(danceId)?.cancel();
+      _confirmTimers[danceId] = Timer(_addConfirmation, () {
+        if (!mounted) return;
+        setState(() => _confirmTimers.remove(danceId));
+      });
+    });
+    widget.onAddDance(danceId);
   }
 
   Future<void> _runSearch() async {
@@ -390,8 +426,14 @@ class _CollectionPickerState extends State<CollectionPicker> {
       itemCount: _results.length,
       itemBuilder: (context, index) {
         final entry = _results[index];
+        final confirming = _confirmTimers.containsKey(entry.dance.id);
         // Tapping a row adds the dance — a keyboard/AT-accessible add
         // affordance (announced via the builder's live region on add).
+        //
+        // The row's semantic label deliberately does not change while
+        // confirming: the host already announces the add, and mutating the
+        // label would make a screen reader re-read the row to say the same
+        // thing twice.
         return Semantics(
           button: true,
           label: l10n.collectionPickerAddSemantic(entry.dance.title),
@@ -400,16 +442,24 @@ class _CollectionPickerState extends State<CollectionPicker> {
               DanceListTile(
                 key: ValueKey('picker-tile-${entry.dance.id}'),
                 entry: entry,
-                onTap: () => widget.onAddDance(entry.dance.id),
+                onTap: () => _handleAdd(entry.dance.id),
               ),
               Positioned(
                 top: 8,
                 right: 8,
                 child: IconButton(
                   key: ValueKey('picker-add-${entry.dance.id}'),
-                  tooltip: l10n.collectionPickerAddTooltip(entry.dance.title),
-                  icon: const Icon(Icons.add_circle_outline),
-                  onPressed: () => widget.onAddDance(entry.dance.id),
+                  tooltip: confirming
+                      ? l10n.collectionPickerAddedTooltip(entry.dance.title)
+                      : l10n.collectionPickerAddTooltip(entry.dance.title),
+                  // A shape change, not a colour change: colour is never the
+                  // only signal (`docs/design/ux.md` §4, WCAG 1.4.1). The
+                  // button stays enabled throughout — a dance may legitimately
+                  // appear in a program more than once.
+                  icon: Icon(
+                    confirming ? Icons.check_circle : Icons.add_circle_outline,
+                  ),
+                  onPressed: () => _handleAdd(entry.dance.id),
                 ),
               ),
             ],

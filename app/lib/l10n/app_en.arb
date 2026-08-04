@@ -5446,6 +5446,15 @@
       }
     }
   },
+  "collectionPickerAddedTooltip": "Added {title}",
+  "@collectionPickerAddedTooltip": {
+    "description": "Tooltip for the picker's add button during the brief confirmation that follows a tap, while it shows a check instead of a plus (#796). The button stays active — a dance may legitimately be added to a program more than once — so this reports what just happened rather than disabling the action.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "userGuideTitle": "User guide",
   "@userGuideTitle": {
     "description": "App-bar title for the user-guide hub."

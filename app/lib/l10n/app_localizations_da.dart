@@ -4919,6 +4919,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String collectionPickerAddedTooltip(String title) {
+    return 'Added $title';
+  }
+
+  @override
   String get userGuideTitle => 'Brugervejledning';
 
   @override
