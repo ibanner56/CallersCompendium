@@ -286,16 +286,12 @@ def _cases() -> None:
 
     with tempfile.TemporaryDirectory() as td:
         nonexistent = Path(td) / "does_not_exist"
-        # --key-source must still be supplied; nonexistent root is caught first.
-        with tempfile.NamedTemporaryFile(suffix=".dart", mode="w", encoding="utf-8",
-                                         delete=False) as kf:
-            kf.write(f"const String kUpdateManifestPublicKey =\n    '{pub_b64}';\n")
-            key_path = kf.name
-        rc_missing_dir, _, _ = _run_main([str(nonexistent), "--key-source", key_path])
+        # The root-directory check fires first (main() line 213); the key
+        # source is never opened, so no --key-source is needed here.
+        rc_missing_dir, _, _ = _run_main([str(nonexistent)])
         assert rc_missing_dir == 2, (
             f"case 8c expected exit 2 on missing dir, got: {rc_missing_dir}"
         )
-        Path(key_path).unlink(missing_ok=True)
 
     # ------------------------------------------------------------------
     # Case 9: *.json in a subdirectory is NOT checked
@@ -451,15 +447,16 @@ def _cases() -> None:
 
         import os
         original_cwd = os.getcwd()
+        foreign_cwd = tempfile.gettempdir()
         try:
-            os.chdir("/tmp")
+            os.chdir(foreign_cwd)
             # No --key-source: must find the real update_config.dart by absolute path.
             rc, out, err = _run_main([str(root)])
         finally:
             os.chdir(original_cwd)
 
         assert rc == 1, (
-            f"case 14 expected exit 1 (validity error) from cwd=/tmp, got: {rc} "
+            f"case 14 expected exit 1 (validity error) from cwd={foreign_cwd!r}, got: {rc} "
             f"(rc=2 means the default key source resolved relatively, not absolutely)"
         )
         assert "does not verify" in out, (

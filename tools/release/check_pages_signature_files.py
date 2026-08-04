@@ -78,7 +78,7 @@ def parse_pinned_key(source: Path) -> bytes:
     """
     try:
         text = source.read_text(encoding="utf-8")
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         print(f"::error::cannot read key source {source}: {exc}", file=sys.stderr)
         sys.exit(2)
 
