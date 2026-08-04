@@ -193,7 +193,7 @@ pass just removed.
 
 **Dance merges write aliases too.** The fresh-attach dance merge uses the same
 tie-break and the same drop-the-loser pattern, so it inherits the same hazard:
-`dance_links.target_dance_id` is a real FK to `Dances` (`tables.dart:271`), and a
+`dance_links.target_dance_id` is a real FK to `Dances` (`DanceLinks.targetDanceId` in `tables.dart`), and a
 third device holding a link to the merged-away dance would otherwise hit exactly
 the dangling reference this table exists to prevent. Every "surviving record"
 decision in the design writes its alias.
@@ -251,6 +251,24 @@ than dangerously: an unresolvable reference is skipped and reported, never
 applied with a dangling id, so the cost is one skipped record rather than a
 discarded batch.
 
+**Boundedness still has one operational dependency, and it is disclosed rather
+than solved.** A device that stops syncing without being removed keeps listing
+the losing id in its last-published manifest, and so keeps that alias alive
+indefinitely — there is no per-device aging, and `stores.last_seen` is refreshed
+by any device, so the store never expires while others use it. A client-side
+detach does not help either: it forgets the sync ID locally and leaves the
+manifest in place. Pruning is therefore bounded in practice by someone calling
+`DELETE /v1/manifests/{deviceId}` for devices that are genuinely gone.
+
+The failure mode is bounded and slow — one row per merge per abandoned device, in
+a `deviceScoped` table of ids — so it is a housekeeping cost rather than a
+correctness problem. The converse is the sharper case: removing a manifest for a
+device that is merely *dormant* retires an alias it still needs. That self-heals,
+because the device re-reconciles from the natural key on its next pass and any
+reference it cannot resolve is skipped and reported rather than aborting the
+batch; but it is the one path that can retire an alias while a live device still
+holds the losing id, so it gets a test.
+
 `id_aliases` is **`deviceScoped`** — a local remap of local row identity,
 meaningless on another device and never serialised. Like the baseline manifest it
 is a schema change **beyond v23**, belonging to the sync implementation rather
@@ -261,7 +279,7 @@ coverage ratchet fails.
 
 A dance's `authorIds`, `tagIds` and `customFields` are **not columns on
 `dances`**; they are hydrated from the join tables on read
-(`dance_repository.dart:511-522`). Rewriting `dance_authors` therefore changes
+(`DanceRepository.listAll`, via `_authorsForMany` / `_tagsForMany`). Rewriting `dance_authors` therefore changes
 the dance's serialised content while `dances.updated_at` stands still.
 
 At equal `updatedAt` a peer **discards** the rewritten dance, and the two devices
@@ -296,14 +314,14 @@ Reconciliation treats an equal natural key as an equal entity, so two different
 real people named "Bob Smith" merge silently with no review path.
 
 This is accepted because **it is the assumption the schema already makes**:
-`choreographers.name` is `UNIQUE` (`tables.dart:83`), so one device cannot hold
+`choreographers.name` is `UNIQUE` (`Choreographers.name` in `tables.dart`), so one device cannot hold
 two same-named choreographers today. Sync is not introducing the approximation,
 only applying it across devices, and a review queue here would contradict what
 the app already enforces locally. The failure mode is named rather than fixed.
 
 **Custom-field definitions are the exception**, because merging them corrupts
 data rather than merely conflating it. `decodeCustomFieldValue` does
-`value = valueNum!` for a `number` field (`custom_field_repository.dart:176`), so
+`value = valueNum!` for a `number` field (`decodeCustomFieldValue`), so
 repointing a value stored as `valueText` at a def of type `number` throws **when
 the dance is loaded** — a crash on read, far from the sync that caused it.
 
@@ -320,7 +338,7 @@ The new key is **derived from the losing UUID**, not from a counter —
 compute the same key without coordinating, and a third device carrying a third
 type yields a third distinct key instead of contending for the same one. A
 counter would not be collision-safe: `custom_field_defs.key` is `UNIQUE`
-(`tables.dart:208`), so minting a `skill_level_2` that already exists — created
+(`CustomFieldDefs.key` in `tables.dart`), so minting a `skill_level_2` that already exists — created
 by the user, or by an earlier reconciliation — violates the constraint, fails the
 apply transaction, and fails every retry identically. That is precisely the
 deadlock *Renames collide too* exists to prevent, and it would be reintroduced by
@@ -414,25 +432,36 @@ it:
 | The store epoch | Alongside the baseline | `deviceScoped` |
 | Per-record last-seen hashes | Baseline table | `deviceScoped` |
 | Id aliases (`losing_id`, `surviving_id`, `kind`) | `id_aliases` | `deviceScoped` |
-| Pending deletions (`kind`, `record_id`, `tombstoned_at`, `tombstone_hash`) | `pending_deletions` | `deviceScoped` |
+| Pending deletions (`kind`, `record_id`, `tombstoned_at`, `tombstone_hash`, `tombstone_blob`) | `pending_deletions` | `deviceScoped` |
 | Deferred review items (`kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, `queued_at`) | `review_queue` | `deviceScoped` |
 
-**All three are scoped to the store identity and epoch**, alongside the baseline,
-and are cleared with it. Each records a conclusion drawn *about a particular
-store at a particular epoch* — that two ids were merged, that a deletion is owed,
-that a pair needs adjudicating — and none of those conclusions survives the thing
-that justified them. Fresh attach already discards the baseline; these go the same
-way, for the same reason.
+**All three are scoped to the store identity**, and `id_aliases` and
+`review_queue` are additionally scoped to the epoch and cleared with the
+baseline. Each records a conclusion drawn *about a particular store* — that two
+ids were merged, that a pair needs adjudicating — and neither conclusion survives
+a different store or a re-seeded one.
 
-Leaving them unscoped is wrong in both directions, which is why it is stated
-rather than left to the implementation. Retained across a detach or an epoch
-reset, a stale `pending_deletions` row would suppress an entity from the manifest
-of an unrelated store indefinitely, and a stale alias would silently redirect ids
-that mean nothing in the new store. Cleared without being scoped in the first
-place, a deferred deletion would be lost and its entity republished as live. The
-`tombstone_hash` records which tombstone the deferral came from, so a pending
-deletion can be matched against the tombstone that is actually current rather
-than assumed to still apply.
+**`pending_deletions` survives an epoch reset, deliberately.** Scoping it to the
+epoch as well would be wrong in a way that silently discards user intent. Fresh
+attach fires on a `409` epoch mismatch, not only on detach, and a pending-held
+entity still has a **live** local row — it was never soft-deleted, because the
+device still cites it. So clearing the table on that path and then running "upload
+every local record" republishes the entity as live, and the deletion the user
+performed on another device is gone. The `tombstone_hash` mitigation cannot save
+it, because it operates in steady state and the table is by then empty.
+
+Retaining it across the reset closes that, and the round-six advertisement rule
+makes it safe: a pending-held record is uploaded **as a tombstone** on fresh
+attach exactly as it is advertised as one in steady state, so the deletion is
+re-published rather than reversed and the entity remains addressable for anything
+still citing it. On **detach** the table clears with the rest, because the user
+has left the store entirely.
+
+Leaving these unscoped is wrong in the other direction, which is why the scoping
+is stated rather than left to the implementation: retained across a *detach*, a
+stale `pending_deletions` row would suppress an entity from the manifest of an
+unrelated store indefinitely, and a stale alias would silently redirect ids that
+mean nothing there.
 
 Every row is per-installation protocol state, meaningless on another device, and
 adding them means a schema change **beyond v23** — which the implementation issue
@@ -486,6 +515,28 @@ checkable against the fresh-attach section that says no deletion logic runs.
 
 So when a rule cites a quantity, name where it comes from, and check that the
 path in question can actually reach it — rather than that it exists.
+
+#### A changed ruling must be propagated to every restatement
+
+> **When a ruling changes, grep for every restatement of the old one — in the
+> algorithm steps, the test list, and the ADR — before the revision is done.**
+
+The fifth check, and the only one that is about the document rather than the
+design. This document deliberately restates its key rules at the point of use,
+which is right for an implementer reading one section and wrong for a reviser
+changing one: the normative statement gets updated and a restatement three
+hundred lines away does not, leaving two contradictory specifications of the same
+mechanism with nothing to indicate which is current.
+
+It has happened three times. The rename-collision ruling landed in the identity
+section while "Renames collide too" still prescribed the opposite; the
+tombstone-advertisement ruling landed in the normative section and the tests but
+not in the fresh-attach algorithm; and a superseded test survived seventeen lines
+above its own replacement, each asserting what the other forbids.
+
+The repository already requires this discipline for claims about *code* — grep
+for the property, not the citation. The same applies to claims about the design:
+the place a stale rule survives is never where the change was made.
 
 ## Wire format
 
@@ -592,7 +643,7 @@ needs a per-kind decision, and two of them carry an app-behaviour regression if
 converted naively.
 
 **`TagRepository.delete` relies on the FK cascade** to clear `dance_tags` — its
-own comment says so (`tag_repository.dart:36`). A soft delete is an `UPDATE`, so
+own comment says so (`TagRepository.delete`). A soft delete is an `UPDATE`, so
 **the cascade never fires**: the join rows survive, and because `dance_tags`
 gains no `deleted_at` in v23, nothing filters them. The tag would vanish from the
 tag manager while staying silently attached to every dance. The same applies to
@@ -605,7 +656,7 @@ tag manager while staying silently attached to every dance. The same applies to
 
 **Deletes that are referential guards must keep guarding.**
 `ChoreographerRepository.delete` throws while the entity is still credited
-(`choreographer_repository.dart:48-58`); `VenueRepository` and
+(`ChoreographerRepository.delete`); `VenueRepository` and
 `PublishedSourceRepository` mirror it. Tombstone propagation appears to require
 relaxing them — but relaxing them means a dance can credit a tombstoned
 choreographer, with no defined UI treatment.
@@ -691,19 +742,39 @@ state the whole mechanism exists to prevent, reached on a clean device. Fresh
 attach therefore revives a tombstoned record that an incoming record cites, and
 marks the tombstone pending, exactly as the steady-state path does.
 
-**The baseline is not advanced for a pending-held record.** Advancing it would
-leave the local row permanently differing from baseline, so `changed`/`same`
-would fire every pass and the device would republish its stale live blob
-indefinitely — the same resurrection reached through upload rather than download.
-The pending marker in `pending_deletions` is the durable record of the deferred
-state, so the baseline does not need to carry it.
+**The baseline is not advanced for a pending-held record, and the merge table
+does not see it.** A pending-held record has **two hashes on one device**: the
+published manifest carries the tombstone's, while the baseline keeps the live
+row's. The steady-state algorithm computes "the local manifest" once and then
+compares local against baseline, so read literally those two differ, the record
+reads as `changed`, and the merge table routes it to upload or conflict — the
+opposite of a stable hold.
+
+So the two are decoupled explicitly: **the merge comparison uses the live row's
+hash, and the tombstone hash substitutes only when the published manifest is
+serialised.** A pending-held record is owned by `pending_deletions` alone and is
+excluded from the local-versus-baseline comparison entirely; the deferred state
+is not something the merge table can express. Advancing the baseline instead
+would leave the local row permanently differing from it, so `changed`/`same`
+would fire every pass and the device would republish its stale live blob forever
+— the same resurrection reached through upload rather than download.
+
+**`pending_deletions` retains the tombstone's bytes, not just its hash.** The
+holder may need to re-`PUT` the blob: garbage collection is reference-counting
+over current manifests, and the holder's own manifest only begins referencing the
+tombstone hash once it publishes. In the window before that, if the original
+deleter has already purged its local tombstone and a sweep fires, the blob can be
+collected — leaving the holder advertising a hash with nothing behind it, which
+is precisely the "target still addressable" property the advertisement rule
+exists to provide. Keeping the bytes lets the holder restore it. A tombstone is a
+few hundred bytes, so the cost is negligible next to the failure it prevents.
 
 **A purge must not cascade off live records.** `DanceRepository.purgeDeleted`
 guards its hard delete with `_cleanupDanglingReferences` and a GC that never
 weakens the delete-guards. A choreographer or tag purged by its own repository
 has no such guard, and the hard delete would cascade `dance_authors` /
 `dance_tags` / `dance_sources` / `custom_field_values` off **live** dances
-(`tables.dart:108, 255, 302, 230`) — silent loss of authorship, tags, citations
+(the `DanceAuthors`, `DanceTags`, `DanceSources` and `CustomFieldValues` FKs in `tables.dart`) — silent loss of authorship, tags, citations
 and custom values. Every purge added here must refuse to hard-delete an entity
 still referenced by a live record.
 
@@ -903,15 +974,31 @@ sync ID entirely, so re-enabling is a fresh attach.
    the higher `updatedAt` wins — the same rule as a steady-state conflict, minus
    the baseline that normally distinguishes "changed" from "not caught up".
 
-   Pending tombstones make this routine rather than rare: a device holding a
-   deletion pending advertises nothing for that record, by design and possibly
-   for a long time, while another advertises it live. An attaching device
-   therefore sees one id present on some peers and absent from others, which
-   *is* the ordinary union case and correctly yields the live record. It has no
-   citation of its own to justify keeping it and no future tombstone will correct
-   it, so the attaching device queues it for review rather than adopting it
-   silently.
-6. Persist the epoch and the resulting manifest as the new baseline.
+   Pending tombstones make that conflict routine rather than rare, and they
+   resolve through it rather than around it. A device holding a deletion pending
+   **advertises the entity as a tombstone**, so an attaching device sees the same
+   id carrying a tombstone from the holder and the deleter, and possibly a live
+   copy from a third device that has not caught up. Recency decides, and a
+   tombstone written after the last live edit therefore wins: the attaching
+   device applies the deletion. That is the correct outcome — it is what every
+   caught-up device already believes — and it is reached by the ordinary conflict
+   rule rather than a special case.
+
+   The stale live copy is not a reason to keep the entity. It is exactly the
+   "peer that has not caught up" the recency rule exists to distinguish from a
+   peer that edited, and the provenance gate applies here too: a live record
+   never out-ranks a tombstone unless the write carrying it was user-initiated.
+   A device that genuinely revived the entity by editing it carries that flag and
+   wins; one that merely never learned of the deletion does not.
+
+   An earlier draft said the holder "advertises nothing for that record", making
+   this the ordinary union case and yielding the live entity. That premise is
+   superseded — withholding broke referential closure — and so is the outcome it
+   produced.
+6. Persist the epoch and the resulting manifest as the new baseline. A record
+   revived by the citation rule during this attach is **pending-held**, so the
+   same carve-out applies as in steady state: its baseline entry records the live
+   hash it holds locally, not the tombstone it advertises.
 
 ### Fresh-attach dedupe
 
@@ -1029,7 +1116,7 @@ the *choreography* matched, which says nothing about these. They follow the same
 rule as every other field value: last-writer-wins on `updatedAt`.
 
 **`program_slots.dance_id` must be rewired to the survivor.** It is
-`onDelete: KeyAction.setNull` (`tables.dart:193`), so removing the losing
+`onDelete: KeyAction.setNull` (`ProgramSlots.danceId` in `tables.dart`), so removing the losing
 duplicate silently nulls every local program slot pointing at it: a caller's
 program loses its link to a dance that still exists under the surviving id, with
 no error and no prompt. This is the common case rather than an exotic one —
@@ -1527,7 +1614,7 @@ path's stance is deliberate and unchanged.
 
 - TLS required, except `localhost`/`127.0.0.1` for self-hosters.
 - **Redirects are followed manually with per-hop validation**, mirroring
-  `artifact_downloader.dart:370` — https only, no userinfo, default port, hop
+  `_sendFollowingHttpsRedirects` in `artifact_downloader.dart` — https only, no userinfo, default port, hop
   cap. The `package:http` default `followRedirects = true` is not used. This is
   a **recurring** defect class in this codebase — found and fixed once in the
   ContraDB search path (#765), still open in the update-manifest fetcher (#784)
@@ -1635,10 +1722,6 @@ must say this plainly rather than implying sync is opaque to us.
   advancing its `updatedAt` past the tombstone. Assert the tombstone stands.
   Mutation-proved by gating cancellation on `updatedAt` rather than on the
   user-edit flag, which resurrects the record with nobody having edited it.
-- **A pending-held row is never advertised** — assert the holder's manifest omits
-  it and its baseline entry is not advanced. Without both, the deleting device
-  downloads its own deletion back; the manifest half fails via download and the
-  baseline half via a perpetual re-upload.
 - **Queuing a review item is idempotent** — run three passes over the same
   unresolved collision; assert one row, not three. Guards the unattended device
   that syncs for a week before anyone looks.
@@ -1666,6 +1749,27 @@ must say this plainly rather than implying sync is opaque to us.
   advertise the same id with different hashes; assert the higher `updatedAt`
   wins. There is no baseline at fresh attach, so this rule has nothing else to
   fall back on.
+- **Fresh attach against a deleter, a pending holder and a stale peer** — F
+  attaches while B advertises a tombstone, A advertises the same tombstone from
+  its pending hold, and D still advertises the entity live. Assert F applies the
+  deletion, and that D's stale live copy does not revive it because it carries no
+  user-edit flag. The three-peer combination is the one the two other fresh-attach
+  tests miss, and it is where the superseded "advertise nothing" model produced
+  the opposite outcome.
+- **An epoch reset does not discard a pending deletion** — hold a deletion
+  pending, force a `409`, and assert that after the fresh attach the entity is
+  still deleted rather than republished live. Mutation-proved by clearing
+  `pending_deletions` with the baseline, which resurrects it via "upload every
+  local record".
+- **A pending-held record is excluded from the merge table** — assert it is
+  neither uploaded nor treated as a conflict while held, despite its published
+  manifest hash differing from its baseline hash. Mutation-proved by feeding the
+  published manifest hash into the merge comparison, which routes a stable hold
+  to upload every pass.
+- **A removed-then-returning device does not resurrect a merged row** — call
+  `DELETE /v1/manifests/{deviceId}` for a dormant device, let the alias prune,
+  then bring it back. Assert its unresolvable references are skipped and reported
+  rather than re-inserting the merged-away duplicate or discarding the batch.
 - **A live record never out-ranks an applied tombstone** — the same provenance
   gate as the pending case, asserted on the device that performed the deletion.
   Mutation-proved by letting the merge table's plain `updatedAt` comparison

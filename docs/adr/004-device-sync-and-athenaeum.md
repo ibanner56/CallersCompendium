@@ -282,7 +282,7 @@ are identical in everything that matters.
 
 The silent-merge test reuses the rule already in the import pipeline:
 
-1. **Exact normalized-title match** (`import_pipeline.dart:613`). A
+1. **Exact normalized-title match** (the `normalizeTitle` gate in `autoResolveAmbiguous`). A
    fuzzy-but-inexact title is never confident; that is the "two different dances
    share a title" trap.
 2. **`_choreographyEquals`** — form, formation, progression, phrase structure,
@@ -657,7 +657,11 @@ makes self-hosting materially harder, which constraint 4 forbids.
   not only pending ones: a live record never out-ranks a tombstone unless the
   write carrying it was user-initiated. The pending marker, the id aliases and
   the review queue are each persisted, classified `deviceScoped`, scoped to the
-  store and epoch, and land beyond v23.
+  store, and land beyond v23. `pending_deletions` deliberately survives an epoch
+  reset — a pending-held row is still *live* locally, so clearing it and then
+  re-uploading every local record would republish the entity and discard the
+  user's deletion — and is uploaded as a tombstone on fresh attach, exactly as it
+  is advertised as one in steady state.
 
   A device holding a deletion pending advertises the entity as a **tombstone**
   rather than omitting it. Omitting it stops the resurrection but leaves the
@@ -665,6 +669,23 @@ makes self-hosting materially harder, which constraint 4 forbids.
   cite the entity, and a fresh-attaching device that cannot resolve the author
   fails its whole batch on the cascading foreign key. Publishing the tombstone
   makes the same claim while keeping the target addressable.
+- **Id aliases are pruned on content, not on a clock — a reversal.** An earlier
+  version of this design bounded alias retention by the oldest attached device's
+  last-sync watermark, said to be returned by `GET /v1/store`. It is not: that
+  endpoint returns epoch, device list and quota usage, the server's only
+  timestamps are an aggregate `last_seen` refreshed by any device and a
+  per-manifest `written_at` recording when a device last *published* rather than
+  last caught up, and the quantity actually wanted is a function of the peer's
+  baseline, which is `deviceScoped` and never leaves it. No endpoint could return
+  it.
+
+  An alias is now retired once **no current peer manifest lists the losing id**,
+  which reads only the manifests every pass already fetches. Recorded here as a
+  reversal rather than silently corrected, because the superseded rule was stated
+  with equal confidence and a reader deserves to see which way the decision went.
+  Its one residue is operational and disclosed: a device that stops syncing
+  without being removed pins its aliases indefinitely, so pruning depends in
+  practice on dead devices being removed via `DELETE /v1/manifests/{deviceId}`.
 - **Applying an inbound record must not erase what it omits.** A blob correctly
   omits `deviceLocal` fields — and the repositories' `upsert` methods write
   *every* column, which is right for a local restore and destructive here. A
