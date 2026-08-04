@@ -1445,7 +1445,6 @@ jobs:
         run: |
           set -euo pipefail
           git fetch --no-tags --depth=1 origin gh-pages
-          tmpdir="$RUNNER_TEMP/gh-pages-check"
-          mkdir -p "$tmpdir"
+          tmpdir="$(mktemp -d)"
           git archive FETCH_HEAD | tar -x -C "$tmpdir"
           python3 tools/release/check_pages_signature_files.py "$tmpdir"

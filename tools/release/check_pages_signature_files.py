@@ -42,9 +42,9 @@ def check(root: Path) -> list[str]:
     invariant.
     """
     missing: list[str] = []
-    for json_file in sorted(root.glob("*.json")):
+    for json_file in sorted(f for f in root.glob("*.json") if f.is_file()):
         sig_file = json_file.with_suffix(".json.sig")
-        if not sig_file.exists():
+        if not sig_file.is_file():
             missing.append(json_file.name)
     return missing
 
@@ -66,7 +66,7 @@ def main(argv: list[str] | None = None) -> int:
     missing = check(root)
 
     if not missing:
-        json_count = sum(1 for _ in root.glob("*.json"))
+        json_count = sum(1 for p in root.glob("*.json") if p.is_file())
         print(f"OK: all {json_count} *.json file(s) at the gh-pages root have a sibling *.json.sig")
         return 0
 
