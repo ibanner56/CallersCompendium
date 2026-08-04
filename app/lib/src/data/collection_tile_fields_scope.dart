@@ -9,8 +9,9 @@ import 'package:flutter/widgets.dart';
 /// is open-world safe.
 ///
 /// All values default to visible: a caller who has not touched the setting sees
-/// no change. The collection tile reads [CollectionTileFieldsScope.of] and hides
-/// chips for any field absent from the returned set.
+/// no change. The collection screen reads this scope and passes the result to
+/// [DanceListTile.visibleFields]. Call sites that pass nothing render every chip,
+/// so a new [DanceListTile] call site is unaffected until it explicitly opts in.
 enum CollectionTileField {
   /// Author name(s) text line.
   authors,
