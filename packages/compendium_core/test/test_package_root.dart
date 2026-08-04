@@ -16,7 +16,13 @@ Future<String> packageRootPath() async {
   final libUri = await Isolate.resolvePackageUri(
     Uri.parse('package:compendium_core/'),
   );
+  if (libUri == null) {
+    throw StateError(
+      'Isolate.resolvePackageUri could not resolve package:compendium_core/. '
+      'Run `dart pub get` inside packages/compendium_core and try again.',
+    );
+  }
   // resolvePackageUri returns the lib/ directory URI; go up one level to reach
   // the package root (packages/compendium_core/).
-  return p.dirname(libUri!.toFilePath());
+  return p.dirname(libUri.toFilePath());
 }
