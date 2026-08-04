@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -1063,5 +1064,52 @@ void main() {
           ?.text,
       isEmpty,
     );
+  });
+
+  // Pins the two feedback channels #796 must not disturb. The picker's new
+  // row-level confirmation exists because the modal *sheet* covers the
+  // SnackBar; outside the sheet — the two-pane inline picker, which
+  // `_pumpBuilder`'s default 1200x2000 surface engages — both the SnackBar and
+  // the announcement were always visible and correct, and must stay so.
+  testWidgets('adding from the inline picker still shows the SnackBar and '
+      'announces the add (#796)', (tester) async {
+    final TestDefaultBinaryMessenger messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final List<Map<Object?, Object?>> announcements = [];
+    messenger.setMockMessageHandler(SystemChannels.accessibility.name, (
+      ByteData? message,
+    ) async {
+      final decoded = SystemChannels.accessibility.codec.decodeMessage(message);
+      if (decoded is Map) announcements.add(decoded.cast());
+      return null;
+    });
+    addTearDown(
+      () => messenger.setMockMessageHandler(
+        SystemChannels.accessibility.name,
+        null,
+      ),
+    );
+
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    expect(find.byKey(const ValueKey('inline-picker')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('picker-add-d1')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.widgetWithText(SnackBar, 'Added "Chase the Squirrel".'),
+      findsOneWidget,
+    );
+
+    final messages = announcements
+        .map((a) => a['data'])
+        .whereType<Map<Object?, Object?>>()
+        .map((data) => data['message'])
+        .toList();
+    expect(messages, contains('Added Chase the Squirrel to program.'));
   });
 }
