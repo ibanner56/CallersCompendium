@@ -680,11 +680,20 @@ makes self-hosting materially harder, which constraint 4 forbids.
 
   It is stamped **causally rather than from a bare clock** — every transition
   lands strictly after the value already on the record,
-  `max(now, currentExistenceAt + 1ms)`. A revival is necessarily *after* the
-  deletion it supersedes, since the device had to receive the tombstone to revive
-  from it, but on independent clocks a slow device would stamp it earlier and
-  silently revert a deliberate un-delete; the reverse skew would stop a device
-  deleting a previously revived record at all.
+  `max(now, currentExistenceAt + 1ms)`, in **both** directions. A revival is
+  necessarily *after* the deletion it supersedes, since the device had to receive
+  the tombstone to revive from it, but on independent clocks a slow device would
+  stamp it earlier and silently revert a deliberate un-delete; the reverse skew
+  would stop a device deleting a previously revived record at all.
+
+  Because it decides a question several code paths reach independently, it is
+  restated on each of them rather than in one place: the steady-state merge,
+  fresh attach, collision reconciliation, dance dedupe, record creation, the
+  migration backfill, and inbound validation. The design carries that list as a
+  table, since the alternative — found by experience — is discovering the paths
+  one at a time. The backfill in particular must not inherit `updated_at`, which
+  would reintroduce the content-versus-existence coupling this column exists to
+  break, through the migration itself.
 
   It is a **separate column** rather than a reuse of `deletedAt` because that
   field is a retention timestamp with real consumers — the purge sweep and the

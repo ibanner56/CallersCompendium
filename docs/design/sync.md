@@ -103,8 +103,20 @@ Identity and content are chosen by **separate rules**, and both are needed:
 | Decision | Rule |
 | --- | --- |
 | Which UUID survives | Lexicographically smaller — never `updatedAt` |
+| Whether the survivor exists | Greater `existenceAt` — never `updatedAt` |
 | Which field values survive | Last-writer-wins on `updatedAt` |
 | Which `deviceLocal` values survive | Coalesce — see below |
+
+**Existence has to be restated here for the same reason recency does.** This path
+never reaches the merge table, so a rule that lives only there does not apply to
+it — the argument this section already makes for recency, and the reason
+*Reconciliation respects recency* is a test. Without the second row, a natural-key
+collision resurrects deletions: device A creates choreographer "Bob Smith" and
+deletes it; device B, offline, independently creates its own "Bob Smith", still
+live and with a newer `updatedAt`. The names match and neither UUID is known to
+the other, so this is step 2 — and "merge field values by recency" alone would
+carry B's live state onto the survivor and silently undo A's deletion. Comparing
+`existenceAt` gives the tombstone precedence, exactly as it does everywhere else.
 
 Choosing *identity* by `updatedAt` would be unstable: `updatedAt` moves, so the
 survivor could change on a later pass and the remap would never settle. Choosing
@@ -609,6 +621,54 @@ guarantee needs to hold, the question to ask is not "is my term strong enough"
 but **"can anything else decide this first?"** — and where the answer is yes, the
 usual remedy is to separate the decisions rather than to strengthen both terms.
 
+#### Trace a new rule to every path that decides the same question
+
+> **The checks above apply to rules a revision *introduces*, not only to rules it
+> edits.** A new rule must be traced to every path that can decide the same
+> question, and the trace written down.
+
+The eighth check exists because the seven above are all phrased around a rule
+that *changes* — "when a ruling changes", "when hardening a condition". A brand
+new rule has no prior version to grep for and no existing condition to inspect,
+so all seven pass over it in silence. The round that introduced `existenceAt`
+shipped it correctly in two places and missed four others, and the round that
+introduced the seventh check was the same round.
+
+New rules are also where the *old* text is most dangerous, because prose written
+for a predecessor field reads as current: a "which writes set it" enumeration
+survived a field's generalisation from one direction to two, and contradicted the
+rule stated thirty lines above it.
+
+So a rule that decides something gets a table naming every path that decides it.
+For existence:
+
+| Path | Rule |
+| --- | --- |
+| Steady-state merge | Decided by `existenceAt` before the merge table |
+| Fresh attach | Same, with no baseline to consult |
+| Collision reconciliation | Second row of its decision table |
+| Fresh-attach dance dedupe | Tombstones excluded from dedupe candidacy |
+| Record creation | Seeds the field |
+| Migration backfill | `T₀` for live rows, `deleted_at` for deleted ones |
+| Inbound validation | Out-of-range values rejected, never clamped |
+
+Written as a table because the alternative is discovering the paths one review
+round at a time, which is what happened.
+
+##### A safety rationale must name the readers it claims do not exist
+
+A related habit, from two consecutive failures of the same shape. "This value is
+safe to write freely because nothing else reads it" was asserted twice here, and
+both times something did: `deletedAt` was said to be "never displayed or used for
+retention" while the purge sweep and the Recently Deleted countdown both read it,
+and `existenceAt` was said not to be "the merge discriminator" ninety lines after
+this document made it exactly the discriminator for existence.
+
+Both were load-bearing for accepting a decision, and both were checkable in under
+a minute. So **when a rationale rests on nothing reading a value, enumerate the
+readers and say you checked** — the claim is a factual one about the codebase,
+not a design intention, and it is the kind that stays wrong quietly.
+
 ## Wire format
 
 All payloads are UTF-8 JSON. All requests and responses may use
@@ -726,24 +786,58 @@ was two: with `revivedAt` and `deletedAt` as separate comparands, a device could
 advance one while the other stood still. A single monotone value per record
 cannot disagree with itself.
 
-**A future-dated `existenceAt` is now harmless locally and rejected remotely.**
-Because nothing else reads it — not retention, not display, not the merge
-discriminator — a `max` landing slightly ahead of local time has no other
-consequence, which is the property the old wording claimed for fields that did
-not have it. Inbound values are **clamped to `localNow + 24h` and rejected beyond
-it**, stated as a check to implement rather than assumed: `_dtOrNull` validates
-only ISO-8601 parseability and calls `.toUtc()`, and the codec's clamping is all
-string and list length — no date range check exists today. Without that check a
-hostile peer could pin a record's existence state permanently by publishing a
-value far in the future.
+**A future-dated `existenceAt` is contained, and hostile values are rejected
+rather than clamped.** Nothing outside the existence decision reads it — not
+retention, not display, not `updatedAt` recency — so a `max` landing slightly
+ahead of local time has no side effect, which is the property the old wording
+wrongly claimed for fields that *did* have other readers. It is emphatically not
+true that "nothing reads it": it is the existence discriminator, and being read
+for that decision is its entire purpose.
 
-**Which writes set it.** Only a user edit to a record the device can see is
-deleted — the "a local edit cancels the pending tombstone" case, and an explicit
-restore from Recently Deleted. **Every sync-apply path leaves it alone**,
-including reference rewriting, merge-by-recency, reconciliation and the dance
-merge's scalar recency. A device that never learned of a deletion cannot set it,
-because it has nothing to revive from: an ordinary edit on a stale device is not
-a decision about a deletion it never saw, and it does not out-rank one.
+That is exactly why an out-of-range inbound value must be **rejected, not
+clamped**. Clamping a causal comparand corrupts the comparison it feeds: capping
+a value downward can drop a legitimate later revival below the true value another
+device still holds, silently reverting the un-delete this field exists to
+protect — and if `localNow` were sampled once per pass rather than per record,
+two correctly-ordered values could clamp to the *same* ceiling, turning a strict
+inequality into a tie that the tie rule then resolves to the tombstone. Capping
+also does not even stop the attack it was meant to: a peer pinned at the ceiling
+still wins every comparison, and can refresh it.
+
+So a blob whose `existenceAt` exceeds `localNow + 24h` is **refused as malformed
+and reported**, exactly like a record that fails to decode — one record skipped,
+the batch intact, local state unchanged. `localNow` is sampled **per record**.
+This is stated as a check to implement rather than assumed: `_dtOrNull` validates
+only ISO-8601 parseability and calls `.toUtc()`, and the codec's clamping is all
+string and list length, so no date range check exists today.
+
+**Which writes set it.** Every write that changes whether the record exists, in
+both directions:
+
+- **Creation** seeds it, from a plain clock. A new record is `∅→live` rather than
+  a live↔deleted transition, so it needs its own rule or the field would have no
+  value for the first deletion's `max` to read.
+- **Deletion** — every user-initiated soft delete, including the deferred one
+  applied when a pending hold's last citation goes.
+- **Revival** — cancelling a pending tombstone by editing the record, and an
+  explicit restore from Recently Deleted.
+
+**Every sync-apply path leaves it alone**, including reference rewriting,
+merge-by-recency, reconciliation and the dance merge's scalar recency. Applying a
+peer's blob copies that peer's value rather than stamping a new one — the field
+records where a record sits in its own existence history, not when this device
+last heard about it.
+
+An earlier draft enumerated only the revival cases here, carried over verbatim
+from a predecessor field that covered one direction. It contradicted the causal
+rule two paragraphs above, and it was the more dangerous of the two to follow:
+"which writes set it" is the section an implementer reads to find out which
+writes set it, so a deletion would have gone unstamped and the slow-clock
+deletion failure would have returned intact.
+
+A device that never learned of a deletion still cannot revive one, because
+reviving means acting on a tombstone it can see. An ordinary edit on a stale
+device is not a decision about a deletion it never saw, and does not outrank one.
 
 The cost of that choice is stated plainly: such an edit is swept up when the
 deletion arrives. It is not destroyed — the record soft-deletes into Recently
@@ -836,6 +930,29 @@ working from a migration checklist. `updated_at` and `deleted_at` are stamped
 from a plain clock as they are today: the existing `softDelete` writes one shared
 value into `deletedAt` and `updatedAt`, and that stays correct precisely because
 nothing causal flows into either of them.
+
+**The backfill rule matters, and the obvious choice is wrong.** Reusing the
+adjacent `updated_at` would be the natural thing to reach for and would
+reintroduce, through the migration, the exact coupling this column exists to
+break: a device that edited a live record after another device deleted it would
+carry `existence_at = updated_at` greater than the tombstone's, so its live copy
+would win and the record would resurrect on first sync. The corpus at launch is
+entirely pre-migration rows, so this would not be an edge case.
+
+Backfill instead from the row's **existence history, not its content history**:
+
+| Row state at migration | `existence_at` |
+| --- | --- |
+| live | a single constant `T₀`, identical for every live row |
+| already soft-deleted | `deleted_at` |
+
+`T₀` is one timestamp chosen at migration time and written to every live row, so
+no live row outranks another and the first real transition on any device
+establishes the ordering. An already-deleted row takes `deleted_at`, which is
+when its existence actually last changed — the one case where a pre-existing
+column carries the right meaning. `T₀` must be **older than every `deleted_at`
+in the table**, so that an existing tombstone always outranks an existing live
+row and the migration cannot itself resurrect anything.
 
 `existence_at` is classified `dpv:NonPersonalData` / `shareable`: a bare timestamp
 with no data subject, which has to travel for the gate to be evaluable by a
@@ -1262,6 +1379,16 @@ hold different ids for it, so union alone yields duplicates.
 1. exact normalized-title match (`normalizeTitle`), and
 2. `_choreographyEquals` — form, formation, progression, phrase structure,
    figures *including params*, hook, calling notes, level, mixed level, tunes.
+
+**Tombstones do not participate.** A deleted dance is not a duplicate candidate:
+merging a live copy with a tombstoned one would decide existence by title and
+choreography, which are content questions, and a deletion would vanish because
+the surviving record happened to be the live one. Where one side is deleted and
+the other live, the pair is settled by `existenceAt` like any other existence
+disagreement, and only then — if the record survives — considered for dedupe.
+This is the third path needing the rule restated, after the merge table and
+collision reconciliation, and for the same reason: none of them can see the
+others' rules.
 
 Everything else that the existing `DedupeIndex` flags is **deferred for review**.
 
@@ -2080,6 +2207,29 @@ must say this plainly rather than implying sync is opaque to us.
   C keeps X deleted. Mutation-proved by dropping the gate from the `same`/`changed`
   row, which resurrects it. This is the mainline path for a tombstone travelling
   more than one hop, and it is not the case the pending-holder test covers.
+- **Reconciliation respects existence** — device A creates a choreographer and
+  deletes it; device B independently creates the same name, still live and with a
+  newer `updatedAt`. Assert the reconciled survivor stays deleted. Mutation-proved
+  by dropping the existence row from the reconciliation decision table, which lets
+  merge-by-recency carry B's live state across and undo the deletion. Mirrors
+  *Reconciliation respects recency*, and exists for the same reason: this path
+  never reaches the merge table.
+- **A tombstoned dance is not a dedupe candidate** — same title and identical
+  choreography, one copy deleted; assert they are not silently merged and the
+  deletion stands. Mutation-proved by letting tombstones into dedupe candidacy,
+  which decides existence by choreography.
+- **Creation seeds `existenceAt`, and the migration backfills it safely** — assert
+  a newly created record carries a value, and that after backfill every live row
+  shares `T₀` while each already-deleted row carries its `deleted_at`.
+  Mutation-proved by backfilling from `updated_at`, which is the natural
+  implementer choice: a pre-migration bystander that edited a live record after
+  another device deleted it then outranks the tombstone and resurrects the record
+  on first sync.
+- **An out-of-range `existenceAt` is rejected, not clamped** — a blob dated far in
+  the future is refused and reported, the batch commits, and local state is
+  unchanged. Mutation-proved by clamping to the ceiling instead, which lets the
+  hostile value win every existence comparison and, when two out-of-range values
+  clamp to one ceiling, converts a strict ordering into a tie.
 - **The rule survives clock skew in both directions, end to end** — run the
   revival with the reviving device's clock set behind the deleting device's, and
   the deletion with the deleting device's clock behind a prior revival's. Assert
