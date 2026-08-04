@@ -147,13 +147,8 @@ class DanceEditorForm extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 FieldLabel(l10n.danceEditorFormationLabel),
-                // Key includes the value so an undo/redo that changes
-                // formationShape forces the DropdownButtonFormField to rebuild
-                // with the new state.
                 DropdownButtonFormField<FormationShape>(
-                  key: ValueKey(
-                    'formation-field-${controller.formationShape.name}',
-                  ),
+                  key: const ValueKey('formation-field'),
                   initialValue: controller.formationShape,
                   items: [
                     for (final shape in FormationShape.values)

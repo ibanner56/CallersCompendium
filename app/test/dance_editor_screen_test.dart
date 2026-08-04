@@ -158,6 +158,16 @@ Future<void> _expandMoreDetails(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// Reads the value a dropdown's own [FormFieldState] is holding, which is what
+/// the closed field displays.
+///
+/// Issue #775: these assertions used to read the value back out of a
+/// value-encoded `ValueKey`, which only proved the parent passed that value
+/// down. Going through the field's state proves the field is showing it.
+T? _dropdownValue<T>(WidgetTester tester) => tester
+    .state<FormFieldState<T>>(find.byType(DropdownButtonFormField<T>))
+    .value;
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -264,7 +274,7 @@ void main() {
     await _expandMoreDetails(tester);
 
     // Pick a level from the dropdown.
-    await tester.tap(find.byKey(const ValueKey('level-field-none')));
+    await tester.tap(find.byKey(const ValueKey('level-field')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Intermediate').last);
     await tester.pumpAndSettle();
@@ -290,7 +300,7 @@ void main() {
 
     await _expandMoreDetails(tester);
 
-    await tester.tap(find.byKey(const ValueKey('level-field-advanced')));
+    await tester.tap(find.byKey(const ValueKey('level-field')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Unspecified').last);
     await tester.pumpAndSettle();
@@ -439,7 +449,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Month becomes selectable once a valid year is present.
-    final monthField = find.byKey(const ValueKey('composed-on-month-0'));
+    final monthField = find.byKey(const ValueKey('composed-on-month'));
     await tester.ensureVisible(monthField);
     await tester.tap(monthField);
     await tester.pumpAndSettle();
@@ -470,16 +480,14 @@ void main() {
     await tester.pumpAndSettle();
 
     // Pick February …
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('composed-on-month-0')),
-    );
-    await tester.tap(find.byKey(const ValueKey('composed-on-month-0')));
+    await tester.ensureVisible(find.byKey(const ValueKey('composed-on-month')));
+    await tester.tap(find.byKey(const ValueKey('composed-on-month')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Feb').last);
     await tester.pumpAndSettle();
     // … and the 29th (valid in 2004).
-    await tester.ensureVisible(find.byKey(const ValueKey('composed-on-day-0')));
-    await tester.tap(find.byKey(const ValueKey('composed-on-day-0')));
+    await tester.ensureVisible(find.byKey(const ValueKey('composed-on-day')));
+    await tester.tap(find.byKey(const ValueKey('composed-on-day')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('29').last);
     await tester.pumpAndSettle();
@@ -1670,13 +1678,7 @@ void main() {
       expect(find.byKey(const ValueKey('rating-field')), findsOneWidget);
 
       // They sit on the same horizontal line (share a Row).
-      final progressionField = find.byWidgetPredicate(
-        (w) =>
-            w.key is ValueKey &&
-            (w.key as ValueKey).value.toString().startsWith(
-              'progression-field-',
-            ),
-      );
+      final progressionField = find.byKey(const ValueKey('progression-field'));
       final progressionY = tester.getTopLeft(progressionField).dy;
       final ratingY = tester
           .getTopLeft(find.byKey(const ValueKey('rating-field')))
@@ -1801,10 +1803,7 @@ void main() {
         '6*8*2',
       );
       // The seeded formation shows in the formation dropdown.
-      expect(
-        find.byKey(ValueKey('formation-field-${FormationShape.longways.name}')),
-        findsOneWidget,
-      );
+      expect(_dropdownValue<FormationShape>(tester), FormationShape.longways);
 
       await tester.enterText(
         find.byKey(const ValueKey('title-field')),
@@ -1888,10 +1887,8 @@ void main() {
         '8*8*1',
       );
       expect(
-        find.byKey(
-          ValueKey('formation-field-${FormationShape.circleMixer.name}'),
-        ),
-        findsOneWidget,
+        _dropdownValue<FormationShape>(tester),
+        FormationShape.circleMixer,
       );
 
       await tester.tap(find.byKey(const ValueKey('save-dance')));

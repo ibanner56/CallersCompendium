@@ -41,11 +41,7 @@ class EnumDropdown<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<T>(
-      // Value-based key: forces the FormField to rebuild with fresh state when
-      // the parent changes `value` externally (e.g. via undo/redo), since
-      // DropdownButtonFormField does not re-initialize its state from
-      // `initialValue` after construction.
-      key: ValueKey('$fieldKey-field-$value'),
+      key: ValueKey('$fieldKey-field'),
       initialValue: value,
       decoration: InputDecoration(labelText: label),
       items: [
@@ -161,9 +157,7 @@ class LevelDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return DropdownButtonFormField<DanceLevel?>(
-      // Value-based key so the FormField re-initialises when `value` changes
-      // externally (e.g. via undo/redo), matching [EnumDropdown].
-      key: ValueKey('level-field-${value?.name ?? 'none'}'),
+      key: const ValueKey('level-field'),
       initialValue: value,
       decoration: InputDecoration(labelText: l10n.danceEditorLevelLabel),
       items: [
@@ -313,7 +307,7 @@ class _PartialDateFieldState extends State<PartialDateField> {
             Expanded(
               flex: 3,
               child: DropdownButtonFormField<int?>(
-                key: ValueKey('${widget.fieldKey}-month-${_month ?? 0}'),
+                key: ValueKey('${widget.fieldKey}-month'),
                 initialValue: _month,
                 decoration: InputDecoration(
                   labelText: l10n.danceEditorMonthLabel,
@@ -344,7 +338,7 @@ class _PartialDateFieldState extends State<PartialDateField> {
             Expanded(
               flex: 2,
               child: DropdownButtonFormField<int?>(
-                key: ValueKey('${widget.fieldKey}-day-${_day ?? 0}'),
+                key: ValueKey('${widget.fieldKey}-day'),
                 initialValue: _day,
                 decoration: InputDecoration(
                   labelText: l10n.danceEditorDayLabel,

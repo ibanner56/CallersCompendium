@@ -100,6 +100,27 @@ String _titleText(WidgetTester tester) {
   return et.controller.text;
 }
 
+/// Reads the value a dropdown's own [FormFieldState] is holding — what the
+/// closed field displays, and deliberately independent of how it is keyed.
+T? _dropdownValue<T>(WidgetTester tester) => tester
+    .state<FormFieldState<T>>(find.byType(DropdownButtonFormField<T>))
+    .value;
+
+/// Opens a dropdown and picks the item carrying [value], matching on the item's
+/// value rather than its localized label.
+Future<void> _pickFromDropdown<T>(WidgetTester tester, T value) async {
+  final field = find.byType(DropdownButtonFormField<T>);
+  await tester.ensureVisible(field);
+  await tester.tap(field);
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find
+        .byWidgetPredicate((w) => w is DropdownMenuItem<T> && w.value == value)
+        .last,
+  );
+  await tester.pumpAndSettle();
+}
+
 /// Minimal [EditorSnapshot] for unit-test construction.
 EditorSnapshot _snap({
   String title = '',
@@ -483,6 +504,91 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('undo-button')));
       await tester.pumpAndSettle();
       expect(_titleText(tester), 'First');
+    });
+
+    // Issue #775. Four dropdowns carried a value-based key justified by the
+    // claim that `DropdownButtonFormField` never re-reads `initialValue`, so
+    // undo/redo needed a fresh subtree to resync. The claim is false —
+    // `_DropdownButtonFormFieldState.didUpdateWidget` calls `setValue` — but
+    // until now nothing tested the scenario it named: every test in this group
+    // drove text fields or figures, never a dropdown. These pin it through a
+    // real undo, so the resync is checkable rather than asserted in a comment.
+    //
+    // They read `FormFieldState.value`, which is what the closed field
+    // displays, deliberately independent of how the field is keyed.
+
+    testWidgets('undo reverts the formation dropdown; redo re-applies it', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      final before = _dropdownValue<FormationShape>(tester);
+      expect(before, isNot(FormationShape.circleMixer));
+
+      await _pickFromDropdown(tester, FormationShape.circleMixer);
+      expect(
+        _dropdownValue<FormationShape>(tester),
+        FormationShape.circleMixer,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('undo-button')));
+      await tester.pumpAndSettle();
+      expect(_dropdownValue<FormationShape>(tester), before);
+
+      await tester.tap(find.byKey(const ValueKey('redo-button')));
+      await tester.pumpAndSettle();
+      expect(
+        _dropdownValue<FormationShape>(tester),
+        FormationShape.circleMixer,
+      );
+    });
+
+    testWidgets('undo reverts the level dropdown all the way back to null', (
+      tester,
+    ) async {
+      // The nullable transition is the one worth pinning separately: the
+      // selection drops rather than being replaced.
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      expect(_dropdownValue<DanceLevel?>(tester), isNull);
+
+      await _pickFromDropdown<DanceLevel?>(tester, DanceLevel.advanced);
+      expect(_dropdownValue<DanceLevel?>(tester), DanceLevel.advanced);
+
+      await tester.tap(find.byKey(const ValueKey('undo-button')));
+      await tester.pumpAndSettle();
+      expect(_dropdownValue<DanceLevel?>(tester), isNull);
+    });
+
+    testWidgets('undo reverts a choice custom field dropdown', (tester) async {
+      final repos = openTestRepositories();
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'adj',
+          key: 'adjectives',
+          label: 'Adjectives',
+          type: CustomFieldType.choice,
+          choices: const ['driving', 'lyrical'],
+        ),
+      );
+      await repos.dances.create(_dance(id: 'd1'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      expect(find.byType(DropdownButtonFormField<String?>), findsOneWidget);
+      expect(_dropdownValue<String?>(tester), isNull);
+
+      await _pickFromDropdown<String?>(tester, 'lyrical');
+      expect(_dropdownValue<String?>(tester), 'lyrical');
+
+      await tester.tap(find.byKey(const ValueKey('undo-button')));
+      await tester.pumpAndSettle();
+      expect(_dropdownValue<String?>(tester), isNull);
     });
 
     testWidgets('undo after figure add removes the added figure', (

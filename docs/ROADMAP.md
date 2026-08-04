@@ -83,8 +83,9 @@ Design items (each produces a design doc + review):
     back navigation. Draft schema v1 (versioned JSON) handles partial/incomplete drafts including
     null-move `FigureDraft`. In-memory bounded (50-entry) undo/redo stack of `EditorSnapshot`; undo/redo
     buttons in app bar; Ctrl/Cmd-Z / Ctrl/Cmd-Shift-Z / Ctrl-Y keyboard shortcuts; `_applySnapshot`
-    resyncs all `TextEditingController`s and rebuilds figure drafts. Dropdowns use value-based keys for
-    correct undo/redo resync.
+    resyncs all `TextEditingController`s and rebuilds figure drafts. Dropdowns resync from
+    `initialValue` on their own (`DropdownButtonFormField.didUpdateWidget` calls `setValue`), pinned by
+    the undo/redo dropdown tests in `editor_autosave_undo_test.dart`.
 - [x] 3.4 Custom user fields (define, edit, search) — `CustomFieldsScreen` (list/create/edit/delete,
     reachable via app-bar "Manage custom fields" icon on Collection screen); mutability guards: type
     locked once field has values on dances; key locked when in use; choice removal blocked when that

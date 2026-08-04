@@ -102,8 +102,7 @@ class CustomFieldEditor extends StatelessWidget {
         );
       case CustomFieldType.choice:
         final dropdown = DropdownButtonFormField<String?>(
-          // Value-based key so undo/redo forces a rebuild with new state.
-          key: ValueKey('custom-${def.id}-$currentValue'),
+          key: ValueKey('custom-${def.id}-choice'),
           initialValue: currentValue as String?,
           decoration: InputDecoration(labelText: def.label),
           items: [
