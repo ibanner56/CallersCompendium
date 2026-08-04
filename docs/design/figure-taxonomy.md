@@ -147,7 +147,12 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   typical-only, not enforced (`goodBeats` omitted where a rule isn't
   list-expressible, cf. poussette). `box_circulate` is intentionally excluded:
   it carries no places param. `star.grip` (`none`/`wristGrip`/`handsAcross`) is
-  structured, not a render token (cf. PR3 enders).
+  a **display-only render token** (issue #749): the display renders (`render` /
+  `renderVerbose` / `renderSummary`) emit a " - wrist grip - " / " - hands
+  across - " clause mirroring ContraDB `starWords`; `none` emits nothing.
+  `renderCanonical` stays byte-stable (Gap B of #749 — FTS searchability — tracks
+  canonical inclusion and is delivered separately with a `contraTaxonomyVersion`
+  bump + migration + derived rebuild).
 - **PR5 (hey/wave family, no new vocab) — completes the 2.4a set:** added
   `pass_by`, `hey`, `dolphin_hey`, `form_long_waves`, `form_a_long_wave`,
   `form_an_ocean_wave` (split at v13, removed at v14; the short-wave half was
@@ -247,9 +252,12 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     force-matched. `goodBeats` was widened from `[4, 8]` to `[2, 4, 8]` since
     real dances render the take-only form in as few as 2 beats.
   - No new `ParamKind` or move id was introduced; there is intentionally no
-    `circle_left` move — "left" is the `circle.turn` default. Neither flag is
-    surfaced by the verbose renderer yet (structural-only for now), matching
-    the existing precedent set by `star.grip`.
+    `circle_left` move — "left" is the `circle.turn` default. Both flags are
+    now **display-only render tokens** (issue #749): the display renders surface
+    "single file promenade" / "circle … - single file" for the `true` case, while
+    `renderCanonical` stays byte-stable. The precedent `star.grip` previously set
+    for non-rendering was the bug that #749 fixed; canonical-text inclusion for
+    all three params (Gap B) is tracked separately.
 - **v19 (`orbit` first-class + fused `allemande_orbit` retired, issue #295):**
   splits the fused `allemande_orbit` (which modeled "X allemande while Y
   orbits" as one combined move: `who`/`hand`/`inner`/`outer`/`beats`) into a

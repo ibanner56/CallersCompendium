@@ -1494,6 +1494,93 @@ class FigureRenderer {
       final head = 'pass through to $article $noun';
       return body.isEmpty ? '$head$balance' : '$head - $body$balance';
     },
+    // ContraDB `starWords`: `star <hand> [- <grip> -] <n> places`. The grip
+    // clause appears between the hand and the count for the two non-`none`
+    // grips ("- wrist grip -" and "- hands across -"; real ContraDB renders:
+    // Al's Safeway Produce, Strange New Worlds, Sweet Vicki, Fun Dance for
+    // Marjorie). `none` (the default / unspecified value) emits no clause so
+    // a plain star is unchanged. The grip labels are fixed calling vocabulary;
+    // an unexpected non-null grip humanizes (surfacing malformed data) rather
+    // than silently vanishing. `renderCanonical` is unaffected — it keeps
+    // expanding `renderTemplate` (`{move} {hand} {places}`) byte-for-byte.
+    'star': (r, def, params, dialect, verbose, decimals) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final hand = _displayScalar(params['hand']);
+      final placesRaw = params['places'];
+      final places = placesRaw is int
+          ? _formatPlaces(placesRaw)
+          : _displayScalar(placesRaw);
+      final grip = params['grip'];
+      final gripClause = grip == 'none' || grip == null
+          ? ''
+          : grip == 'wristGrip'
+          ? ' - wrist grip -'
+          : grip == 'handsAcross'
+          ? ' - hands across -'
+          : ' - ${_humanize(grip.toString())} -';
+      return [
+        move,
+        hand,
+        if (gripClause.isNotEmpty) gripClause,
+        places,
+      ].where((s) => s.isNotEmpty).join(' ');
+    },
+    // `promenade.singleFile` (taxonomy v18, issue #634): a true single-file
+    // promenade (nose-to-tail around the major set) differs materially from
+    // the ordinary partnered promenade — "single file {move}" mirrors the
+    // ContraDB source text ("single file promenade along major set to new
+    // neighbors"). `dir` is dropped (no direction in source). `who` is
+    // suppressed at the taxonomy default ('partners') to match the import
+    // path; an explicit non-default `who` is surfaced before the move name.
+    // Both cases route through `_renderMoveName` so Dialect.moves overrides
+    // apply uniformly. For the ordinary (singleFile: false) case the base line
+    // reproduces the existing template expansion {who} promenade {dir}
+    // including the direction-silencing rule for the `across` default.
+    // `renderCanonical` keeps expanding `renderTemplate` ({who} {move} {dir})
+    // and is unaffected.
+    'promenade': (r, def, params, dialect, verbose, decimals) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      if (params['singleFile'] == true) {
+        final whoDefault = def.params['who']?.defaultValue;
+        final whoRaw = params['who'];
+        final swho = (whoRaw != null && whoRaw != whoDefault)
+            ? r._subjectWho(params, dialect)
+            : '';
+        return [swho, 'single file $move'].where((s) => s.isNotEmpty).join(' ');
+      }
+      final swho = r._subjectWho(params, dialect);
+      // Re-apply the direction-silencing rule that the template-expansion path
+      // uses for promenade (ContraDB `stringParamSetDirectionSilencingDefault`
+      // 'across'): omit `dir` when it equals the taxonomy default.
+      final dirRaw = params['dir'];
+      final dirDefault = def.params['dir']?.defaultValue;
+      final dir = (dirRaw == dirDefault) ? '' : _displayScalar(dirRaw);
+      return [swho, move, dir].where((s) => s.isNotEmpty).join(' ');
+    },
+    // `circle.singleFile` (taxonomy v18, issue #634): a single-file
+    // circulation around the ring (ContraDB source: "promenade single file
+    // around the circle N places"). The move name "circle" is kept so the
+    // figure is unambiguous — echoing "promenade" in a circle figure would
+    // mislabel the move. A trailing "- single file" clarifier distinguishes
+    // the formation (same pattern as other display-only context clauses, e.g.
+    // revolving_door's "drop off on other side"). For the ordinary
+    // (singleFile: false) case the base line reproduces `{move} {turn}
+    // {places}`. `renderCanonical` keeps expanding `renderTemplate`
+    // ({move} {turn} {places}) and is unaffected.
+    'circle': (r, def, params, dialect, verbose, decimals) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final turnRaw = params['turn'];
+      final turn = _displayScalar(turnRaw);
+      final placesRaw = params['places'];
+      final places = placesRaw is int
+          ? _formatPlaces(placesRaw)
+          : _displayScalar(placesRaw);
+      final base = [move, turn, places].where((s) => s.isNotEmpty).join(' ');
+      if (params['singleFile'] == true) {
+        return '$base - single file';
+      }
+      return base;
+    },
   };
 
   /// DISPLAY-ONLY: the four-dancer pairing tokens ContraDB's `dancerIsPair`
