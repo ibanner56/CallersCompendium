@@ -9,21 +9,21 @@ import '../test_package_root.dart';
 
 void main() {
   group('Baby Rose seed asset', () {
-    late String _fixturePath;
-    late String _assetPath;
+    late String fixturePath;
+    late String assetPath;
     late String fixtureHtml;
 
     setUpAll(() async {
       final repoRoot = p.normalize(p.join(await packageRootPath(), '..', '..'));
-      _fixturePath = p.join(
+      fixturePath = p.join(
         repoRoot,
         'tools',
         'seed',
         'fixtures',
         'contradb_dance_8.html',
       );
-      _assetPath = p.join(repoRoot, 'app', 'assets', 'seed', 'baby_rose.json');
-      fixtureHtml = File(_fixturePath).readAsStringSync();
+      assetPath = p.join(repoRoot, 'app', 'assets', 'seed', 'baby_rose.json');
+      fixtureHtml = File(fixturePath).readAsStringSync();
     });
 
     // Drift guard: the checked-in asset must be exactly what the generator
@@ -33,7 +33,7 @@ void main() {
     //   dart run test/seed/generate_baby_rose_seed.dart
     test('checked-in asset matches freshly generated output', () async {
       final generated = await buildBabyRoseSeedArchiveJson(fixtureHtml);
-      final onDisk = File(_assetPath).readAsStringSync();
+      final onDisk = File(assetPath).readAsStringSync();
       expect(
         onDisk,
         '$generated\n',
@@ -48,7 +48,7 @@ void main() {
     // improper) with the exact figure/beat sequence transcribed at
     // https://contradb.com/dances/8.
     test('decodes to the faithful sourced definition', () {
-      final result = decodeArchive(File(_assetPath).readAsStringSync());
+      final result = decodeArchive(File(assetPath).readAsStringSync());
       expect(result.hasErrors, isFalse, reason: '${result.errors}');
 
       final archive = result.archive;
@@ -158,7 +158,7 @@ void main() {
 
       // The shipped asset embeds NO source markup — no raw HTML payload — so it
       // can never carry a page secret, defensively, independent of the fixture.
-      final asset = File(_assetPath).readAsStringSync();
+      final asset = File(assetPath).readAsStringSync();
       expect(asset, isNot(contains('rawPayload')));
       expect(asset, isNot(contains('DOCTYPE')));
       expect(asset, isNot(contains('<meta')));
