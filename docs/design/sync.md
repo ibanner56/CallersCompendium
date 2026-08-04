@@ -559,6 +559,31 @@ So the trigger for re-checking a rule is not "did I change these words" but "did
 I change who has to evaluate this, or where". A rule can rot without being
 touched.
 
+#### A rule belongs in the step it governs
+
+> **A rule that governs a step of an algorithm belongs *in* that step.** Prose
+> may explain it; the algorithm, the table and the test must state it. If a
+> rule's only home is a section elsewhere, an implementer following the steps
+> will not apply it.
+
+The sixth check, and the one that has cost the most rounds. Three separate
+findings have had this exact shape: a ruling that reached a normative paragraph
+but not the section describing the same case; one that reached the normative text
+and the tests but not the algorithm; and the provenance gate, which reached the
+normative text but neither the merge table nor a test of the case that matters.
+
+The checks above are all framed around rules that *changed*, which is why they
+kept missing this: a rule can be brand new, correct, prominently stated — and
+still absent from the one place an implementer reads. The failure is not staleness
+but **placement**.
+
+It also predicts where the damage lands. A rule stated only in prose gets applied
+to the case the prose discusses and missed everywhere else, so the surviving hole
+is usually the *commoner* path rather than the exotic one — the gate's prose
+argued the `changed`/`changed` collision while the resurrection actually arrives
+through `same`/`changed`, the bystander case, which is the mainline for any
+tombstone that travels more than one hop.
+
 ## Wire format
 
 All payloads are UTF-8 JSON. All requests and responses may use
@@ -614,9 +639,42 @@ later sync write advances `updatedAt` and leaves `revivedAt` untouched.
 
 > A live record out-ranks a tombstone **iff `revivedAt > deletedAt`**.
 
-That works with no local history, which is what the fresh-attach case demands —
-an attaching device has no baseline and no prior relationship with any peer, and
-still gets the right answer from the two blobs in front of it.
+That works with no local history *beyond the two blobs*, which is what the
+fresh-attach case demands — an attaching device has no baseline and no prior
+relationship with any peer, and still gets the right answer from what is in front
+of it.
+
+**Both timestamps are stamped causally, not read from a bare clock.** The
+comparison is between a value written by the deleting device and one written by
+the reviving device, so on independent clocks it is only as good as the skew
+between them. Thirty seconds between two phones is unremarkable, and a revival is
+*causally* after the deletion it supersedes — the device had to download the
+tombstone to revive from it — so a slow clock would rank a deliberate un-delete
+as earlier and silently revert it. This design elsewhere treats clocks as
+untrustworthy: it rejected timestamp epochs partly because they depend on a
+server clock never stepping backwards.
+
+So each transition stamps itself **strictly after the opposing timestamp already
+on the record**, which it has necessarily observed:
+
+- Reviving: `revivedAt = max(localNow, deletedAt + 1ms)`
+- Deleting: `deletedAt = max(localNow, revivedAt + 1ms)`
+
+The gate is then true by construction for a genuine revival and false by
+construction for a genuine deletion, whatever the clocks say. Both directions
+need it: an earlier version of this fix stamped only the revival, which left a
+device with a *slow* clock unable to delete a previously revived record — its
+`deletedAt` would land below the existing `revivedAt`, peers would keep the live
+copy, and the deleting device would download its own deletion back.
+
+This makes the pair a two-value causal chain rather than two clock readings, and
+it is deliberately narrow: `updatedAt` keeps its ordinary clock semantics and its
+ordinary tolerable exposure, because a skew-induced wrong winner there costs one
+recoverable edit, while here it either resurrects a deletion everywhere or
+reverts a deliberate revival. The two fields are only ever compared against each
+other, never displayed or used for retention, so a `max` that lands slightly
+ahead of local time has no other consequence — and they are bounds-checked like
+every other inbound value, so a peer cannot pin them far into the future.
 
 **Which writes set it.** Only a user edit to a record the device can see is
 deleted — the "a local edit cancels the pending tombstone" case, and an explicit
@@ -715,7 +773,11 @@ with no data subject, which has to travel for the gate to be evaluable by a
 receiver.
 
 Plus **six `_db.delete(` call sites** converted from hard to soft delete across
-five repositories.
+five repositories, and the **`restore()` paths on every kind** — the two that
+exist (`DanceRepository`, `ProgramRepository`) plus the six added by this
+migration — updated to stamp `revived_at`. Restore is the write that *sets* the
+provenance signal, so it is as much a part of this migration's surface as the
+deletes are; listing one without the other would leave the gate with no writer.
 
 `Dances` and `Programs` already have `updated_at` and `deleted_at`; they need
 only `revived_at`.
@@ -803,7 +865,9 @@ tombstone and the deleting device would download it. So the rule is stated once,
 generally: **a live record out-ranks a tombstone only when
 `revivedAt > deletedAt`.** Pending and applied tombstones are the same rule seen
 at two moments, not two rules — and because the test is a comparison of two
-fields both blobs carry, a receiver can apply it with no local history at all.
+fields both blobs carry — each stamped strictly after the transition it
+supersedes, so the comparison does not rest on the two devices' clocks
+agreeing — a receiver can apply it with no local history at all.
 
 **A pending-held row is advertised as a tombstone, not withheld.** The holding
 device publishes the deletion it has not yet applied: its manifest carries the
@@ -1257,10 +1321,31 @@ The user is told the count afterwards ("merged 412 duplicates"), not asked.
    | --- | --- | --- |
    | same | same | nothing |
    | changed | same | upload |
-   | same | changed | download **only if `remote.updatedAt > local.updatedAt`** |
-   | changed | changed | **conflict** → higher `updatedAt` wins |
+   | same | changed | download **only if `remote.updatedAt > local.updatedAt`** — and, if local is a tombstone and remote is live, **only if `remote.revivedAt > local.deletedAt`** |
+   | changed | changed | **conflict** → higher `updatedAt` wins — except a live record versus a tombstone, where the tombstone wins unless `revivedAt > deletedAt` |
    | absent from baseline, present locally | — | upload (new here) |
    | — | absent from baseline, present remotely | download (new elsewhere) |
+
+   **The tombstone gate is part of this table, not commentary on it.** It applies
+   on both download rows, and the `same`/`changed` row is the one that matters
+   most — an earlier draft stated the gate only in prose, framed around the
+   `changed`/`changed` collision, which is the rarer case. The mainline for any
+   tombstone travelling more than one hop is the *bystander*:
+
+   1. A deletes choreographer X while it is unreferenced, so the deletion applies
+      at once. B and C download the tombstone and apply it; it is now their
+      baseline.
+   2. D never learned of the deletion and still holds X live. D later reconciles
+      an unrelated duplicate that rewrites a reference into X, which — per
+      *Content changes must move the discriminator* — **must** bump X's
+      `updatedAt` past the tombstone. D never touches `revivedAt`.
+   3. C's next pass: local versus baseline is `same`, since C has not touched X.
+      Remote versus baseline is `changed`. Plain recency downloads it and **C
+      resurrects X**, with nobody having revived anything.
+
+   C is a bystander to both the deletion and D's reconciliation, which is why
+   neither of the parties involved can prevent it and why the rule has to live in
+   the row rather than in a section about the deleting device.
 
    **`updatedAt` is load-bearing, not a tiebreak.** An earlier draft compared
    hashes alone and downloaded whenever the remote differed from the baseline.
@@ -1310,6 +1395,45 @@ change what it publishes.
    indexes.
 8. `PUT /v1/manifests/{self}`.
 9. Store the new baseline.
+
+### Backup restore invalidates the baseline
+
+Restore is a **local, direct-to-repository path that bypasses the merge engine
+entirely.** `ArchiveRestorer` writes every entity through unconditional
+`upsert`/`create` — `ChoreographerRepository.upsert` is a bare
+`insertOnConflictUpdate` — with no awareness of `updatedAt`, `deletedAt`,
+`revivedAt`, the sync baseline or `pending_deletions`. That predates this design
+and is right for what restore is: putting a device back to a known state.
+
+Left alone, the two features contradict each other. A user restores a backup
+taken before X was deleted and synced away. X returns as a live row carrying its
+old `updatedAt` and no `revivedAt`, while the sync baseline — a separate table
+restore never touches — still records X as a tombstone. The next pass reads local
+as `changed`, remote as `same`, and the table says **upload**, unconditionally.
+Peers correctly refuse it, since the backup's `updatedAt` predates the deletion
+and its `revivedAt` is null, so the deletion does not reverse network-wide. But
+the restoring device now shows X alive **permanently, diverged from every peer,
+with no error and no path back**.
+
+**So a restore drops the sync baseline**, which forces a fresh attach on the next
+pass. The baseline is a claim about what this device last agreed with its peers,
+and a wholesale replacement of local state makes that claim false — dropping it
+is not a workaround but the accurate response to state it no longer describes.
+Fresh attach is already the specified path for "no valid baseline", and it
+resolves this case correctly: X uploads, the peers' tombstone out-ranks it
+because the restored row has no `revivedAt`, and the device converges on the
+deletion instead of diverging from it forever.
+
+`id_aliases` and `review_queue` clear with the baseline. **`pending_deletions`
+does not** — for the same reason it survives an epoch reset: those rows record
+deletions the user performed that are owed but not yet applied, and a restore is
+no more evidence against them than a re-seeded store is.
+
+A user who genuinely wants the restored version to win can delete and re-enter
+the record, or restore it from Recently Deleted once the deletion applies — both
+of which stamp `revivedAt` and carry the intent explicitly. That is the same
+sticky-deletion trade made everywhere else here, applied consistently rather than
+re-litigated at the restore boundary.
 
 ### Absence never deletes
 
@@ -1841,6 +1965,25 @@ must say this plainly rather than implying sync is opaque to us.
   advancing its `updatedAt` past the tombstone. Assert the tombstone stands.
   Mutation-proved by gating cancellation on `updatedAt` rather than on
   `revivedAt`, which resurrects the record with nobody having edited it.
+- **A bystander does not resurrect a tombstone** — A deletes X and it applies
+  immediately; C downloads and applies the tombstone, so it is C's baseline. D,
+  which never learned of the deletion, reconciles an unrelated duplicate that
+  rewrites a reference into X, bumping its `updatedAt` past the tombstone. Assert
+  C keeps X deleted. Mutation-proved by dropping the gate from the `same`/`changed`
+  row, which resurrects it. This is the mainline path for a tombstone travelling
+  more than one hop, and it is not the case the pending-holder test covers.
+- **The gate survives clock skew in both directions** — run the revival with the
+  reviving device's clock set behind the deleting device's, and the deletion with
+  the deleting device's clock behind a prior revival's. Assert the revival wins in
+  the first and the deletion wins in the second. Mutation-proved by stamping
+  either field from a bare local clock instead of from the opposing timestamp,
+  each of which fails one direction while leaving the other passing — so the test
+  must assert both or it certifies half a fix.
+- **A restore converges rather than diverging** — restore a backup taken before a
+  record was deleted and synced away; assert the device fresh-attaches and ends
+  agreeing with its peers that the record is deleted, rather than republishing it
+  forever. Mutation-proved by leaving the baseline in place, which produces a
+  permanent one-device divergence with no error.
 - **`revivedAt` crosses a device boundary** — A un-deletes a record B tombstoned;
   assert the blob A publishes carries `revivedAt`, and that B, reading only that
   blob, revives its own copy. The gate is a cross-device rule, so it needs a test

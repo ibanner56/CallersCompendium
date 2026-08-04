@@ -673,6 +673,25 @@ makes self-hosting materially harder, which constraint 4 forbids.
   the bin. It costs a `revived_at` column on all eight syncable kinds, which is
   why v23 is eight tables rather than six.
 
+  Both timestamps are stamped **causally rather than from a bare clock** —
+  each transition lands strictly after the opposing value already on the record
+  (`revivedAt = max(now, deletedAt + 1ms)`, and symmetrically for a deletion). A
+  revival is necessarily *after* the deletion it supersedes, since the device had
+  to receive the tombstone to revive from it, but on independent clocks a slow
+  device would stamp it earlier and silently revert a deliberate un-delete; the
+  reverse skew would stop a device deleting a previously revived record at all.
+  This keeps the pair a two-value causal chain and confines it to the decision
+  that needs it — `updatedAt` keeps ordinary clock semantics, because a wrong
+  winner there costs one recoverable edit rather than a deletion reversed
+  everywhere.
+
+  **Restoring a backup drops the sync baseline**, forcing a fresh attach. Restore
+  writes straight to the repositories, outside the merge engine and with no
+  knowledge of tombstones or the baseline, so after one the baseline's claim
+  about what this device agreed with its peers is simply false. Left in place it
+  produced a device that republished a restored-but-deleted record forever,
+  diverged from every peer with no error and no way back.
+
   The pending marker, the id aliases and the review queue are each persisted,
   classified `deviceScoped`, scoped to the store, and land beyond v23 — except
   the retained tombstone bytes, which are `shareable`, since they are record
