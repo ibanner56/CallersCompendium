@@ -339,20 +339,21 @@ cross-channel-preservation contract:
 python3 tools/release/test_publish_pages_manifest.py
 ```
 
-### Ongoing state gate (issue #759)
+### Ongoing state gate (issues #759, #810)
 
 `pages-sig-gate.yml` runs on a **daily schedule** (06:00 UTC) and on manual
 `workflow_dispatch`, asserting the invariant:
 
-> every `*.json` at the `gh-pages` root has a sibling `*.json.sig` file
+> every `*.json` at the `gh-pages` root has a **valid** sibling `*.json.sig` — a
+> real Ed25519 signature over the exact manifest bytes, verified against the pinned key
 
-A missing `.sig` file makes the in-app update client fail closed and silently report "no
-update" to every user on that channel — the failure is invisible by design, which is why
-an external, ongoing assertion is necessary. An out-of-band deletion (direct `git push`
-to `gh-pages`, a rogue workflow, or a GitHub UI edit) is caught within **≤24 hours** by
-the daily schedule. Publish-path regressions are caught immediately by the post-publish
-`Assert gh-pages signature invariant` steps in `pages-site.yml` and the `pages` job in
-`release.yml` (defence in depth).
+A missing or invalid `.sig` makes the in-app update client fail closed and silently
+report "no update" to every user on that channel — the failure is invisible by design,
+which is why an external, ongoing assertion is necessary. An out-of-band deletion (direct
+`git push` to `gh-pages`, a rogue workflow, or a GitHub UI edit) is caught within
+**≤24 hours** by the daily schedule. Publish-path regressions are caught immediately by
+the post-publish `Assert gh-pages signature invariant` steps in `pages-site.yml` and
+the `pages` job in `release.yml` (defence in depth).
 
 The gate has no `push: branches: [gh-pages]` trigger because GitHub Actions evaluates
 push-triggered workflows from the workflow files on the pushed branch — and
@@ -367,8 +368,12 @@ gh workflow run pages-sig-gate.yml
 
 The check script is `tools/release/check_pages_signature_files.py` and its offline test
 suite is `tools/release/test_check_pages_signature_files.py`. The check verifies
-**presence** of `.sig` files, not their cryptographic validity (that is a follow-up
-requiring Ed25519 tooling outside the Python stdlib).
+**presence** of `.sig` files (phase 1) and then validates each signature as a real
+Ed25519 signature over the exact bytes of the manifest against the public key pinned as
+`kUpdateManifestPublicKey` in `app/lib/src/update/update_config.dart` (phase 2). A
+stale `.sig` — e.g. from a previous release alongside an updated manifest — fails the
+same way a missing one does (issue #810). The key is parsed from the Dart source at
+runtime so a key rotation propagates automatically without touching the gate.
 
 ## Signing the update manifest (Ed25519, issue #431)
 

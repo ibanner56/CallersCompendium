@@ -2,11 +2,12 @@
 # schedule and on manual dispatch.
 #
 # WHAT it checks: every ``*.json`` at the gh-pages root has a sibling
-# ``*.json.sig`` file. A missing .sig file makes the in-app update client fail
-# closed and silently report "no update" to every user on that channel
-# (issue #714, #759). This checks **presence** of the .sig file, not its
-# cryptographic validity (tracked as a follow-up; requires Ed25519 tooling
-# outside the Python stdlib).
+# ``*.json.sig`` that is a **valid Ed25519 signature** over the exact bytes of
+# that manifest, verified against the public key pinned as
+# ``kUpdateManifestPublicKey`` in ``app/lib/src/update/update_config.dart``.
+# A missing or invalid .sig causes the in-app update client to fail closed and
+# silently report "no update" to every user on that channel (issue #714, #759,
+# #810). This closes the second half of #759: PR #806 checked presence only.
 #
 # DETECTION WINDOW: out-of-band deletions (direct git push, GitHub UI edit,
 # or any path that does not go through our publish scripts) are caught within
@@ -52,6 +53,13 @@ jobs:
       # We do NOT check out gh-pages here — we fetch it separately so the
       # script is available and the gh-pages content is isolated in a temp dir.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Ed25519 verification dependency
+        # cryptography==50.0.0 is pinned by version.  --require-hashes is
+        # skipped: cryptography ships compiled binary wheels for many platforms
+        # and its transitive deps (cffi, pycparser) each need their own hashes
+        # — the hash list would be disproportionate for a single-dep CI tool.
+        run: pip install --quiet cryptography==50.0.0
 
       - name: Fetch gh-pages and assert signature invariant
         run: |

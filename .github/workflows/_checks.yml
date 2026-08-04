@@ -69,6 +69,9 @@ jobs:
       # manifest-preservation contract and only fail AFTER merge. Each test
       # exits non-zero on failure (no `|| true`), so a broken suite fails this
       # PR gate.
+      - name: Install Ed25519 verification dependency (for checker and its test suite)
+        run: pip install --quiet cryptography==50.0.0
+
       - name: Test release supply-chain tooling (SBOM / metadata / notes / pages publish)
         run: |
           python3 tools/release/test_gen_sbom.py

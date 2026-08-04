@@ -1437,10 +1437,14 @@ jobs:
             --tag "$TAG" \
             "${sig_args[@]}"
 
-      # Defence in depth (#759): assert the published gh-pages state immediately
-      # after a manifest publish, catching a missing *.json.sig synchronously
-      # within this job. The primary ongoing gate is pages-sig-gate.yml (daily
-      # schedule + workflow_dispatch — see that workflow for why no push trigger).
+      # Defence in depth (#759, #810): assert the published gh-pages state
+      # immediately after a manifest publish, catching a missing or invalid
+      # *.json.sig synchronously within this job. The primary ongoing gate is
+      # pages-sig-gate.yml (daily schedule + workflow_dispatch — see that
+      # workflow for why no push trigger).
+      - name: Install Ed25519 verification dependency
+        run: pip install --quiet cryptography==50.0.0
+
       - name: Assert gh-pages signature invariant
         run: |
           set -euo pipefail
