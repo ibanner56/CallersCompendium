@@ -4037,6 +4037,21 @@ class $CustomFieldDefsTable extends CustomFieldDefs
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _shareableMeta = const VerificationMeta(
+    'shareable',
+  );
+  @override
+  late final GeneratedColumn<bool> shareable = GeneratedColumn<bool>(
+    'shareable',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("shareable" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4046,6 +4061,7 @@ class $CustomFieldDefsTable extends CustomFieldDefs
     choicesJson,
     showInList,
     searchable,
+    shareable,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4104,6 +4120,12 @@ class $CustomFieldDefsTable extends CustomFieldDefs
         searchable.isAcceptableOrUnknown(data['searchable']!, _searchableMeta),
       );
     }
+    if (data.containsKey('shareable')) {
+      context.handle(
+        _shareableMeta,
+        shareable.isAcceptableOrUnknown(data['shareable']!, _shareableMeta),
+      );
+    }
     return context;
   }
 
@@ -4143,6 +4165,10 @@ class $CustomFieldDefsTable extends CustomFieldDefs
         DriftSqlType.bool,
         data['${effectivePrefix}searchable'],
       )!,
+      shareable: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}shareable'],
+      )!,
     );
   }
 
@@ -4166,6 +4192,13 @@ class CustomFieldDefRow extends DataClass
   final String? choicesJson;
   final bool showInList;
   final bool searchable;
+
+  /// Whether this field's values may travel in a shared archive (file export,
+  /// share sheet, future sync). Defaults to `true` — all new fields are
+  /// shareable unless the user opts out. Set to `false` to exclude the field
+  /// definition and every value for it from archive serialisation. Added in
+  /// schema v23 (issue #780).
+  final bool shareable;
   const CustomFieldDefRow({
     required this.id,
     required this.key,
@@ -4174,6 +4207,7 @@ class CustomFieldDefRow extends DataClass
     this.choicesJson,
     required this.showInList,
     required this.searchable,
+    required this.shareable,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4191,6 +4225,7 @@ class CustomFieldDefRow extends DataClass
     }
     map['show_in_list'] = Variable<bool>(showInList);
     map['searchable'] = Variable<bool>(searchable);
+    map['shareable'] = Variable<bool>(shareable);
     return map;
   }
 
@@ -4205,6 +4240,7 @@ class CustomFieldDefRow extends DataClass
           : Value(choicesJson),
       showInList: Value(showInList),
       searchable: Value(searchable),
+      shareable: Value(shareable),
     );
   }
 
@@ -4223,6 +4259,7 @@ class CustomFieldDefRow extends DataClass
       choicesJson: serializer.fromJson<String?>(json['choicesJson']),
       showInList: serializer.fromJson<bool>(json['showInList']),
       searchable: serializer.fromJson<bool>(json['searchable']),
+      shareable: serializer.fromJson<bool>(json['shareable']),
     );
   }
   @override
@@ -4238,6 +4275,7 @@ class CustomFieldDefRow extends DataClass
       'choicesJson': serializer.toJson<String?>(choicesJson),
       'showInList': serializer.toJson<bool>(showInList),
       'searchable': serializer.toJson<bool>(searchable),
+      'shareable': serializer.toJson<bool>(shareable),
     };
   }
 
@@ -4249,6 +4287,7 @@ class CustomFieldDefRow extends DataClass
     Value<String?> choicesJson = const Value.absent(),
     bool? showInList,
     bool? searchable,
+    bool? shareable,
   }) => CustomFieldDefRow(
     id: id ?? this.id,
     key: key ?? this.key,
@@ -4257,6 +4296,7 @@ class CustomFieldDefRow extends DataClass
     choicesJson: choicesJson.present ? choicesJson.value : this.choicesJson,
     showInList: showInList ?? this.showInList,
     searchable: searchable ?? this.searchable,
+    shareable: shareable ?? this.shareable,
   );
   CustomFieldDefRow copyWithCompanion(CustomFieldDefsCompanion data) {
     return CustomFieldDefRow(
@@ -4273,6 +4313,7 @@ class CustomFieldDefRow extends DataClass
       searchable: data.searchable.present
           ? data.searchable.value
           : this.searchable,
+      shareable: data.shareable.present ? data.shareable.value : this.shareable,
     );
   }
 
@@ -4285,14 +4326,23 @@ class CustomFieldDefRow extends DataClass
           ..write('type: $type, ')
           ..write('choicesJson: $choicesJson, ')
           ..write('showInList: $showInList, ')
-          ..write('searchable: $searchable')
+          ..write('searchable: $searchable, ')
+          ..write('shareable: $shareable')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, key, label, type, choicesJson, showInList, searchable);
+  int get hashCode => Object.hash(
+    id,
+    key,
+    label,
+    type,
+    choicesJson,
+    showInList,
+    searchable,
+    shareable,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4303,7 +4353,8 @@ class CustomFieldDefRow extends DataClass
           other.type == this.type &&
           other.choicesJson == this.choicesJson &&
           other.showInList == this.showInList &&
-          other.searchable == this.searchable);
+          other.searchable == this.searchable &&
+          other.shareable == this.shareable);
 }
 
 class CustomFieldDefsCompanion extends UpdateCompanion<CustomFieldDefRow> {
@@ -4314,6 +4365,7 @@ class CustomFieldDefsCompanion extends UpdateCompanion<CustomFieldDefRow> {
   final Value<String?> choicesJson;
   final Value<bool> showInList;
   final Value<bool> searchable;
+  final Value<bool> shareable;
   final Value<int> rowid;
   const CustomFieldDefsCompanion({
     this.id = const Value.absent(),
@@ -4323,6 +4375,7 @@ class CustomFieldDefsCompanion extends UpdateCompanion<CustomFieldDefRow> {
     this.choicesJson = const Value.absent(),
     this.showInList = const Value.absent(),
     this.searchable = const Value.absent(),
+    this.shareable = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CustomFieldDefsCompanion.insert({
@@ -4333,6 +4386,7 @@ class CustomFieldDefsCompanion extends UpdateCompanion<CustomFieldDefRow> {
     this.choicesJson = const Value.absent(),
     this.showInList = const Value.absent(),
     this.searchable = const Value.absent(),
+    this.shareable = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        key = Value(key),
@@ -4346,6 +4400,7 @@ class CustomFieldDefsCompanion extends UpdateCompanion<CustomFieldDefRow> {
     Expression<String>? choicesJson,
     Expression<bool>? showInList,
     Expression<bool>? searchable,
+    Expression<bool>? shareable,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -4356,6 +4411,7 @@ class CustomFieldDefsCompanion extends UpdateCompanion<CustomFieldDefRow> {
       if (choicesJson != null) 'choices_json': choicesJson,
       if (showInList != null) 'show_in_list': showInList,
       if (searchable != null) 'searchable': searchable,
+      if (shareable != null) 'shareable': shareable,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -4368,6 +4424,7 @@ class CustomFieldDefsCompanion extends UpdateCompanion<CustomFieldDefRow> {
     Value<String?>? choicesJson,
     Value<bool>? showInList,
     Value<bool>? searchable,
+    Value<bool>? shareable,
     Value<int>? rowid,
   }) {
     return CustomFieldDefsCompanion(
@@ -4378,6 +4435,7 @@ class CustomFieldDefsCompanion extends UpdateCompanion<CustomFieldDefRow> {
       choicesJson: choicesJson ?? this.choicesJson,
       showInList: showInList ?? this.showInList,
       searchable: searchable ?? this.searchable,
+      shareable: shareable ?? this.shareable,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -4408,6 +4466,9 @@ class CustomFieldDefsCompanion extends UpdateCompanion<CustomFieldDefRow> {
     if (searchable.present) {
       map['searchable'] = Variable<bool>(searchable.value);
     }
+    if (shareable.present) {
+      map['shareable'] = Variable<bool>(shareable.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -4424,6 +4485,7 @@ class CustomFieldDefsCompanion extends UpdateCompanion<CustomFieldDefRow> {
           ..write('choicesJson: $choicesJson, ')
           ..write('showInList: $showInList, ')
           ..write('searchable: $searchable, ')
+          ..write('shareable: $shareable, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -12625,6 +12687,7 @@ typedef $$CustomFieldDefsTableCreateCompanionBuilder =
       Value<String?> choicesJson,
       Value<bool> showInList,
       Value<bool> searchable,
+      Value<bool> shareable,
       Value<int> rowid,
     });
 typedef $$CustomFieldDefsTableUpdateCompanionBuilder =
@@ -12636,6 +12699,7 @@ typedef $$CustomFieldDefsTableUpdateCompanionBuilder =
       Value<String?> choicesJson,
       Value<bool> showInList,
       Value<bool> searchable,
+      Value<bool> shareable,
       Value<int> rowid,
     });
 
@@ -12719,6 +12783,11 @@ class $$CustomFieldDefsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get shareable => $composableBuilder(
+    column: $table.shareable,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> customFieldValuesRefs(
     Expression<bool> Function($$CustomFieldValuesTableFilterComposer f) f,
   ) {
@@ -12788,6 +12857,11 @@ class $$CustomFieldDefsTableOrderingComposer
     column: $table.searchable,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get shareable => $composableBuilder(
+    column: $table.shareable,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CustomFieldDefsTableAnnotationComposer
@@ -12825,6 +12899,9 @@ class $$CustomFieldDefsTableAnnotationComposer
     column: $table.searchable,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get shareable =>
+      $composableBuilder(column: $table.shareable, builder: (column) => column);
 
   Expression<T> customFieldValuesRefs<T extends Object>(
     Expression<T> Function($$CustomFieldValuesTableAnnotationComposer a) f,
@@ -12890,6 +12967,7 @@ class $$CustomFieldDefsTableTableManager
                 Value<String?> choicesJson = const Value.absent(),
                 Value<bool> showInList = const Value.absent(),
                 Value<bool> searchable = const Value.absent(),
+                Value<bool> shareable = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CustomFieldDefsCompanion(
                 id: id,
@@ -12899,6 +12977,7 @@ class $$CustomFieldDefsTableTableManager
                 choicesJson: choicesJson,
                 showInList: showInList,
                 searchable: searchable,
+                shareable: shareable,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -12910,6 +12989,7 @@ class $$CustomFieldDefsTableTableManager
                 Value<String?> choicesJson = const Value.absent(),
                 Value<bool> showInList = const Value.absent(),
                 Value<bool> searchable = const Value.absent(),
+                Value<bool> shareable = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CustomFieldDefsCompanion.insert(
                 id: id,
@@ -12919,6 +12999,7 @@ class $$CustomFieldDefsTableTableManager
                 choicesJson: choicesJson,
                 showInList: showInList,
                 searchable: searchable,
+                shareable: shareable,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

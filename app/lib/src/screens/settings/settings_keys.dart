@@ -67,3 +67,11 @@ const String kVenueEntityModeKey = 'venue_entity_mode';
 /// free-text field (routed through the shared core parser) instead of a blank
 /// structured draft; editing an existing figure always stays structured.
 const String kFreeTextEntryKey = 'free_text_entry';
+
+/// Idempotency latch for the one-time disclosure shown when a user creates
+/// their first custom field, informing them that custom field values travel
+/// with the collection in exports and shares (issue #780). Presence of the key
+/// (see [SettingsRepository.contains]) is the latch — set once, on the first
+/// successful field save, and never consulted for its value.
+const String kCustomFieldSharingDisclosureKey =
+    'custom_fields.sharing.disclosed';

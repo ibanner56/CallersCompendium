@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/custom_fields_screen.dart';
+import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
@@ -50,7 +51,8 @@ Future<void> _openEditForm(WidgetTester tester, String label) async {
 }
 
 /// Fills the create/edit form and taps Save. Returns after the bottom sheet
-/// closes.
+/// closes (and, for a new field's first save, after the one-time sharing
+/// disclosure dialog is dismissed — #780).
 Future<void> _fillAndSave(
   WidgetTester tester, {
   required String label,
@@ -81,6 +83,13 @@ Future<void> _fillAndSave(
   }
   await tester.tap(find.byKey(const ValueKey('cf-form-save')));
   await tester.pumpAndSettle();
+  // Dismiss the one-time sharing disclosure if it appeared (first new field
+  // creation only). Tests that specifically want to observe the dialog should
+  // skip this helper and drive the dialog themselves.
+  if (tester.any(find.byKey(const ValueKey('sharing-disclosure-ok')))) {
+    await tester.tap(find.byKey(const ValueKey('sharing-disclosure-ok')));
+    await tester.pumpAndSettle();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -536,5 +545,110 @@ void main() {
         expect(find.textContaining('1 dances'), findsNothing);
       },
     );
+
+    // ---- shareable flag & disclosure (#780) ----
+
+    testWidgets(
+      'one-time sharing disclosure appears on first new field, not on second',
+      (tester) async {
+        final repos = openTestRepositories();
+        await _pumpScreen(tester, repos);
+
+        // First creation: disclosure must appear.
+        await _openNewForm(tester);
+        await tester.enterText(find.byKey(const ValueKey('cf-label')), 'Alpha');
+        await tester.enterText(find.byKey(const ValueKey('cf-key')), 'alpha');
+        await tester.tap(find.byKey(const ValueKey('cf-form-save')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('sharing-disclosure-ok')),
+          findsOneWidget,
+          reason: 'disclosure must appear on first custom field creation',
+        );
+        // Latch must be set before the dialog is awaited (not after).
+        expect(
+          await repos.settings.contains(kCustomFieldSharingDisclosureKey),
+          isTrue,
+          reason: 'latch must be set before the dialog is shown',
+        );
+        await tester.tap(find.byKey(const ValueKey('sharing-disclosure-ok')));
+        await tester.pumpAndSettle();
+
+        // Second creation: disclosure must NOT appear again.
+        await _openNewForm(tester);
+        await tester.enterText(find.byKey(const ValueKey('cf-label')), 'Beta');
+        await tester.enterText(find.byKey(const ValueKey('cf-key')), 'beta');
+        await tester.tap(find.byKey(const ValueKey('cf-form-save')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('sharing-disclosure-ok')),
+          findsNothing,
+          reason: 'disclosure must not appear a second time (latch is set)',
+        );
+      },
+    );
+
+    testWidgets('shareable toggle defaults to on for new fields', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpScreen(tester, repos);
+      await _openNewForm(tester);
+      final toggle = tester.widget<SwitchListTile>(
+        find.byKey(const ValueKey('cf-shareable')),
+      );
+      expect(
+        toggle.value,
+        isTrue,
+        reason: 'new fields must default to shareable=true',
+      );
+    });
+
+    testWidgets(
+      'toggling shareable off persists shareable=false to the repository',
+      (tester) async {
+        final repos = openTestRepositories();
+        await _pumpScreen(tester, repos);
+        await _openNewForm(tester);
+        await tester.tap(find.byKey(const ValueKey('cf-shareable')));
+        await tester.pumpAndSettle();
+        await _fillAndSave(tester, label: 'Private', key: 'private');
+        final saved = await repos.customFieldDefs.listAll();
+        expect(saved, hasLength(1));
+        expect(
+          saved.first.shareable,
+          isFalse,
+          reason:
+              'field saved after toggling shareable off must have shareable=false',
+        );
+      },
+    );
+
+    testWidgets('editing an existing field preserves its shareable flag', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'secret',
+          label: 'Secret',
+          type: CustomFieldType.text,
+          shareable: false,
+        ),
+      );
+      await _pumpScreen(tester, repos);
+      await _openEditForm(tester, 'Secret');
+      // shareable toggle must reflect the stored value (false).
+      final toggle = tester.widget<SwitchListTile>(
+        find.byKey(const ValueKey('cf-shareable')),
+      );
+      expect(toggle.value, isFalse);
+      // Save without changing anything.
+      await tester.tap(find.byKey(const ValueKey('cf-form-save')));
+      await tester.pumpAndSettle();
+      final saved = await repos.customFieldDefs.listAll();
+      expect(saved.single.shareable, isFalse);
+    });
   });
 }

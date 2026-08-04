@@ -226,6 +226,13 @@ class CustomFieldDefs extends Table {
   BoolColumn get showInList => boolean().withDefault(const Constant(false))();
   BoolColumn get searchable => boolean().withDefault(const Constant(true))();
 
+  /// Whether this field's values may travel in a shared archive (file export,
+  /// share sheet, future sync). Defaults to `true` — all new fields are
+  /// shareable unless the user opts out. Set to `false` to exclude the field
+  /// definition and every value for it from archive serialisation. Added in
+  /// schema v23 (issue #780).
+  BoolColumn get shareable => boolean().withDefault(const Constant(true))();
+
   @override
   Set<Column> get primaryKey => {id};
 }

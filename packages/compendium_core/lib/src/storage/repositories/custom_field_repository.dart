@@ -29,6 +29,7 @@ class CustomFieldDefRepository {
           ),
           showInList: Value(def.showInList),
           searchable: Value(def.searchable),
+          shareable: Value(def.shareable),
         ),
       );
 
@@ -126,6 +127,7 @@ class CustomFieldDefRepository {
         choices: choices,
         showInList: row.showInList,
         searchable: row.searchable,
+        shareable: row.shareable,
       );
     } on ArgumentError {
       // E.g. a `choice` field whose decoded list came back empty — the
