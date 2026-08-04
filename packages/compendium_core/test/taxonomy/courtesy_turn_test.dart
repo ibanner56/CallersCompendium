@@ -45,7 +45,7 @@ void main() {
       // and they are worth telling apart: either a taxonomy change quietly
       // started owing a migration (the hazard this test exists for), or an
       // unrelated schema change landed and this number simply needs updating.
-      expect(kCompendiumSchemaVersion, 22);
+      expect(kCompendiumSchemaVersion, 23);
     });
 
     test('registers with the maintainer-ruled param set', () {

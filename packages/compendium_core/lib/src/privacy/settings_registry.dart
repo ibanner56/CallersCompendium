@@ -116,6 +116,9 @@ final Map<String, DataClassification> settingsClassifications = {
   'window_frame': _installState,
   'last_backup_at': _installState,
   'seed.initialCollection.completed': _installState,
+  // Records that the one-time custom-field sharing disclosure was shown on
+  // this device. A boolean latch; contains no personal data.
+  'custom_fields.sharing.disclosed': _installState,
   'update_auto_check': _installState,
   'update_beta_channel': _installState,
   'update_dismissed_version': _installState,

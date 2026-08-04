@@ -1745,7 +1745,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 22);
+      expect(db.schemaVersion, 23);
 
       await db.close();
     });
@@ -1851,7 +1851,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 22);
+      expect(db.schemaVersion, 23);
 
       await db.close();
     });
@@ -1973,7 +1973,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').get();
       expect(version.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 22);
+      expect(db.schemaVersion, 23);
 
       await db.close();
     });
@@ -2863,7 +2863,7 @@ void main() {
           await repos.ensureMigrated();
 
           final version = await db.customSelect('PRAGMA user_version').get();
-          expect(version.single.data.values.first, 22, reason: 'from v$from');
+          expect(version.single.data.values.first, 23, reason: 'from v$from');
 
           final figures = (await repos.dances.getById('dance-1'))!.figures;
           // Both legacy shapes landed on the merged move, with the TCB subject
