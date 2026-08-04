@@ -200,17 +200,52 @@ hold one person under two UUIDs. Inserting the second violates the constraint an
 fails the whole apply transaction, so applying a record of those kinds
 reconciles:
 
-1. **UUID known locally** → update, last-writer-wins on `updatedAt`.
+1. **UUID known locally** → update, last-writer-wins on `updatedAt` — unless the
+   update would move the natural key onto a name another local row already holds,
+   which collides exactly as an insert does and reconciles instead. A plain LWW
+   update there would violate `UNIQUE`, fail the transaction, and fail every
+   retry identically, deadlocking that device pair until a human renamed one side.
 2. **UUID unknown, natural key matches an existing local row** → the same entity,
-   created independently on both devices. Adopt one UUID, rewrite local
-   references to it, drop the other. One-time; the two devices agree from then on.
+   created independently on both devices. Reconcile to one UUID, remap every
+   reference, drop the loser. One-time; the two devices agree from then on.
 3. **Neither** → insert.
+
+**The survivor is the lexicographically smaller UUID** — one canonical rule, used
+by every "which record survives" decision in the design, including the
+fresh-attach dance merge. The rule has to be symmetric or the design does not
+converge at all: the obvious implementation, "keep my local row and map the
+incoming id onto it", has each device keep its own id, advertise it to a peer
+that has already discarded it, and reconcile the same pair forever without either
+side able to detect the standoff.
+
+Identity and content are decided **separately**: identity by the tie-break,
+content by last-writer-wins on `updatedAt`. Deciding identity by `updatedAt`
+would be unstable, since the survivor could change on a later pass; deciding
+content by the tie-break would let a stale duplicate clobber a just-edited
+record, which is the exact defect the merge rule exists to prevent.
+
+Because a dance's authorship and tags are **derived from join rows** rather than
+stored on the dance, remapping a reference changes what the dance publishes
+without moving its `updated_at` — so reconciliation must bump the referencing
+record's timestamp and re-upload it. This is a specific case of an invariant the
+design now states normatively: *any operation that changes a record's serialised
+content must advance its `updatedAt`.* Two separate mechanisms have broken it, so
+it is written down rather than left to be rediscovered.
 
 Reconciliation is **silent**. No prompt, no review queue: at beta scale the
 collision is common (any two devices that both typed "Cary Ravitz") and a prompt
-per entity would be noise. The cost is that the losing row's field values are
-discarded rather than merged — a clobber — which is disclosed to users rather
-than surfaced per event.
+per entity would be noise. Silence is defensible here because **the schema
+already makes the same assumption**: `choreographers.name` is `UNIQUE`, so a
+single device cannot hold two same-named choreographers today. Sync applies that
+existing approximation across devices rather than introducing a new one. Two
+genuinely different people sharing a name do merge, and that is named as a known
+failure mode rather than fixed.
+
+**Custom-field definitions are the exception.** Merging two defs that share a key
+but differ in `type` repoints values at a decoder that will throw when the dance
+is next loaded — a crash on read, far from the sync that caused it. Those
+reconcile only when the type matches; otherwise the incoming def is kept under a
+suffixed key, losing nothing.
 
 `venues` and `published_sources` have **no** `UNIQUE` natural key —
 `venues.name` and `published_sources.title` are plain `text()`, unlike the three
@@ -258,10 +293,14 @@ content diverges to review.
 That leaves the review queue holding only real divergence, which is the small
 set a human can actually adjudicate.
 
-On a silent merge the surviving record keeps one identity, and the id-collection
-fields the equality test ignores — tags, custom fields, links, citations — are
-**unioned** rather than taken from a winner, since they are additive by nature
-and neither side is more correct.
+On a silent merge the survivor is chosen by the same canonical tie-break — the
+lexicographically smaller UUID — so both devices agree without coordinating, and
+the id-collection fields the equality test ignores — tags, custom fields, links,
+citations — are **unioned** rather than taken from a winner, since they are
+additive by nature and neither side is more correct. Local `program_slots`
+pointing at the losing duplicate are rewired to the survivor; the column is
+`onDelete: setNull`, so leaving them would silently strip a caller's program of a
+dance that still exists.
 
 `_choreographyEquals` is currently private to `ImportPipeline`; exposing it (or
 lifting it somewhere shared) is an implementation detail for the sync issue, but
@@ -551,6 +590,19 @@ makes self-hosting materially harder, which constraint 4 forbids.
   for real, and every real change overwrites a migration stamp with a meaningful
   one. The gap between releases is what fixes it, so earlier is strictly
   better.
+
+  **It is also not a mechanical conversion**, which an earlier draft implied by
+  naming `DanceRepository` as the pattern to copy. Dances are the *parent* in
+  these cascades and the five converting kinds are on the other side of them, so
+  each needs its own decision. Two consequences are load-bearing: soft-deleting a
+  tag no longer fires the FK cascade that cleared `dance_tags`, so every read
+  joining through to a soft-deletable parent must filter on `deleted_at` or a
+  deleted tag stays silently attached to every dance; and the existing referential
+  guards, which refuse to delete a still-credited choreographer, are **kept**
+  rather than relaxed — a tombstone applies only where the entity is unreferenced,
+  and a device that still cites it keeps it live and republishes. That mirrors the
+  rule already in `_garbageCollectOrphanedRefs` and means no dance is ever left
+  crediting a tombstone, so no UI treatment is needed for one.
 - **Applying an inbound record must not erase what it omits.** A blob correctly
   omits `deviceLocal` fields — and the repositories' `upsert` methods write
   *every* column, which is right for a local restore and destructive here. A
@@ -571,13 +623,28 @@ makes self-hosting materially harder, which constraint 4 forbids.
   authorises `DELETE /v1/store`. This is inherent to the bearer model rather than
   an oversight, and it is stated here as explicitly as the read-access case
   because the write-access case is the one that destroys data.
-- **Collision reconciliation clobbers silently.** When two devices independently
-  created the same choreographer, tag or custom-field definition, applying the
-  peer's copy adopts one UUID and discards the other row's field values rather
-  than merging them. Chosen deliberately for beta: the collision is common and a
-  prompt per entity would be noise. It is disclosed to users as a general
-  behaviour rather than surfaced per event, and it means a locally-entered
-  website or note on the losing row can vanish without a prompt.
+- **Collision reconciliation merges silently, and one class of field is
+  destroyed.** When two devices independently created the same choreographer, tag
+  or custom-field definition, applying the peer's copy keeps one UUID and drops
+  the other row. Chosen deliberately for beta: the collision is common and a
+  prompt per entity would be noise.
+
+  The `shareable` fields on the losing row — `name`, `website`, `notes` — are
+  clobbered but not lost, because they travel: a copy survives on the peer that
+  published them. The **irrecoverable** fields are the `deviceLocal` ones —
+  `choreographers.email`, `choreographers.location` and `deceased`. Those are
+  never serialised, so no copy exists on any peer or on the server, and dropping
+  the row holding them destroys them outright. That is third-party contact data,
+  the precise category this whole feature exists to protect, so reconciliation
+  **coalesces the loser's `deviceLocal` fields onto the survivor** before
+  dropping it rather than accepting the loss.
+
+  This was stated backwards in an earlier draft, which named `website` and
+  `notes` as the vanishing data — the two fields that are in fact recoverable —
+  and omitted the three that are not. The correction matters beyond accuracy: a
+  symmetric tie-break means the incoming UUID wins about half the time, and those
+  are exactly the passes in which the row holding the local contact data is the
+  one dropped.
 - **Venues and published sources can duplicate.** Neither has a `UNIQUE` natural
   key, so there is nothing to reconcile against: the same hall created on two
   devices arrives twice. Deduplicating them would need the fuzzy matching the
@@ -658,8 +725,12 @@ link to it. Both files must be amended together, with the effective date bumped,
 - **A pure-Dart or well-maintained cross-platform sync primitive appears** that
   would let us delete our own merge implementation.
 - **Silent collision reconciliation loses work people notice.** If beta users
-  report a choreographer's website or notes vanishing after pairing, the clobber
-  is too aggressive and reconciliation needs to merge fields, or ask.
+  report a choreographer's `shareable` fields — website, notes — being replaced
+  by a peer's version after pairing, the clobber is too aggressive and
+  reconciliation needs to merge fields, or ask. A report of a *`deviceLocal`*
+  field vanishing (email, location) is a stronger signal: those are coalesced
+  rather than clobbered, so losing one means the coalesce is broken, not merely
+  aggressive.
 - **Venue and published-source duplication becomes a nuisance** rather than a
   curiosity, justifying fuzzy dedupe for the two kinds with no natural key.
 - **Silent merge is observed collapsing dances users considered distinct** — for

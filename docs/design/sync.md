@@ -44,7 +44,7 @@ A field with no classification cannot exist — the coverage ratchet fails CI �
 current record is in that position; venues are the closest, and their identity
 fields are `shareable`.
 
-### Record kinds, and what rides inline
+### Record kinds
 
 Eight kinds produce blobs:
 
@@ -70,16 +70,132 @@ Three kinds carry `UNIQUE` natural keys — `choreographers.name`, `tags.name`,
 hold one entity under two UUIDs. Inserting the second violates the constraint and
 fails the entire apply transaction. Applying a record of those kinds therefore:
 
-1. **UUID known locally** → update, last-writer-wins on `updatedAt`.
+1. **UUID known locally** → update, last-writer-wins on `updatedAt`. If the
+   update would move the record's natural key onto a name another local row
+   already holds, it collides exactly as an insert would — route it through
+   step 2 rather than letting the transaction fail (see *Renames collide too*).
 2. **UUID unknown, natural key matches a local row** → same entity, created
-   independently. Adopt one UUID, rewrite local references (`dance_authors`,
-   `dance_tags`, `custom_field_values`), drop the other row. One-time.
+   independently. Reconcile: pick the survivor by the canonical tie-break, merge
+   field values by recency, coalesce `deviceLocal` fields, remap every reference,
+   drop the loser.
 3. **Neither** → insert.
 
 Step 2 is **silent** — no prompt, no review queue. At beta scale the collision is
-routine and per-entity prompts would be noise. The cost is that the losing row's
-field values are discarded rather than merged; that is disclosed to users as a
-general behaviour, not surfaced per event.
+routine and per-entity prompts would be noise.
+
+#### The canonical tie-break
+
+**The lexicographically smaller UUID always wins.** One rule, used by every
+"which record survives" decision in this design — entity reconciliation here and
+the fresh-attach dance merge alike.
+
+The rule has to be *symmetric*: both devices must independently compute the same
+survivor from the same pair. The natural implementation — "keep my local row, map
+the incoming id onto it" — is not, and does not converge. A keeps X and maps
+Y→X; B keeps Y and maps X→Y; neither manifest ever advertises the id the other
+kept, so neither side can even detect the standoff, and the pair reconciles
+forever. A third device attaching later picks a third outcome. Comparing UUIDs
+costs nothing, needs no extra state, and gives every device the same answer.
+
+Identity and content are chosen by **separate rules**, and both are needed:
+
+| Decision | Rule |
+| --- | --- |
+| Which UUID survives | Lexicographically smaller — never `updatedAt` |
+| Which field values survive | Last-writer-wins on `updatedAt` |
+| Which `deviceLocal` values survive | Coalesce — see below |
+
+Choosing *identity* by `updatedAt` would be unstable: `updatedAt` moves, so the
+survivor could change on a later pass and the remap would never settle. Choosing
+*content* by the tie-break rather than by recency would reintroduce the exact
+defect the merge table exists to prevent — an older duplicate silently clobbering
+a just-edited record. Device A edits a choreographer's `website` at 17:00; stale
+device B holds an independently created row with the same name and a far older
+`updatedAt`. That pair is handled **here, not by the merge table**, so the
+recency rule has to be restated on this path or it does not apply at all.
+
+#### `deviceLocal` fields must be coalesced, not dropped
+
+`choreographers.email`, `choreographers.location` and `choreographers.deceased`
+are `deviceLocal`. They are **never serialised**, so the peer's blob cannot carry
+them and no copy exists anywhere else — not on the peer, not on the server.
+Dropping the losing row destroys them outright.
+
+This is not a corner case once the tie-break lands: a symmetric rule means the
+incoming UUID wins about half the time, and those are exactly the cases where the
+row holding the local `deviceLocal` values is the one dropped.
+
+So **copy the loser's non-null `deviceLocal` fields onto the survivor before
+dropping it**, preferring the survivor's value where both are non-null. The
+values stay on the device that already held them; nothing new travels.
+
+#### The remap is global, and durable
+
+Reconciliation produces an **id remap** (`losing UUID → surviving UUID`) that
+must be applied to more than the local join rows:
+
+- **Local references** — `dance_authors`, `dance_tags`, `custom_field_values`,
+  `dance_sources`.
+- **Every inbound record in the same batch.** The peer's dances and programs
+  reference the reconciled entity by whichever UUID *it* used, which is the
+  losing one whenever the local id wins. Applying them unremapped writes a
+  dangling `choreographer_id` — and `dance_authors` → `choreographers` is a hard
+  FK with `onDelete: cascade`, so under `defer_foreign_keys` the violation
+  surfaces at COMMIT, outside any per-record guard, **discarding the entire
+  batch**.
+
+The remap is **persisted** in an `id_aliases` table (`losing_id`,
+`surviving_id`, `kind`), not re-derived each pass. Without it, a later blob still
+referencing the losing id — from a device that has not yet reconciled, or from an
+older manifest — reads as an unknown UUID and re-inserts the row the previous
+pass just removed.
+
+#### Rewriting a reference must advance `updatedAt`
+
+A dance's `authorIds`, `tagIds` and `customFields` are **not columns on
+`dances`**; they are hydrated from the join tables on read
+(`dance_repository.dart:511-522`). Rewriting `dance_authors` therefore changes
+the dance's serialised content while `dances.updated_at` stands still.
+
+At equal `updatedAt` a peer **discards** the rewritten dance, and the two devices
+stay diverged with no discriminator left to move. So **any reconciliation that
+rewrites a referencing row must bump that record's `updated_at` and re-upload its
+blob** — the general rule stated under *Content changes must move the
+discriminator*, applied here.
+
+#### Renames collide too
+
+The constraint risk is not only an insert problem. A and B have both synced
+choreographer X ("Bob Jones"); B separately holds Y ("Bob Smith" — a different
+person). A renames X → "Bob Smith". On B this is step 1, because the UUID *is*
+known, so a naive LWW update writes a name Y already holds and violates `UNIQUE`.
+
+The apply transaction fails, and *Failure and offline* covers network and HTTP
+faults only — so a retry fails identically forever and the device pair deadlocks
+until a human renames one side. Step 1 must therefore test the incoming natural
+key against other local rows and reconcile on collision rather than update.
+
+#### Natural-key equality is an approximation, and it is the app's own
+
+Reconciliation treats an equal natural key as an equal entity, so two different
+real people named "Bob Smith" merge silently with no review path.
+
+This is accepted because **it is the assumption the schema already makes**:
+`choreographers.name` is `UNIQUE` (`tables.dart:83`), so one device cannot hold
+two same-named choreographers today. Sync is not introducing the approximation,
+only applying it across devices, and a review queue here would contradict what
+the app already enforces locally. The failure mode is named rather than fixed.
+
+**Custom-field definitions are the exception**, because merging them corrupts
+data rather than merely conflating it. `decodeCustomFieldValue` does
+`value = valueNum!` for a `number` field (`custom_field_repository.dart:176`), so
+repointing a value stored as `valueText` at a def of type `number` throws **when
+the dance is loaded** — a crash on read, far from the sync that caused it.
+
+Defs therefore reconcile **only when `type` matches**. On a type mismatch the
+incoming def is kept under a suffixed key (`skill_level` → `skill_level_2`) with
+its values intact: nothing is lost, nothing crashes, and the duplicate is visible
+enough that the user can merge the two by hand.
 
 `venues` and `published_sources` have **no** `UNIQUE` natural key, so their UUIDs
 cannot collide destructively. They insert without reconciliation, and the same
@@ -251,10 +367,53 @@ it is six tables and eleven columns:
 | `venues` | `updated_at`, `deleted_at` |
 
 Plus **six `_db.delete(` call sites** converted from hard to soft delete across
-five repositories, with `DanceRepository` as the pattern to copy — it already
-carries `deletedAt`, filtered reads, restore and `purgeDeleted`.
+five repositories.
 
 `Dances` and `Programs` already have both columns and need no change.
+
+##### `DanceRepository` is not the pattern to copy
+
+An earlier draft said to copy `DanceRepository`. That is wrong, and the
+difference is not cosmetic: dances are the **parent** in every one of these
+cascades, and the five kinds converting here are on the other side of them. Each
+needs a per-kind decision, and two of them carry an app-behaviour regression if
+converted naively.
+
+**`TagRepository.delete` relies on the FK cascade** to clear `dance_tags` — its
+own comment says so (`tag_repository.dart:36`). A soft delete is an `UPDATE`, so
+**the cascade never fires**: the join rows survive, and because `dance_tags`
+gains no `deleted_at` in v22, nothing filters them. The tag would vanish from the
+tag manager while staying silently attached to every dance. The same applies to
+`custom_field_values` and `dance_sources`.
+
+> **Every read that joins through to a soft-deletable parent must filter
+> `parent.deleted_at IS NULL`.** This is a change to existing query paths, not
+> only to the sync code, and it is the part of v22 most likely to be missed —
+> the migration passes, the tests pass, and the defect only shows on a screen.
+
+**Deletes that are referential guards must keep guarding.**
+`ChoreographerRepository.delete` throws while the entity is still credited
+(`choreographer_repository.dart:48-58`); `VenueRepository` and
+`PublishedSourceRepository` mirror it. Tombstone propagation appears to require
+relaxing them — but relaxing them means a dance can credit a tombstoned
+choreographer, with no defined UI treatment.
+
+Instead, **the referential guard wins, per device.** A tombstone applies only
+where the entity is unreferenced; a device that still credits it keeps its copy
+live and re-publishes it, so the entity survives as long as any device still
+cites it. This mirrors the rule the codebase already applies in
+`_garbageCollectOrphanedRefs` — a row is kept if any surviving dance still cites
+it — and it means no dangling credit is ever created, so no UI treatment is
+needed for one.
+
+**A purge must not cascade off live records.** `DanceRepository.purgeDeleted`
+guards its hard delete with `_cleanupDanglingReferences` and a GC that never
+weakens the delete-guards. A choreographer or tag purged by its own repository
+has no such guard, and the hard delete would cascade `dance_authors` /
+`dance_tags` / `dance_sources` / `custom_field_values` off **live** dances
+(`tables.dart:108, 255, 302, 230`) — silent loss of authorship, tags, citations
+and custom values. Every purge added here must refuse to hard-delete an entity
+still referenced by a live record.
 
 #### Land the migration first, before any other sync work
 
@@ -472,9 +631,21 @@ confident even when choreography differs, which is right for re-importing a
 source record and wrong here — that case is a dance edited differently on each
 device, and merging it silently would discard one side.
 
-On silent merge the surviving record keeps one id; the id-collections
+On silent merge the surviving record is chosen by the **canonical tie-break** —
+the lexicographically smaller UUID, the same rule entity reconciliation uses, so
+both devices independently pick the same survivor. The id-collections
 `_choreographyEquals` ignores — tags, custom fields, links, citations — are
 **unioned**, since they are additive and neither side is more correct.
+
+**`program_slots.dance_id` must be rewired to the survivor.** It is
+`onDelete: KeyAction.setNull` (`tables.dart:193`), so removing the losing
+duplicate silently nulls every local program slot pointing at it: a caller's
+program loses its link to a dance that still exists under the surviving id, with
+no error and no prompt. This is the common case rather than an exotic one —
+import the same source on two devices, build programs on both, then pair. The
+merge therefore rewires `program_slots.dance_id` exactly as the entity path
+rewires its join rows, and bumps the affected programs' `updated_at` per
+*Content changes must move the discriminator*.
 
 The user is told the count afterwards ("merged 412 duplicates"), not asked.
 
@@ -510,6 +681,29 @@ The user is told the count afterwards ("merged 412 duplicates"), not asked.
    `settings`, gain it in schema v22. A kind without a modification timestamp
    cannot participate in this rule at all, which is why v22 is a prerequisite
    rather than a convenience.
+
+#### Content changes must move the discriminator
+
+Because the download gate is `remote.updatedAt > local.updatedAt`, the whole
+merge rests on one invariant:
+
+> **Any operation that changes a record's serialised content must also advance
+> its `updatedAt`.**
+
+An operation that violates it produces a record whose hash differs from its
+peers' while the discriminator says nothing changed — so peers discard the new
+content, the divergence is permanent, and no later pass can repair it because
+there is nothing left to compare.
+
+This is stated normatively because the design has already broken it twice, by two
+unrelated mechanisms: once through an inline-entity model where renaming a nested
+entity moved the parent's hash but not its timestamp, and once through
+reconciliation rewriting join rows that a dance's `authorIds` are derived from.
+Neither was obvious from the mechanism itself. **Any new write path must be
+checked against this invariant before it ships**, and the derived-content case is
+the one to check hardest: a record's serialised form includes fields hydrated
+from other tables, so a write that never touches the record's own row can still
+change what it publishes.
 
 5. `POST /v1/blobs/missing` with the hashes to upload; `PUT` only what is
    missing.
@@ -611,10 +805,18 @@ hard foreign key to `choreographers` with `onDelete: cascade`, and violations
 under `defer_foreign_keys` surface at COMMIT — outside any per-record guard —
 discarding the entire batch.
 
-Apply therefore proceeds in dependency order within the transaction: inline
-entities are resolved or created first (by natural key), then the records that
-reference them, then join rows. A record whose reference cannot be resolved is
-skipped and reported, never applied with a dangling id.
+Apply therefore proceeds in dependency order within the transaction:
+
+1. **Reconcile `UNIQUE`-key collisions first**, building the global id remap
+   described under *The remap is global, and durable*.
+2. **Apply the remap to every inbound record in the batch**, so no record is
+   inserted holding a reference to a UUID that reconciliation just retired.
+3. **Apply parent records by UUID** — entities before the dances and programs
+   that cite them.
+4. **Apply join rows last.**
+
+A record whose reference cannot be resolved is skipped and reported, never
+applied with a dangling id.
 
 ### Failure and offline
 
@@ -987,6 +1189,48 @@ must say this plainly rather than implying sync is opaque to us.
 - **Collision reconciliation** — two devices create the same choreographer name
   under different UUIDs; after sync there is one row, references are rewritten,
   and no `UNIQUE` violation aborts the batch.
+- **Reconciliation converges from both sides.** Run reconciliation on device A
+  *and* on device B from the same pair and assert they select the **same
+  survivor**. Mutation-proved by replacing the tie-break with "keep the local
+  row" — the naive implementation — and watching both devices keep their own id.
+  This is the guard that would have caught R3-1; a one-sided test passes happily
+  against the non-convergent implementation.
+- **Inbound references to the losing UUID are remapped** — apply a batch
+  containing a dance whose `authorIds` cite the *losing* choreographer id, in
+  both tie-break directions. Assert the batch commits and the credit survives.
+  Without the global remap this fails at COMMIT and discards everything.
+- **Reconciliation preserves `deviceLocal` fields** — the losing row carries
+  `email` and `location`; assert both are present on the survivor afterwards.
+  Run it in the direction where the **incoming** UUID wins, which is the
+  direction that destroys them if the coalesce is missing.
+- **Reconciliation respects recency** — a stale peer's independently created
+  duplicate must not overwrite a just-edited local `website`. This is the merge
+  table's rule applied on the reconciliation path, and it needs its own test
+  because the merge table never sees this pair.
+- **Rewriting a reference advances `updatedAt`** — after reconciliation rewrites
+  `dance_authors`, assert the affected dance's `updated_at` moved and its blob
+  was re-uploaded. Mutation-proved by removing the bump: a peer at equal
+  `updatedAt` then discards the rewritten dance.
+- **Rename into an existing name** — device A renames a synced choreographer onto
+  a name device B already holds under a different UUID. Assert B reconciles
+  rather than throwing, and that a retry is never needed. Guards the deadlock.
+- **Custom-field type mismatch does not crash on read** — same key, `text` on one
+  device and `number` on the other; assert both defs survive with the incoming
+  one suffixed, and that loading every affected dance succeeds. Mutation-proved
+  by reconciling them anyway and watching `decodeCustomFieldValue` throw.
+- **Dance merge rewires `program_slots`** — build a program on the device whose
+  duplicate loses the merge; assert the slot points at the survivor rather than
+  `NULL`.
+- **Soft delete does not leave live join rows** — soft-delete a tag, then assert
+  it no longer appears on any dance. Mutation-proved by omitting the
+  `deleted_at IS NULL` filter on the join read, which is the regression the
+  cascade previously prevented.
+- **A referenced entity cannot be tombstoned away** — a device still crediting a
+  choreographer keeps it live and re-publishes; assert no dance is left citing a
+  tombstone.
+- **Purge refuses to cascade off live records** — purge a tombstoned
+  choreographer still credited by a live dance; assert the purge declines and the
+  authorship survives.
 - **Identity survives a rename** — renaming a choreographer on one device
   propagates as a field change rather than creating a second entity.
 - **Tombstone purge versus resurrection** — delete, purge the tombstone, reattach
