@@ -201,22 +201,29 @@ fails the whole apply transaction, so applying a record of those kinds
 reconciles:
 
 1. **UUID known locally** → update, last-writer-wins on `updatedAt` — unless the
-   update would move the natural key onto a name another local row already holds,
-   which collides exactly as an insert does and reconciles instead. A plain LWW
-   update there would violate `UNIQUE`, fail the transaction, and fail every
-   retry identically, deadlocking that device pair until a human renamed one side.
+   update would move the natural key onto a name another local row already holds.
+   That collides exactly as an insert does, and a plain LWW update would violate
+   `UNIQUE`, fail the transaction, and fail every retry identically, deadlocking
+   that device pair until a human renamed one side. It is **not** merged
+   silently: two pre-existing local rows are involved, they may be two different
+   people, and it goes to the review queue.
 2. **UUID unknown, natural key matches an existing local row** → the same entity,
-   created independently on both devices. Reconcile to one UUID, remap every
-   reference, drop the loser. One-time; the two devices agree from then on.
+   created independently on both devices. Reconcile silently to one UUID, remap
+   every reference, drop the loser. One-time; the two devices agree from then on.
 3. **Neither** → insert.
 
 **The survivor is the lexicographically smaller UUID** — one canonical rule, used
 by every "which record survives" decision in the design, including the
-fresh-attach dance merge. The rule has to be symmetric or the design does not
-converge at all: the obvious implementation, "keep my local row and map the
-incoming id onto it", has each device keep its own id, advertise it to a peer
-that has already discarded it, and reconcile the same pair forever without either
-side able to detect the standoff.
+fresh-attach dance merge. This generalises to a rule the design now states
+normatively: **any rule deciding which of two records survives must be a pure
+symmetric function of the two, never a function of "local" versus "incoming".**
+A device-relative rule does not converge — each device keeps its own, advertises
+it to a peer that has already discarded it, and reconciles the same pair forever
+without either side able to detect the standoff. That mistake has been made three
+times in this design's history, most recently in the same revision that fixed the
+previous two, so it is written down rather than left to judgement. It also fixes
+a test shape: every convergence test runs from both sides, because a one-sided
+test passes against a non-convergent rule.
 
 Identity and content are decided **separately**: identity by the tie-break,
 content by last-writer-wins on `updatedAt`. Deciding identity by `updatedAt`
@@ -244,8 +251,10 @@ failure mode rather than fixed.
 **Custom-field definitions are the exception.** Merging two defs that share a key
 but differ in `type` repoints values at a decoder that will throw when the dance
 is next loaded — a crash on read, far from the sync that caused it. Those
-reconcile only when the type matches; otherwise the incoming def is kept under a
-suffixed key, losing nothing.
+reconcile only when the type matches; otherwise both survive, and the tie-break —
+not "incoming" — decides which keeps the bare key, with the other renamed using a
+suffix derived from the losing UUID so that both devices compute the same result
+and a mint can never collide with an existing key.
 
 `venues` and `published_sources` have **no** `UNIQUE` natural key —
 `venues.name` and `published_sources.title` are plain `text()`, unlike the three
@@ -579,7 +588,7 @@ makes self-hosting materially harder, which constraint 4 forbids.
   gains `updated_at` **and `deleted_at`**, and the five kinds that lack them —
   choreographers, tags, published sources, custom-field defs, venues — gain both,
   with their repositories converted from hard delete to soft. That is six tables
-  and eleven columns, plus six `_db.delete(` call sites, not one column. It
+  and twelve columns, plus six `_db.delete(` call sites, not one column. It
   remains the programme's only schema change, and isolating it still leaves the
   rest as feature work with no migration risk; it is defensible on its own terms, so
   nothing is wasted if the programme stalls; and — the real reason — it defuses
@@ -599,10 +608,17 @@ makes self-hosting materially harder, which constraint 4 forbids.
   joining through to a soft-deletable parent must filter on `deleted_at` or a
   deleted tag stays silently attached to every dance; and the existing referential
   guards, which refuse to delete a still-credited choreographer, are **kept**
-  rather than relaxed — a tombstone applies only where the entity is unreferenced,
-  and a device that still cites it keeps it live and republishes. That mirrors the
-  rule already in `_garbageCollectOrphanedRefs` and means no dance is ever left
-  crediting a tombstone, so no UI treatment is needed for one.
+  rather than relaxed — a tombstone applies at once where the entity is
+  unreferenced, and where it is still cited the receiving device holds the
+  deletion **pending**, keeping the row live locally without republishing it,
+  and applies it when the last citation goes.
+
+  The obvious alternative — let the still-citing device republish the entity as
+  live — reverses the user's deletion permanently: republishing advances
+  `updatedAt`, so it out-ranks the tombstone, the deleting device downloads its
+  own deletion back, and nothing ever re-tombstones because the user already
+  deleted it once. Holding the deletion pending keeps the guarantee that no dance
+  credits a tombstone without buying it by resurrecting deleted data.
 - **Applying an inbound record must not erase what it omits.** A blob correctly
   omits `deviceLocal` fields — and the repositories' `upsert` methods write
   *every* column, which is right for a local restore and destructive here. A
@@ -623,6 +639,18 @@ makes self-hosting materially harder, which constraint 4 forbids.
   authorises `DELETE /v1/store`. This is inherent to the bearer model rather than
   an oversight, and it is stated here as explicitly as the read-access case
   because the write-access case is the one that destroys data.
+- **A deletion can sit unapplied on another device indefinitely.** Because the
+  referential guards are kept, a device that still cites a deleted choreographer,
+  tag or source holds the tombstone pending rather than applying it — and the
+  user is not told why. Two devices then legitimately disagree about whether the
+  entity exists, until the last citation is removed.
+
+  This is the deliberate trade against the alternative, which is worse and less
+  visible: letting the still-citing device republish the entity would reverse the
+  deletion everywhere and permanently, because a republish out-ranks the tombstone
+  and nothing re-tombstones afterwards. A deletion that is *late* is recoverable;
+  a deletion that is silently *undone* is not. Revisit if beta users report
+  deletions that appear not to take.
 - **Collision reconciliation merges silently, and one class of field is
   destroyed.** When two devices independently created the same choreographer, tag
   or custom-field definition, applying the peer's copy keeps one UUID and drops
@@ -645,6 +673,17 @@ makes self-hosting materially harder, which constraint 4 forbids.
   symmetric tie-break means the incoming UUID wins about half the time, and those
   are exactly the passes in which the row holding the local contact data is the
   one dropped.
+
+  Coalescing is confined to **independently created duplicates**, and the reason
+  is structural rather than a judgement about likelihood. In that case only one
+  row can hold `deviceLocal` values at all — the incoming blob never carries
+  them — so coalescing preserves data and cannot blend it. A *rename* that
+  collides is the opposite: two pre-existing local rows, each possibly holding
+  contact details for a different real person, so merging them would attach one
+  non-consenting third party's email and location to a row representing someone
+  else. That path is therefore not silent and not coalesced; it goes to the
+  review queue. A rename that happens to collide is rare enough that this asks
+  the user close to never.
 - **Venues and published sources can duplicate.** Neither has a `UNIQUE` natural
   key, so there is nothing to reconcile against: the same hall created on two
   devices arrives twice. Deduplicating them would need the fuzzy matching the

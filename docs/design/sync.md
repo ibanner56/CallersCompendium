@@ -72,12 +72,13 @@ fails the entire apply transaction. Applying a record of those kinds therefore:
 
 1. **UUID known locally** → update, last-writer-wins on `updatedAt`. If the
    update would move the record's natural key onto a name another local row
-   already holds, it collides exactly as an insert would — route it through
-   step 2 rather than letting the transaction fail (see *Renames collide too*).
+   already holds, it collides exactly as an insert would. It does **not** merge
+   silently: two local rows are involved and they may be two different people, so
+   it routes to the review queue (see *`deviceLocal` fields must be coalesced*).
 2. **UUID unknown, natural key matches a local row** → same entity, created
-   independently. Reconcile: pick the survivor by the canonical tie-break, merge
-   field values by recency, coalesce `deviceLocal` fields, remap every reference,
-   drop the loser.
+   independently. Reconcile silently: pick the survivor by the canonical
+   tie-break, merge field values by recency, coalesce `deviceLocal` fields, remap
+   every reference, drop the loser.
 3. **Neither** → insert.
 
 Step 2 is **silent** — no prompt, no review queue. At beta scale the collision is
@@ -114,7 +115,28 @@ device B holds an independently created row with the same name and a far older
 `updatedAt`. That pair is handled **here, not by the merge table**, so the
 recency rule has to be restated on this path or it does not apply at all.
 
-#### `deviceLocal` fields must be coalesced, not dropped
+##### Resolution rules must be symmetric
+
+> **Every rule that decides which of two records survives, or how a conflict is
+> broken, must be a pure symmetric function of the two records — never a
+> function of "local" versus "incoming".**
+
+Stated normatively for the same reason as the `updatedAt` invariant, and from the
+same history: the device-relative rule has now been written three times, most
+recently as a custom-field suffix rule introduced in the very revision that fixed
+the other two. It is not obvious at the point of writing, because "keep mine,
+file theirs under a new name" reads like a decision when it is really the same
+non-decision taken twice — each device keeps its own and neither converges.
+
+**A rule that has to say "local" or "incoming" to express which side wins is
+wrong by construction.** Symmetry is checkable by inspection: swap the two
+arguments and the answer must not change.
+
+It implies a test shape too. **Every convergence test runs from both sides.** A
+one-sided test passes against a non-convergent rule — which is exactly how the
+custom-field suffix rule arrived with a test already written for it.
+
+#### `deviceLocal` fields must be coalesced — but only for independent duplicates
 
 `choreographers.email`, `choreographers.location` and `choreographers.deceased`
 are `deviceLocal`. They are **never serialised**, so the peer's blob cannot carry
@@ -128,6 +150,25 @@ row holding the local `deviceLocal` values is the one dropped.
 So **copy the loser's non-null `deviceLocal` fields onto the survivor before
 dropping it**, preferring the survivor's value where both are non-null. The
 values stay on the device that already held them; nothing new travels.
+
+**This is safe in step 2 and only in step 2**, and the difference is structural
+rather than a matter of likelihood:
+
+- **Step 2 cannot blend two people's data.** The incoming blob carries no
+  `deviceLocal` fields at all, so the only such values in play belong to the one
+  local row. Coalescing preserves them onto whichever UUID survives; there is no
+  second set to confuse them with.
+- **Step 1 can.** A rename that collides involves **two local rows** — this
+  device's synced copy of the renamed entity, on which its own user may have
+  entered an email, and the pre-existing row it now collides with. Both may hold
+  contact data, for what may well be two different real people.
+
+Coalescing there would silently attach one non-consenting third party's email and
+location to a row representing someone else — the precise data class this feature
+exists to protect. **Step 1 therefore does not coalesce and does not merge
+silently**: it routes to the existing review queue and asks. A rename that
+happens to collide is rare, so this asks the user roughly never, and it never
+fuses two people's contact details on a guess.
 
 #### The remap is global, and durable
 
@@ -149,6 +190,40 @@ The remap is **persisted** in an `id_aliases` table (`losing_id`,
 referencing the losing id — from a device that has not yet reconciled, or from an
 older manifest — reads as an unknown UUID and re-inserts the row the previous
 pass just removed.
+
+**Dance merges write aliases too.** The fresh-attach dance merge uses the same
+tie-break and the same drop-the-loser pattern, so it inherits the same hazard:
+`dance_links.target_dance_id` is a real FK to `Dances` (`tables.dart:271`), and a
+third device holding a link to the merged-away dance would otherwise hit exactly
+the dangling reference this table exists to prevent. Every "surviving record"
+decision in the design writes its alias.
+
+**Lookups chase the chain to a fixed point.** Aliases compose, and a single-hop
+lookup is not enough:
+
+1. B holds Y and C holds Z (Y < Z). They sync while A is offline → alias `Z→Y`.
+2. A (holding X, X < Y) comes online and syncs with B → alias `Y→X`.
+3. A stale blob referencing Z now needs `Z→Y→X` to reach a live row.
+
+Resolving Z one hop yields Y — a UUID with no local row — which reproduces the
+dangling-reference batch discard the table was added to prevent. Resolution
+therefore follows the chain until it reaches an id with a live row, and
+**superseded entries are rewritten in place** (`Z→Y` becomes `Z→X` when `Y→X` is
+recorded) so chains stay short and cycles cannot form. Rewriting on insert also
+makes the fixed point reachable in one hop in the steady state, leaving the chase
+as a correctness guarantee rather than a per-lookup cost.
+
+**The table is bounded by pruning.** An alias is needed only while some peer
+might still reference the losing id, so entries older than the store's
+30-day-of-disuse TTL are dropped — past that, no peer's manifest can still carry
+it. Without a bound, a misbehaving peer that repeatedly recreates "Bob Smith"
+under fresh UUIDs would grow another device's table indefinitely.
+
+`id_aliases` is **`deviceScoped`** — a local remap of local row identity,
+meaningless on another device and never serialised. Like the baseline manifest it
+is a schema change **beyond v22**, belonging to the sync implementation rather
+than the migration, and it must be classified in the PR that creates it or the
+coverage ratchet fails.
 
 #### Rewriting a reference must advance `updatedAt`
 
@@ -192,10 +267,25 @@ data rather than merely conflating it. `decodeCustomFieldValue` does
 repointing a value stored as `valueText` at a def of type `number` throws **when
 the dance is loaded** — a crash on read, far from the sync that caused it.
 
-Defs therefore reconcile **only when `type` matches**. On a type mismatch the
-incoming def is kept under a suffixed key (`skill_level` → `skill_level_2`) with
-its values intact: nothing is lost, nothing crashes, and the duplicate is visible
-enough that the user can merge the two by hand.
+Defs therefore reconcile **only when `type` matches**. On a mismatch both defs
+survive, and the **tie-break decides which keeps the bare key**: the
+lexicographically smaller UUID keeps `skill_level`; the larger is renamed. "Keep
+mine, file theirs under a suffix" would not converge — each device would keep its
+own type under the bare key and file the peer's under the suffix, leaving the two
+permanently swapped and every dance showing its values under the opposite key
+from its peer.
+
+The new key is **derived from the losing UUID**, not from a counter —
+`skill_level_7f3a9c2b`, taking the loser's first eight hex digits. Both devices
+compute the same key without coordinating, and a third device carrying a third
+type yields a third distinct key instead of contending for the same one. A
+counter would not be collision-safe: `custom_field_defs.key` is `UNIQUE`
+(`tables.dart:208`), so minting a `skill_level_2` that already exists — created
+by the user, or by an earlier reconciliation — violates the constraint, fails the
+apply transaction, and fails every retry identically. That is precisely the
+deadlock *Renames collide too* exists to prevent, and it would be reintroduced by
+the mechanism meant to avoid a crash. Should a derived key collide even so, it
+routes back through reconciliation rather than aborting the batch.
 
 `venues` and `published_sources` have **no** `UNIQUE` natural key, so their UUIDs
 cannot collide destructively. They insert without reconciliation, and the same
@@ -278,7 +368,8 @@ it:
 | The store epoch | Alongside the baseline | `deviceScoped` |
 | Per-record last-seen hashes | Baseline table | `deviceScoped` |
 
-Both are per-installation protocol state, meaningless on another device, and
+All three are per-installation protocol state, meaningless on another device,
+and
 adding them means a schema change **beyond v22** — which the implementation issue
 must account for rather than discover. Note also that the settings ratchet scans
 only `app/lib/src`, so if the sync client lives elsewhere its keys are not
@@ -355,7 +446,7 @@ peer still holds it, "absence never deletes" preserves it, and the next sync
 #### The real scope of v22
 
 An earlier draft called v22 "one column on `settings`". Under first-class records
-it is six tables and eleven columns:
+it is six tables and twelve columns:
 
 | Table | Adds |
 | --- | --- |
@@ -398,13 +489,43 @@ tag manager while staying silently attached to every dance. The same applies to
 relaxing them — but relaxing them means a dance can credit a tombstoned
 choreographer, with no defined UI treatment.
 
-Instead, **the referential guard wins, per device.** A tombstone applies only
-where the entity is unreferenced; a device that still credits it keeps its copy
-live and re-publishes it, so the entity survives as long as any device still
-cites it. This mirrors the rule the codebase already applies in
-`_garbageCollectOrphanedRefs` — a row is kept if any surviving dance still cites
-it — and it means no dangling credit is ever created, so no UI treatment is
-needed for one.
+Instead, **the referential guard is kept and the tombstone is held pending.** A
+tombstone applies immediately where the entity is unreferenced. Where it is still
+cited, the receiving device **records the deletion as pending, keeps the row live
+locally, and does not republish it**; it applies the deletion once its last
+citation goes away.
+
+The "keeps it live and republishes it" formulation an earlier draft used is
+wrong, and wrong in a way that silently reverses user intent. Republishing bumps
+`updatedAt` under *Content changes must move the discriminator*, so the still-
+citing device would out-rank the deleting device's tombstone; the deleting device
+downloads its own deletion back, and since the user has already deleted the
+entity once, nothing re-tombstones it. The entity would be live everywhere,
+permanently, with no signal that the deletion had been undone.
+
+Holding the tombstone pending instead means the deletion is never out-ranked and
+never republished. The two devices are legitimately divergent — one still needs
+the row, and says so only to itself — and they converge as soon as the last
+citation is removed. The inverse ordering is covered by the same rule: a device
+that tombstones a tag and then receives a dance citing it revives the row and
+re-marks the tombstone pending, rather than writing a join row against a
+tombstoned parent.
+
+This preserves the property the guard exists for — no dance ever credits a
+tombstone — without achieving it by resurrecting deleted data. The cost is real
+and is disclosed rather than hidden: a deletion can sit unapplied on another
+device indefinitely, and the user is not told why. See the Consequences section.
+
+**A local edit cancels the pending tombstone.** If the user on the holding device
+edits the entity while a deletion is pending, that edit is a deliberate act on a
+record they can see, and it out-ranks a remote deletion under the same
+last-writer-wins rule everything else obeys: the tombstone is discarded and the
+entity is republished as live. Without this rule the mechanism has a hole — the
+edit would be published anyway, advance `updatedAt`, out-rank the tombstone and
+resurrect the entity through the back door, which is exactly the failure holding
+the tombstone was meant to prevent. Stated explicitly so the implementation
+resurrects **only** on a deliberate edit, never as a side effect of still
+referencing the row.
 
 **A purge must not cascade off live records.** `DanceRepository.purgeDeleted`
 guards its hard delete with `_cleanupDanglingReferences` and a GC that never
@@ -636,6 +757,16 @@ the lexicographically smaller UUID, the same rule entity reconciliation uses, so
 both devices independently pick the same survivor. The id-collections
 `_choreographyEquals` ignores — tags, custom fields, links, citations — are
 **unioned**, since they are additive and neither side is more correct.
+
+**The scalars `_choreographyEquals` does not compare are resolved by recency, not
+taken from the survivor.** It compares form, formation, progression, phrase
+structure, figures, hook, calling notes, level, mixed-level and tunes — so
+`walkthrough`, `rating`, `status`, `composedOn` and `revisedOn` fall outside both
+the equality test and the union. Taking them from the tie-break survivor would
+discard a caller's own walkthrough notes and their rating on an arbitrary UUID
+comparison, with no prompt and no recovery. The merge is silent precisely because
+the *choreography* matched, which says nothing about these. They follow the same
+rule as every other field value: last-writer-wins on `updatedAt`.
 
 **`program_slots.dance_id` must be rewired to the survivor.** It is
 `onDelete: KeyAction.setNull` (`tables.dart:193`), so removing the losing
@@ -1215,9 +1346,36 @@ must say this plainly rather than implying sync is opaque to us.
   a name device B already holds under a different UUID. Assert B reconciles
   rather than throwing, and that a retry is never needed. Guards the deadlock.
 - **Custom-field type mismatch does not crash on read** — same key, `text` on one
-  device and `number` on the other; assert both defs survive with the incoming
-  one suffixed, and that loading every affected dance succeeds. Mutation-proved
-  by reconciling them anyway and watching `decodeCustomFieldValue` throw.
+  device and `number` on the other; assert both defs survive, that the
+  lexicographically smaller UUID keeps the bare key, and that loading every
+  affected dance succeeds. **Run from both sides** and assert the two devices
+  agree on which def keeps the bare key — the one-sided version of this test
+  passes against the non-convergent "keep mine, suffix theirs" rule, which is how
+  that rule reached review with a test already written for it. Mutation-proved by
+  reconciling mismatched types anyway and watching `decodeCustomFieldValue` throw.
+- **A minted suffix never collides** — reconcile a type mismatch on a device that
+  already holds the key the suffix would produce; assert the apply commits.
+  Mutation-proved by switching the derivation to a `_2` counter, which violates
+  `UNIQUE` and fails every retry identically.
+- **Alias chains resolve transitively** — build `Z→Y` then `Y→X` across three
+  devices, then apply a blob referencing Z; assert it reaches X's live row.
+  Mutation-proved by resolving a single hop, which lands on a UUID with no row
+  and discards the batch.
+- **A pending tombstone is never republished** — device B still cites a
+  choreographer A deleted; assert B holds the deletion pending, does **not**
+  re-upload the entity as live, and applies the deletion once its last citation
+  goes. Mutation-proved by republishing instead: A then downloads its own
+  deletion back and the entity is live everywhere, permanently.
+- **Only a deliberate edit resurrects** — editing an entity while its tombstone
+  is pending cancels the tombstone and republishes; merely continuing to
+  reference it does not. Both halves asserted, since the mechanism is only sound
+  if the second never happens.
+- **A rename collision is not silently merged** — assert it reaches the review
+  queue and that no `deviceLocal` field from either row is copied onto the other.
+  This is the guard against blending two people's contact data.
+- **The dance merge preserves uncompared scalars by recency** — two copies of a
+  dance with identical choreography but different `walkthrough` and `rating`;
+  assert the newer values survive rather than the tie-break survivor's.
 - **Dance merge rewires `program_slots`** — build a program on the device whose
   duplicate loses the merge; assert the slot points at the survivor rather than
   `NULL`.
@@ -1278,6 +1436,39 @@ no discriminator at all, which is worse.
 Held here rather than in issues: ADR-004 is still `Proposed`, and filing
 implementation-shaped issues against an unagreed design presumes the agreement.
 These become issues when the ADR is accepted. Nothing below is resolved.
+
+### Dance dedupe runs only at fresh attach, so a dance can fork permanently
+
+Content-based dance dedupe is an attach-time pass. Steady-state sync has no
+per-record dedupe, so two dances that become identical *after* attach — or a
+device attaching later that merges a pair a third device already merged
+differently — stay forked with no mechanism to reconcile them afterwards.
+
+This is materially worse than the disclosed venue and published-source
+duplication, and the difference is worth stating: those two kinds never had an
+identity claim, so two rows are simply two rows. Dances do have one, but only
+sometimes — the tie-break gives a *deterministic* survivor for any pair that is
+compared, and nothing guarantees every pair is compared. The gap is in coverage,
+not in the rule.
+
+Not fixed here because a steady-state content dedupe pass is a different piece of
+machinery from the merge, with its own cost at 11,500 records, and inventing it
+inside a design that cannot yet be tested would be speculative. Recorded so it is
+a known limitation rather than a surprise.
+
+### Simultaneous rename into the same name does not deadlock — checked
+
+Recorded because it looks like it should, and the question keeps recurring.
+
+If A renames X → "Bob" while B simultaneously renames Y → "Bob", one of two
+things is true. If both devices already know both entities, the **local** `UNIQUE`
+constraint rejects the second rename before sync is involved at all — the app
+will not let a user create the collision in the first place. If they do not
+both know both entities, the rename arrives as an ordinary reconciliation and
+the tie-break settles it symmetrically.
+
+There is no third case, so no deadlock. Stated here as answered rather than
+left for each reader to re-derive.
 
 ### Pepper rotation is impossible for inactive stores, as specified
 
