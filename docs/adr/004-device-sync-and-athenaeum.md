@@ -695,6 +695,16 @@ makes self-hosting materially harder, which constraint 4 forbids.
   would reintroduce the content-versus-existence coupling this column exists to
   break, through the migration itself.
 
+  **One migration consequence is accepted rather than fixed.** Live rows are
+  backfilled with a per-device constant sampled when the migration runs, so a
+  device that deleted a record before migrating carries a tombstone dated earlier
+  than a peer's untouched live row — and on first sync the live copy wins and the
+  record returns. The maintainer accepted this on the grounds that beta installs
+  all reach the sync-capable contract before the first stable release. Recorded
+  here because it is not confined to the migration window: the constant remains a
+  record's operative existence value until that record next changes state. A
+  hardcoded pre-release constant instead of a sampled clock would remove it.
+
   It is a **separate column** rather than a reuse of `deletedAt` because that
   field is a retention timestamp with real consumers — the purge sweep and the
   Recently Deleted countdown both read it — so stamping it forward could pin a

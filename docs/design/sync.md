@@ -647,10 +647,10 @@ For existence:
 | Steady-state merge | Decided by `existenceAt` before the merge table |
 | Fresh attach | Same, with no baseline to consult |
 | Collision reconciliation | Second row of its decision table |
-| Fresh-attach dance dedupe | Tombstones excluded from dedupe candidacy |
+| Fresh-attach dance dedupe | Tombstones excluded from candidacy; no cross-UUID effect |
 | Record creation | Seeds the field |
-| Migration backfill | `T₀` for live rows, `deleted_at` for deleted ones |
-| Inbound validation | Out-of-range values rejected, never clamped |
+| Migration backfill | `T₀` for live rows, `deleted_at` for deleted ones — see the accepted consequence |
+| Inbound validation | Out-of-range values rejected, never clamped; poisoned records quarantined and resettable |
 
 Written as a table because the alternative is discovering the paths one review
 round at a time, which is what happened.
@@ -804,12 +804,41 @@ inequality into a tie that the tie rule then resolves to the tombstone. Capping
 also does not even stop the attack it was meant to: a peer pinned at the ceiling
 still wins every comparison, and can refresh it.
 
+(That tie hazard is an argument against clamping specifically. Under rejection
+nothing derived from `localNow` is stored, so whether it is sampled per record or
+once per pass makes no difference to final state — an earlier draft mandated
+per-record sampling on the strength of the clamping argument, which does not
+carry over to the mechanism actually chosen.)
+
 So a blob whose `existenceAt` exceeds `localNow + 24h` is **refused as malformed
 and reported**, exactly like a record that fails to decode — one record skipped,
-the batch intact, local state unchanged. `localNow` is sampled **per record**.
-This is stated as a check to implement rather than assumed: `_dtOrNull` validates
-only ISO-8601 parseability and calls `.toUtc()`, and the codec's clamping is all
-string and list length, so no date range check exists today.
+the batch intact, local state unchanged. This is stated as a check to implement
+rather than assumed: `_dtOrNull` validates only ISO-8601 parseability and calls
+`.toUtc()`, and the codec's clamping is all string and list length, so no date
+range check exists today.
+
+**An honestly skewed value needs a repair path, because monotonicity makes it
+permanent.** The reasoning above is about a hostile peer; the likelier case is a
+device with a badly wrong clock — a dead RTC defaulting to a future build date, a
+mis-set year — which stamps a transition at, say, 2036. Every honest peer rejects
+that blob on every pass, so the originating device believes the record deleted
+while every peer holds the opposite. And correcting the clock does not fix it:
+`max(2026, 2036 + 1ms)` is still 2036, so every later legitimate transition on
+that record stays above the rejection threshold. Without a repair path the record
+drops out of sync until wall-clock time catches up, which is not a bounded
+divergence in the way the restore case is.
+
+Two rules close it:
+
+- **A record whose own `existenceAt` exceeds `localNow + 24h` is quarantined**,
+  and the next user-initiated transition on it **resets** the field from the
+  local clock instead of `max`-ing against the poisoned value. Resetting is safe
+  precisely because the poisoned value was rejected everywhere: no honest peer
+  ever accepted it, so every peer still holds a value older than the local clock,
+  and the reset lands above all of them.
+- **A rejected hash is reported once, not once per pass.** The blob stays in the
+  peer's manifest and is otherwise re-fetched and re-rejected for ever, which
+  would turn one bad record into an unbounded stream of identical warnings.
 
 **Which writes set it.** Every write that changes whether the record exists, in
 both directions:
@@ -950,9 +979,32 @@ Backfill instead from the row's **existence history, not its content history**:
 no live row outranks another and the first real transition on any device
 establishes the ordering. An already-deleted row takes `deleted_at`, which is
 when its existence actually last changed — the one case where a pre-existing
-column carries the right meaning. `T₀` must be **older than every `deleted_at`
-in the table**, so that an existing tombstone always outranks an existing live
-row and the migration cannot itself resurrect anything.
+column carries the right meaning.
+
+**`T₀` is per-device, and that resurrects some pre-migration deletions.** A
+draft of this section also required `T₀` to be older than every `deleted_at` in
+the table, which cannot be satisfied: a value sampled when the migration runs is
+necessarily later than deletions already in the past. The two sentences could not
+both be implemented, so one had to go.
+
+The constraint is the one dropped, on the maintainer's decision, because at beta
+scale every install reaches the sync-capable contract before the first stable
+release and the migration's edge cases were judged acceptable. The consequence is
+recorded here rather than left implicit:
+
+> Device A deleted record R before migrating, so R carries `existence_at =
+> deleted_at`. Device B never deleted R and migrates later, so R carries
+> `existence_at = T₀`, which is greater. On first sync the live copy outranks the
+> tombstone and **R comes back**.
+
+Two honest qualifications. This is an ordinary situation rather than an exotic
+one — two phones set up from the same backup, one of which has deleted something
+— and it is **not bounded by the migration window**: `T₀` remains a record's
+operative existence value until that record has another live↔deleted transition,
+so neither the passage of time nor universal migration retires it. The
+alternative, had it been wanted, is one line: make `T₀` a hardcoded pre-release
+constant rather than a sampled clock, which satisfies both original sentences and
+removes the vector.
 
 `existence_at` is classified `dpv:NonPersonalData` / `shareable`: a bare timestamp
 with no data subject, which has to travel for the gate to be evaluable by a
@@ -1380,15 +1432,27 @@ hold different ids for it, so union alone yields duplicates.
 2. `_choreographyEquals` — form, formation, progression, phrase structure,
    figures *including params*, hook, calling notes, level, mixed level, tunes.
 
-**Tombstones do not participate.** A deleted dance is not a duplicate candidate:
-merging a live copy with a tombstoned one would decide existence by title and
-choreography, which are content questions, and a deletion would vanish because
-the surviving record happened to be the live one. Where one side is deleted and
-the other live, the pair is settled by `existenceAt` like any other existence
-disagreement, and only then — if the record survives — considered for dedupe.
-This is the third path needing the rule restated, after the merge table and
-collision reconciliation, and for the same reason: none of them can see the
-others' rules.
+**Tombstones do not participate.** A deleted dance is not a duplicate candidate.
+Merging a live copy with a tombstoned one would decide existence by title and
+choreography — content questions — and the deletion would vanish whenever the
+surviving record happened to be the live one. So a tombstoned dance leaves
+dedupe candidacy entirely: it is not matched, not merged, and persists as a
+tombstone until its own purge.
+
+A draft of this paragraph also said such a pair is "settled by `existenceAt` and
+only then considered for dedupe". That step cannot run. Dedupe pairs records
+holding **different UUIDs**, and the only thing that pairs them is the title and
+`_choreographyEquals` match — so excluding tombstones from the match means no
+pair ever exists for `existenceAt` to settle. The claim was harmless in effect,
+since the safe reading is the implemented one, but it described a mechanism that
+does not exist.
+
+It also implied something false about a neighbouring case. Because dances have
+**no `UNIQUE` natural key**, one device deleting its content-duplicate does *not*
+suppress another device's independently created live copy: the two are different
+records under different UUIDs, and existence is a per-record property. That is
+the opposite of the `UNIQUE`-key kinds, where collision reconciliation makes two
+UUIDs into one record and existence therefore has to be settled between them.
 
 Everything else that the existing `DedupeIndex` flags is **deferred for review**.
 
@@ -2230,6 +2294,20 @@ must say this plainly rather than implying sync is opaque to us.
   unchanged. Mutation-proved by clamping to the ceiling instead, which lets the
   hostile value win every existence comparison and, when two out-of-range values
   clamp to one ceiling, converts a strict ordering into a tie.
+- **A clock-poisoned record can be repaired** — stamp a record from a badly wrong
+  clock, correct the clock, then make a user-initiated transition; assert the
+  field is reset from the local clock rather than `max`-ed against the poisoned
+  value, and that the record syncs again. Mutation-proved by keeping the `max`,
+  which leaves the record permanently unsyncable long after the clock is right —
+  the failure is not that the bad value was written but that nothing can
+  supersede it.
+- **A repeated rejection is reported once** — run three passes against a peer
+  still advertising the bad blob; assert one report, not three.
+- **A tombstoned dance neither merges nor suppresses** — same title and identical
+  choreography, one copy deleted: assert no silent merge, the deletion stands,
+  and a *different* device's independently created live duplicate is untouched.
+  The second half guards the property that dances have no `UNIQUE` key, so
+  existence does not travel across UUIDs the way it does for choreographers.
 - **The rule survives clock skew in both directions, end to end** — run the
   revival with the reviving device's clock set behind the deleting device's, and
   the deletion with the deleting device's clock behind a prior revival's. Assert
