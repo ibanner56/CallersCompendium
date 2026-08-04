@@ -31,6 +31,7 @@ class CollectionPicker extends StatefulWidget {
     required this.dialect,
     required this.enrichment,
     required this.onAddDance,
+    this.addedDanceCounts = const {},
     this.scrollController,
   });
 
@@ -49,6 +50,13 @@ class CollectionPicker extends StatefulWidget {
 
   /// Called with the tapped dance's id to add it to the program.
   final void Function(String danceId) onAddDance;
+
+  /// How many times each dance already appears in the program being built,
+  /// keyed by dance id and omitting dances that do not appear at all.
+  ///
+  /// Empty by default so hosts with no program context (e.g. Perform's insert
+  /// sheet) need not supply it.
+  final Map<String, int> addedDanceCounts;
 
   /// Optional controller for the results scroll view. When the picker is hosted
   /// in a [DraggableScrollableSheet], pass its controller so sheet dragging and

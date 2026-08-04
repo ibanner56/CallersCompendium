@@ -9,6 +9,7 @@ import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
+import 'package:compendium_app/src/widgets/collection_picker.dart';
 
 import 'support/test_repositories.dart';
 import 'support/fake_wakelock.dart';
@@ -1111,5 +1112,71 @@ void main() {
         .map((data) => data['message'])
         .toList();
     expect(messages, contains('Added Chase the Squirrel to program.'));
+  });
+
+  // --- Already-in-program counts (#796) --------------------------------------
+
+  Map<String, int> countsOf(WidgetTester tester, String pickerKey) => tester
+      .widget<CollectionPicker>(find.byKey(ValueKey(pickerKey)))
+      .addedDanceCounts;
+
+  testWidgets('the inline picker sees the program contents, and sees them '
+      'change as dances are added (#796)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Petronella Reel'));
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    expect(countsOf(tester, 'inline-picker'), isEmpty);
+
+    await tester.tap(find.byKey(const ValueKey('picker-add-d1')));
+    await tester.pumpAndSettle();
+    expect(countsOf(tester, 'inline-picker'), {'d1': 1});
+
+    // A dance may legitimately appear twice, so this is a count, not a flag.
+    await tester.tap(find.byKey(const ValueKey('picker-add-d1')));
+    await tester.pumpAndSettle();
+    expect(countsOf(tester, 'inline-picker'), {'d1': 2});
+  });
+
+  testWidgets('the sheet picker sees the counts change while the sheet stays '
+      'open (#796)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    // Narrow: the picker is the modal bottom sheet, not the inline pane.
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      size: const Size(600, 2000),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('add-dance-slot')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('sheet-picker')), findsOneWidget);
+    expect(countsOf(tester, 'sheet-picker'), isEmpty);
+
+    // The sheet deliberately stays open so several dances can be added, so its
+    // picker must observe each add — it is a separate Navigator route, and the
+    // screen's setState does not rebuild it.
+    await tester.tap(find.byKey(const ValueKey('picker-add-d1')));
+    await tester.pumpAndSettle();
+    expect(countsOf(tester, 'sheet-picker'), {'d1': 1});
+  });
+
+  testWidgets('free-text and break slots contribute no dance counts (#796)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('insert-break-slot')));
+    await tester.pumpAndSettle();
+
+    expect(countsOf(tester, 'inline-picker'), isEmpty);
   });
 }
