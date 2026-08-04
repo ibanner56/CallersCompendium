@@ -97,8 +97,13 @@ move becomes known, and you can still reorder and delete it in the meantime.
 
 ### Custom figure text
 
-A custom figure has one field: **Custom figure text**. Two formatting marks are
-available, with buttons for both:
+A custom figure has two fields: **Custom figure text** and **Beats**.
+
+The **Beats** field sets how many beats the custom figure occupies — use it the
+same way you would for any other figure. It defaults to 8.
+
+The **Custom figure text** field also accepts two formatting marks, with buttons
+for both:
 
 - `*text*` for **bold**
 - `_text_` for underline

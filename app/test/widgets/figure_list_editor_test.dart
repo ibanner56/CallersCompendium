@@ -1182,6 +1182,43 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
+  // Custom figure beats editor (#795)
+  // -------------------------------------------------------------------------
+
+  testWidgets('custom figure shows a beats field', (tester) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(
+        move: customMove,
+        params: {'text': 'shadow step', 'beats': 8},
+      ),
+    ];
+    await _pump(tester, drafts);
+    await _openFigure(tester, 0);
+
+    // The beats field must be visible for a custom figure (#795).
+    expect(find.byKey(const ValueKey('figure-0-beats')), findsOneWidget);
+  });
+
+  testWidgets('editing beats on a custom figure updates the draft', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(
+        move: customMove,
+        params: {'text': 'shadow step', 'beats': 8},
+      ),
+    ];
+    await _pump(tester, drafts);
+    await _openFigure(tester, 0);
+
+    await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '12');
+    await tester.pumpAndSettle();
+
+    expect(drafts.single.params['beats'], 12);
+    expect(drafts.single.beatsTouched, isTrue);
+  });
+
+  // -------------------------------------------------------------------------
   // Reordering tests
   // -------------------------------------------------------------------------
 

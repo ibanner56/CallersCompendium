@@ -1543,8 +1543,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
               ),
               if (def != null) ...[
                 const SizedBox(height: 12),
-                // Custom figures: lingo text field in place of param editors.
-                if (draft.move == customMove)
+                // Custom figures: lingo text field + beats editor (#795).
+                if (draft.move == customMove) ...[
                   _LingoCustomTextField(
                     key: ValueKey('figure-${widget.index}-text-${draft.id}'),
                     fieldKey: 'figure-${widget.index}-text',
@@ -1560,8 +1560,21 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       _applyNonBeatsParamChange('text', v);
                       widget.onChanged();
                     },
-                  )
-                else if (def.params.isNotEmpty)
+                  ),
+                  const SizedBox(height: 8),
+                  FigureParamEditor(
+                    keyPrefix: 'figure-${widget.index}',
+                    paramKey: 'beats',
+                    spec: const ParamSpec(ParamKind.beats, defaultValue: 8),
+                    dialect: widget.dialect,
+                    value: draft.params['beats'] ?? 8,
+                    onChanged: (v) {
+                      draft.params['beats'] = v;
+                      draft.beatsTouched = true;
+                      widget.onChanged();
+                    },
+                  ),
+                ] else if (def.params.isNotEmpty)
                   _buildParams(context, def),
                 const SizedBox(height: 12),
                 _buildProgressionToggle(context),
