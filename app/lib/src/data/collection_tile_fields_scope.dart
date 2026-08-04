@@ -5,8 +5,9 @@ import 'package:flutter/widgets.dart';
 /// Each value corresponds to one group of chips in the tile subtitle. The
 /// preference is stored as a JSON list of name strings under
 /// [kCollectionTileVisibleFieldsKey]. When a name is unrecognised (e.g. a
-/// future field absent in an older build) it is silently ignored, so the set
-/// is open-world safe.
+/// future field absent in an older build) it is silently ignored; if every
+/// name in a non-empty stored list is unrecognised the whole list is treated
+/// as absent and all fields become visible (open-world forward-compat).
 ///
 /// All values default to visible: a caller who has not touched the setting sees
 /// no change. The collection screen reads this scope and passes the result to
