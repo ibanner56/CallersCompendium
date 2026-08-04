@@ -2,7 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
+
+import '../test_package_root.dart';
 
 /// Issue #347 — The Caller's Box **compound-figure** convention + revolving-door
 /// text parity. TCB expresses a named figure as its indented component
@@ -54,7 +57,14 @@ void main() {
 
     setUp(() async {
       final payload = File(
-        'test/imports/support/callersbox/right_where_we_belong_19001.json',
+        p.join(
+          await packageRootPath(),
+          'test',
+          'imports',
+          'support',
+          'callersbox',
+          'right_where_we_belong_19001.json',
+        ),
       ).readAsStringSync();
       draft = await _importTcb(payload);
     });
@@ -248,7 +258,14 @@ void main() {
 
     setUp(() async {
       final payload = File(
-        'test/imports/support/contradb/right_where_we_belong_2443.html',
+        p.join(
+          await packageRootPath(),
+          'test',
+          'imports',
+          'support',
+          'contradb',
+          'right_where_we_belong_2443.html',
+        ),
       ).readAsStringSync();
       draft = await _importContraDbHtml(payload);
     });
@@ -276,7 +293,14 @@ void main() {
       'the CSRF token in the fixture is redacted (no secret leaks)',
       () async {
         final html = File(
-          'test/imports/support/contradb/right_where_we_belong_2443.html',
+          p.join(
+            await packageRootPath(),
+            'test',
+            'imports',
+            'support',
+            'contradb',
+            'right_where_we_belong_2443.html',
+          ),
         ).readAsStringSync();
         expect(html, contains('REDACTED-CSRF-TOKEN'));
         expect(

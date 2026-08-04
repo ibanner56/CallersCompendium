@@ -5,32 +5,32 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'baby_rose_seed_generator.dart';
-
-/// Repo-root-relative paths, resolved from the package root
-/// (`packages/compendium_core`) where `dart test` runs.
-final String _repoRoot = p.normalize(
-  p.join(Directory.current.path, '..', '..'),
-);
-final String _fixturePath = p.join(
-  _repoRoot,
-  'tools',
-  'seed',
-  'fixtures',
-  'contradb_dance_8.html',
-);
-final String _assetPath = p.join(
-  _repoRoot,
-  'app',
-  'assets',
-  'seed',
-  'baby_rose.json',
-);
+import '../test_package_root.dart';
 
 void main() {
   group('Baby Rose seed asset', () {
+    late String _fixturePath;
+    late String _assetPath;
     late String fixtureHtml;
 
-    setUpAll(() {
+    setUpAll(() async {
+      final repoRoot = p.normalize(
+        p.join(await packageRootPath(), '..', '..'),
+      );
+      _fixturePath = p.join(
+        repoRoot,
+        'tools',
+        'seed',
+        'fixtures',
+        'contradb_dance_8.html',
+      );
+      _assetPath = p.join(
+        repoRoot,
+        'app',
+        'assets',
+        'seed',
+        'baby_rose.json',
+      );
       fixtureHtml = File(_fixturePath).readAsStringSync();
     });
 

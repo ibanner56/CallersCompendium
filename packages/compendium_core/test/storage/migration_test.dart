@@ -17,6 +17,8 @@ import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 import 'package:test/test.dart';
 
+import '../test_package_root.dart';
+
 void main() {
   group('v1 -> v2 upgrade', () {
     late Directory dir;
@@ -28,7 +30,7 @@ void main() {
       // Copy the checked-in v1 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -230,7 +232,7 @@ void main() {
       // Copy the checked-in v2 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -365,7 +367,7 @@ void main() {
       // Copy the checked-in v3 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -483,7 +485,7 @@ void main() {
       // Copy the checked-in v4 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -621,7 +623,7 @@ void main() {
       // Copy the checked-in v5 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -726,7 +728,7 @@ void main() {
       // Copy the checked-in v6 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -847,7 +849,7 @@ void main() {
       // Copy the checked-in v7 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -959,7 +961,7 @@ void main() {
       // Copy the checked-in v8 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -1132,7 +1134,7 @@ void main() {
       // Copy the checked-in v9 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -1234,7 +1236,7 @@ void main() {
       // Copy the checked-in v10 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -1320,7 +1322,7 @@ void main() {
       // Copy the checked-in v11 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -1558,7 +1560,7 @@ void main() {
       // Copy the checked-in v12 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -1724,7 +1726,7 @@ void main() {
       // Copy the checked-in v13 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -1830,7 +1832,7 @@ void main() {
       // Copy the checked-in v14 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -1907,7 +1909,7 @@ void main() {
       // Copy the checked-in v15 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -2070,7 +2072,7 @@ void main() {
       dbPath = p.join(dir.path, 'test.sqlite');
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -2483,7 +2485,7 @@ void main() {
       // Copy the checked-in v17 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -2607,7 +2609,7 @@ void main() {
       // Copy the checked-in v18 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -2731,7 +2733,7 @@ void main() {
       // Copy the checked-in v19 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -2967,7 +2969,7 @@ void main() {
       // Copy the checked-in v20 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
@@ -3181,7 +3183,7 @@ void main() {
       // Copy the checked-in v21 fixture to a temp path (opening mutates it).
       final fixture = File(
         p.join(
-          Directory.current.path,
+          await packageRootPath(),
           'test',
           'storage',
           'fixtures',
