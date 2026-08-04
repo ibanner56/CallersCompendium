@@ -463,6 +463,41 @@ def _cases() -> None:
         )
 
 
+    # ------------------------------------------------------------------
+    # Case 15 (RED RUN — contract): non-UTF-8 .sig → exit 1, structured error
+    #
+    # A .sig file containing raw non-UTF-8 bytes raises UnicodeDecodeError
+    # in an unguarded read_text() call. The guard added in the OSError/
+    # UnicodeDecodeError fix must convert that into a structured failure
+    # (exit 1, named file in the error message) rather than a traceback.
+    #
+    # This case is the guard's proof-of-reachability: write_bytes() is used
+    # deliberately (not write_text) so the .sig contains bytes that are
+    # not valid UTF-8. Without the UnicodeDecodeError guard, the exception
+    # escapes verify_signatures() and produces a traceback — the 0/1/2
+    # exit-code contract silently becomes "0/1/2/traceback".
+    # ------------------------------------------------------------------
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        key_src = _make_key_source(root, pub_b64)
+        stable_bytes = b'{"channel":"stable"}\n'
+        (root / "stable.json").write_bytes(stable_bytes)
+        # Raw non-UTF-8 bytes — not a valid signature, not valid UTF-8.
+        (root / "stable.json.sig").write_bytes(b"\xff\xfe not utf-8")
+
+        rc, out, err = _run_main([str(root), "--key-source", str(key_src)])
+        assert rc == 1, (
+            f"case 15 expected exit 1 on non-UTF-8 sig, got: {rc}"
+        )
+        assert "stable.json.sig" in out, (
+            f"case 15: expected emitted message to name stable.json.sig, got: {out!r}"
+        )
+        assert "Traceback" not in err, (
+            f"case 15: got a traceback instead of a structured error — "
+            f"the UnicodeDecodeError guard is missing or bypassed: {err!r}"
+        )
+
+
 def main() -> int:
     _cases()
     print("OK: all check_pages_signature_files tests passed")
