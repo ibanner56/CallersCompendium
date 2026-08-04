@@ -30,10 +30,12 @@ CREATE VIRTUAL TABLE dance_fts USING fts5(
 
 /// The schema-v2 helper index for section-aware figure search
 /// (`docs/design/search.md`). Only the `(move, section)` index is created:
-/// the `Then` sequence self-join keys on `(dance_id, idx)`, which is already
-/// served by the implicit index SQLite creates for the `dance_figures`
-/// composite primary key `{danceId, idx}` (same leading-column order), so no
-/// separate `(dance_id, idx)` index is needed.
+/// the `Then` sequence self-join is driven by `a.dance_id = b.dance_id`, which
+/// is already served by the implicit index SQLite creates for the
+/// `dance_figures` composite primary key `{danceId, idx}` (same leading
+/// column). The correlation column `group_idx` (#748) is compared as a residual
+/// filter over that already per-dance-restricted row set — a dance holds only
+/// tens of figures — so no separate index on it is needed.
 const List<String> searchIndexSql = [
   'CREATE INDEX IF NOT EXISTS dance_figures_move_section '
       'ON dance_figures(move, section)',
@@ -114,7 +116,7 @@ const String purgeCorruptionRepairDoneKey = '__purge_corruption_repair_done__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 21;
+const int kCompendiumSchemaVersion = 22;
 
 /// The Caller's Compendium local database.
 ///
@@ -309,6 +311,24 @@ const int kCompendiumSchemaVersion = 21;
 ///   parse-never-throw. Chains cleanly after v19 — that step only rewrites the
 ///   `form_a_short_wave` move id and touches no gate figure, and neither step
 ///   adds a column or table, so schema 18/19/20 are structurally identical.
+/// - v21 (issues #781/#782): first structural REMOVAL. Drops
+///   `provenance.raw_payload` and `program_provenance.raw_payload` (rebuilt via
+///   `TableMigration`, the portable route that doesn't require SQLite 3.35+
+///   `DROP COLUMN`) and the unused `snapshots` table. None fed the derived
+///   `dance_fts`/`dance_figures` indexes, so NO derived rebuild is required.
+/// - v22 (issue #748): adds the derived `dance_figures.group_idx` correlation
+///   column so the `Then` sequence operator distinguishes a genuine before/after
+///   pair from two *concurrent* sides of one `meanwhile` container. Previously
+///   `Then` correlated on `a.idx < b.idx`, but the #590 flattener gives a
+///   container's sides consecutive `idx` (the `{danceId, idx}` PK forces a
+///   distinct idx per row), so simultaneous sides looked sequential and
+///   `Then(X, Y)`/`Then(Y, X)` both matched an `X while Y` container. The signal
+///   was absent from the index, so this needs a column, not just a query change.
+///   `group_idx` is shared by every row flattened from one top-level figure and
+///   monotonic across them; `Then` now correlates on `a.group_idx < b.group_idx`.
+///   Like the v2 `section` add, existing rows get the column DEFAULT (0) — wrong
+///   for correlation — so it schedules a derived rebuild (marker) that
+///   repopulates `group_idx` from `figures_json`.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -732,6 +752,36 @@ class CompendiumDatabase extends _$CompendiumDatabase {
 
         // No derived rebuild is owed: none of the three feeds `dance_figures`
         // or `dance_fts`, so the search indexes are unaffected.
+      }
+
+      if (from < 22) {
+        // Issue #748: add the derived `dance_figures.group_idx` correlation
+        // column so the `Then` sequence operator can tell a genuine "before /
+        // after" pair from two *concurrent* sides of one `meanwhile` container.
+        //
+        // Before this, `Then` correlated on `a.idx < b.idx`; but the #590
+        // flattener gives a container's concurrent sides consecutive `idx`
+        // values (the `{danceId, idx}` PK forces a distinct idx per row), so
+        // `a.idx < b.idx` held between two sides that are simultaneous by
+        // construction and `Then(X, Y)` — and symmetrically `Then(Y, X)` —
+        // matched an `X while Y` container. The concurrency signal was absent
+        // from the index entirely, so this needs a schema column, not just a
+        // query change. `group_idx` is shared by every row flattened from one
+        // top-level figure and monotonic across them (see `_insertDerivedRows`);
+        // `Then` now correlates on `a.group_idx < b.group_idx`.
+        //
+        // Like the v2 `section` add, existing rows get the column DEFAULT (0),
+        // which is wrong for correlation (every row would share group 0), so a
+        // derived rebuild is owed to repopulate `group_idx` from `figures_json`.
+        // The rebuild needs the taxonomy/renderer, unreachable from
+        // `MigrationStrategy`, so durably record that it is owed (crash-safe);
+        // `CompendiumRepositories.ensureMigrated()` then regenerates
+        // `dance_figures` + `dance_fts` from `figures_json`.
+        await m.addColumn(danceFigures, danceFigures.groupIdx);
+        await customStatement(
+          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+          [derivedRebuildRequiredKey, 'true'],
+        );
       }
     },
     beforeOpen: (details) async {

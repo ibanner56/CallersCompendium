@@ -316,6 +316,7 @@ final Map<String, DataClassification> fieldClassifications = {
   // ---------------------------------------------------------- derived index --
   'dance_figures.dance_id': _derivedIndex,
   'dance_figures.idx': _derivedIndex,
+  'dance_figures.group_idx': _derivedIndex,
   'dance_figures.move': _derivedIndex,
   'dance_figures.beats': _derivedIndex,
   'dance_figures.progression': _derivedIndex,

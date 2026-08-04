@@ -125,6 +125,17 @@ class DanceFigures extends Table {
   TextColumn get danceId =>
       text().references(Dances, #id, onDelete: KeyAction.cascade)();
   IntColumn get idx => integer()();
+
+  /// Correlation group: all rows flattened from one **top-level** figure share
+  /// this value, and it is monotonic across a dance's top-level figures. Unlike
+  /// [idx] (unique per row, as the `{danceId, idx}` PK requires), [groupIdx] is
+  /// deliberately **not** unique — the concurrent sides of a `meanwhile`
+  /// container (flattened per side, #590) all carry the container's single
+  /// [groupIdx]. The `Then` sequence operator correlates on
+  /// `a.group_idx < b.group_idx` so two concurrent sides, sharing a group, are
+  /// never treated as one-before-the-other (#748). Added in schema v22; existing
+  /// rows default to 0 and are repopulated by the derived-index rebuild.
+  IntColumn get groupIdx => integer().withDefault(const Constant(0))();
   TextColumn get move => text()();
   IntColumn get beats => integer().withDefault(const Constant(0))();
   BoolColumn get progression => boolean().withDefault(const Constant(false))();

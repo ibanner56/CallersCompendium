@@ -1991,6 +1991,18 @@ class $DanceFiguresTable extends DanceFigures
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _groupIdxMeta = const VerificationMeta(
+    'groupIdx',
+  );
+  @override
+  late final GeneratedColumn<int> groupIdx = GeneratedColumn<int>(
+    'group_idx',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _moveMeta = const VerificationMeta('move');
   @override
   late final GeneratedColumn<String> move = GeneratedColumn<String>(
@@ -2064,6 +2076,7 @@ class $DanceFiguresTable extends DanceFigures
   List<GeneratedColumn> get $columns => [
     danceId,
     idx,
+    groupIdx,
     move,
     beats,
     progression,
@@ -2098,6 +2111,12 @@ class $DanceFiguresTable extends DanceFigures
       );
     } else if (isInserting) {
       context.missing(_idxMeta);
+    }
+    if (data.containsKey('group_idx')) {
+      context.handle(
+        _groupIdxMeta,
+        groupIdx.isAcceptableOrUnknown(data['group_idx']!, _groupIdxMeta),
+      );
     }
     if (data.containsKey('move')) {
       context.handle(
@@ -2160,6 +2179,10 @@ class $DanceFiguresTable extends DanceFigures
         DriftSqlType.int,
         data['${effectivePrefix}idx'],
       )!,
+      groupIdx: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}group_idx'],
+      )!,
       move: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}move'],
@@ -2196,6 +2219,17 @@ class $DanceFiguresTable extends DanceFigures
 class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
   final String danceId;
   final int idx;
+
+  /// Correlation group: all rows flattened from one **top-level** figure share
+  /// this value, and it is monotonic across a dance's top-level figures. Unlike
+  /// [idx] (unique per row, as the `{danceId, idx}` PK requires), [groupIdx] is
+  /// deliberately **not** unique — the concurrent sides of a `meanwhile`
+  /// container (flattened per side, #590) all carry the container's single
+  /// [groupIdx]. The `Then` sequence operator correlates on
+  /// `a.group_idx < b.group_idx` so two concurrent sides, sharing a group, are
+  /// never treated as one-before-the-other (#748). Added in schema v22; existing
+  /// rows default to 0 and are repopulated by the derived-index rebuild.
+  final int groupIdx;
   final String move;
   final int beats;
   final bool progression;
@@ -2213,6 +2247,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
   const DanceFigureRow({
     required this.danceId,
     required this.idx,
+    required this.groupIdx,
     required this.move,
     required this.beats,
     required this.progression,
@@ -2225,6 +2260,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
     final map = <String, Expression>{};
     map['dance_id'] = Variable<String>(danceId);
     map['idx'] = Variable<int>(idx);
+    map['group_idx'] = Variable<int>(groupIdx);
     map['move'] = Variable<String>(move);
     map['beats'] = Variable<int>(beats);
     map['progression'] = Variable<bool>(progression);
@@ -2240,6 +2276,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
     return DanceFiguresCompanion(
       danceId: Value(danceId),
       idx: Value(idx),
+      groupIdx: Value(groupIdx),
       move: Value(move),
       beats: Value(beats),
       progression: Value(progression),
@@ -2259,6 +2296,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
     return DanceFigureRow(
       danceId: serializer.fromJson<String>(json['danceId']),
       idx: serializer.fromJson<int>(json['idx']),
+      groupIdx: serializer.fromJson<int>(json['groupIdx']),
       move: serializer.fromJson<String>(json['move']),
       beats: serializer.fromJson<int>(json['beats']),
       progression: serializer.fromJson<bool>(json['progression']),
@@ -2273,6 +2311,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
     return <String, dynamic>{
       'danceId': serializer.toJson<String>(danceId),
       'idx': serializer.toJson<int>(idx),
+      'groupIdx': serializer.toJson<int>(groupIdx),
       'move': serializer.toJson<String>(move),
       'beats': serializer.toJson<int>(beats),
       'progression': serializer.toJson<bool>(progression),
@@ -2285,6 +2324,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
   DanceFigureRow copyWith({
     String? danceId,
     int? idx,
+    int? groupIdx,
     String? move,
     int? beats,
     bool? progression,
@@ -2294,6 +2334,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
   }) => DanceFigureRow(
     danceId: danceId ?? this.danceId,
     idx: idx ?? this.idx,
+    groupIdx: groupIdx ?? this.groupIdx,
     move: move ?? this.move,
     beats: beats ?? this.beats,
     progression: progression ?? this.progression,
@@ -2305,6 +2346,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
     return DanceFigureRow(
       danceId: data.danceId.present ? data.danceId.value : this.danceId,
       idx: data.idx.present ? data.idx.value : this.idx,
+      groupIdx: data.groupIdx.present ? data.groupIdx.value : this.groupIdx,
       move: data.move.present ? data.move.value : this.move,
       beats: data.beats.present ? data.beats.value : this.beats,
       progression: data.progression.present
@@ -2325,6 +2367,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
     return (StringBuffer('DanceFigureRow(')
           ..write('danceId: $danceId, ')
           ..write('idx: $idx, ')
+          ..write('groupIdx: $groupIdx, ')
           ..write('move: $move, ')
           ..write('beats: $beats, ')
           ..write('progression: $progression, ')
@@ -2339,6 +2382,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
   int get hashCode => Object.hash(
     danceId,
     idx,
+    groupIdx,
     move,
     beats,
     progression,
@@ -2352,6 +2396,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
       (other is DanceFigureRow &&
           other.danceId == this.danceId &&
           other.idx == this.idx &&
+          other.groupIdx == this.groupIdx &&
           other.move == this.move &&
           other.beats == this.beats &&
           other.progression == this.progression &&
@@ -2363,6 +2408,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
 class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
   final Value<String> danceId;
   final Value<int> idx;
+  final Value<int> groupIdx;
   final Value<String> move;
   final Value<int> beats;
   final Value<bool> progression;
@@ -2373,6 +2419,7 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
   const DanceFiguresCompanion({
     this.danceId = const Value.absent(),
     this.idx = const Value.absent(),
+    this.groupIdx = const Value.absent(),
     this.move = const Value.absent(),
     this.beats = const Value.absent(),
     this.progression = const Value.absent(),
@@ -2384,6 +2431,7 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
   DanceFiguresCompanion.insert({
     required String danceId,
     required int idx,
+    this.groupIdx = const Value.absent(),
     required String move,
     this.beats = const Value.absent(),
     this.progression = const Value.absent(),
@@ -2397,6 +2445,7 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
   static Insertable<DanceFigureRow> custom({
     Expression<String>? danceId,
     Expression<int>? idx,
+    Expression<int>? groupIdx,
     Expression<String>? move,
     Expression<int>? beats,
     Expression<bool>? progression,
@@ -2408,6 +2457,7 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
     return RawValuesInsertable({
       if (danceId != null) 'dance_id': danceId,
       if (idx != null) 'idx': idx,
+      if (groupIdx != null) 'group_idx': groupIdx,
       if (move != null) 'move': move,
       if (beats != null) 'beats': beats,
       if (progression != null) 'progression': progression,
@@ -2421,6 +2471,7 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
   DanceFiguresCompanion copyWith({
     Value<String>? danceId,
     Value<int>? idx,
+    Value<int>? groupIdx,
     Value<String>? move,
     Value<int>? beats,
     Value<bool>? progression,
@@ -2432,6 +2483,7 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
     return DanceFiguresCompanion(
       danceId: danceId ?? this.danceId,
       idx: idx ?? this.idx,
+      groupIdx: groupIdx ?? this.groupIdx,
       move: move ?? this.move,
       beats: beats ?? this.beats,
       progression: progression ?? this.progression,
@@ -2450,6 +2502,9 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
     }
     if (idx.present) {
       map['idx'] = Variable<int>(idx.value);
+    }
+    if (groupIdx.present) {
+      map['group_idx'] = Variable<int>(groupIdx.value);
     }
     if (move.present) {
       map['move'] = Variable<String>(move.value);
@@ -2480,6 +2535,7 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
     return (StringBuffer('DanceFiguresCompanion(')
           ..write('danceId: $danceId, ')
           ..write('idx: $idx, ')
+          ..write('groupIdx: $groupIdx, ')
           ..write('move: $move, ')
           ..write('beats: $beats, ')
           ..write('progression: $progression, ')
@@ -11080,6 +11136,7 @@ typedef $$DanceFiguresTableCreateCompanionBuilder =
     DanceFiguresCompanion Function({
       required String danceId,
       required int idx,
+      Value<int> groupIdx,
       required String move,
       Value<int> beats,
       Value<bool> progression,
@@ -11092,6 +11149,7 @@ typedef $$DanceFiguresTableUpdateCompanionBuilder =
     DanceFiguresCompanion Function({
       Value<String> danceId,
       Value<int> idx,
+      Value<int> groupIdx,
       Value<String> move,
       Value<int> beats,
       Value<bool> progression,
@@ -11139,6 +11197,11 @@ class $$DanceFiguresTableFilterComposer
   });
   ColumnFilters<int> get idx => $composableBuilder(
     column: $table.idx,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get groupIdx => $composableBuilder(
+    column: $table.groupIdx,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11210,6 +11273,11 @@ class $$DanceFiguresTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get groupIdx => $composableBuilder(
+    column: $table.groupIdx,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get move => $composableBuilder(
     column: $table.move,
     builder: (column) => ColumnOrderings(column),
@@ -11275,6 +11343,9 @@ class $$DanceFiguresTableAnnotationComposer
   });
   GeneratedColumn<int> get idx =>
       $composableBuilder(column: $table.idx, builder: (column) => column);
+
+  GeneratedColumn<int> get groupIdx =>
+      $composableBuilder(column: $table.groupIdx, builder: (column) => column);
 
   GeneratedColumn<String> get move =>
       $composableBuilder(column: $table.move, builder: (column) => column);
@@ -11356,6 +11427,7 @@ class $$DanceFiguresTableTableManager
               ({
                 Value<String> danceId = const Value.absent(),
                 Value<int> idx = const Value.absent(),
+                Value<int> groupIdx = const Value.absent(),
                 Value<String> move = const Value.absent(),
                 Value<int> beats = const Value.absent(),
                 Value<bool> progression = const Value.absent(),
@@ -11366,6 +11438,7 @@ class $$DanceFiguresTableTableManager
               }) => DanceFiguresCompanion(
                 danceId: danceId,
                 idx: idx,
+                groupIdx: groupIdx,
                 move: move,
                 beats: beats,
                 progression: progression,
@@ -11378,6 +11451,7 @@ class $$DanceFiguresTableTableManager
               ({
                 required String danceId,
                 required int idx,
+                Value<int> groupIdx = const Value.absent(),
                 required String move,
                 Value<int> beats = const Value.absent(),
                 Value<bool> progression = const Value.absent(),
@@ -11388,6 +11462,7 @@ class $$DanceFiguresTableTableManager
               }) => DanceFiguresCompanion.insert(
                 danceId: danceId,
                 idx: idx,
+                groupIdx: groupIdx,
                 move: move,
                 beats: beats,
                 progression: progression,

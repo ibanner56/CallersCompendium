@@ -369,9 +369,11 @@ class FigureFilter extends DanceFilter {
 }
 
 /// Sequence: a figure matching [before] occurs **earlier** in the dance than
-/// a figure matching [after] (strict `a.idx < b.idx`). Operands are
-/// [FigureQuery] only — metadata leaves and nested [ThenFilter] have no
-/// per-position meaning and are excluded by the type.
+/// a figure matching [after] (strict `a.group_idx < b.group_idx`, so two
+/// concurrent sides of one `meanwhile` container — which share a group — are
+/// not treated as one-before-the-other; #748). Operands are [FigureQuery] only
+/// — metadata leaves and nested [ThenFilter] have no per-position meaning and
+/// are excluded by the type.
 @immutable
 class ThenFilter extends DanceFilter {
   const ThenFilter(this.before, this.after);

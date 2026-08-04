@@ -280,12 +280,18 @@ class DanceRepository {
       // not itself a searchable move — its children are what get move-indexed;
       // it only supplies their shared section placement. `idx` runs over the
       // FLATTENED constituent stream (the `dance_figures` PK is `{danceId, idx}`
-      // and the `Then` operator relies on `a.idx < b.idx`), so sides occupy
-      // consecutive slots in order. NOTE: concurrent sides are intentionally
-      // per-constituent matchable, but consecutive idx makes them look
-      // sequential to `Then` (false before/after adjacency) — accepted for
-      // #590; concurrency-aware querying is deferred to #594. See
-      // docs/design/search.md "Known limitation".
+      // so each row needs a distinct idx), so sides occupy consecutive slots in
+      // order.
+      //
+      // `groupIdx` is the correlation group used by the `Then` operator (#748):
+      // every row flattened from this one top-level figure — all concurrent
+      // sides of a meanwhile included — shares `groupIdx = i`, which is monotonic
+      // across top-level figures. Because concurrent sides share a group, the
+      // `a.group_idx < b.group_idx` correlation never treats two simultaneous
+      // sides as one-before-the-other, while a genuine sequence of top-level
+      // figures (distinct, increasing groups) still matches. This is what makes
+      // the sides per-constituent matchable WITHOUT the false before/after
+      // adjacency that consecutive `idx` alone would imply.
       //
       // Empty-container fallback (#590): a legacy/partial `{move:"meanwhile"}`
       // that decodes to zero sub-figures must NOT vanish from the index
@@ -305,6 +311,7 @@ class DanceRepository {
               DanceFiguresCompanion.insert(
                 danceId: dance.id,
                 idx: idx,
+                groupIdx: Value(i),
                 move: part.move,
                 beats: Value(part.beats),
                 progression: Value(part.progression),

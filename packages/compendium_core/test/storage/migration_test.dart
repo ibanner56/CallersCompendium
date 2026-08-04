@@ -1487,7 +1487,8 @@ void main() {
       await db.close();
     });
 
-    test('no legacy figures -> the upgrade does NOT schedule a rebuild', () async {
+    test('no legacy figures -> no step rewrites figure text inline (only v22 '
+        'defers a rebuild)', () async {
       // Rewrite the fixture (still at user_version 11) so it holds only a
       // non-ocean move, and stamp a sentinel into the derived table. v12's only
       // canonical-affecting change is the ocean-wave rewrite, so a DB that never
@@ -1506,20 +1507,30 @@ void main() {
       raw.close();
 
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
-      final repos = CompendiumRepositories(db, contraTaxonomy);
-      await repos.ensureMigrated();
+      // Force drift's onUpgrade to run to the current version WITHOUT the
+      // deferred derived rebuild (that lives in ensureMigrated). This isolates
+      // what the migration steps do from what the rebuild does.
+      await db.customSelect('SELECT 1').get();
 
-      // The rebuild marker was never written, so it is absent.
+      // Crossing the v22 boundary adds dance_figures.group_idx (#748), which
+      // owes a one-time derived rebuild, so the marker is set — the only rebuild
+      // this path schedules (the ocean-wave step no-ops over a DB that never
+      // held the legacy move).
       final marker = await db
           .customSelect(
             'SELECT value_json FROM settings WHERE key = ?',
             variables: [Variable.withString(derivedRebuildRequiredKey)],
           )
           .get();
-      expect(marker, isEmpty, reason: 'no rewrite => no rebuild scheduled');
+      expect(
+        marker,
+        isNotEmpty,
+        reason: 'the v22 group_idx column owes a deferred rebuild',
+      );
 
-      // Proof no rebuild ran: the sentinel derived row survived untouched (a
-      // rebuild would have regenerated canonical_text from figures_json).
+      // Proof no step rewrote figure text inline: the sentinel derived row
+      // survived onUpgrade untouched (the deferred rebuild, which would
+      // regenerate canonical_text from figures_json, has not run).
       final rows = await db
           .customSelect(
             'SELECT canonical_text FROM dance_figures '
@@ -1657,9 +1668,11 @@ void main() {
       },
     );
 
-    test('is a pure index migration — schedules no derived rebuild', () async {
-      // Stamp a sentinel into the derived table; a spurious rebuild would wipe
-      // it. v13 touches no figure text, so the derived rows must survive.
+    test('index-only step rewrites no figure text inline (v22 defers the '
+        'group_idx rebuild)', () async {
+      // Stamp a sentinel into the derived table; a spurious inline rewrite would
+      // wipe it. v13's index step touches no figure text, so it survives
+      // onUpgrade (the v22 group_idx rebuild is deferred, not run here).
       final raw = sqlite3.sqlite3.open(dbPath);
       raw.execute(
         "UPDATE dance_figures SET canonical_text = 'SENTINEL' "
@@ -1669,9 +1682,13 @@ void main() {
       raw.close();
 
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
-      final repos = CompendiumRepositories(db, contraTaxonomy);
-      await repos.ensureMigrated();
+      // onUpgrade only — the deferred derived rebuild lives in ensureMigrated.
+      await db.customSelect('SELECT 1').get();
 
+      // Crossing the v22 boundary adds dance_figures.group_idx (#748), which
+      // owes a one-time derived rebuild, so the marker is set. The v13 index
+      // step itself rewrites nothing; the sentinel below proves no step touched
+      // figure text inline.
       final marker = await db
           .customSelect(
             'SELECT value_json FROM settings WHERE key = ?',
@@ -1680,8 +1697,8 @@ void main() {
           .get();
       expect(
         marker,
-        isEmpty,
-        reason: 'an index-only migration rebuilds nothing',
+        isNotEmpty,
+        reason: 'the v22 group_idx column owes a deferred rebuild',
       );
 
       final rows = await db
@@ -1726,7 +1743,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 21);
+      expect(db.schemaVersion, 22);
 
       await db.close();
     });
@@ -1832,7 +1849,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 21);
+      expect(db.schemaVersion, 22);
 
       await db.close();
     });
@@ -1954,7 +1971,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').get();
       expect(version.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 21);
+      expect(db.schemaVersion, 22);
 
       await db.close();
     });
@@ -1996,9 +2013,11 @@ void main() {
       },
     );
 
-    test('is a pure index migration — schedules no derived rebuild', () async {
-      // Stamp a sentinel into the derived table; a spurious rebuild would wipe
-      // it. v16 touches no figure text, so the derived rows must survive.
+    test('index-only step rewrites no figure text inline (v22 defers the '
+        'group_idx rebuild)', () async {
+      // Stamp a sentinel into the derived table; a spurious inline rewrite would
+      // wipe it. v16's index step touches no figure text, so it survives
+      // onUpgrade (the v22 group_idx rebuild is deferred, not run here).
       final raw = sqlite3.sqlite3.open(dbPath);
       raw.execute(
         "UPDATE dance_figures SET canonical_text = 'SENTINEL' "
@@ -2008,9 +2027,13 @@ void main() {
       raw.close();
 
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
-      final repos = CompendiumRepositories(db, contraTaxonomy);
-      await repos.ensureMigrated();
+      // onUpgrade only — the deferred derived rebuild lives in ensureMigrated.
+      await db.customSelect('SELECT 1').get();
 
+      // Crossing the v22 boundary adds dance_figures.group_idx (#748), which
+      // owes a one-time derived rebuild, so the marker is set. The v16 index
+      // step itself rewrites nothing; the sentinel below proves no step touched
+      // figure text inline.
       final marker = await db
           .customSelect(
             'SELECT value_json FROM settings WHERE key = ?',
@@ -2019,8 +2042,8 @@ void main() {
           .get();
       expect(
         marker,
-        isEmpty,
-        reason: 'an index-only migration rebuilds nothing',
+        isNotEmpty,
+        reason: 'the v22 group_idx column owes a deferred rebuild',
       );
 
       final rows = await db
@@ -2838,7 +2861,7 @@ void main() {
           await repos.ensureMigrated();
 
           final version = await db.customSelect('PRAGMA user_version').get();
-          expect(version.single.data.values.first, 21, reason: 'from v$from');
+          expect(version.single.data.values.first, 22, reason: 'from v$from');
 
           final figures = (await repos.dances.getById('dance-1'))!.figures;
           // Both legacy shapes landed on the merged move, with the TCB subject
@@ -3146,6 +3169,107 @@ void main() {
         await db.close();
       },
     );
+  });
+
+  group('v21 -> v22 upgrade (issue #748 dance_figures.group_idx)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v22_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v21 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v21.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    Future<List<String>> columnsOf(CompendiumDatabase db, String table) async {
+      final rows = await db
+          .customSelect("SELECT name FROM pragma_table_info('$table')")
+          .get();
+      return [for (final r in rows) r.read<String>('name')];
+    }
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, db.schemaVersion);
+
+      await db.close();
+    });
+
+    test('adds the group_idx column to dance_figures', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      expect(await columnsOf(db, 'dance_figures'), contains('group_idx'));
+
+      await db.close();
+    });
+
+    test('the rebuild repopulates group_idx from figures_json', () async {
+      // The migration's `addColumn` gives every existing row the DEFAULT (0);
+      // only the scheduled derived rebuild recomputes the real grouping. So a
+      // correct result here proves the rebuild ran, not merely the column add:
+      // the two concurrent sides of the container share one group_idx, and the
+      // trailing top-level figure gets a distinct, higher one.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db
+          .customSelect(
+            "SELECT move, group_idx FROM dance_figures "
+            "WHERE dance_id = 'dance-mw' ORDER BY idx",
+          )
+          .get();
+      final moves = [for (final r in rows) r.read<String>('move')];
+      final groups = [for (final r in rows) r.read<int>('group_idx')];
+      expect(moves, ['petronella', 'swing', 'long_lines']);
+      // Sides of the container share a group; the trailing figure is later.
+      expect(groups[0], groups[1]);
+      expect(groups[2], greaterThan(groups[1]));
+
+      await db.close();
+    });
+
+    test('Then excludes concurrent sides after the migration', () async {
+      // End-to-end: against the migrated fixture, a `Then` over the container's
+      // two concurrent sides must not match in either direction, while the
+      // genuinely sequential `dance-seq` still does.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      expect(
+        await repos.dances.search(
+          ThenFilter(FigureLeaf('petronella'), FigureLeaf('swing')),
+        ),
+        ['dance-seq'],
+      );
+      expect(
+        await repos.dances.search(
+          ThenFilter(FigureLeaf('swing'), FigureLeaf('petronella')),
+        ),
+        isEmpty,
+      );
+
+      await db.close();
+    });
   });
 }
 
