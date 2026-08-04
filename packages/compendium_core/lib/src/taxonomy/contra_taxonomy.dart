@@ -110,8 +110,9 @@ import 'taxonomy.dart';
 /// v18: adds `singleFile` flags to `promenade` and `circle` (issue #634,
 ///     deferred from #585) for ContraDB's "single file promenade along major
 ///     set" and "promenade single file around the circle N places" free-text
-///     phrasings — both additive, default-`false` flags, not render tokens
-///     (cf. `star.grip`), so canonical text is byte-stable at the default.
+///     phrasings — both additive, default-`false` flags. At this version they
+///     were structural-only (not display-rendered); #749 gap A adds display
+///     renders. Canonical text stays byte-stable.
 ///     There is no separate `circle_left` move: the single existing `circle`
 ///     move's `turn` param already covers left/right, so the single-file
 ///     circle case reuses it with `turn` defaulted to `left` (the phrasing
@@ -834,7 +835,8 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // set (no per-couple dancer relationship), vs. the ordinary partnered
         // promenade. A display-only render token (issue #749): the display
         // renders show "single file promenade" when true; canonical text stays
-        // byte-stable at the default (Gap B of #749 tracks canonical inclusion).
+        // byte-stable even at non-default values (Gap B of #749 tracks
+        // canonical inclusion).
         'singleFile': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
@@ -1476,7 +1478,8 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // `circle_left` id exists in this taxonomy; `turn` already covers
         // left/right). A display-only render token (issue #749): the display
         // renders append "- single file" when true; canonical text stays
-        // byte-stable at the default (Gap B of #749 tracks canonical inclusion).
+        // byte-stable even at non-default values (Gap B of #749 tracks
+        // canonical inclusion).
         'singleFile': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },

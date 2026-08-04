@@ -291,4 +291,45 @@ void main() {
       },
     );
   });
+
+  group(
+    'dialect substitution applies uniformly to singleFile path (issue #749)',
+    () {
+      // A dialect that renames 'promenade' must apply on BOTH the ordinary and
+      // the singleFile branch — if the singleFile branch returns a hardcoded
+      // string before reaching _renderMoveName, the substitution is silently
+      // dropped. These tests fail against c68bd58e (hardcoded 'single file
+      // promenade') and pass once the branch routes through _renderMoveName.
+      final d = Dialect(name: 'Test', moves: const {'promenade': 'walkabout'});
+
+      test('singleFile: true applies Dialect.moves override on move name', () {
+        final f = testFigure(move: 'promenade', params: {'singleFile': true});
+        expect(renderer.render(f, d), 'single file walkabout');
+      });
+
+      test('singleFile: false applies Dialect.moves override on move name', () {
+        final f = testFigure(move: 'promenade', params: {'singleFile': false});
+        expect(renderer.render(f, d), 'partner walkabout');
+      });
+
+      test(
+        'singleFile: true surfaces explicit non-default who before move',
+        () {
+          final f = testFigure(
+            move: 'promenade',
+            params: {'singleFile': true, 'who': 'neighbors'},
+          );
+          expect(renderer.render(f, d), 'neighbor single file walkabout');
+        },
+      );
+
+      test('singleFile: true suppresses default who (partners)', () {
+        final f = testFigure(
+          move: 'promenade',
+          params: {'singleFile': true, 'who': 'partners'},
+        );
+        expect(renderer.render(f, d), 'single file walkabout');
+      });
+    },
+  );
 }

@@ -1527,21 +1527,28 @@ class FigureRenderer {
     },
     // `promenade.singleFile` (taxonomy v18, issue #634): a true single-file
     // promenade (nose-to-tail around the major set) differs materially from
-    // the ordinary partnered promenade — "single file promenade" mirrors the
+    // the ordinary partnered promenade — "single file {move}" mirrors the
     // ContraDB source text ("single file promenade along major set to new
-    // neighbors"). `who` and `dir` are dropped: the source has no dancer
-    // subject before "single file" and the rest of the source line goes into
-    // the figure note. For the ordinary (singleFile: false) case the base line
+    // neighbors"). `dir` is dropped (no direction in source). `who` is
+    // suppressed at the taxonomy default ('partners') to match the import
+    // path; an explicit non-default `who` is surfaced before the move name.
+    // Both cases route through `_renderMoveName` so Dialect.moves overrides
+    // apply uniformly. For the ordinary (singleFile: false) case the base line
     // reproduces the existing template expansion {who} promenade {dir}
     // including the direction-silencing rule for the `across` default.
     // `renderCanonical` keeps expanding `renderTemplate` ({who} {move} {dir})
     // and is unaffected.
     'promenade': (r, def, params, dialect, verbose, decimals) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       if (params['singleFile'] == true) {
-        return 'single file promenade';
+        final whoDefault = def.params['who']?.defaultValue;
+        final whoRaw = params['who'];
+        final swho = (whoRaw != null && whoRaw != whoDefault)
+            ? r._subjectWho(params, dialect)
+            : '';
+        return [swho, 'single file $move'].where((s) => s.isNotEmpty).join(' ');
       }
       final swho = r._subjectWho(params, dialect);
-      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       // Re-apply the direction-silencing rule that the template-expansion path
       // uses for promenade (ContraDB `stringParamSetDirectionSilencingDefault`
       // 'across'): omit `dir` when it equals the taxonomy default.
