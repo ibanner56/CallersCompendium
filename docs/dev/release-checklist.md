@@ -78,12 +78,14 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  real client accepts the signed update end-to-end (beta.4 is the first signed
  release, so this is the first live verification). See
  [releasing.md → Signing the update manifest](releasing.md#signing-the-update-manifest-ed25519-issue-431).
-- [ ] **`pages-sig-gate` is green (Gate — issue #759).**
+- [ ] **`pages-sig-gate` is green (Gate — issues #759, #810).**
  The post-publish `Assert gh-pages signature invariant` step in the `pages` job
  reports this synchronously — a red step means the published `<channel>.json.sig` is
- missing and the updater will silently report "no update" to all users on this channel.
- The `gh-pages signature gate` workflow also runs daily (≤24h detection window for
- out-of-band deletions); confirm no pending failures at
+ missing **or does not verify** against the pinned key (`kUpdateManifestPublicKey`);
+ either failure causes the updater to silently report "no update" to all users on this
+ channel. A stale signature from a previous release alongside an updated manifest also
+ fails (issue #810). The `gh-pages signature gate` workflow also runs daily (≤24h
+ detection window for out-of-band changes); confirm no pending failures at
  **Actions → gh-pages signature gate**.
 - [ ] In-app update check resolves against the manifest (or is knowingly disabled
  for beta — record which).
