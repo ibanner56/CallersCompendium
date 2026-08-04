@@ -203,7 +203,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**142 columns**: 108 shareable, 17 device-local, 17 derived. 24 personal data by category.
+**143 columns**: 109 shareable, 17 device-local, 17 derived. 24 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -219,12 +219,13 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `custom_field_defs` | `key` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `custom_field_defs` | `label` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `custom_field_defs` | `searchable` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `custom_field_defs` | `shareable` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Per-field flag: whether this field and its values may travel in a shared archive. Classified shareable because the flag is carried on the defs that *are* emitted — excluded defs are omitted entirely from the encoded archive. Recipients see no indication that any fields were withheld; disclosing the count of excluded fields would itself leak information the sender chose not to share. This is the only field that directly controls egress of another field (custom_field_values.value_text). Added in #780. |
 | `custom_field_defs` | `show_in_list` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `custom_field_defs` | `type` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `custom_field_values` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `custom_field_values` | `field_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `custom_field_values` | `value_num` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
-| `custom_field_values` | `value_text` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Holds either unbounded free text or a user-defined choice value, for a field the user invented and named. Shareable by maintainer ruling: custom fields are core collection data. Two obligations attach to that ruling — (1) creating a custom field must show a one-time notice that its contents travel, and (2) per-field exclusion from sharing is a tracked backlog item (#780). Both are prerequisites of sync shipping, not of this catalogue. |
+| `custom_field_values` | `value_text` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Holds either unbounded free text or a user-defined choice value, for a field the user invented and named. Shareable by maintainer ruling: custom fields are core collection data. Egress is conditional on the field definition's shareable flag (custom_field_defs.shareable, added in #780): when shareable = false, neither this field def nor its values are emitted in an archive. The one-time disclosure notice on field creation (obligation 1) and the per-field exclusion control (obligation 2) were both implemented in #780. |
 | `dance_authors` | `choreographer_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dance_authors` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dance_authors` | `position` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
@@ -354,7 +355,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**48 settings keys**: 41 shareable, 7 device-scoped. 2 personal data by category.
+**49 settings keys**: 41 shareable, 8 device-scoped. 2 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -369,6 +370,7 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `colour_dance_theme` | `dpv:NonPersonalData` | app user | shareable |  |
 | `confirm_before_delete` | `dpv:NonPersonalData` | app user | shareable |  |
 | `custom_dialects` | `dpv:NonPersonalData` | app user | shareable |  |
+| `custom_fields.sharing.disclosed` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `custom_themes` | `dpv:NonPersonalData` | app user | shareable |  |
 | `date_format` | `dpv:NonPersonalData` | app user | shareable |  |
 | `date_format_custom` | `dpv:NonPersonalData` | app user | shareable |  |
