@@ -36,13 +36,15 @@ import 'figure_text_scrub.dart';
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
 ///
 /// Pre-recognizer order is not correctness-critical: each requires a distinct
-/// anchor (`hey` / `circulate:` / `gate` / `courtesy turn` / `walk forward` /
-/// `chain` / `promenade` / `right (and) left through`) plus a successful
-/// resolution to its own move, so no two can claim the same line.
+/// anchor (`hey` / `circulate:` / `square through <n>` / `gate` / `courtesy
+/// turn` / `walk forward` / `chain` / `promenade` / `right (and) left through`)
+/// plus a successful resolution to its own move, so no two can claim the same
+/// line.
 final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
   preRecognizers: [
     _hey,
     _circulate,
+    _squareThroughPassList,
     _gateAnnotation,
     _courtesyTurnAnnotation,
     _walkForwardAnnotation,
@@ -1218,6 +1220,145 @@ FigureMatch? _circulate(String scrubbed) {
   final def = scrubbed.substring(colon + 1).trim();
   if (def.isEmpty || head != 'circulate') return null;
   return FigureMatch('box_circulate', note: def);
+}
+
+/// Decodes TCB's `Square through <n> (<pass list>)` shorthand into a structured
+/// `square_through`, reading the parenthetical pass codes that
+/// [_stripAnnotations] would otherwise drop before recognition (#799).
+///
+/// **Why a dedicated pre-recognizer.** The pass list is the STRUCTURED payload
+/// of the line, not a droppable prose qualifier — exactly like the `hey` pass
+/// list ([_hey]) and `grand right and left` ([grandRightAndLeftFromPassList]),
+/// and unlike the note-preserving `()`/`[]` qualifiers #729/#733/#744 handle.
+/// Without it, `Square through 2 (N2R;SL)` reaches the shared recognizer as a
+/// bare `square through 2`, which sets only `places` and lets `who`/`who2`/
+/// `hand`/`balance` fall to their taxonomy defaults (`partners`/`neighbors`/
+/// `right`/**`true`**). That does not merely lose the pass detail: the default
+/// `who`/`who2` assert the WRONG dancers and the default `balance: true` renders
+/// a balance the line never states (and, inside the `interrupted square
+/// through` compound this issue reports, DOUBLES the balance the sibling
+/// sub-figure already carries). This is a fidelity bug across the whole class of
+/// `Square through <n> (<pass list>)` lines, not only the reported "2".
+///
+/// **Mapping (see the `square_through` renderer).** A square through's passes
+/// alternate between two dancer sets and two hands: odd passes name `who` at the
+/// base `hand`, even passes name `who2` at the opposite hand. So the pass list
+/// is decoded as `<people-code><R|L>` cells whose:
+///   * odd 1-based positions must all name the SAME dancer → `who`;
+///   * even positions must all name the same dancer → `who2`;
+///   * hands strictly alternate by position parity → the base `hand` (position
+///     1's hand).
+/// `who2` is omitted (not defaulted) when the list has only odd passes.
+///
+/// **`balance: false` explicitly (import fidelity).** TCB writes the balance as
+/// a SEPARATE preceding line, never inline on a square-through line, so a
+/// standalone `Square through <n> (…)` carries NO balance. `square_through`'s
+/// MoveDef defaults `balance: true`, so — mirroring [_roryOMore] — we emit
+/// `false` rather than inheriting a balance the source never stated. (This
+/// pre-recognizer does not itself fold a preceding balance line in; a preceding
+/// `<who> balance` remains its own figure, matching TCB's two-line source.)
+///
+/// **Conservative / prefer-custom (returns `null` → shared/custom path) when:**
+///   * there is no single `(...)` pass list (a second parenthetical also
+///     declines — extra structure we do not model);
+///   * the text OUTSIDE the pass list is not exactly `square through <n>`
+///     (modulo filler), `n` in 2..10 — so an `interrupted`/`modified` qualifier,
+///     a trailing `-` clause, an inline `balance`, or any other prose stays out;
+///   * the cell count does not equal `n` (a square through of `n` has `n`
+///     passes; a mismatch is an unmodeled variant);
+///   * any cell is not `<people-code><R|L>` with the people code present in
+///     [tcbPassPeople] (square corners, mixer partner series, out-of-range
+///     neighbors/shadows, phantoms and bare `R`/`L` therefore stay custom rather
+///     than being approximated onto a token that means something else);
+///   * the odd/even dancers are not internally consistent, or the hands do not
+///     alternate (an ambiguous list is never partially structured).
+///
+/// [kMaxPassListCells] bounds the decode (OWASP: figure text is untrusted); the
+/// `n <= 10` cap already keeps the cell count small, and this is defence in
+/// depth shared with the grand-right-and-left decoder.
+FigureMatch? _squareThroughPassList(String scrubbed) {
+  final lower = scrubbed.toLowerCase();
+  final open = lower.indexOf('(');
+  if (open == -1) return null;
+  final close = lower.indexOf(')', open + 1);
+  if (close == -1) return null;
+  // A second parenthetical means extra structure we do not model -> decline.
+  if (lower.indexOf('(', close + 1) != -1) return null;
+  final passText = lower.substring(open + 1, close);
+  final outside = '${lower.substring(0, open)} ${lower.substring(close + 1)}';
+
+  // Outside the pass list must be EXACTLY "square through <n>" (+ filler).
+  final outWords = outside
+      .split(RegExp(r'\s+'))
+      .map(_stripEdgePunct)
+      .where((w) => w.isNotEmpty && !_filler.contains(w))
+      .toList();
+  if (outWords.length != 3) return null;
+  if (outWords[0] != 'square' || outWords[1] != 'through') return null;
+  final places = int.tryParse(outWords[2]);
+  // A square through has at least 2 passes; the upper bound mirrors the shared
+  // recognizer's 1..10 places domain.
+  if (places == null || places < 2 || places > 10) return null;
+
+  final cells = passText.split(';').map((c) => c.trim()).toList();
+  // "Square through n" is exactly n passes; a mismatch is an unmodeled variant.
+  if (cells.length != places) return null;
+  if (cells.length > kMaxPassListCells) return null; // OWASP bound (defence)
+
+  String? who;
+  String? who2;
+  String? handBase;
+  for (var i = 0; i < cells.length; i++) {
+    final position = i + 1; // 1-based pass position.
+    final cell = cells[i];
+    if (cell.isEmpty) return null;
+    final handChar = cell[cell.length - 1];
+    final hand = handChar == 'r'
+        ? 'right'
+        : handChar == 'l'
+        ? 'left'
+        : null;
+    if (hand == null) return null;
+    final person = tcbPassPeople[cell.substring(0, cell.length - 1)];
+    if (person == null) return null;
+
+    // Hands alternate by parity; derive the base (position-1) hand and require
+    // every cell to agree — a list that does not alternate is malformed -> null.
+    final impliedBase = position.isOdd ? hand : _otherShoulder(hand);
+    if (handBase == null) {
+      handBase = impliedBase;
+    } else if (handBase != impliedBase) {
+      return null;
+    }
+
+    // Odd positions all name `who`, even positions all name `who2`.
+    if (position.isOdd) {
+      if (who == null) {
+        who = person;
+      } else if (who != person) {
+        return null;
+      }
+    } else {
+      if (who2 == null) {
+        who2 = person;
+      } else if (who2 != person) {
+        return null;
+      }
+    }
+  }
+  if (who == null || handBase == null) return null;
+
+  return FigureMatch(
+    'square_through',
+    params: {
+      'places': places,
+      'who': who,
+      'who2': ?who2,
+      'hand': handBase,
+      // Import fidelity: TCB never inlines the balance on a square-through line.
+      'balance': false,
+    },
+  );
 }
 
 FigureMatch? _hey(String scrubbed) {
