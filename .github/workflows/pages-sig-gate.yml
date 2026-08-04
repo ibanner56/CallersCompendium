@@ -1,0 +1,65 @@
+# gh-pages signature gate: assert the published gh-pages state on a daily
+# schedule and on manual dispatch.
+#
+# WHAT it checks: every ``*.json`` at the gh-pages root has a sibling
+# ``*.json.sig`` file. A missing .sig file makes the in-app update client fail
+# closed and silently report "no update" to every user on that channel
+# (issue #714, #759). This checks **presence** of the .sig file, not its
+# cryptographic validity (tracked as a follow-up; requires Ed25519 tooling
+# outside the Python stdlib).
+#
+# DETECTION WINDOW: out-of-band deletions (direct git push, GitHub UI edit,
+# or any path that does not go through our publish scripts) are caught within
+# ≤24 hours by the daily schedule. Immediate detection on publish-path
+# regressions is provided by the post-publish "Assert gh-pages signature
+# invariant" steps in pages-site.yml and the release.yml pages job.
+#
+# WHY no push trigger on gh-pages: GitHub Actions evaluates push-triggered
+# workflows from the workflow files on the pushed branch/commit. The
+# publish_pages_site.sh publisher preserves only .git, .nojekyll, *.json, and
+# *.json.sig — so .github/ is absent from gh-pages and a push trigger would
+# never fire. Preserving .github/ on gh-pages would require editing the
+# publisher (publish_pages_site.sh), which is out of scope. The schedule is
+# therefore the primary mechanism for the "any path" case.
+#
+# WHY this is separate from the post-publish steps in pages-site.yml and
+# release.yml: those are defence-in-depth and run synchronously in the publish
+# job. This workflow catches a deletion that happens between publish events.
+name: gh-pages signature gate
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # daily at 06:00 UTC
+  workflow_dispatch: {}
+
+# Least privilege: only read is needed to fetch gh-pages content.
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Assert every *.json has a *.json.sig
+    runs-on: ubuntu-latest
+    # Canonical repo only; prevents forks from accidentally running this check
+    # against their own gh-pages (or failing on its absence) — mirrors the same
+    # guard used in pages-site.yml and the release pages job.
+    if: github.repository == 'ibanner56/CallersCompendium'
+    steps:
+      # Check out the default branch (main) to get
+      # tools/release/check_pages_signature_files.py.
+      # For schedule and workflow_dispatch, actions/checkout without an
+      # explicit ref defaults to the default branch (main), where tools/ lives.
+      # We do NOT check out gh-pages here — we fetch it separately so the
+      # script is available and the gh-pages content is isolated in a temp dir.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Fetch gh-pages and assert signature invariant
+        run: |
+          set -euo pipefail
+          # Fetch the tip of gh-pages.  A missing branch means no manifest has
+          # ever been published, which itself means all update checks fail — fail
+          # loudly rather than silently skipping.
+          git fetch --no-tags --depth=1 origin gh-pages
+          tmpdir="$(mktemp -d)"
+          git archive FETCH_HEAD | tar -x -C "$tmpdir"
+          python3 tools/release/check_pages_signature_files.py "$tmpdir"

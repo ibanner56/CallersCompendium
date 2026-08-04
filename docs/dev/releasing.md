@@ -339,6 +339,37 @@ cross-channel-preservation contract:
 python3 tools/release/test_publish_pages_manifest.py
 ```
 
+### Ongoing state gate (issue #759)
+
+`pages-sig-gate.yml` runs on a **daily schedule** (06:00 UTC) and on manual
+`workflow_dispatch`, asserting the invariant:
+
+> every `*.json` at the `gh-pages` root has a sibling `*.json.sig` file
+
+A missing `.sig` file makes the in-app update client fail closed and silently report "no
+update" to every user on that channel — the failure is invisible by design, which is why
+an external, ongoing assertion is necessary. An out-of-band deletion (direct `git push`
+to `gh-pages`, a rogue workflow, or a GitHub UI edit) is caught within **≤24 hours** by
+the daily schedule. Publish-path regressions are caught immediately by the post-publish
+`Assert gh-pages signature invariant` steps in `pages-site.yml` and the `pages` job in
+`release.yml` (defence in depth).
+
+The gate has no `push: branches: [gh-pages]` trigger because GitHub Actions evaluates
+push-triggered workflows from the workflow files on the pushed branch — and
+`publish_pages_site.sh` preserves only `.git`, `.nojekyll`, `*.json`, and `*.json.sig`
+on `gh-pages`, so `.github/` is absent and a push trigger would never fire.
+
+Run it manually at any time:
+
+```sh
+gh workflow run pages-sig-gate.yml
+```
+
+The check script is `tools/release/check_pages_signature_files.py` and its offline test
+suite is `tools/release/test_check_pages_signature_files.py`. The check verifies
+**presence** of `.sig` files, not their cryptographic validity (that is a follow-up
+requiring Ed25519 tooling outside the Python stdlib).
+
 ## Signing the update manifest (Ed25519, issue #431)
 
 The in-app update client verifies **integrity** with the per-artifact `sha256`
