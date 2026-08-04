@@ -334,9 +334,19 @@ class FilterCompiler {
   String _then(FigureQuery before, FigureQuery after, List<Object?> binds) {
     final a = _figureClause(before, 'a', binds);
     final b = _figureClause(after, 'b', binds);
+    // Correlate on `group_idx`, not `idx` (#748). A `meanwhile` container is
+    // flattened into one `dance_figures` row per concurrent side (#590), and
+    // the `{dance_id, idx}` PK forces those sides onto consecutive `idx`
+    // values — so `a.idx < b.idx` would treat two *simultaneous* sides as
+    // one-before-the-other, matching an `X while Y` container for both
+    // `Then(X, Y)` and `Then(Y, X)`. `group_idx` is shared by all rows
+    // flattened from one top-level figure (see `_insertDerivedRows`), so two
+    // concurrent sides share a group and the strict `<` excludes them in both
+    // directions, while a genuine sequence (distinct, increasing groups) still
+    // matches.
     return 'id IN (SELECT a.dance_id FROM dance_figures a '
         'JOIN dance_figures b ON a.dance_id = b.dance_id '
-        'AND a.idx < b.idx '
+        'AND a.group_idx < b.group_idx '
         'WHERE ($a) AND ($b))';
   }
 

@@ -202,29 +202,37 @@ individually matchable — a `FigureLeaf` matches either side, and FTS matches
 either side's text. `idx` runs over the **flattened** constituent stream (the
 `{dance_id, idx}` primary key requires distinct idx per row), so the container's
 sides occupy consecutive slots in order; the container itself supplies their
-shared section/beat placement.
+shared section/beat placement. A second column, `group_idx`, is **shared** by
+every row flattened from one top-level figure (all concurrent sides of a
+container included) and is monotonic across top-level figures; it is what the
+`Then` operator correlates on (see below), so simultaneous sides — which share a
+group — are never read as sequential.
 
-**Known limitation (#590 → follow-up for #594).** Because concurrent sides get
-consecutive `idx` values, they are indistinguishable from a genuine sequence to
-the `Then` operator's `a.idx < b.idx` correlation: `Then(X, Y)` will match when
-`X` and `Y` are actually *simultaneous* sides of one `meanwhile`, not one after
-the other. This false "before/after" adjacency is accepted for #590 (the
-core-model/indexing child), whose goal is per-constituent matchability.
-Refining `Then` concurrency-vs-sequence semantics belongs to the render/query
-child (#594); if it proves to matter sooner, file a follow-up rather than
-widening #590.
+**Concurrency vs. sequence in `Then` (#748, was a #590 limitation).** Because a
+container's concurrent sides get consecutive `idx` values, a positional
+correlation on `a.idx < b.idx` could not tell them apart from a genuine
+sequence: `Then(X, Y)` — and, symmetrically, `Then(Y, X)` — would both match an
+`X while Y` container even though neither side happens before the other. The
+signal needed to separate "two sides of one container" from "two sequential
+figures" is not derivable from `idx`, `section` (sequential figures can share a
+phrase) or `beats` (each side stores its own), so it is carried explicitly as
+`group_idx`. `Then` correlates on `a.group_idx < b.group_idx`: two sides of one
+container share a group and are excluded in **both** directions, while a real
+sequence (distinct, increasing groups) still matches. This was originally
+recorded as a limitation deferred to #594; #594 shipped without addressing it,
+so #748 tracked and fixed it.
 
 ### Sequence: `Then(before, after)`
 
 "A figure matching `before` occurs earlier in the dance than a figure matching
-`after`" → a self-join on `dance_figures.idx`:
+`after`" → a self-join on `dance_figures.group_idx`:
 
 ```sql
 EXISTS (SELECT 1 FROM dance_figures a
         JOIN dance_figures b
           ON a.dance_id = b.dance_id
          AND a.dance_id = dances.id
-         AND a.idx < b.idx
+         AND a.group_idx < b.group_idx
         WHERE (<before applied to a>)
           AND (<after applied to b>))
 ```
@@ -232,10 +240,12 @@ EXISTS (SELECT 1 FROM dance_figures a
 `<before applied to a>` / `<after applied to b>` are the `FigureQuery` clauses
 compiled against aliases `a` and `b` respectively (same clause shapes as the
 `EXISTS` above, minus the `dance_id` correlation which the join supplies).
-`a.idx < b.idx` gives strict "before"; consecutive-only ("immediately then") is
-**not** in v1 (see *Open questions*). Nested `Then` is not supported in v1 —
-`Then` operands are `FigureQuery`, which excludes `Then` — keeping the compiled
-join to a single pair of aliases.
+`a.group_idx < b.group_idx` gives strict "before" while excluding the concurrent
+sides of one `meanwhile` (which share a `group_idx`; see the flatten note
+above); consecutive-only ("immediately then") is **not** in v1 (see *Open
+questions*). Nested `Then` is not supported in v1 — `Then` operands are
+`FigureQuery`, which excludes `Then` — keeping the compiled join to a single
+pair of aliases.
 
 ### Combinators & sort
 
@@ -283,7 +293,7 @@ WHERE deleted_at IS NULL
                 JOIN dance_figures b
                   ON a.dance_id = b.dance_id
                  AND a.dance_id = dances.id
-                 AND a.idx < b.idx
+                 AND a.group_idx < b.group_idx
                 WHERE (a.move = ? AND a.section = ?)  -- 'petronella','B1'
                   AND (b.move = ?)) )                 -- 'swing'
 ORDER BY title COLLATE NOCASE;

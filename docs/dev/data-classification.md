@@ -203,7 +203,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**141 columns**: 108 shareable, 17 device-local, 16 derived. 24 personal data by category.
+**142 columns**: 108 shareable, 17 device-local, 17 derived. 24 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -231,6 +231,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dance_figures` | `beats` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
 | `dance_figures` | `canonical_text` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
 | `dance_figures` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_figures` | `group_idx` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
 | `dance_figures` | `idx` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
 | `dance_figures` | `move` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
 | `dance_figures` | `params_json` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |

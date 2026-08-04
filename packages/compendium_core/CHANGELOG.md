@@ -108,6 +108,24 @@
 
 ### Fixed
 
+- **`Then(before, after)` no longer matches the two concurrent sides of a
+  `meanwhile` container as if one preceded the other (#748).** The self-join
+  correlated on `a.idx < b.idx`, but the #590 flattener gives an `X while Y`
+  container's sides consecutive `idx` values under the `{danceId, idx}` primary
+  key, so `Then(X, Y)` — and symmetrically `Then(Y, X)` — matched a container in
+  which neither side happens before the other. The concurrency signal was absent
+  from the index: no `dance_figures` column told two consecutive top-level
+  figures apart from two sides of one container. A derived `group_idx` column,
+  shared by every row flattened from one top-level figure and monotonic across
+  them (`idx` stays unique for the key), now backs the correlation:
+  `_then` keys on `a.group_idx < b.group_idx`, so two sides of a container share
+  a `group_idx` and neither direction matches, while a genuine sequence still
+  does. Multi-side and nested containers follow — all sides of a container share
+  one `group_idx`. Schema **v21 -> v22**: `addColumn(group_idx)` plus a deferred,
+  crash-safe derived rebuild repopulates it from `figures_json` (mirroring the v2
+  `section` precedent). This resolves the limitation `docs/design/search.md` had
+  recorded and deferred to #594, which shipped and closed without addressing it.
+
 - **Caller's Box `Square through <n> (<pass list>)` no longer drops its pass
   list (#799).** The `()`/`[]` strip is recognition-only, so a structured
   `square_through` never saw the parenthetical `(N2R;SL)` and fell to the

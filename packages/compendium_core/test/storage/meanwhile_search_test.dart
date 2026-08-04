@@ -42,6 +42,10 @@ void main() {
     // 1 (swing) + 2 (the two concurrent sides) = 3 rows, with contiguous idx.
     expect(rows.map((r) => r.move), ['swing', 'do_si_do', 'petronella']);
     expect(rows.map((r) => r.idx), [0, 1, 2]);
+    // `group_idx` correlates by top-level figure (#748): the leading swing is
+    // its own group (0); the two concurrent container sides SHARE one group (1),
+    // so `Then` never reads them as sequential.
+    expect(rows.map((r) => r.groupIdx), [0, 1, 1]);
     // The container itself is not indexed as a `meanwhile` move.
     expect(rows.any((r) => r.move == meanwhileMove), isFalse);
   });

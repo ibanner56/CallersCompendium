@@ -784,6 +784,118 @@ void main() {
     });
   });
 
+  group('sequence: Then vs concurrent meanwhile (#748)', () {
+    // A `meanwhile` container is flattened per side (#590) onto consecutive
+    // `idx`, but its sides share one `group_idx`. `Then` correlates on
+    // `group_idx`, so two *concurrent* sides are never read as sequential — in
+    // EITHER direction — while a genuine sequence still matches.
+
+    test('concurrent sides do not match Then in either direction', () async {
+      final container = Figure.meanwhile(
+        figures: [
+          Figure(move: 'petronella'),
+          Figure(move: 'swing', params: const {'who': 'partners'}),
+        ],
+        beats: 8,
+      );
+      await dances.create(_dance(id: 'mw', title: 'MW', figures: [container]));
+
+      // petronella and swing are simultaneous sides of one container, so
+      // neither happens before the other.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('petronella'), FigureLeaf('swing')),
+        ),
+        isEmpty,
+      );
+      // Symmetric: the reverse direction must not match either.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('swing'), FigureLeaf('petronella')),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a genuine sequence still matches, and only it', () async {
+      // Concurrent container: petronella while swing.
+      await dances.create(
+        _dance(
+          id: 'mw',
+          title: 'MW',
+          figures: [
+            Figure.meanwhile(
+              figures: [
+                Figure(move: 'petronella'),
+                Figure(move: 'swing', params: const {'who': 'partners'}),
+              ],
+              beats: 8,
+            ),
+          ],
+        ),
+      );
+      // Real sequence: petronella, then swing.
+      await dances.create(
+        _dance(
+          id: 'seq',
+          title: 'Seq',
+          figures: [
+            Figure(move: 'petronella'),
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+          ],
+        ),
+      );
+
+      // Only the true sequence matches; the concurrent container is excluded.
+      expect(
+        await dances.search(
+          ThenFilter(FigureLeaf('petronella'), FigureLeaf('swing')),
+        ),
+        ['seq'],
+      );
+    });
+
+    test(
+      'a side of a container is sequenced against a later top-level figure',
+      () async {
+        // group 0: [petronella, balance] concurrent; group 1: swing.
+        await dances.create(
+          _dance(
+            id: 'mix',
+            title: 'Mix',
+            figures: [
+              Figure.meanwhile(
+                figures: [
+                  Figure(move: 'petronella'),
+                  Figure(move: 'balance'),
+                ],
+                beats: 8,
+              ),
+              Figure(move: 'swing', params: const {'who': 'partners'}),
+            ],
+          ),
+        );
+
+        // A concurrent side (petronella, group 0) genuinely precedes a later
+        // top-level figure (swing, group 1): this must still match.
+        expect(
+          await dances.search(
+            ThenFilter(FigureLeaf('petronella'), FigureLeaf('swing')),
+          ),
+          ['mix'],
+        );
+        // ...but the two sides of that same container (petronella, balance)
+        // are concurrent and must not match, even though a later figure exists.
+        expect(
+          await dances.search(
+            ThenFilter(FigureLeaf('petronella'), FigureLeaf('balance')),
+          ),
+          isEmpty,
+        );
+      },
+    );
+  });
+
   group('custom fields', () {
     Future<void> seed(
       CustomFieldDef def,
