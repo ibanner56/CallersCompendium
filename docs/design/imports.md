@@ -499,7 +499,7 @@ the `hey` pass-list decoder — same `tcbPassPeople` map) reads the codes:
 
 - **Odd 1-based passes → `who`, even passes → `who2`,** and the two must each
   name a single consistent dancer (a square through of `n` alternates between
-  two sets). `who2` is omitted, not defaulted, when the list is odd-only.
+  two sets).
 - **Hands alternate by position parity;** the base (`hand`) is position 1's, and
   every cell must agree with the alternation or the line declines.
 - **`balance: false` is emitted explicitly** for import fidelity — TCB writes the
@@ -516,8 +516,11 @@ equal `n`; every cell must be `<people-code><R|L>` with the code in
 trailing clause, an unmappable code (`C1`–`C3`, out-of-range neighbors, a bare
 `R`/`L`), an inconsistent dancer or a non-alternating hand all return `null`, so
 the line falls through to the shared recognizer's bare, defaulted reading rather
-than being half-structured. `kMaxPassListCells` bounds the decode (OWASP; the
-`n <= 10` cap already keeps it small).
+than being half-structured. Untrusted import text is length-capped **before**
+the pass list is split into cells (`_boundedPassListCells`), so a hostile line
+with millions of `;` is rejected in O(1) rather than allocating the oversized
+list first — a bound shared with the hey and grand-right-and-left decoders (the
+`n <= 10` cap then keeps the accepted count small).
 
 The defect is the whole class of `Square through <n> (<pass list>)` lines, not
 only the reported "2". This decoder changes no line's structured/custom status

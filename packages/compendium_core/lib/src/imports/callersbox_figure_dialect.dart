@@ -1248,7 +1248,6 @@ FigureMatch? _circulate(String scrubbed) {
 ///   * even positions must all name the same dancer → `who2`;
 ///   * hands strictly alternate by position parity → the base `hand` (position
 ///     1's hand).
-/// `who2` is omitted (not defaulted) when the list has only odd passes.
 ///
 /// **`balance: false` explicitly (import fidelity).** TCB writes the balance as
 /// a SEPARATE preceding line, never inline on a square-through line, so a
@@ -1273,9 +1272,10 @@ FigureMatch? _circulate(String scrubbed) {
 ///   * the odd/even dancers are not internally consistent, or the hands do not
 ///     alternate (an ambiguous list is never partially structured).
 ///
-/// [kMaxPassListCells] bounds the decode (OWASP: figure text is untrusted); the
-/// `n <= 10` cap already keeps the cell count small, and this is defence in
-/// depth shared with the grand-right-and-left decoder.
+/// [_boundedPassListCells] bounds the decode pre-split (OWASP: figure text is
+/// untrusted, so the cell list must be capped before it is allocated, not
+/// after); the `n <= 10` cap then keeps the accepted cell count small. Both
+/// are shared with the hey and grand-right-and-left decoders.
 FigureMatch? _squareThroughPassList(String scrubbed) {
   final lower = scrubbed.toLowerCase();
   final open = lower.indexOf('(');
@@ -1300,10 +1300,11 @@ FigureMatch? _squareThroughPassList(String scrubbed) {
   // recognizer's 1..10 places domain.
   if (places == null || places < 2 || places > 10) return null;
 
-  final cells = passText.split(';').map((c) => c.trim()).toList();
+  final cells = _boundedPassListCells(passText);
   // "Square through n" is exactly n passes; a mismatch is an unmodeled variant.
-  if (cells.length != places) return null;
-  if (cells.length > kMaxPassListCells) return null; // OWASP bound (defence)
+  // The OWASP cell bound is enforced pre-split by [_boundedPassListCells]; here
+  // `== places` (places <= 10) already constrains the count.
+  if (cells == null || cells.length != places) return null;
 
   String? who;
   String? who2;
@@ -1426,8 +1427,10 @@ FigureMatch? _hey(String scrubbed) {
   }
   if (!sawHey) return null;
 
-  final cells = passText.split(';').map((c) => c.trim()).toList();
-  if (cells.isEmpty || cells.any((c) => c.isEmpty)) return null;
+  final cells = _boundedPassListCells(passText);
+  if (cells == null || cells.isEmpty || cells.any((c) => c.isEmpty)) {
+    return null;
+  }
 
   final params = <String, Object?>{'length': length, 'dir': ?dir};
   final maxRicoSlot = _heyMaxRicoSlot(length);
@@ -1504,6 +1507,30 @@ FigureMatch? _hey(String scrubbed) {
 /// hostile line carrying hundreds of `;`-separated cells must degrade to the
 /// unchanged whole-custom line rather than fanning out unboundedly.
 const int kMaxPassListCells = 12;
+
+/// The largest a pass list's inner text can legitimately be. A pass list has at
+/// most [kMaxPassListCells] cells and each cell is a short code (a people code,
+/// an optional `ricochet`/`~` marker and a trailing hand — the longest real one
+/// is ~14 chars), so 24 chars per cell is generous; anything longer is not a
+/// pass list we model.
+const int _maxPassListChars = kMaxPassListCells * 24;
+
+/// Splits a pass list's inner `;`-separated text into trimmed cells, or returns
+/// `null` when the raw text is longer than a pass list we model can be —
+/// **before** `String.split` allocates the list it would otherwise build.
+///
+/// Imported figure text is untrusted (OWASP). A hostile line carrying millions
+/// of `;` (or one enormous "cell") must be rejected by a guard that runs before
+/// the allocation, not after it: every pass-list decoder used to `split(';')`
+/// first and check the cell count afterwards, so the oversized list was built
+/// and only then discarded. The [_maxPassListChars] length cap fixes the class
+/// in O(1) — with the raw text capped, both the resulting list and every
+/// substring are provably small. Callers still apply their own exact cell-count
+/// rules (`== places`, `>= 2`, `<= kMaxPassListCells`) to the returned cells.
+List<String>? _boundedPassListCells(String passText) {
+  if (passText.length > _maxPassListChars) return null;
+  return passText.split(';').map((c) => c.trim()).toList();
+}
 
 /// The shorthand name preserved on the FIRST emitted pass. The decomposition
 /// represents every fact the pass list states, but "grand right and left" is
@@ -1631,12 +1658,10 @@ List<_GrandRightAndLeftPass>? _decodeGrandRightAndLeftPasses(String scrubbed) {
     if (words[i] != _grandRightAndLeftWords[i]) return null;
   }
 
-  final cells = lower
-      .substring(open + 1, close)
-      .split(';')
-      .map((c) => c.trim())
-      .toList();
-  if (cells.length < 2 || cells.length > kMaxPassListCells) return null;
+  final cells = _boundedPassListCells(lower.substring(open + 1, close));
+  if (cells == null || cells.length < 2 || cells.length > kMaxPassListCells) {
+    return null;
+  }
 
   final passes = <_GrandRightAndLeftPass>[];
   for (final cell in cells) {
