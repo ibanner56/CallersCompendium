@@ -570,7 +570,7 @@ Future<File> _writeDiagnosticLog({
   String? bridgeTag,
 }) async {
   await snapshotDir.create(recursive: true);
-  final ts = timestamp.toIso8601String().replaceAll(':', '-').split('.').first;
+  final ts = _formatTimestamp(timestamp);
   final file = File(
     p.join(snapshotDir.path, 'compendium-reset-diagnostics-$ts.txt'),
   );

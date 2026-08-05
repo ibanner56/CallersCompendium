@@ -226,7 +226,7 @@ class AppBootstrap extends StatelessWidget {
 /// The primary message explains that the data *is* recoverable by running the
 /// bridge release first, so the reset buttons are the fallback, not the only
 /// offer.
-class _BelowFloorRecoveryScreen extends StatelessWidget {
+class _BelowFloorRecoveryScreen extends StatefulWidget {
   const _BelowFloorRecoveryScreen({
     required this.error,
     required this.onBackUpAndReset,
@@ -234,8 +234,26 @@ class _BelowFloorRecoveryScreen extends StatelessWidget {
   });
 
   final DatabaseBelowFloorError error;
-  final VoidCallback onBackUpAndReset;
-  final VoidCallback onResetOnly;
+  final Future<void> Function() onBackUpAndReset;
+  final Future<void> Function() onResetOnly;
+
+  @override
+  State<_BelowFloorRecoveryScreen> createState() =>
+      _BelowFloorRecoveryScreenState();
+}
+
+class _BelowFloorRecoveryScreenState extends State<_BelowFloorRecoveryScreen> {
+  bool _inFlight = false;
+
+  Future<void> _run(Future<void> Function() action) async {
+    if (_inFlight) return;
+    setState(() => _inFlight = true);
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => _inFlight = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -256,17 +274,19 @@ class _BelowFloorRecoveryScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                databaseBelowFloorBody(l10n, error.bridgeTag),
+                databaseBelowFloorBody(l10n, widget.error.bridgeTag),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
               FilledButton(
-                onPressed: onBackUpAndReset,
+                onPressed: _inFlight
+                    ? null
+                    : () => _run(widget.onBackUpAndReset),
                 child: Text(databaseBelowFloorBackUpAndReset(l10n)),
               ),
               const SizedBox(height: 8),
               OutlinedButton(
-                onPressed: onResetOnly,
+                onPressed: _inFlight ? null : () => _run(widget.onResetOnly),
                 child: Text(databaseBelowFloorResetOnly(l10n)),
               ),
             ],
