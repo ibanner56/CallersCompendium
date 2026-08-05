@@ -504,35 +504,35 @@ class AppLocalizationsJa extends AppLocalizations {
       'オンにすると、アクティブなダイアレクトではなく正式なロール名とムーブ名でダンスが表示されます。ダンスを開いている間もビューを切り替えられます。';
 
   @override
-  String get settingsDefaultsCollectionCardHeader => 'Collection card fields';
+  String get settingsDefaultsCollectionCardHeader => 'コレクションカードの項目';
 
   @override
   String get settingsDefaultsCollectionCardSubtitle =>
-      'Choose which details appear on each dance row. All fields are shown by default.';
+      '各ダンス行に表示する詳細を選択します。既定ではすべての項目が表示されます。';
 
   @override
-  String get settingsDefaultsCollectionCardAuthors => 'Authors';
+  String get settingsDefaultsCollectionCardAuthors => '作者';
 
   @override
-  String get settingsDefaultsCollectionCardCalledCount => 'Times called';
+  String get settingsDefaultsCollectionCardCalledCount => '使用回数';
 
   @override
-  String get settingsDefaultsCollectionCardFormation => 'Formation';
+  String get settingsDefaultsCollectionCardFormation => 'フォーメーション';
 
   @override
-  String get settingsDefaultsCollectionCardStatus => 'Status';
+  String get settingsDefaultsCollectionCardStatus => 'ステータス';
 
   @override
-  String get settingsDefaultsCollectionCardLevel => 'Level';
+  String get settingsDefaultsCollectionCardLevel => 'レベル';
 
   @override
-  String get settingsDefaultsCollectionCardRating => 'Rating';
+  String get settingsDefaultsCollectionCardRating => '評価';
 
   @override
-  String get settingsDefaultsCollectionCardTags => 'Tags';
+  String get settingsDefaultsCollectionCardTags => 'タグ';
 
   @override
-  String get settingsDefaultsCollectionCardCustomFields => 'Custom fields';
+  String get settingsDefaultsCollectionCardCustomFields => 'カスタムフィールド';
 
   @override
   String get settingsDefaultsAuthoringHeader => 'ダンス作成のデフォルト設定';
@@ -644,46 +644,44 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get settingsAppearanceTagColoursHeader => 'Tag colours';
+  String get settingsAppearanceTagColoursHeader => 'タグの色';
 
   @override
-  String get settingsAppearanceTagColoursTitle => 'Tag colours';
+  String get settingsAppearanceTagColoursTitle => 'タグの色';
 
   @override
   String get settingsAppearanceTagColoursSubtitle =>
-      'Give a tag its own colour to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without colour.';
+      'タグに独自の色を設定すると、ダンスカードやダンスの詳細で目立つようになります。タグ名は常に表示されるため、色がなくてもタグは読み取れます。';
 
   @override
-  String get settingsTagColoursTitle => 'Tag colours';
+  String get settingsTagColoursTitle => 'タグの色';
 
   @override
   String get settingsTagColoursIntro =>
-      'Give a tag its own colour to make it stand out wherever it appears. Only the tags you colour change; the rest look exactly as they do now. The tag\'s name is always shown too, so tags stay readable without colour.';
+      'タグに独自の色を設定すると、表示されるあらゆる場所で目立つようになります。変わるのは色を設定したタグだけで、それ以外は今までどおりです。タグ名は常に表示されるため、色がなくてもタグは読み取れます。';
 
   @override
-  String get settingsTagColoursListHeader => 'Tags';
+  String get settingsTagColoursListHeader => 'タグ';
 
   @override
-  String get settingsTagColoursEmpty =>
-      'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.';
+  String get settingsTagColoursEmpty => 'まだタグを作成していません。ダンスにタグを追加すると、ここに表示されます。';
 
   @override
-  String get settingsTagColoursCustom => 'Custom colour';
+  String get settingsTagColoursCustom => 'カスタムカラー';
 
   @override
-  String get settingsTagColoursNoColour => 'No colour';
+  String get settingsTagColoursNoColour => '色なし';
 
   @override
   String settingsTagColoursResetTooltip(String label) {
-    return 'Remove $label\'s colour';
+    return '$labelの色を削除';
   }
 
   @override
-  String get settingsTagColoursSaveError =>
-      'Couldn\'t save that colour. Please try again.';
+  String get settingsTagColoursSaveError => 'その色を保存できませんでした。もう一度お試しください。';
 
   @override
-  String get settingsTagColoursLoadError => 'Couldn\'t load your tags.';
+  String get settingsTagColoursLoadError => 'タグを読み込めませんでした。';
 
   @override
   String get settingsGeneralLibraryHeader => 'ライブラリ';
@@ -734,11 +732,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
-      'Track calling history for all callers';
+      'すべてのコーラーのコーリング履歴を記録する';
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
-      'When off and a default caller is set, calling history and counts include only programs led by that caller. When on — or when no default caller is set — every program that contains the dance is tracked.';
+      'オフで既定のコーラーが設定されている場合、コーリング履歴と回数にはそのコーラーが担当したプログラムのみが含まれます。オンの場合、または既定のコーラーが設定されていない場合は、そのダンスを含むすべてのプログラムが記録されます。';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'アクセシビリティ';
@@ -843,13 +841,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get backupRestoreSettingsFailed =>
-      'Your dances and programs were restored, but applying your saved settings failed. Your restored content is safe — you can retry applying settings.';
+      'ダンスとプログラムは復元されましたが、保存された設定の適用に失敗しました。復元された内容は無事です。設定の適用を再試行できます。';
 
   @override
-  String get backupRestoreSettingsRetryAction => 'Retry settings';
+  String get backupRestoreSettingsRetryAction => '設定を再試行';
 
   @override
-  String get backupRestoreSettingsRetried => 'Settings applied.';
+  String get backupRestoreSettingsRetried => '設定を適用しました。';
 
   @override
   String get backupExportTitle => 'バックアップをエクスポート';
@@ -3136,34 +3134,31 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogBody(String existingTitle) {
-    return 'This dance\'s title and caller match \"$existingTitle\", but its figures are different. How do you want to import it?';
+    return 'このダンスのタイトルとコーラーは「$existingTitle」と一致しますが、フィギュアが異なります。どのようにインポートしますか？';
   }
 
   @override
-  String get onlineImportVariationDialogActionVariation =>
-      'Import as a variation';
+  String get onlineImportVariationDialogActionVariation => 'バリエーションとして取り込む';
 
   @override
-  String get onlineImportVariationDialogActionLink =>
-      'Same dance (update existing)';
+  String get onlineImportVariationDialogActionLink => '同じダンス（既存を更新）';
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Your version of \"$existingTitle\" will be replaced by the online record — including its figures, notes, tags, rating, and custom fields. It keeps its place in your programs and its calling history.';
+    return '「$existingTitle」のあなたのバージョンは、オンラインの記録に置き換えられます。フィギュア、コーリングノート、タグ、評価、カスタムフィールドも含まれます。プログラム内の位置とコーリング履歴は保持されます。';
   }
 
   @override
-  String get onlineImportCrossSourceDuplicateDialogTitle =>
-      'You already have this dance';
+  String get onlineImportCrossSourceDuplicateDialogTitle => 'このダンスはすでにあります';
 
   @override
   String onlineImportCrossSourceDuplicateDialogBody(String existingTitle) {
-    return 'Your collection already has \"$existingTitle\" from a different source. Both versions have the same sequence of moves.';
+    return 'コレクションには別のソースからの「$existingTitle」がすでにあります。どちらのバージョンもムーブの並びは同じです。';
   }
 
   @override
   String get onlineImportCrossSourceDuplicateDialogActionDuplicate =>
-      'Import a second copy';
+      '2つ目のコピーをインポート';
 
   @override
   String get onlineAttributionCallersBox => 'The Caller\'s Box（オンライン）より';
@@ -3249,23 +3244,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importContraDbNoMatches => '一致するプログラムがありません。';
 
   @override
-  String get importContraDbMarkerImported => 'Imported';
+  String get importContraDbMarkerImported => 'インポート済み';
 
   @override
   String importContraDbMarkerImportedTooltip(String date) {
-    return 'Imported on $date';
+    return '$dateにインポート';
   }
 
   @override
-  String get importContraDbMarkerImportedTooltipNoDate =>
-      'Already imported from ContraDB';
+  String get importContraDbMarkerImportedTooltipNoDate => 'ContraDBからインポート済み';
 
   @override
-  String get importContraDbMarkerPossible => 'Possibly imported';
+  String get importContraDbMarkerPossible => 'インポートの可能性あり';
 
   @override
-  String get importContraDbMarkerPossibleTooltip =>
-      'A program with this title already exists';
+  String get importContraDbMarkerPossibleTooltip => 'このタイトルのプログラムはすでに存在します';
 
   @override
   String importContraDbFetchError(String error) {
@@ -3427,23 +3420,22 @@ class AppLocalizationsJa extends AppLocalizations {
       'Caller\'s Companion .USRファイル';
 
   @override
-  String get importSourceLabelTitleList => 'a list of titles';
+  String get importSourceLabelTitleList => 'タイトルのリスト';
 
   @override
   String get importReviewTitleListSubtitle =>
-      'Paste one dance title per line. Every title is listed for review — the ones you already have are shown but never re-imported, and nothing is added to your collection until you confirm.';
+      '1行に1つずつダンスのタイトルを貼り付けてください。すべてのタイトルが確認用に一覧表示されます。すでにお持ちのものは表示されますが、再インポートされることはありません。確認するまでコレクションには何も追加されません。';
 
   @override
-  String get importReviewPasteTitles => 'Dance titles, one per line';
+  String get importReviewPasteTitles => 'ダンスのタイトル（1行に1つ）';
 
   @override
   String importReviewTitleListCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count titles',
-      one: '1 title',
-      zero: 'No titles yet',
+      other: '$count件のタイトル',
+      zero: 'タイトルはまだありません',
     );
     return '$_temp0';
   }
@@ -3453,24 +3445,23 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count repeated titles ignored',
-      one: '1 repeated title ignored',
+      other: '$count件の重複タイトルを無視しました',
     );
     return '$_temp0';
   }
 
   @override
   String importTitleListTooManyTitles(int count, int max) {
-    return 'That\'s $count titles. Import up to $max at a time.';
+    return '$count件のタイトルがあります。一度にインポートできるのは$max件までです。';
   }
 
   @override
   String get importTitleListTextTooLong =>
-      'That paste is too long to read as a list of titles. Try pasting a shorter list.';
+      '貼り付けられたテキストが長すぎて、タイトルのリストとして読み取れません。短いリストを貼り付けてみてください。';
 
   @override
   String importReviewTitleListProgress(int done, int total) {
-    return 'Searching $done of $total…';
+    return '$total件中$done件を検索中…';
   }
 
   @override
@@ -3478,8 +3469,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count pasted titles',
-      one: '1 pasted title',
+      other: '貼り付けたタイトル$count件',
     );
     return '$_temp0';
   }
@@ -3489,8 +3479,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count to import',
-      one: '1 to import',
+      other: 'インポート可能$count件',
     );
     return '$_temp0';
   }
@@ -3500,8 +3489,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count already in your collection',
-      one: '1 already in your collection',
+      other: 'すでにコレクションにあるもの$count件',
     );
     return '$_temp0';
   }
@@ -3511,58 +3499,56 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count not found',
-      one: '1 not found',
+      other: '見つからなかったもの$count件',
     );
     return '$_temp0';
   }
 
   @override
   String importReviewTitleListOwnedBy(String authors) {
-    return 'You already have this, by $authors.';
+    return 'このダンスはすでにあります（振付：$authors）。';
   }
 
   @override
-  String get importReviewTitleListOwnedUnknownAuthor =>
-      'You already have this dance.';
+  String get importReviewTitleListOwnedUnknownAuthor => 'このダンスはすでにあります。';
 
   @override
   String importReviewTitleListOwnedMany(int count) {
-    return 'You have $count dances with this title.';
+    return 'このタイトルのダンスが$count件あります。';
   }
 
   @override
   String get importTitleListReasonNoResults =>
-      'The Caller\'s Box has no dance by this name.';
+      'The Caller\'s Boxにこの名前のダンスはありません。';
 
   @override
   String get importTitleListReasonNoExactMatch =>
-      'Only near matches — nothing titled exactly this.';
+      '近い候補のみで、このタイトルと完全に一致するものはありません。';
 
   @override
   String get importTitleListReasonMultipleExactMatches =>
-      'Several dances share this exact title, so it isn\'t clear which you meant.';
+      '複数のダンスがこのタイトルと完全に一致するため、どれを指しているか判断できません。';
 
   @override
   String get importTitleListReasonFetchError =>
-      'Couldn\'t reach The Caller\'s Box for this title.';
+      'このタイトルについてThe Caller\'s Boxに到達できませんでした。';
 
   @override
   String get importTitleListReasonLineTooLong =>
-      'Too long to be a dance title, so it wasn\'t searched.';
+      'ダンスのタイトルとしては長すぎるため、検索しませんでした。';
 
   @override
   String get importReviewTitleListNothingToImport =>
-      'Nothing here to import — every title is either already in your collection or couldn\'t be found.';
+      'ここにインポートできるものはありません。すべてのタイトルは、すでにコレクションにあるか、見つかりませんでした。';
 
   @override
   String importReviewSummaryAlreadyOwned(int count) {
-    return 'Already in your collection: $count';
+    return 'すでにコレクションにあるもの: $count';
   }
 
   @override
   String importReviewSummaryNotFound(int count) {
-    return 'Not found: $count';
+    return '見つかりませんでした: $count';
   }
 
   @override
@@ -4373,40 +4359,40 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMonthDec => '12月';
 
   @override
-  String get monthFullJanuary => 'January';
+  String get monthFullJanuary => '1月';
 
   @override
-  String get monthFullFebruary => 'February';
+  String get monthFullFebruary => '2月';
 
   @override
-  String get monthFullMarch => 'March';
+  String get monthFullMarch => '3月';
 
   @override
-  String get monthFullApril => 'April';
+  String get monthFullApril => '4月';
 
   @override
-  String get monthFullMay => 'May';
+  String get monthFullMay => '5月';
 
   @override
-  String get monthFullJune => 'June';
+  String get monthFullJune => '6月';
 
   @override
-  String get monthFullJuly => 'July';
+  String get monthFullJuly => '7月';
 
   @override
-  String get monthFullAugust => 'August';
+  String get monthFullAugust => '8月';
 
   @override
-  String get monthFullSeptember => 'September';
+  String get monthFullSeptember => '9月';
 
   @override
-  String get monthFullOctober => 'October';
+  String get monthFullOctober => '10月';
 
   @override
-  String get monthFullNovember => 'November';
+  String get monthFullNovember => '11月';
 
   @override
-  String get monthFullDecember => 'December';
+  String get monthFullDecember => '12月';
 
   @override
   String get danceEditorAddTuneHint => 'おすすめのチューンを追加…';
@@ -4777,14 +4763,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMarkProgression => 'プログレッションとしてマーク';
 
   @override
-  String get danceEditorGroupWithNext => 'Group with next as meanwhile';
+  String get danceEditorGroupWithNext => '次と同時進行としてグループ化';
 
   @override
   String danceEditorMeanwhileGroupLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Meanwhile ($count sides)',
+      other: '同時進行（$countサイド）',
     );
     return '$_temp0';
   }
@@ -4794,37 +4780,35 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count concurrent figures',
-      one: '1 concurrent figure',
+      other: '$count件の同時進行フィギュア',
     );
     String _temp1 = intl.Intl.pluralLogic(
       beats,
       locale: localeName,
-      other: '$beats shared beats',
-      one: '1 shared beat',
+      other: '共有$beats拍',
     );
-    return 'Meanwhile group, $_temp0, $_temp1.';
+    return '同時進行グループ、$_temp0、$_temp1。';
   }
 
   @override
   String danceEditorMeanwhileSideLabel(int number) {
-    return 'Side $number';
+    return 'サイド$number';
   }
 
   @override
   String danceEditorMeanwhileSideSemantic(int number, int total) {
-    return 'Side $number of $total.';
+    return '$total件中$number番目のサイド。';
   }
 
   @override
-  String get danceEditorAddMeanwhileSide => 'Add side';
+  String get danceEditorAddMeanwhileSide => 'サイドを追加';
 
   @override
-  String get danceEditorRemoveMeanwhileSide => 'Remove this side';
+  String get danceEditorRemoveMeanwhileSide => 'このサイドを削除';
 
   @override
   String danceEditorMeanwhileSidesCapReached(int max) {
-    return 'Maximum of $max concurrent figures.';
+    return '同時進行フィギュアは最大$max件です。';
   }
 
   @override
@@ -5011,17 +4995,17 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String collectionPickerAddedTooltip(String title) {
-    return 'Added $title';
+    return '$titleを追加しました';
   }
 
   @override
   String collectionPickerInProgramSemantic(String title) {
-    return '$title is already in the program';
+    return '$titleはすでにプログラムに含まれています';
   }
 
   @override
   String collectionPickerInProgramCountSemantic(String title, int count) {
-    return '$title is in the program $count times';
+    return '$titleはプログラムに$count回含まれています';
   }
 
   @override
@@ -5100,40 +5084,39 @@ class AppLocalizationsJa extends AppLocalizations {
       'このショートハンドの展開先に少なくとも1つのフィギュアを追加してください。';
 
   @override
-  String get importShorthandSeedTitle => 'Seed figure shorthands';
+  String get importShorthandSeedTitle => 'フィギュアのショートハンドを作成';
 
   @override
   String get importShorthandSeedIntro =>
-      'Your Caller\'s Companion file\'s call buttons can become figure shorthands. Pick the ones you want; each expands to the figures shown. Nothing is added until you confirm, and your existing shorthands are never overwritten.';
+      'Caller\'s Companionファイルのコールボタンをフィギュアのショートハンドにできます。必要なものを選んでください。それぞれが表示されたフィギュアに展開されます。確認するまで何も追加されず、既存のショートハンドが上書きされることはありません。';
 
   @override
-  String get importShorthandSeedAvailableHeader => 'From your call buttons';
+  String get importShorthandSeedAvailableHeader => 'コールボタンから';
 
   @override
-  String get importShorthandSeedUsePrimary => 'Primary';
+  String get importShorthandSeedUsePrimary => 'プライマリ';
 
   @override
-  String get importShorthandSeedUseAlt => 'Alternate';
+  String get importShorthandSeedUseAlt => '代替';
 
   @override
-  String get importShorthandSeedConflictHeader => 'Already defined — skipped';
+  String get importShorthandSeedConflictHeader => '定義済みのためスキップ';
 
   @override
   String importShorthandSeedConflictNote(String token) {
-    return 'A shorthand named “$token” already exists, so this button was left as-is.';
+    return '「$token」という名前のショートハンドがすでに存在するため、このボタンはそのままにしました。';
   }
 
   @override
-  String get importShorthandSeedSkip => 'Skip';
+  String get importShorthandSeedSkip => 'スキップ';
 
   @override
   String importShorthandSeedConfirm(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Seed $count shorthands',
-      one: 'Seed 1 shorthand',
-      zero: 'Seed shorthands',
+      other: '$count件のショートハンドを作成',
+      zero: 'ショートハンドを作成',
     );
     return '$_temp0';
   }
@@ -5143,8 +5126,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Seeded $count shorthands',
-      one: 'Seeded 1 shorthand',
+      other: '$count件のショートハンドを作成しました',
     );
     return '$_temp0';
   }
@@ -5420,22 +5402,21 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get customFieldsShareable => 'Include in sharing';
+  String get customFieldsShareable => '共有に含める';
 
   @override
   String get customFieldsShareableSubtitle =>
-      'This field\'s values travel with your collection when you export or share it';
+      'このフィールドの値は、コレクションをエクスポートまたは共有するときに一緒に送られます';
 
   @override
-  String get customFieldsSharingNoticeTitle =>
-      'Custom fields travel with your collection';
+  String get customFieldsSharingNoticeTitle => 'カスタムフィールドはコレクションと一緒に送られます';
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'The contents of any custom field you create are included when you export or share your collection. To keep a field private, turn off \"Include in sharing\" in that field\'s settings.';
+      '作成したカスタムフィールドの内容は、コレクションをエクスポートまたは共有するときに含まれます。フィールドを非公開にするには、そのフィールドの設定で「共有に含める」をオフにしてください。';
 
   @override
-  String get customFieldsSharingNoticeOk => 'Got it';
+  String get customFieldsSharingNoticeOk => '了解';
 
   @override
   String dialectEditorTitle(String name) {

@@ -64,6 +64,24 @@ jobs:
         run: python3 tools/ci/test_arb_translate.py
       - name: Validate translation ARBs (parity + content safety)
         run: python3 tools/ci/arb_translate.py validate --all
+      # Ratchet: no user-facing string may ship untranslated in a locale we
+      # publish. `validate` above enforces that a locale is a SUBSET of the
+      # template, so a MISSING key passes it by design — absence is the work
+      # queue `extract` reads. That is why `validate --all` returned
+      # "OK ... 0 warning(s)" on a tree with 100 untranslated strings per locale
+      # (issue #813): nothing measured completeness, so the backlog grew in
+      # silence, 40 -> 45 -> 65 -> 77 -> 100, and only existed when someone
+      # thought to run the extractor. The baseline is now clean — every locale
+      # is fully translated — so this hard-fails at zero rather than ratcheting
+      # a count.
+      # The escape hatch (tools/ci/untranslated_allowlist.json) starts EMPTY and
+      # self-cleans, so shipping a string untranslated stays possible but has to
+      # be named, justified, and reviewed. Pure-stdlib and offline, so it runs
+      # before the slower Flutter setup and fails fast.
+      - name: Test the untranslated-string ratchet
+        run: python3 tools/ci/test_check_arb_translation_coverage.py
+      - name: Guard translation coverage (every locale fully translated)
+        run: python3 tools/ci/check_arb_translation_coverage.py
       # Supply-chain release tooling: pure-stdlib, offline, and fast, so it runs
       # before the (slower) Flutter setup and fails fast. These assert-based
       # suites cover SBOM generation, SHA256SUMS/update-manifest generation,

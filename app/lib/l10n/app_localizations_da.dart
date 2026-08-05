@@ -514,17 +514,17 @@ class AppLocalizationsDa extends AppLocalizations {
       'Når aktiveret åbner en dans med kanoniske rolle- og bevægelsesnavne i stedet for din aktive dialekt. Du kan stadig skifte visning, mens dansen er åben.';
 
   @override
-  String get settingsDefaultsCollectionCardHeader => 'Collection card fields';
+  String get settingsDefaultsCollectionCardHeader => 'Felter på samlingskort';
 
   @override
   String get settingsDefaultsCollectionCardSubtitle =>
-      'Choose which details appear on each dance row. All fields are shown by default.';
+      'Vælg hvilke detaljer der vises på hver dansrække. Alle felter vises som standard.';
 
   @override
-  String get settingsDefaultsCollectionCardAuthors => 'Authors';
+  String get settingsDefaultsCollectionCardAuthors => 'Forfattere';
 
   @override
-  String get settingsDefaultsCollectionCardCalledCount => 'Times called';
+  String get settingsDefaultsCollectionCardCalledCount => 'Antal gange kaldt';
 
   @override
   String get settingsDefaultsCollectionCardFormation => 'Formation';
@@ -533,16 +533,17 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDefaultsCollectionCardStatus => 'Status';
 
   @override
-  String get settingsDefaultsCollectionCardLevel => 'Level';
+  String get settingsDefaultsCollectionCardLevel => 'Niveau';
 
   @override
-  String get settingsDefaultsCollectionCardRating => 'Rating';
+  String get settingsDefaultsCollectionCardRating => 'Vurdering';
 
   @override
   String get settingsDefaultsCollectionCardTags => 'Tags';
 
   @override
-  String get settingsDefaultsCollectionCardCustomFields => 'Custom fields';
+  String get settingsDefaultsCollectionCardCustomFields =>
+      'Brugerdefinerede felter';
 
   @override
   String get settingsDefaultsAuthoringHeader => 'Standarder for dansforfatning';
@@ -658,46 +659,46 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get settingsAppearanceTagColoursHeader => 'Tag colours';
+  String get settingsAppearanceTagColoursHeader => 'Tagfarver';
 
   @override
-  String get settingsAppearanceTagColoursTitle => 'Tag colours';
+  String get settingsAppearanceTagColoursTitle => 'Tagfarver';
 
   @override
   String get settingsAppearanceTagColoursSubtitle =>
-      'Give a tag its own colour to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without colour.';
+      'Giv et tag sin egen farve, så det skiller sig ud på danskort og i dansdetaljer. Taggets navn vises altid også, så tags forbliver læsbare uden farve.';
 
   @override
-  String get settingsTagColoursTitle => 'Tag colours';
+  String get settingsTagColoursTitle => 'Tagfarver';
 
   @override
   String get settingsTagColoursIntro =>
-      'Give a tag its own colour to make it stand out wherever it appears. Only the tags you colour change; the rest look exactly as they do now. The tag\'s name is always shown too, so tags stay readable without colour.';
+      'Giv et tag sin egen farve, så det skiller sig ud, hvor det end vises. Kun de tags, du farvelægger, ændrer sig; resten ser præcis ud, som de gør nu. Taggets navn vises altid også, så tags forbliver læsbare uden farve.';
 
   @override
   String get settingsTagColoursListHeader => 'Tags';
 
   @override
   String get settingsTagColoursEmpty =>
-      'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.';
+      'Du har ikke oprettet nogen tags endnu. Tilføj et tag til en dans, så vises det her.';
 
   @override
-  String get settingsTagColoursCustom => 'Custom colour';
+  String get settingsTagColoursCustom => 'Brugerdefineret farve';
 
   @override
-  String get settingsTagColoursNoColour => 'No colour';
+  String get settingsTagColoursNoColour => 'Ingen farve';
 
   @override
   String settingsTagColoursResetTooltip(String label) {
-    return 'Remove $label\'s colour';
+    return 'Fjern farven for $label';
   }
 
   @override
   String get settingsTagColoursSaveError =>
-      'Couldn\'t save that colour. Please try again.';
+      'Farven kunne ikke gemmes. Prøv igen.';
 
   @override
-  String get settingsTagColoursLoadError => 'Couldn\'t load your tags.';
+  String get settingsTagColoursLoadError => 'Dine tags kunne ikke indlæses.';
 
   @override
   String get settingsGeneralLibraryHeader => 'Bibliotek';
@@ -752,11 +753,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
-      'Track calling history for all callers';
+      'Spor kaldshistorik for alle callere';
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
-      'When off and a default caller is set, calling history and counts include only programs led by that caller. When on — or when no default caller is set — every program that contains the dance is tracked.';
+      'Når den er slået fra, og der er valgt en standardcaller, omfatter kaldshistorik og antal kun programmer ledet af den caller. Når den er slået til — eller når der ikke er valgt en standardcaller — spores alle programmer, der indeholder dansen.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Tilgængelighed';
@@ -866,13 +867,13 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get backupRestoreSettingsFailed =>
-      'Your dances and programs were restored, but applying your saved settings failed. Your restored content is safe — you can retry applying settings.';
+      'Dine danse og programmer blev gendannet, men dine gemte indstillinger kunne ikke anvendes. Dit gendannede indhold er sikkert — du kan prøve at anvende indstillingerne igen.';
 
   @override
-  String get backupRestoreSettingsRetryAction => 'Retry settings';
+  String get backupRestoreSettingsRetryAction => 'Prøv indstillinger igen';
 
   @override
-  String get backupRestoreSettingsRetried => 'Settings applied.';
+  String get backupRestoreSettingsRetried => 'Indstillinger anvendt.';
 
   @override
   String get backupExportTitle => 'Eksportér en sikkerhedskopi';
@@ -3222,34 +3223,34 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogBody(String existingTitle) {
-    return 'This dance\'s title and caller match \"$existingTitle\", but its figures are different. How do you want to import it?';
+    return 'Titlen og calleren på denne dans matcher „$existingTitle“, men dens figurer er anderledes. Hvordan vil du importere den?';
   }
 
   @override
   String get onlineImportVariationDialogActionVariation =>
-      'Import as a variation';
+      'Importér som en variation';
 
   @override
   String get onlineImportVariationDialogActionLink =>
-      'Same dance (update existing)';
+      'Samme dans (opdatér eksisterende)';
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Your version of \"$existingTitle\" will be replaced by the online record — including its figures, notes, tags, rating, and custom fields. It keeps its place in your programs and its calling history.';
+    return 'Din version af „$existingTitle“ erstattes af onlineposten — inklusive dens figurer, noter, tags, vurdering og brugerdefinerede felter. Den beholder sin plads i dine programmer og sin kaldshistorik.';
   }
 
   @override
   String get onlineImportCrossSourceDuplicateDialogTitle =>
-      'You already have this dance';
+      'Du har allerede denne dans';
 
   @override
   String onlineImportCrossSourceDuplicateDialogBody(String existingTitle) {
-    return 'Your collection already has \"$existingTitle\" from a different source. Both versions have the same sequence of moves.';
+    return 'Din samling har allerede „$existingTitle“ fra en anden kilde. Begge versioner har den samme rækkefølge af bevægelser.';
   }
 
   @override
   String get onlineImportCrossSourceDuplicateDialogActionDuplicate =>
-      'Import a second copy';
+      'Importér endnu en kopi';
 
   @override
   String get onlineAttributionCallersBox => 'Fra The Caller\'s Box (online)';
@@ -3340,23 +3341,23 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importContraDbNoMatches => 'Ingen matchende programmer.';
 
   @override
-  String get importContraDbMarkerImported => 'Imported';
+  String get importContraDbMarkerImported => 'Importeret';
 
   @override
   String importContraDbMarkerImportedTooltip(String date) {
-    return 'Imported on $date';
+    return 'Importeret den $date';
   }
 
   @override
   String get importContraDbMarkerImportedTooltipNoDate =>
-      'Already imported from ContraDB';
+      'Allerede importeret fra ContraDB';
 
   @override
-  String get importContraDbMarkerPossible => 'Possibly imported';
+  String get importContraDbMarkerPossible => 'Muligvis importeret';
 
   @override
   String get importContraDbMarkerPossibleTooltip =>
-      'A program with this title already exists';
+      'Der findes allerede et program med denne titel';
 
   @override
   String importContraDbFetchError(String error) {
@@ -3528,23 +3529,23 @@ class AppLocalizationsDa extends AppLocalizations {
       'en Caller\'s Companion .USR-fil';
 
   @override
-  String get importSourceLabelTitleList => 'a list of titles';
+  String get importSourceLabelTitleList => 'en liste med titler';
 
   @override
   String get importReviewTitleListSubtitle =>
-      'Paste one dance title per line. Every title is listed for review — the ones you already have are shown but never re-imported, and nothing is added to your collection until you confirm.';
+      'Indsæt én danstitel pr. linje. Alle titler vises til gennemsyn — dem du allerede har, vises, men importeres aldrig igen, og intet føjes til din samling, før du bekræfter.';
 
   @override
-  String get importReviewPasteTitles => 'Dance titles, one per line';
+  String get importReviewPasteTitles => 'Danstitler, én pr. linje';
 
   @override
   String importReviewTitleListCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count titles',
-      one: '1 title',
-      zero: 'No titles yet',
+      other: '$count titler',
+      one: '1 titel',
+      zero: 'Ingen titler endnu',
     );
     return '$_temp0';
   }
@@ -3554,24 +3555,24 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count repeated titles ignored',
-      one: '1 repeated title ignored',
+      other: '$count gentagne titler ignoreret',
+      one: '1 gentaget titel ignoreret',
     );
     return '$_temp0';
   }
 
   @override
   String importTitleListTooManyTitles(int count, int max) {
-    return 'That\'s $count titles. Import up to $max at a time.';
+    return 'Det er $count titler. Importér op til $max ad gangen.';
   }
 
   @override
   String get importTitleListTextTooLong =>
-      'That paste is too long to read as a list of titles. Try pasting a shorter list.';
+      'Den indsatte tekst er for lang til at kunne læses som en liste med titler. Prøv at indsætte en kortere liste.';
 
   @override
   String importReviewTitleListProgress(int done, int total) {
-    return 'Searching $done of $total…';
+    return 'Søger $done af $total…';
   }
 
   @override
@@ -3579,8 +3580,8 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count pasted titles',
-      one: '1 pasted title',
+      other: '$count indsatte titler',
+      one: '1 indsat titel',
     );
     return '$_temp0';
   }
@@ -3590,8 +3591,8 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count to import',
-      one: '1 to import',
+      other: '$count at importere',
+      one: '1 at importere',
     );
     return '$_temp0';
   }
@@ -3601,8 +3602,8 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count already in your collection',
-      one: '1 already in your collection',
+      other: '$count allerede i din samling',
+      one: '1 allerede i din samling',
     );
     return '$_temp0';
   }
@@ -3612,58 +3613,58 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count not found',
-      one: '1 not found',
+      other: '$count ikke fundet',
+      one: '1 ikke fundet',
     );
     return '$_temp0';
   }
 
   @override
   String importReviewTitleListOwnedBy(String authors) {
-    return 'You already have this, by $authors.';
+    return 'Du har allerede denne, af $authors.';
   }
 
   @override
   String get importReviewTitleListOwnedUnknownAuthor =>
-      'You already have this dance.';
+      'Du har allerede denne dans.';
 
   @override
   String importReviewTitleListOwnedMany(int count) {
-    return 'You have $count dances with this title.';
+    return 'Du har $count danse med denne titel.';
   }
 
   @override
   String get importTitleListReasonNoResults =>
-      'The Caller\'s Box has no dance by this name.';
+      'The Caller\'s Box har ingen dans med dette navn.';
 
   @override
   String get importTitleListReasonNoExactMatch =>
-      'Only near matches — nothing titled exactly this.';
+      'Kun lignende match — intet med præcis denne titel.';
 
   @override
   String get importTitleListReasonMultipleExactMatches =>
-      'Several dances share this exact title, so it isn\'t clear which you meant.';
+      'Flere danse har præcis denne titel, så det er uklart, hvilken du mente.';
 
   @override
   String get importTitleListReasonFetchError =>
-      'Couldn\'t reach The Caller\'s Box for this title.';
+      'Kunne ikke nå The Caller\'s Box for denne titel.';
 
   @override
   String get importTitleListReasonLineTooLong =>
-      'Too long to be a dance title, so it wasn\'t searched.';
+      'For lang til at være en danstitel, så der blev ikke søgt.';
 
   @override
   String get importReviewTitleListNothingToImport =>
-      'Nothing here to import — every title is either already in your collection or couldn\'t be found.';
+      'Der er intet at importere her — alle titler er enten allerede i din samling eller kunne ikke findes.';
 
   @override
   String importReviewSummaryAlreadyOwned(int count) {
-    return 'Already in your collection: $count';
+    return 'Allerede i din samling: $count';
   }
 
   @override
   String importReviewSummaryNotFound(int count) {
-    return 'Not found: $count';
+    return 'Ikke fundet: $count';
   }
 
   @override
@@ -4512,25 +4513,25 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorMonthDec => 'Dec';
 
   @override
-  String get monthFullJanuary => 'January';
+  String get monthFullJanuary => 'Januar';
 
   @override
-  String get monthFullFebruary => 'February';
+  String get monthFullFebruary => 'Februar';
 
   @override
-  String get monthFullMarch => 'March';
+  String get monthFullMarch => 'Marts';
 
   @override
   String get monthFullApril => 'April';
 
   @override
-  String get monthFullMay => 'May';
+  String get monthFullMay => 'Maj';
 
   @override
-  String get monthFullJune => 'June';
+  String get monthFullJune => 'Juni';
 
   @override
-  String get monthFullJuly => 'July';
+  String get monthFullJuly => 'Juli';
 
   @override
   String get monthFullAugust => 'August';
@@ -4539,7 +4540,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get monthFullSeptember => 'September';
 
   @override
-  String get monthFullOctober => 'October';
+  String get monthFullOctober => 'Oktober';
 
   @override
   String get monthFullNovember => 'November';
@@ -4926,14 +4927,14 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorMarkProgression => 'Markér progression';
 
   @override
-  String get danceEditorGroupWithNext => 'Group with next as meanwhile';
+  String get danceEditorGroupWithNext => 'Gruppér med næste som samtidig';
 
   @override
   String danceEditorMeanwhileGroupLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Meanwhile ($count sides)',
+      other: 'Samtidig ($count sider)',
     );
     return '$_temp0';
   }
@@ -4943,16 +4944,16 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count concurrent figures',
-      one: '1 concurrent figure',
+      other: '$count samtidige figurer',
+      one: '1 samtidig figur',
     );
     String _temp1 = intl.Intl.pluralLogic(
       beats,
       locale: localeName,
-      other: '$beats shared beats',
-      one: '1 shared beat',
+      other: '$beats delte slag',
+      one: '1 delt slag',
     );
-    return 'Meanwhile group, $_temp0, $_temp1.';
+    return 'Samtidig gruppe, $_temp0, $_temp1.';
   }
 
   @override
@@ -4962,18 +4963,18 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String danceEditorMeanwhileSideSemantic(int number, int total) {
-    return 'Side $number of $total.';
+    return 'Side $number af $total.';
   }
 
   @override
-  String get danceEditorAddMeanwhileSide => 'Add side';
+  String get danceEditorAddMeanwhileSide => 'Tilføj side';
 
   @override
-  String get danceEditorRemoveMeanwhileSide => 'Remove this side';
+  String get danceEditorRemoveMeanwhileSide => 'Fjern denne side';
 
   @override
   String danceEditorMeanwhileSidesCapReached(int max) {
-    return 'Maximum of $max concurrent figures.';
+    return 'Maksimalt $max samtidige figurer.';
   }
 
   @override
@@ -5163,17 +5164,17 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String collectionPickerAddedTooltip(String title) {
-    return 'Added $title';
+    return 'Tilføjede $title';
   }
 
   @override
   String collectionPickerInProgramSemantic(String title) {
-    return '$title is already in the program';
+    return '$title er allerede i programmet';
   }
 
   @override
   String collectionPickerInProgramCountSemantic(String title, int count) {
-    return '$title is in the program $count times';
+    return '$title er i programmet $count gange';
   }
 
   @override
@@ -5252,40 +5253,41 @@ class AppLocalizationsDa extends AppLocalizations {
       'Tilføj mindst én figur, som denne kortform skal udvide til.';
 
   @override
-  String get importShorthandSeedTitle => 'Seed figure shorthands';
+  String get importShorthandSeedTitle => 'Opret figurkortformer';
 
   @override
   String get importShorthandSeedIntro =>
-      'Your Caller\'s Companion file\'s call buttons can become figure shorthands. Pick the ones you want; each expands to the figures shown. Nothing is added until you confirm, and your existing shorthands are never overwritten.';
+      'Kaldeknapperne i din Caller\'s Companion-fil kan blive til figurkortformer. Vælg dem, du vil have; hver enkelt udvides til de viste figurer. Intet tilføjes, før du bekræfter, og dine eksisterende kortformer overskrives aldrig.';
 
   @override
-  String get importShorthandSeedAvailableHeader => 'From your call buttons';
+  String get importShorthandSeedAvailableHeader => 'Fra dine kaldeknapper';
 
   @override
-  String get importShorthandSeedUsePrimary => 'Primary';
+  String get importShorthandSeedUsePrimary => 'Primær';
 
   @override
-  String get importShorthandSeedUseAlt => 'Alternate';
+  String get importShorthandSeedUseAlt => 'Alternativ';
 
   @override
-  String get importShorthandSeedConflictHeader => 'Already defined — skipped';
+  String get importShorthandSeedConflictHeader =>
+      'Allerede defineret — sprunget over';
 
   @override
   String importShorthandSeedConflictNote(String token) {
-    return 'A shorthand named “$token” already exists, so this button was left as-is.';
+    return 'En kortform ved navn „$token“ findes allerede, så denne knap blev efterladt, som den var.';
   }
 
   @override
-  String get importShorthandSeedSkip => 'Skip';
+  String get importShorthandSeedSkip => 'Spring over';
 
   @override
   String importShorthandSeedConfirm(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Seed $count shorthands',
-      one: 'Seed 1 shorthand',
-      zero: 'Seed shorthands',
+      other: 'Opret $count kortformer',
+      one: 'Opret 1 kortform',
+      zero: 'Opret kortformer',
     );
     return '$_temp0';
   }
@@ -5295,8 +5297,8 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Seeded $count shorthands',
-      one: 'Seeded 1 shorthand',
+      other: 'Oprettede $count kortformer',
+      one: 'Oprettede 1 kortform',
     );
     return '$_temp0';
   }
@@ -5589,22 +5591,22 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get customFieldsShareable => 'Include in sharing';
+  String get customFieldsShareable => 'Inkludér ved deling';
 
   @override
   String get customFieldsShareableSubtitle =>
-      'This field\'s values travel with your collection when you export or share it';
+      'Dette felts værdier følger med din samling, når du eksporterer eller deler den';
 
   @override
   String get customFieldsSharingNoticeTitle =>
-      'Custom fields travel with your collection';
+      'Brugerdefinerede felter følger med din samling';
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'The contents of any custom field you create are included when you export or share your collection. To keep a field private, turn off \"Include in sharing\" in that field\'s settings.';
+      'Indholdet af ethvert brugerdefineret felt, du opretter, inkluderes, når du eksporterer eller deler din samling. Slå „Inkludér ved deling“ fra i feltets indstillinger for at holde et felt privat.';
 
   @override
-  String get customFieldsSharingNoticeOk => 'Got it';
+  String get customFieldsSharingNoticeOk => 'Forstået';
 
   @override
   String dialectEditorTitle(String name) {

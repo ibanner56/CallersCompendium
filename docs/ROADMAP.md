@@ -461,6 +461,12 @@ defaults) live in the **Defaults** pane section below.
   falls back safely, never crashing). Adding a language is still as simple as dropping an
   `app_<locale>.arb` into `lib/l10n/` (see [docs/dev/localization.md](dev/localization.md));
   assisted ARB-translation tooling + a validation gate now support that pipeline (#523).
+  **All five locales are now fully translated, and a CI ratchet enforces it** (#813):
+  every key in the English template carries a real translation in every shipped
+  locale, and `tools/ci/check_arb_translation_coverage.py` fails the build on the
+  first regression. It measures what the ARB validator deliberately does not —
+  `validate` only requires a locale to be a *subset* of the template, so a missing
+  key passed it by design, which is how a 100-string backlog accumulated unseen.
   Two surfaces stay English by design for now — a small set of core service-layer
   messages (#528) and the diagnostics-log export body (a maintainer support
   artifact). Exported dance/program documents now follow the UI language (#529).
@@ -737,7 +743,8 @@ taxonomy are unchanged.
 - **UI localization / multi-language** — **shipped (see G.8).** The i18n stack is wired
   app-wide, UI-string extraction is complete across every screen, and the app now ships
   in **six languages** — English (source) plus **German, French, Japanese, Danish, and
-  Dutch** — selectable live. What remains here is additive: welcoming further
+  Dutch** — selectable live, with **every string translated in all five** and a CI
+  ratchet enforcing that (#813). What remains here is additive: welcoming further
   **community-contributed** `app_<locale>.arb` translations (assisted tooling + a
   validation gate now support that, #523). Exported dance/program documents now
   follow the UI language too (#529); the only surfaces still English by design are
