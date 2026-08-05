@@ -722,23 +722,35 @@ makes self-hosting materially harder, which constraint 4 forbids.
   prevent, reintroduced by its own repair path.
 
   **Repair therefore reads no clock at all**, and rebuilds **only the fields the
-  local clock says are impossible** — a record is quarantined when `existenceAt`
-  *or* `updatedAt` exceeds `localNow + 24h`, and repair rebuilds whichever of
-  those is out of range, adopting the peer's value verbatim where the
-  corresponding thing agrees (live-or-deleted state for `existenceAt`, content
-  for `updatedAt`) and exceeding it by a millisecond where it does not. A field
-  inside the window is left alone.
+  local clock says are impossible** — a record is quarantined, and an inbound
+  blob refused, when `existenceAt` *or* `updatedAt` exceeds `localNow + 24h`.
+  Refusing both fields at the door is load-bearing rather than tidy: repair
+  sources values only from peers, so a poison allowed into circulation becomes
+  the only value there is for that record and turns into stable consensus with
+  nothing honest left to adopt. With both refused, a poisoned value can only ever
+  be **local**, which is the property that makes the rebuild decidable at all.
 
-  **The window is the classifier, and choosing it was the substance of this
-  decision.** `updatedAt` carries no signal separating a value poisoned by a
-  broken clock from a genuinely newer local edit — both are just a large local
-  number — so no comparison against the peer can tell them apart. Plausibility
-  can: a value the local clock says cannot exist yet is impossible and must be
-  rebuilt; one inside the window is ordinary and must be kept. An earlier pair of
-  drafts keyed both fields on live-or-deleted agreement instead, which is
-  orthogonal to that question and so answered it oppositely in each branch —
-  preserving the poison wherever the local value was kept, and discarding genuine
-  edits wherever it was not, while claiming to do both correctly.
+  Each field is then rebuilt from peers that are sound **in that same field** —
+  an ordinary edit poisons `updatedAt` while leaving `existenceAt` untouched, so
+  a single filter would select a peer that is sound in one and poisoned in the
+  other — and each is keyed on the signal that answers its own question:
+  `existenceAt` on live-or-deleted agreement, because only a local transition can
+  poison it; `updatedAt` on whether local content still matches **this device's
+  own baseline**, because only a local write can poison it, and the baseline is
+  what tells a device whether it wrote.
+
+  **Choosing those classifiers was the substance of the decision.** Neither field
+  carries a signal separating a value poisoned by a broken clock from a genuine
+  one, so no comparison of magnitude can tell them apart; plausibility against
+  the local window can, and that is what selects the fields to rebuild. Two
+  earlier drafts then reached for the nearest observable to decide *how* to
+  rebuild: live-or-deleted agreement, which is orthogonal to poisoned-versus-
+  genuine, and content differing from the peer's, which is orthogonal to
+  edited-versus-stale — and worse, anti-correlated with it, since a poisoned
+  discriminator wins every content merge and so manufactures the staleness that
+  inverts the signal. The baseline was already in the design, already
+  distinguishing "I changed this" from "I haven't caught up", and is the signal
+  the question actually turns on.
 
   A successor draft kept a `localNow` fallback for the case with no acceptable
   peer copy, and that single branch reinstated the whole failure for a clock

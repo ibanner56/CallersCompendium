@@ -650,8 +650,8 @@ For existence:
 | Fresh-attach dance dedupe | Tombstones excluded from candidacy; no cross-UUID effect |
 | Record creation | Seeds the field |
 | Migration backfill | `T₀` for live rows, `deleted_at` for deleted ones — see the accepted consequence |
-| Inbound validation | Out-of-range values rejected, never clamped |
-| Quarantine repair | Rebuilds only out-of-window fields, from acceptable peer values; never from the local clock |
+| Inbound validation | Out-of-range `existenceAt` *or* `updatedAt` rejected, never clamped |
+| Quarantine repair | Rebuilds only out-of-window fields, from peers sound in that same field; keyed on the baseline for `updatedAt` |
 
 Written as a table because the alternative is discovering the paths one review
 round at a time, which is what happened.
@@ -765,6 +765,39 @@ determines an answer. If the answer differs by branch, ask what distinguishes th
 branches, and whether that distinction is actually the one the question turns on.
 Here it was not: the branch condition was live-or-deleted agreement, and the
 question was poisoned-versus-genuine, which are unrelated.
+
+##### Check a classifier against the case where it diverges from the question
+
+> **State the question a classifier must answer, then find a case where the
+> chosen signal and the question give different answers.** If that case is
+> reachable, the signal is a proxy and not a classifier.
+
+The thirteenth habit, and the one this design has now paid for twice in
+consecutive rounds. Each time the need for a classifier was correctly identified,
+and each time the nearest available observable was reached for instead of the one
+that answers the question:
+
+- live-or-deleted agreement, for *poisoned versus genuine* — orthogonal;
+- content-differs-from-peer, for *edited versus stale* — agrees in the common
+  case and diverges exactly when the local copy is behind.
+
+The second is the more instructive, because the signal is not merely orthogonal
+but **anti-correlated on the cases that matter**: a forward-poisoned discriminator
+wins every content merge, so it *manufactures* the staleness that makes
+"differs" mean the opposite of what the rule assumed. A proxy that is right in
+the common case and wrong in the mechanism's own motivating case is worse than an
+obviously bad one, because nothing about it looks wrong when read.
+
+The tell in both rounds came from the test list, and the failure mode is worth
+separating from the twelfth habit's: there, two tests could not both pass; here,
+a single test could not pass *at all* under the rule it accompanied. A test that
+contradicts its own rule is a decision made twice, differently, in two places.
+
+And the remedy both times was already present in the design: the acceptance
+window for one question, the baseline for the other. **Before inventing a
+classifier, look for the one the design already uses to make the same
+distinction** — a mechanism that already separates "I changed this" from "I
+haven't caught up" is worth more than a fresh signal that seems to.
 
 ##### Bounds are directional
 
@@ -918,12 +951,12 @@ once per pass makes no difference to final state — an earlier draft mandated
 per-record sampling on the strength of the clamping argument, which does not
 carry over to the mechanism actually chosen.)
 
-So a blob whose `existenceAt` exceeds `localNow + 24h` is **refused as malformed
-and reported**, exactly like a record that fails to decode — one record skipped,
-the batch intact, local state unchanged. This is stated as a check to implement
-rather than assumed: `_dtOrNull` validates only ISO-8601 parseability and calls
-`.toUtc()`, and the codec's clamping is all string and list length, so no date
-range check exists today.
+So a blob whose `existenceAt` **or `updatedAt`** exceeds `localNow + 24h` is
+**refused as malformed and reported**, exactly like a record that fails to decode
+— one record skipped, the batch intact, local state unchanged. This is stated as
+a check to implement rather than assumed: `_dtOrNull` validates only ISO-8601
+parseability and calls `.toUtc()`, and the codec's clamping is all string and
+list length, so no date range check exists today.
 
 **An honestly skewed value needs a repair path, because monotonicity makes it
 permanent.** The reasoning above is about a hostile peer; the likelier case is a
@@ -941,30 +974,86 @@ a user gesture** — because that is the only moment the device can see what the
 other copies actually hold:
 
 - **A record is quarantined when `existenceAt` *or* `updatedAt` exceeds
-  `localNow + 24h`.** Both are stamped by the same clock — `softDelete` writes one
-  timestamp into `deletedAt` and `updatedAt` together — so a broken clock poisons
-  both, and a predicate watching only one of them leaves the other uncatchable.
-  This is a derived predicate over existing columns, not new state, so it needs
-  no schema.
+  `localNow + 24h`, and an inbound blob is refused on the same test.** Both are
+  stamped by the same clock — `softDelete` writes one timestamp into `deletedAt`
+  and `updatedAt` together — so a broken clock poisons both, and a predicate
+  watching only one of them leaves the other uncatchable. This is a derived
+  predicate over existing columns, not new state, so it needs no schema.
+
+  **Rejecting inbound on both fields is what makes the rest of this work.** An
+  earlier draft rejected on `existenceAt` alone, reasoning that a bad existence
+  value silently reverses a deletion while a bad `updatedAt` costs one
+  recoverable edit. That is true about the *severity* of each, and it is not an
+  argument for letting one in. Accepting a poisoned `updatedAt` puts it into
+  circulation, and repair sources values only from peers — so once two devices
+  hold it, 2036 is the only `updatedAt` in circulation for that record, there is
+  nothing honest left to adopt, and the poison becomes stable consensus instead
+  of a transient. Clock-suspect never fires either, because the device *does*
+  observe an in-window value: the record's untouched `existenceAt`.
+
+  With both fields refused at the door, **a poisoned value can only ever be
+  local** — a device's own write is the only way one arrives. That is the
+  property that already made the `existenceAt` rebuild sound, and extending the
+  rejection extends the property.
 - **Repair rebuilds only the out-of-window fields, and adopts observed values for
-  them.** The device gathers the peers' copies of that record, discards any whose
-  `existenceAt` falls outside its own acceptance window, and takes the greatest
-  of what remains. Then, **per field**:
-  - `existenceAt`, if out of window: adopt the peer value **verbatim** when the
-    peers agree with the local live-or-deleted state; stamp `peer + 1ms` when the
-    local state differs, since the user made a transition while poisoned and
-    their intent must outrank the peers.
-  - `updatedAt`, if out of window: adopt the peer value **verbatim** when the
-    local content equals the peer's; stamp `peer + 1ms` when the content
-    differs, since a genuine local edit must outrank the peer's copy.
+  them.** For each field being rebuilt, the device gathers the peers' copies of
+  that record and **discards any whose value *for that field* falls outside its
+  own acceptance window**, then takes the greatest of what remains. The filter is
+  per-field because the poisoning paths are: an ordinary edit stamps `updatedAt`
+  and leaves `existenceAt` untouched, so a peer can be perfectly sound on one
+  field and poisoned on the other. Filtering both rebuilds on `existenceAt`
+  alone would let such a peer be selected, and the device would adopt a value
+  still outside its own window — re-quarantining the record immediately, for as
+  long as that peer's clock stayed broken. **A rebuilt value is re-checked
+  against the local window before the record is considered repaired.**
 
-  A field that is **inside** the window is left exactly as it is. The two copies
-  are bit-identical afterwards precisely when both fields were adopted verbatim
-  — that is, when the state *and* the content agree. The record's content and its
-  live-or-deleted state are never changed by repair; only impossible ordering
-  values are.
+  Then, per field:
+  - `existenceAt`: adopt the peer value **verbatim** when the peers agree with
+    the local live-or-deleted state; stamp `peer + 1ms` when the local state
+    differs, since only a local transition can have poisoned it, so a difference
+    means the user made one and their intent must outrank the peers.
+  - `updatedAt`: adopt the peer value **verbatim** when the local content matches
+    **this device's own baseline** for the record; stamp `peer + 1ms` when it
+    does not, since only a local write can have poisoned it, so a difference from
+    the baseline means this device edited and that edit must survive.
 
-  **The window is the classifier, and that is the whole point.** `updatedAt`
+  A field that is **inside** the window is left exactly as it is, and a record
+  with neither a baseline entry nor any peer copy — a new record on a
+  clock-broken device — simply stays quarantined, since there is nothing to
+  reconcile it against.
+
+  **The classifier must answer "did *I* edit", and only the baseline does.** A
+  draft keyed the `updatedAt` rebuild on local content differing from *the
+  peer's*, justified as "a genuine local edit must outrank the peer's copy". That
+  substitutes an available signal for the needed one. Content can differ because
+  the local copy is **stale**, and a forward-poisoned `updatedAt` *manufactures*
+  staleness: a 2036 discriminator wins every content merge, so the poisoned
+  device stops accepting its peers' newer content. On exactly the records repair
+  handles, "differs" more often means "I am behind" than "I edited" — and the
+  rule would then stamp the stale copy above the peer and push it fleet-wide,
+  silently reverting a rename or an edit made elsewhere. The design's own test
+  *"repair does not push stale content"* was unsatisfiable under it, because both
+  branches yielded `updatedAt ≥ peer`.
+
+  The baseline is the signal that answers the question, and this document already
+  uses it for exactly this distinction — it is what the merge table calls the
+  thing that separates "changed" from "not caught up". Local-versus-baseline is
+  "did I write since we last agreed"; local-versus-peer is "are we the same right
+  now", and only the first is what the rebuild needs to know.
+
+  The comparison is **hash equality against the stored per-record baseline
+  hash**, which the baseline table already keeps and which is already defined as
+  `SHA-256` over canonical JSON. No new comparator is introduced — and in
+  particular the rule does **not** compare local content against the peer's blob,
+  which could never report equality anyway, since the ordering fields differ by
+  construction whenever repair is running.
+
+  The record's content and its live-or-deleted state are never changed by repair;
+  only impossible ordering values are. The two copies end bit-identical exactly
+  when both fields were adopted verbatim.
+
+  **The window is the classifier for *which* values to rebuild, and that is the
+  whole point.** `updatedAt`
   carries no signal separating "poisoned by a broken clock" from "genuinely newer
   local edit" — both are simply a large local value — so no comparison of
   *magnitude against the peer* can tell them apart. What does tell them apart is
@@ -987,16 +1076,12 @@ other copies actually hold:
   The tell was in this document's own test list, where two entries demanded
   opposite outcomes from the same input.
 
-  **The window is used two ways, and only one of them rejects.** Inbound blobs
-  are refused on `existenceAt` alone, as before: existence decides whether a
-  record exists at all, so a bad value there silently reverses a deletion, while
-  a bad `updatedAt` costs at most one recoverable edit — the same asymmetry that
-  made existence a separate field in the first place. A far-future `updatedAt`
-  can therefore still arrive from a peer, and that channel predates repair, since
-  the steady-state download gate accepts one too. What has changed is that it no
-  longer persists: an adopted poisoned `updatedAt` puts the record out of window,
-  so the next pass quarantines and repairs it. The value gets in, and then gets
-  cleaned, rather than lodging permanently.
+  **Both classifiers earn their place, and they answer different questions.** The
+  window says *which* values are impossible and must be rebuilt; the baseline
+  says *how* to rebuild `updatedAt`, by telling this device whether it wrote the
+  record since it last agreed with its peers. Neither substitutes for the other,
+  and the two failures of earlier drafts were each a case of one signal being
+  asked a question only the other could answer.
 - **A rejected hash is reported once per session**, held in memory. The blob
   stays in the peer's manifest and would otherwise be re-fetched and re-rejected
   for ever, turning one bad record into an endless stream of identical warnings.
@@ -1163,13 +1248,20 @@ rule, so the `+ 1ms` is load-bearing rather than decorative. Two devices
 repairing the same record concurrently converge **when their content agrees** —
 both adopt the same observed values verbatim, both land bit-identical, and there
 is nothing left to reconcile. When their content differs they do **not**:
-repairing concurrently means observing the same peer set, and neither rebuild
-formula reads the local value, so both compute the same `peer + 1ms` and tie at
-equal `updatedAt` — `changed`/`changed` on a row the merge table does not
-resolve. That divergence is bilateral and reported, the same posture as the
-residual above.
+repairing concurrently means observing the same peer set, and no rebuild formula
+reads a local *timestamp* — the baseline only selects a branch — so two devices
+that take the same branch compute the same value and tie at equal `updatedAt`,
+`changed`/`changed` on a row the merge table does not resolve. That divergence is
+bilateral and reported, the same posture as the residual above.
 
-The independence from local values is what makes that analysis hold. An
+Two repairers that take **different** branches do resolve, and correctly: the one
+whose content diverges from its baseline edited the record and stamps
+`peer + 1ms`, while the one that merely fell behind adopts the peer value
+verbatim and loses to it. That is the intended outcome rather than a tie, and it
+is the classifier doing its job — the ties are confined to the case where both
+devices genuinely edited, which is a real conflict and is reported as one.
+
+The independence from local timestamps is what makes that analysis hold. An
 intermediate draft took `max(local updatedAt, peer + 1ms)` in one branch, which
 would have made the outcome depend on each device's own value: two concurrent
 repairers would then *not* tie, and whichever held the larger local value would
@@ -2689,11 +2781,19 @@ must say this plainly rather than implying sync is opaque to us.
   it.
 - **Repair does not push stale content** — a peer legitimately edits a record
   while the poisoned device is offline holding older content; repair the poisoned
-  device and assert the peer's edit survives. Mutation-proved by restamping
-  `updatedAt` to `peer + 1ms` unconditionally, which makes the stale copy win the
-  next content conflict and loses the peer's edit fleet-wide. Assert too that the
-  copies end bit-identical when state *and* content agree — that mutation breaks
-  it, and so does keying the verbatim branch on state alone.
+  device and assert the peer's edit survives. The poisoned device never edited,
+  so its content still matches its own baseline and the peer value is adopted
+  verbatim. Mutation-proved two ways, both of which make the stale copy outrank
+  the peer and lose its edit fleet-wide: restamp `peer + 1ms` unconditionally, or
+  classify on local content differing from **the peer's** rather than from the
+  baseline — the latter is the subtler mutation, because a poisoned discriminator
+  causes exactly the staleness that makes those two comparisons disagree.
+- **A local edit made while poisoned survives repair** — the mirror case: the
+  device edits a quarantined record, so its content diverges from its own
+  baseline; assert the repaired `updatedAt` outranks the peer's and the edit
+  propagates. This and the test above are the pair that must *both* pass, which
+  is what the baseline classifier buys and what no local-versus-peer rule could
+  provide.
 - **An in-window `updatedAt` is never touched by repair** — edit a quarantined
   record locally so its `updatedAt` is recent and plausible, then repair; assert
   it survives untouched while the out-of-window `existenceAt` is rebuilt.
@@ -2721,6 +2821,21 @@ must say this plainly rather than implying sync is opaque to us.
   assert it quarantines and repairs. Mutation-proved by quarantining on
   `existenceAt` alone, which leaves the poison uncatchable for ever, since
   `updatedAt` has no inbound rejection to stop it either.
+- **A poisoned `updatedAt` never enters circulation** — a device with a dead RTC
+  makes an ordinary content edit, so its `existenceAt` is untouched and only its
+  `updatedAt` is poisoned; assert peers refuse the blob rather than accepting it.
+  Mutation-proved by rejecting inbound on `existenceAt` alone, after which the
+  poison spreads, becomes the only value in circulation for that record, and
+  repair — which reads no clock and sources only from peers — has nothing honest
+  left to adopt.
+- **A peer poisoned in one field is excluded only for that field** — a peer with
+  a sound `existenceAt` and a poisoned `updatedAt`; assert it is still eligible
+  when rebuilding `existenceAt` and excluded when rebuilding `updatedAt`.
+  Mutation-proved by filtering both rebuilds on `existenceAt`, which adopts a
+  value outside the local window and re-quarantines the record immediately.
+- **A rebuilt value is re-checked before the record is called repaired** — assert
+  a rebuild that would still land outside the local window leaves the record
+  quarantined rather than reported as fixed.
 - **A poisoned `updatedAt` does not travel** — poison both fields on a deleting
   device, repair, and assert the blob peers receive carries neither. Mutation-
   proved by taking `max(local, peer + 1ms)`: the poisoned value dominates the
