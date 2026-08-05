@@ -48,6 +48,19 @@ gh api --paginate repos/<owner>/<repo>/pulls/<N>/reviews -q '.[].body'
 default), so on a PR with several review rounds the older bodies — and any
 suppressed sections in them — are silently omitted.
 
+**Re-check the body every round, not once.** Suppressed findings accumulate
+independently each round — a review that says "generated no new comments" in
+round N can still contain a `Suppressed comments` block. On #842, seven of eight
+rounds contained suppressed findings (twelve of nineteen total findings were
+suppressed), and only round 1 did not. Checking once after round 1 would have
+concluded the pattern did not apply.
+
+**`GET /pulls/<N>/comments` is blind to suppressed findings by construction.**
+#842's inline comment count held at 4 (2 findings + 2 author replies) through
+all eight rounds while nineteen findings accumulated. Thread state, unresolved
+count, and comment count are all blind to suppressed findings — the review
+**body** is their only surface.
+
 ## Before merging
 
 - **No unresolved review threads.** Ask for `totalCount` too, so a page-size
@@ -66,16 +79,38 @@ suppressed sections in them — are silently omitted.
   on a superseded commit proves nothing about the current head.
 - **The review is on the commit being merged.** A completed review is reported
   the same way whether or not the head has moved under it, so check it
-  explicitly — on #746 a review landed six seconds before the next push:
+  explicitly — on #746 a review landed six seconds before the next push.
+
+  **Do not use `.[-1].commit_id`.** GitHub records author replies to inline
+  threads as review entries. When an author reads a review, pushes a fix, and
+  replies to the threads — the normal review cycle — their replies are appended
+  after the reviewer's entry carrying the new head SHA. `.[-1]` then returns the
+  author's reply commit (which matches head) while the actual Copilot review sits
+  on the superseded commit. The gate passes; the review does not cover the
+  current diff. Reproduced on #842: Copilot reviewed `a76f3e0f`, the author
+  replied on `c11f747e`, and `.[-1].commit_id` returned `c11f747e` — matching
+  head, reading as PASS.
+
+  Filter by reviewer identity instead:
 
   ```sh
   gh api --paginate repos/<owner>/<repo>/pulls/<N>/reviews \
-    -q '.[-1].commit_id' | tail -n 1
+    --jq '[.[] | select(.user.login=="copilot-pull-request-reviewer[bot]")] | last | .commit_id'
   gh pr view <N> --json headRefOid -q .headRefOid
   ```
 
-  `--paginate` for the same reason as above; `tail -n 1` because `-q` is applied
-  to each page separately, so the un-tailed form emits one commit per page.
+  `--paginate` for the same reason as above. `--jq` (not `-q`) applies the
+  filter inside a single jq program over the full paginated stream, so `last`
+  returns the reviewer's latest entry rather than the tail of the last page.
+
+- **`requested_reviewers` must not be used to determine review state.** The
+  field is cleared on submission, so an empty result is ambiguous between *never
+  requested* and *already submitted*. A reading of it is valid only at the
+  instant it was taken and goes stale silently. To detect an **in-flight**
+  review (requested but not yet submitted), use the timeline's
+  `review_requested` event — that event persists after submission. `GET
+  /pulls/<N>/reviews` is structurally incapable of showing a pending request;
+  neither endpoint answers the question alone.
 
 - **The PR closes only the issues you intend.** See below.
 - **State verified from the remote**, not from memory or a stale local checkout.
