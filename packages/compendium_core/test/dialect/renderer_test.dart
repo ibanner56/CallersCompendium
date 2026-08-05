@@ -489,6 +489,315 @@ void main() {
     });
   });
 
+  // Issue #832. The four single-dancer identities are COMPOUND tokens, so the
+  // whole-token `roleTokens` membership test never matched them and their
+  // embedded role was never substituted: every display path fell through to
+  // `_humanize` and read "twos role2". The right construction already existed
+  // (`_singleDancerLabel`) but was wired to one caller, and it matched its
+  // regex before consulting `Dialect.dancers`, so a substitution was ignored.
+  group('single-dancer identities (#832)', () {
+    const singleDancers = ParamVocab.singleDancers;
+    final leads = Dialect.leadsFollows;
+    // A dialect that rewords ONE identity, to prove a substitution beats the
+    // `<ordinal> <role term>` default rather than being ignored — the exact
+    // preference the reporter asked for ("robin two", not "second robin").
+    final reworded = Dialect(
+      name: 'Reworded',
+      roles: const {'role1': RoleTerm('lark'), 'role2': RoleTerm('robin')},
+      dancers: const {'twosRole2': 'robin two'},
+    );
+    const dancerSpec = ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s');
+
+    group('displayToken — the people picker / facet label path', () {
+      // The whole vocabulary under every shipped dialect: a test pinning only
+      // the reported `twosRole2` would pass while the general bug survived.
+      const expected = {
+        'onesRole1': ['first role1', 'first lark', 'first lead'],
+        'onesRole2': ['first role2', 'first robin', 'first follow'],
+        'twosRole1': ['second role1', 'second lark', 'second lead'],
+        'twosRole2': ['second role2', 'second robin', 'second follow'],
+      };
+      for (final token in singleDancers) {
+        test('$token under every shipped dialect', () {
+          final want = expected[token]!;
+          expect(
+            FigureRenderer.displayToken(token, dancerSpec, Dialect.canonical),
+            want[0],
+          );
+          expect(
+            FigureRenderer.displayToken(token, dancerSpec, larks),
+            want[1],
+          );
+          expect(
+            FigureRenderer.displayToken(token, dancerSpec, leads),
+            want[2],
+          );
+        });
+      }
+
+      test('a dialect substitution wins over the default', () {
+        expect(
+          FigureRenderer.displayToken('twosRole2', dancerSpec, reworded),
+          'robin two',
+        );
+        // …and only for the token it names.
+        expect(
+          FigureRenderer.displayToken('twosRole1', dancerSpec, reworded),
+          'second lark',
+        );
+      });
+
+      test('not spec-gated: the label is right with no spec to hand', () {
+        // Unlike the `dialect.dancers` lookup, which needs a dancer-kind spec,
+        // these four are a closed structural vocabulary — like the role tokens
+        // above, they read correctly whatever the caller has.
+        expect(
+          FigureRenderer.displayToken('twosRole2', null, larks),
+          'second robin',
+        );
+        const shoulderSpec = ParamSpec(
+          ParamKind.shoulder,
+          defaultValue: 'right',
+        );
+        expect(
+          FigureRenderer.displayToken('twosRole2', shoulderSpec, larks),
+          'second robin',
+        );
+      });
+
+      test('near-miss tokens still humanize rather than blanking', () {
+        // OWASP / tolerant decode: unknown or malformed input must stay
+        // VISIBLE. The helper returns null for a non-match so the caller's
+        // `_humanize` fallback survives.
+        expect(
+          FigureRenderer.displayToken('twosRole3', dancerSpec, larks),
+          'twos role3',
+        );
+        expect(
+          FigureRenderer.displayToken('onesRole', dancerSpec, larks),
+          'ones role',
+        );
+        expect(
+          FigureRenderer.displayToken('threesRole1', dancerSpec, larks),
+          'threes role1',
+        );
+        // Case-sensitive: the canonical token is camelCase.
+        expect(
+          FigureRenderer.displayToken('twosrole2', dancerSpec, larks),
+          'twosrole2',
+        );
+      });
+
+      test('non-compound dancer vocabulary is unaffected', () {
+        expect(
+          FigureRenderer.displayToken('role1s', dancerSpec, larks),
+          'larks',
+        );
+        expect(
+          FigureRenderer.displayToken('partners', dancerSpec, larks),
+          'partners',
+        );
+        expect(
+          FigureRenderer.displayToken('centers', dancerSpec, larks),
+          'centers',
+        );
+      });
+    });
+
+    group('singleDancerDefaultTerm — the dialect editor row label', () {
+      test('is the default, DELIBERATELY ignoring dialect.dancers', () {
+        // The editor labels the row for the token being overridden, so it must
+        // show the default wording rather than echoing the substitution the
+        // user is typing into the adjacent field.
+        expect(
+          FigureRenderer.singleDancerDefaultTerm('twosRole2', reworded),
+          'second robin',
+        );
+        expect(
+          FigureRenderer.singleDancerDefaultTerm('twosRole2', larks),
+          'second robin',
+        );
+      });
+
+      test('is null for every non-identity token, so callers can chain it', () {
+        for (final token in [
+          'role1s',
+          'partners',
+          'centers',
+          'twosRole3',
+          'rightDiagonal',
+          '',
+        ]) {
+          expect(
+            FigureRenderer.singleDancerDefaultTerm(token, larks),
+            isNull,
+            reason: '$token is not a single-dancer identity',
+          );
+        }
+      });
+    });
+
+    group('rendered figures', () {
+      // `_renderValue` (template path): figure_8 renders `{who} {move} {half}`.
+      final templateFigure = Figure(
+        move: 'figure_8',
+        params: {'who': 'twosRole2'},
+      );
+      // `_displayDancer` (display base-line path): swing has a base renderer.
+      final baseLineFigure = Figure(
+        move: 'swing',
+        params: {'who': 'twosRole2'},
+      );
+      // `_singleDancerLabel`: the one site that was already correct, but which
+      // ignored `dialect.dancers`.
+      final dolphinFigure = Figure(
+        move: 'dolphin_hey',
+        params: {'whom': 'twosRole2'},
+      );
+
+      test('template path reads the dialect term', () {
+        expect(
+          renderer.render(templateFigure, larks),
+          'second robin figure 8 half',
+        );
+        expect(
+          renderer.render(templateFigure, leads),
+          'second follow figure 8 half',
+        );
+      });
+
+      test('base-line path reads the dialect term', () {
+        expect(renderer.render(baseLineFigure, larks), 'second robin swing');
+        expect(renderer.render(baseLineFigure, leads), 'second follow swing');
+      });
+
+      test('dolphin_hey now honours a substitution too', () {
+        expect(
+          renderer.render(dolphinFigure, larks),
+          'dolphin hey - start with ones passing second robin by right '
+          'shoulders',
+        );
+        expect(
+          renderer.render(dolphinFigure, reworded),
+          'dolphin hey - start with ones passing robin two by right shoulders',
+        );
+      });
+
+      test('a substitution wins on the template and base-line paths', () {
+        expect(
+          renderer.render(templateFigure, reworded),
+          'robin two figure 8 half',
+        );
+        expect(renderer.render(baseLineFigure, reworded), 'robin two swing');
+      });
+
+      test('verbose and summary agree with the terse render', () {
+        for (final f in [templateFigure, baseLineFigure, dolphinFigure]) {
+          expect(renderer.renderVerbose(f, larks), contains('second robin'));
+          expect(renderer.renderSummary(f, larks), contains('second robin'));
+        }
+      });
+
+      // THE property that keeps this a display fix instead of a migration:
+      // canonicalText feeds `dance_fts`, the `dance_figures` projection and the
+      // dedupe key, so it must stay byte-for-byte identical. The display branch
+      // is gated on `!forCanonical` precisely for this.
+      test('canonical render is BYTE-IDENTICAL (no migration)', () {
+        expect(
+          renderer.renderCanonical(templateFigure),
+          'twos role2 figure 8 half',
+        );
+        expect(renderer.renderCanonical(baseLineFigure), 'twos role2 swing');
+        expect(
+          renderer.renderCanonical(dolphinFigure),
+          'ones dolphin hey right',
+        );
+      });
+
+      test('canonical render ignores a dialect substitution as well', () {
+        // renderCanonical always passes Dialect.canonical, but assert the
+        // property directly: no dialect wording may reach the stored text.
+        for (final f in [templateFigure, baseLineFigure]) {
+          expect(renderer.renderCanonical(f), isNot(contains('robin')));
+          expect(renderer.renderCanonical(f), isNot(contains('second')));
+        }
+      });
+
+      test('the display path under the canonical dialect uses the default', () {
+        // `render(figure, Dialect.canonical)` legitimately diverges from
+        // `renderCanonical(figure)` — documented on renderCanonical — and here
+        // it reads the canonical-vocabulary default rather than the raw token.
+        expect(
+          renderer.render(baseLineFigure, Dialect.canonical),
+          'second role2 swing',
+        );
+      });
+    });
+
+    // `_displayGroup` is guarded by an allow-list: `hey.meetTarget` declares
+    // `choices` that exclude the identities, so this path is LATENT today, not
+    // live. It is one taxonomy edit from live — the guard falls back to the
+    // full `ParamVocab.dancerSets` for any MoveDef that omits `choices` — and
+    // leaving it inconsistent with its sibling `_displayDancer` is exactly how
+    // this bug class propagated in the first place. Exercised through the
+    // documented fallback rather than left unproven.
+    group('_displayGroup (latent: guarded by an allow-list today)', () {
+      final heyDef = contraTaxonomy.resolve('hey')!;
+      final unnarrowedHey = MoveDef(
+        id: heyDef.id,
+        displayName: heyDef.displayName,
+        params: {
+          for (final e in heyDef.params.entries)
+            e.key: e.key == 'meetTarget'
+                // Drop ONLY the `choices` narrowing, so the renderer takes its
+                // `?? ParamVocab.dancerSets` fallback — which admits the four.
+                ? ParamSpec(e.value.kind, defaultValue: e.value.defaultValue)
+                : e.value,
+        },
+        renderTemplate: heyDef.renderTemplate,
+        searchKeywords: heyDef.searchKeywords,
+        goodBeats: heyDef.goodBeats,
+        paramBeats: heyDef.paramBeats,
+      );
+      final unnarrowed = FigureRenderer(
+        Taxonomy(
+          version: contraTaxonomy.version,
+          form: contraTaxonomy.form,
+          moves: [
+            for (final m in contraTaxonomy.moves.values)
+              m.id == heyDef.id ? unnarrowedHey : m,
+          ],
+          aliases: contraTaxonomy.aliases.values.toList(),
+        ),
+      );
+      final figure = invalidTestFigure(
+        move: 'hey',
+        params: {'meetTarget': 'twosRole2', 'length': 'lessThanHalf'},
+        reason:
+            'hey.meetTarget narrows its choices to the group dancer sets under '
+            'the live taxonomy, so a single-dancer identity is out of domain '
+            'there; this exercises the renderer against a MoveDef that omits '
+            'the narrowing, which is the shape its allow-list fallback exists '
+            'to handle.',
+      );
+
+      test('reads the dialect term, not the humanized token', () {
+        expect(unnarrowed.render(figure, larks), contains('second robin meet'));
+        expect(unnarrowed.render(figure, larks), isNot(contains('twos role2')));
+      });
+
+      test('honours a substitution', () {
+        expect(unnarrowed.render(figure, reworded), contains('robin two meet'));
+      });
+
+      test('the live taxonomy still degrades an out-of-domain target', () {
+        // The allow-list is why this is latent: under the shipped taxonomy the
+        // same figure never reaches the branch at all.
+        expect(renderer.render(figure, larks), contains('until someone meets'));
+      });
+    });
+  });
+
   group('displayMoveName (editor move display)', () {
     test('plain taxonomy display name under canonical', () {
       expect(

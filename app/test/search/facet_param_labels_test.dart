@@ -82,6 +82,53 @@ void main() {
       );
     });
 
+    // Issue #832: the people picker showed `twos role2`. The identities are
+    // COMPOUND tokens, so the renderer's whole-token role check never matched
+    // them and they fell through to camelCase humanization. This is the exact
+    // path the picker labels its options with.
+    test('renders single-dancer identities in the active dialect', () {
+      const expected = {
+        'onesRole1': ['first lark', 'first gent', 'first role1'],
+        'onesRole2': ['first robin', 'first lady', 'first role2'],
+        'twosRole1': ['second lark', 'second gent', 'second role1'],
+        'twosRole2': ['second robin', 'second lady', 'second role2'],
+      };
+      // The full domain, under every dialect shape: pinning only the reported
+      // `twosRole2` would pass while the general bug survived.
+      for (final token in ParamVocab.singleDancers) {
+        final want = expected[token]!;
+        for (final (i, dialect) in [
+          larksRobins,
+          gentsLadies,
+          Dialect.canonical,
+        ].indexed) {
+          expect(
+            figureParamChoiceLabel(l10n, dancerSpec, dialect, token),
+            want[i],
+            reason: '$token under ${dialect.name}',
+          );
+        }
+      }
+    });
+
+    test('a dialect substitution rewords a single-dancer identity', () {
+      // The reporter asked for "robin two"; the ordinal-first construction is
+      // the DEFAULT, and the dialect owns the wording (issue #832).
+      final reworded = Dialect(
+        name: 'Reworded',
+        roles: larksRobins.roles,
+        dancers: const {'twosRole2': 'robin two'},
+      );
+      expect(
+        figureParamChoiceLabel(l10n, dancerSpec, reworded, 'twosRole2'),
+        'robin two',
+      );
+      expect(
+        figureParamChoiceLabel(l10n, dancerSpec, reworded, 'twosRole1'),
+        'second lark',
+      );
+    });
+
     test('humanizes structural vocabulary and ignores the dialect', () {
       const directionSpec = ParamSpec(ParamKind.direction, defaultValue: 'in');
       for (final dialect in [larksRobins, gentsLadies, Dialect.canonical]) {

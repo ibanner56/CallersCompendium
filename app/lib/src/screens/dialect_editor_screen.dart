@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/validation_issue_labels.dart';
+import '../search/facet_labels.dart' show humanizeToken;
 
 /// Full-screen term editor for a single named [Dialect] (`docs/design/ux.md`
 /// §6). Edits the pieces a dialect can set — role terms (gendered terms live
@@ -262,6 +263,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
           _EditorHeader(title: l10n.dialectEditorSectionDancerSubs),
           _DancerSubstitutionsEditor(
             controllers: _dancerCtrls,
+            dialect: _working,
             expanded: _showDancers,
             onToggle: () => setState(() => _showDancers = !_showDancers),
             onEdited: _onEdited,
@@ -516,12 +518,20 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
 }
 
 /// Editable dancer-substitution list, parallel to [_MoveSubstitutionsEditor].
-/// Enumerates the positional/relational dancer tokens (the role-driven
-/// `role1s`/`role2s` are excluded — they flow through role-term substitution)
-/// and lets the caller override each with preferred wording.
+/// Enumerates the whole dancer vocabulary — the positional/relational sets AND
+/// the single-dancer identities (`onesRole1` … `twosRole2`) — minus the
+/// role-driven `role1s`/`role2s`, which flow through role-term substitution
+/// instead, and lets the caller override each with preferred wording.
+///
+/// The single-dancer identities were absent until issue #832 purely because
+/// this iterated [ParamVocab.pairDancerSets] rather than the full
+/// [ParamVocab.dancerSets]; there was no reason to exclude them, and they are
+/// exactly the tokens a caller is most likely to want reworded ("robin two"
+/// rather than the default "second robin").
 class _DancerSubstitutionsEditor extends StatelessWidget {
   const _DancerSubstitutionsEditor({
     required this.controllers,
+    required this.dialect,
     required this.expanded,
     required this.onToggle,
     required this.onEdited,
@@ -530,25 +540,38 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
   });
 
   final Map<String, TextEditingController> controllers;
+
+  /// The dialect as currently edited, so a row label tracks the role terms the
+  /// caller is typing (`onesRole1` reads "first lark" the moment role1 becomes
+  /// "lark").
+  final Dialect dialect;
   final bool expanded;
   final VoidCallback onToggle;
   final VoidCallback onEdited;
   final ValueChanged<String> onAdd;
   final ValueChanged<String> onRemove;
 
-  /// The substitutable dancer tokens: the pair/group dancer sets minus the
-  /// role-driven `role1s`/`role2s`, which are handled by role-term
-  /// substitution rather than here.
+  /// The substitutable dancer tokens: the whole dancer vocabulary — group sets
+  /// and single-dancer identities alike — minus the role-driven
+  /// `role1s`/`role2s`, which are handled by role-term substitution rather than
+  /// here.
   static final List<String> _substitutableTokens = [
-    for (final t in ParamVocab.pairDancerSets)
+    for (final t in ParamVocab.dancerSets)
       if (t != 'role1s' && t != 'role2s') t,
   ];
 
-  /// Human-readable label for a camelCase dancer token
-  /// (e.g. `nextNeighbors` -> `next neighbors`).
-  static String _dancerLabel(String token) => token
-      .replaceAllMapped(RegExp(r'(?<=[a-z])(?=[A-Z])'), (_) => ' ')
-      .toLowerCase();
+  /// Human-readable label for a dancer token: the single-dancer identities read
+  /// as their dialect-aware default (`twosRole2` -> "second robin"), everything
+  /// else humanizes its camelCase (`nextNeighbors` -> `next neighbors`).
+  ///
+  /// The default, NOT [Dialect.dancers]-aware: the label names the token being
+  /// overridden, so echoing the substitution the caller is typing into the
+  /// adjacent field would leave the row self-referential. Without the
+  /// single-dancer branch this screen would show the raw `twos role2` that
+  /// issue #832 is about, in the very UI that fixes it.
+  String _dancerLabel(String token) =>
+      FigureRenderer.singleDancerDefaultTerm(token, dialect) ??
+      humanizeToken(token);
 
   @override
   Widget build(BuildContext context) {

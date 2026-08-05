@@ -229,4 +229,190 @@ void main() {
       await expectFieldLabel('dialect-dancer-nextNeighbors', 'next neighbors');
     },
   );
+
+  // Issue #832. `_substitutableTokens` iterated `ParamVocab.pairDancerSets`,
+  // so the four single-dancer identities were absent from this screen entirely
+  // — there was no way to express "robin two" instead of the default "second
+  // robin", for exactly the tokens a caller most wants to reword. And the row
+  // label humanized camelCase, so adding them naively would have shown the raw
+  // `twos role2` this issue is about IN THE SCREEN THAT FIXES IT.
+  group('single-dancer identities are substitutable (#832)', () {
+    Future<void> openDancers(WidgetTester tester, Dialect initial) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: DialectEditorScreen(initial: initial),
+        ),
+      );
+      final toggle = find.byKey(const ValueKey('dialect-dancers-toggle'));
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+    }
+
+    /// The add menu's own items, read off the widget rather than the rendered
+    /// overlay: the list is long enough that the lower entries are never laid
+    /// out, so a `find.text` sweep would silently under-report.
+    ({List<String?> values, List<String?> labels}) addMenu(
+      WidgetTester tester,
+    ) {
+      final dropdown = tester.widget<DropdownButton<String>>(
+        find.byKey(const ValueKey('dialect-add-dancer')),
+      );
+      return (
+        values: [for (final i in dropdown.items!) i.value],
+        labels: [for (final i in dropdown.items!) (i.child as Text).data],
+      );
+    }
+
+    testWidgets('the add menu offers all four, labelled by dialect', (
+      tester,
+    ) async {
+      await openDancers(tester, Dialect.larksRobins);
+      final menu = addMenu(tester);
+
+      expect(menu.values, containsAll(ParamVocab.singleDancers));
+      // THE TRAP: labelled through the dialect, never as the raw token.
+      expect(
+        menu.labels,
+        containsAll([
+          'first lark',
+          'first robin',
+          'second lark',
+          'second robin',
+        ]),
+      );
+      for (final raw in [
+        'ones role1',
+        'ones role2',
+        'twos role1',
+        'twos role2',
+      ]) {
+        expect(
+          menu.labels,
+          isNot(contains(raw)),
+          reason: 'the raw token "$raw" must never reach the settings UI',
+        );
+      }
+
+      // The group dancer sets are still there, still humanized.
+      expect(menu.values, containsAll(['neighbors', 'nextNeighbors']));
+      expect(menu.labels, contains('next neighbors'));
+      // Role-driven tokens stay excluded (role-term substitution owns them).
+      expect(menu.values, isNot(contains('role1s')));
+      expect(menu.values, isNot(contains('role2s')));
+    });
+
+    testWidgets('an existing identity row is labelled by dialect', (
+      tester,
+    ) async {
+      await openDancers(
+        tester,
+        Dialect(
+          name: 'Reworded',
+          roles: Dialect.larksRobins.roles,
+          dancers: const {'twosRole2': 'robin two'},
+        ),
+      );
+
+      final field = find.byKey(const ValueKey('dialect-dancer-twosRole2'));
+      await tester.ensureVisible(field);
+      await tester.pumpAndSettle();
+
+      // The row names the token being overridden by its DEFAULT wording — not
+      // the substitution in the adjacent field, which would be circular.
+      expect(find.text('second robin'), findsWidgets);
+      expect(find.text('twos role2'), findsNothing);
+      expect(tester.widget<TextField>(field).controller!.text, 'robin two');
+    });
+
+    testWidgets('the row label tracks role terms as they are edited', (
+      tester,
+    ) async {
+      // A viewport tall enough to lay the whole form out at once: the role
+      // field and the dancer row must both be built simultaneously, and the
+      // editor's list only builds what is on screen.
+      tester.view.physicalSize = const Size(1200, 4000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await openDancers(
+        tester,
+        Dialect(
+          name: 'Editing',
+          roles: Dialect.larksRobins.roles,
+          dancers: const {'twosRole2': 'robin two'},
+        ),
+      );
+      expect(find.text('second robin'), findsWidgets);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-role2-singular')),
+        'raven',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('second raven'), findsWidgets);
+      expect(find.text('second robin'), findsNothing);
+    });
+
+    testWidgets('adding one round-trips into the saved dialect', (
+      tester,
+    ) async {
+      Dialect? popped;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Navigator(
+            onGenerateRoute: (_) => MaterialPageRoute<void>(
+              builder: (context) => TextButton(
+                onPressed: () async {
+                  popped = await Navigator.of(context).push<Dialect>(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          DialectEditorScreen(initial: Dialect.larksRobins),
+                    ),
+                  );
+                },
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      final toggle = find.byKey(const ValueKey('dialect-dancers-toggle'));
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+
+      // Drive the menu's own callback: the rendered overlay is long enough
+      // that the entry is never laid out, so tapping it is not reachable.
+      // The value comes FROM the menu, so this is red when the menu does not
+      // offer the token rather than reaching a state the UI cannot produce.
+      final menu = tester.widget<DropdownButton<String>>(
+        find.byKey(const ValueKey('dialect-add-dancer')),
+      );
+      menu.onChanged!(
+        menu.items!.map((i) => i.value).firstWhere((v) => v == 'twosRole2'),
+      );
+      await tester.pumpAndSettle();
+
+      final field = find.byKey(const ValueKey('dialect-dancer-twosRole2'));
+      await tester.ensureVisible(field);
+      await tester.enterText(field, 'robin two');
+      await tester.pumpAndSettle();
+
+      final save = find.byKey(const ValueKey('dialect-editor-save'));
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+
+      expect(popped?.dancers['twosRole2'], 'robin two');
+    });
+  });
 }
