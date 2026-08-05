@@ -513,35 +513,36 @@ class AppLocalizationsNl extends AppLocalizations {
       'Als ingeschakeld, opent een dans met canonieke rol- en bewegingsnamen in plaats van je actieve dialect. Je kunt nog steeds van weergave wisselen terwijl de dans open is.';
 
   @override
-  String get settingsDefaultsCollectionCardHeader => 'Collection card fields';
+  String get settingsDefaultsCollectionCardHeader =>
+      'Velden op de collectiekaart';
 
   @override
   String get settingsDefaultsCollectionCardSubtitle =>
-      'Choose which details appear on each dance row. All fields are shown by default.';
+      'Kies welke details op elke dansrij verschijnen. Alle velden worden standaard getoond.';
 
   @override
-  String get settingsDefaultsCollectionCardAuthors => 'Authors';
+  String get settingsDefaultsCollectionCardAuthors => 'Auteurs';
 
   @override
-  String get settingsDefaultsCollectionCardCalledCount => 'Times called';
+  String get settingsDefaultsCollectionCardCalledCount => 'Aantal keer gecalld';
 
   @override
-  String get settingsDefaultsCollectionCardFormation => 'Formation';
+  String get settingsDefaultsCollectionCardFormation => 'Formatie';
 
   @override
   String get settingsDefaultsCollectionCardStatus => 'Status';
 
   @override
-  String get settingsDefaultsCollectionCardLevel => 'Level';
+  String get settingsDefaultsCollectionCardLevel => 'Niveau';
 
   @override
-  String get settingsDefaultsCollectionCardRating => 'Rating';
+  String get settingsDefaultsCollectionCardRating => 'Beoordeling';
 
   @override
   String get settingsDefaultsCollectionCardTags => 'Tags';
 
   @override
-  String get settingsDefaultsCollectionCardCustomFields => 'Custom fields';
+  String get settingsDefaultsCollectionCardCustomFields => 'Aangepaste velden';
 
   @override
   String get settingsDefaultsAuthoringHeader =>
@@ -658,46 +659,46 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get settingsAppearanceTagColoursHeader => 'Tag colours';
+  String get settingsAppearanceTagColoursHeader => 'Tagkleuren';
 
   @override
-  String get settingsAppearanceTagColoursTitle => 'Tag colours';
+  String get settingsAppearanceTagColoursTitle => 'Tagkleuren';
 
   @override
   String get settingsAppearanceTagColoursSubtitle =>
-      'Give a tag its own colour to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without colour.';
+      'Geef een tag een eigen kleur zodat die opvalt op danskaarten en in de dansdetails. De naam van de tag wordt altijd ook getoond, dus tags blijven leesbaar zonder kleur.';
 
   @override
-  String get settingsTagColoursTitle => 'Tag colours';
+  String get settingsTagColoursTitle => 'Tagkleuren';
 
   @override
   String get settingsTagColoursIntro =>
-      'Give a tag its own colour to make it stand out wherever it appears. Only the tags you colour change; the rest look exactly as they do now. The tag\'s name is always shown too, so tags stay readable without colour.';
+      'Geef een tag een eigen kleur zodat die overal opvalt waar hij verschijnt. Alleen de tags die je kleurt veranderen; de rest ziet er precies zo uit als nu. De naam van de tag wordt altijd ook getoond, dus tags blijven leesbaar zonder kleur.';
 
   @override
   String get settingsTagColoursListHeader => 'Tags';
 
   @override
   String get settingsTagColoursEmpty =>
-      'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.';
+      'Je hebt nog geen tags aangemaakt. Voeg een tag toe aan een dans en die verschijnt hier.';
 
   @override
-  String get settingsTagColoursCustom => 'Custom colour';
+  String get settingsTagColoursCustom => 'Aangepaste kleur';
 
   @override
-  String get settingsTagColoursNoColour => 'No colour';
+  String get settingsTagColoursNoColour => 'Geen kleur';
 
   @override
   String settingsTagColoursResetTooltip(String label) {
-    return 'Remove $label\'s colour';
+    return 'Kleur van $label verwijderen';
   }
 
   @override
   String get settingsTagColoursSaveError =>
-      'Couldn\'t save that colour. Please try again.';
+      'Kon die kleur niet opslaan. Probeer het opnieuw.';
 
   @override
-  String get settingsTagColoursLoadError => 'Couldn\'t load your tags.';
+  String get settingsTagColoursLoadError => 'Kon je tags niet laden.';
 
   @override
   String get settingsGeneralLibraryHeader => 'Bibliotheek';
@@ -752,11 +753,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
-      'Track calling history for all callers';
+      'Callerhistorie voor alle callers bijhouden';
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
-      'When off and a default caller is set, calling history and counts include only programs led by that caller. When on — or when no default caller is set — every program that contains the dance is tracked.';
+      'Als dit uit staat en er een standaardcaller is ingesteld, bevatten de callerhistorie en de aantallen alleen programma’s die door die caller zijn geleid. Als dit aan staat — of als er geen standaardcaller is ingesteld — wordt elk programma dat de dans bevat bijgehouden.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Toegankelijkheid';
@@ -866,13 +867,13 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get backupRestoreSettingsFailed =>
-      'Your dances and programs were restored, but applying your saved settings failed. Your restored content is safe — you can retry applying settings.';
+      'Je dansen en programma’s zijn hersteld, maar het toepassen van je opgeslagen instellingen is mislukt. Je herstelde inhoud is veilig — je kunt opnieuw proberen de instellingen toe te passen.';
 
   @override
-  String get backupRestoreSettingsRetryAction => 'Retry settings';
+  String get backupRestoreSettingsRetryAction => 'Opnieuw toepassen';
 
   @override
-  String get backupRestoreSettingsRetried => 'Settings applied.';
+  String get backupRestoreSettingsRetried => 'Instellingen toegepast.';
 
   @override
   String get backupExportTitle => 'Een back-up exporteren';
@@ -3235,34 +3236,34 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogBody(String existingTitle) {
-    return 'This dance\'s title and caller match \"$existingTitle\", but its figures are different. How do you want to import it?';
+    return 'De titel en caller van deze dans komen overeen met “$existingTitle”, maar de figuren verschillen. Hoe wil je hem importeren?';
   }
 
   @override
   String get onlineImportVariationDialogActionVariation =>
-      'Import as a variation';
+      'Importeren als variatie';
 
   @override
   String get onlineImportVariationDialogActionLink =>
-      'Same dance (update existing)';
+      'Zelfde dans (bestaande bijwerken)';
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Your version of \"$existingTitle\" will be replaced by the online record — including its figures, notes, tags, rating, and custom fields. It keeps its place in your programs and its calling history.';
+    return 'Jouw versie van “$existingTitle” wordt vervangen door het online record — inclusief de figuren, callnotities, tags, beoordeling en aangepaste velden. De dans behoudt zijn plaats in je programma’s en zijn callerhistorie.';
   }
 
   @override
   String get onlineImportCrossSourceDuplicateDialogTitle =>
-      'You already have this dance';
+      'Je hebt deze dans al';
 
   @override
   String onlineImportCrossSourceDuplicateDialogBody(String existingTitle) {
-    return 'Your collection already has \"$existingTitle\" from a different source. Both versions have the same sequence of moves.';
+    return 'Je collectie bevat “$existingTitle” al uit een andere bron. Beide versies hebben dezelfde volgorde van moves.';
   }
 
   @override
   String get onlineImportCrossSourceDuplicateDialogActionDuplicate =>
-      'Import a second copy';
+      'Een tweede kopie importeren';
 
   @override
   String get onlineAttributionCallersBox => 'Van The Caller\'s Box (online)';
@@ -3353,23 +3354,23 @@ class AppLocalizationsNl extends AppLocalizations {
   String get importContraDbNoMatches => 'Geen overeenkomende programma\'s.';
 
   @override
-  String get importContraDbMarkerImported => 'Imported';
+  String get importContraDbMarkerImported => 'Geïmporteerd';
 
   @override
   String importContraDbMarkerImportedTooltip(String date) {
-    return 'Imported on $date';
+    return 'Geïmporteerd op $date';
   }
 
   @override
   String get importContraDbMarkerImportedTooltipNoDate =>
-      'Already imported from ContraDB';
+      'Al geïmporteerd uit ContraDB';
 
   @override
-  String get importContraDbMarkerPossible => 'Possibly imported';
+  String get importContraDbMarkerPossible => 'Mogelijk geïmporteerd';
 
   @override
   String get importContraDbMarkerPossibleTooltip =>
-      'A program with this title already exists';
+      'Er bestaat al een programma met deze titel';
 
   @override
   String importContraDbFetchError(String error) {
@@ -3547,23 +3548,23 @@ class AppLocalizationsNl extends AppLocalizations {
       'een Caller\'s Companion .USR-bestand';
 
   @override
-  String get importSourceLabelTitleList => 'a list of titles';
+  String get importSourceLabelTitleList => 'een lijst met titels';
 
   @override
   String get importReviewTitleListSubtitle =>
-      'Paste one dance title per line. Every title is listed for review — the ones you already have are shown but never re-imported, and nothing is added to your collection until you confirm.';
+      'Plak één danstitel per regel. Elke titel wordt ter controle getoond — de titels die je al hebt worden wel getoond maar nooit opnieuw geïmporteerd, en er wordt niets aan je collectie toegevoegd voordat je bevestigt.';
 
   @override
-  String get importReviewPasteTitles => 'Dance titles, one per line';
+  String get importReviewPasteTitles => 'Danstitels, één per regel';
 
   @override
   String importReviewTitleListCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count titles',
-      one: '1 title',
-      zero: 'No titles yet',
+      other: '$count titels',
+      one: '1 titel',
+      zero: 'Nog geen titels',
     );
     return '$_temp0';
   }
@@ -3573,24 +3574,24 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count repeated titles ignored',
-      one: '1 repeated title ignored',
+      other: '$count herhaalde titels genegeerd',
+      one: '1 herhaalde titel genegeerd',
     );
     return '$_temp0';
   }
 
   @override
   String importTitleListTooManyTitles(int count, int max) {
-    return 'That\'s $count titles. Import up to $max at a time.';
+    return 'Dat zijn $count titels. Importeer er maximaal $max tegelijk.';
   }
 
   @override
   String get importTitleListTextTooLong =>
-      'That paste is too long to read as a list of titles. Try pasting a shorter list.';
+      'Die plaktekst is te lang om als lijst met titels te worden gelezen. Probeer een kortere lijst te plakken.';
 
   @override
   String importReviewTitleListProgress(int done, int total) {
-    return 'Searching $done of $total…';
+    return '$done van $total zoeken…';
   }
 
   @override
@@ -3598,8 +3599,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count pasted titles',
-      one: '1 pasted title',
+      other: '$count geplakte titels',
+      one: '1 geplakte titel',
     );
     return '$_temp0';
   }
@@ -3609,8 +3610,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count to import',
-      one: '1 to import',
+      other: '$count te importeren',
+      one: '1 te importeren',
     );
     return '$_temp0';
   }
@@ -3620,8 +3621,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count already in your collection',
-      one: '1 already in your collection',
+      other: '$count al in je collectie',
+      one: '1 al in je collectie',
     );
     return '$_temp0';
   }
@@ -3631,58 +3632,57 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count not found',
-      one: '1 not found',
+      other: '$count niet gevonden',
+      one: '1 niet gevonden',
     );
     return '$_temp0';
   }
 
   @override
   String importReviewTitleListOwnedBy(String authors) {
-    return 'You already have this, by $authors.';
+    return 'Je hebt deze dans al, van $authors.';
   }
 
   @override
-  String get importReviewTitleListOwnedUnknownAuthor =>
-      'You already have this dance.';
+  String get importReviewTitleListOwnedUnknownAuthor => 'Je hebt deze dans al.';
 
   @override
   String importReviewTitleListOwnedMany(int count) {
-    return 'You have $count dances with this title.';
+    return 'Je hebt $count dansen met deze titel.';
   }
 
   @override
   String get importTitleListReasonNoResults =>
-      'The Caller\'s Box has no dance by this name.';
+      'The Caller\'s Box heeft geen dans met deze naam.';
 
   @override
   String get importTitleListReasonNoExactMatch =>
-      'Only near matches — nothing titled exactly this.';
+      'Alleen vergelijkbare resultaten — niets met precies deze titel.';
 
   @override
   String get importTitleListReasonMultipleExactMatches =>
-      'Several dances share this exact title, so it isn\'t clear which you meant.';
+      'Meerdere dansen hebben precies deze titel, dus het is niet duidelijk welke je bedoelde.';
 
   @override
   String get importTitleListReasonFetchError =>
-      'Couldn\'t reach The Caller\'s Box for this title.';
+      'The Caller\'s Box kon voor deze titel niet worden bereikt.';
 
   @override
   String get importTitleListReasonLineTooLong =>
-      'Too long to be a dance title, so it wasn\'t searched.';
+      'Te lang voor een danstitel, dus er is niet naar gezocht.';
 
   @override
   String get importReviewTitleListNothingToImport =>
-      'Nothing here to import — every title is either already in your collection or couldn\'t be found.';
+      'Hier is niets te importeren — elke titel staat al in je collectie of kon niet worden gevonden.';
 
   @override
   String importReviewSummaryAlreadyOwned(int count) {
-    return 'Already in your collection: $count';
+    return 'Al in je collectie: $count';
   }
 
   @override
   String importReviewSummaryNotFound(int count) {
-    return 'Not found: $count';
+    return 'Niet gevonden: $count';
   }
 
   @override
@@ -4540,34 +4540,34 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorMonthDec => 'Dec';
 
   @override
-  String get monthFullJanuary => 'January';
+  String get monthFullJanuary => 'Januari';
 
   @override
-  String get monthFullFebruary => 'February';
+  String get monthFullFebruary => 'Februari';
 
   @override
-  String get monthFullMarch => 'March';
+  String get monthFullMarch => 'Maart';
 
   @override
   String get monthFullApril => 'April';
 
   @override
-  String get monthFullMay => 'May';
+  String get monthFullMay => 'Mei';
 
   @override
-  String get monthFullJune => 'June';
+  String get monthFullJune => 'Juni';
 
   @override
-  String get monthFullJuly => 'July';
+  String get monthFullJuly => 'Juli';
 
   @override
-  String get monthFullAugust => 'August';
+  String get monthFullAugust => 'Augustus';
 
   @override
   String get monthFullSeptember => 'September';
 
   @override
-  String get monthFullOctober => 'October';
+  String get monthFullOctober => 'Oktober';
 
   @override
   String get monthFullNovember => 'November';
@@ -4956,14 +4956,15 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorMarkProgression => 'Progressie markeren';
 
   @override
-  String get danceEditorGroupWithNext => 'Group with next as meanwhile';
+  String get danceEditorGroupWithNext =>
+      'Groeperen met volgende als gelijktijdig';
 
   @override
   String danceEditorMeanwhileGroupLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Meanwhile ($count sides)',
+      other: 'Gelijktijdig ($count kanten)',
     );
     return '$_temp0';
   }
@@ -4973,37 +4974,37 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count concurrent figures',
-      one: '1 concurrent figure',
+      other: '$count gelijktijdige figuren',
+      one: '1 gelijktijdige figuur',
     );
     String _temp1 = intl.Intl.pluralLogic(
       beats,
       locale: localeName,
-      other: '$beats shared beats',
-      one: '1 shared beat',
+      other: '$beats gedeelde beats',
+      one: '1 gedeelde beat',
     );
-    return 'Meanwhile group, $_temp0, $_temp1.';
+    return 'Gelijktijdige groep, $_temp0, $_temp1.';
   }
 
   @override
   String danceEditorMeanwhileSideLabel(int number) {
-    return 'Side $number';
+    return 'Kant $number';
   }
 
   @override
   String danceEditorMeanwhileSideSemantic(int number, int total) {
-    return 'Side $number of $total.';
+    return 'Kant $number van $total.';
   }
 
   @override
-  String get danceEditorAddMeanwhileSide => 'Add side';
+  String get danceEditorAddMeanwhileSide => 'Kant toevoegen';
 
   @override
-  String get danceEditorRemoveMeanwhileSide => 'Remove this side';
+  String get danceEditorRemoveMeanwhileSide => 'Deze kant verwijderen';
 
   @override
   String danceEditorMeanwhileSidesCapReached(int max) {
-    return 'Maximum of $max concurrent figures.';
+    return 'Maximaal $max gelijktijdige figuren.';
   }
 
   @override
@@ -5195,17 +5196,17 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String collectionPickerAddedTooltip(String title) {
-    return 'Added $title';
+    return '$title toegevoegd';
   }
 
   @override
   String collectionPickerInProgramSemantic(String title) {
-    return '$title is already in the program';
+    return '$title staat al in het programma';
   }
 
   @override
   String collectionPickerInProgramCountSemantic(String title, int count) {
-    return '$title is in the program $count times';
+    return '$title staat $count keer in het programma';
   }
 
   @override
@@ -5284,40 +5285,41 @@ class AppLocalizationsNl extends AppLocalizations {
       'Voeg ten minste één figuur toe om deze afkorting naar uit te klappen.';
 
   @override
-  String get importShorthandSeedTitle => 'Seed figure shorthands';
+  String get importShorthandSeedTitle => 'Figuurafkortingen aanmaken';
 
   @override
   String get importShorthandSeedIntro =>
-      'Your Caller\'s Companion file\'s call buttons can become figure shorthands. Pick the ones you want; each expands to the figures shown. Nothing is added until you confirm, and your existing shorthands are never overwritten.';
+      'De callknoppen in je Caller\'s Companion-bestand kunnen figuurafkortingen worden. Kies degene die je wilt; elke knop wordt uitgebreid tot de getoonde figuren. Er wordt niets toegevoegd voordat je bevestigt, en je bestaande afkortingen worden nooit overschreven.';
 
   @override
-  String get importShorthandSeedAvailableHeader => 'From your call buttons';
+  String get importShorthandSeedAvailableHeader => 'Uit je callknoppen';
 
   @override
-  String get importShorthandSeedUsePrimary => 'Primary';
+  String get importShorthandSeedUsePrimary => 'Primair';
 
   @override
-  String get importShorthandSeedUseAlt => 'Alternate';
+  String get importShorthandSeedUseAlt => 'Alternatief';
 
   @override
-  String get importShorthandSeedConflictHeader => 'Already defined — skipped';
+  String get importShorthandSeedConflictHeader =>
+      'Al gedefinieerd — overgeslagen';
 
   @override
   String importShorthandSeedConflictNote(String token) {
-    return 'A shorthand named “$token” already exists, so this button was left as-is.';
+    return 'Er bestaat al een afkorting met de naam “$token”, dus deze knop is ongewijzigd gelaten.';
   }
 
   @override
-  String get importShorthandSeedSkip => 'Skip';
+  String get importShorthandSeedSkip => 'Overslaan';
 
   @override
   String importShorthandSeedConfirm(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Seed $count shorthands',
-      one: 'Seed 1 shorthand',
-      zero: 'Seed shorthands',
+      other: '$count afkortingen aanmaken',
+      one: '1 afkorting aanmaken',
+      zero: 'Afkortingen aanmaken',
     );
     return '$_temp0';
   }
@@ -5327,8 +5329,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Seeded $count shorthands',
-      one: 'Seeded 1 shorthand',
+      other: '$count afkortingen aangemaakt',
+      one: '1 afkorting aangemaakt',
     );
     return '$_temp0';
   }
@@ -5623,22 +5625,22 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get customFieldsShareable => 'Include in sharing';
+  String get customFieldsShareable => 'Opnemen bij delen';
 
   @override
   String get customFieldsShareableSubtitle =>
-      'This field\'s values travel with your collection when you export or share it';
+      'De waarden van dit veld gaan mee met je collectie wanneer je die exporteert of deelt';
 
   @override
   String get customFieldsSharingNoticeTitle =>
-      'Custom fields travel with your collection';
+      'Aangepaste velden gaan mee met je collectie';
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'The contents of any custom field you create are included when you export or share your collection. To keep a field private, turn off \"Include in sharing\" in that field\'s settings.';
+      'De inhoud van elk aangepast veld dat je aanmaakt, wordt meegenomen wanneer je je collectie exporteert of deelt. Zet “Opnemen bij delen” uit in de instellingen van dat veld om een veld privé te houden.';
 
   @override
-  String get customFieldsSharingNoticeOk => 'Got it';
+  String get customFieldsSharingNoticeOk => 'Begrepen';
 
   @override
   String dialectEditorTitle(String name) {

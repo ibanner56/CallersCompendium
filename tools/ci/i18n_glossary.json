@@ -2,7 +2,9 @@
   "$schema-note": "Consumed by tools/ci/arb_translate.py `extract`. `doNotTranslate` lists proper nouns/brands/acronyms that must be copied verbatim into every locale. `terms` maps dance-domain jargon to a short note pinning the *intended* meaning, so an assisted translation (or a human) renders the dance sense rather than an everyday homograph (e.g. `caller` is the person who prompts the dance, not a telephone caller). This is guidance, not a hard gate; keep it small and high-signal.",
   "doNotTranslate": [
     "Caller's Compendium",
+    "Caller's Companion",
     "ContraDB",
+    "The Caller's Box",
     "GitHub",
     "AGPL-3.0",
     "GNU Affero General Public License",
