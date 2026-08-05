@@ -31,6 +31,7 @@ Dance _dance({
   String hook = '',
   String callingNotes = '',
   String walkthrough = '',
+  bool mixer = false,
   Provenance? provenance,
 }) => Dance(
   id: id,
@@ -43,6 +44,7 @@ Dance _dance({
   hook: hook,
   callingNotes: callingNotes,
   walkthrough: walkthrough,
+  mixer: mixer,
   provenance: provenance,
   createdAt: _now,
   updatedAt: _now,
@@ -116,6 +118,24 @@ void main() {
     expect(find.text('Gene Hubert'), findsOneWidget);
     expect(find.text('a lovely hook'), findsOneWidget);
     expect(find.text('smooth'), findsOneWidget);
+  });
+
+  testWidgets('shows the mixer indicator when the dance is a mixer '
+      '(issue #732)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'mix', mixer: true));
+
+    await _pumpDetail(tester, repos, 'mix');
+    expect(find.text('Mixer'), findsOneWidget);
+  });
+
+  testWidgets('hides the mixer indicator when the dance is not a mixer '
+      '(issue #732)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'plain', mixer: false));
+
+    await _pumpDetail(tester, repos, 'plain');
+    expect(find.text('Mixer'), findsNothing);
   });
 
   testWidgets('renders a canonical hook under the active dialect (#613)', (

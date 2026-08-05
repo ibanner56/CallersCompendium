@@ -13,6 +13,16 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **You can now mark a dance as a mixer.** A mixer is a dance where you change
+  partners each time through, so you dance with lots of different people rather
+  than staying with one. Tick **Mixer** in the dance editor, just under the
+  formation, and the flag shows on the dance's detail page. It's kept separate
+  from the formation on purpose: a mixer can be danced in all sorts of shapes,
+  and not every circle dance is a mixer — so the two are set independently. When
+  you import from The Caller's Box, dances already marked as mixers there come in
+  ticked, and Circle Mixers and Scatter Mixers are recognised even when the
+  source forgot to flag them.
+
 - **You can now import a list of dance titles straight into your collection.**
   Choose **a list of titles** in the import source list, paste your titles one
   per line, and the app checks each against your own collection first, then

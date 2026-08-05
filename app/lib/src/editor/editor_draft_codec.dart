@@ -42,7 +42,11 @@ const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
 /// v7 → v8: adds a per-figure `walkthroughOverride` (per-dance snippet override,
 /// issue #411; omitted when null/blank). Older drafts (v ≤ 7) decode each figure
 /// with `walkthroughOverride: null`.
-const _kDraftVersion = 8;
+///
+/// v8 → v9: adds `mixer` (bool — a dance in which dancers change partners each
+/// time through, issue #732; a flag orthogonal to `formationShape`). Older
+/// drafts (v ≤ 8) decode with `mixer: false`.
+const _kDraftVersion = 9;
 
 // ---------------------------------------------------------------------------
 // Encode
@@ -51,16 +55,16 @@ const _kDraftVersion = 8;
 /// Serialises [snapshot] to a JSON string suitable for storage in
 /// [SettingsRepository].
 ///
-/// Schema (v8):
+/// Schema (v9):
 /// ```jsonc
 /// {
-///   "v": 8,
+///   "v": 9,
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
 ///   "form": "contra", "formationShape": "dupleImproper",
 ///   "progression": "single", "status": "active",
-///   "level": "intermediate", "mixedLevel": false,
+///   "level": "intermediate", "mixedLevel": false, "mixer": false,
 ///   "rating": 4,
 ///   "composedOn": "1989", "revisedOn": "2004-03-15",
 ///   "authorIds": ["..."], "tagIds": ["..."], "tunes": ["..."],
@@ -100,6 +104,7 @@ String encodeDraft(EditorSnapshot snapshot) {
     'status': snapshot.status.name,
     if (snapshot.level != null) 'level': snapshot.level!.name,
     'mixedLevel': snapshot.mixedLevel,
+    'mixer': snapshot.mixer,
     if (snapshot.rating != null) 'rating': snapshot.rating,
     if (snapshot.composedOn != null)
       'composedOn': snapshot.composedOn!.serialize(),
@@ -206,6 +211,7 @@ EditorSnapshot decodeDraft(Object? value) {
     status: _parseEnum(DanceStatus.values, _str(json, 'status')),
     level: _parseNullableEnum(DanceLevel.values, json['level']),
     mixedLevel: _bool(json, 'mixedLevel'),
+    mixer: _bool(json, 'mixer'),
     rating: _parseNullableRating(json['rating']),
     composedOn: _parseNullablePartialDate(json['composedOn']),
     revisedOn: _parseNullablePartialDate(json['revisedOn']),

@@ -545,7 +545,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 23);
+      expect(db.schemaVersion, 24);
 
       await db.close();
     });
@@ -651,7 +651,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 23);
+      expect(db.schemaVersion, 24);
 
       await db.close();
     });
@@ -773,7 +773,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').get();
       expect(version.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 23);
+      expect(db.schemaVersion, 24);
 
       await db.close();
     });
@@ -1669,7 +1669,7 @@ void main() {
           await repos.ensureMigrated();
 
           final version = await db.customSelect('PRAGMA user_version').get();
-          expect(version.single.data.values.first, 23, reason: 'from v$from');
+          expect(version.single.data.values.first, 24, reason: 'from v$from');
 
           final figures = (await repos.dances.getById('dance-1'))!.figures;
           // Both legacy shapes landed on the merged move, with the TCB subject
@@ -2179,6 +2179,108 @@ void main() {
         hasRebuildMarker,
         isFalse,
         reason: 'v22->v23 migration must not schedule a derived rebuild',
+      );
+    });
+  });
+
+  group('v23 -> v24 upgrade (issue #732 dances.mixer)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v24_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v23 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          await packageRootPath(),
+          'test',
+          'storage',
+          'fixtures',
+          'v23.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    Future<List<String>> columnsOf(CompendiumDatabase db, String table) async {
+      final rows = await db
+          .customSelect("SELECT name FROM pragma_table_info('$table')")
+          .get();
+      return [for (final r in rows) r.read<String>('name')];
+    }
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, db.schemaVersion);
+    });
+
+    test('adds the mixer column to dances', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      expect(await columnsOf(db, 'dances'), contains('mixer'));
+    });
+
+    test('existing dance row gets mixer = 0 (DEFAULT 0)', () async {
+      // The DEFAULT 0 on addColumn means every pre-v24 dance comes out a
+      // non-mixer. Nothing could be a mixer before v24 (the concept could not
+      // be expressed), so the additive default preserves today's behaviour
+      // exactly. This test verifies the migration's DEFAULT was correct.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+
+      final rows = await db
+          .customSelect("SELECT mixer FROM dances WHERE id = 'dance-v23'")
+          .get();
+      expect(
+        rows,
+        isNotEmpty,
+        reason: 'fixture dance dance-v23 must be present',
+      );
+      expect(
+        rows.single.read<bool>('mixer'),
+        isFalse,
+        reason: 'pre-v24 dance must default to mixer=false after migration',
+      );
+    });
+
+    test(
+      'existing dance is readable through the repository after migration',
+      () async {
+        // Structural-only migration — no data should be touched, and the dance
+        // round-trips with mixer defaulted to false.
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        addTearDown(db.close);
+
+        final dance = await repos.dances.getById('dance-v23');
+        expect(dance, isNotNull);
+        expect(dance!.title, 'Migration Test Dance');
+        expect(dance.mixer, isFalse);
+      },
+    );
+
+    test('no derived rebuild is scheduled by the v23->v24 migration', () async {
+      // The mixer column carries no figure data — the index is untouched.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      final settings = await db
+          .customSelect(
+            "SELECT value_json FROM settings "
+            "WHERE key = '$derivedRebuildRequiredKey'",
+          )
+          .get();
+      final hasRebuildMarker =
+          settings.isNotEmpty &&
+          settings.first.read<String>('value_json') == 'true';
+      expect(
+        hasRebuildMarker,
+        isFalse,
+        reason: 'v23->v24 migration must not schedule a derived rebuild',
       );
     });
   });

@@ -134,6 +134,7 @@ class DanceEditorController extends ChangeNotifier {
   DanceStatus _status = DanceStatus.active;
   DanceLevel? _level;
   bool _mixedLevel = false;
+  bool _mixer = false;
   int? _rating;
   PartialDate? _composedOn;
   PartialDate? _revisedOn;
@@ -144,6 +145,7 @@ class DanceEditorController extends ChangeNotifier {
   DanceStatus get status => _status;
   DanceLevel? get level => _level;
   bool get mixedLevel => _mixedLevel;
+  bool get mixer => _mixer;
   int? get rating => _rating;
   PartialDate? get composedOn => _composedOn;
   PartialDate? get revisedOn => _revisedOn;
@@ -269,6 +271,7 @@ class DanceEditorController extends ChangeNotifier {
       _status = dance.status;
       _level = dance.level;
       _mixedLevel = dance.mixedLevel;
+      _mixer = dance.mixer;
       _rating = dance.rating;
       _composedOn = dance.composedOn;
       _revisedOn = dance.revisedOn;
@@ -442,6 +445,7 @@ class DanceEditorController extends ChangeNotifier {
     status: _status,
     level: _level,
     mixedLevel: _mixedLevel,
+    mixer: _mixer,
     rating: _rating,
     composedOn: _composedOn,
     revisedOn: _revisedOn,
@@ -502,6 +506,7 @@ class DanceEditorController extends ChangeNotifier {
     _status = s.status;
     _level = s.level;
     _mixedLevel = s.mixedLevel;
+    _mixer = s.mixer;
     _rating = s.rating;
     _composedOn = s.composedOn;
     _revisedOn = s.revisedOn;
@@ -737,6 +742,7 @@ class DanceEditorController extends ChangeNotifier {
         level: _level,
         clearLevel: _level == null,
         mixedLevel: _mixedLevel,
+        mixer: _mixer,
         rating: _rating,
         clearRating: _rating == null,
         composedOn: _composedOn,
@@ -766,6 +772,7 @@ class DanceEditorController extends ChangeNotifier {
       status: _status,
       level: _level,
       mixedLevel: _mixedLevel,
+      mixer: _mixer,
       rating: _rating,
       composedOn: _composedOn,
       revisedOn: _revisedOn,
@@ -821,6 +828,13 @@ class DanceEditorController extends ChangeNotifier {
 
   void setMixedLevel(bool value) {
     _mixedLevel = value;
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void setMixer(bool value) {
+    _mixer = value;
     pushUndoNow();
     scheduleAutosave();
     _notify();

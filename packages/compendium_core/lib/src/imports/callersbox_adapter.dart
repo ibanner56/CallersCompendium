@@ -205,6 +205,7 @@ class CallersBoxAdapter implements SourceAdapter {
 
     final issues = <ImportIssue>[];
     final formation = _parseFormation(dance, issues);
+    final mixer = _parseMixer(dance, formation);
     final progression = _parseProgression(dance['Progression'], issues);
     final phraseStructure = _parsePhraseStructure(
       dance['PhraseStructure'],
@@ -236,6 +237,7 @@ class CallersBoxAdapter implements SourceAdapter {
         id: 'callersbox-import',
         title: effectiveTitle,
         formation: formation,
+        mixer: mixer,
         progression: progression,
         phraseStructure: phraseStructure,
         figures: figures,
@@ -1158,6 +1160,44 @@ class CallersBoxAdapter implements SourceAdapter {
       return Formation(FormationShape.other, detail: detail);
     }
     return Formation(shape, detail: detail);
+  }
+
+  /// Whether a Caller's Box record is a **mixer** (dancers change partners each
+  /// time through), set when EITHER the source's `Mixer?` field reads `"Yes"`
+  /// OR the mapped [FormationShape] is [FormationShape.circleMixer] or
+  /// [FormationShape.scatterMixer].
+  ///
+  /// The formation-based inference exists because the source omits `Mixer?` on
+  /// some dances whose formation name already implies it: over the 24,107-file
+  /// mirror, 21 Circle Mixer and 18 Scatter Mixer dances have a blank `Mixer?`
+  /// despite the formation — a data-entry omission we correct on import.
+  ///
+  /// [FormationShape.sicilianCircle] is DELIBERATELY excluded from the
+  /// inference. A Sicilian Circle is a circle formation but usually NOT a mixer:
+  /// 589 of the corpus's Sicilian Circles are correctly not mixers, so inferring
+  /// mixer from that shape would mislabel them wholesale — the exact opposite
+  /// error the Circle/Scatter inference fixes. A Sicilian Circle that *is* a
+  /// mixer still gets flagged, but via its explicit `Mixer? == "Yes"`, not the
+  /// formation.
+  ///
+  /// The `Mixer?` truthiness test is exact: the corpus contains only `""`
+  /// (19,686 records) and `"Yes"` (830) — no `"1"`, no `"true"`. Input is
+  /// trimmed and compared case-insensitively for robustness, but the vocabulary
+  /// is not widened beyond what the source actually uses.
+  bool _parseMixer(Map<String, Object?> dance, Formation formation) {
+    final flag = _asString(dance['Mixer?'])?.trim().toLowerCase();
+    if (flag == 'yes') return true;
+    // NOTE (issue #732): this inference is intentionally scoped to The Caller's
+    // Box and is NOT applied by the ContraDB or Caller's Companion adapters.
+    // ContraDB has no first-class mixer category to read. Caller's Companion may
+    // — Chris builds his collection in CC and exports to The Caller's Box, so
+    // his data probably aligns, but "mixer" may be a custom field of his rather
+    // than a native CC concept, and we have not confirmed which. Rather than
+    // guess a mapping for a source we have not verified, those adapters leave
+    // `mixer` at its `false` default. This was considered and declined, not
+    // overlooked; revisit if an explicit request for those sources arrives.
+    return formation.shape == FormationShape.circleMixer ||
+        formation.shape == FormationShape.scatterMixer;
   }
 
   /// Resolves Becket rotation. The CW/CCW indicator lives in the separate

@@ -42,6 +42,7 @@ erDiagram
 | authors | ordered refs → Choreographer | multiple; "Traditional"/"Unknown" are real Choreographer rows |
 | form | enum `DanceForm` | `contra` (v1); `ecd`, `square` reserved |
 | formation | `Formation` value | see below |
+| mixer | `bool`, default `false` | dancers change partners each time through; a flag orthogonal to `formation` — see below |
 | progression | enum | none/single/double/triple/quadruple/other |
 | phraseStructure | string, default `""` | empty = standard 4×16-beat (A1 A2 B1 B2); else e.g. `6*8*2` (TCB convention) |
 | figures | ordered `Figure[]` | the transcription; see design/figure-taxonomy.md |
@@ -112,6 +113,19 @@ proper/indecent…, triple minor, 3-face-3, 4-face-4, circle mixer, Sicilian
 circle, scatter mixer, longways, triplet, grid, other) **plus** an optional
 free-text `detail`. Enum-with-detail avoids ContraDB's regex-over-free-text
 weakness while never losing information.
+
+### Mixer
+A `bool` flag (default `false`) marking a dance in which dancers change
+partners each time through the sequence. It is **orthogonal to `formation`**, not
+a formation value — the same argument as `mixedLevel` sitting beside `level`
+rather than becoming a level. The corpus proves the two axes are independent:
+over the 24,107-file Caller's Box mirror, 830 dances have `Mixer? = Yes`, of
+which only 654 are in a mixer-named formation and **176 are in some other
+formation** (Duple Minor - Improper, Becket, Triplet, Three Facing Three, Circle
+of Threesomes, …); conversely **628 dances in a mixer-named formation are NOT
+mixers — 589 of them Sicilian Circles**. Adding a `mixer` value to the formation
+enum would therefore be wrong in both directions, so mixer is a separate boolean,
+exactly as The Caller's Box models it (schema v24, issue #732).
 
 ### Choreographer
 `id, name (unique), website?, notes?`. Merge tool needed eventually (imports
@@ -224,6 +238,9 @@ the list is kept here as a record of what the audit added and why.
 - `level` (ordered enum) + a "mixed level" marker. **High priority**:
   primary filter/programming axis for callers. Feeds a `Level` search leaf
   (design/search.md) and the Collection facet panel.
+- `mixer` (`bool`, default `false`, schema v24, issue #732) — a partner-changing
+  flag orthogonal to `formation`; see the **Mixer** section above for the corpus
+  asymmetry that makes it a flag rather than a formation value.
 - `composedOn` / `revisedOn` (optional, partial-precision `PartialDate`) —
   distinct from `createdAt`/`updatedAt` record stamps.
 - `rating` (optional `int? rating`, 1–5) — sortable curation signal, shipped as

@@ -110,6 +110,7 @@ class DanceRepository {
             status: dance.status,
             level: Value(dance.level),
             mixedLevel: Value(dance.mixedLevel),
+            mixer: Value(dance.mixer),
             rating: Value(dance.rating),
             composedOn: Value(dance.composedOn?.serialize()),
             revisedOn: Value(dance.revisedOn?.serialize()),
@@ -1541,6 +1542,7 @@ class DanceRepository {
       status: row.status,
       level: row.level,
       mixedLevel: row.mixedLevel,
+      mixer: row.mixer,
       rating: row.rating,
       composedOn: row.composedOn == null
           ? null

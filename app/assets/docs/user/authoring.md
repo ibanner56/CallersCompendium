@@ -159,6 +159,10 @@ dance whose beats do not add up, and sometimes that is the honest transcription.
   choreographers. Type to find an existing author or create a new one.
 - **Formation** and **Formation detail** — the shape the dance is danced in, plus
   anything worth adding in words.
+- **Mixer** — tick this when the dance is a
+  [mixer](./glossary.md#mixer): one where you change partners each time through.
+  It's kept separate from the formation, because a mixer can be danced in many
+  shapes and not every circle is a mixer.
 - **Phrase structure** — leave it blank for the standard A1 A2 B1 B2, or write
   your own (the field shows `6*8*2` as an example). The app checks that what you
   write is a valid structure, and uses it for the beat count above.

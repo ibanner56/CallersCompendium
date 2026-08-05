@@ -134,6 +134,7 @@ class EditorSnapshot {
     required this.status,
     this.level,
     this.mixedLevel = false,
+    this.mixer = false,
     this.rating,
     this.composedOn,
     this.revisedOn,
@@ -167,6 +168,10 @@ class EditorSnapshot {
 
   /// Whether the dance spans the difficulty scale (distinct from [level]).
   final bool mixedLevel;
+
+  /// Whether the dance is a mixer — dancers change partners each time through.
+  /// A flag orthogonal to [formationShape] (issue #732); see `Dance.mixer`.
+  final bool mixer;
 
   /// Curatorial star rating on the closed `1..5` scale; `null` when unrated.
   final int? rating;

@@ -152,6 +152,7 @@ Map<String, Object?> _danceToJson(Dance d, Set<String> excludedFieldIds) => {
   'status': d.status.name,
   if (d.level != null) 'level': d.level!.name,
   'mixedLevel': d.mixedLevel,
+  'mixer': d.mixer,
   if (d.rating != null) 'rating': d.rating,
   'tunes': d.tunes,
   'customFields': [
@@ -668,6 +669,7 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
       ? null
       : _enumByName(DanceLevel.values, _str(m, 'level'), 'level'),
   mixedLevel: _boolOr(m, 'mixedLevel', false),
+  mixer: _boolOr(m, 'mixer', false),
   rating: _intOrNull(m, 'rating'),
   tunes: _stringList(m, 'tunes'),
   customFields: _customFieldValuesFromJson(m['customFields']),

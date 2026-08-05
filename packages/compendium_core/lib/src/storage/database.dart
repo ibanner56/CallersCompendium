@@ -116,7 +116,7 @@ const String purgeCorruptionRepairDoneKey = '__purge_corruption_repair_done__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 23;
+const int kCompendiumSchemaVersion = 24;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -365,6 +365,15 @@ const int kMinSupportedSchemaVersion = 11;
 ///   continues to travel in archives. Users opt out per-field via the custom
 ///   fields settings screen. No figure index is involved; no derived rebuild
 ///   is required.
+/// - v24 (issue #732): adds `dances.mixer` — a boolean flag marking a dance in
+///   which dancers change partners each time through (a "mixer"). Modelled as a
+///   flag orthogonal to `formation`, not a `FormationShape` value, because the
+///   two are independent in the corpus (830 Caller's Box mixers, 176 of them in
+///   non-mixer formations; 628 mixer-named non-mixers, 589 of them Sicilian
+///   Circles) — see `Dance.mixer`. Purely additive `addColumn`; existing rows
+///   get `DEFAULT 0` (mixer = false), preserving today's behaviour exactly
+///   (nothing was a mixer before because the concept could not be expressed).
+///   No figure index is touched; no derived rebuild is required.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, (c) ship a test that
@@ -779,6 +788,18 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // travel in archives after upgrade. Users opt out per-field. No figure
         // index is touched; no derived rebuild is required.
         await m.addColumn(customFieldDefs, customFieldDefs.shareable);
+      }
+
+      if (from < 24) {
+        // Issue #732: add `dances.mixer` — a boolean flag marking a dance in
+        // which dancers change partners each time through. DEFAULT 0
+        // (mixer = false) so every existing row preserves today's behaviour:
+        // the concept could not be expressed before, so nothing was a mixer,
+        // and the additive default keeps it that way after upgrade. Users set
+        // it per-dance in the editor, and the Caller's Box importer infers it
+        // (see `callersbox_adapter.dart`). No figure index is touched; no
+        // derived rebuild is required.
+        await m.addColumn(dances, dances.mixer);
       }
     },
     beforeOpen: (details) async {

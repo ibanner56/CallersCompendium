@@ -109,6 +109,7 @@ final Map<String, DataClassification> fieldClassifications = {
   'dances.status': _choreography,
   'dances.level': _choreography,
   'dances.mixed_level': _choreography,
+  'dances.mixer': _choreography,
   'dances.rating': _choreography,
   'dances.tunes_json': _choreography,
   'dances.composed_on': _choreography,

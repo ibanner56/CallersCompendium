@@ -49,6 +49,7 @@ class Dance {
     this.status = DanceStatus.active,
     this.level,
     this.mixedLevel = false,
+    this.mixer = false,
     this.rating,
     List<String> tunes = const [],
     List<CustomFieldValue> customFields = const [],
@@ -123,6 +124,23 @@ class Dance {
   /// at a single [level]. Kept separate from [level] so the ordered scale
   /// stays total for `lte`/`gte` search comparisons.
   final bool mixedLevel;
+
+  /// Whether this is a **mixer**: a dance in which you change partners each
+  /// time through, ending with a new partner.
+  ///
+  /// Modelled as a boolean **orthogonal to [formation]**, not as a
+  /// [FormationShape] value, because mixer-ness and formation are genuinely
+  /// independent — the same argument the [DanceLevel] doc makes for
+  /// [mixedLevel]. This was measured, not assumed. Over The Caller's Box mirror
+  /// (24,107 files), 830 dances have `Mixer? = Yes`, yet only 654 of them are in
+  /// a mixer-named formation and 176 are in some other formation (Duple Minor –
+  /// Improper, Becket, Triplet, Three Facing Three, Circle of Threesomes, …).
+  /// Conversely 628 dances *in* a mixer-named formation are NOT mixers — 589 of
+  /// them Sicilian Circles. Folding mixer into [FormationShape] would therefore
+  /// be wrong in both directions, so it lives here as a flag beside the
+  /// formation, exactly as The Caller's Box models it. Defaults to `false`
+  /// (existing/imported dances stay valid).
+  final bool mixer;
 
   /// Curatorial star rating on the closed `1..5` scale; `null` when unrated
   /// (existing/imported dances stay valid). A first-class scalar column
@@ -213,6 +231,7 @@ class Dance {
     DanceLevel? level,
     bool clearLevel = false,
     bool? mixedLevel,
+    bool? mixer,
     int? rating,
     bool clearRating = false,
     List<String>? tunes,
@@ -244,6 +263,7 @@ class Dance {
     status: status ?? this.status,
     level: clearLevel ? null : (level ?? this.level),
     mixedLevel: mixedLevel ?? this.mixedLevel,
+    mixer: mixer ?? this.mixer,
     rating: clearRating ? null : (rating ?? this.rating),
     tunes: tunes ?? this.tunes,
     customFields: customFields ?? this.customFields,
@@ -291,6 +311,7 @@ class Dance {
       status: status,
       level: level,
       mixedLevel: mixedLevel,
+      mixer: mixer,
       rating: rating,
       tunes: tunes,
       customFields: customFields,
@@ -330,6 +351,7 @@ class Dance {
       other.status == status &&
       other.level == level &&
       other.mixedLevel == mixedLevel &&
+      other.mixer == mixer &&
       other.rating == rating &&
       _listEq.equals(other.tunes, tunes) &&
       _listEq.equals(other.customFields, customFields) &&

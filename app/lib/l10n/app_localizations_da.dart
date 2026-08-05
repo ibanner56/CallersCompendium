@@ -1165,6 +1165,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get commonMixedLevel => 'Blandet niveau';
 
   @override
+  String get commonMixer => 'Mixer';
+
+  @override
   String commonShowDancesTaggedTooltip(String tagName) {
     return 'Vis danse tagget „$tagName“';
   }
@@ -4403,6 +4406,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorMixedLevelSubtitle => 'Spænder over sværhedsskalaen';
+
+  @override
+  String get danceEditorMixerSubtitle =>
+      'Danserne skifter partner hver gang igennem';
 
   @override
   String get danceEditorComposedLabel => 'Komponeret';
