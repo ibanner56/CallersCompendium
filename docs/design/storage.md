@@ -85,8 +85,41 @@ No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
 
 - drift schema versions with stepwise migrations; every migration ships with
   a test that opens a fixture DB from the previous version.
+- A **schema floor** (`kMinSupportedSchemaVersion`): versions below it are
+  retired — their migration steps, fixtures and `drift_schemas/` dumps are
+  deleted — and a database stamped below the floor is refused rather than
+  partially migrated. See "Retiring a schema version" below.
 - `figures_json.schemaVersion` migrates lazily on read + bulk on upgrade.
 - Derived tables rebuilt after any migration touching figures.
+
+## Retiring a schema version
+
+`kMinSupportedSchemaVersion` (`packages/compendium_core/lib/src/storage/
+database.dart`) is the oldest on-disk version this build can still upgrade. It
+is the schema version of the oldest *supported release*, not the oldest version
+whose code happens to still exist.
+
+Retiring versions below a new floor means deleting, together:
+
+- the `if (from < N)` steps that can no longer fire (note the off-by-one:
+  retiring versions up to and including vX kills steps through `if (from < X+1)`,
+  because that step only ever applies to a vX-or-below database),
+- the fixtures and generators under `test/storage/fixtures/`,
+- the dumps under `drift_schemas/` and their generated classes, and
+- the corresponding `migration_test.dart` groups.
+
+**The floor check is not bookkeeping.** Deleting those steps without it would
+let a below-floor database open, run only the surviving steps and be stamped at
+head while missing everything the deleted steps would have added — silently
+corrupt, and permanently mislabelled, since no later migration would ever fire
+for it. `onUpgrade` therefore refuses such a file outright, and
+`test/storage/schema_floor_test.dart` covers both halves: below-floor is
+refused and left untouched, at-floor still migrates to head.
+
+Raising the floor is **user-visible** — databases below it stop opening — so it
+belongs in `app/CHANGELOG.md` in user-facing terms, naming the release whose
+schema version is being adopted. `tools/ci/check_schema_migration.py` fails any
+PR that reintroduces a per-version artefact below the floor.
 
 ## Durability
 

@@ -44,6 +44,14 @@ jobs:
         run: python3 tools/ci/test_check_debug_print.py
       - name: Guard debugPrint call sites (must be kDebugMode-guarded)
         run: python3 tools/ci/check_debug_print.py
+      # The schema-bump gate itself is PR-only (it needs the pull_request base
+      # ref) and so lives in ci.yml, but its test suite is pure-stdlib and
+      # trigger-agnostic, so it runs here — otherwise the gate's own logic would
+      # be exercised by nothing, and a regression in it would show up only as a
+      # schema bump that quietly stopped being gated. See
+      # tools/ci/check_schema_migration.py.
+      - name: Test the schema-bump gate
+        run: python3 tools/ci/test_check_schema_migration.py
       # Localization tooling: pure-stdlib, offline, and fast, so it runs before
       # the (slower) Flutter setup and fails fast. First self-test the assisted
       # translation tool, then gate every committed app_<locale>.arb against the
