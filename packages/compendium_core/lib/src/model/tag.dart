@@ -16,6 +16,17 @@ class Tag {
   Tag copyWith({String? name, int? color}) =>
       Tag(id: id, name: name ?? this.name, color: color ?? this.color);
 
+  /// Returns a copy with [color] set, **including to `null`** — the "no colour
+  /// assigned" state.
+  ///
+  /// [copyWith] cannot express this: its `color ?? this.color` fallback makes a
+  /// `null` argument indistinguishable from an omitted one, so
+  /// `copyWith(color: null)` silently keeps the existing colour. Clearing a
+  /// tag's colour (issue #786) therefore needs its own entry point rather than
+  /// a sentinel bolted onto [copyWith], which would change behaviour for every
+  /// existing caller.
+  Tag withColor(int? color) => Tag(id: id, name: name, color: color);
+
   @override
   bool operator ==(Object other) =>
       other is Tag &&

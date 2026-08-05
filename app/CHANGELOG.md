@@ -13,6 +13,16 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **You can now give your tags colours.** Settings → Appearance → Tag colours
+  lists every tag you've created and lets you pick a colour for any of them; the
+  colour then shows on that tag's chip in the collection list and on dance
+  detail. Tags start with no colour and look exactly as they always have until
+  you choose one, and each row has a reset button to take a colour back off. The
+  tag's name is always shown beside the colour, and the app picks a black or
+  white label automatically so your colour stays readable in every theme,
+  including High Contrast. The colour is only ever applied to the tag's own chip
+  — never to the row it sits on or to any other chip beside it.
+
 - **Dances already in your program are now marked in the picker.** When you open
   the add-dance sheet or the inline pane, any dance already in the program shows a
   marker on its row. If you've added the same dance more than once, the marker shows

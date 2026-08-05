@@ -860,6 +860,62 @@
   },
 
 
+  "settingsAppearanceTagColoursHeader": "Tag colours",
+  "@settingsAppearanceTagColoursHeader": {
+    "description": "Section header for the tag-colour customisation entry in Appearance settings."
+  },
+  "settingsAppearanceTagColoursTitle": "Tag colours",
+  "@settingsAppearanceTagColoursTitle": {
+    "description": "List-tile title opening the tag-colour customisation screen."
+  },
+  "settingsAppearanceTagColoursSubtitle": "Give a tag its own colour to make it stand out on dance cards and dance detail. The tag's name is always shown too, so tags stay readable without colour.",
+  "@settingsAppearanceTagColoursSubtitle": {
+    "description": "Explanation for the tag-colour customisation entry."
+  },
+  "settingsTagColoursTitle": "Tag colours",
+  "@settingsTagColoursTitle": {
+    "description": "App-bar title of the per-tag colour settings screen."
+  },
+  "settingsTagColoursIntro": "Give a tag its own colour to make it stand out wherever it appears. Only the tags you colour change; the rest look exactly as they do now. The tag's name is always shown too, so tags stay readable without colour.",
+  "@settingsTagColoursIntro": {
+    "description": "Intro paragraph explaining per-tag colours."
+  },
+  "settingsTagColoursListHeader": "Tags",
+  "@settingsTagColoursListHeader": {
+    "description": "Section header above the list of tags."
+  },
+  "settingsTagColoursEmpty": "You haven't created any tags yet. Add a tag to a dance and it will appear here.",
+  "@settingsTagColoursEmpty": {
+    "description": "Shown on the tag-colour screen when the collection has no tags."
+  },
+  "settingsTagColoursCustom": "Custom colour",
+  "@settingsTagColoursCustom": {
+    "description": "Subtitle shown when a tag has a custom colour set."
+  },
+  "settingsTagColoursNoColour": "No colour",
+  "@settingsTagColoursNoColour": {
+    "description": "Subtitle shown when a tag has no colour assigned."
+  },
+  "settingsTagColoursResetTooltip": "Remove {label}'s colour",
+  "@settingsTagColoursResetTooltip": {
+    "description": "Tooltip on the button that clears one tag's colour.",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "chestnut"
+      }
+    }
+  },
+  "settingsTagColoursSaveError": "Couldn't save that colour. Please try again.",
+  "@settingsTagColoursSaveError": {
+    "description": "Snack-bar message shown when saving or clearing a tag colour fails."
+  },
+  "settingsTagColoursLoadError": "Couldn't load your tags.",
+  "@settingsTagColoursLoadError": {
+    "description": "Shown on the tag-colour screen when the tag list fails to load."
+  },
+
+
   "settingsGeneralLibraryHeader": "Library",
   "@settingsGeneralLibraryHeader": {
     "description": "General settings section header for collection-library preferences."

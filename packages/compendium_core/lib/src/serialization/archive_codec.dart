@@ -14,6 +14,7 @@ import '../model/published_source.dart';
 import '../model/source_citation.dart';
 import '../model/tag.dart';
 import '../model/venue.dart';
+import '../util/argb.dart';
 import '../util/text_sanitizer.dart';
 import 'compendium_archive.dart';
 import 'figure_codec.dart';
@@ -579,7 +580,10 @@ PublishedSource _publishedSourceFromJson(Map<String, Object?> m) =>
 Tag _tagFromJson(Map<String, Object?> m) => Tag(
   id: _str(m, 'id'),
   name: _str(m, 'name'),
-  color: _intOrNull(m, 'color'),
+  // Untrusted: an archive can carry any JSON value here, and a tag colour is
+  // painted (#786). Normalized rather than rejected, so a malformed colour
+  // costs the tag its tint and not the tag itself.
+  color: normalizeArgb(m['color']),
 );
 
 CustomFieldDef _customFieldDefFromJson(Map<String, Object?> m) {

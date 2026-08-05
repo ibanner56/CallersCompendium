@@ -18,11 +18,12 @@ class DanceListEntry {
   final List<String> authorNames;
   final List<String> tagNames;
 
-  /// The dance's tags as `(id, name)` pairs, in [Dance.tagIds] order, for tags
-  /// whose name resolves. Carries the id (unlike [tagNames]) so a tapped tag
-  /// chip in a list row can drive the Collection's id-based tag filter
-  /// (issue #414).
-  final List<({String id, String name})> tags;
+  /// The dance's tags as `(id, name, color)` triples, in [Dance.tagIds] order,
+  /// for tags whose name resolves. Carries the id (unlike [tagNames]) so a
+  /// tapped tag chip in a list row can drive the Collection's id-based tag
+  /// filter (issue #414), and the user's chosen chip colour (issue #786), which
+  /// is `null` for a tag with no colour assigned.
+  final List<({String id, String name, int? color})> tags;
 
   /// `showInList` custom field values as `label: display value` pairs, in
   /// [CustomFieldDef] declaration order.

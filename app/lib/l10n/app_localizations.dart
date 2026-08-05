@@ -1214,6 +1214,78 @@ abstract class AppLocalizations {
   /// **'Reset {label} to the family default'**
   String settingsFormationColoursResetTooltip(String label);
 
+  /// Section header for the tag-colour customisation entry in Appearance settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag colours'**
+  String get settingsAppearanceTagColoursHeader;
+
+  /// List-tile title opening the tag-colour customisation screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag colours'**
+  String get settingsAppearanceTagColoursTitle;
+
+  /// Explanation for the tag-colour customisation entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Give a tag its own colour to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without colour.'**
+  String get settingsAppearanceTagColoursSubtitle;
+
+  /// App-bar title of the per-tag colour settings screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag colours'**
+  String get settingsTagColoursTitle;
+
+  /// Intro paragraph explaining per-tag colours.
+  ///
+  /// In en, this message translates to:
+  /// **'Give a tag its own colour to make it stand out wherever it appears. Only the tags you colour change; the rest look exactly as they do now. The tag\'s name is always shown too, so tags stay readable without colour.'**
+  String get settingsTagColoursIntro;
+
+  /// Section header above the list of tags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get settingsTagColoursListHeader;
+
+  /// Shown on the tag-colour screen when the collection has no tags.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.'**
+  String get settingsTagColoursEmpty;
+
+  /// Subtitle shown when a tag has a custom colour set.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom colour'**
+  String get settingsTagColoursCustom;
+
+  /// Subtitle shown when a tag has no colour assigned.
+  ///
+  /// In en, this message translates to:
+  /// **'No colour'**
+  String get settingsTagColoursNoColour;
+
+  /// Tooltip on the button that clears one tag's colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {label}\'s colour'**
+  String settingsTagColoursResetTooltip(String label);
+
+  /// Snack-bar message shown when saving or clearing a tag colour fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save that colour. Please try again.'**
+  String get settingsTagColoursSaveError;
+
+  /// Shown on the tag-colour screen when the tag list fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your tags.'**
+  String get settingsTagColoursLoadError;
+
   /// General settings section header for collection-library preferences.
   ///
   /// In en, this message translates to:

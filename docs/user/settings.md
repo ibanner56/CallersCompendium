@@ -174,6 +174,15 @@ There's a **High Contrast** theme for maximum legibility — see the
   pink). Your choices show on dance cards, in dance detail, and in the Perform
   header.
 
+### Tag colours
+
+- **Tag colours** — give a tag its own colour so it stands out wherever it
+  appears, on dance cards and in dance detail. Only the tags you colour change;
+  every other tag looks exactly as it does now. The tag's name is always shown
+  beside the colour, so tags stay readable without relying on colour, and the
+  app picks a black or white label automatically so your colour stays legible in
+  every theme.
+
 ## Dialect
 
 The **Dialect** section is your library of [dialects](./glossary.md#dialect) — the

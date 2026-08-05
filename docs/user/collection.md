@@ -62,6 +62,12 @@ connected — and organise a card box into those categories so they can jump to 
 give a dance one or more tags for its vibe or category, and they are ready to
 filter and group by.
 
+You can also give a tag its own colour, under **Settings → Appearance → Tag
+colours**, so a category stands out on dance cards and in dance detail. Tags
+start with no colour and look exactly as they always have until you pick one,
+and the tag's name is always shown beside the colour, so nothing depends on
+being able to tell the colours apart.
+
 Next to **Sort** is a **Group by category** control. Pick one tag and the list
 splits into two labelled sections — the dances that carry that tag, then
 **Other** — so a whole category is together in one place. Your chosen **Sort**

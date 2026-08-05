@@ -153,7 +153,10 @@ A few smaller settings and behaviors round out the experience:
   undoable — so a slip is recoverable either way.
 - **Meaning is never carried by color alone.** Statuses and special slots — like
   an [alt](./glossary.md#alt) — always include an icon and a text label as well as
-  color, so nothing depends on being able to distinguish hues.
+  color, so nothing depends on being able to distinguish hues. That holds for the
+  colors you choose yourself too: a formation or tag you have colored still shows
+  its name, and the app picks a black or white label for it automatically so the
+  text stays readable whichever color you pick.
 - **Perform mode keeps the screen awake.** The display won't dim or sleep
   mid-dance while you're calling.
 - **Comfortable touch targets.** Controls are sized to be easy to hit, and the

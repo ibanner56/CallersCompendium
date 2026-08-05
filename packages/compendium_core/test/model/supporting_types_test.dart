@@ -29,6 +29,24 @@ void main() {
     test('rejects empty names', () {
       expect(() => Tag(id: 't1', name: ''), throwsArgumentError);
     });
+
+    test('withColor clears a colour, which copyWith structurally cannot', () {
+      // The trap this exists for (issue #786): copyWith's `color ?? this.color`
+      // makes a null argument indistinguishable from an omitted one, so the
+      // obvious `copyWith(color: null)` silently keeps the old colour and a
+      // "reset" action would appear to do nothing.
+      final coloured = Tag(id: 't1', name: 'chestnut', color: 0xFF2196F3);
+      expect(coloured.copyWith(color: null).color, 0xFF2196F3);
+      expect(coloured.withColor(null).color, isNull);
+    });
+
+    test('withColor sets a colour and preserves id and name', () {
+      final plain = Tag(id: 't1', name: 'chestnut');
+      final coloured = plain.withColor(0xFF2196F3);
+      expect(coloured.color, 0xFF2196F3);
+      expect(coloured.id, 't1');
+      expect(coloured.name, 'chestnut');
+    });
   });
 
   group('PublishedSource', () {

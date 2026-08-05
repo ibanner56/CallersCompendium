@@ -10,6 +10,7 @@ import '../screens/dance_detail_screen.dart';
 import '../search/facet_labels.dart';
 import '../theme/set_list_accents.dart';
 import 'program_status_chip.dart';
+import 'tag_chip.dart';
 
 /// One Collection result row: title, authors, formation chip, status/tag chips
 /// and `showInList` custom fields (Phase 3.1 rendering). Tapping it opens
@@ -214,22 +215,16 @@ class DanceListTile extends StatelessWidget {
             if (effectiveFields.contains(CollectionTileField.tags))
               for (final tag in entry.tags)
                 if (onTagTap != null && !selectionMode)
-                  ActionChip(
+                  TagChip(
                     key: ValueKey('tag-filter-chip-${tag.id}'),
-                    avatar: const Icon(Icons.label_outline, size: 16),
-                    label: Text(tag.name),
+                    name: tag.name,
+                    color: tag.color,
                     tooltip: l10n.commonShowDancesTaggedTooltip(tag.name),
-                    visualDensity: VisualDensity.compact,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    dense: true,
                     onPressed: () => onTagTap!(tag.id),
                   )
                 else
-                  Chip(
-                    avatar: const Icon(Icons.label_outline, size: 16),
-                    label: Text(tag.name),
-                    visualDensity: VisualDensity.compact,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
+                  TagChip(name: tag.name, color: tag.color, dense: true),
             if (effectiveFields.contains(CollectionTileField.customFields))
               for (final field in entry.listCustomFields)
                 Chip(
