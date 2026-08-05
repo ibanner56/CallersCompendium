@@ -86,7 +86,7 @@ const List<({int floor, String bridgeTag})> kBelowFloorBridgeTags = [
 /// [floor] exceeds [fileVersion]. If no entry matches (which should not occur
 /// for any file version the preflight accepts), returns the last entry's tag as
 /// a safe fallback.
-String bridgeTagFor(int fileVersion, int minSupportedVersion) {
+String bridgeTagFor(int fileVersion) {
   for (final entry in kBelowFloorBridgeTags) {
     if (entry.floor > fileVersion) return entry.bridgeTag;
   }
@@ -253,7 +253,7 @@ Future<void> runMigrationPreflight({
       throw DatabaseBelowFloorError(
         fileVersion: fileVersion,
         minSupportedVersion: kMinSupportedSchemaVersion,
-        bridgeTag: bridgeTagFor(fileVersion, kMinSupportedSchemaVersion),
+        bridgeTag: bridgeTagFor(fileVersion),
       );
     }
     // Symmetric with the downgrade guard above: both are fail-CLOSED. The
@@ -581,4 +581,61 @@ Future<File> _writeDiagnosticLog({
     ..writeln('Bridge release: ${bridgeTag ?? 'none'}');
   await file.writeAsString(buffer.toString(), flush: true);
   return file;
+}
+
+/// Result of [performReset] — either the database was deleted and the app can
+/// reopen a fresh one, or deletion failed and the database file is intact.
+sealed class ResetResult {
+  const ResetResult();
+}
+
+/// The database file was deleted successfully. The caller should reopen a fresh
+/// database and restart the bootstrap sequence.
+final class ResetComplete extends ResetResult {
+  const ResetComplete();
+}
+
+/// The database file could not be deleted. The file is still present; the
+/// caller should reopen the original database so the app returns to a usable
+/// state (it will show the recovery screen again).
+final class ResetFailed extends ResetResult {
+  const ResetFailed(this.error);
+  final Object error;
+}
+
+/// Deletes [dbFile] and its WAL/SHM sidecar files.
+///
+/// Returns [ResetComplete] if [dbFile] was deleted, or [ResetFailed] if the
+/// deletion threw. The database must be closed by the caller **before** this
+/// is called; [dbFile] is closed by the time [performReset] is invoked.
+///
+/// WAL/SHM sidecar deletion is best-effort: a failure there is caught and
+/// ignored because the load-bearing step is the main file.
+///
+/// [dbDeleter] is injectable so tests can inject a failing deleter without
+/// touching the real filesystem; the production default deletes via [File].
+Future<ResetResult> performReset({
+  required File dbFile,
+  Future<void> Function(File file)? dbDeleter,
+}) async {
+  final deleter = dbDeleter ?? (file) => file.delete();
+  try {
+    if (await dbFile.exists()) {
+      await deleter(dbFile);
+    }
+  } on Object catch (error) {
+    return ResetFailed(error);
+  }
+  // WAL/SHM sidecars: best-effort, non-load-bearing.
+  for (final suffix in ['-wal', '-shm']) {
+    final sidecar = File('${dbFile.path}$suffix');
+    if (await sidecar.exists()) {
+      try {
+        await sidecar.delete();
+      } on FileSystemException {
+        // Best-effort: a stale sidecar is harmless once the main file is gone.
+      }
+    }
+  }
+  return const ResetComplete();
 }

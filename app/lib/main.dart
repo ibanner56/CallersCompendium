@@ -1,6 +1,5 @@
 import 'dart:async';
-import 'dart:io'
-    show Directory, File, FileSystemException, Platform, exit, stderr;
+import 'dart:io' show Directory, File, Platform, exit, stderr;
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
@@ -911,7 +910,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
       appVersion: kAppVersion,
       platform:
           '${Platform.operatingSystem} ${Platform.operatingSystemVersion}',
-      bridgeTag: bridgeTagFor(error.fileVersion, kMinSupportedSchemaVersion),
+      bridgeTag: bridgeTagFor(error.fileVersion),
     );
 
     if (result is BackUpFailed) {
@@ -980,12 +979,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
     );
     if (confirmed != true) return;
 
-    await _doReset(dbFile);
+    await _doReset(dbFile, l10n);
   }
 
   /// Reset Only action for the below-floor recovery screen (issue #841).
   ///
-  /// Unrecoverable by definition. Shows a confirmation dialog before wiping.
+  /// The `error` parameter is unused here but matches the callback type
+  /// (`void Function(DatabaseBelowFloorError)`) shared with [_backUpAndReset],
+  /// so both slots on [AppBootstrap] accept the same signature.
   Future<void> _resetOnly(DatabaseBelowFloorError error) async {
     await WidgetsBinding.instance.endOfFrame;
     final context = _navigatorKey.currentContext;
@@ -1018,32 +1019,53 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (confirmed != true) return;
 
     final dbFile = await resolveDatabaseFile();
-    await _doReset(dbFile);
+    await _doReset(dbFile, l10n);
   }
 
-  /// Wipes the database file, closes the current database, reopens a fresh one,
-  /// and restarts the bootstrap sequence so the app opens to a clean state.
-  Future<void> _doReset(File dbFile) async {
+  /// Wipes the database file and reopens a fresh one, restarting the bootstrap
+  /// sequence so the app opens to a clean state.
+  ///
+  /// Delegates to [performReset] (see `migration_guard.dart`) for an injectable,
+  /// testable deletion seam. On [ResetFailed], the database file is still
+  /// present: reopen it and restart bootstrap so the user lands back on the
+  /// recovery screen rather than a blank one.
+  Future<void> _doReset(File dbFile, AppLocalizations l10n) async {
     // Close the database before deleting its file so the OS (particularly
     // Windows) does not hold a lock that prevents deletion.
     await _appData.close();
-    if (await dbFile.exists()) {
-      await dbFile.delete();
-    }
-    // Remove any WAL/SHM sidecar files so SQLite doesn't try to replay a WAL
-    // that references the deleted main file.
-    for (final suffix in ['-wal', '-shm']) {
-      final sidecar = File('${dbFile.path}$suffix');
-      if (await sidecar.exists()) {
-        try {
-          await sidecar.delete();
-        } on FileSystemException {
-          // Best-effort: a missing sidecar is harmless.
+    final result = await performReset(dbFile: dbFile);
+    if (result is ResetFailed) {
+      // Deletion failed: the file is intact. Reopen so the app is not left
+      // with a closed database, then surface the error.
+      if (mounted) {
+        setState(() {
+          _appData = AppData(openAppDatabase());
+          _corruptionBannerShown = false;
+          _bootstrap = _startupSequence();
+        });
+        final context = _navigatorKey.currentContext;
+        if (context != null && context.mounted) {
+          await showDialog<void>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              icon: const Icon(Icons.error_outline),
+              title: Text(l10n.migrationBelowFloorWipeFailedTitle),
+              content: Text(l10n.migrationBelowFloorWipeFailedBody),
+              actions: [
+                TextButton(
+                  autofocus: true,
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(l10n.commonOk),
+                ),
+              ],
+            ),
+          );
         }
       }
+      return;
     }
     if (!mounted) return;
-    // Reopen a fresh database and restart the bootstrap sequence.
+    // Deletion succeeded — reopen a fresh database and restart bootstrap.
     setState(() {
       _appData = AppData(openAppDatabase());
       _corruptionBannerShown = false;

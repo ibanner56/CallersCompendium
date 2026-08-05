@@ -160,6 +160,14 @@
   "@migrationBelowFloorResetOnlyConfirmBody": {
     "description": "Body of the confirmation dialog shown before a Reset Only action on the below-floor recovery screen. No backup is made. Must make the irreversibility and data loss explicit."
   },
+  "migrationBelowFloorWipeFailedTitle": "Reset failed",
+  "@migrationBelowFloorWipeFailedTitle": {
+    "description": "Title of the error dialog shown when the database file could not be deleted during a reset on the below-floor recovery screen. The database is intact."
+  },
+  "migrationBelowFloorWipeFailedBody": "The database file could not be deleted. Your data has not been changed. Try closing other apps that may be using the file, then try again.",
+  "@migrationBelowFloorWipeFailedBody": {
+    "description": "Body of the error dialog shown when the database file could not be deleted. Instructs the user to close any apps locking the file and retry."
+  },
   "confirmDeleteTitle": "Delete?",
   "@confirmDeleteTitle": {
     "description": "Title of the optional confirm-before-delete dialog (shown only when the 'Confirm before delete' setting is on)."

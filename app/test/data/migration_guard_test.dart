@@ -455,4 +455,38 @@ void main() {
     expect(dbFile.existsSync(), isTrue);
     expect(readUserVersion(dbFile.path), 5);
   });
+
+  test('performReset returns ResetFailed and does NOT delete the file when '
+      'the deleter throws (fail-closed, issue #841)', () async {
+    final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+    _createFixture(dbFile.path, userVersion: 5, seedValue: 'must survive');
+
+    // Inject a deleter that always throws — simulates a locked file.
+    final result = await performReset(
+      dbFile: dbFile,
+      dbDeleter: (_) async =>
+          throw const FileSystemException('locked', '', OSError('', 13)),
+    );
+
+    // The result must be ResetFailed.
+    expect(result, isA<ResetFailed>());
+
+    // The database file is untouched — version and data survive.
+    expect(dbFile.existsSync(), isTrue);
+    expect(readUserVersion(dbFile.path), 5);
+    final db = sql.sqlite3.open(dbFile.path);
+    expect(db.select('SELECT v FROM t').single['v'], 'must survive');
+    db.close();
+  });
+
+  test('performReset returns ResetComplete and deletes the file when the '
+      'deleter succeeds', () async {
+    final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+    _createFixture(dbFile.path, userVersion: 5);
+
+    final result = await performReset(dbFile: dbFile);
+
+    expect(result, isA<ResetComplete>());
+    expect(dbFile.existsSync(), isFalse);
+  });
 }

@@ -31,6 +31,8 @@
   "migrationBelowFloorBackupSavedAt": "Back-up opgeslagen in: {backupPath}",
   "migrationBelowFloorDiagnosticLogSavedAt": "Diagnoselogboek opgeslagen in: {logPath}",
   "migrationBelowFloorResetOnlyConfirmBody": "Er wordt geen back-up gemaakt. Door opnieuw in te stellen worden al je huidige gegevens definitief verwijderd en vervangen door een nieuwe, lege database. Dit kan niet ongedaan worden gemaakt.",
+  "migrationBelowFloorWipeFailedTitle": "Opnieuw instellen mislukt",
+  "migrationBelowFloorWipeFailedBody": "Het databasebestand kon niet worden verwijderd. Je gegevens zijn niet gewijzigd. Sluit andere apps die het bestand mogelijk gebruiken en probeer het opnieuw.",
   "confirmDeleteTitle": "Verwijderen?",
   "confirmDeleteBody": "“{itemLabel}” wordt verwijderd. Je kunt dit ongedaan maken.",
   "colorEditHexLabel": "Hex",

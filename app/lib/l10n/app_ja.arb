@@ -31,6 +31,8 @@
   "migrationBelowFloorBackupSavedAt": "バックアップの保存先：{backupPath}",
   "migrationBelowFloorDiagnosticLogSavedAt": "診断ログの保存先：{logPath}",
   "migrationBelowFloorResetOnlyConfirmBody": "バックアップは作成されません。リセットすると、現在のデータがすべて永久に削除され、新しい空のデータベースに置き換えられます。この操作は元に戻せません。",
+  "migrationBelowFloorWipeFailedTitle": "リセットに失敗しました",
+  "migrationBelowFloorWipeFailedBody": "データベースファイルを削除できませんでした。データは変更されていません。ファイルを使用している可能性のある他のアプリを閉じてから、再度お試しください。",
   "confirmDeleteTitle": "削除しますか？",
   "confirmDeleteBody": "「{itemLabel}」を削除します。元に戻せます。",
   "colorEditHexLabel": "HEX",

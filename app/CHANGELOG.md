@@ -44,6 +44,18 @@ each release so store builds and tags can be traced back to an entry.
   as a mixer, not a contra. Mixer dances also show the **Mixer** label on their
   printed and exported dance cards.
 
+- **The app now tells you what to do when your data is too old to open.**
+  Previously, a database written by a build older than the supported schema
+  floor would show a generic error with a Retry button that could never succeed.
+  Now the app shows a dedicated recovery screen that explains the situation and
+  offers a concrete path forward: install **v0.1.0-beta.6** (the bridge release),
+  open the app once to let it update your data, then install this version again
+  — your data is recoverable. If you prefer to start fresh, **Back Up + Reset**
+  saves a copy of your database first (fail-closed: if the backup can't be
+  written, nothing is wiped), and **Reset Only** warns explicitly that it is
+  irreversible before proceeding. A diagnostic log is written alongside the
+  backup so you can hand both to a support conversation.
+
 - **You can now import a list of dance titles straight into your collection.**
   Choose **a list of titles** in the import source list, paste your titles one
   per line, and the app checks each against your own collection first, then

@@ -125,6 +125,13 @@ class AppLocalizationsDa extends AppLocalizations {
       'Der oprettes ingen sikkerhedskopi. Nulstilling sletter permanent alle dine nuværende data og erstatter dem med en ny, tom database. Dette kan ikke fortrydes.';
 
   @override
+  String get migrationBelowFloorWipeFailedTitle => 'Nulstilling mislykkedes';
+
+  @override
+  String get migrationBelowFloorWipeFailedBody =>
+      'Databasefilen kunne ikke slettes. Dine data er ikke ændret. Prøv at lukke andre apps, der måske bruger filen, og forsøg derefter igen.';
+
+  @override
   String get confirmDeleteTitle => 'Slet?';
 
   @override

@@ -31,6 +31,8 @@
   "migrationBelowFloorBackupSavedAt": "Sikkerhedskopi gemt til: {backupPath}",
   "migrationBelowFloorDiagnosticLogSavedAt": "Diagnostiklog gemt til: {logPath}",
   "migrationBelowFloorResetOnlyConfirmBody": "Der oprettes ingen sikkerhedskopi. Nulstilling sletter permanent alle dine nuværende data og erstatter dem med en ny, tom database. Dette kan ikke fortrydes.",
+  "migrationBelowFloorWipeFailedTitle": "Nulstilling mislykkedes",
+  "migrationBelowFloorWipeFailedBody": "Databasefilen kunne ikke slettes. Dine data er ikke ændret. Prøv at lukke andre apps, der måske bruger filen, og forsøg derefter igen.",
   "confirmDeleteTitle": "Slet?",
   "confirmDeleteBody": "„{itemLabel}“ slettes. Du kan fortryde dette.",
   "colorEditHexLabel": "Hex",

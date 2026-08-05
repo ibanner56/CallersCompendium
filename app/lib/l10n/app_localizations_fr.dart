@@ -126,6 +126,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucune sauvegarde ne sera effectuée. La réinitialisation supprimera définitivement toutes vos données actuelles et les remplacera par une base de données vide. Cette opération est irréversible.';
 
   @override
+  String get migrationBelowFloorWipeFailedTitle =>
+      'Échec de la réinitialisation';
+
+  @override
+  String get migrationBelowFloorWipeFailedBody =>
+      'Le fichier de base de données n’a pas pu être supprimé. Vos données n’ont pas été modifiées. Essayez de fermer les autres applications susceptibles d’utiliser ce fichier, puis réessayez.';
+
+  @override
   String get confirmDeleteTitle => 'Supprimer ?';
 
   @override

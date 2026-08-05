@@ -31,6 +31,8 @@
   "migrationBelowFloorBackupSavedAt": "Sauvegarde enregistrée dans : {backupPath}",
   "migrationBelowFloorDiagnosticLogSavedAt": "Journal de diagnostic enregistré dans : {logPath}",
   "migrationBelowFloorResetOnlyConfirmBody": "Aucune sauvegarde ne sera effectuée. La réinitialisation supprimera définitivement toutes vos données actuelles et les remplacera par une base de données vide. Cette opération est irréversible.",
+  "migrationBelowFloorWipeFailedTitle": "Échec de la réinitialisation",
+  "migrationBelowFloorWipeFailedBody": "Le fichier de base de données n’a pas pu être supprimé. Vos données n’ont pas été modifiées. Essayez de fermer les autres applications susceptibles d’utiliser ce fichier, puis réessayez.",
   "confirmDeleteTitle": "Supprimer ?",
   "confirmDeleteBody": "« {itemLabel} » sera supprimé. Vous pouvez annuler cette action.",
   "colorEditHexLabel": "Hex",

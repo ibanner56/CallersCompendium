@@ -124,6 +124,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Es wird keine Sicherungskopie erstellt. Durch das Zurücksetzen werden alle Ihre aktuellen Daten dauerhaft gelöscht und durch eine neue, leere Datenbank ersetzt. Dies kann nicht rückgängig gemacht werden.';
 
   @override
+  String get migrationBelowFloorWipeFailedTitle =>
+      'Zurücksetzen fehlgeschlagen';
+
+  @override
+  String get migrationBelowFloorWipeFailedBody =>
+      'Die Datenbankdatei konnte nicht gelöscht werden. Ihre Daten wurden nicht verändert. Schließen Sie andere Apps, die möglicherweise auf die Datei zugreifen, und versuchen Sie es erneut.';
+
+  @override
   String get confirmDeleteTitle => 'Löschen?';
 
   @override

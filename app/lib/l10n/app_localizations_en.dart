@@ -123,6 +123,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This cannot be undone.';
 
   @override
+  String get migrationBelowFloorWipeFailedTitle => 'Reset failed';
+
+  @override
+  String get migrationBelowFloorWipeFailedBody =>
+      'The database file could not be deleted. Your data has not been changed. Try closing other apps that may be using the file, then try again.';
+
+  @override
   String get confirmDeleteTitle => 'Delete?';
 
   @override

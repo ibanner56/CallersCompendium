@@ -121,6 +121,13 @@ class AppLocalizationsJa extends AppLocalizations {
       'バックアップは作成されません。リセットすると、現在のデータがすべて永久に削除され、新しい空のデータベースに置き換えられます。この操作は元に戻せません。';
 
   @override
+  String get migrationBelowFloorWipeFailedTitle => 'リセットに失敗しました';
+
+  @override
+  String get migrationBelowFloorWipeFailedBody =>
+      'データベースファイルを削除できませんでした。データは変更されていません。ファイルを使用している可能性のある他のアプリを閉じてから、再度お試しください。';
+
+  @override
   String get confirmDeleteTitle => '削除しますか？';
 
   @override

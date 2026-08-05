@@ -292,6 +292,18 @@ abstract class AppLocalizations {
   /// **'No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This cannot be undone.'**
   String get migrationBelowFloorResetOnlyConfirmBody;
 
+  /// Title of the error dialog shown when the database file could not be deleted during a reset on the below-floor recovery screen. The database is intact.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset failed'**
+  String get migrationBelowFloorWipeFailedTitle;
+
+  /// Body of the error dialog shown when the database file could not be deleted. Instructs the user to close any apps locking the file and retry.
+  ///
+  /// In en, this message translates to:
+  /// **'The database file could not be deleted. Your data has not been changed. Try closing other apps that may be using the file, then try again.'**
+  String get migrationBelowFloorWipeFailedBody;
+
   /// Title of the optional confirm-before-delete dialog (shown only when the 'Confirm before delete' setting is on).
   ///
   /// In en, this message translates to:

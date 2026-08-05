@@ -123,6 +123,13 @@ class AppLocalizationsNl extends AppLocalizations {
       'Er wordt geen back-up gemaakt. Door opnieuw in te stellen worden al je huidige gegevens definitief verwijderd en vervangen door een nieuwe, lege database. Dit kan niet ongedaan worden gemaakt.';
 
   @override
+  String get migrationBelowFloorWipeFailedTitle => 'Opnieuw instellen mislukt';
+
+  @override
+  String get migrationBelowFloorWipeFailedBody =>
+      'Het databasebestand kon niet worden verwijderd. Je gegevens zijn niet gewijzigd. Sluit andere apps die het bestand mogelijk gebruiken en probeer het opnieuw.';
+
+  @override
   String get confirmDeleteTitle => 'Verwijderen?';
 
   @override
