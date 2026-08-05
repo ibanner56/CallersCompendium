@@ -7,6 +7,39 @@
 // procedure). It holds two dances whose figures span phrase sections, an
 // author, a tag, and a custom-field value — captured before the v2
 // `dance_figures.section` column and its indexes existed.
+//
+// ## The "schedules no derived rebuild" assertion, dropped at v22 (#803, #828)
+//
+// Three tests below — each named "index-only step rewrites no figure text
+// inline" or "no legacy figures -> no step rewrites figure text inline" — used
+// to assert that a pre-v22, index-only migration step schedules **no** derived
+// rebuild, observed end to end. #748 (PR #802) added `dance_figures.group_idx`
+// at v22 with an *unconditional* rebuild, which is correct and matches the v2
+// `section` precedent. Every path to head now rebuilds, so that end-state
+// observation is confounded. The tests were narrowed to assert what is still
+// observable: the sentinel derived row survives (no inline rewrite — the
+// dangerous property) and the marker is set.
+//
+// **Do not try to restore the assertion by stopping the migration below v22.**
+// Two ways to attempt that, both unsound for the same reason:
+//
+//   * Overriding `schemaVersion` in a test subclass. The `from < 22` step still
+//     runs and adds `group_idx`, but drift then stamps `user_version = 21` — a
+//     database claiming not to have a column it demonstrably has, minted inside
+//     the suite whose purpose is proving migrations sound.
+//   * Asking drift's own `SchemaVerifier.migrateAndValidate(db, 21)`. It opens
+//     the database through a delegate that *reports* `schemaVersion == 21`,
+//     which is the same untruth by a different route, with the same result.
+//
+// Neither is a subclassing problem; both follow from `onUpgrade` keying every
+// step on `from` alone — no step consults `to`. Making the assertion observable
+// needs drift's step-by-step migration form, i.e. restructuring every migration
+// step in the database. That is tracked in #828 and deliberately not attempted
+// there, because it touches user data on upgrade and carries a completely
+// different risk profile from adding verification.
+//
+// Schema *shape* after migration is covered separately by
+// `schema_verification_test.dart` (#828); this file covers data semantics.
 import 'dart:convert';
 import 'dart:io';
 
@@ -1491,6 +1524,12 @@ void main() {
 
     test('no legacy figures -> no step rewrites figure text inline (only v22 '
         'defers a rebuild)', () async {
+      // This test once also asserted that this step schedules NO derived
+      // rebuild. That assertion was dropped at v22 and cannot be restored by
+      // stopping the migration short of v22 — neither by overriding
+      // `schemaVersion` nor via drift's `SchemaVerifier`, both of which mint a
+      // database that denies a column it has. See the note at the top of this
+      // file and issue #828.
       // Rewrite the fixture (still at user_version 11) so it holds only a
       // non-ocean move, and stamp a sentinel into the derived table. v12's only
       // canonical-affecting change is the ocean-wave rewrite, so a DB that never
@@ -1672,6 +1711,12 @@ void main() {
 
     test('index-only step rewrites no figure text inline (v22 defers the '
         'group_idx rebuild)', () async {
+      // This test once also asserted that this step schedules NO derived
+      // rebuild. That assertion was dropped at v22 and cannot be restored by
+      // stopping the migration short of v22 — neither by overriding
+      // `schemaVersion` nor via drift's `SchemaVerifier`, both of which mint a
+      // database that denies a column it has. See the note at the top of this
+      // file and issue #828.
       // Stamp a sentinel into the derived table; a spurious inline rewrite would
       // wipe it. v13's index step touches no figure text, so it survives
       // onUpgrade (the v22 group_idx rebuild is deferred, not run here).
@@ -2017,6 +2062,12 @@ void main() {
 
     test('index-only step rewrites no figure text inline (v22 defers the '
         'group_idx rebuild)', () async {
+      // This test once also asserted that this step schedules NO derived
+      // rebuild. That assertion was dropped at v22 and cannot be restored by
+      // stopping the migration short of v22 — neither by overriding
+      // `schemaVersion` nor via drift's `SchemaVerifier`, both of which mint a
+      // database that denies a column it has. See the note at the top of this
+      // file and issue #828.
       // Stamp a sentinel into the derived table; a spurious inline rewrite would
       // wipe it. v16's index step touches no figure text, so it survives
       // onUpgrade (the v22 group_idx rebuild is deferred, not run here).

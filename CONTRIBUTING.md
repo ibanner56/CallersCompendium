@@ -39,6 +39,13 @@ When you change the schema:
   migration test/fixture (`test/storage/migration_test.dart` and/or a
   `test/storage/fixtures/` fixture). CI **fails** a PR that bumps
   `schemaVersion` without adding or changing such a test/fixture.
+- Add a drift schema dump for the new version under
+  [`packages/compendium_core/drift_schemas/`](packages/compendium_core/drift_schemas/README.md).
+  `test/storage/schema_verification_test.dart` asserts that migrating from
+  every recorded version reproduces the schema a fresh database gets at head,
+  so a missing dump is a failing test rather than a silent coverage hole. The
+  README there covers regeneration — note that `drift_dev` cannot run from this
+  workspace and is driven from a throwaway project.
 - **Never bump `schemaVersion` in a PATCH release.** A schema change is a
   data-format change and rides at least a MINOR version bump.
 

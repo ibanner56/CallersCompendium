@@ -11,8 +11,13 @@ This gate enforces the test/fixture half automatically. Given a base ref, it
 compares ``schemaVersion`` at base vs head; if it changed, it requires that the
 same diff also added or changed migration evidence:
 
-  * ``packages/compendium_core/test/storage/migration_test.dart``, or
-  * any file under ``packages/compendium_core/test/storage/fixtures/``.
+  * ``packages/compendium_core/test/storage/migration_test.dart``,
+  * any file under ``packages/compendium_core/test/storage/fixtures/``, or
+  * any file under ``packages/compendium_core/drift_schemas/`` — the generated
+    drift schema dumps behind ``schema_verification_test.dart`` (issue #828).
+    A bump ships a dump for the new version, and that is migration evidence in
+    its own right: the verification suite asserts that migrating from every
+    recorded version reproduces the freshly created head schema.
 
 If the version changed with no such evidence, CI fails. (It intentionally does
 NOT accept a mere edit to database.dart itself as evidence — the point is a
@@ -37,6 +42,9 @@ import sys
 DB_PATH = "packages/compendium_core/lib/src/storage/database.dart"
 MIGRATION_TEST = "packages/compendium_core/test/storage/migration_test.dart"
 FIXTURES_DIR = "packages/compendium_core/test/storage/fixtures/"
+DRIFT_SCHEMAS_DIR = "packages/compendium_core/drift_schemas/"
+
+EVIDENCE_DIRS = (FIXTURES_DIR, DRIFT_SCHEMAS_DIR)
 
 _GETTER_RE = re.compile(
     r"int\s+get\s+schemaVersion\s*=>\s*(?P<rhs>[A-Za-z_$][\w$]*|\d+)\s*;"
@@ -129,21 +137,23 @@ def main(argv: list[str]) -> int:
 
     changed = _changed_paths(base, head)
     has_evidence = any(
-        p == MIGRATION_TEST or p.startswith(FIXTURES_DIR) for p in changed
+        p == MIGRATION_TEST or p.startswith(EVIDENCE_DIRS) for p in changed
     )
 
     if not has_evidence:
         _fail(
             f"schemaVersion changed ({old} -> {new}) but this PR adds/changes "
-            "no migration test or fixture. A schema bump must ship a migration "
-            f"test ({MIGRATION_TEST}) and/or a fixture under {FIXTURES_DIR} "
-            "(see the schema convention on CompendiumDatabase and CONTRIBUTING.md).",
+            "no migration test, fixture or schema dump. A schema bump must "
+            f"ship a migration test ({MIGRATION_TEST}), a fixture under "
+            f"{FIXTURES_DIR}, and/or a drift schema dump under "
+            f"{DRIFT_SCHEMAS_DIR} (see the schema convention on "
+            "CompendiumDatabase and CONTRIBUTING.md).",
             code=1,
         )
 
     print(
         f"OK: schemaVersion changed ({old} -> {new}) with migration "
-        "test/fixture evidence in the same PR."
+        "test/fixture/schema-dump evidence in the same PR."
     )
     return 0
 

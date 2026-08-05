@@ -339,11 +339,19 @@ const int kCompendiumSchemaVersion = 23;
 ///   is required.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
-/// `MigrationStrategy` step for the new version, and (c) ship a test that
+/// `MigrationStrategy` step for the new version, (c) ship a test that
 /// opens a fixture DB created at the previous version and asserts the
-/// migrated schema/data (see `test/storage/migration_test.dart`). CI enforces
-/// (c): a change to this constant fails the build unless the same PR also
-/// adds/changes a migration test or a `test/storage/fixtures/` fixture.
+/// migrated schema/data (see `test/storage/migration_test.dart`), and (d) add a
+/// drift schema dump for the new version under `drift_schemas/` (see the README
+/// there). CI enforces (c) and (d): a change to this constant fails the build
+/// unless the same PR also adds/changes a migration test, a
+/// `test/storage/fixtures/` fixture, or a `drift_schemas/` dump — and
+/// `test/storage/schema_verification_test.dart` fails outright if a version has
+/// no dump.
+///
+/// (d) is what asserts *shape*: that a database which reached head by migration
+/// is structurally identical to one created fresh at head. The tests under (c)
+/// assert data semantics and deliberately do not cover that.
 ///
 /// Release rule: **never bump [schemaVersion] in a PATCH release** — a schema
 /// change is a data-format change and must ride at least a MINOR bump (see
