@@ -887,10 +887,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
 
   /// Back Up + Reset action for the below-floor recovery screen (issue #841).
   ///
-  /// Fail-closed: writes a pre-reset snapshot via [snapshotBeforeMigrate] (the
-  /// same writer as the pre-migration preflight) and only wipes the database if
-  /// the snapshot succeeds. If the snapshot fails, surfaces the failure cause
-  /// to the user and leaves the database untouched.
+  /// Delegates the fail-closed snapshot logic to [performBackUpAndReset] (see
+  /// `migration_guard.dart`): if the snapshot fails, shows a failure dialog and
+  /// returns without wiping. Only wipes after the snapshot succeeds and the user
+  /// confirms a second dialog.
   Future<void> _backUpAndReset(DatabaseBelowFloorError error) async {
     await WidgetsBinding.instance.endOfFrame;
     final context = _navigatorKey.currentContext;
@@ -902,17 +902,15 @@ class _CompendiumAppState extends State<CompendiumApp> {
       p.join(dbFile.parent.path, kDatabaseBackupsDirName),
     );
 
-    try {
-      await snapshotBeforeMigrate(
-        dbFile: dbFile,
-        snapshotDir: snapshotDir,
-        fromVersion: error.fileVersion,
-        timestamp: DateTime.now().toUtc(),
-      );
-    } on Object catch (snapshotError) {
+    final result = await performBackUpAndReset(
+      dbFile: dbFile,
+      snapshotDir: snapshotDir,
+      fileVersion: error.fileVersion,
+    );
+
+    if (result is BackUpFailed) {
       if (!context.mounted) return;
-      final cause = classifySnapshotFailure(snapshotError);
-      final causeText = snapshotCauseSentence(l10n, cause);
+      final causeText = snapshotCauseSentence(l10n, result.cause);
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(

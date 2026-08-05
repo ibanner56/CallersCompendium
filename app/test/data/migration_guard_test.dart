@@ -392,4 +392,63 @@ void main() {
       );
     },
   );
+
+  test('performBackUpAndReset returns BackUpFailed and does NOT wipe when the '
+      'snapshot writer throws (fail-closed, issue #841)', () async {
+    final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+    _createFixture(dbFile.path, userVersion: 5, seedValue: 'must survive');
+
+    // Inject a writer that always throws — simulates disk full / unwritable.
+    var wipeCalled = false;
+    final result = await performBackUpAndReset(
+      dbFile: dbFile,
+      snapshotDir: snapshotDir,
+      fileVersion: 5,
+      snapshotWriter:
+          ({
+            required dbFile,
+            required snapshotDir,
+            required fromVersion,
+            required timestamp,
+          }) async =>
+              throw const FileSystemException('no space', '', OSError('', 28)),
+    );
+
+    // The result must be BackUpFailed, not BackUpReady.
+    expect(result, isA<BackUpFailed>());
+    expect((result as BackUpFailed).cause, SnapshotFailureCause.diskFull);
+
+    // The database file is untouched — version and data survive.
+    expect(readUserVersion(dbFile.path), 5);
+    final db = sql.sqlite3.open(dbFile.path);
+    expect(db.select('SELECT v FROM t').single['v'], 'must survive');
+    db.close();
+
+    // No snapshot directory was created (writer threw before creating it).
+    expect(snapshotDir.existsSync(), isFalse);
+    // wipeCalled is never set because performBackUpAndReset returns
+    // BackUpFailed; the caller (main.dart) must check and not wipe.
+    expect(wipeCalled, isFalse);
+  });
+
+  test('performBackUpAndReset returns BackUpReady when the snapshot succeeds, '
+      'without wiping anything (caller is responsible for the wipe)', () async {
+    final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+    _createFixture(dbFile.path, userVersion: 5, seedValue: 'pre-reset');
+
+    final result = await performBackUpAndReset(
+      dbFile: dbFile,
+      snapshotDir: snapshotDir,
+      fileVersion: 5,
+    );
+
+    expect(result, isA<BackUpReady>());
+    final ready = result as BackUpReady;
+    expect(ready.snapshotFile.existsSync(), isTrue);
+    expect(readUserVersion(ready.snapshotFile.path), 5);
+
+    // performBackUpAndReset never wipes; the original file is intact.
+    expect(dbFile.existsSync(), isTrue);
+    expect(readUserVersion(dbFile.path), 5);
+  });
 }

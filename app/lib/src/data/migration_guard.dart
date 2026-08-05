@@ -455,3 +455,64 @@ Future<void> _pruneSnapshots(Directory dir, int retain) async {
     }
   }
 }
+
+/// Result of [performBackUpAndReset] — either the snapshot succeeded and the
+/// wipe can proceed, or it failed and the database must be left untouched.
+sealed class BackUpAndResetResult {
+  const BackUpAndResetResult();
+}
+
+/// The pre-reset snapshot was written successfully. The caller may proceed with
+/// the wipe (after any confirmation UI). [snapshotFile] is the written file.
+final class BackUpReady extends BackUpAndResetResult {
+  const BackUpReady(this.snapshotFile);
+  final File snapshotFile;
+}
+
+/// The pre-reset snapshot could not be written. The database must NOT be wiped.
+/// [cause] is the classified failure for use in the UI.
+final class BackUpFailed extends BackUpAndResetResult {
+  const BackUpFailed({required this.cause, required this.error});
+  final SnapshotFailureCause cause;
+
+  /// The underlying error, for diagnostics/logging — never surfaced raw.
+  final Object error;
+}
+
+/// Fail-closed pre-reset backup: attempts to snapshot [dbFile] into
+/// [snapshotDir] before any wipe.
+///
+/// Returns [BackUpReady] if the snapshot succeeded, or [BackUpFailed] if it
+/// did not. The caller **must not wipe** when [BackUpFailed] is returned.
+///
+/// [snapshotWriter] is injectable so tests can inject a failing writer without
+/// touching the filesystem; the production default is [snapshotBeforeMigrate].
+///
+/// This is the testable core of `_backUpAndReset` in `main.dart`: the Flutter
+/// layer handles dialogs and navigation; this function owns the fail-closed
+/// invariant.
+Future<BackUpAndResetResult> performBackUpAndReset({
+  required File dbFile,
+  required Directory snapshotDir,
+  required int fileVersion,
+  Future<File> Function({
+    required File dbFile,
+    required Directory snapshotDir,
+    required int fromVersion,
+    required DateTime timestamp,
+  })?
+  snapshotWriter,
+}) async {
+  final writer = snapshotWriter ?? snapshotBeforeMigrate;
+  try {
+    final snapshot = await writer(
+      dbFile: dbFile,
+      snapshotDir: snapshotDir,
+      fromVersion: fileVersion,
+      timestamp: DateTime.now().toUtc(),
+    );
+    return BackUpReady(snapshot);
+  } on Object catch (error) {
+    return BackUpFailed(cause: classifySnapshotFailure(error), error: error);
+  }
+}
