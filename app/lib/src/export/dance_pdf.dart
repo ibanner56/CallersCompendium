@@ -47,7 +47,7 @@ Future<Uint8List> buildDancePdf(
   final metaLines = <String>[
     if (_has(formationLabel)) '${labels.formation}: ${formationLabel.trim()}',
     if (_has(levelLabel)) '${labels.level}: ${levelLabel!.trim()}',
-    if (dance.mixer) labels.mixer,
+    if (dance.mixer && _has(labels.mixer)) labels.mixer.trim(),
     // Mirror the on-screen card / text export: only a non-active dance shows
     // a Status line; an active dance omits it.
     if (dance.status != DanceStatus.active && _has(statusLabel))
