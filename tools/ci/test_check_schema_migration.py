@@ -26,8 +26,15 @@ SCRIPT = HERE / "check_schema_migration.py"
 
 DB_PATH = "packages/compendium_core/lib/src/storage/database.dart"
 MIGRATION_TEST = "packages/compendium_core/test/storage/migration_test.dart"
-FIXTURE = "packages/compendium_core/test/storage/fixtures/v9.sqlite"
-SCHEMA_DUMP = "packages/compendium_core/drift_schemas/drift_schema_v9.json"
+FIXTURE = "packages/compendium_core/test/storage/fixtures/v12.sqlite"
+SCHEMA_DUMP = "packages/compendium_core/drift_schemas/drift_schema_v12.json"
+FLOOR = 11
+RETIRED_FIXTURE = "packages/compendium_core/test/storage/fixtures/v9.sqlite"
+RETIRED_GENERATOR = (
+    "packages/compendium_core/test/storage/fixtures/generate_v9_fixture.dart"
+)
+RETIRED_DUMP = "packages/compendium_core/drift_schemas/drift_schema_v9.json"
+RETIRED_SCHEMA = "packages/compendium_core/test/storage/generated/schema_v9.dart"
 
 FAILURES: list[str] = []
 
@@ -44,6 +51,7 @@ def database_source(version: int) -> str:
     """A minimal `database.dart` in the repo's single-source shape."""
     return (
         f"const int kCompendiumSchemaVersion = {version};\n"
+        f"const int kMinSupportedSchemaVersion = {FLOOR};\n"
         "\n"
         "class CompendiumDatabase {\n"
         "  int get schemaVersion => kCompendiumSchemaVersion;\n"
@@ -114,7 +122,7 @@ def test_accepted() -> None:
     )
 
     result = scenario(
-        {DB_PATH: database_source(10), MIGRATION_TEST: "// covers v10\n"}
+        {DB_PATH: database_source(24), MIGRATION_TEST: "// covers v24\n"}
     )
     check(
         "bump with a migration test passes",
@@ -122,14 +130,14 @@ def test_accepted() -> None:
         result.stdout + result.stderr,
     )
 
-    result = scenario({DB_PATH: database_source(10), FIXTURE: "fake sqlite\n"})
+    result = scenario({DB_PATH: database_source(24), FIXTURE: "fake sqlite\n"})
     check(
         "bump with a fixture passes",
         result.returncode == 0,
         result.stdout + result.stderr,
     )
 
-    result = scenario({DB_PATH: database_source(10), SCHEMA_DUMP: "{}\n"})
+    result = scenario({DB_PATH: database_source(24), SCHEMA_DUMP: "{}\n"})
     check(
         "bump with a drift schema dump passes (#828)",
         result.returncode == 0,
@@ -145,7 +153,7 @@ def test_accepted() -> None:
 def test_rejected() -> None:
     print("rejected changes:")
 
-    result = scenario({DB_PATH: database_source(10)})
+    result = scenario({DB_PATH: database_source(24)})
     check(
         "bump with no evidence fails",
         result.returncode == 1,
@@ -161,7 +169,7 @@ def test_rejected() -> None:
     # gate is a migration *test*, not a migration.
     result = scenario(
         {
-            DB_PATH: database_source(10) + "// plus an onUpgrade step\n",
+            DB_PATH: database_source(24) + "// plus an onUpgrade step\n",
         }
     )
     check(
@@ -171,9 +179,62 @@ def test_rejected() -> None:
     )
 
 
+# --------------------------------------------------------------------------
+# Retired versions must not come back (#828 schema floor).
+# --------------------------------------------------------------------------
+
+
+def test_floor() -> None:
+    print("retired schema versions:")
+
+    for label, path in (
+        ("fixture", RETIRED_FIXTURE),
+        ("generator", RETIRED_GENERATOR),
+        ("schema dump", RETIRED_DUMP),
+        ("generated schema class", RETIRED_SCHEMA),
+    ):
+        result = scenario({path: "revived\n"})
+        check(
+            f"a below-floor {label} is rejected",
+            result.returncode == 1,
+            f"exit={result.returncode}: {result.stdout + result.stderr}",
+        )
+
+    # The floor check must not depend on schemaVersion changing: reviving a
+    # retired artefact is a defect on its own.
+    result = scenario({RETIRED_FIXTURE: "revived\n"})
+    check(
+        "the floor is enforced even with no schemaVersion change",
+        result.returncode == 1,
+        f"exit={result.returncode}",
+    )
+    check(
+        "the failure names the offending path",
+        "v9.sqlite" in (result.stdout + result.stderr),
+        result.stdout + result.stderr,
+    )
+
+    # At-floor and above-floor artefacts are exactly what a normal PR touches.
+    result = scenario(
+        {"packages/compendium_core/test/storage/fixtures/v11.sqlite": "ok\n"}
+    )
+    check(
+        "an at-floor fixture is accepted",
+        result.returncode == 0,
+        result.stdout + result.stderr,
+    )
+    result = scenario({FIXTURE: "ok\n"})
+    check(
+        "an above-floor fixture is accepted",
+        result.returncode == 0,
+        result.stdout + result.stderr,
+    )
+
+
 def main() -> int:
     test_accepted()
     test_rejected()
+    test_floor()
     print()
     if FAILURES:
         for failure in FAILURES:

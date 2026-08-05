@@ -49,6 +49,14 @@ When you change the schema:
 - **Never bump `schemaVersion` in a PATCH release.** A schema change is a
   data-format change and rides at least a MINOR version bump.
 
+Old schema versions are **retired** once they fall below the oldest supported
+release: `kMinSupportedSchemaVersion` is the floor, a database stamped below it
+is refused rather than partially migrated, and CI fails any PR that reintroduces
+a fixture, generator or dump for a retired version. Raising the floor is
+user-visible — those databases stop opening — so it needs an `app/CHANGELOG.md`
+entry in user-facing terms. See ["Retiring a schema
+version"](docs/design/storage.md) for the full checklist.
+
 ### Data classification
 Every field the app persists is classified by what kind of data it is, whose
 data it is, and whether it may leave the device. The catalogue lives in

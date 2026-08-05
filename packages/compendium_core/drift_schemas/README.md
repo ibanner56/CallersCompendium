@@ -16,7 +16,8 @@ dumps. Both directories are machine-generated; edit neither by hand.
 Each dump is taken from a **real database file**, not from static analysis of
 `lib/src/storage/database.dart`:
 
-* v1–v22 come from the committed fixtures in `test/storage/fixtures/`.
+* Every supported version below head comes from the committed fixture of the
+  same name in `test/storage/fixtures/`.
 * The head dump comes from a database created on the spot by
   `tool/write_head_database.dart`.
 
@@ -34,6 +35,18 @@ A dump is a record of **structure only**. The fixture generators in
 assertions in `migration_test.dart`; dumps do not replace them and none of them
 should be deleted. What dumps replace is the need to hand-derive a *new*
 generator for every future version (see "Adding a version").
+
+## The floor: which versions live here
+
+Only versions from `kMinSupportedSchemaVersion` (currently **v11**) up to head
+have dumps. Earlier ones were retired (#828): `v0.1.0-beta.2` is the oldest
+supported release and shipped schema v11, so nothing can present a database
+below it that we are willing to migrate — `onUpgrade` refuses one outright.
+
+`schema_verification_test.dart` asserts the set here is **exactly** floor…head,
+so both a missing dump and a lingering retired one are failing tests rather than
+silent drift, and `tools/ci/check_schema_migration.py` rejects any PR that
+reintroduces a below-floor artefact.
 
 ## Adding a version
 

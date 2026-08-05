@@ -163,14 +163,22 @@ sqlite3.Database _emptyDatabase() => sqlite3.sqlite3.openInMemory();
 
 void main() {
   group('drift schema dumps', () {
-    test('cover every version from 1 to head', () {
+    test('cover exactly the supported versions, floor to head', () {
       expect(
         GeneratedHelper.versions,
-        [for (var v = 1; v <= kCompendiumSchemaVersion; v++) v],
+        [
+          for (
+            var v = kMinSupportedSchemaVersion;
+            v <= kCompendiumSchemaVersion;
+            v++
+          )
+            v,
+        ],
         reason:
-            'every schema version needs a dump in drift_schemas/ — see the '
-            'README there for how to add one when bumping '
-            'kCompendiumSchemaVersion',
+            'every supported schema version needs a dump in drift_schemas/, '
+            'and no retired one may linger — see the README there for how to '
+            'add one when bumping kCompendiumSchemaVersion, and how to retire '
+            'one when raising kMinSupportedSchemaVersion',
       );
     });
   });
@@ -190,7 +198,11 @@ void main() {
       raw.close();
     });
 
-    for (var version = 1; version < kCompendiumSchemaVersion; version++) {
+    for (
+      var version = kMinSupportedSchemaVersion;
+      version < kCompendiumSchemaVersion;
+      version++
+    ) {
       final startVersion = version;
 
       test('from v$startVersion', () async {

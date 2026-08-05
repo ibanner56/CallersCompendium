@@ -94,6 +94,13 @@ each release so store builds and tags can be traced back to an entry.
   planned "a newer version of this collection is available" prompt against a
   hosted archive — a feature that was dropped in favour of importing directly
   from the source.
+- **Support for collections last opened by beta.1 or earlier.** Caller's
+  Compendium will no longer open a collection file that old; it stops rather
+  than upgrading it halfway, which would leave the file quietly incomplete.
+  Every tester is on beta.2 or later, so in practice no collection is affected.
+  If you do still have a pre-beta.2 file, open it once with beta.2 — or any
+  later release you already have — and it will be upgraded normally, after which
+  this release can open it.
 
 ### Fixed
 
