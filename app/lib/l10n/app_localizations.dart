@@ -5582,11 +5582,11 @@ abstract class AppLocalizations {
   /// **'That\'s {count} titles. Import up to {max} at a time.'**
   String importTitleListTooManyTitles(int count, int max);
 
-  /// Refusal shown when the raw pasted text exceeds the hard character cap, before it is parsed.
+  /// Refusal shown when the raw pasted text exceeds the hard character cap, before it is parsed. Deliberately does NOT cite the title-count cap: this path is the raw size limit, which a paste of very long lines can trip with far fewer than the maximum number of titles, so naming that number would misdescribe why the paste was refused.
   ///
   /// In en, this message translates to:
-  /// **'That paste is too long to be a list of titles. Import up to {max} titles at a time.'**
-  String importTitleListTextTooLong(int max);
+  /// **'That paste is too long to read as a list of titles. Try pasting a shorter list.'**
+  String get importTitleListTextTooLong;
 
   /// Progress line while each unmatched title is looked up online, one at a time.
   ///

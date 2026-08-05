@@ -515,4 +515,57 @@ void main() {
       expect(find.byKey(const ValueKey('import-titles-field')), findsOneWidget);
     });
   });
+
+  group('review round 2 (suppressed findings)', () {
+    testWidgets('the raw-size refusal does not cite the title-count cap', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final service = _FakeOnline();
+      await _pump(tester, repos, service: service);
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+
+      // Trips the character cap with far fewer than kMaxTitleListTitles titles
+      // (one distinct title, repeated), so a message naming that limit would
+      // misdescribe why the paste was refused.
+      final line = 'a' * (kMaxTitleLength - 1);
+      final huge = List.filled(
+        kMaxTitleListChars ~/ kMaxTitleLength + 2,
+        line,
+      ).join('\n');
+      await _paste(tester, huge);
+
+      expect(find.byKey(const ValueKey('import-titles-error')), findsOneWidget);
+      expect(find.text(l10n.importTitleListTextTooLong), findsOneWidget);
+      expect(
+        find.textContaining('$kMaxTitleListTitles'),
+        findsNothing,
+        reason: 'this is the byte cap, not the title-count cap',
+      );
+      expect(service.searchedTitles, isEmpty);
+    });
+
+    testWidgets('two preselected sources fail fast rather than picking by '
+        'position', (tester) async {
+      final repos = openTestRepositories();
+      final base = defaultImportSources();
+      ImportSource alsoPreselected(ImportSource s) => ImportSource(
+        kind: s.kind,
+        adapterFactory: s.adapterFactory,
+        preselected: true,
+      );
+
+      await _pump(
+        tester,
+        repos,
+        service: _FakeOnline(),
+        sources: [alsoPreselected(base[0]), alsoPreselected(base[1])],
+      );
+
+      // Two preselected sources make the opening selection order-dependent
+      // again — the coupling `preselected` exists to break — so it must fail
+      // loudly in debug rather than silently pick by position.
+      expect(tester.takeException(), isA<AssertionError>());
+    });
+  });
 }

@@ -117,9 +117,14 @@ String importSourceLabel(AppLocalizations l10n, ImportSourceKind kind) =>
 /// Localized refusal for a pasted title list that tripped a hard cap
 /// ([TitleListTooLargeException]).
 ///
-/// The paste is refused outright rather than truncated, so the message names
-/// the cap and — for a too-long list — how many titles were actually pasted, so
-/// the user can see how far over they are instead of guessing.
+/// The paste is refused outright rather than truncated, so the too-many-titles
+/// message names the cap and how many titles were actually pasted, letting the
+/// user see how far over they are instead of guessing.
+///
+/// The raw-size refusal deliberately names **no** number: it is a byte cap, not
+/// a title cap, and a paste of very long lines can trip it with far fewer than
+/// [kMaxTitleListTitles] titles — so citing that limit would misdescribe why the
+/// paste was refused (raised in review of PR #842).
 String titleListTooLargeMessage(
   AppLocalizations l10n,
   TitleListTooLargeException error,
@@ -128,9 +133,7 @@ String titleListTooLargeMessage(
     error.count,
     kMaxTitleListTitles,
   ),
-  TitleListRejection.textTooLong => l10n.importTitleListTextTooLong(
-    kMaxTitleListTitles,
-  ),
+  TitleListRejection.textTooLong => l10n.importTitleListTextTooLong,
 };
 
 /// Localized explanation of why a pasted title produced nothing importable

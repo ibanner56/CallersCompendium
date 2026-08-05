@@ -90,7 +90,9 @@ class ImportReviewScreen extends StatefulWidget {
     this.sharedBundle,
   }) : assert(sources.length > 0, 'at least one import source is required');
 
-  /// The selectable import sources; the first is selected by default.
+  /// The selectable import sources. The screen opens on the one marked
+  /// [ImportSource.preselected], falling back to the first when none is —
+  /// order and default selection are deliberately separate (issue #823).
   final List<ImportSource> sources;
 
   /// Test seam for choosing a file; defaults to [pickImportFile] (native
@@ -165,10 +167,27 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// itself [ImportSource.preselected], falling back to the first — order and
   /// default selection are deliberately separate (issue #823), so the dropdown
   /// can lead with the title list while the screen opens on The Caller's Box.
+  ///
+  /// The "at most one preselected" precondition is asserted in [initState]
+  /// rather than the constructor, because the check is not a potentially-const
+  /// expression and [ImportReviewScreen]'s constructor is `const`.
   late ImportSource _selected = widget.sources.firstWhere(
     (s) => s.preselected,
     orElse: () => widget.sources.first,
   );
+
+  @override
+  void initState() {
+    super.initState();
+    assert(
+      // `preselected` names the one source the screen opens on. Two of them
+      // would silently make the choice order-dependent again — the exact
+      // coupling `preselected` exists to break (issue #823) — so fail fast
+      // rather than let a custom or refactored list decide by position.
+      widget.sources.where((s) => s.preselected).length <= 1,
+      'at most one import source may be preselected',
+    );
+  }
 
   /// Set once the user picks a source from the dropdown themselves. After that
   /// the URL field stops auto-detecting/overriding the source (manual choice
@@ -428,7 +447,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _planError = null;
       _titleListError = null;
       _titleListCancelled = false;
-      _titleListProgress = (0, 0);
+      // Deliberately NOT (0, 0): how many titles need looking up isn't known
+      // until the local-match stage has run, and a paste where everything is
+      // already in the collection never looks up any. Staying null keeps the
+      // generic spinner until the first real progress report arrives.
+      _titleListProgress = null;
     });
     try {
       final resolution = await resolveTitleList(
@@ -436,7 +459,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         service: widget.onlineService ?? CallersBoxOnline(),
         repos: _repos,
         onProgress: (done, total) {
-          if (!mounted) return;
+          if (!mounted || total == 0) return;
           setState(() => _titleListProgress = (done, total));
         },
         isCancelled: () => _titleListCancelled || !mounted,
@@ -1207,6 +1230,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// per unmatched title — a bare indeterminate spinner would leave a long list
   /// looking hung with no way out. Nothing has been written at this point, so
   /// cancelling simply discards the partial work.
+  ///
+  /// A paste with **nothing to look up** — every title already in the collection
+  /// or rejected by the per-line bounds — falls back to the generic spinner. It
+  /// has no batch to report and nothing to cancel, so "Searching 0 of 0…" beside
+  /// a Cancel button would be both meaningless and untrue.
   Widget _buildPlanning(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final progress = _titleListProgress;
@@ -1222,7 +1250,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircularProgressIndicator(value: total == 0 ? null : done / total),
+          CircularProgressIndicator(value: done / total),
           const SizedBox(height: 16),
           Semantics(
             liveRegion: true,

@@ -3599,9 +3599,8 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String importTitleListTextTooLong(int max) {
-    return 'That paste is too long to be a list of titles. Import up to $max titles at a time.';
-  }
+  String get importTitleListTextTooLong =>
+      'That paste is too long to read as a list of titles. Try pasting a shorter list.';
 
   @override
   String importReviewTitleListProgress(int done, int total) {
