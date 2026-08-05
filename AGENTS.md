@@ -96,13 +96,16 @@ count, and comment count are all blind to suppressed findings — the review
 
   ```sh
   gh api --paginate --slurp repos/<owner>/<repo>/pulls/<N>/reviews \
-    | jq '[.[][] | select(.user.login=="copilot-pull-request-reviewer[bot]")] | last | .commit_id'
+    | jq -er '[.[][] | select(.user.login=="copilot-pull-request-reviewer[bot]")] | last | .commit_id'
   gh pr view <N> --json headRefOid -q .headRefOid
   ```
 
   `--slurp` wraps all pages into an outer array, so `.[][]` flattens them and
   `last` reliably picks the reviewer's latest entry across pages. (`--slurp` is
   incompatible with `-q`/`--jq`, so the filter is piped to a standalone `jq`.)
+  `-r` strips the JSON quotes so the two SHAs are directly comparable; `-e`
+  exits non-zero when no matching review exists, so an unreviewed PR fails
+  closed rather than printing `null` with exit 0.
 
 - **`requested_reviewers` must not be used to determine review state.** The
   field is cleared on submission, so an empty result is ambiguous between *never
