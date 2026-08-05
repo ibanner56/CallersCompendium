@@ -353,12 +353,12 @@ void main() {
           ],
           beats: 16,
         );
-        final result = reparseImportGapFigures([container]);
+        final input = [container];
+        final result = reparseImportGapFigures(input);
 
         expect(result.changed, isFalse);
         expect(result.upgradedCount, 0);
-        expect(identical(result.figures, [container]), isFalse);
-        expect(result.figures.single, same(container));
+        expect(identical(result.figures, input), isTrue);
       });
 
       test('idempotent — second run finds nothing further to upgrade', () {
@@ -410,6 +410,33 @@ void main() {
           expect(result.figures.single.walkthroughOverride, 'caller note');
         },
       );
+
+      // A custom side whose stored text re-parses to a meanwhile is declined
+      // (left as-is). Nesting violates the flat-only invariant; flattening
+      // would corrupt section beat totals. The isMeanwhile guard in
+      // _tryUpgradeMeanwhile catches this; removing it causes a nested
+      // meanwhile to appear in the output, and this test goes red.
+      test('declines a side whose re-parse yields a meanwhile — '
+          'leaves it as custom rather than nesting or flattening', () {
+        // "Balance || swing" re-parses to a meanwhile via the ||/while fan-out.
+        final container = Figure.meanwhile(
+          figures: [
+            importGap('Balance || swing', beats: 8),
+            importGap('give and take', beats: 8),
+          ],
+          beats: 16,
+        );
+        final result = reparseImportGapFigures([container]);
+
+        // The side that would nest stays custom; no upgrade is counted.
+        expect(result.changed, isFalse);
+        expect(result.upgradedCount, 0);
+        // Confirm flatness: the container's sides are not meantimes.
+        expect(
+          result.figures.single.subFigures.any((s) => s.isMeanwhile),
+          isFalse,
+        );
+      });
     });
   });
 }

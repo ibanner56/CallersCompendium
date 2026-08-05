@@ -842,7 +842,7 @@ All coverage percentages recorded in this document and in issues #295, #712,
 those containers were counted as structured.
 
 The committed harness (`ParseQuality.ofFigures`, `structured_draft.dart`) was
-corrected in the PR that closes #769 at commit `f71e7f39` to use the recursive
+corrected in #835 (closes #769) to use the recursive
 definition: `f.isCustom || (f.isMeanwhile && f.subFigures.any((s) => s.isCustom))`.
 One level of recursion is sufficient and provably terminating — meanwhile
 containers are flat by construction (the codec flattens nested containers on
@@ -864,11 +864,11 @@ which is why this survived several review rounds (a metric that overstates the
 level but reports change correctly looks right every time you check whether a
 change helped).
 
-**Non-finding to record:** the figures at `f71e7f39` (main branch at the time
-of this correction) were not re-derived. The tool used to measure the corpus
-(`tool/tcb_coverage.dart` in earlier internal sessions) was never committed to
-this repository. If the main-branch numbers have moved since `5af19a1b` — six
-PRs merged between that SHA and `f71e7f39`, at least two touching the Caller's
-Box import path — a re-run will reveal it; the restated percentages above are
-the `5af19a1b` values, which is what the issue measured and what this correction
+**Non-finding to record:** the figures at main as of the correction were not
+re-derived. The tool used to measure the corpus (`tool/tcb_coverage.dart` in
+earlier internal sessions) was never committed to this repository. If the
+main-branch numbers have moved since `5af19a1b` — several PRs merged between
+that SHA and when #835 landed, at least two touching the Caller's Box import
+path — a re-run will reveal it; the restated percentages above are the
+`5af19a1b` values, which is what the issue measured and what this correction
 is pinned to.

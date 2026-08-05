@@ -93,6 +93,11 @@ FigureReparseOutcome reparseImportGapFigures(
 /// preserving the container's [Figure.beats] — the group total is the
 /// authoritative section-math count and must not be replaced by side beats.
 ///
+/// A side whose re-parse itself yields a [Figure.isMeanwhile] is **declined**
+/// (left unchanged) rather than nested or flattened. Nesting violates the
+/// flat-only invariant; flattening would splice sides that share a different
+/// beat total into this container, silently corrupting section maths.
+///
 /// [upgradedCount] in the returned record counts upgraded *sides*, consistent
 /// with the top-level counter semantics (each custom figure that structures = 1).
 ///
@@ -107,7 +112,9 @@ FigureReparseOutcome reparseImportGapFigures(
   var upgraded = 0;
   for (var i = 0; i < sides.length; i++) {
     final replacement = _tryUpgrade(sides[i], taxonomy);
-    if (replacement == null) continue;
+    // Decline a meanwhile replacement: nesting violates the flat-only
+    // invariant, and flattening would corrupt section beat totals.
+    if (replacement == null || replacement.isMeanwhile) continue;
     newSides ??= List<Figure>.of(sides);
     newSides[i] = replacement;
     upgraded++;
