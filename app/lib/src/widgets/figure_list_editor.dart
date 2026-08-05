@@ -48,6 +48,7 @@ class FigureListEditor extends StatefulWidget {
     required this.onReorder,
     this.onDuplicate,
     this.dialect,
+    this.mixer = false,
     this.moveParamDefaults,
     this.freeTextEntry = false,
     this.onAddFreeText,
@@ -66,6 +67,20 @@ class FigureListEditor extends StatefulWidget {
   /// Defaults to [Dialect.larksRobins] when `null` (has the standard
   /// discouraged-term list).
   final Dialect? dialect;
+
+  /// Whether the enclosing dance is a mixer (issue #732).
+  ///
+  /// Forwarded to each [FigureParamEditor] so that dancer-set/pair dropdowns
+  /// suppress the partner-series tokens except when the stored value is already
+  /// one of them (see [offerableDancerSets]). Defaults to `false`.
+  ///
+  /// This is a deliberate implementation choice for callers that have no dance
+  /// in context (e.g. the collection-wide defaults editor in
+  /// `defaults_section.dart`): the default `false` means partner-series tokens
+  /// are not offered, which is correct because a collection-wide default is
+  /// applied to every new figure regardless of dance type, and seeding it with
+  /// a mixer-specific token would be wrong for the large majority of dances.
+  final bool mixer;
 
   /// Per-move parameter overrides applied when INSERTING a move (ROADMAP DD.3),
   /// keyed by move id then param key. When a move is selected (or a custom
@@ -524,6 +539,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         showLabel: sectionStart[draft.id] ?? false,
         taxonomy: widget.taxonomy,
         dialect: dialect,
+        mixer: widget.mixer,
         moveParamDefaults: widget.moveParamDefaults,
         isCut: isCutCard,
         draggable: draggable,
@@ -819,6 +835,7 @@ class _FigureDraftCard extends StatefulWidget {
     required this.showLabel,
     required this.taxonomy,
     required this.dialect,
+    this.mixer = false,
     this.moveParamDefaults,
     required this.isCut,
     required this.draggable,
@@ -853,6 +870,9 @@ class _FigureDraftCard extends StatefulWidget {
 
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// See [FigureListEditor.mixer].
+  final bool mixer;
 
   /// Per-move insert-time param overrides (ROADMAP DD.3); see
   /// [FigureListEditor.moveParamDefaults]. Null = pure taxonomy defaults.
@@ -1583,6 +1603,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       paramKey: 'beats',
                       spec: beatsSpec,
                       dialect: widget.dialect,
+                      mixer: widget.mixer,
                       value: draft.params['beats'] ?? beatsSpec.defaultValue,
                       onChanged: (v) {
                         draft.params['beats'] = v;
@@ -1667,6 +1688,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                   paramKey: 'beats',
                   spec: const ParamSpec(ParamKind.beats, defaultValue: 0),
                   dialect: widget.dialect,
+                  mixer: widget.mixer,
                   value: draft.beats,
                   onChanged: (v) {
                     draft.params['beats'] = v;
@@ -1686,6 +1708,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       draft: sides[i],
                       taxonomy: widget.taxonomy,
                       dialect: widget.dialect,
+                      mixer: widget.mixer,
                       moveParamDefaults: widget.moveParamDefaults,
                       onChanged: widget.onChanged,
                       onMoveUp: i == 0 ? null : () => _reorderSide(i, i - 1),
@@ -1896,6 +1919,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             paramKey: entry.key,
             spec: entry.value,
             dialect: widget.dialect,
+            mixer: widget.mixer,
             value: draft.params[entry.key] ?? entry.value.defaultValue,
             onChanged: (v) {
               if (entry.key == 'beats') {
@@ -2125,6 +2149,7 @@ class _MeanwhileSideEditor extends StatefulWidget {
     required this.draft,
     required this.taxonomy,
     required this.dialect,
+    this.mixer = false,
     this.moveParamDefaults,
     required this.onChanged,
     this.onMoveUp,
@@ -2141,6 +2166,10 @@ class _MeanwhileSideEditor extends StatefulWidget {
   final FigureDraft draft;
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// See [FigureListEditor.mixer].
+  final bool mixer;
+
   final Map<String, Map<String, Object?>>? moveParamDefaults;
   final VoidCallback onChanged;
 
@@ -2335,6 +2364,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
             paramKey: entry.key,
             spec: entry.value,
             dialect: widget.dialect,
+            mixer: widget.mixer,
             value: draft.params[entry.key] ?? entry.value.defaultValue,
             onChanged: (v) {
               if (entry.key == 'who') draft.assumedSubject = false;

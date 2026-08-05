@@ -93,6 +93,32 @@ abstract final class ParamVocab {
     'twosRole2',
   ];
 
+  /// The five mixer partner-series tokens (taxonomy v24, issue #732): the
+  /// previous and successive partners in a mixer beyond P1 (`partners`).
+  ///
+  /// Named as an explicit set rather than derived from a suffix/prefix
+  /// pattern for three reasons:
+  ///
+  /// 1. Membership is a **taxonomy fact**, not a spelling coincidence. A future
+  ///    token that happens to end in `Partners` would silently join the gated
+  ///    group without anyone deciding it should; an explicit list forces that
+  ///    decision.
+  /// 2. An explicit list is auditable against the version history; a pattern
+  ///    is not.
+  /// 3. A naive case-insensitive match would catch `partners` (P1, which must
+  ///    always be offered); the explicit constant removes that failure mode
+  ///    rather than depending on every future maintainer preserving case
+  ///    sensitivity. (`'partners'.endsWith('Partners')` is false in Dart —
+  ///    case-sensitive — so a case-sensitive suffix would not catch it, but
+  ///    reasons (1) and (2) stand independently.)
+  static const List<String> mixerPartnerSeries = [
+    'prevPartners',
+    'nextPartners',
+    'thirdPartners',
+    'fourthPartners',
+    'fifthPartners',
+  ];
+
   /// All dancer tokens (pair/group + single-dancer identities). The default
   /// domain for [ParamKind.dancerSet] / [ParamKind.dancerPair].
   static const List<String> dancerSets = [...pairDancerSets, ...singleDancers];

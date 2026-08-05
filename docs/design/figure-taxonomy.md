@@ -36,7 +36,7 @@ searchKeywords: [allemande, almond]
 
 | Type | Values | Notes |
 |---|---|---|
-| dancerSet | everyone, larks*, robins*, ones, twos, firstCorners, secondCorners, partners, neighbors, sameRoles, shadows, nextNeighbors, prevNeighbors, nextPartners, prevPartners, … | *canonical role IDs are `role1`/`role2` — see below. Positional/relational tokens (all except `role1s`/`role2s`) are also **dialect-substitutable** via the dialect `dancers` map. |
+| dancerSet | everyone, larks*, robins*, ones, twos, firstCorners, secondCorners, partners, neighbors, sameRoles, shadows, nextNeighbors, prevNeighbors, nextPartners, prevPartners, … | *canonical role IDs are `role1`/`role2` — see below. Positional/relational tokens (all except `role1s`/`role2s`) are also **dialect-substitutable** via the dialect `dancers` map. The five mixer partner-series tokens (`prevPartners`/`nextPartners`/`thirdPartners`/`fourthPartners`/`fifthPartners`) are offered in the **figure editor dropdown only when the dance is marked a mixer** — unless the figure already stores one of them, in which case it remains visible and selectable on that figure (see `offerableDancerSets`). The tokens are unrestricted everywhere else (dialect editor, search, etc.). |
 | dancerPair | subset of dancerSet valid for the move | |
 | handedness / shoulder | right, left | |
 | spinDirection | clockwise, counterclockwise | |

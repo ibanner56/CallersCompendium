@@ -251,6 +251,7 @@ class DanceEditorForm extends StatelessWidget {
                   taxonomy: taxonomy,
                   phraseStructure: controller.phraseStructure,
                   dialect: dialect,
+                  mixer: controller.mixer,
                   moveParamDefaults: moveParamDefaults,
                   onChanged: controller.onFiguresChanged,
                   onAdd: controller.addFigure,

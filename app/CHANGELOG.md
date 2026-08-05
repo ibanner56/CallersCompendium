@@ -28,9 +28,11 @@ each release so store builds and tags can be traced back to an entry.
   swing after a grand right and left, or the one beyond that — you can now name
   them directly: **prev partners** (the partner before your current one), **next
   partners**, **third partners**, **fourth partners**, and **fifth partners**.
-  These appear in every dancer-group dropdown alongside the neighbour and shadow
-  positions, using the same naming pattern: a caller who already knows "next
-  neighbors" can read "next partners" without looking anything up.
+  These appear in the dancer-group dropdown for mixer dances, using the same
+  naming pattern: a caller who already knows "next neighbors" can read "next
+  partners" without looking anything up. If a figure in a non-mixer dance already
+  has one of these stored, it stays visible and editable on that figure — the
+  dropdown just doesn't offer them to new figures until you mark the dance a mixer.
 
 - **You can now import a list of dance titles straight into your collection.**
   Choose **a list of titles** in the import source list, paste your titles one

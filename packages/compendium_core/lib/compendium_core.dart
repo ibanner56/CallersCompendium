@@ -106,6 +106,7 @@ export 'src/storage/repositories/venue_repository.dart';
 export 'src/taxonomy/contra_taxonomy.dart';
 export 'src/taxonomy/gate_facing.dart';
 export 'src/taxonomy/move_def.dart';
+export 'src/taxonomy/offerable_dancer_sets.dart';
 export 'src/taxonomy/param_types.dart';
 export 'src/taxonomy/taxonomy.dart';
 export 'src/util/argb.dart';
