@@ -13,6 +13,12 @@ const Set<String> roleTokens = {'role1', 'role2', 'role1s', 'role2s'};
 final RegExp _placeholder = RegExp(r'\{(\w+)\}');
 final RegExp _camelBoundary = RegExp(r'(?<=[a-z])(?=[A-Z])');
 
+/// Shape of the single-dancer identity tokens ([ParamVocab.singleDancers]) —
+/// one couple (`ones`/`twos`) × one role. Unlike [roleTokens] these are
+/// COMPOUND, so a whole-token membership test never matches them and the
+/// embedded role would never be substituted (issue #832).
+final RegExp _singleDancerShape = RegExp(r'^(ones|twos)(Role[12])$');
+
 /// Signature of a DISPLAY-ONLY base-line renderer (see
 /// [FigureRenderer._displayBaseRenderers]). Rebuilds the whole terse line for a
 /// move that adopts ContraDB's `words()` sentence structure verbatim, using the
@@ -420,12 +426,16 @@ class FigureRenderer {
 
   /// DISPLAY-ONLY rendering of a single dancer/role [token] for the
   /// [_displayBaseRenderers] base lines: role tokens map to the dialect role
-  /// term (canonical token when unmapped), [Dialect.dancers] substitutions
-  /// win next, then positional dancer sets read as the PR1 singular subject
-  /// (`partners` → `partner`), else the token humanizes. Mirrors the
-  /// display-path branch of [_renderValue]; never used by the canonical render.
+  /// term (canonical token when unmapped), single-dancer identities take
+  /// [_singleDancerTerm] (substitution, else `<first|second> <role>`),
+  /// [Dialect.dancers] substitutions win next, then positional dancer sets read
+  /// as the PR1 singular subject (`partners` → `partner`), else the token
+  /// humanizes. Mirrors the display-path branch of [_renderValue]; never used
+  /// by the canonical render.
   String _displayDancer(String token, Dialect dialect) {
     if (roleTokens.contains(token)) return _roleTerm(token, dialect);
+    final single = _singleDancerTerm(token, dialect);
+    if (single != null) return single;
     final substitution = dialect.dancers[token];
     if (substitution != null) return substitution;
     return _singularDancerSets[token] ?? _humanize(token);
@@ -435,10 +445,13 @@ class FigureRenderer {
   /// for clauses whose verb agrees with the group (hey's `meetTarget`:
   /// "until neighbors meet"). Like [_displayDancer] but WITHOUT the singular
   /// subject collapse (`neighbors` stays `neighbors`, not `neighbor`), mirroring
-  /// ContraDB `dancerSubstitution` which keeps the plural term. Role tokens and
-  /// [Dialect.dancers] substitutions win first (both already plural).
+  /// ContraDB `dancerSubstitution` which keeps the plural term. Role tokens,
+  /// single-dancer identities and [Dialect.dancers] substitutions win first (a
+  /// single-dancer identity names one dancer, so it has no plural form to keep).
   String _displayGroup(String token, Dialect dialect) {
     if (roleTokens.contains(token)) return _roleTerm(token, dialect);
+    final single = _singleDancerTerm(token, dialect);
+    if (single != null) return single;
     final substitution = dialect.dancers[token];
     if (substitution != null) return substitution;
     return _humanize(token);
@@ -500,22 +513,49 @@ class FigureRenderer {
     return other == null ? 'others' : _displayDancer(other, dialect);
   }
 
-  /// DISPLAY-ONLY: label for a single-dancer identity [token] (`onesRole1` …),
-  /// as `<first|second> <role singular>` — e.g. `first lark` under
-  /// larks/robins, `first role1` under the canonical dialect. Mirrors
-  /// ContraDB's `chooser_dancer` "first/second gentlespoon/ladle" naming
-  /// (`app/javascript/libfigure/chooser.js` @13f38a5). The ordinal (ones→first,
-  /// twos→second) is fixed structural vocabulary; the role word is the active
-  /// dialect's role term. A token that does not match the
+  /// DISPLAY-ONLY: the DEFAULT label for a single-dancer identity [token]
+  /// (`onesRole1` …), as `<first|second> <role singular>` — e.g. `first lark`
+  /// under larks/robins, `first role1` under the canonical dialect. Returns
+  /// `null` for every other token, so callers can chain it ahead of their own
+  /// fallback. Mirrors ContraDB's `chooser_dancer` "first/second
+  /// gentlespoon/ladle" naming (`app/javascript/libfigure/chooser.js`
+  /// @13f38a5). The ordinal (ones→first, twos→second) is fixed structural
+  /// vocabulary; the role word is the active dialect's role term.
+  ///
+  /// DELIBERATELY IGNORES [Dialect.dancers]: this is the wording a token reads
+  /// as with NO substitution set. The dialect editor labels its substitution
+  /// rows with it, and must show the default rather than echoing the override
+  /// the user is editing in the adjacent field. Rendering callers want
+  /// [_singleDancerTerm], which lets a substitution win.
+  static String? singleDancerDefaultTerm(String token, Dialect dialect) {
+    final match = _singleDancerShape.firstMatch(token);
+    if (match == null) return null;
+    final ordinal = match[1] == 'ones' ? 'first' : 'second';
+    final role = match[2]!.toLowerCase(); // Role1 -> role1
+    return '$ordinal ${_roleTerm(role, dialect)}';
+  }
+
+  /// DISPLAY-ONLY label for a single-dancer identity [token]: a
+  /// [Dialect.dancers] substitution wins, else [singleDancerDefaultTerm].
+  /// `null` for every other token.
+  ///
+  /// THE one single-dancer path for the display renderer — every site that used
+  /// to fall through to [_humanize] for these compound tokens (issue #832)
+  /// calls this. Consulting the substitution map makes the `<ordinal> <role>`
+  /// construction the DEFAULT rather than the only outcome, matching
+  /// [_displayDancer]/[_displayGroup], which have always let a substitution win.
+  static String? _singleDancerTerm(String token, Dialect dialect) =>
+      _singleDancerShape.hasMatch(token)
+      ? (dialect.dancers[token] ?? singleDancerDefaultTerm(token, dialect))
+      : null;
+
+  /// DISPLAY-ONLY: label for a single-dancer identity [value], via
+  /// [_singleDancerTerm]. A value that does not match the
   /// `(ones|twos)(Role1|Role2)` shape falls back to [_displayDancer] so unknown
   /// values are still surfaced, not blanked.
   String _singleDancerLabel(Object? value, Dialect dialect) {
     if (value is! String) return _displaySubject(value, dialect);
-    final match = RegExp(r'^(ones|twos)(Role[12])$').firstMatch(value);
-    if (match == null) return _displayDancer(value, dialect);
-    final ordinal = match[1] == 'ones' ? 'first' : 'second';
-    final role = match[2]!.toLowerCase(); // Role1 -> role1
-    return '$ordinal ${_roleTerm(role, dialect)}';
+    return _singleDancerTerm(value, dialect) ?? _displayDancer(value, dialect);
   }
 
   /// Display name for [moveId] under [dialect] for the dance editor / figure
@@ -547,13 +587,22 @@ class FigureRenderer {
 
   /// Display string for a single vocabulary [token] under [dialect], for use in
   /// the dance editor's param choices/labels. Role tokens render as the
-  /// dialect's role term (canonical token when unmapped); [ParamKind.dancerSet]
+  /// dialect's role term (canonical token when unmapped); single-dancer
+  /// identities (`twosRole2`) take [_singleDancerTerm]; [ParamKind.dancerSet]
   /// / [ParamKind.dancerPair] tokens use [Dialect.dancers] (else humanized);
   /// every other token (structural params such as `shoulder`, `direction`) is
   /// humanized. Under [Dialect.canonical] the result equals the plain humanized
-  /// / canonical form.
+  /// / canonical form, except for a single-dancer identity, which reads
+  /// `second role2` (its canonical-vocabulary default) rather than the raw
+  /// `twos role2` — issue #832.
+  ///
+  /// The single-dancer branch is NOT spec-gated, mirroring [roleTokens]: these
+  /// four are a closed structural vocabulary, so the label is right whatever
+  /// spec (or none) the caller has to hand.
   static String displayToken(String token, ParamSpec? spec, Dialect dialect) {
     if (roleTokens.contains(token)) return _roleTerm(token, dialect);
+    final single = _singleDancerTerm(token, dialect);
+    if (single != null) return single;
     if (spec != null &&
         (spec.kind == ParamKind.dancerSet ||
             spec.kind == ParamKind.dancerPair)) {
@@ -607,6 +656,16 @@ class FigureRenderer {
     if (value is String &&
         (spec?.kind == ParamKind.dancerSet ||
             spec?.kind == ParamKind.dancerPair)) {
+      // Display-only: a single-dancer identity reads as its substitution, else
+      // `<first|second> <role term>` (issue #832). GATED ON !forCanonical — the
+      // canonical render must keep emitting the humanized raw token
+      // ("twos role2"), because that text is persisted to
+      // `dance_figures.canonicalText` / `dance_fts` and is the dedupe key.
+      // Changing it would be a migration + derived rebuild, not a display fix.
+      if (!forCanonical) {
+        final single = _singleDancerTerm(value, dialect);
+        if (single != null) return single;
+      }
       final substitution = dialect.dancers[value];
       if (substitution != null) return substitution;
       // Display-only: positional dancer sets read as singular subjects
