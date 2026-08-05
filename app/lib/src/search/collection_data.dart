@@ -16,6 +16,7 @@ class CollectionData {
     required this.choreographersById,
     required this.choreographerNames,
     required this.tagNames,
+    this.tagColors = const {},
     required this.customFieldDefs,
     required this.listFieldDefs,
     required this.choiceFields,
@@ -45,6 +46,11 @@ class CollectionData {
   final Map<String, Choreographer> choreographersById;
   final Map<String, String> choreographerNames;
   final Map<String, String> tagNames;
+
+  /// The user's chosen chip colour per tag id (issue #786), absent for tags
+  /// with no colour assigned. Resolved once for the whole collection so
+  /// [entryFor] stays O(1) per tag rather than re-scanning [tags] per row.
+  final Map<String, int> tagColors;
   final List<CustomFieldDef> customFieldDefs;
   final List<CustomFieldDef> listFieldDefs;
   final List<CustomFieldDef> choiceFields;
@@ -105,6 +111,8 @@ class CollectionData {
     final choreographersById = {for (final c in choreographers) c.id: c};
     final choreographerNames = {for (final c in choreographers) c.id: c.name};
     final tagNames = {for (final t in tags) t.id: t.name};
+    // A null-aware element: tags with no colour assigned are simply absent.
+    final tagColors = {for (final t in tags) t.id: ?t.color};
 
     // Facet vocabularies: only values actually present in the collection, so
     // empty facets don't clutter the panel (matching the Phase 3.1 approach).
@@ -149,6 +157,7 @@ class CollectionData {
       choreographersById: choreographersById,
       choreographerNames: choreographerNames,
       tagNames: tagNames,
+      tagColors: tagColors,
       customFieldDefs: defs,
       listFieldDefs: defs.where((d) => d.showInList).toList(),
       choiceFields: searchable
@@ -192,7 +201,8 @@ class CollectionData {
     ],
     tags: [
       for (final id in dance.tagIds)
-        if (tagNames[id] != null) (id: id, name: tagNames[id]!),
+        if (tagNames[id] != null)
+          (id: id, name: tagNames[id]!, color: tagColors[id]),
     ],
     listCustomFields: [
       for (final def in listFieldDefs)

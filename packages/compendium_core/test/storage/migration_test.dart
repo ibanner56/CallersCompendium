@@ -3095,9 +3095,9 @@ void main() {
       await repos.ensureMigrated();
 
       // #782 covered both the snapshots table and tags.color; only the former
-      // was dropped, because tag colour-coding is still wanted (#786). This
-      // pins that decision: a future cleanup that takes the colour with it
-      // fails here rather than silently discarding user data.
+      // was dropped, because tag colour-coding was wanted and has since been
+      // built (#786). This pins that decision: a future cleanup that takes the
+      // colour with it fails here rather than silently discarding user data.
       expect(await columnsOf(db, 'tags'), contains('color'));
       final tag = await db
           .customSelect(

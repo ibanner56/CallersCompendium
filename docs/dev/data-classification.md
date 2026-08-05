@@ -184,8 +184,6 @@ tell an approved decision from an assumed one.
 - **The catalogue classifies storage, not display.** A field marked
   `deviceLocal` can still be rendered on screen, printed, or copied by the user.
   This is a transmission boundary, not an access-control system.
-- **`tags.color` has no writer.** The column is catalogued here but nothing
-  sets it and no UI shows it; tag colour-coding is wanted but unbuilt (#786).
 - **Freeform fields are classified by intent, not by content.** A user who types
   a phone number into a dance's calling notes has put contact data into a
   `shareable` field, and nothing detects that. The rulings above accept this

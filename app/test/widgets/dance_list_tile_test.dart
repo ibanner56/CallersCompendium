@@ -93,7 +93,7 @@ DanceListEntry _richEntry() => DanceListEntry(
   ),
   authorNames: const ['Alice'],
   tagNames: const ['tag-one'],
-  tags: const [(id: 't1', name: 'tag-one')],
+  tags: const [(id: 't1', name: 'tag-one', color: null)],
   listCustomFields: const ['custom-val'],
   callCounts: const DanceCallCounts(all: 7, performed: 7),
 );

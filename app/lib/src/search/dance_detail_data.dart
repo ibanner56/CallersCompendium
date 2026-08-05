@@ -35,12 +35,14 @@ class DanceDetailData {
   final List<String> authorNames;
   final List<String> tagNames;
 
-  /// The dance's tags as `(id, name)` pairs, in [Dance.tagIds] order, for tags
-  /// whose name resolves. Carries the id (unlike [tagNames]) so a tapped tag
-  /// chip can drive the Collection's id-based tag filter (issue #414). Empty in
-  /// the online-preview constructors (an un-imported dance has no tags to
-  /// filter the local collection by).
-  final List<({String id, String name})> tags;
+  /// The dance's tags as `(id, name, color)` triples, in [Dance.tagIds] order,
+  /// for tags whose name resolves. Carries the id (unlike [tagNames]) so a
+  /// tapped tag chip can drive the Collection's id-based tag filter
+  /// (issue #414), and the user's chosen chip colour (issue #786), which is
+  /// `null` for a tag with no colour assigned. Empty in the online-preview
+  /// constructors (an un-imported dance has no tags to filter the local
+  /// collection by).
+  final List<({String id, String name, int? color})> tags;
   final List<CustomFieldDisplay> customFields;
 
   /// Maps targetDanceId → title for relatedDance links whose target exists.
@@ -96,6 +98,7 @@ class DanceDetailData {
     final fieldDefs = await repos.customFieldDefs.listAll();
     final choreographerNames = {for (final c in choreographers) c.id: c.name};
     final tagNames = {for (final t in tags) t.id: t.name};
+    final tagsById = {for (final t in tags) t.id: t};
     final defsById = {for (final d in fieldDefs) d.id: d};
 
     // Resolve titles for relatedDance links in parallel. Deduplicate via a
@@ -181,7 +184,8 @@ class DanceDetailData {
       ],
       tags: [
         for (final id in dance.tagIds)
-          if (tagNames[id] != null) (id: id, name: tagNames[id]!),
+          if (tagsById[id] != null)
+            (id: id, name: tagsById[id]!.name, color: tagsById[id]!.color),
       ],
       customFields: [
         for (final value in dance.customFields)

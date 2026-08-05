@@ -107,6 +107,7 @@ export 'src/taxonomy/gate_facing.dart';
 export 'src/taxonomy/move_def.dart';
 export 'src/taxonomy/param_types.dart';
 export 'src/taxonomy/taxonomy.dart';
+export 'src/util/argb.dart';
 export 'src/util/colour_name_seed.dart';
 export 'src/util/inline_emphasis.dart';
 export 'src/util/text_sanitizer.dart';

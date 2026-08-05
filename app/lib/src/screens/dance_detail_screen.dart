@@ -30,6 +30,7 @@ import '../widgets/colour_dance_theme.dart';
 import '../widgets/figure_table.dart';
 import '../widgets/formation_color_badge.dart';
 import '../widgets/skeleton.dart';
+import '../widgets/tag_chip.dart';
 import 'dance_editor_screen.dart';
 import 'perform_dance_screen.dart';
 import 'program_summary_screen.dart';
@@ -763,18 +764,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                 children: [
                   for (final tag in detail.tags)
                     if (filter != null)
-                      ActionChip(
+                      TagChip(
                         key: ValueKey('tag-filter-chip-${tag.id}'),
-                        avatar: const Icon(Icons.label_outline, size: 16),
-                        label: Text(tag.name),
+                        name: tag.name,
+                        color: tag.color,
                         tooltip: l10n.commonShowDancesTaggedTooltip(tag.name),
                         onPressed: () => filter.filterByTag(tag.id),
                       )
                     else
-                      Chip(
-                        avatar: const Icon(Icons.label_outline, size: 16),
-                        label: Text(tag.name),
-                      ),
+                      TagChip(name: tag.name, color: tag.color),
                 ],
               );
             },

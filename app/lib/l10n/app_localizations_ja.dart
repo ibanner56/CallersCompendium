@@ -644,6 +644,48 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get settingsAppearanceTagColoursHeader => 'Tag colours';
+
+  @override
+  String get settingsAppearanceTagColoursTitle => 'Tag colours';
+
+  @override
+  String get settingsAppearanceTagColoursSubtitle =>
+      'Give a tag its own colour to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without colour.';
+
+  @override
+  String get settingsTagColoursTitle => 'Tag colours';
+
+  @override
+  String get settingsTagColoursIntro =>
+      'Give a tag its own colour to make it stand out wherever it appears. Only the tags you colour change; the rest look exactly as they do now. The tag\'s name is always shown too, so tags stay readable without colour.';
+
+  @override
+  String get settingsTagColoursListHeader => 'Tags';
+
+  @override
+  String get settingsTagColoursEmpty =>
+      'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.';
+
+  @override
+  String get settingsTagColoursCustom => 'Custom colour';
+
+  @override
+  String get settingsTagColoursNoColour => 'No colour';
+
+  @override
+  String settingsTagColoursResetTooltip(String label) {
+    return 'Remove $label\'s colour';
+  }
+
+  @override
+  String get settingsTagColoursSaveError =>
+      'Couldn\'t save that colour. Please try again.';
+
+  @override
+  String get settingsTagColoursLoadError => 'Couldn\'t load your tags.';
+
+  @override
   String get settingsGeneralLibraryHeader => 'ライブラリ';
 
   @override

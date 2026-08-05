@@ -28,6 +28,18 @@ void main() {
     expect(await repo.getById('t1'), tag);
   });
 
+  test('clearing a colour persists as null, not as the previous colour', () async {
+    // Guards the reset action in the tag-colour picker (issue #786). The
+    // obvious `copyWith(color: null)` cannot express this — its `?? this.color`
+    // fallback keeps the old value — so a naive implementation would leave the
+    // colour on disk while the UI claimed it was cleared.
+    await repo.upsert(Tag(id: 't1', name: 'chestnut', color: 0xFF2196F3));
+    expect((await repo.getById('t1'))!.color, 0xFF2196F3);
+
+    await repo.upsert((await repo.getById('t1'))!.withColor(null));
+    expect((await repo.getById('t1'))!.color, isNull);
+  });
+
   test('listAll orders by name', () async {
     await repo.upsert(Tag(id: 't1', name: 'Zesty'));
     await repo.upsert(Tag(id: 't2', name: 'Alpha'));
