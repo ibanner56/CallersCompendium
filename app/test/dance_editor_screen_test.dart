@@ -291,6 +291,25 @@ void main() {
     expect(saved.mixedLevel, isTrue);
   });
 
+  testWidgets('mixer toggles on and round-trips on save (issue #732)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    // The mixer checkbox sits under the formation dropdown, not behind the
+    // More details expander.
+    await tester.tap(find.byKey(const ValueKey('mixer-field')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.mixer, isTrue);
+  });
+
   testWidgets('selecting Unspecified clears an existing level', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(

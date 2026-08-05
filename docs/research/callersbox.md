@@ -29,6 +29,11 @@ Appearances[{source,p,lo,vol,no,altnames}], OtherNames[], Videos[],
 VirtualVideos[], VariantVideos[], VariantVirtualVideos[]`.
 
 - `Status` may be `Deprecated`/`Broken` (author disavows / dance doesn't work).
+- `Mixer?` is `"Yes"` or `""` (the only two values in the mirror: 830 `"Yes"`,
+  19,686 `""`). It **is** read on import (issue #732): it sets `Dance.mixer`, with
+  a formation-based fallback for Circle/Scatter Mixer records whose `Mixer?` is
+  blank — see design/imports.md for the inference rule and its Sicilian Circle
+  exclusion. `Virtual?` remains unread (no model field yet).
 - `PhraseStructure` empty = default `4*8*2`; else e.g. `6*8*2` for 48-bar.
 - **`License` (e.g. CC-BY-NC on some dances) appears only in HTML, not JSON** — a
   snapshot pipeline that cares about licenses must scrape HTML too.

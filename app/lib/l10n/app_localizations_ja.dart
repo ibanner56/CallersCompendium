@@ -1134,6 +1134,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonMixedLevel => 'ミックスレベル';
 
   @override
+  String get commonMixer => 'ミキサー';
+
+  @override
   String commonShowDancesTaggedTooltip(String tagName) {
     return 'タグ「$tagName」のダンスを表示';
   }
@@ -4251,6 +4254,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorMixedLevelSubtitle => '難易度の幅が広い';
+
+  @override
+  String get danceEditorMixerSubtitle => '踊るたびにパートナーが変わります';
 
   @override
   String get danceEditorComposedLabel => '振付年';

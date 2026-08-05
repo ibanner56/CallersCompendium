@@ -2108,6 +2108,12 @@ abstract class AppLocalizations {
   /// **'Mixed level'**
   String get commonMixedLevel;
 
+  /// Label for a mixer — a dance in which dancers change partners each time through the sequence (a progressive partner-changing dance), NOT an audio or kitchen mixer. Used as a dance editor checkbox label and a dance-detail indicator.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixer'**
+  String get commonMixer;
+
   /// Tooltip on a tag chip that filters the collection to dances carrying that tag.
   ///
   /// In en, this message translates to:
@@ -6739,6 +6745,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Spans the difficulty scale'**
   String get danceEditorMixedLevelSubtitle;
+
+  /// Subtitle explaining the mixer checkbox in the dance editor: the dance progresses dancers to a new partner each time through the sequence.
+  ///
+  /// In en, this message translates to:
+  /// **'Dancers change partners each time through'**
+  String get danceEditorMixerSubtitle;
 
   /// Label for the partial date when the dance was composed.
   ///

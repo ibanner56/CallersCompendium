@@ -155,6 +155,19 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _mixerMeta = const VerificationMeta('mixer');
+  @override
+  late final GeneratedColumn<bool> mixer = GeneratedColumn<bool>(
+    'mixer',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("mixer" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _ratingMeta = const VerificationMeta('rating');
   @override
   late final GeneratedColumn<int> rating = GeneratedColumn<int>(
@@ -247,6 +260,7 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     status,
     level,
     mixedLevel,
+    mixer,
     rating,
     tunesJson,
     composedOn,
@@ -335,6 +349,12 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
       context.handle(
         _mixedLevelMeta,
         mixedLevel.isAcceptableOrUnknown(data['mixed_level']!, _mixedLevelMeta),
+      );
+    }
+    if (data.containsKey('mixer')) {
+      context.handle(
+        _mixerMeta,
+        mixer.isAcceptableOrUnknown(data['mixer']!, _mixerMeta),
       );
     }
     if (data.containsKey('rating')) {
@@ -458,6 +478,10 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         DriftSqlType.bool,
         data['${effectivePrefix}mixed_level'],
       )!,
+      mixer: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}mixer'],
+      )!,
       rating: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}rating'],
@@ -539,6 +563,13 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   /// so the ordered scale stays total. Added in schema v4 (CC `Mixed Level`).
   final bool mixedLevel;
 
+  /// Whether the dance is a **mixer** (dancers change partners each time
+  /// through). A boolean flag orthogonal to [formationShape], not a
+  /// [FormationShape] value — see `Dance.mixer` for the measured corpus
+  /// asymmetry that rules out folding it into the formation enum. Added in
+  /// schema v24 (issue #732).
+  final bool mixer;
+
   /// Curatorial star rating on the closed `1..5` scale; nullable (`null` =
   /// unrated). A first-class dance-scalar column (the `1..5` range is validated
   /// at the [Dance] boundary), not an enum or custom field. Added in schema v6
@@ -575,6 +606,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     required this.status,
     this.level,
     required this.mixedLevel,
+    required this.mixer,
     this.rating,
     required this.tunesJson,
     this.composedOn,
@@ -620,6 +652,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       );
     }
     map['mixed_level'] = Variable<bool>(mixedLevel);
+    map['mixer'] = Variable<bool>(mixer);
     if (!nullToAbsent || rating != null) {
       map['rating'] = Variable<int>(rating);
     }
@@ -658,6 +691,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ? const Value.absent()
           : Value(level),
       mixedLevel: Value(mixedLevel),
+      mixer: Value(mixer),
       rating: rating == null && nullToAbsent
           ? const Value.absent()
           : Value(rating),
@@ -706,6 +740,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
         serializer.fromJson<String?>(json['level']),
       ),
       mixedLevel: serializer.fromJson<bool>(json['mixedLevel']),
+      mixer: serializer.fromJson<bool>(json['mixer']),
       rating: serializer.fromJson<int?>(json['rating']),
       tunesJson: serializer.fromJson<String>(json['tunesJson']),
       composedOn: serializer.fromJson<String?>(json['composedOn']),
@@ -743,6 +778,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
         $DancesTable.$converterleveln.toJson(level),
       ),
       'mixedLevel': serializer.toJson<bool>(mixedLevel),
+      'mixer': serializer.toJson<bool>(mixer),
       'rating': serializer.toJson<int?>(rating),
       'tunesJson': serializer.toJson<String>(tunesJson),
       'composedOn': serializer.toJson<String?>(composedOn),
@@ -768,6 +804,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     DanceStatus? status,
     Value<DanceLevel?> level = const Value.absent(),
     bool? mixedLevel,
+    bool? mixer,
     Value<int?> rating = const Value.absent(),
     String? tunesJson,
     Value<String?> composedOn = const Value.absent(),
@@ -792,6 +829,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     status: status ?? this.status,
     level: level.present ? level.value : this.level,
     mixedLevel: mixedLevel ?? this.mixedLevel,
+    mixer: mixer ?? this.mixer,
     rating: rating.present ? rating.value : this.rating,
     tunesJson: tunesJson ?? this.tunesJson,
     composedOn: composedOn.present ? composedOn.value : this.composedOn,
@@ -832,6 +870,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       mixedLevel: data.mixedLevel.present
           ? data.mixedLevel.value
           : this.mixedLevel,
+      mixer: data.mixer.present ? data.mixer.value : this.mixer,
       rating: data.rating.present ? data.rating.value : this.rating,
       tunesJson: data.tunesJson.present ? data.tunesJson.value : this.tunesJson,
       composedOn: data.composedOn.present
@@ -861,6 +900,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ..write('status: $status, ')
           ..write('level: $level, ')
           ..write('mixedLevel: $mixedLevel, ')
+          ..write('mixer: $mixer, ')
           ..write('rating: $rating, ')
           ..write('tunesJson: $tunesJson, ')
           ..write('composedOn: $composedOn, ')
@@ -888,6 +928,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     status,
     level,
     mixedLevel,
+    mixer,
     rating,
     tunesJson,
     composedOn,
@@ -914,6 +955,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           other.status == this.status &&
           other.level == this.level &&
           other.mixedLevel == this.mixedLevel &&
+          other.mixer == this.mixer &&
           other.rating == this.rating &&
           other.tunesJson == this.tunesJson &&
           other.composedOn == this.composedOn &&
@@ -938,6 +980,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
   final Value<DanceStatus> status;
   final Value<DanceLevel?> level;
   final Value<bool> mixedLevel;
+  final Value<bool> mixer;
   final Value<int?> rating;
   final Value<String> tunesJson;
   final Value<String?> composedOn;
@@ -961,6 +1004,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.status = const Value.absent(),
     this.level = const Value.absent(),
     this.mixedLevel = const Value.absent(),
+    this.mixer = const Value.absent(),
     this.rating = const Value.absent(),
     this.tunesJson = const Value.absent(),
     this.composedOn = const Value.absent(),
@@ -985,6 +1029,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     required DanceStatus status,
     this.level = const Value.absent(),
     this.mixedLevel = const Value.absent(),
+    this.mixer = const Value.absent(),
     this.rating = const Value.absent(),
     this.tunesJson = const Value.absent(),
     this.composedOn = const Value.absent(),
@@ -1016,6 +1061,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Expression<String>? status,
     Expression<String>? level,
     Expression<bool>? mixedLevel,
+    Expression<bool>? mixer,
     Expression<int>? rating,
     Expression<String>? tunesJson,
     Expression<String>? composedOn,
@@ -1040,6 +1086,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       if (status != null) 'status': status,
       if (level != null) 'level': level,
       if (mixedLevel != null) 'mixed_level': mixedLevel,
+      if (mixer != null) 'mixer': mixer,
       if (rating != null) 'rating': rating,
       if (tunesJson != null) 'tunes_json': tunesJson,
       if (composedOn != null) 'composed_on': composedOn,
@@ -1066,6 +1113,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Value<DanceStatus>? status,
     Value<DanceLevel?>? level,
     Value<bool>? mixedLevel,
+    Value<bool>? mixer,
     Value<int?>? rating,
     Value<String>? tunesJson,
     Value<String?>? composedOn,
@@ -1090,6 +1138,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       status: status ?? this.status,
       level: level ?? this.level,
       mixedLevel: mixedLevel ?? this.mixedLevel,
+      mixer: mixer ?? this.mixer,
       rating: rating ?? this.rating,
       tunesJson: tunesJson ?? this.tunesJson,
       composedOn: composedOn ?? this.composedOn,
@@ -1156,6 +1205,9 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     if (mixedLevel.present) {
       map['mixed_level'] = Variable<bool>(mixedLevel.value);
     }
+    if (mixer.present) {
+      map['mixer'] = Variable<bool>(mixer.value);
+    }
     if (rating.present) {
       map['rating'] = Variable<int>(rating.value);
     }
@@ -1200,6 +1252,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
           ..write('status: $status, ')
           ..write('level: $level, ')
           ..write('mixedLevel: $mixedLevel, ')
+          ..write('mixer: $mixer, ')
           ..write('rating: $rating, ')
           ..write('tunesJson: $tunesJson, ')
           ..write('composedOn: $composedOn, ')
@@ -9089,6 +9142,7 @@ typedef $$DancesTableCreateCompanionBuilder =
       required DanceStatus status,
       Value<DanceLevel?> level,
       Value<bool> mixedLevel,
+      Value<bool> mixer,
       Value<int?> rating,
       Value<String> tunesJson,
       Value<String?> composedOn,
@@ -9114,6 +9168,7 @@ typedef $$DancesTableUpdateCompanionBuilder =
       Value<DanceStatus> status,
       Value<DanceLevel?> level,
       Value<bool> mixedLevel,
+      Value<bool> mixer,
       Value<int?> rating,
       Value<String> tunesJson,
       Value<String?> composedOn,
@@ -9382,6 +9437,11 @@ class $$DancesTableFilterComposer
 
   ColumnFilters<bool> get mixedLevel => $composableBuilder(
     column: $table.mixedLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get mixer => $composableBuilder(
+    column: $table.mixer,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9725,6 +9785,11 @@ class $$DancesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get mixer => $composableBuilder(
+    column: $table.mixer,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get rating => $composableBuilder(
     column: $table.rating,
     builder: (column) => ColumnOrderings(column),
@@ -9829,6 +9894,9 @@ class $$DancesTableAnnotationComposer
     column: $table.mixedLevel,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get mixer =>
+      $composableBuilder(column: $table.mixer, builder: (column) => column);
 
   GeneratedColumn<int> get rating =>
       $composableBuilder(column: $table.rating, builder: (column) => column);
@@ -10132,6 +10200,7 @@ class $$DancesTableTableManager
                 Value<DanceStatus> status = const Value.absent(),
                 Value<DanceLevel?> level = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
+                Value<bool> mixer = const Value.absent(),
                 Value<int?> rating = const Value.absent(),
                 Value<String> tunesJson = const Value.absent(),
                 Value<String?> composedOn = const Value.absent(),
@@ -10155,6 +10224,7 @@ class $$DancesTableTableManager
                 status: status,
                 level: level,
                 mixedLevel: mixedLevel,
+                mixer: mixer,
                 rating: rating,
                 tunesJson: tunesJson,
                 composedOn: composedOn,
@@ -10180,6 +10250,7 @@ class $$DancesTableTableManager
                 required DanceStatus status,
                 Value<DanceLevel?> level = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
+                Value<bool> mixer = const Value.absent(),
                 Value<int?> rating = const Value.absent(),
                 Value<String> tunesJson = const Value.absent(),
                 Value<String?> composedOn = const Value.absent(),
@@ -10203,6 +10274,7 @@ class $$DancesTableTableManager
                 status: status,
                 level: level,
                 mixedLevel: mixedLevel,
+                mixer: mixer,
                 rating: rating,
                 tunesJson: tunesJson,
                 composedOn: composedOn,

@@ -183,6 +183,26 @@ is.
   "Simultaneous-action fan-out (`meanwhile`)" below).
 - `Permission: search` stubs import as metadata-only with a link to TCB.
 - Attribution: TCB id + appearances retained; UI shows "via The Caller's Box".
+- **Mixer inference (issue #732).** `Dance.mixer` is set `true` when **either**
+  the source `Mixer?` field reads `"Yes"` (trimmed, case-insensitive — the corpus
+  contains only `""` and `"Yes"`, so the vocabulary is not widened to `"1"`/
+  `"true"`) **or** the mapped `FormationShape` is `circleMixer` or `scatterMixer`.
+  The formation-based inference exists because 21 Circle Mixer and 18 Scatter
+  Mixer dances in the mirror have a blank `Mixer?` despite the formation name — a
+  data-entry omission we correct on import. `sicilianCircle` is **deliberately
+  not** inferred: 589 of the corpus's Sicilian Circles are correctly non-mixers,
+  so inferring from that shape would mislabel them wholesale (the opposite error).
+  A Sicilian Circle that genuinely is a mixer is still caught, but only via its
+  explicit `Mixer? == "Yes"`.
+  - **Scope: The Caller's Box only.** This inference is **not** applied by the
+    ContraDB or Caller's Companion adapters, and that is deliberate. ContraDB has
+    no first-class mixer category to read. Caller's Companion *may* — Chris builds
+    his collection in CC and exports it to The Caller's Box, so his data probably
+    aligns, but "mixer" may be a custom field of his rather than a native CC
+    concept, and we have not confirmed which. Rather than guess a mapping for a
+    source we have not verified, those adapters leave `mixer` at its `false`
+    default. This was considered and declined, not overlooked; revisit if an
+    explicit request for those sources arrives.
 
 #### Compound figures (the `(beats) Name:` + indented-children convention)
 

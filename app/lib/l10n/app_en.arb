@@ -1502,6 +1502,10 @@
   "@commonMixedLevel": {
     "description": "Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip."
   },
+  "commonMixer": "Mixer",
+  "@commonMixer": {
+    "description": "Label for a mixer — a dance in which dancers change partners each time through the sequence (a progressive partner-changing dance), NOT an audio or kitchen mixer. Used as a dance editor checkbox label and a dance-detail indicator."
+  },
   "commonShowDancesTaggedTooltip": "Show dances tagged “{tagName}”",
   "@commonShowDancesTaggedTooltip": {
     "description": "Tooltip on a tag chip that filters the collection to dances carrying that tag.",
@@ -4513,6 +4517,10 @@
   "danceEditorMixedLevelSubtitle": "Spans the difficulty scale",
   "@danceEditorMixedLevelSubtitle":   {
     "description": "Subtitle explaining the mixed-level checkbox in the dance editor."
+  },
+  "danceEditorMixerSubtitle": "Dancers change partners each time through",
+  "@danceEditorMixerSubtitle": {
+    "description": "Subtitle explaining the mixer checkbox in the dance editor: the dance progresses dancers to a new partner each time through the sequence."
   },
   "danceEditorComposedLabel": "Composed",
   "@danceEditorComposedLabel":   {

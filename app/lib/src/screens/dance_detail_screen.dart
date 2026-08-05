@@ -727,6 +727,16 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     Text(progressionLabel(l10n, dance.progression)),
                   ],
                 ),
+                if (dance.mixer) ...[
+                  const SizedBox(height: AppSpacing.xxs),
+                  Row(
+                    children: [
+                      const Icon(Icons.sync_alt, size: 18),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(l10n.commonMixer),
+                    ],
+                  ),
+                ],
                 if (dance.status != DanceStatus.active) ...[
                   const SizedBox(height: AppSpacing.sm),
                   _StatusBanner(status: dance.status),

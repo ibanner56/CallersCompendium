@@ -300,6 +300,66 @@ void main() {
       expect(encodeArchive(result.archive), encodeArchive(archive));
     });
 
+    group('mixer flag (issue #732)', () {
+      Dance mixerDance({required bool mixer}) => Dance(
+        id: 'dm',
+        title: 'Mixer Test',
+        mixer: mixer,
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      );
+
+      test('a mixer=true dance survives encode -> decode', () {
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026),
+          dances: [mixerDance(mixer: true)],
+        );
+        final result = decodeArchive(encodeArchive(archive));
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+        expect(result.archive.dances.single.mixer, isTrue);
+      });
+
+      test('mixer=true is emitted into the encoded JSON', () {
+        final json =
+            jsonDecode(
+                  encodeArchive(
+                    CompendiumArchive(
+                      exportedAt: DateTime.utc(2026),
+                      dances: [mixerDance(mixer: true)],
+                    ),
+                  ),
+                )
+                as Map<String, Object?>;
+        final dance = (json['dances'] as List)
+            .cast<Map<String, Object?>>()
+            .single;
+        expect(dance['mixer'], isTrue);
+      });
+
+      test('an archive with no mixer key decodes to mixer=false', () {
+        // Tolerant additive decode: older archives predate the field, so the
+        // key is simply absent and must default to false — this is why the
+        // archive format needs no version bump.
+        final json =
+            jsonDecode(
+                  encodeArchive(
+                    CompendiumArchive(
+                      exportedAt: DateTime.utc(2026),
+                      dances: [mixerDance(mixer: true)],
+                    ),
+                  ),
+                )
+                as Map<String, Object?>;
+        final dance = (json['dances'] as List)
+            .cast<Map<String, Object?>>()
+            .single;
+        dance.remove('mixer');
+        final result = decodeArchive(jsonEncode(json));
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+        expect(result.archive.dances.single.mixer, isFalse);
+      });
+    });
+
     test('a choice field with many options round-trips (issue #373)', () {
       // A reusable adjective pick-list built up over time — every option must
       // survive an export/import cycle unchanged and in order.

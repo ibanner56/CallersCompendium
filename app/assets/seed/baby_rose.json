@@ -87,6 +87,7 @@
       "walkthrough": "",
       "status": "active",
       "mixedLevel": false,
+      "mixer": false,
       "tunes": [],
       "customFields": [],
       "tagIds": [],

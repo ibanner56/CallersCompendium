@@ -280,6 +280,45 @@ void main() {
       expect(decoded.mixedLevel, isTrue);
     });
 
+    test('mixer round-trips (issue #732)', () {
+      final snapshot = EditorSnapshot(
+        title: 'Test',
+        hook: '',
+        notes: '',
+        phrase: '',
+        formationDetail: '',
+        form: DanceForm.contra,
+        formationShape: FormationShape.circleMixer,
+        progression: Progression.single,
+        status: DanceStatus.active,
+        mixer: true,
+        authorIds: const [],
+        tagIds: const [],
+        tunes: const [],
+        links: const [],
+        sourceCitations: const [],
+        customValues: const {},
+        figureDrafts: const [],
+      );
+
+      final encoded = encodeDraft(snapshot);
+      expect(encoded, contains('"mixer":true'));
+      expect(decodeDraft(encoded).mixer, isTrue);
+    });
+
+    test('an older draft with no mixer key decodes to false (issue #732)', () {
+      // A v8 draft predates the mixer field entirely; the key is absent and
+      // must default to false (why the additive change needs no data upgrade).
+      const v8Json =
+          '{"v":8,"title":"Old","hook":"","notes":"","phrase":"",'
+          '"formationDetail":"","form":"contra","formationShape":"dupleImproper",'
+          '"progression":"single","status":"active","mixedLevel":false,'
+          '"authorIds":[],"tagIds":[],"tunes":[],"links":[],'
+          '"sourceCitations":[],"customValues":{},"figureDrafts":[]}';
+      final decoded = decodeDraft(v8Json);
+      expect(decoded.mixer, isFalse);
+    });
+
     test('unspecified level is omitted and decodes back to null', () {
       final encoded = encodeDraft(_minimalSnapshot());
       expect(encoded, isNot(contains('"level"')));

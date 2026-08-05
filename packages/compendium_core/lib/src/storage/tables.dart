@@ -49,6 +49,13 @@ class Dances extends Table {
   /// so the ordered scale stays total. Added in schema v4 (CC `Mixed Level`).
   BoolColumn get mixedLevel => boolean().withDefault(const Constant(false))();
 
+  /// Whether the dance is a **mixer** (dancers change partners each time
+  /// through). A boolean flag orthogonal to [formationShape], not a
+  /// [FormationShape] value — see `Dance.mixer` for the measured corpus
+  /// asymmetry that rules out folding it into the formation enum. Added in
+  /// schema v24 (issue #732).
+  BoolColumn get mixer => boolean().withDefault(const Constant(false))();
+
   /// Curatorial star rating on the closed `1..5` scale; nullable (`null` =
   /// unrated). A first-class dance-scalar column (the `1..5` range is validated
   /// at the [Dance] boundary), not an enum or custom field. Added in schema v6

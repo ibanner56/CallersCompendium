@@ -764,6 +764,7 @@ class ImportPipeline {
       a.callingNotes == b.callingNotes &&
       a.level == b.level &&
       a.mixedLevel == b.mixedLevel &&
+      a.mixer == b.mixer &&
       _stringListEquality.equals(a.tunes, b.tunes);
 
   Provenance _provenanceFrom(StructuredDraft draft, DateTime now) {
@@ -826,6 +827,7 @@ class ImportPipeline {
     status: src.status,
     level: src.level,
     mixedLevel: src.mixedLevel,
+    mixer: src.mixer,
     rating: src.rating,
     tunes: src.tunes,
     customFields: src.customFields,

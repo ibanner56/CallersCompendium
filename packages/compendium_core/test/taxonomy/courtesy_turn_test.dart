@@ -40,12 +40,13 @@ void main() {
       // The pin below is on the *current* schema version, which also moves
       // for reasons that have nothing to do with the taxonomy — schema 21
       // dropped unused storage (#781/#782) and schema 22 added the
-      // dance_figures.group_idx search-correlation column (#748), each while
-      // the taxonomy stood still. So a failure here means one of two things,
+      // dance_figures.group_idx search-correlation column (#748), and schema
+      // 24 added the dances.mixer flag (#732), each while the taxonomy stood
+      // still. So a failure here means one of two things,
       // and they are worth telling apart: either a taxonomy change quietly
       // started owing a migration (the hazard this test exists for), or an
       // unrelated schema change landed and this number simply needs updating.
-      expect(kCompendiumSchemaVersion, 23);
+      expect(kCompendiumSchemaVersion, 24);
     });
 
     test('registers with the maintainer-ruled param set', () {

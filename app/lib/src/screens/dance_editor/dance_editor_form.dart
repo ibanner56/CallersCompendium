@@ -175,6 +175,16 @@ class DanceEditorForm extends StatelessWidget {
                   dialect: dialect,
                   fieldKey: 'formation-detail',
                 ),
+                CheckboxListTile(
+                  key: const ValueKey('mixer-field'),
+                  value: controller.mixer,
+                  onChanged: (v) => controller.setMixer(v ?? false),
+                  title: Text(l10n.commonMixer),
+                  subtitle: Text(l10n.danceEditorMixerSubtitle),
+                  secondary: const Icon(Icons.sync_alt),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                ),
                 const SizedBox(height: AppSpacing.md),
                 // Progression and Rating share one line.
                 Row(
