@@ -46,6 +46,7 @@ class DanceExportLabels {
 
   final String formation;
   final String level;
+
   /// Label for the mixer flag line on the exported dance card.
   final String mixer;
   final String status;

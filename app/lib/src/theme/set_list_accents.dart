@@ -122,14 +122,12 @@ Color? setListAccentForShapeAndMixer(
 /// Convenience: resolve a [Dance] straight to its themed accent.
 /// Delegates to [setListAccentForShapeAndMixer] with the dance's shape and
 /// mixer flag.
-Color? setListAccentForDance(
-  Dance dance, {
-  required bool highContrast,
-}) => setListAccentForShapeAndMixer(
-  dance.formation.shape,
-  dance.mixer,
-  highContrast: highContrast,
-);
+Color? setListAccentForDance(Dance dance, {required bool highContrast}) =>
+    setListAccentForShapeAndMixer(
+      dance.formation.shape,
+      dance.mixer,
+      highContrast: highContrast,
+    );
 
 /// Resolves the color to use for a formation **label** (issue #367): the
 /// user's per-shape [overrides] win, otherwise the themed family accent (which
