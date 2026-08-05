@@ -524,8 +524,14 @@ void main() {
             FigureRenderer.displayToken(token, dancerSpec, Dialect.canonical),
             want[0],
           );
-          expect(FigureRenderer.displayToken(token, dancerSpec, larks), want[1]);
-          expect(FigureRenderer.displayToken(token, dancerSpec, leads), want[2]);
+          expect(
+            FigureRenderer.displayToken(token, dancerSpec, larks),
+            want[1],
+          );
+          expect(
+            FigureRenderer.displayToken(token, dancerSpec, leads),
+            want[2],
+          );
         });
       }
 

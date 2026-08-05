@@ -101,8 +101,13 @@ String formationLabel(AppLocalizations l10n, Formation formation) {
 /// Lives here rather than beside the figure param editor because it is the
 /// shared presentation primitive for figure-param vocabulary: the dance editor
 /// and the Advanced-search facet must label the same canonical token the same
-/// way (issue #741). `figure_param_editors.dart` re-exports it so its existing
-/// importers are unaffected.
+/// way (issue #741), and the dialect editor labels its dancer-substitution rows
+/// with it too (issue #832). `figure_param_editors.dart` re-exports it so its
+/// existing importers are unaffected.
+///
+/// Not dialect-aware by design — callers that need a dialect term reach for
+/// [FigureRenderer.displayToken] (or [FigureRenderer.singleDancerDefaultTerm])
+/// and fall back to this.
 String humanizeToken(String token) => token
     .replaceAllMapped(RegExp(r'(?<=[a-z])(?=[A-Z])'), (_) => ' ')
     .toLowerCase();
@@ -206,8 +211,11 @@ String figureParamKeyLabel(String paramKey) => humanizeToken(paramKey);
 ///
 /// Dancer sets/pairs are dialect vocabulary and route through
 /// [FigureRenderer.displayToken]; every other kind is structural vocabulary and
-/// is humanized. The stored value is always the canonical token regardless of
-/// the label shown.
+/// is humanized. The single-dancer identities (`twosRole2`) are dancer
+/// vocabulary too, and read as `<first|second> <role term>` unless the dialect
+/// rewords them — before issue #832 they fell through to humanization and this
+/// picker showed `twos role2`. The stored value is always the canonical token
+/// regardless of the label shown.
 String figureParamChoiceLabel(
   AppLocalizations l10n,
   ParamSpec spec,

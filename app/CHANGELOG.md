@@ -87,6 +87,17 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Individual dancers now read by name everywhere, and you can reword them.**
+  Where a figure names one dancer rather than a pair — the lead of a figure 8,
+  the dolphin in a dolphin hey, or any "who"/"whom" you set to a single dancer —
+  the people picker showed the internal `twos role2` instead of "second robin".
+  So did the figure line, Perform mode and PDF export. All of them now use your
+  dialect's role terms. If you'd rather say "robin two", Settings → Dialect →
+  dancer terms now lists these four dancers so you can enter your own wording;
+  they were missing from that list entirely. Nothing about your saved dances
+  changes — this was only how they were displayed, and search results are
+  unaffected.
+
 - **Meanwhile containers now report their true structure quality, and the reparse
   screen can now upgrade figures inside them.** Both the import review quality
   chip and the "reparse custom figures" screen previously counted a meanwhile

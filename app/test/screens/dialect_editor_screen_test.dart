@@ -276,8 +276,12 @@ void main() {
       // THE TRAP: labelled through the dialect, never as the raw token.
       expect(
         menu.labels,
-        containsAll(['first lark', 'first robin', 'second lark',
-            'second robin']),
+        containsAll([
+          'first lark',
+          'first robin',
+          'second lark',
+          'second robin',
+        ]),
       );
       for (final raw in [
         'ones role1',
@@ -320,10 +324,7 @@ void main() {
       // the substitution in the adjacent field, which would be circular.
       expect(find.text('second robin'), findsWidgets);
       expect(find.text('twos role2'), findsNothing);
-      expect(
-        tester.widget<TextField>(field).controller!.text,
-        'robin two',
-      );
+      expect(tester.widget<TextField>(field).controller!.text, 'robin two');
     });
 
     testWidgets('the row label tracks role terms as they are edited', (

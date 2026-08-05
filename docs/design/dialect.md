@@ -25,12 +25,20 @@ figure-bearing free text; hand-typed prose is stored verbatim (see
 
 - `%S` placeholder injects direction/handedness into a move substitution
   (renders "right shoulder round" / "left shoulder round").
-- `dancers` substitutes the positional/relational dancer tokens (ContraDB's
-  parallel `dancers` map) — e.g. `neighbors`, `ones`, `partners`,
-  `nextNeighbors`, `centers`. The role-driven tokens `role1s`/`role2s` are
-  **excluded**: they flow through role-term substitution (`roles`) instead, so
-  they are never listed here. Like `moves`, presets ship an **empty** `dancers`
-  map — no gendered or house-specific dancer terms are baked in.
+- `dancers` substitutes the dancer tokens (ContraDB's parallel `dancers` map) —
+  the positional/relational sets (`neighbors`, `ones`, `partners`,
+  `nextNeighbors`, `centers`) **and** the single-dancer identities
+  (`onesRole1`/`onesRole2`/`twosRole1`/`twosRole2`). The role-driven tokens
+  `role1s`/`role2s` are **excluded**: they flow through role-term substitution
+  (`roles`) instead, so they are never listed here. Like `moves`, presets ship
+  an **empty** `dancers` map — no gendered or house-specific dancer terms are
+  baked in.
+- A single-dancer identity is the one dancer token with a **derived default**
+  rather than a humanized one: with no substitution set it renders
+  `<first|second> <role singular>` ("second robin"), composed from the active
+  `roles`, mirroring ContraDB's `chooser_dancer` naming. Setting a `dancers`
+  entry overrides that wording (a caller who says "robin two" enters it there);
+  the ordinal construction is the default, not a hardcoded choice (issue #832).
 - `discouragedTerms` is **user-editable data with shipped defaults**, not
   hardcoded (ContraDB pitfall #3): the entry editor flags these terms, it
   never blocks.
@@ -51,9 +59,10 @@ Figure ──renderTemplate──▶ canonical text ──dialect subst──▶
 free text (notes/custom) ──term regex (case-preserving)──▶ display text
 ```
 
-- Substitution covers: role terms, move display names, positional/relational
-  dancer terms, and terms inside free text (notes, hooks, custom figures) via
-  compiled word-boundary regex with case preservation.
+- Substitution covers: role terms, move display names, dancer terms
+  (positional/relational sets and single-dancer identities alike), and terms
+  inside free text (notes, hooks, custom figures) via compiled word-boundary
+  regex with case preservation.
 - Search always runs against canonical text/structures → dialect never affects
   results (dialect-agnostic search for free).
 - Print/export lets the user choose canonical or active dialect; exports embed
