@@ -210,6 +210,9 @@ class FilterCompiler {
       case MixedLevelFilter(:final mixed):
         binds.add(mixed ? 1 : 0);
         return 'mixed_level = ?';
+      case MixerFilter(:final mixer):
+        binds.add(mixer ? 1 : 0);
+        return 'mixer = ?';
       case RatingFilter(:final minimum):
         // Defensive: construction already asserts this, but never trust the
         // tree at compile time (asserts are stripped in release) — throw
