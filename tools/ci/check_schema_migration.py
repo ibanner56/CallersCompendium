@@ -11,8 +11,17 @@ This gate enforces the test/fixture half automatically. Given a base ref, it
 compares ``schemaVersion`` at base vs head; if it changed, it requires that the
 same diff also added or changed migration evidence:
 
-  * ``packages/compendium_core/test/storage/migration_test.dart``, or
-  * any file under ``packages/compendium_core/test/storage/fixtures/``.
+It also refuses to let a *retired* schema version come back: any per-version
+fixture, generator, dump or schema class below ``kMinSupportedSchemaVersion``
+fails the gate, whether or not the version changed in the same PR.
+
+  * ``packages/compendium_core/test/storage/migration_test.dart``,
+  * any file under ``packages/compendium_core/test/storage/fixtures/``, or
+  * any file under ``packages/compendium_core/drift_schemas/`` — the generated
+    drift schema dumps behind ``schema_verification_test.dart`` (issue #828).
+    A bump ships a dump for the new version, and that is migration evidence in
+    its own right: the verification suite asserts that migrating from every
+    recorded version reproduces the freshly created head schema.
 
 If the version changed with no such evidence, CI fails. (It intentionally does
 NOT accept a mere edit to database.dart itself as evidence — the point is a
@@ -37,9 +46,22 @@ import sys
 DB_PATH = "packages/compendium_core/lib/src/storage/database.dart"
 MIGRATION_TEST = "packages/compendium_core/test/storage/migration_test.dart"
 FIXTURES_DIR = "packages/compendium_core/test/storage/fixtures/"
+DRIFT_SCHEMAS_DIR = "packages/compendium_core/drift_schemas/"
+
+EVIDENCE_DIRS = (FIXTURES_DIR, DRIFT_SCHEMAS_DIR)
 
 _GETTER_RE = re.compile(
     r"int\s+get\s+schemaVersion\s*=>\s*(?P<rhs>[A-Za-z_$][\w$]*|\d+)\s*;"
+)
+
+# Retired schema versions (issue #828). Anything below the floor has had its
+# migration steps, fixture and schema dump deleted, so re-adding one is either a
+# mistake or an unnoticed revert -- and a sub-floor fixture is worse than
+# useless, because there is no `onUpgrade` path from it to head.
+_VERSIONED_ARTEFACT_RE = re.compile(
+    r"(?:^|/)(?:generate_)?v(?P<v>\d+)(?:_fixture\.dart|\.sqlite)$"
+    r"|(?:^|/)drift_schema_v(?P<d>\d+)\.json$"
+    r"|(?:^|/)schema_v(?P<s>\d+)\.dart$"
 )
 
 
@@ -51,6 +73,23 @@ def _fail(msg: str, code: int = 2) -> None:
 def _git(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         ["git", *args], capture_output=True, text=True
+    )
+
+
+def _artefact_version(path: str) -> int | None:
+    """Schema version a per-version artefact path belongs to, if any."""
+    m = _VERSIONED_ARTEFACT_RE.search(path)
+    if not m:
+        return None
+    raw = m.group("v") or m.group("d") or m.group("s")
+    return int(raw) if raw else None
+
+
+def _below_floor(paths: list[str], floor: int) -> list[str]:
+    """Added/changed per-version artefacts for retired schema versions."""
+    return sorted(
+        p for p in paths
+        if (v := _artefact_version(p)) is not None and v < floor
     )
 
 
@@ -113,6 +152,26 @@ def main(argv: list[str]) -> int:
     old = _schema_version_at(base)
     new = _schema_version_at(head)
 
+    # Floor check runs regardless of whether schemaVersion changed: a sub-floor
+    # fixture or dump can be reintroduced by a PR that touches no version at all
+    # (a bad merge, a revert, a copied file), and it would be dead weight at
+    # best and a misleading migration start point at worst.
+    head_source = _git("show", f"{head}:{DB_PATH}").stdout
+    floor = _const_int(head_source, "kMinSupportedSchemaVersion")
+    if floor is not None:
+        changed_now = _changed_paths(base, head)
+        revived = _below_floor(changed_now, floor)
+        if revived:
+            _fail(
+                "this PR adds or changes per-version artefacts for retired "
+                f"schema versions (below kMinSupportedSchemaVersion={floor}): "
+                + ", ".join(revived)
+                + ". Versions below the floor have no migration path to head "
+                "(see the schema floor on CompendiumDatabase); delete them or "
+                "raise the floor deliberately.",
+                code=1,
+            )
+
     if new is None:
         _fail(f"could not read schemaVersion from {DB_PATH} at {head}")
 
@@ -129,21 +188,23 @@ def main(argv: list[str]) -> int:
 
     changed = _changed_paths(base, head)
     has_evidence = any(
-        p == MIGRATION_TEST or p.startswith(FIXTURES_DIR) for p in changed
+        p == MIGRATION_TEST or p.startswith(EVIDENCE_DIRS) for p in changed
     )
 
     if not has_evidence:
         _fail(
             f"schemaVersion changed ({old} -> {new}) but this PR adds/changes "
-            "no migration test or fixture. A schema bump must ship a migration "
-            f"test ({MIGRATION_TEST}) and/or a fixture under {FIXTURES_DIR} "
-            "(see the schema convention on CompendiumDatabase and CONTRIBUTING.md).",
+            "no migration test, fixture or schema dump. A schema bump must "
+            f"ship a migration test ({MIGRATION_TEST}), a fixture under "
+            f"{FIXTURES_DIR}, and/or a drift schema dump under "
+            f"{DRIFT_SCHEMAS_DIR} (see the schema convention on "
+            "CompendiumDatabase and CONTRIBUTING.md).",
             code=1,
         )
 
     print(
         f"OK: schemaVersion changed ({old} -> {new}) with migration "
-        "test/fixture evidence in the same PR."
+        "test/fixture/schema-dump evidence in the same PR."
     )
     return 0
 

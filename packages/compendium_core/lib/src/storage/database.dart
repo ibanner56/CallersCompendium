@@ -118,9 +118,36 @@ const String purgeCorruptionRepairDoneKey = '__purge_corruption_repair_done__';
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
 const int kCompendiumSchemaVersion = 23;
 
+/// The oldest on-disk schema version this build can still upgrade.
+///
+/// Schema versions below this were retired (#828): their `onUpgrade` steps,
+/// fixture databases and `drift_schemas/` dumps have been deleted, so there is
+/// no migration path from such a file to head. `onUpgrade` refuses one
+/// explicitly rather than running only the surviving steps and silently
+/// producing a structurally wrong database.
+///
+/// The value is the schema version shipped by the oldest *supported release*,
+/// `v0.1.0-beta.2` — not simply the oldest version whose code still exists.
+/// beta.1 shipped v10, so a database last opened by beta.1 is below the floor
+/// and will be refused; that is deliberate, on the basis that every tester is
+/// on beta.2 or later.
+///
+/// Raising this is a user-visible change: databases below the new floor stop
+/// opening. It belongs in `app/CHANGELOG.md`, stated in user-facing terms, with
+/// the release whose schema version is being adopted named as the reason.
+const int kMinSupportedSchemaVersion = 11;
+
 /// The Caller's Compendium local database.
 ///
-/// Schema version history:
+/// Schema version history.
+///
+/// **v1–v10 are RETIRED** (#828): they predate `v0.1.0-beta.2`, the oldest
+/// supported release, so their migration steps, fixtures and schema dumps have
+/// been deleted and [kMinSupportedSchemaVersion] refuses a database stamped
+/// below v11. Their entries are kept below as history — they explain why later
+/// columns exist and are still referenced by the steps that survive — but there
+/// is no longer any code path that migrates from them.
+///
 /// - v1 (2026-07-10): initial schema — see `docs/design/storage.md`.
 /// - v2 (2026-07-11): section-aware search (`docs/design/search.md`). Adds the
 ///   nullable `dance_figures.section` column plus the `dance_figures_move_
@@ -339,11 +366,19 @@ const int kCompendiumSchemaVersion = 23;
 ///   is required.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
-/// `MigrationStrategy` step for the new version, and (c) ship a test that
+/// `MigrationStrategy` step for the new version, (c) ship a test that
 /// opens a fixture DB created at the previous version and asserts the
-/// migrated schema/data (see `test/storage/migration_test.dart`). CI enforces
-/// (c): a change to this constant fails the build unless the same PR also
-/// adds/changes a migration test or a `test/storage/fixtures/` fixture.
+/// migrated schema/data (see `test/storage/migration_test.dart`), and (d) add a
+/// drift schema dump for the new version under `drift_schemas/` (see the README
+/// there). CI enforces (c) and (d): a change to this constant fails the build
+/// unless the same PR also adds/changes a migration test, a
+/// `test/storage/fixtures/` fixture, or a `drift_schemas/` dump — and
+/// `test/storage/schema_verification_test.dart` fails outright if a version has
+/// no dump.
+///
+/// (d) is what asserts *shape*: that a database which reached head by migration
+/// is structurally identical to one created fresh at head. The tests under (c)
+/// assert data semantics and deliberately do not cover that.
 ///
 /// Release rule: **never bump [schemaVersion] in a PATCH release** — a schema
 /// change is a data-format change and must ride at least a MINOR bump (see
@@ -406,99 +441,42 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           'version $to.',
         );
       }
-      if (from < 2) {
-        await m.addColumn(danceFigures, danceFigures.section);
-        for (final sql in searchIndexSql) {
-          await customStatement(sql);
-        }
-        // The `section` back-fill needs the domain renderer/taxonomy, which is
-        // unreachable here. Durably mark that a rebuild is owed so it survives
-        // a crash before CompendiumRepositories.ensureMigrated() completes it.
-        await customStatement(
-          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-          [derivedRebuildRequiredKey, 'true'],
+      // Schema floor (#828). Versions below [kMinSupportedSchemaVersion] were
+      // retired: their `onUpgrade` steps, fixtures and schema dumps are gone, so
+      // there is no path from such a file to head. Refuse it explicitly.
+      //
+      // This check is NOT optional cleanup. Without it a below-floor database
+      // would open, run only the surviving steps, and end up structurally wrong
+      // with no error at all — silent corruption of a user's collection, which
+      // is a far worse outcome than refusing to open the file.
+      //
+      // KNOWN GAP — the app layer does *not* yet catch this earlier, unlike the
+      // downgrade case above. `runMigrationPreflight` reads `user_version`
+      // without opening the database and throws `DatabaseDowngradeError`, which
+      // `AppBootstrap` renders as a dedicated terminal screen with no Retry;
+      // `MigrationSnapshotAborted` gets the same treatment. This error is not
+      // one of those types, so it falls through to the generic
+      // `appBootstrapError` screen — **with a Retry button that can never
+      // succeed**. The user is protected from the silent corruption above, but
+      // is told nothing useful and can retry forever.
+      //
+      // The fix mirrors the downgrade path and is deliberately not bundled with
+      // the retirement (it lands on `app_en.arb` and the generated l10n, which
+      // several changes are converging on): add a typed `DatabaseTooOldError`
+      // thrown from `runMigrationPreflight` in
+      // `app/lib/src/data/migration_guard.dart`, a label in
+      // `app/lib/src/data/migration_error_labels.dart`, a new ARB key, and a
+      // no-Retry branch in `app/lib/src/widgets/app_bootstrap.dart`. This throw
+      // then stays as the backstop for any open path that bypasses the
+      // preflight, exactly as the downgrade guard above does.
+      if (from < kMinSupportedSchemaVersion) {
+        throw StateError(
+          'This database was created at schema version $from by a build from '
+          'before the first supported release, and cannot be upgraded: the '
+          'migration steps for versions below $kMinSupportedSchemaVersion were '
+          'retired. Open it with an older build of Caller\'s Compendium first, '
+          'or start from a fresh database.',
         );
-      }
-      if (from < 3) {
-        // CC-parity program event metadata. All nullable; existing rows get
-        // NULL. Programs/slots don't feed the derived indexes, so no rebuild.
-        await m.addColumn(programs, programs.band);
-        await m.addColumn(programs, programs.caller);
-        await m.addColumn(programs, programs.dancerLevel);
-        await m.addColumn(programSlots, programSlots.guestCaller);
-        await m.addColumn(programSlots, programSlots.plannedMinutes);
-      }
-      if (from < 4) {
-        // CC-parity dance difficulty. `level` is nullable (existing rows get
-        // NULL); `mixed_level` defaults to false. Both are dance-scalar
-        // metadata (not figure text), so they don't feed the derived
-        // `dance_figures`/`dance_fts` indexes and no rebuild is required.
-        await m.addColumn(dances, dances.level);
-        await m.addColumn(dances, dances.mixedLevel);
-      }
-      if (from < 5) {
-        // CC-parity composed/revised dates. Both nullable (existing rows get
-        // NULL); each stores a canonical partial-precision PartialDate string.
-        // Author/bibliographic scalar metadata (not figure text), so they don't
-        // feed the derived `dance_figures`/`dance_fts` indexes — no rebuild.
-        await m.addColumn(dances, dances.composedOn);
-        await m.addColumn(dances, dances.revisedOn);
-      }
-      if (from < 6) {
-        // CC-parity dance rating. Nullable (existing rows get NULL); the 1..5
-        // range is validated at the Dance boundary, not by a DB constraint.
-        // Dance-scalar curation metadata (not figure text), so it doesn't feed
-        // the derived `dance_figures`/`dance_fts` indexes — no rebuild.
-        await m.addColumn(dances, dances.rating);
-      }
-      if (from < 7) {
-        // CC-parity author contact. `email`/`location` nullable (existing rows
-        // get NULL); `deceased` defaults to false. Scalar author metadata (not
-        // figure text) and choreographers don't feed the derived
-        // `dance_figures`/`dance_fts` indexes — no rebuild is required.
-        await m.addColumn(choreographers, choreographers.email);
-        await m.addColumn(choreographers, choreographers.location);
-        await m.addColumn(choreographers, choreographers.deceased);
-      }
-      if (from < 8) {
-        // First-class published-source citations. Two brand-new tables; no
-        // columns added to existing tables, no back-fill. They don't feed the
-        // derived `dance_fts`/`dance_figures` indexes (search is ROADMAP
-        // 4b.5b), so no derived rebuild is required.
-        await m.createTable(publishedSources);
-        await m.createTable(danceSources);
-      }
-      if (from < 9) {
-        // Published-source citations become searchable: `dance_fts` gains a
-        // `sources` column. An FTS5 table's columns are fixed at creation, so
-        // drop and recreate it with the new shape. The FTS rows can't be
-        // repopulated here (that needs the taxonomy/renderer plus the
-        // citation → published-source join owned by the repository layer), so
-        // durably record that a derived rebuild is owed — exactly like the v2
-        // `section` back-fill. CompendiumRepositories.ensureMigrated() runs
-        // DanceRepository.rebuildAllDerived(), which refills every `dance_fts`
-        // row (including `sources`) and clears the marker.
-        await customStatement('DROP TABLE IF EXISTS dance_fts');
-        await customStatement(createDanceFtsSql);
-        await customStatement(
-          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-          [derivedRebuildRequiredKey, 'true'],
-        );
-      }
-      if (from < 10) {
-        // Program import provenance. One brand-new table (`program_provenance`),
-        // no columns added to existing tables, no back-fill: existing programs
-        // simply have no provenance row (they are user-created and never
-        // dedupe). Programs don't feed the derived `dance_fts`/`dance_figures`
-        // indexes, so no derived rebuild is required.
-        await m.createTable(programProvenance);
-      }
-      if (from < 11) {
-        // CC-parity "hide alternates in set list" (`SetList_HideALT`). A single
-        // additive boolean column on `programs`, defaulting to false — existing
-        // programs keep showing alternates. Programs don't feed the derived
-        // `dance_fts`/`dance_figures` indexes, so no derived rebuild is required.
-        await m.addColumn(programs, programs.hideAlternates);
       }
       if (from < 12) {
         // Issue #290: `form_an_ocean_wave` was removed from the taxonomy (v14),

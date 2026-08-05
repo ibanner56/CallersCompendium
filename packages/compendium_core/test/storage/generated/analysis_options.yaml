@@ -1,0 +1,25 @@
+# Analyzer settings for the machine-generated drift schema snapshots.
+#
+# These files are written by `drift_dev schema generate` (see
+# `../../../drift_schemas/README.md`) and must not be edited by hand, so the
+# repo's strictness has to be applied to them selectively rather than fixed in
+# place.
+#
+# Their generated header carries `// ignore_for_file: type=lint,unused_import`,
+# which covers lints — but `strict-raw-types` is an analyzer *warning*
+# (`TableInfo<Table, dynamic>` appears throughout drift's generated schema
+# classes), so the header does not suppress it and `flutter analyze
+# --fatal-infos` fails on several hundred of them.
+#
+# Only `strict-raw-types` is relaxed, and only here. `strict-casts`,
+# `strict-inference`, the error escalations and the full lint set are inherited
+# unchanged from the package options, so a genuine error in generated code is
+# still reported. Compilability is additionally enforced by
+# `../schema_verification_test.dart`, which imports every one of these files —
+# that is how the `text`/`Table.text()` collision documented in
+# `tool/normalize_schema_dumps.dart` was caught.
+include: ../../../analysis_options.yaml
+
+analyzer:
+  language:
+    strict-raw-types: false
