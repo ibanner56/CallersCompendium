@@ -19,6 +19,7 @@ DanceListEntry _entry({
   int? rating,
   DanceCallCounts callCounts = const DanceCallCounts(all: 0, performed: 0),
   Formation formation = const Formation(FormationShape.dupleImproper),
+  bool mixer = false,
 }) => DanceListEntry(
   dance: Dance(
     id: 'd1',
@@ -26,6 +27,7 @@ DanceListEntry _entry({
     form: DanceForm.ecd,
     formation: formation,
     rating: rating,
+    mixer: mixer,
     createdAt: _now,
     updatedAt: _now,
   ),
@@ -549,6 +551,44 @@ void main() {
       expect(find.text('Alice'), findsNothing); // authors hidden
       // Spot-check a second chip group to confirm it's not just tags.
       expect(find.text('Duple improper'), findsNothing); // formation hidden
+    });
+  });
+
+  group('mixer chip (issue #732)', () {
+    testWidgets('mixer chip absent when dance.mixer is false', (tester) async {
+      await _pump(tester, _entry(mixer: false));
+      expect(find.byKey(const ValueKey('mixer-chip')), findsNothing);
+    });
+
+    testWidgets('mixer chip present when dance.mixer is true', (tester) async {
+      await _pump(tester, _entry(mixer: true));
+      expect(find.byKey(const ValueKey('mixer-chip')), findsOneWidget);
+    });
+
+    testWidgets('mixer chip hidden when CollectionTileField.level absent', (
+      tester,
+    ) async {
+      await _pumpWithFields(
+        tester,
+        DanceListEntry(
+          dance: Dance(
+            id: 'd1',
+            title: 'Test Dance',
+            form: DanceForm.contra,
+            formation: const Formation(FormationShape.dupleImproper),
+            mixer: true,
+            createdAt: _now,
+            updatedAt: _now,
+          ),
+          authorNames: const [],
+          tagNames: const [],
+          listCustomFields: const [],
+          callCounts: const DanceCallCounts(all: 0, performed: 0),
+        ),
+        visibleFields: CollectionTileField.values.toSet()
+          ..remove(CollectionTileField.level),
+      );
+      expect(find.byKey(const ValueKey('mixer-chip')), findsNothing);
     });
   });
 }

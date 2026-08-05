@@ -179,6 +179,13 @@ void main() {
       expect((f as MixedLevelFilter).mixed, isTrue);
     });
 
+    test('mixer facet yields a MixerFilter (issue #732)', () {
+      final facets = FacetSelections()..mixer = true;
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<MixerFilter>());
+      expect((f as MixerFilter).mixer, isTrue);
+    });
+
     test('minRating facet yields a RatingFilter with the chosen floor', () {
       final facets = FacetSelections()..minRating = 4;
       final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
@@ -545,6 +552,11 @@ void main() {
       expect(withMixed.isEmpty, isFalse);
     });
 
+    test('mixer facet counts toward isEmpty (issue #732)', () {
+      final withMixer = FacetSelections()..mixer = true;
+      expect(withMixer.isEmpty, isFalse);
+    });
+
     test('minRating facet counts toward isEmpty and clear() resets it', () {
       final facets = FacetSelections()..minRating = 3;
       expect(facets.isEmpty, isFalse);
@@ -561,6 +573,14 @@ void main() {
       facets.clear();
       expect(facets.levels, isEmpty);
       expect(facets.mixedLevel, isNull);
+      expect(facets.isEmpty, isTrue);
+    });
+
+    test('clear() resets mixer facet (issue #732)', () {
+      final facets = FacetSelections()..mixer = true;
+      expect(facets.isEmpty, isFalse);
+      facets.clear();
+      expect(facets.mixer, isNull);
       expect(facets.isEmpty, isTrue);
     });
 

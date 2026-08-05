@@ -18,6 +18,7 @@ Dance _dance({
   required String id,
   required String title,
   required FormationShape shape,
+  bool mixer = false,
 }) => Dance(
   id: id,
   title: title,
@@ -29,6 +30,7 @@ Dance _dance({
   figures: const [],
   customFields: const [],
   hook: '',
+  mixer: mixer,
   createdAt: _now,
   updatedAt: _now,
 );
@@ -112,6 +114,41 @@ Color? _accentBorderColor(WidgetTester tester, String slotId) {
   final container = tester.widget<Container>(finder);
   final border = (container.decoration as BoxDecoration?)?.border as Border?;
   return border?.left.color;
+}
+
+Future<void> _seedProgramWithMixer(CompendiumRepositories repos) async {
+  await repos.dances.create(
+    _dance(
+      id: 'd1',
+      title: 'Chase the Squirrel',
+      shape: FormationShape.dupleImproper,
+    ),
+  );
+  await repos.dances.create(
+    _dance(id: 'd2', title: 'Big Circle', shape: FormationShape.sicilianCircle),
+  );
+  await repos.dances.create(
+    _dance(
+      id: 'd3',
+      title: 'Mixer Dance',
+      shape: FormationShape.dupleImproper,
+      mixer: true,
+    ),
+  );
+  await repos.programs.create(
+    Program(
+      id: 'p2',
+      title: 'Mixer Program',
+      status: ProgramStatus.draft,
+      slots: [
+        ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+        ProgramSlot(id: 's1', position: 1, danceId: 'd2'),
+        ProgramSlot(id: 's2', position: 2, danceId: 'd3'),
+      ],
+      createdAt: _now,
+      updatedAt: _now,
+    ),
+  );
 }
 
 void main() {
@@ -213,4 +250,55 @@ void main() {
       ),
     );
   });
+
+  testWidgets('mixer-flagged dance gets mixer accent in summary (issue #732)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _seedProgramWithMixer(repos);
+    await _pumpWide(tester, repos, colorCoding: true);
+    await tester.tap(find.text('Mixer Program'));
+    await tester.pumpAndSettle();
+
+    final d3 = _accentBorderColor(tester, 's2'); // mixer-flagged duple improper
+    expect(d3, isNotNull);
+    expect(
+      d3,
+      setListAccentForShapeAndMixer(
+        FormationShape.dupleImproper,
+        true,
+        highContrast: false,
+      ),
+    );
+    // Must not be the plain contra teal.
+    expect(
+      d3,
+      isNot(
+        setListAccentForShape(
+          FormationShape.dupleImproper,
+          highContrast: false,
+        ),
+      ),
+    );
+  });
+
+  testWidgets(
+    'mixer row shows Mixer in text and semantics (accessibility, issue #732)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await _seedProgramWithMixer(repos);
+      await _pumpWide(tester, repos, colorCoding: true);
+      await tester.tap(find.text('Mixer Program'));
+      await tester.pumpAndSettle();
+
+      // The word 'Mixer' must appear in the visible row text.
+      expect(find.textContaining('Mixer'), findsWidgets);
+
+      // The semantics label for the mixer row must include 'Mixer'.
+      expect(
+        find.bySemanticsLabel(RegExp(r'Mixer Dance.*Mixer')),
+        findsOneWidget,
+      );
+    },
+  );
 }
