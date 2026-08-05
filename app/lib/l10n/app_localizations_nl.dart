@@ -437,7 +437,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      'Kleur elke dansrij op basis van diens formatiefamilie (contra, mixer, square, …). De formatie wordt ook altijd als tekst weergegeven, zodat rijen leesbaar blijven zonder kleur.';
+      'Kleur elke dansrij op basis van diens formatiefamilie (contra, mixer, square, …) — dansen die als mixer zijn gemarkeerd krijgen altijd de mixerkleur, ongeacht de formatie. De formatie wordt ook altijd als tekst weergegeven, zodat rijen leesbaar blijven zonder kleur.';
 
   @override
   String get settingsAppearanceFormationColoursTitle => 'Formatielabelkleuren';

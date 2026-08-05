@@ -845,7 +845,7 @@ abstract class AppLocalizations {
   /// Explanation for the set-list colour-coding toggle.
   ///
   /// In en, this message translates to:
-  /// **'Tint each dance row by its formation family (contra, mixer, square, …). The formation is always shown as text too, so rows stay readable without colour.'**
+  /// **'Tint each dance row by its formation family (contra, mixer, square, …) — dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.'**
   String get settingsAppearanceSetListColorSubtitle;
 
   /// List-tile title opening the formation-colour customisation screen.
