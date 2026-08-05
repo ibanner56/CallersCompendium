@@ -372,15 +372,26 @@ Future<TitleListResolution> resolveTitleList(
     'any further lines',
   );
 
-  // One DedupeIndex snapshot for the whole batch, exactly as ImportPipeline.plan
-  // does for every other multi-record source. Without it each title would
-  // rebuild the index — two full collection loads apiece.
-  final pipeline = ImportPipeline(repos.dances, repos.choreographers);
-  final index = await pipeline.buildDedupeIndex();
-
   final total = parsed
       .where((p) => p.resolution == PlaintextLineResolution.unmatched)
       .length;
+
+  // Only build the dedupe snapshot when at least one title actually needs
+  // looking up. `buildDedupeIndex` reads the entire dance and choreographer
+  // collections, and a paste where everything is already owned (or was rejected
+  // by the per-line bound) resolves without a single online call — so that read
+  // would buy nothing on precisely the path a user expects to be instant.
+  //
+  // One snapshot for the whole batch, exactly as ImportPipeline.plan does for
+  // every other multi-record source; without it each title would rebuild the
+  // index, at two full collection loads apiece.
+  final index = total == 0
+      ? null
+      : await ImportPipeline(
+          repos.dances,
+          repos.choreographers,
+        ).buildDedupeIndex();
+
   var done = 0;
   Map<String, String>? authorNamesById;
 
@@ -421,12 +432,15 @@ Future<TitleListResolution> resolveTitleList(
       case PlaintextLineResolution.unmatched:
         if (isCancelled?.call() ?? false) throw const TitleListCancelled();
         onProgress?.call(done, total);
+        // Reaching this branch means `total > 0`, which is exactly the
+        // condition under which the snapshot above was built.
+        assert(index != null, 'an unmatched line requires a dedupe snapshot');
         rows.add(
           await _resolveOne(
             parsedLine.text,
             service: service,
             repos: repos,
-            index: index,
+            index: index!,
             plans: plans,
             now: now,
           ),

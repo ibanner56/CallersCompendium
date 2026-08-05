@@ -7,6 +7,7 @@ import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -205,6 +206,33 @@ Future<void> _paste(WidgetTester tester, String titles) async {
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('import-continue')));
   await tester.pumpAndSettle();
+}
+
+/// Counts `listIdsAndTitles` so the review screen's own no-op read is
+/// assertable. Subclasses the real repository, so behaviour is unchanged.
+class _CountingDances extends DanceRepository {
+  _CountingDances(super.db, super.taxonomy);
+
+  int listIdsAndTitlesCalls = 0;
+
+  @override
+  Future<List<({String id, String title})>> listIdsAndTitles({
+    bool includeDeleted = false,
+  }) {
+    listIdsAndTitlesCalls++;
+    return super.listIdsAndTitles(includeDeleted: includeDeleted);
+  }
+}
+
+class _CountingRepositories extends CompendiumRepositories {
+  _CountingRepositories(CompendiumDatabase db)
+    : countedDances = _CountingDances(db, contraTaxonomy),
+      super(db, contraTaxonomy);
+
+  final _CountingDances countedDances;
+
+  @override
+  DanceRepository get dances => countedDances;
 }
 
 void main() {
@@ -566,6 +594,35 @@ void main() {
       // again — the coupling `preselected` exists to break — so it must fail
       // loudly in debug rather than silently pick by position.
       expect(tester.takeException(), isA<AssertionError>());
+    });
+  });
+
+  group('no title lookup for a review with no rows (review of #842)', () {
+    testWidgets('a paste with nothing importable does not load the '
+        'collection\'s titles', (tester) async {
+      final repos = _CountingRepositories(
+        CompendiumDatabase(NativeDatabase.memory()),
+      );
+      await repos.dances.create(_localDance(id: 'd1', title: 'Fiddleheads'));
+      final service = _FakeOnline(rowsByTitle: const {'ghost dance': []});
+      await _pump(tester, repos, service: service);
+
+      // Resolution itself reads the collection once (the local-match stage), so
+      // measure only what the review screen adds on top of that.
+      final before = repos.countedDances.listIdsAndTitlesCalls;
+      await _paste(tester, 'Fiddleheads\nGhost Dance');
+
+      expect(
+        find.byKey(const ValueKey('import-titles-group-owned')),
+        findsOneWidget,
+      );
+      expect(
+        repos.countedDances.listIdsAndTitlesCalls - before,
+        1,
+        reason:
+            'only the local-match stage should read titles; an empty batch '
+            'has no candidate rows to name',
+      );
     });
   });
 }

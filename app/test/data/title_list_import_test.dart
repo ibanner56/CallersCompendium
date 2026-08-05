@@ -3,6 +3,7 @@ import 'package:compendium_app/src/data/title_list_import.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
@@ -138,6 +139,66 @@ Dance _localDance({
   createdAt: DateTime.utc(2026, 1, 1),
   updatedAt: DateTime.utc(2026, 1, 1),
 );
+
+/// Counts the full-collection reads a resolution performs, so "we don't do the
+/// expensive thing when there's nothing to do" is asserted rather than assumed.
+///
+/// Subclasses the real repositories (rather than faking them) so the counted
+/// calls still hit a real database and the rest of the resolution behaves
+/// exactly as in production.
+class _CountingDances extends DanceRepository {
+  _CountingDances(super.db, super.taxonomy);
+
+  int listAllCalls = 0;
+  int listIdsAndTitlesCalls = 0;
+
+  @override
+  Future<List<Dance>> listAll({bool includeDeleted = false}) {
+    listAllCalls++;
+    return super.listAll(includeDeleted: includeDeleted);
+  }
+
+  @override
+  Future<List<({String id, String title})>> listIdsAndTitles({
+    bool includeDeleted = false,
+  }) {
+    listIdsAndTitlesCalls++;
+    return super.listIdsAndTitles(includeDeleted: includeDeleted);
+  }
+}
+
+class _CountingChoreographers extends ChoreographerRepository {
+  _CountingChoreographers(super.db);
+
+  int listAllCalls = 0;
+
+  @override
+  Future<List<Choreographer>> listAll() {
+    listAllCalls++;
+    return super.listAll();
+  }
+}
+
+class _CountingRepositories extends CompendiumRepositories {
+  _CountingRepositories(CompendiumDatabase db)
+    : countedDances = _CountingDances(db, contraTaxonomy),
+      countedChoreographers = _CountingChoreographers(db),
+      super(db, contraTaxonomy);
+
+  final _CountingDances countedDances;
+  final _CountingChoreographers countedChoreographers;
+
+  @override
+  DanceRepository get dances => countedDances;
+
+  @override
+  ChoreographerRepository get choreographers => countedChoreographers;
+
+  /// Reads that scan the whole collection: `buildDedupeIndex` performs one of
+  /// each, and it is the pair this guard exists to prevent on the no-op path.
+  int get fullCollectionReads =>
+      countedDances.listAllCalls + countedChoreographers.listAllCalls;
+}
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -506,6 +567,89 @@ void main() {
       expect(result.countIn(TitleListGroup.notFound), 1);
       // Only the unmatched titles cost a request.
       expect(service.searchedTitles, ['Importable', 'Missing']);
+    });
+  });
+
+  group('no full-collection read when there is nothing to look up', () {
+    // `buildDedupeIndex` reads every dance and every choreographer. It exists to
+    // dedupe *incoming* records, so a paste with no unmatched titles has nothing
+    // to dedupe against — and that is exactly the path a user expects to be
+    // instant. Raised in review of PR #842.
+
+    test('a paste where every title is already owned performs zero '
+        'full-collection reads', () async {
+      final repos = _CountingRepositories(
+        CompendiumDatabase(NativeDatabase.memory()),
+      );
+      await repos.dances.create(_localDance(id: 'd1', title: 'Fiddleheads'));
+      await repos.dances.create(_localDance(id: 'd2', title: 'Petronella'));
+      final service = _CountingOnlineService();
+
+      final result = await resolveTitleList(
+        'Fiddleheads\nPetronella',
+        service: service,
+        repos: repos,
+      );
+
+      expect(result.countIn(TitleListGroup.alreadyInCollection), 2);
+      expect(service.searchedTitles, isEmpty);
+      expect(
+        repos.fullCollectionReads,
+        0,
+        reason:
+            'nothing needed deduping, so the index was never worth building',
+      );
+      // The batch carries no snapshot, because none was built.
+      expect(result.batch.dedupeIndex, isNull);
+    });
+
+    test('a paste with something to look up still builds the snapshot exactly '
+        'once, however many titles it has', () async {
+      final repos = _CountingRepositories(
+        CompendiumDatabase(NativeDatabase.memory()),
+      );
+      final service = _CountingOnlineService(
+        rowsByTitle: {
+          'one': [_row('One', id: '1')],
+          'two': [_row('Two', id: '2')],
+          'three': [_row('Three', id: '3')],
+        },
+      );
+
+      final result = await resolveTitleList(
+        'One\nTwo\nThree',
+        service: service,
+        repos: repos,
+      );
+
+      expect(result.countIn(TitleListGroup.toImport), 3);
+      expect(repos.countedDances.listAllCalls, 1);
+      expect(repos.countedChoreographers.listAllCalls, 1);
+      expect(
+        result.batch.dedupeIndex,
+        isNotNull,
+        reason: 'three titles were resolved against one shared snapshot',
+      );
+    });
+
+    test('an over-cap paste is refused before any collection read', () async {
+      final repos = _CountingRepositories(
+        CompendiumDatabase(NativeDatabase.memory()),
+      );
+      final service = _CountingOnlineService();
+
+      await expectLater(
+        resolveTitleList(
+          [
+            for (var i = 0; i <= kMaxTitleListTitles; i++) 'Dance $i',
+          ].join('\n'),
+          service: service,
+          repos: repos,
+        ),
+        throwsA(isA<TitleListTooLargeException>()),
+      );
+      expect(repos.fullCollectionReads, 0);
+      expect(repos.countedDances.listIdsAndTitlesCalls, 0);
     });
   });
 }

@@ -516,9 +516,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     ImportBatchResult batch, {
     TitleListResolution? titleList,
   }) async {
-    final titles = {
-      for (final e in await _repos.dances.listIdsAndTitles()) e.id: e.title,
-    };
+    final titles = batch.records.isEmpty
+        // Nothing to review means nothing to name: `_titlesById` only labels
+        // candidate/re-import targets on a row, so loading the collection's
+        // titles for an empty batch is a read whose result is never read.
+        ? const <String, String>{}
+        : {
+            for (final e in await _repos.dances.listIdsAndTitles())
+              e.id: e.title,
+          };
     final confidentDiffs = await _computeConfidentDiffs(batch);
     if (!mounted) return;
     setState(() {
