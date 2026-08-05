@@ -21,6 +21,7 @@ class FacetPanel extends StatelessWidget {
     required this.statuses,
     required this.levels,
     required this.hasMixedLevel,
+    required this.hasMixer,
     required this.hasRating,
     required this.authors,
     required this.tags,
@@ -39,6 +40,10 @@ class FacetPanel extends StatelessWidget {
   final List<DanceStatus> statuses;
   final List<DanceLevel> levels;
   final bool hasMixedLevel;
+
+  /// Whether any dance is flagged as a mixer; hides the Mixer facet section
+  /// when the whole collection has no mixers.
+  final bool hasMixer;
 
   /// Whether any dance carries a star rating; hides the minimum-rating section
   /// for an all-unrated collection.
@@ -187,6 +192,29 @@ class FacetPanel extends StatelessWidget {
               selected: facets.mixedLevel == true,
               onSelected: (sel) {
                 facets.mixedLevel = sel ? true : null;
+                onChanged();
+              },
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (hasMixer) {
+      sections.add(
+        _FacetSection(
+          key: const ValueKey('facet-row-mixer'),
+          label: l10n.commonMixer,
+          sectionId: 'mixer',
+          activeCount: facets.mixer == true ? 1 : 0,
+          chips: [
+            _chip(
+              key: 'mixer-yes',
+              label: l10n.commonMixer,
+              icon: Icons.sync_alt,
+              selected: facets.mixer == true,
+              onSelected: (sel) {
+                facets.mixer = sel ? true : null;
                 onChanged();
               },
             ),
