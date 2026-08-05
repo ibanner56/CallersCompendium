@@ -442,7 +442,7 @@ it:
 | --- | --- | --- |
 | The baseline manifest (~1.4 MB at 11,500 records) | Its own table, not `settings` — too large for a key/value row | `deviceScoped` |
 | The store epoch | Alongside the baseline | `deviceScoped` |
-| Per-record last-seen hashes | Baseline table | `deviceScoped` |
+| Per-record last-seen hashes — wire and `body`-scoped | Baseline table | `deviceScoped` |
 | Id aliases (`losing_id`, `surviving_id`, `kind`) | `id_aliases` | `deviceScoped` |
 | Pending deletions — markers (`kind`, `record_id`, `tombstoned_at`, `tombstone_hash`) | `pending_deletions` | `deviceScoped` |
 | Pending deletions — retained tombstone bytes (`tombstone_blob`) | `pending_deletions` | `shareable` |
@@ -799,6 +799,30 @@ classifier, look for the one the design already uses to make the same
 distinction** — a mechanism that already separates "I changed this" from "I
 haven't caught up" is worth more than a fresh signal that seems to.
 
+##### A comparator's granularity is part of the classifier
+
+> **When a classifier compares two things, check that the comparison's
+> granularity matches the question.** The tell is an answer that goes *constant*
+> — always-differs or always-matches — in exactly the situation the classifier
+> exists for.
+
+The fourteenth habit, and the companion to the thirteenth: that one checks
+whether the *signal* answers the question, this one whether the *measurement*
+can. Both are needed, and picking the right signal with the wrong granularity
+fails just as completely.
+
+The whole-blob content hash defeated two consecutive attempts at the same
+comparison. Against a peer it could never report *equal*, because repair only
+runs when the ordering fields differ. Against this device's own baseline it could
+never report *matches*, because poisoning is a timestamp-only change and the hash
+covers timestamps. One comparator, two opposite degeneracies, both invisible in
+the common case and both total in the case that mattered.
+
+A hash is especially prone to this, because its convenience hides its scope: it
+is one value, cheap to compare, already computed for another purpose — and that
+last part is the trap. **A value computed for one question is not automatically
+the right measurement for another**, however closely the two are related.
+
 ##### Bounds are directional
 
 A related and simpler slip. Every bound in the quarantine mechanism —
@@ -1005,7 +1029,11 @@ other copies actually hold:
   alone would let such a peer be selected, and the device would adopt a value
   still outside its own window — re-quarantining the record immediately, for as
   long as that peer's clock stayed broken. **A rebuilt value is re-checked
-  against the local window before the record is considered repaired.**
+  against the local window before the record is considered repaired**, and a
+  value that fails only because `+ 1ms` crossed the boundary is clamped back to
+  the ceiling rather than treated as an unrepaired record — the check exists to
+  catch a badly chosen *peer*, not to fail on arithmetic at the last
+  millisecond.
 
   Then, per field:
   - `existenceAt`: adopt the peer value **verbatim** when the peers agree with
@@ -1020,7 +1048,14 @@ other copies actually hold:
   A field that is **inside** the window is left exactly as it is, and a record
   with neither a baseline entry nor any peer copy — a new record on a
   clock-broken device — simply stays quarantined, since there is nothing to
-  reconcile it against.
+  reconcile it against. **A missing baseline entry counts as agreement, not as a
+  difference**: a record with peer copies but no baseline has never been agreed
+  by this device, so it cannot have been edited *since* agreement, and reading
+  "no entry" as "not equal" would take the differs-branch and push possibly-stale
+  content above the peers. Fresh attach, restore and epoch reset all rebuild the
+  baseline from post-union local content, so this is nearly unreachable — but the
+  property that saves it lives in another section, which is exactly the kind of
+  dependency worth stating where the rule is.
 
   **The classifier must answer "did *I* edit", and only the baseline does.** A
   draft keyed the `updatedAt` rebuild on local content differing from *the
@@ -1041,12 +1076,46 @@ other copies actually hold:
   "did I write since we last agreed"; local-versus-peer is "are we the same right
   now", and only the first is what the rebuild needs to know.
 
-  The comparison is **hash equality against the stored per-record baseline
-  hash**, which the baseline table already keeps and which is already defined as
-  `SHA-256` over canonical JSON. No new comparator is introduced — and in
-  particular the rule does **not** compare local content against the peer's blob,
-  which could never report equality anyway, since the ordering fields differ by
-  construction whenever repair is running.
+  The comparison is **hash equality over the record's `body` alone**, against a
+  body-scoped hash stored alongside the wire hash in the baseline table, using
+  the same canonicalisation the wire hash uses so that `8` and `8.0`, or absent
+  and null, cannot read as a difference.
+
+  **It has to exclude the ordering fields, or it answers a different question.**
+  The wire hash covers the whole blob — `v`, `kind`, `id`, `updatedAt`,
+  `deletedAt`, `existenceAt` and `body` — so comparing it asks "is my record
+  byte-identical to my last synced snapshot", not "did I edit the content". Those
+  diverge in exactly the situation repair exists for: poisoning changes a
+  timestamp and nothing else, so a whole-blob comparison reports "differs"
+  unconditionally, and the classifier degenerates to "I edited" for every
+  quarantined record. A device that soft-deleted while its clock was broken —
+  `softDelete` writes `deletedAt` and `updatedAt`, never touching `body` — would
+  be classified as having edited, and would stamp its possibly-stale content
+  above the peers. That is the round-17 defect returning by another route, and it
+  is the same whole-blob comparator that caused it: there it could never report
+  *equal*, here it can never report *differs* falsely — the tell in both cases
+  being an answer that goes constant precisely where the classifier is needed.
+
+  **The baseline entry must record agreement, not merely upload.** A record's
+  baseline entry advances only once a peer's manifest is observed to carry that
+  hash; an upload this device has not yet seen reflected stays out of it.
+
+  This was harmless while every well-formed upload was accepted, and stopped
+  being harmless in the same revision that widened inbound rejection — the two
+  changes landed together, which is what made "I uploaded" and "we agreed" come
+  apart. With per-receiver rejection there is no failure signal back to the
+  sender, so a device whose clock was fast could publish a poisoned blob, store
+  it as its own baseline, have every peer refuse it, and then — once its clock
+  was corrected — compare the poisoned record against a baseline set by the very
+  write being repaired, match, and take the verbatim branch. It would adopt the
+  peers' older `updatedAt` while keeping its own newer content: identical
+  timestamps, different content, on a merge gate that requires strict `>`, so
+  nothing uploads and nothing downloads and a genuine edit is silently invisible
+  for ever. It would also move `updatedAt` *backwards* past content it now
+  describes, breaking *content changes must move the discriminator*.
+
+  A baseline named for what two devices last agreed on has to be advanced by
+  evidence of agreement.
 
   The record's content and its live-or-deleted state are never changed by repair;
   only impossible ordering values are. The two copies end bit-identical exactly
@@ -1160,6 +1229,31 @@ stays quarantined until another device attaches. It is also the case with the
 least at stake, since a record that syncs with nobody cannot lose a conflict to
 anybody.
 
+**A persistently fast clock is the silent mirror, and widening inbound rejection
+created it.** Clock-suspect detects only the *slow* direction: a device seeing
+every peer value as impossibly far off. A device running persistently fast beyond
+the bar sees the opposite of trouble — its own records are never future relative
+to itself, so nothing quarantines, and every peer value sits comfortably *below*
+its inflated ceiling, so it is never clock-suspect. Meanwhile every ordinary edit
+it makes now stamps an `updatedAt` that honest peers refuse outright, where under
+the narrower rule those blobs were accepted and cleaned downstream.
+
+It re-uploads and is re-rejected every pass, and learns nothing: peers' manifests
+still advertise the old hash, which reads as "remote unchanged" rather than
+"remote refused me". So the one user who can fix the clock is told nothing, while
+the warning surfaces on peers whose users cannot.
+
+**A device also reports when its own values sit far above every peer's** — the
+symmetric counterpart, computed from the same per-pass observation and equally
+free of new state. Detecting only the direction that inconveniences *other*
+devices, and staying quiet on the one that inconveniences the device that can
+act, would put the signal where it is least useful.
+
+An earlier version of this section claimed both clock-failure directions "stay
+loud and contained". Containment held; loudness did not, once inbound rejection
+widened — the fast direction was contained *and silent on the originating
+device*, which is the half that matters for getting it fixed.
+
 **A clock that is never corrected is a worse case than a solo install, and looks
 identical to the user.** The discussion above assumes a clock that glitches and
 is then fixed. A dead RTC that simply stays wrong — the commonest form of the
@@ -1175,9 +1269,11 @@ the fleet's records outright rather than quarantining its own, which is outside
 the quarantine-and-repair machinery entirely and presents as a device that simply
 cannot sync.
 
-Both are bounded the same way — the failures are loud, contained to that device,
-and never silently reverse another device's work — but neither self-heals, and
-the only real fix is the user's clock. That is what the report is for. The
+All three directions are bounded the same way — contained to the affected
+device, never silently reversing another device's work, and each surfaced **on
+the device whose clock is wrong**, which the fast case only became once its own
+detector was added. None self-heals, and the only real fix is the user's clock.
+That is what the reports are for. The
 design does not attempt more than surfacing it, because a device that cannot tell
 the time has no sound basis for ordering anything, and inventing one would be the
 guess this whole section exists to refuse.
@@ -1834,7 +1930,13 @@ sync ID entirely, so re-enabling is a fresh attach.
    detach, and on `409`. Detaching **forgets the sync ID entirely**: no
    list of previously-attached IDs is kept, so re-attaching cannot resurrect a
    stale baseline.
-4. Upload every local record; download every remote record.
+4. Upload every local record; download every remote record. **Inbound rejection
+   applies here as in steady state** — a blob whose `existenceAt` or `updatedAt`
+   is out of window is refused and reported, rather than admitted because this is
+   an attach. The case is worth naming: a restore-triggered fresh attach drops
+   the whole baseline, and the power loss that prompted a restore is also a
+   common cause of a wrong clock, so the two arrive together more often than
+   independently.
 5. **Union**, then dedupe (below). No deletion occurs during a fresh attach —
    there is no baseline to justify one. Where two peers advertise the **same id
    with different content**, there is likewise no baseline to compare against, so
@@ -2140,7 +2242,10 @@ contained failure would have become a silent, general one.
 7. Apply in one transaction, **read-modify-write** (below). Rebuild derived
    indexes.
 8. `PUT /v1/manifests/{self}`.
-9. Store the new baseline.
+9. Store the new baseline. A record's entry advances only where a peer's
+   manifest was observed to carry that hash — an upload not yet reflected by any
+   peer is not agreement, and quarantine repair reads this table to decide
+   whether *this* device edited.
 
 ### Backup restore invalidates the baseline
 
@@ -2788,6 +2893,19 @@ must say this plainly rather than implying sync is opaque to us.
   classify on local content differing from **the peer's** rather than from the
   baseline — the latter is the subtler mutation, because a poisoned discriminator
   causes exactly the staleness that makes those two comparisons disagree.
+- **A timestamp-only change is not read as an edit** — soft-delete a record on a
+  clock-broken device without touching its content, then repair; assert the
+  verbatim branch is taken. Mutation-proved by comparing the **whole-blob** hash
+  instead of the body hash: `softDelete` moves `deletedAt` and `updatedAt`, so
+  the blob hash always differs and every quarantined record is misclassified as
+  edited — the comparator answering constantly in the one case it exists for.
+- **An unconfirmed upload is not agreement** — a device with a fast clock uploads
+  a poisoned blob that every peer refuses; assert its baseline does **not**
+  advance, so a later repair still classifies the record as locally edited.
+  Mutation-proved by advancing the baseline on upload, after which repair
+  compares the record against a baseline set by the very write being repaired,
+  matches, adopts the peers' older `updatedAt`, and strands newer content at an
+  equal timestamp where the strict-`>` gate moves nothing in either direction.
 - **A local edit made while poisoned survives repair** — the mirror case: the
   device edits a quarantined record, so its content diverges from its own
   baseline; assert the repaired `updatedAt` outranks the peer's and the edit

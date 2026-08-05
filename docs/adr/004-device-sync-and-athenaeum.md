@@ -739,6 +739,19 @@ makes self-hosting materially harder, which constraint 4 forbids.
   own baseline**, because only a local write can poison it, and the baseline is
   what tells a device whether it wrote.
 
+  Two details of that comparison are load-bearing rather than incidental. It is
+  scoped to the record's **`body`**, not the whole blob: the wire hash covers the
+  timestamps, and poisoning *is* a timestamp-only change, so a whole-blob
+  comparison reports "differs" for every quarantined record and the classifier
+  collapses to "I edited" — the same comparator that, pointed at a peer a round
+  earlier, could never report "equal". And a baseline entry advances only once a
+  peer is observed to carry that hash, because "what I last uploaded" and "what
+  we last agreed" came apart the moment inbound rejection widened: with no
+  failure signal back to a sender, a device could baseline a blob every peer
+  refused, then later compare a poisoned record against a baseline written by the
+  very write being repaired — matching, adopting an older timestamp, and
+  stranding newer content where the strict-`>` gate moves nothing either way.
+
   **Choosing those classifiers was the substance of the decision.** Neither field
   carries a signal separating a value poisoned by a broken clock from a genuine
   one, so no comparison of magnitude can tell them apart; plausibility against
@@ -776,10 +789,16 @@ makes self-hosting materially harder, which constraint 4 forbids.
   a device stays clock-suspect indefinitely, quarantines more records as its
   peers legitimately transition things, and — if it is wrong in the *behind*
   direction — rejects the fleet's honest values on first attach before it has any
-  local state to quarantine at all. Both failures stay loud and contained to that
-  device, and neither can silently reverse another device's work, but the only
-  real remedy is the user's clock. The design surfaces it rather than guessing
-  around it.
+  local state to quarantine at all. A persistently *fast* clock is the third
+  direction and needed its own detector: it never quarantines its own records and
+  never sees a peer above its inflated ceiling, so widening inbound rejection
+  made its blobs refused everywhere while the device itself was told nothing. A
+  device therefore also reports when its own values sit far above every peer's.
+
+  All three stay contained to the affected device, none can silently reverse
+  another device's work, and each is now surfaced on the device whose clock is
+  wrong rather than on the peers that cannot fix it. The only real remedy is the
+  user's clock; the design surfaces it rather than guessing around it.
 
   It is a **separate column** rather than a reuse of `deletedAt` because that
   field is a retention timestamp with real consumers — the purge sweep and the
