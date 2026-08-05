@@ -3014,6 +3014,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportLabelLevel => 'Level';
 
   @override
+  String get exportLabelMixer => 'Mixer';
+
+  @override
   String get exportLabelStatus => 'Status';
 
   @override

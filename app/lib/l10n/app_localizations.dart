@@ -4826,6 +4826,12 @@ abstract class AppLocalizations {
   /// **'Level'**
   String get exportLabelLevel;
 
+  /// Field label for the mixer line on an exported dance card (plain text and PDF); shown only when the dance is a mixer (Dance.mixer == true). A mixer is a dance in which dancers change partners each time through, NOT an audio or kitchen mixer.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixer'**
+  String get exportLabelMixer;
+
   /// Field label for the status (deprecated/broken) on an exported dance card (plain text and PDF).
   ///
   /// In en, this message translates to:

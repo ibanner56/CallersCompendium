@@ -13,6 +13,7 @@ import '../../l10n/app_localizations.dart';
 DanceExportLabels danceExportLabels(AppLocalizations l10n) => DanceExportLabels(
   formation: l10n.exportLabelFormation,
   level: l10n.exportLabelLevel,
+  mixer: l10n.exportLabelMixer,
   status: l10n.exportLabelStatus,
   phrase: l10n.exportLabelPhrase,
   figures: l10n.exportLabelFigures,

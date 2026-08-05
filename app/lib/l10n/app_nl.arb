@@ -781,6 +781,7 @@
   "exportMatrixPdfFilename": "Programmeringsmatrix",
   "exportLabelFormation": "Formatie",
   "exportLabelLevel": "Niveau",
+  "exportLabelMixer": "Mixer",
   "exportLabelStatus": "Status",
   "exportLabelPhrase": "Frase",
   "exportLabelFigures": "Figuren",

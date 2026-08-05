@@ -2936,6 +2936,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportLabelLevel => 'レベル';
 
   @override
+  String get exportLabelMixer => 'ミキサー';
+
+  @override
   String get exportLabelStatus => 'ステータス';
 
   @override

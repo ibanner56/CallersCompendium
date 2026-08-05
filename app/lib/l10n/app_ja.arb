@@ -781,6 +781,7 @@
   "exportMatrixPdfFilename": "プログラミングマトリックス",
   "exportLabelFormation": "フォーメーション",
   "exportLabelLevel": "レベル",
+  "exportLabelMixer": "ミキサー",
   "exportLabelStatus": "ステータス",
   "exportLabelPhrase": "フレーズ",
   "exportLabelFigures": "フィギュア",

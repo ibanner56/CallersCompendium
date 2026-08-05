@@ -3021,6 +3021,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get exportLabelLevel => 'Niveau';
 
   @override
+  String get exportLabelMixer => 'Mixer';
+
+  @override
   String get exportLabelStatus => 'Status';
 
   @override
