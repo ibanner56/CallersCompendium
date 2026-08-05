@@ -1650,6 +1650,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// caller who pasted twelve titles and got none needs to see which six she
   /// owns and which two the app couldn't find, because those need completely
   /// different follow-up.
+  ///
+  /// It carries a Back affordance for the same reason the generic dead end does:
+  /// there is no Import button on this screen, so without one the only way on is
+  /// to close the whole import and start again — losing the answer she just
+  /// asked for. Returning here resets the same state the generic message's
+  /// button does.
   Widget _buildTitleListOnlyReview(
     BuildContext context,
     TitleListResolution titleList,
@@ -1668,6 +1674,22 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           ),
         ),
         ..._buildTitleListGroups(context, titleList),
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              key: const ValueKey('import-back-to-input'),
+              onPressed: () => setState(() {
+                _phase = _Phase.input;
+                _batch = null;
+                _planError = null;
+              }),
+              icon: const Icon(Icons.arrow_back),
+              label: Text(l10n.commonBack),
+            ),
+          ),
+        ),
       ],
     );
   }

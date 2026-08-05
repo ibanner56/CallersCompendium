@@ -127,6 +127,51 @@ List<ImportSource> _titleListOnly() => [
   ),
 ];
 
+/// The title-list source plus the generic-JSON source, so a test can run a
+/// title-list import and then plan a different source in the same screen.
+List<ImportSource> _titleListAndJson() => [
+  defaultImportSources().firstWhere(
+    (s) => s.kind == ImportSourceKind.titleList,
+  ),
+  defaultImportSources().firstWhere(
+    (s) => s.kind == ImportSourceKind.genericJson,
+  ),
+];
+
+/// A one-dance Caller's Compendium archive — the payload `GenericJsonAdapter`
+/// consumes.
+String _archivePayload(String title) => encodeArchive(
+  CompendiumArchive(
+    exportedAt: DateTime.utc(2026, 7, 15),
+    dances: [
+      Dance(
+        id: 'incoming',
+        title: title,
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    ],
+  ),
+);
+
+/// Goes back to the input step, switches to the generic-JSON source, and plans
+/// a one-dance archive through it.
+Future<void> _thenImportJson(WidgetTester tester, String title) async {
+  await tester.tap(find.byKey(const ValueKey('import-back-to-input')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('import-source-select')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text("a Caller's Compendium JSON file").last);
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    find.byKey(const ValueKey('import-paste-field')),
+    _archivePayload(title),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('import-continue')));
+  await tester.pumpAndSettle();
+}
+
 Future<void> _pump(
   WidgetTester tester,
   CompendiumRepositories repos, {
@@ -372,6 +417,102 @@ void main() {
       );
       expect(find.text('Already in your collection: 1'), findsOneWidget);
       expect(find.text('Not found: 1'), findsOneWidget);
+    });
+  });
+
+  group('a title-list resolution must not outlive its plan (review of #842)', () {
+    // Raised in review: `_titleList` had clearing discipline at one site while
+    // `_titleListError` had it at three, so a resolution could survive into a
+    // different plan. The fix couples `_titleList` to `_batch` in `_adoptBatch`,
+    // the single place both are assigned.
+    //
+    // Falsification: reverting is the wrong target (pre-#823 code has no
+    // `_titleList` at all and would go red incidentally). These mutate out the
+    // fix instead — the naive "clear only the error" version — and catch that.
+
+    testWidgets('a later import from another source does not inherit the title '
+        'list\'s groups', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_localDance(id: 'd1', title: 'Fiddleheads'));
+      final service = _FakeOnline(rowsByTitle: const {'ghost dance': []});
+      await _pump(
+        tester,
+        repos,
+        service: service,
+        sources: _titleListAndJson(),
+      );
+
+      // A paste where nothing is importable: owned + not-found groups only.
+      await _paste(tester, 'Fiddleheads\nGhost Dance');
+      expect(
+        find.byKey(const ValueKey('import-titles-group-owned')),
+        findsOneWidget,
+      );
+
+      await _thenImportJson(tester, 'Brand New Reel');
+
+      // The JSON import's review is its own.
+      expect(find.byKey(const ValueKey('import-row-0')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('import-titles-group-owned')),
+        findsNothing,
+        reason: 'a JSON import has no already-in-your-collection group',
+      );
+      expect(
+        find.byKey(const ValueKey('import-titles-group-not-found')),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('import-titles-summary')), findsNothing);
+    });
+
+    testWidgets('nor does its result dialog inherit the title list\'s counts', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_localDance(id: 'd1', title: 'Fiddleheads'));
+      final service = _FakeOnline(rowsByTitle: const {'ghost dance': []});
+      await _pump(
+        tester,
+        repos,
+        service: service,
+        sources: _titleListAndJson(),
+      );
+
+      await _paste(tester, 'Fiddleheads\nGhost Dance');
+      await _thenImportJson(tester, 'Brand New Reel');
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('import-summary-AlreadyOwned')),
+        findsNothing,
+        reason: 'a JSON import has no "already in your collection" answer',
+      );
+      expect(
+        find.byKey(const ValueKey('import-summary-NotFound')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('the nothing-importable review offers a way back, so the '
+        'answer is not a dead end', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_localDance(id: 'd1', title: 'Fiddleheads'));
+      final service = _FakeOnline(rowsByTitle: const {'ghost dance': []});
+      await _pump(tester, repos, service: service);
+
+      await _paste(tester, 'Fiddleheads\nGhost Dance');
+      expect(
+        find.byKey(const ValueKey('import-back-to-input')),
+        findsOneWidget,
+        reason:
+            'there is no Import button here; without Back the only way on '
+            'is to close the whole import',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('import-back-to-input')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('import-titles-field')), findsOneWidget);
     });
   });
 }
