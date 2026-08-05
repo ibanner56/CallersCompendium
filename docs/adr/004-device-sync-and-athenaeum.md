@@ -721,6 +721,24 @@ makes self-hosting materially harder, which constraint 4 forbids.
   silently revert a deliberate deletion: the failure this field exists to
   prevent, reintroduced by its own repair path.
 
+  **Repair therefore reads no clock at all.** It adopts the greatest acceptable
+  peer value, or exceeds it by a millisecond where the local live-or-deleted
+  state differs, and it restamps `updatedAt` the same way — which is required by
+  the content invariant, since `existenceAt` is part of the hashed blob, and
+  which also cleans the `updatedAt` the broken clock poisoned alongside it. A
+  successor draft kept a `localNow` fallback for the case with no acceptable peer
+  copy, and that single branch reinstated the whole failure for a clock wrong in
+  the *past* direction: quarantine and acceptance are one-sided upper bounds, so
+  a device stuck in 2000 finds every healthy record and every peer value out of
+  range, rewrites its collection downward, and loses every subsequent deletion to
+  a peer's live copy.
+
+  When every observed peer value lies outside the local window, the device is the
+  outlier rather than the fleet, so it declares itself **clock-suspect**: it
+  mints nothing, repairs nothing, and reports. A device that cannot tell the time
+  cannot order events, and a stable loud divergence is worth more than a
+  confident wrong answer.
+
   It is a **separate column** rather than a reuse of `deletedAt` because that
   field is a retention timestamp with real consumers — the purge sweep and the
   Recently Deleted countdown both read it — so stamping it forward could pin a

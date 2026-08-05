@@ -651,7 +651,7 @@ For existence:
 | Record creation | Seeds the field |
 | Migration backfill | `T₀` for live rows, `deleted_at` for deleted ones — see the accepted consequence |
 | Inbound validation | Out-of-range values rejected, never clamped |
-| Quarantine repair | Restamped on the next pass above the greatest acceptable peer value |
+| Quarantine repair | Adopts the greatest acceptable peer value; mints nothing from the local clock |
 
 Written as a table because the alternative is discovering the paths one review
 round at a time, which is what happened.
@@ -691,6 +691,39 @@ The tell is a quantifier in the justification that does not appear in the
 mechanism. When the argument says *every* and the code says *mine*, the gap is
 where the defect lives.
 
+##### A rejected assumption survives in the fallback
+
+> **When a mechanism is hardened because some input is untrustworthy, check every
+> branch that still consumes that input — the fallback first.**
+
+The tenth habit, and the one with the worst record here: two consecutive rounds
+of repair mechanisms failed on it. A fallback is written as "the case where the
+new mechanism has nothing to work with", which is precisely the phrasing under
+which the old, rejected assumption slips back in — the primary path stopped
+trusting the local clock and the fallback ended "`localNow` alone is used".
+
+It is easy to miss because the fallback looks like a degenerate case rather than
+a decision. It is not: it is the branch that runs exactly when the situation is
+worst, and it inherits none of the reasoning that made the primary path safe. A
+hardened primary with an unhardened fallback is an unhardened mechanism with
+extra steps.
+
+The companion question is what a mechanism should do when it genuinely has
+nothing to work with. Minting a value from the distrusted source is one answer;
+declining, staying in a stable and loud failure, and reporting is usually the
+better one — a device that cannot tell what time it is should not be ordering
+events, and saying so is more useful than guessing.
+
+##### Bounds are directional
+
+A related and simpler slip. Every bound in the quarantine mechanism —
+`localNow + 24h` for both rejection and quarantine — is **one-sided and upper**.
+That is correct against a clock running fast and inverts entirely against one
+running slow, which the same paragraph's own motivating hardware ("a dead RTC, a
+mis-set year") does about as often. When a bound guards against a value being
+wrong, ask which *direction* of wrong it catches, and whether the other direction
+turns the guard into its opposite.
+
 ## Wire format
 
 All payloads are UTF-8 JSON. All requests and responses may use
@@ -720,8 +753,9 @@ A blob is the record as the existing archive codec emits it, restricted to
 - `deletedAt` — non-null means a **tombstone**: the record is deleted, and this
   blob is how that fact travels.
 - `existenceAt` — orders the record's live↔deleted transitions causally.
-  Always present, advanced on every such transition and by nothing else, and it
-  alone decides an existence disagreement; see below.
+  Always present, advanced on every such transition and — apart from quarantine
+  repair — by nothing else, and it alone decides an existence disagreement; see
+  below.
 - `body` — archive-codec output for the record, `shareable` fields only.
 
 #### `existenceAt`, and why existence needs its own clock
@@ -857,13 +891,20 @@ other copies actually hold:
 - **A record whose own `existenceAt` exceeds `localNow + 24h` is quarantined.**
   This is a derived predicate over an existing column, not new state, so it needs
   no schema.
-- **A quarantined record repairs itself on the next pass, above what is in
-  circulation.** The device fetches the peers' copies of that record, takes the
-  greatest `existenceAt` among those *within its own acceptance window*, and
-  restamps the local value as `max(localNow, thatValue + 1ms)`. The local
-  live-or-deleted state is preserved exactly as the user last set it; only the
-  ordering value is rebuilt. If no acceptable peer copy exists, `localNow` alone
-  is used.
+- **Repair adopts observed values; it never mints one from the local clock.** The
+  device gathers the peers' copies of that record, discards any whose
+  `existenceAt` falls outside its own acceptance window, and takes the greatest
+  of what remains. Then:
+  - if the peers agree with the local live-or-deleted state, it **adopts that
+    value verbatim** — no new value, and the two copies become bit-identical;
+  - if the local state differs, the user made a transition while poisoned, so the
+    device stamps `thatValue + 1ms` to preserve their intent and outrank the
+    peers.
+
+  It also restamps `updatedAt` to `greatest acceptable peer updatedAt + 1ms`,
+  which both satisfies the content invariant below and cleans the `updatedAt`
+  that the same broken clock poisoned. The local live-or-deleted state and the
+  record's content are untouched; only the two ordering values are rebuilt.
 - **A rejected hash is reported once per session**, held in memory. The blob
   stays in the peer's manifest and would otherwise be re-fetched and re-rejected
   for ever, turning one bad record into an endless stream of identical warnings.
@@ -872,6 +913,35 @@ other copies actually hold:
   restarts would mean persisting a set of a peer's content hashes — new state,
   needing a classification, to solve a problem that no longer lasts long enough
   to warrant it.
+
+**Repair reads no clock, and that is the point.** A draft of this rule ended "if
+no acceptable peer copy exists, `localNow` alone is used" — reinstating, in the
+fallback, exactly the trust the primary path had just withdrawn. Quarantine and
+acceptance are both **one-sided upper bounds**, which is right for a fast clock
+and inverts completely for a slow one, and the motivating hardware fails in both
+directions.
+
+A device whose RTC dies to 2000 finds every healthy record at 2026 above
+`localNow + 24h`, so it quarantines **all** of them; every peer value is likewise
+outside its window, so "no acceptable peer copy exists" fires everywhere and it
+rewrites its whole collection *downward* to 2000. A subsequent deletion stamps
+`max(2000, 2026 + 1ms)`, quarantines again, repairs down again — and the peers'
+live copies at 2026 outrank it, so the deletion is silently reverted. That is the
+cardinal failure, reached through the one branch that still trusted the clock.
+
+**When every observed peer value is outside the local window, the local clock is
+the outlier, not the peers.** One device disagreeing with the fleet is the device
+that is wrong. In that state it declares itself **clock-suspect**: it does not
+repair, does not mint existence values, and reports — because a device that
+cannot tell what time it is cannot safely order anything. Records stay
+quarantined and diverged, which is stable and loud, rather than silently wrong.
+
+With no clock in the repair path there is also no fallback branch to contradict,
+and the earlier draft had one: it promised `localNow` when no acceptable peer
+copy existed while the residual below promised the opposite, and a single
+out-of-window peer satisfied both triggers at once. An unacceptable peer value is
+**excluded from the maximum, not a veto** — ten honest peers still repair the
+record when an eleventh is broken.
 
 **Why the repair reads peer values rather than trusting the local clock.** An
 earlier version reset from the local clock alone, arguing it was safe "precisely
@@ -906,15 +976,41 @@ rejection is whole-blob, so every later edit to that record went unsyncable with
 nothing to signal it and no gesture that would fix it. Automatic repair needs
 neither the user to notice nor the user to guess the remedy.
 
-**The residual is stated rather than argued away.** If a peer holds a value that
-this device would itself reject, the repair cannot outrank it without exceeding
-its own ceiling, so it does not try: the record stays quarantined, diverged from
-that peer, and reported. That is the Route B case, where the other device's clock
-is the broken one — and it resolves when that device's own quarantine fires. A
-reset that ties a peer's value loses to a tombstone under the standing tie rule,
-so the `+ 1ms` is load-bearing rather than decorative. Two devices repairing the
-same record concurrently converge, because each stamps above what it observed and
-real clocks move forward.
+**The residual is stated rather than argued away.** Where a peer's value falls
+outside this device's window but the device is not clock-suspect — the peers
+disagree with each other, not with it — that peer is excluded from the maximum
+and the record repairs against the rest. The divergence from *that* peer remains,
+and is reported.
+
+An earlier draft said it "resolves when that device's own quarantine fires",
+which is an unenforced *always* of exactly the shape the habit below was written
+to catch. It resolves only if that peer's value is out of range **by its own
+window** too. When two individually-honest devices simply sit a long way apart —
+neither broken enough to quarantine itself, neither able to raise its value
+without exceeding its own ceiling — nothing fires and the divergence is
+open-ended. It is bilateral and reported rather than silent, and the honest
+statement is that the design bounds it no further than that.
+
+The guarantee is also over **observable** peers: the consulted set is whatever
+the current manifests advertise, so a peer that is offline holding an unpublished
+later transition can outrank a repair when it returns. That is the design's
+standing behaviour for any deletion rather than something repair introduces, but
+it belongs in the statement of what repair guarantees.
+
+A repaired value that ties a peer's loses to a tombstone under the standing tie
+rule, so the `+ 1ms` is load-bearing rather than decorative. Two devices
+repairing the same record concurrently converge through the **content** table
+rather than the existence rule — when both agree the record exists, existence
+never runs — which works because each stamps `updatedAt` above the greatest it
+observed, so one of the two is strictly newer and wins outright. An earlier draft
+derived that convergence through the existence comparison, which cannot decide it,
+and left the pair tied at equal `updatedAt` in a row the table does not resolve.
+
+One skew does compound mildly: a peer honestly near its own ceiling plus a
+repairer whose clock is moderately fast can produce a value a third,
+correctly-clocked device rejects. It is bounded by one hop's worth of window and
+self-corrects through that device's own repair, so it is recorded rather than
+engineered against.
 
 Keeping the plain `max` instead was considered and rejected: it leaves the record
 diverged but *stable*, which is genuinely safer than a silent wrong winner, and
@@ -931,8 +1027,15 @@ both directions:
   applied when a pending hold's last citation goes.
 - **Revival** — cancelling a pending tombstone by editing the record, and an
   explicit restore from Recently Deleted.
+- **Quarantine repair** — the one writer that is not a transition. It rebuilds a
+  poisoned ordering value from observed peer values without changing whether the
+  record exists, and it is listed here because this is the section an implementer
+  reads to find out which writes set the field. A draft of this enumeration
+  omitted it while two absolutes elsewhere said the field moved on transitions
+  and nothing else, which is the same stale-enumeration failure this document
+  records one field earlier.
 
-**Every sync-apply path leaves it alone**, including reference rewriting,
+**Every other sync-apply path leaves it alone**, including reference rewriting,
 merge-by-recency, reconciliation and the dance merge's scalar recency. Applying a
 peer's blob copies that peer's value rather than stamping a new one — the field
 records where a record sits in its own existence history, not when this device
@@ -1747,6 +1850,24 @@ the one to check hardest: a record's serialised form includes fields hydrated
 from other tables, so a write that never touches the record's own row can still
 change what it publishes.
 
+It has since been broken a third time, by **quarantine repair**, and the check
+above is what should have caught it: `existenceAt` is a top-level field of the
+blob, the hash covers the whole blob, so rebuilding it changes the record's
+serialised content. The draft that introduced repair did not advance `updatedAt`,
+so a repaired record would have differed from its peers by hash while the
+discriminator said nothing had changed — peers discarding the repair, and the
+divergence outliving the fix.
+
+The compounding case is worse and is the reason repair now rebuilds `updatedAt`
+too. A broken clock poisons **both** values, because `softDelete` writes one
+timestamp into `deletedAt` and `updatedAt` together. Whole-blob rejection had
+kept that poison contained to one device; a repair that cleaned only
+`existenceAt` would have let the blob win an existence disagreement and then be
+applied wholesale — poisoned `updatedAt` included, since `updatedAt` takes no
+part in that decision — spreading it fleet-wide and making every honestly-stamped
+later edit lose every content conflict until wall-clock time caught up. The loud,
+contained failure would have become a silent, general one.
+
 5. `POST /v1/blobs/missing` with the hashes to upload; `PUT` only what is
    missing.
 6. `GET /v1/blobs/{hash}` for each needed hash. **Verify the hash before
@@ -2381,16 +2502,31 @@ must say this plainly rather than implying sync is opaque to us.
   live-or-deleted state is preserved. Mutation-proved three ways, each of which
   the others leave passing: keep the `max` (the record stays unsyncable long
   after the clock is right — the failure is not that a bad value was written but
-  that nothing can supersede it); reset from the local clock alone (Route A —
-  a peer that accepted an eighteen-hour-fast value still outranks the repair, and
-  a deliberate deletion bounces back); and require a user transition to trigger it
+  that nothing can supersede it); reset from the local clock alone (a peer that
+  accepted an eighteen-hour-fast value still outranks the repair, and a
+  deliberate deletion bounces back); and require a user transition to trigger it
   (the repair never fires, because the poisoned device already displays the state
   its user intended).
+- **A slow clock does not rewrite the collection downward** — set a device's
+  clock to 2000 with peers holding healthy 2026 values; assert it declares itself
+  clock-suspect, mints nothing, and reverts no deletions. Mutation-proved by
+  restoring the `localNow` fallback, which quarantines every record, repairs them
+  all downward, and lets the peers' live copies outrank a subsequent deletion.
+  This is the direction the one-sided bounds invert on, and no other test covers
+  it.
+- **Repair advances `updatedAt` and cleans the poisoned one** — assert the
+  repaired blob is accepted by peers on the content path, and that the
+  `updatedAt` the broken clock stamped does not survive the repair.
+  Mutation-proved by rebuilding only `existenceAt`: the repair is discarded at
+  equal `updatedAt`, and where it does land it carries the poisoned `updatedAt`
+  fleet-wide, so every honestly-stamped later edit loses.
+- **One unacceptable peer does not veto a repair** — ten peers with acceptable
+  values and one without; assert the record repairs against the ten.
 - **A quarantined record cannot outrank an unacceptable peer value** — a peer
   whose own clock is wrong holds a value this device would reject; assert the
-  repair declines rather than exceeding its own ceiling, and that the record is
-  reported as diverged. This is the stated residual, asserted rather than assumed
-  away.
+  repair excludes it rather than exceeding its own ceiling, and that the
+  remaining divergence is reported. This is the stated residual, asserted rather
+  than assumed away.
 - **A repeated rejection is reported once per session** — run three passes
   against a peer still advertising the bad blob; assert one report, not three.
 - **A tombstoned dance neither merges nor suppresses** — same title and identical
