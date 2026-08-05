@@ -78,6 +78,15 @@ each release so store builds and tags can be traced back to an entry.
   Program import is unchanged and does not prompt. When a program references a
   dance you already have, it links to your existing copy as before.
 
+- **The app is now fully translated in every language it ships in.** German,
+  French, Japanese, Danish, and Dutch each had 100 user-facing strings that still
+  appeared in English — the meanwhile/concurrent-figure editor, the full month
+  names used by custom date formats, the ContraDB "already imported" markers, the
+  settings-restore messages, the collection-card field toggles, the tag-colour
+  settings, the pasted title-list import and its review groups, the
+  shorthand-seeding step, and the custom-field sharing notice. All five languages
+  now cover every string in the app.
+
 ### Changed
 
 - **The import screen now opens on The Caller's Box.** It previously opened on

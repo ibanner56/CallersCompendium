@@ -70,6 +70,13 @@ Translations into other languages remain community-driven and require no code
 change to appear; adding a locale is purely additive (see
 [Contributing a translation](#contributing-a-translation)).
 
+**Translation coverage is complete, and enforced.** All five shipped locales
+(`da`, `de`, `fr`, `ja`, `nl`) carry a real translation for every key in the
+English template, and a CI ratchet keeps it that way — see
+[The coverage ratchet](#the-coverage-ratchet-no-untranslated-strings). Adding a
+user-facing string is therefore no longer complete until it is translated, or
+knowingly and visibly exempted.
+
 ## How it's wired
 
 - **`app/pubspec.yaml`** declares `flutter_localizations` (SDK) and sets
@@ -301,6 +308,16 @@ You do **not** need to write code to translate the app.
 3. **Translate the string values only.** Leave the keys and the `@key` metadata
    blocks unchanged. Keep every ICU placeholder (e.g. `{example}`) and plural
    form intact — only the surrounding words change.
+
+   This step means *translate*, not *fill in*. Never leave (or paste) the
+   **English** value in a locale ARB to make a key look done: a key carrying
+   English is indistinguishable from a translated one, so it drops out of
+   `extract`'s queue permanently and is never offered to a translator again. A
+   key you simply **omit** falls back to English *and stays queued*, which is
+   strictly better. If you are part-way through a language, delete the keys you
+   haven't reached rather than leaving them English — and see the
+   [coverage ratchet](#the-coverage-ratchet-no-untranslated-strings) for what
+   that means for a brand-new locale.
 4. Regenerate the localizations. From the repository root:
    ```bash
    fvm flutter pub get               # workspace-wide
@@ -362,6 +379,63 @@ A model-agnostic pipeline with three subcommands:
 CI runs `validate --all` (and the tool's own `test_arb_translate.py`) in
 [`_checks.yml`](../../.github/workflows/_checks.yml) before the Flutter build,
 so a malformed or unsafe translation fails the PR.
+
+### The coverage ratchet: no untranslated strings
+
+`tools/ci/check_arb_translation_coverage.py` fails the build if **any** key in
+`app_en.arb` has no real translation in **any** `app_<locale>.arb`. Every locale
+is complete today, so the baseline is zero and it hard-fails on the first
+regression — there is no count to bump.
+
+**It measures something `validate` deliberately does not.** `validate` requires
+a locale's keys to be a *subset* of the template, so a **missing** key passes it
+by design: absence is the work queue `extract` reads. That is exactly how the
+backlog in [#813](https://github.com/ibanner56/CallersCompendium/issues/813)
+grew from 40 to 100 unnoticed — `validate --all` reported `OK … 0 warning(s)` the
+whole time. The two checks are complementary and neither subsumes the other:
+`validate` asks *"is what's here correct and safe"*, the ratchet asks *"is it
+all here"*.
+
+The definition of "untranslated" is **imported from `arb_translate.py`** rather
+than reimplemented (`message_keys` / `is_translatable`), so the ratchet and the
+extractor cannot drift: a key is untranslated when it is **absent**, **not a
+string**, or **blank**. Locales are discovered by globbing `app_*.arb`, so a new
+language is covered the moment its file lands. The checker exits `2` — not `0` —
+if the template is missing or no locale ARBs are found, because a check that
+greens out on an empty input set is worse than no check.
+
+On success it prints a per-locale count, so the number appears in **every** CI
+run instead of only when someone thinks to run the extractor.
+
+**The allowlist.** `tools/ci/untranslated_allowlist.json` maps
+`{"<locale>": {"<key>": "<reason>"}}` and **starts empty**. A string can be
+knowingly shipped untranslated, but only by naming it and saying *why*, in a
+diff a reviewer sees. It self-cleans, in the same spirit as
+`hardcoded_ui_strings_allowlist.dart`: an entry fails the build once its string
+is translated, once its key leaves the template, once its locale doesn't exist,
+or if its reason is too short to be a reason. So the list cannot rot into a set
+of stale excuses.
+
+**Two known limitations, stated rather than hidden:**
+
+1. **A locale value byte-identical to English passes.** This is the
+   paste-English anti-pattern above, and it cannot be caught mechanically: 415
+   values in the current corpus are *legitimately* identical to their English
+   source (`appTitle`, `commonOk`, `Formation` in Danish and German, `September`
+   in three languages), so an identical-to-English rule would need a
+   several-hundred-entry allowlist on day one. The mitigation is the failure
+   annotation, which names this as the wrong fix and explains why — that
+   annotation is what a contributor reads at the moment they decide how to go
+   green.
+2. **A brand-new locale can pass vacuously.** Step 1 of *Contributing a
+   translation* is "copy the template", and a copy has zero missing keys, so a
+   half-finished new language greens the ratchet while being mostly English.
+   Delete the keys you haven't translated yet (see step 3) and the ratchet
+   measures your language honestly.
+
+Both limitations are asserted as tests in
+`tools/ci/test_check_arb_translation_coverage.py`, so they stay documented
+properties rather than becoming surprises.
 
 ### The `arb-translate` Copilot extension
 
