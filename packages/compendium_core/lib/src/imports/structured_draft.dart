@@ -80,10 +80,22 @@ class ParseQuality {
   /// True when every figure fell back to custom (and there is at least one).
   bool get isFullyCustom => totalFigures > 0 && customFigures == totalFigures;
 
-  /// Computes the quality of an already-built figure list.
+  /// Computes the quality of an already-built figure list using the **recursive**
+  /// definition: a figure counts as custom if it is directly custom, or if it is
+  /// a [Figure.isMeanwhile] container that has at least one custom side.
+  ///
+  /// One level of recursion is sufficient and provably terminating: the
+  /// `meanwhile` codec flattens nested containers on decode (flat by
+  /// construction), so `subFigures` are always leaves.
   factory ParseQuality.ofFigures(List<Figure> figures) => ParseQuality(
     totalFigures: figures.length,
-    customFigures: figures.where((f) => f.isCustom).length,
+    customFigures: figures
+        .where(
+          (f) =>
+              f.isCustom ||
+              (f.isMeanwhile && f.subFigures.any((s) => s.isCustom)),
+        )
+        .length,
   );
 
   @override

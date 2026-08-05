@@ -66,16 +66,61 @@ FigureReparseOutcome reparseImportGapFigures(
 
   for (var i = 0; i < figures.length; i++) {
     final figure = figures[i];
-    final replacement = _tryUpgrade(figure, taxonomy);
+    Figure? replacement;
+    var sideCount = 0;
+    if (figure.isMeanwhile) {
+      final result = _tryUpgradeMeanwhile(figure, taxonomy);
+      replacement = result?.figure;
+      sideCount = result?.count ?? 0;
+    } else {
+      replacement = _tryUpgrade(figure, taxonomy);
+      sideCount = replacement != null ? 1 : 0;
+    }
     if (replacement == null) continue;
     rewritten ??= List<Figure>.of(figures);
     rewritten[i] = replacement;
-    upgraded++;
+    upgraded += sideCount;
   }
 
   return FigureReparseOutcome(
     figures: rewritten ?? figures,
     upgradedCount: upgraded,
+  );
+}
+
+/// Recurses into a [Figure.isMeanwhile] container, calling [_tryUpgrade] on
+/// each concurrent side. If any side upgrades, rebuilds the container
+/// preserving the container's [Figure.beats] — the group total is the
+/// authoritative section-math count and must not be replaced by side beats.
+///
+/// [upgradedCount] in the returned record counts upgraded *sides*, consistent
+/// with the top-level counter semantics (each custom figure that structures = 1).
+///
+/// Returns `null` when [figure] is not a meanwhile, or when no side upgrades.
+({Figure figure, int count})? _tryUpgradeMeanwhile(
+  Figure figure,
+  Taxonomy? taxonomy,
+) {
+  if (!figure.isMeanwhile) return null;
+  final sides = figure.subFigures;
+  List<Figure>? newSides;
+  var upgraded = 0;
+  for (var i = 0; i < sides.length; i++) {
+    final replacement = _tryUpgrade(sides[i], taxonomy);
+    if (replacement == null) continue;
+    newSides ??= List<Figure>.of(sides);
+    newSides[i] = replacement;
+    upgraded++;
+  }
+  if (newSides == null) return null;
+  return (
+    figure: Figure.meanwhile(
+      figures: newSides,
+      beats: figure.beats, // container beats are authoritative
+      note: figure.note,
+      progression: figure.progression,
+    ),
+    count: upgraded,
   );
 }
 

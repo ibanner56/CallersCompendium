@@ -298,5 +298,99 @@ void main() {
         expect(identical(second.figures, first.figures), isTrue);
       });
     });
+
+    // --- meanwhile recursion ---
+    // Before this fix, reparseImportGapFigures iterated the top-level list
+    // only. _tryUpgrade bails on `!figure.isCustom`; a meanwhile container is
+    // never isCustom, so any custom figures nested inside a meanwhile were
+    // permanently invisible to reparse — upgradedCount would be 0 for any
+    // meanwhile input regardless of its sides.
+    group('meanwhile recursion', () {
+      test(
+          'upgrades an import-gap custom side inside an existing meanwhile '
+          'container', () {
+        // "Neighbor swing" structures; "give and take" does not.
+        final container = Figure.meanwhile(
+          figures: [
+            importGap('Neighbor swing', beats: 8),
+            importGap('give and take', beats: 8),
+          ],
+          beats: 16,
+        );
+        final result = reparseImportGapFigures([container]);
+
+        expect(result.upgradedCount, 1);
+        final rebuilt = result.figures.single;
+        expect(rebuilt.isMeanwhile, isTrue);
+        expect(rebuilt.subFigures[0].move, 'swing');
+        expect(rebuilt.subFigures[1].isCustom, isTrue);
+      });
+
+      // Mutation falsification: the naive implementation rebuilds the container
+      // using sum-of-side-beats rather than preserving the container's own
+      // beats. Use beats:10 (container) vs beats:6 (each side) so summing
+      // sides yields 12 ≠ 10, and the test catches the mutation.
+      test(
+          'preserves container beats when rebuilding — container beats are '
+          'the authoritative section total, not the sum of sides', () {
+        final container = Figure.meanwhile(
+          figures: [
+            importGap('Neighbor swing', beats: 6),
+            importGap('give and take', beats: 6),
+          ],
+          beats: 10,
+        );
+        final result = reparseImportGapFigures([container]);
+
+        expect(result.upgradedCount, 1);
+        expect(result.figures.single.beats, 10);
+      });
+
+      test('no-op when no side structures — input list identity preserved', () {
+        final container = Figure.meanwhile(
+          figures: [
+            importGap('give and take', beats: 8),
+            importGap('secret figure', beats: 8),
+          ],
+          beats: 16,
+        );
+        final result = reparseImportGapFigures([container]);
+
+        expect(result.changed, isFalse);
+        expect(result.upgradedCount, 0);
+        expect(identical(result.figures, [container]), isFalse);
+        expect(result.figures.single, same(container));
+      });
+
+      test('idempotent — second run finds nothing further to upgrade', () {
+        final container = Figure.meanwhile(
+          figures: [
+            importGap('Neighbor swing', beats: 8),
+            importGap('give and take', beats: 8),
+          ],
+          beats: 16,
+        );
+        final first = reparseImportGapFigures([container]);
+        expect(first.upgradedCount, 1);
+
+        final second = reparseImportGapFigures(first.figures);
+        expect(second.upgradedCount, 0);
+        expect(identical(second.figures, first.figures), isTrue);
+      });
+
+      test('counts each upgraded side, not each container', () {
+        // Both sides of this meanwhile structure; upgradedCount should be 2.
+        final container = Figure.meanwhile(
+          figures: [
+            importGap('Neighbor swing', beats: 8),
+            importGap('Circle left 3/4', beats: 8),
+          ],
+          beats: 16,
+        );
+        final result = reparseImportGapFigures([container]);
+
+        expect(result.upgradedCount, 2);
+      });
+    });
   });
 }
