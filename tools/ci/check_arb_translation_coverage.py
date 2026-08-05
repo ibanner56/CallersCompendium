@@ -264,6 +264,12 @@ def run(arb_dir: Path, template_name: str, allowlist_path: Path) -> int:
     for locale in sorted(ordered):
         allowed = allowlist.get(locale, {})
         flagged = [k for k in ordered[locale] if k not in allowed]
+        # Only entries that actually exempt an untranslated key are load-bearing.
+        # A listed key that isn't untranslated exempts nothing — it is stale, and
+        # `stale_allowlist_entries` already fails the run over it — so counting it
+        # here would report more exemptions than are doing work, in the very run
+        # that is telling you the entry is dead.
+        used = [k for k in ordered[locale] if k in allowed]
         if flagged:
             offenders += len(flagged)
             for key in flagged:
@@ -273,11 +279,11 @@ def run(arb_dir: Path, template_name: str, allowlist_path: Path) -> int:
                 )
             print(
                 f"::error::{locale}: {len(flagged)} untranslated string(s) "
-                f"({len(allowed)} knowingly allow-listed).",
+                f"({len(used)} knowingly allow-listed).",
             )
         else:
             done = total_keys - len(ordered[locale])
-            suffix = f" ({len(allowed)} knowingly allow-listed)" if allowed else ""
+            suffix = f" ({len(used)} knowingly allow-listed)" if used else ""
             print(f"OK: {locale} {done}/{total_keys} translated{suffix}")
 
     if offenders or stale:
@@ -305,8 +311,20 @@ def run(arb_dir: Path, template_name: str, allowlist_path: Path) -> int:
     # of instrument it exists to replace: one whose green result means something
     # other than what it says. The allowlist is defensible *because* it is
     # visible, so the summary has to carry it.
-    exempt = sum(len(allowlist.get(locale, {})) for locale in ordered)
-    exempt_locales = sum(1 for locale in ordered if allowlist.get(locale))
+    #
+    # Counted from entries that actually exempt an untranslated key, matching the
+    # per-locale lines. On this path the two are necessarily equal — a listed key
+    # that exempts nothing is stale, and a stale entry returned above — so this
+    # could read `len(...)` of the raw allowlist and be right today. It doesn't,
+    # because that would be right only by virtue of a guarantee made 30 lines
+    # away: soften the stale check to a warning and this line starts overcounting
+    # silently. Deriving it locally costs nothing and removes the coupling.
+    exempt_per_locale = {
+        locale: [k for k in ordered[locale] if k in allowlist.get(locale, {})]
+        for locale in ordered
+    }
+    exempt = sum(len(v) for v in exempt_per_locale.values())
+    exempt_locales = sum(1 for v in exempt_per_locale.values() if v)
     if exempt:
         print(
             f"OK: {total_keys} translatable key(s) x {len(ordered)} locale(s); "

@@ -331,6 +331,33 @@ def test_allowlist_entry_for_translated_key_fails() -> None:
     check_in("says the entry is obsolete", "is already translated", out)
 
 
+def test_allowlist_count_reports_only_entries_doing_work() -> None:
+    """The per-locale count must be the exemptions actually justifying the pass.
+
+    ``len(allowed)`` counts every entry listed for the locale, including ones
+    that exempt nothing. That overcount is reachable only in a **failing** run —
+    an entry that isn't doing work is by definition stale, and a stale entry
+    forces exit 1 — so the overall summary can never be wrong. But a per-locale
+    line printed inside that failing run can still claim more exemptions than
+    are load-bearing, which is the same defect as the summary this checker
+    already corrects: a number that means something other than what it says.
+
+    Asserted with two entries where one is stale, so the wrong answer (2) and
+    the right answer (1) are distinguishable.
+    """
+    partial = complete("fr")
+    del partial["farewell"]
+    code, out = run(
+        {"fr": partial},
+        allowlist={"fr": {"farewell": REASON, "greeting": REASON}},
+    )
+    check("the stale entry still fails the run", code, 1)
+    line = next((ln for ln in out.splitlines() if "knowingly allow-listed" in ln), "")
+    check_in("counts only the entry doing work", "1 knowingly allow-listed", line)
+    if "2 knowingly allow-listed" in line:
+        FAILURES.append(f"per-locale line counts a stale entry as an exemption: {line!r}")
+
+
 def test_allowlist_entry_for_unknown_key_fails() -> None:
     """No-rot: a renamed or deleted key must not linger as an excuse."""
     partial = complete("fr")
