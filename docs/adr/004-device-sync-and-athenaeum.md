@@ -721,18 +721,24 @@ makes self-hosting materially harder, which constraint 4 forbids.
   silently revert a deliberate deletion: the failure this field exists to
   prevent, reintroduced by its own repair path.
 
-  **Repair therefore reads no clock at all.** In the common case, where the peers
-  agree with the local live-or-deleted state, it **adopts their `existenceAt` and
-  `updatedAt` verbatim** and the copies become identical. Only where the local
-  state differs — the user made a transition while poisoned — does it exceed
-  them, by a millisecond on `existenceAt` and by `max(local, peer + 1ms)` on
-  `updatedAt`, so the user's intent survives without back-dating a genuine local
-  edit. Rebuilding `updatedAt` is required rather than optional: `existenceAt`
-  sits in the hashed blob, so the content invariant applies, and the same broken
-  clock poisoned `updatedAt` too, since `softDelete` writes one timestamp into
-  both. Restamping it *unconditionally* was tried and withdrawn — that turns a
-  local cleanup into a content push, letting a device holding stale content
-  outrank a peer's genuine edit.
+  **Repair therefore reads no clock at all**, and rebuilds **only the fields the
+  local clock says are impossible** — a record is quarantined when `existenceAt`
+  *or* `updatedAt` exceeds `localNow + 24h`, and repair rebuilds whichever of
+  those is out of range, adopting the peer's value verbatim where the
+  corresponding thing agrees (live-or-deleted state for `existenceAt`, content
+  for `updatedAt`) and exceeding it by a millisecond where it does not. A field
+  inside the window is left alone.
+
+  **The window is the classifier, and choosing it was the substance of this
+  decision.** `updatedAt` carries no signal separating a value poisoned by a
+  broken clock from a genuinely newer local edit — both are just a large local
+  number — so no comparison against the peer can tell them apart. Plausibility
+  can: a value the local clock says cannot exist yet is impossible and must be
+  rebuilt; one inside the window is ordinary and must be kept. An earlier pair of
+  drafts keyed both fields on live-or-deleted agreement instead, which is
+  orthogonal to that question and so answered it oppositely in each branch —
+  preserving the poison wherever the local value was kept, and discarding genuine
+  edits wherever it was not, while claiming to do both correctly.
 
   A successor draft kept a `localNow` fallback for the case with no acceptable
   peer copy, and that single branch reinstated the whole failure for a clock
@@ -741,16 +747,27 @@ makes self-hosting materially harder, which constraint 4 forbids.
   value out of range, rewrites its collection downward, and loses every
   subsequent deletion to a peer's live copy.
 
-  When every observed peer value lies outside the local window, the device is the
-  outlier rather than the fleet, so it declares itself **clock-suspect**: it
-  rebuilds nothing, repairs nothing, and reports. The state is derived per pass
-  rather than stored, so it needs no schema and clears itself as soon as an
-  acceptable value is seen. It gates repair only — the device goes on creating
-  and editing normally, because refusing user writes over a fault the user cannot
-  see would trade a contained, loud problem for an unusable app. And **zero**
-  observed peers is not clock-suspect: with no fleet there is nothing to be an
-  outlier against, so a solo install simply has no repair path and its records
-  stay quarantined until a peer attaches.
+  When every value observed in a pass lies outside the local window, the device
+  is the outlier rather than the fleet, and it says so: **clock-suspect** is a
+  derived, per-pass **diagnostic**, needing no schema and clearing itself as soon
+  as an acceptable value is seen. It gates nothing — once the `localNow` fallback
+  was removed, repair already could not proceed without an in-window peer value —
+  and it restricts nothing: the device goes on creating and editing normally,
+  because refusing user writes over a fault the user cannot see would trade a
+  contained, loud problem for an unusable app. Its purpose is to name the one
+  pattern the user can actually fix. And **zero** observed peers is not
+  clock-suspect: with no fleet there is nothing to be an outlier against, so a
+  solo install simply has no repair path and its records stay quarantined until a
+  peer attaches.
+
+  A clock that is never corrected is the worse case and does not self-heal: such
+  a device stays clock-suspect indefinitely, quarantines more records as its
+  peers legitimately transition things, and — if it is wrong in the *behind*
+  direction — rejects the fleet's honest values on first attach before it has any
+  local state to quarantine at all. Both failures stay loud and contained to that
+  device, and neither can silently reverse another device's work, but the only
+  real remedy is the user's clock. The design surfaces it rather than guessing
+  around it.
 
   It is a **separate column** rather than a reuse of `deletedAt` because that
   field is a retention timestamp with real consumers — the purge sweep and the

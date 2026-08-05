@@ -651,7 +651,7 @@ For existence:
 | Record creation | Seeds the field |
 | Migration backfill | `T₀` for live rows, `deleted_at` for deleted ones — see the accepted consequence |
 | Inbound validation | Out-of-range values rejected, never clamped |
-| Quarantine repair | Adopts acceptable peer values; rebuilds nothing from the local clock |
+| Quarantine repair | Rebuilds only out-of-window fields, from acceptable peer values; never from the local clock |
 
 Written as a table because the alternative is discovering the paths one review
 round at a time, which is what happened.
@@ -739,6 +739,32 @@ there. It is that a rule's scope is fixed by how it is written, and the cases it
 silently acquires are the ones nobody derives. The three worth checking every
 time are the **empty input**, the **symmetric actor** doing the same thing
 concurrently, and the **sibling branch** the wording also reaches.
+
+##### Reconciling two texts is not resolving the question they disagree about
+
+> **When two statements of the same mechanism disagree, find the question neither
+> answers before making them consistent.** Consistency reached by giving each
+> answer its own branch hides the open question instead of closing it.
+
+The twelfth habit, and the one that cost this design a full round. Two documents
+specified different `updatedAt` restamps; the fix made them agree. But they had
+drifted apart *because* an underlying question had never been answered — what
+should repair do with a large local value it cannot classify? — and each text had
+absorbed a different half of it. Making them consistent produced one rule
+containing both halves, keyed on a condition orthogonal to the question, with a
+guarantee attached to each branch that the other branch falsified.
+
+The tell was available and unusually concrete: **two entries in the test list
+demanded opposite outcomes from the same input.** Prose can disagree with itself
+quietly for a long time, but a test list cannot — two tests that cannot both pass
+are a decision that has not been made, written down in the one place where that
+is unambiguous.
+
+So when a fix consists of making two statements match, check whether it also
+determines an answer. If the answer differs by branch, ask what distinguishes the
+branches, and whether that distinction is actually the one the question turns on.
+Here it was not: the branch condition was live-or-deleted agreement, and the
+question was poisoned-versus-genuine, which are unrelated.
 
 ##### Bounds are directional
 
@@ -914,47 +940,63 @@ Three rules close it, and the repair happens **during a sync pass rather than on
 a user gesture** — because that is the only moment the device can see what the
 other copies actually hold:
 
-- **A record whose own `existenceAt` exceeds `localNow + 24h` is quarantined.**
-  This is a derived predicate over an existing column, not new state, so it needs
+- **A record is quarantined when `existenceAt` *or* `updatedAt` exceeds
+  `localNow + 24h`.** Both are stamped by the same clock — `softDelete` writes one
+  timestamp into `deletedAt` and `updatedAt` together — so a broken clock poisons
+  both, and a predicate watching only one of them leaves the other uncatchable.
+  This is a derived predicate over existing columns, not new state, so it needs
   no schema.
-- **Repair adopts observed values; it never mints one from the local clock.** The
-  device gathers the peers' copies of that record, discards any whose
+- **Repair rebuilds only the out-of-window fields, and adopts observed values for
+  them.** The device gathers the peers' copies of that record, discards any whose
   `existenceAt` falls outside its own acceptance window, and takes the greatest
-  of what remains. Then:
-  - if the peers agree with the local live-or-deleted state, it **adopts both
-    values verbatim** — `existenceAt` and `updatedAt` — so the two copies become
-    bit-identical and nothing is republished;
-  - if the local state differs, the user made a transition while poisoned, so the
-    device stamps `existenceAt = thatValue + 1ms` to preserve their intent and
-    outrank the peers, and sets `updatedAt = max(local updatedAt, peer
-    updatedAt + 1ms)`.
+  of what remains. Then, **per field**:
+  - `existenceAt`, if out of window: adopt the peer value **verbatim** when the
+    peers agree with the local live-or-deleted state; stamp `peer + 1ms` when the
+    local state differs, since the user made a transition while poisoned and
+    their intent must outrank the peers.
+  - `updatedAt`, if out of window: adopt the peer value **verbatim** when the
+    local content equals the peer's; stamp `peer + 1ms` when the content
+    differs, since a genuine local edit must outrank the peer's copy.
 
-  The local live-or-deleted state and the record's content are untouched; only
-  the ordering values are rebuilt. Rebuilding `updatedAt` at all is required by
-  the content invariant below, since `existenceAt` is part of the hashed blob,
-  and it also cleans the `updatedAt` the same broken clock poisoned — `softDelete`
-  writes one timestamp into `deletedAt` and `updatedAt` together.
+  A field that is **inside** the window is left exactly as it is. The two copies
+  are bit-identical afterwards precisely when both fields were adopted verbatim
+  — that is, when the state *and* the content agree. The record's content and its
+  live-or-deleted state are never changed by repair; only impossible ordering
+  values are.
 
-  **Acceptability is judged on `existenceAt` only.** `updatedAt` has no acceptance
-  window anywhere in this design, so "acceptable" is meaningless applied to it; a
-  peer copy qualifies or not by its `existenceAt`, and repair then uses that
-  copy's `updatedAt` whatever it says. A far-future `updatedAt` can therefore
-  still enter through a peer — but that channel predates repair, since the
-  steady-state download gate accepts one too, and closing it means giving
-  `updatedAt` a window of its own rather than patching this rule.
+  **The window is the classifier, and that is the whole point.** `updatedAt`
+  carries no signal separating "poisoned by a broken clock" from "genuinely newer
+  local edit" — both are simply a large local value — so no comparison of
+  *magnitude against the peer* can tell them apart. What does tell them apart is
+  plausibility: a value the local clock says cannot exist yet is impossible and
+  must be rebuilt, and a value inside the window is ordinary and must be kept.
 
-  **The asymmetry between the two branches is load-bearing.** A draft restamped
-  `updatedAt` to `peer + 1ms` unconditionally, which is wrong twice over. It
-  falsifies the agree-branch, whose whole point is that the copies become
-  identical — they cannot be identical while differing by a millisecond. And it
-  converts a local cleanup into a **content push**: `updatedAt` is the sole
-  content discriminator, so a device stamping strictly newer than every peer
-  while holding *stale* content wins the next conflict outright. A peer's genuine
-  edit, made while the poisoned device was offline, is then lost fleet-wide by a
-  repair that was supposed to touch nothing but ordering. Taking the `max` with
-  the local value in the differs-branch covers the mirror case, where a real
-  local edit made during quarantine would otherwise be back-dated to the peer's
-  timestamp and lose to an older edit elsewhere.
+  A draft of this rule keyed both fields on live-or-deleted agreement instead,
+  which is orthogonal to the question and so resolved it oppositely in each
+  branch. The differs-branch took `max(local, peer + 1ms)`, which *preserves* a
+  forward-poisoned `updatedAt` — 2036 dominates the max — while claiming to clean
+  it; and because existence is decided first, the record's clean tombstone would
+  then win and carry that 2036 fleet-wide, where nothing would ever catch it,
+  since `updatedAt` had no window. Meanwhile the agree-branch adopted the peer's
+  `updatedAt` verbatim even when the local *content* was a genuine newer edit,
+  leaving content newer than the stamp claiming to describe it — a direct breach
+  of *content changes must move the discriminator*, with the edit then discarded
+  by every peer. The design asserted both "cleans the poison" and "preserves
+  genuine edits" while its two branches each did one and broke the other.
+
+  The tell was in this document's own test list, where two entries demanded
+  opposite outcomes from the same input.
+
+  **The window is used two ways, and only one of them rejects.** Inbound blobs
+  are refused on `existenceAt` alone, as before: existence decides whether a
+  record exists at all, so a bad value there silently reverses a deletion, while
+  a bad `updatedAt` costs at most one recoverable edit — the same asymmetry that
+  made existence a separate field in the first place. A far-future `updatedAt`
+  can therefore still arrive from a peer, and that channel predates repair, since
+  the steady-state download gate accepts one too. What has changed is that it no
+  longer persists: an adopted poisoned `updatedAt` puts the record out of window,
+  so the next pass quarantines and repairs it. The value gets in, and then gets
+  cleaned, rather than lodging permanently.
 - **A rejected hash is reported once per session**, held in memory. The blob
   stays in the peer's manifest and would otherwise be re-fetched and re-rejected
   for ever, turning one bad record into an endless stream of identical warnings.
@@ -990,13 +1032,26 @@ loud, rather than silently wrong.
 **Clock-suspect is defined precisely, because a state with no exit and no scope
 is not a mechanism.**
 
-- **It is derived, not stored.** It holds while the current pass observed at
-  least one peer value for some quarantined record and *every* such value fell
-  outside the local window. Like quarantine itself it is recomputed each pass
-  from data already present, so it needs no schema and no classification.
-- **It exits by being recomputed.** The next pass in which any observed peer
-  value falls inside the window clears it, with no explicit transition to store.
-  A corrected clock therefore recovers on the following pass.
+- **It is derived, not stored.** It holds when, **across the pass as a whole**,
+  at least one peer value was observed for some quarantined record and *every*
+  value observed in that pass fell outside the local window. Set and clear are
+  deliberately stated over the same aggregate: phrasing the set condition
+  per-record and the clear condition over any value lets both fire in one mixed
+  pass, which is harmless — the worst case is a deferred repair — but is the kind
+  of quantifier mismatch this document has been bitten by before. Like quarantine
+  itself it is recomputed each pass from data already present, so it needs no
+  schema and no classification.
+- **It exits by being recomputed.** The next pass in which any observed value
+  falls inside the window clears it, with no explicit transition to store. A
+  corrected clock therefore recovers on the following pass.
+- **It reports; it no longer gates anything.** Once the `localNow` fallback was
+  removed, per-record repair already could not proceed without an in-window peer
+  value, so there is no remaining branch for clock-suspect to block. It is
+  honestly a **diagnostic**: the name for the pattern "every value I can see
+  looks impossible to me", surfaced to the user because that pattern has one
+  overwhelmingly likely cause and the user is the only party who can fix it. It
+  is described here as a state rather than a gate to avoid implying it changes
+  behaviour that would otherwise occur.
 - **Zero observed peer values is not clock-suspect.** "Every observed value is
   out of range" is vacuously true of the empty set, and concluding from no
   evidence that this device is the outlier would condemn a solo install, or any
@@ -1004,21 +1059,43 @@ is not a mechanism.**
   that was never consulted. With nothing observed there is no fleet to be an
   outlier against: the record stays quarantined and reported, and repair waits
   for a pass that can see something.
-- **It gates repair, not the app.** A clock-suspect device continues to create,
+- **It does not restrict the app.** A clock-suspect device continues to create,
   edit, delete and revive records normally, stamping from its own clock as ever.
   Those writes may be poisoned and will quarantine, which is the loud containable
   failure this section is built around; the alternative — refusing user writes on
   a device with a bad RTC — would make the app read-only over a fault the user
   cannot see and did not cause, and local-first means the local user keeps
-  working. What clock-suspect withdraws is the device's authority to *rebuild*
-  ordering values, because that is the one operation whose correctness depends on
-  the clock being right.
+  working. The one operation whose correctness depends on the clock being right
+  — rebuilding ordering values — is already unavailable to such a device for want
+  of an in-window peer value to rebuild from.
 
 A single-device install therefore has no repair path at all, and that is stated
 rather than hidden: with no peers there is nothing to adopt, so a poisoned record
 stays quarantined until another device attaches. It is also the case with the
 least at stake, since a record that syncs with nobody cannot lose a conflict to
 anybody.
+
+**A clock that is never corrected is a worse case than a solo install, and looks
+identical to the user.** The discussion above assumes a clock that glitches and
+is then fixed. A dead RTC that simply stays wrong — the commonest form of the
+fault — sees every honest peer value as impossibly far off for ever. Such a
+device is permanently clock-suspect, repairs nothing, and quarantines *more*
+records over time as its peers legitimately transition things, while continuing
+to accept its user's writes and accumulating divergence it will never resolve.
+"Wait for a peer" is no remedy here, because peers are not what is missing.
+
+A device wrong in the *behind* direction meets this before it has any local state
+at all: on first attach every honest value is above its ceiling, so it rejects
+the fleet's records outright rather than quarantining its own, which is outside
+the quarantine-and-repair machinery entirely and presents as a device that simply
+cannot sync.
+
+Both are bounded the same way — the failures are loud, contained to that device,
+and never silently reverse another device's work — but neither self-heals, and
+the only real fix is the user's clock. That is what the report is for. The
+design does not attempt more than surfacing it, because a device that cannot tell
+the time has no sound basis for ordering anything, and inventing one would be the
+guess this whole section exists to refuse.
 
 With no clock in the repair path there is also no fallback branch to contradict,
 and the earlier draft had one: it promised `localNow` when no acceptable peer
@@ -1084,18 +1161,23 @@ it belongs in the statement of what repair guarantees.
 A repaired value that ties a peer's loses to a tombstone under the standing tie
 rule, so the `+ 1ms` is load-bearing rather than decorative. Two devices
 repairing the same record concurrently converge **when their content agrees** —
-both adopt the same observed values, both land bit-identical, and there is
-nothing left to reconcile. When their content differs they do **not**: repairing
-concurrently means observing the same peer set, so both compute the same maximum
-and tie at equal `updatedAt`, which is `changed`/`changed` on a row the merge
-table does not resolve. That divergence is bilateral and reported, the same
-posture as the residual above.
+both adopt the same observed values verbatim, both land bit-identical, and there
+is nothing left to reconcile. When their content differs they do **not**:
+repairing concurrently means observing the same peer set, and neither rebuild
+formula reads the local value, so both compute the same `peer + 1ms` and tie at
+equal `updatedAt` — `changed`/`changed` on a row the merge table does not
+resolve. That divergence is bilateral and reported, the same posture as the
+residual above.
 
-An earlier draft claimed convergence outright, reasoning that "each stamps above
-the greatest it observed, so one of the two is strictly newer". That orders each
-repairer against the *peers* it observed, not against the *other repairer* — an
-unenforced *always* of exactly the shape the habits below were adopted to catch,
-written in the commit that adopted them.
+The independence from local values is what makes that analysis hold. An
+intermediate draft took `max(local updatedAt, peer + 1ms)` in one branch, which
+would have made the outcome depend on each device's own value: two concurrent
+repairers would then *not* tie, and whichever held the larger local value would
+win silently rather than surfacing the divergence. An earlier draft still claimed
+convergence outright, reasoning that "each stamps above the greatest it
+observed" — which orders each repairer against the *peers* it observed rather
+than against the *other repairer*, an unenforced *always* of exactly the shape
+the habits below were adopted to catch, written in the commit that adopted them.
 
 One skew does compound mildly: a peer honestly near its own ceiling plus a
 repairer whose clock is moderately fast can produce a value a third,
@@ -2610,13 +2692,16 @@ must say this plainly rather than implying sync is opaque to us.
   device and assert the peer's edit survives. Mutation-proved by restamping
   `updatedAt` to `peer + 1ms` unconditionally, which makes the stale copy win the
   next content conflict and loses the peer's edit fleet-wide. Assert too that the
-  agree-branch leaves the two copies bit-identical, which that mutation also
-  breaks.
-- **A genuine local edit during quarantine is not back-dated** — edit a
-  quarantined record locally, then repair; assert the local `updatedAt` survives
-  rather than being replaced by the peer's. Mutation-proved by dropping the `max`
-  against the local value, after which an older peer edit beats the newer local
-  one.
+  copies end bit-identical when state *and* content agree — that mutation breaks
+  it, and so does keying the verbatim branch on state alone.
+- **An in-window `updatedAt` is never touched by repair** — edit a quarantined
+  record locally so its `updatedAt` is recent and plausible, then repair; assert
+  it survives untouched while the out-of-window `existenceAt` is rebuilt.
+  Mutation-proved by rebuilding every field rather than only out-of-window ones,
+  which back-dates the genuine edit to the peer's timestamp and loses it to an
+  older edit elsewhere. This and the poisoned-`updatedAt` test below are the pair
+  an earlier draft could not satisfy at once; they are compatible now because the
+  window classifies the value, not its magnitude against the peer's.
 - **A solo device is not clock-suspect** — quarantine a record with no peers
   observable at all; assert the device does *not* declare itself the outlier,
   the record stays quarantined and reported, and repair resumes when a peer
@@ -2631,12 +2716,17 @@ must say this plainly rather than implying sync is opaque to us.
   assert the documented outcome, which is a reported bilateral divergence, not a
   silent winner. This asserts a limitation rather than a guarantee, and exists
   because an earlier draft claimed convergence here.
-- **Repair advances `updatedAt` and cleans the poisoned one** — assert the
-  repaired blob is accepted by peers on the content path, and that the
-  `updatedAt` the broken clock stamped does not survive the repair.
-  Mutation-proved by rebuilding only `existenceAt`: the repair is discarded at
-  equal `updatedAt`, and where it does land it carries the poisoned `updatedAt`
-  fleet-wide, so every honestly-stamped later edit loses.
+- **An out-of-window `updatedAt` is rebuilt, even when only it is poisoned** —
+  a record whose `existenceAt` is fine but whose `updatedAt` is far future;
+  assert it quarantines and repairs. Mutation-proved by quarantining on
+  `existenceAt` alone, which leaves the poison uncatchable for ever, since
+  `updatedAt` has no inbound rejection to stop it either.
+- **A poisoned `updatedAt` does not travel** — poison both fields on a deleting
+  device, repair, and assert the blob peers receive carries neither. Mutation-
+  proved by taking `max(local, peer + 1ms)`: the poisoned value dominates the
+  max, the record's clean tombstone then wins the existence decision, and the
+  blob is applied wholesale — carrying the poison fleet-wide, where every
+  honestly-stamped later edit loses until wall-clock time catches up.
 - **One unacceptable peer does not veto a repair** — ten peers with acceptable
   values and one without; assert the record repairs against the ten.
 - **A quarantined record cannot outrank an unacceptable peer value** — a peer
