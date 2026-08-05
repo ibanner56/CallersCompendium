@@ -129,13 +129,60 @@ When you give the app a web address to fetch:
 Refusals never echo the address back at you, so a link that happened to contain
 something private does not end up on your screen or in a log.
 
+## Bring in a list of dance titles
+
+If you have a list of titles written down — an evening's set list, a workshop
+handout, dances a friend recommended — you can paste the whole list at once and
+let the app find them, **without** building a program.
+
+1. Open **Collection** and choose **Import dances**, or open **Settings** →
+   **Import** → **Import…**.
+2. In the source selector, choose **a list of titles**.
+3. Paste your titles, **one per line**, and choose **Review import**.
+4. The app checks each title against your own collection first, then searches
+   The Caller's Box for anything you don't already have.
+5. Review what it found and commit, as described in
+   [Review before anything changes](#review-before-anything-changes).
+
+**Every title you pasted is listed on the review screen**, grouped by what
+happened to it:
+
+- **To import** — the app found one dance with exactly that title. These get the
+  usual review row, so you can look before you keep, change what each one does,
+  or skip it.
+- **Already in your collection** — you have it. There is nothing to import, so
+  the app tells you which dance it matched and who wrote it, since two different
+  dances can share a title.
+- **Not found** — and it says which kind of "not found": the archive has no dance
+  by that name, it only found near matches, several dances share that exact
+  title so it can't tell which you meant, or it couldn't reach the archive just
+  then. Those need different follow-up, so they are never lumped together.
+
+A few honest notes:
+
+- The app only takes a dance when **exactly one** result matches your title
+  exactly. Near matches are never imported on a guess.
+- Nothing is written until you commit on the review screen, and an uncertain
+  match is set to **Skip** by default, so a paste can never quietly duplicate
+  something you already have.
+- Blank lines are ignored, and a title repeated in your list is only looked up
+  once.
+- It works through the list one title at a time, showing its progress, and you
+  can **Cancel** at any point — nothing has been added yet, so cancelling costs
+  you nothing.
+- There is a limit of **100 titles** per import. A longer list is refused
+  outright rather than partly imported, so you are never left thinking a list
+  came in whole when it didn't.
+- Even if nothing turns out to be importable, you still get the answer to
+  "which of these do I already have?" — that list is worth having on its own.
+
 ## Import a Caller's Compendium file
 
 Dances shared as a **Caller's Compendium** file (the app's own `.json` format)
 come in through the same review flow:
 
 1. Open **Settings**, go to the **Import** section, and choose **Import…**.
-2. Leave the source set to **a Caller's Compendium JSON file** (the default).
+2. Set the source to **a Caller's Compendium JSON file**.
 3. Choose the file with **Choose file…**, paste its contents, or enter a URL and
    choose **Fetch**.
 4. Review and commit.
@@ -336,6 +383,10 @@ the **Import…** flow here, because they build a program, not just add dances. 
 step-by-step instructions, see
 [Programs & matrix › Import a program from ContraDB](./programs.md#import-a-program-from-contradb)
 and [Build from a list of titles](./programs.md#build-from-a-list-of-titles).
+
+If you want the dances but **not** a program, use
+[Bring in a list of dance titles](#bring-in-a-list-of-dance-titles) above
+instead.
 
 ## Where to go next
 

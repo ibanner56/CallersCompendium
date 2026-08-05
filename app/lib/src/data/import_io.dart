@@ -620,7 +620,9 @@ typedef ImportUrlBuilder = String Function(String input);
 /// render a localized label (see `importSourceLabel` in
 /// `import_error_labels.dart`) instead of baking English on the data object.
 enum ImportSourceKind {
-  /// A Caller's Compendium JSON share file (the default, generic source).
+  /// A Caller's Compendium JSON share file (the generic, adapter-agnostic
+  /// source). It was the default selection until #823 moved that to The
+  /// Caller's Box; see [ImportSource.preselected].
   genericJson,
 
   /// The Caller's Box online source.
