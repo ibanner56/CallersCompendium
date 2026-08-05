@@ -1,0 +1,5 @@
+{
+  "_comment-1": "Strings knowingly shipped untranslated, per locale, WITH A REASON. Read by tools/ci/check_arb_translation_coverage.py. Shape: {\"<locale>\": {\"<arbKey>\": \"<reason>\"}}. Keys beginning with _ are ignored, so this comment is not mistaken for a locale.",
+  "_comment-2": "This starts EMPTY and should stay that way. A missing key falls back to English and stays in the extractor's queue, so the honest fix is almost always to translate it. Never clear the ratchet by pasting the English value into a locale ARB: that marks the key translated and removes it from the queue permanently.",
+  "_comment-3": "The checker self-cleans this file. An entry fails the build once its string is translated, once its key leaves the template, or if its reason is under 20 characters — so the list cannot rot into a set of stale excuses."
+}
