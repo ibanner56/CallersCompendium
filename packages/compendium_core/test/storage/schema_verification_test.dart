@@ -8,7 +8,7 @@
 //
 // This suite closes that gap: for every historical schema version, it builds a
 // database at that version from a *generated* drift schema dump
-// (`drift_schemas/`, see the README there), runs the real
+// (`drift_schemas/generated/`, see the README there), runs the real
 // `CompendiumDatabase.migration` over it, and compares the resulting structure
 // against a freshly created head database.
 //
@@ -175,7 +175,8 @@ void main() {
             v,
         ],
         reason:
-            'every supported schema version needs a dump in drift_schemas/, '
+            'every supported schema version needs a dump in '
+            'drift_schemas/generated/, '
             'and no retired one may linger — see the README there for how to '
             'add one when bumping kCompendiumSchemaVersion, and how to retire '
             'one when raising kMinSupportedSchemaVersion',

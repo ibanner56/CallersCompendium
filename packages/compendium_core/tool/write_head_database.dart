@@ -1,6 +1,6 @@
 // Writes a freshly-created [CompendiumDatabase] to a file so that
 // `drift_dev schema dump` can capture the *current* schema as a drift schema
-// dump (`drift_schemas/drift_schema_v<head>.json`).
+// dump (`drift_schemas/generated/drift_schema_v<head>.json`).
 //
 // Run from the package root:
 //
@@ -19,7 +19,7 @@
 //     therefore the likeliest to diverge.
 //   * The historical dumps are taken from the committed `test/storage/fixtures/
 //     v*.sqlite` databases, which *do* contain those five. Dumping head the
-//     same way keeps every dump in `drift_schemas/` homogeneous; a
+//     same way keeps every dump in `drift_schemas/generated/` homogeneous; a
 //     source-dumped head would be the one file in the set with a different
 //     meaning.
 //   * Running `drift_dev` against Dart source requires it to resolve this

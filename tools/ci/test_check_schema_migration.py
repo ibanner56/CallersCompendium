@@ -27,13 +27,23 @@ SCRIPT = HERE / "check_schema_migration.py"
 DB_PATH = "packages/compendium_core/lib/src/storage/database.dart"
 MIGRATION_TEST = "packages/compendium_core/test/storage/migration_test.dart"
 FIXTURE = "packages/compendium_core/test/storage/fixtures/v12.sqlite"
-SCHEMA_DUMP = "packages/compendium_core/drift_schemas/drift_schema_v12.json"
+SCHEMA_DUMP = (
+    "packages/compendium_core/drift_schemas/generated/drift_schema_v12.json"
+)
 FLOOR = 11
 RETIRED_FIXTURE = "packages/compendium_core/test/storage/fixtures/v9.sqlite"
 RETIRED_GENERATOR = (
     "packages/compendium_core/test/storage/fixtures/generate_v9_fixture.dart"
 )
-RETIRED_DUMP = "packages/compendium_core/drift_schemas/drift_schema_v9.json"
+RETIRED_DUMP = (
+    "packages/compendium_core/drift_schemas/generated/drift_schema_v9.json"
+)
+# Deliberately the pre-move flat path: the gate's evidence prefix and its
+# version regex are both depth-agnostic, and a stray dump at the old location
+# must still be rejected rather than slipping through unrecognised.
+RETIRED_DUMP_FLAT = (
+    "packages/compendium_core/drift_schemas/drift_schema_v9.json"
+)
 RETIRED_SCHEMA = "packages/compendium_core/test/storage/generated/schema_v9.dart"
 
 FAILURES: list[str] = []
@@ -191,6 +201,7 @@ def test_floor() -> None:
         ("fixture", RETIRED_FIXTURE),
         ("generator", RETIRED_GENERATOR),
         ("schema dump", RETIRED_DUMP),
+        ("schema dump at the pre-move flat path", RETIRED_DUMP_FLAT),
         ("generated schema class", RETIRED_SCHEMA),
     ):
         result = scenario({path: "revived\n"})

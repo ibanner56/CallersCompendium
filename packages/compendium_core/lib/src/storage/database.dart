@@ -121,7 +121,8 @@ const int kCompendiumSchemaVersion = 23;
 /// The oldest on-disk schema version this build can still upgrade.
 ///
 /// Schema versions below this were retired (#828): their `onUpgrade` steps,
-/// fixture databases and `drift_schemas/` dumps have been deleted, so there is
+/// fixture databases and `drift_schemas/generated/` dumps have been deleted, so
+/// there is
 /// no migration path from such a file to head. `onUpgrade` refuses one
 /// explicitly rather than running only the surviving steps and silently
 /// producing a structurally wrong database.

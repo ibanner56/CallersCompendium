@@ -1,4 +1,4 @@
-// Prepares `drift_schemas/` dumps for `drift_dev schema generate`.
+// Prepares `drift_schemas/generated/` dumps for `drift_dev schema generate`.
 //
 // Run from the package root:
 //

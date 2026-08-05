@@ -13,6 +13,19 @@ over it produces the same structure as a freshly created database at head
 `test/storage/generated/` holds the Dart schema classes generated from these
 dumps. Both directories are machine-generated; edit neither by hand.
 
+## Why the dumps live in `generated/`
+
+The `generated/` path segment is load-bearing, not tidiness. GitHub excludes
+`**/generated/**/*` from Copilot code review, and Copilot refuses outright to
+review a pull request exceeding 20,000 changed lines. These dumps are ~26,000
+lines on their own, so with them anywhere else **every** schema pull request is
+unreviewable — the refusal arrives as a normal-looking `COMMENTED` review whose
+body is the only place the failure appears.
+
+Putting genuinely generated files under `generated/` is an accurate description
+of what they are, and it keeps the hand-written surface of a schema change
+reviewable. Do not flatten this directory back.
+
 ## What they are, and what they are not
 
 Each dump is taken from a **real database file**, not from static analysis of
@@ -101,7 +114,7 @@ files here, from a throwaway project outside the workspace.
 
    ```sh
    dart run drift_dev schema dump /tmp/schema-src/v11.sqlite \
-       <repo>/packages/compendium_core/drift_schemas/drift_schema_v11.json
+       <repo>/packages/compendium_core/drift_schemas/generated/drift_schema_v11.json
    # … and so on for each fixture from the floor up, then
    # head.sqlite -> drift_schema_v<head>.json
    ```
@@ -119,7 +132,7 @@ files here, from a throwaway project outside the workspace.
 
    ```sh
    # from this package's root
-   dart run tool/normalize_schema_dumps.dart drift_schemas /tmp/schema-norm
+   dart run tool/normalize_schema_dumps.dart drift_schemas/generated /tmp/schema-norm
 
    # from the scratch project
    dart run drift_dev schema generate /tmp/schema-norm \

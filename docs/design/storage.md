@@ -86,7 +86,8 @@ No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
 - drift schema versions with stepwise migrations; every migration ships with
   a test that opens a fixture DB from the previous version.
 - A **schema floor** (`kMinSupportedSchemaVersion`): versions below it are
-  retired — their migration steps, fixtures and `drift_schemas/` dumps are
+  retired — their migration steps, fixtures and `drift_schemas/generated/`
+  dumps are
   deleted — and a database stamped below the floor is refused rather than
   partially migrated. See "Retiring a schema version" below.
 - `figures_json.schemaVersion` migrates lazily on read + bulk on upgrade.
@@ -106,7 +107,7 @@ Retiring versions below a new floor means deleting, together:
   retiring versions up to and including vX kills steps through `if (from < X+1)`,
   because that step only ever applies to a vX-or-below database),
 - the fixtures and generators under `test/storage/fixtures/`,
-- the dumps under `drift_schemas/` and their generated classes, and
+- the dumps under `drift_schemas/generated/` and their generated classes, and
 - the corresponding `migration_test.dart` groups.
 
 **The floor check is not bookkeeping.** Deleting those steps without it would
