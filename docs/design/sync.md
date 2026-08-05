@@ -823,6 +823,32 @@ is one value, cheap to compare, already computed for another purpose — and tha
 last part is the trap. **A value computed for one question is not automatically
 the right measurement for another**, however closely the two are related.
 
+##### A convenience must consult the principles the document already settled
+
+> **Before smoothing an edge case, search for the principle the smoothing might
+> contradict.** The tell is a new rule whose motivation is ergonomic — "don't
+> fail on arithmetic", "avoid a spurious warning" — rather than derived from the
+> mechanism's own invariants.
+
+The fifteenth habit, and a failure mode this document only became large enough to
+suffer from recently. A clamp was added so a repair would not fail "on arithmetic
+at the last millisecond". It was unsound, and both halves of the argument against
+it were already written down in other sections: that clamping a comparand into a
+comparison manufactures ties, and that a tie in this particular comparison loses
+to the tombstone. Neither had to be discovered. The new rule simply did not
+consult them, because it did not feel like a decision — it felt like tidying.
+
+That is the distinguishing quality worth watching for. A rule introduced to
+*answer* something gets checked against the design; a rule introduced to *smooth*
+something often does not, and a long document will not re-derive a point it has
+already made when the same shape reappears three hundred lines away under a
+different name.
+
+A useful sanity check on any such rule: work out the exact conditions under which
+it fires. The clamp turned out to activate only when the selected peer sat
+precisely at the ceiling — which is exactly the case where clamping produces a
+tie — so its entire domain was the case it broke.
+
 ##### Bounds are directional
 
 A related and simpler slip. Every bound in the quarantine mechanism —
@@ -1029,11 +1055,25 @@ other copies actually hold:
   alone would let such a peer be selected, and the device would adopt a value
   still outside its own window — re-quarantining the record immediately, for as
   long as that peer's clock stayed broken. **A rebuilt value is re-checked
-  against the local window before the record is considered repaired**, and a
-  value that fails only because `+ 1ms` crossed the boundary is clamped back to
-  the ceiling rather than treated as an unrepaired record — the check exists to
-  catch a badly chosen *peer*, not to fail on arithmetic at the last
-  millisecond.
+  against the local window before the record is considered repaired**, and one
+  that still falls outside it leaves the record quarantined — loud, contained,
+  and honest about having failed.
+
+  A draft softened that, clamping a value back to the ceiling when it failed
+  "only because `+ 1ms` crossed the boundary", so as not to fail on arithmetic at
+  the last millisecond. Work out when that can fire: peers are pre-filtered to
+  the window, so `peer ≤ ceiling`, and `peer + 1ms` exceeds the ceiling only when
+  `peer ≥ ceiling`. Both hold only at `peer == ceiling` — so the clamp activates
+  **exclusively** in the case where it sets the rebuilt value equal to the peer's,
+  and can never produce a strictly winning value. On the `existenceAt` branch
+  that ties the peer's tombstone and the standing rule resolves a tie to deleted,
+  so a user's un-delete is silently reverted, unreported, in the one situation
+  the `+ 1ms` exists to prevent.
+
+  This document had already reached both halves of that conclusion, in two
+  separate sections: that clamping a comparand into a comparison manufactures
+  ties, and that a tie here loses to the tombstone. The convenience simply did
+  not consult them.
 
   Then, per field:
   - `existenceAt`: adopt the peer value **verbatim** when the peers agree with
@@ -1048,14 +1088,42 @@ other copies actually hold:
   A field that is **inside** the window is left exactly as it is, and a record
   with neither a baseline entry nor any peer copy — a new record on a
   clock-broken device — simply stays quarantined, since there is nothing to
-  reconcile it against. **A missing baseline entry counts as agreement, not as a
-  difference**: a record with peer copies but no baseline has never been agreed
-  by this device, so it cannot have been edited *since* agreement, and reading
-  "no entry" as "not equal" would take the differs-branch and push possibly-stale
-  content above the peers. Fresh attach, restore and epoch reset all rebuild the
-  baseline from post-union local content, so this is nearly unreachable — but the
-  property that saves it lives in another section, which is exactly the kind of
-  dependency worth stating where the rule is.
+  reconcile it against.
+
+  **A missing baseline entry is resolved by comparing local content to the
+  peers', not by assuming either answer.** Where local content matches a peer's,
+  there is nothing this device can have edited since, and the verbatim branch is
+  right; where it differs from every peer, this device holds content no one else
+  has, which is what "I edited" means, and the differs-branch is right.
+
+  This is the local-versus-peer comparison rejected earlier as a *classifier*,
+  and it is sound here for a reason worth stating, since the two look identical.
+  Rejected as a general rule, it conflated "I edited" with "I am stale", because
+  a peer's newer content also reads as a difference. In this branch staleness is
+  excluded by construction: a stale record is one whose peers moved *after* an
+  agreement, and there is no agreement — no baseline entry — to have moved after.
+  A device with no recorded agreement holding content no peer has can only have
+  written it itself. Narrow the input enough and a rejected signal becomes a
+  sound one; what is not sound is reusing it where that narrowing does not hold.
+
+  A draft read a missing entry as agreement outright, reasoning that a record
+  never agreed cannot have been edited *since* agreement. That does not follow —
+  "never agreed" and "never edited" are different facts — and the round-18 change
+  is what made them come apart: because nothing is written on upload, a device
+  that creates a record, has it accepted, and then edits it before the next pass
+  observes agreement holds **no** baseline entry and content no peer has. Read as
+  agreement, repair would adopt the peers' older `updatedAt` while keeping the
+  newer local content, stranding it at an equal timestamp behind a strict-`>`
+  gate that moves nothing in either direction — the exact failure the round-18 fix
+  was written to close, reached through a door that fix opened.
+
+  **Agreement keys on the hash a peer actually advertises matching this device's
+  current local hash.** That is stated because it is the choice the rule turns on
+  and it was previously left implicit: a device does not remember what it
+  uploaded, so it can only recognise agreement it can still see. The consequence
+  is that agreement reached on content this device has since edited away from is
+  never recorded — correctly, since by then the device *has* edited, and the
+  content comparison above reaches the same answer without needing the memory.
 
   **The classifier must answer "did *I* edit", and only the baseline does.** A
   draft keyed the `updatedAt` rebuild on local content differing from *the
@@ -1099,6 +1167,23 @@ other copies actually hold:
   **The baseline entry must record agreement, not merely upload.** A record's
   baseline entry advances only once a peer's manifest is observed to carry that
   hash; an upload this device has not yet seen reflected stays out of it.
+
+  **Existing baselines cannot be migrated, and are dropped.** The baseline has
+  only ever stored the wire hash, so a device already attached under the previous
+  scheme has no way to derive a body hash for its rows — the content those hashes
+  covered was never retained. Both obvious backfills reintroduce bugs this design
+  has already closed: taking the *current local content* records an unconfirmed
+  edit as agreed, which is the advance-on-upload defect applied to every record
+  with an edit in flight at upgrade; leaving it null falls through to the
+  missing-entry rule, which now resolves by comparing against peers and is
+  therefore safe but wasteful.
+
+  So the body hash is **left null on upgrade and populated on the first pass that
+  observes agreement**, and the missing-entry rule carries the interval. There is
+  no safe backfill to write, which is worth saying outright rather than leaving an
+  implementer to discover it: unlike the `existence_at` migration, where the
+  wrong choice is available and tempting, here every choice that invents a value
+  is wrong, and the only correct one is to admit the value is not recoverable.
 
   This was harmless while every well-formed upload was accepted, and stopped
   being harmless in the same revision that widened inbound rejection — the two
@@ -1248,6 +1333,20 @@ symmetric counterpart, computed from the same per-pass observation and equally
 free of new state. Detecting only the direction that inconveniences *other*
 devices, and staying quiet on the one that inconveniences the device that can
 act, would put the signal where it is least useful.
+
+It needs the same guards clock-suspect was given, and cannot borrow its scoping.
+Clock-suspect looks only at quarantined records, which is meaningless here: a
+fast device's own records are never future *relative to itself*, so none of them
+quarantines and the set would always be empty. Unqualified, "my values are above
+every peer's" is also true of a perfectly healthy device that is simply the most
+active one, or paired with a tablet used once a month — which is this app's
+central usage pattern, not an exotic case. So the report requires **every
+observed peer value for a record this device wrote to trail its own by more than
+the acceptance window**, across **at least three records** and **at least one
+peer**, in a single pass. Trailing by less than the window cannot be the fault
+being detected, since anything inside the window is accepted; requiring several
+records distinguishes a wrong clock, which offsets everything this device writes,
+from ordinary staleness, which does not.
 
 An earlier version of this section claimed both clock-failure directions "stay
 loud and contained". Containment held; loudness did not, once inbound rejection
@@ -2953,7 +3052,22 @@ must say this plainly rather than implying sync is opaque to us.
   value outside the local window and re-quarantines the record immediately.
 - **A rebuilt value is re-checked before the record is called repaired** — assert
   a rebuild that would still land outside the local window leaves the record
-  quarantined rather than reported as fixed.
+  quarantined rather than reported as fixed. Include the peer-exactly-at-the-
+  ceiling case, and assert the record stays quarantined there too. Mutation-proved
+  by clamping to the ceiling instead: that is the *only* case the clamp can fire
+  in, it ties the peer it was meant to outrank, and on `existenceAt` the standing
+  tie rule then silently reverts a user's un-delete.
+- **A create-then-edit before agreement is classified as edited** — create a
+  record with a good clock, let peers accept it, then edit it while the clock is
+  broken, all before a pass observes agreement; assert repair takes the
+  differs-branch and the edit propagates. Mutation-proved by reading a missing
+  baseline entry as agreement, which adopts the peers' older `updatedAt` and
+  strands the newer content at an equal timestamp for ever.
+- **An upgraded device recovers without inventing a baseline** — start from a
+  device attached under the wire-hash-only scheme; assert the body hash is null
+  after upgrade, that the missing-entry rule carries it, and that it populates on
+  the first pass observing agreement. Mutation-proved by backfilling from current
+  local content, which records every in-flight edit as agreed.
 - **A poisoned `updatedAt` does not travel** — poison both fields on a deleting
   device, repair, and assert the blob peers receive carries neither. Mutation-
   proved by taking `max(local, peer + 1ms)`: the poisoned value dominates the

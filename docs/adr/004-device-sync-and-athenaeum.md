@@ -752,6 +752,13 @@ makes self-hosting materially harder, which constraint 4 forbids.
   very write being repaired — matching, adopting an older timestamp, and
   stranding newer content where the strict-`>` gate moves nothing either way.
 
+  A record with **no** baseline entry is resolved by comparing local content to
+  the peers' rather than assuming either answer, since "never agreed" and "never
+  edited" are different facts and the change above is what separates them.
+  Existing baselines cannot be migrated — the body was never retained, and every
+  backfill that invents a value re-opens a defect this design has closed — so the
+  column starts null and fills on the first pass that observes agreement.
+
   **Choosing those classifiers was the substance of the decision.** Neither field
   carries a signal separating a value poisoned by a broken clock from a genuine
   one, so no comparison of magnitude can tell them apart; plausibility against
