@@ -87,12 +87,13 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
-- **Tapping a program in a dance's calling history now opens the program
-  summary, not the builder.** From a dance's details, the list of programs the
-  dance has been called in dropped you straight into the program editor. It now
-  opens the same read-focused summary you get by tapping a program in the
-  programs list — with "Perform this program" front and centre, and "Edit
-  program" a tap away if you did want to change something.
+- **Opening a program now takes you to the program, not the builder.** Two
+  places dropped you straight into the program editor instead of the
+  read-focused summary: the list of programs in a dance's calling history, and
+  picking a program from the global search palette (Ctrl/Cmd-K). Both now open
+  the same summary you get by tapping a program in the programs list — with
+  "Perform this program" front and centre, and "Edit program" a tap away if you
+  did want to change something.
 
 - **Square-through pass lists from The Caller's Box now decode correctly.**
   Lines of the form "Square through 2 (N2R;SL)" carry a compact pass list that
