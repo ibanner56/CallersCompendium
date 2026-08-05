@@ -5078,11 +5078,29 @@ abstract class AppLocalizations {
   /// **'Same dance (update existing)'**
   String get onlineImportVariationDialogActionLink;
 
-  /// Secondary text in the issue #797 resolution dialog warning that choosing 'same dance' will overwrite user-added data. existingTitle is an untrusted local value rendered as plain text.
+  /// Secondary text warning that 'Same dance (link)' is a wholesale replacement. _rebuildWithIdentity (import_pipeline.dart) preserves only id and createdAt from the existing dance; every other field — figures, callingNotes, tagIds, rating, customFields, tunes, links, sourceCitations, hook, title, form, authorIds, provenance — comes from the incoming draft. Note: authorIds is resolved from the incoming record's author names and provenance is the incoming record's provenance (that is the point of linking); neither survives from the existing dance. The dance id is preserved, so ProgramSlot.danceId references stay intact — programs and calling history survive. Used in both the #797 variation dialog (figures DIFFER — the field callers care most about) and the #811 cross-source dialog (figures canonically identical, so replacement is less consequential). existingTitle is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Your edits, tags, and rating for \"{existingTitle}\" will be replaced.'**
+  /// **'Your version of \"{existingTitle}\" will be replaced by the online record — including its figures, notes, tags, rating, and custom fields. It keeps its place in your programs and its calling history.'**
   String onlineImportVariationDialogLinkWarning(String existingTitle);
+
+  /// Title of the resolution dialog shown when a confident title+author match with identical figures is found from a different source during a single-dance online import (issue #811).
+  ///
+  /// In en, this message translates to:
+  /// **'You already have this dance'**
+  String get onlineImportCrossSourceDuplicateDialogTitle;
+
+  /// Body text in the issue #811 resolution dialog for a cross-source duplicate with canonically identical figures (same moves and order; beats and notes may differ). existingTitle is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Your collection already has \"{existingTitle}\" from a different source. Both versions have the same sequence of moves.'**
+  String onlineImportCrossSourceDuplicateDialogBody(String existingTitle);
+
+  /// Action button in the cross-source duplicate dialog (#811) that lets the user import the dance anyway, creating a second copy alongside the existing one.
+  ///
+  /// In en, this message translates to:
+  /// **'Import a second copy'**
+  String get onlineImportCrossSourceDuplicateDialogActionDuplicate;
 
   /// Attribution line under an online result row sourced from The Caller's Box.
   ///

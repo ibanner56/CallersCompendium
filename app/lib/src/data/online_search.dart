@@ -101,6 +101,17 @@ enum OnlineImportKind {
   /// (issue #797). [OnlineImportResult.danceId] holds the existing dance's id
   /// so the dialog can display its title.
   needsConfirmation,
+
+  /// A confident title+author match exists in the collection with **canonically
+  /// identical** figures (same moves and order; beats and notes may differ) from
+  /// a **confirmed different source** (both provenance sources are non-null and
+  /// unequal); nothing was written. The caller must show a resolution dialog and
+  /// retry [OnlineSearchService.import] with [ambiguousResolution] set (issue
+  /// #811). [OnlineImportResult.danceId] holds the existing dance's id so the
+  /// dialog can display its title. Distinct from [needsConfirmation] (differing
+  /// figures) so callers can show appropriately different dialog text without
+  /// inspecting figure state themselves.
+  needsConfirmationIdentical,
 }
 
 /// Outcome of [OnlineSearchService.import].
@@ -118,10 +129,11 @@ class OnlineImportResult {
   /// Id of the imported dance for [OnlineImportKind.created], or the id of the
   /// existing matching dance for [OnlineImportKind.alreadyInCollection] when it
   /// can be resolved, or the **existing** dance's id for
-  /// [OnlineImportKind.needsConfirmation] — a dance the user already has that
-  /// is a confident match. Under `needsConfirmation` nothing has been written;
-  /// the id identifies what to resolve *against*, not what was imported.
-  /// `null` when no dance id is available.
+  /// [OnlineImportKind.needsConfirmation] /
+  /// [OnlineImportKind.needsConfirmationIdentical] — a dance the user already
+  /// has that is a confident match. Under either `needsConfirmation` kind
+  /// nothing has been written; the id identifies what to resolve *against*, not
+  /// what was imported. `null` when no dance id is available.
   final String? danceId;
 
   /// Number of dances this import created or matched. Always `1` for the
