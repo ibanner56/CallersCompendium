@@ -326,10 +326,11 @@ void main() {
         expect(rebuilt.subFigures[1].isCustom, isTrue);
       });
 
-      // Mutation falsification: the naive implementation rebuilds the container
-      // using sum-of-side-beats rather than preserving the container's own
-      // beats. Use beats:10 (container) vs beats:6 (each side) so summing
-      // sides yields 12 ≠ 10, and the test catches the mutation.
+      // Mutation falsification: the naive "simplification" would replace copyWith
+      // with a Figure.meanwhile(...) rebuild. That loses walkthroughOverride and
+      // other container fields, AND loses the beats guarantee — use container
+      // beats:10 / side beats:6 so a sum-of-sides rebuild yields 12 ≠ 10.
+      // If this test breaks, confirm the fix is copyWith, not Figure.meanwhile.
       test(
           'preserves container beats when rebuilding — container beats are '
           'the authoritative section total, not the sum of sides', () {
@@ -390,6 +391,25 @@ void main() {
         final result = reparseImportGapFigures([container]);
 
         expect(result.upgradedCount, 2);
+      });
+
+      // The most important mutation to guard: swapping copyWith back to a
+      // Figure.meanwhile(...) rebuild would silently drop walkthroughOverride
+      // (and customOrigin, assumedSubject, schemaVersion). This test catches it.
+      test(
+          'preserves walkthroughOverride on the container after a side upgrades',
+          () {
+        final container = Figure.meanwhile(
+          figures: [
+            importGap('Neighbor swing', beats: 8),
+            importGap('give and take', beats: 8),
+          ],
+          beats: 16,
+        ).copyWith(walkthroughOverride: 'caller note');
+        final result = reparseImportGapFigures([container]);
+
+        expect(result.upgradedCount, 1);
+        expect(result.figures.single.walkthroughOverride, 'caller note');
       });
     });
   });

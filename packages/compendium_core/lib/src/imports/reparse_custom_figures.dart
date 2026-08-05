@@ -114,11 +114,13 @@ FigureReparseOutcome reparseImportGapFigures(
   }
   if (newSides == null) return null;
   return (
-    figure: Figure.meanwhile(
-      figures: newSides,
-      beats: figure.beats, // container beats are authoritative
-      note: figure.note,
-      progression: figure.progression,
+    // Use copyWith so every field the container may carry — walkthroughOverride,
+    // customOrigin, assumedSubject, schemaVersion, and any future params — is
+    // preserved by construction rather than by remembering to name it.
+    // Only params['figures'] is replaced; beats lives at params['beats'] and
+    // comes through the spread automatically.
+    figure: figure.copyWith(
+      params: {...figure.params, 'figures': List<Figure>.unmodifiable(newSides)},
     ),
     count: upgraded,
   );
