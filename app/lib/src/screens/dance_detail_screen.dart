@@ -32,7 +32,7 @@ import '../widgets/formation_color_badge.dart';
 import '../widgets/skeleton.dart';
 import 'dance_editor_screen.dart';
 import 'perform_dance_screen.dart';
-import 'program_editor_screen.dart';
+import 'program_summary_screen.dart';
 
 /// Dance detail / card (`docs/design/ux.md` §2): header (title, authors,
 /// formation, hook, tags, status banner, provenance line), a figure table
@@ -927,13 +927,17 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
-  /// Opens the full-screen [ProgramEditorScreen] for [programId] (the same
-  /// route used from the programs list), then reloads so any change to the
-  /// program's performance history is reflected on return.
+  /// Opens the read-focused [ProgramSummaryScreen] for [programId] — the same
+  /// destination tapping a saved program in the programs list reaches, with
+  /// Perform first and the builder a tap away behind "Edit program" — then
+  /// reloads. The reload is load-bearing: the summary can mark slots performed
+  /// ("Mark all performed", or adjustments made while performing) and can
+  /// delete the program outright, any of which changes the calling history
+  /// rendered above.
   Future<void> _openProgram(String programId) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ProgramEditorScreen(programId: programId),
+        builder: (_) => ProgramSummaryScreen(programId: programId),
       ),
     );
     if (mounted) _reload();

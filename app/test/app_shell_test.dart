@@ -11,6 +11,8 @@ import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
+import 'package:compendium_app/src/screens/program_editor_screen.dart';
+import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/user_guide/user_guide_screen.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_scope.dart';
@@ -220,6 +222,56 @@ void main() {
 
     expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
   });
+
+  testWidgets(
+    'picking a program in the search palette opens the read-focused summary, '
+    'not the edit builder (#830)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Petronella',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Autumn Ball',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      await _pump(tester, repos, size: const Size(1200, 900));
+
+      await tester.tap(find.byKey(const ValueKey('global-search-button')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('command-result-program-p1')));
+      await tester.pumpAndSettle();
+
+      // The palette's dance results open [DanceDetailScreen], a read view; its
+      // program results must land on the equivalent read view rather than the
+      // builder. Same assertions as the dance-details calling-history test, so
+      // both entry points fail the same recognisable way if either regresses.
+      expect(
+        find.byType(ProgramSummaryScreen),
+        findsOneWidget,
+        reason: 'a program search result must open the program summary',
+      );
+      expect(
+        find.byType(ProgramEditorScreen),
+        findsNothing,
+        reason: 'it must not drop the caller straight into the edit builder',
+      );
+      expect(find.byKey(const ValueKey('open-builder')), findsOneWidget);
+      expect(find.text('Edit program'), findsOneWidget);
+      expect(find.byKey(const ValueKey('summary-perform')), findsOneWidget);
+      expect(find.text('Perform this program'), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'the rail hosts a bottom Help affordance that selects the guide inline',

@@ -12,6 +12,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
+import 'package:compendium_app/src/screens/program_summary_screen.dart';
 
 import 'support/fake_url_launcher.dart';
 import 'support/test_repositories.dart';
@@ -1447,31 +1448,54 @@ void main() {
       expect(find.text('Not yet included in any program.'), findsOneWidget);
     });
 
-    testWidgets('tapping a history row opens the program', (tester) async {
-      final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
-      await repos.programs.create(
-        program(
-          id: 'p1',
-          title: 'Autumn Ball',
-          slots: [
-            ProgramSlot(
-              id: 's1',
-              position: 0,
-              danceId: 'd1',
-              performedAt: DateTime.utc(2026, 10, 3, 20),
-            ),
-          ],
-        ),
-      );
+    testWidgets(
+      'tapping a history row opens the read-focused program summary, not the '
+      'edit builder (#830)',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+        await repos.programs.create(
+          program(
+            id: 'p1',
+            title: 'Autumn Ball',
+            slots: [
+              ProgramSlot(
+                id: 's1',
+                position: 0,
+                danceId: 'd1',
+                performedAt: DateTime.utc(2026, 10, 3, 20),
+              ),
+            ],
+          ),
+        );
 
-      await _pumpDetail(tester, repos, 'd1');
+        await _pumpDetail(tester, repos, 'd1');
 
-      await tester.tap(find.byKey(const ValueKey('calling-history-s1')));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('calling-history-s1')));
+        await tester.pumpAndSettle();
 
-      expect(find.byType(ProgramEditorScreen), findsOneWidget);
-    });
+        // Mirrors the programs list → summary contract asserted in
+        // programs_shell_test.dart: tapping an existing program anywhere in the
+        // app lands on the read view, and the builder is reached from there.
+        expect(
+          find.byType(ProgramSummaryScreen),
+          findsOneWidget,
+          reason: 'a calling-history row must open the program summary',
+        );
+        expect(
+          find.byType(ProgramEditorScreen),
+          findsNothing,
+          reason: 'it must not drop the caller straight into the edit builder',
+        );
+
+        // Rendered affordances unique to the summary — the builder has neither,
+        // so these fail if the destination regresses to the editor.
+        expect(find.byKey(const ValueKey('open-builder')), findsOneWidget);
+        expect(find.text('Edit program'), findsOneWidget);
+        expect(find.byKey(const ValueKey('summary-perform')), findsOneWidget);
+        expect(find.text('Perform this program'), findsOneWidget);
+      },
+    );
 
     testWidgets('a history row is a11y-reachable', (tester) async {
       final repos = openTestRepositories();
