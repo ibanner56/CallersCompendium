@@ -1456,8 +1456,8 @@ void main() {
       // Falsification target: removing one entry from `_singularDancerSets`
       // (e.g. `'nextPartners': 'next partner'`) causes that test to fail
       // because `_humanize('nextPartners')` returns 'next partners' (plural),
-      // not 'next partner' — the PR1 singular path is the only route to the
-      // correct form.
+      // not 'next partner' — the `_singularDancerSets` map is the only route
+      // to the correct singular form.
       test('prevPartners → prev partner', () {
         expect(
           renderer.render(

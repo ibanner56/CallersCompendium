@@ -53,33 +53,36 @@ void main() {
       expect(spec.choices, isNotNull);
     });
 
-    test('meetTarget draws from ContraDB chooser_pairz + unspecified', () {
-      // The 20 pair tokens our meetTarget allows, plus the unspecified sentinel
-      // default. Order is not asserted, only membership.
-      expect(spec!.choices!.toSet(), {
-        'role1s',
-        'role2s',
-        'ones',
-        'twos',
-        'partners',
-        'neighbors',
-        'sameRoles',
-        'firstCorners',
-        'secondCorners',
-        'shadows',
-        'secondShadows',
-        'prevNeighbors',
-        'nextNeighbors',
-        'thirdNeighbors',
-        'fourthNeighbors',
-        'prevPartners',
-        'nextPartners',
-        'thirdPartners',
-        'fourthPartners',
-        'fifthPartners',
-        'unspecified',
-      });
-    });
+    test(
+      'meetTarget draws from ContraDB chooser_pairz + the v24 mixer partner series + unspecified',
+      () {
+        // The 20 pair tokens our meetTarget allows, plus the unspecified sentinel
+        // default. Order is not asserted, only membership.
+        expect(spec!.choices!.toSet(), {
+          'role1s',
+          'role2s',
+          'ones',
+          'twos',
+          'partners',
+          'neighbors',
+          'sameRoles',
+          'firstCorners',
+          'secondCorners',
+          'shadows',
+          'secondShadows',
+          'prevNeighbors',
+          'nextNeighbors',
+          'thirdNeighbors',
+          'fourthNeighbors',
+          'prevPartners',
+          'nextPartners',
+          'thirdPartners',
+          'fourthPartners',
+          'fifthPartners',
+          'unspecified',
+        });
+      },
+    );
 
     test('meetTarget excludes everyone, centers and single dancers', () {
       final choices = spec!.choices!.toSet();
