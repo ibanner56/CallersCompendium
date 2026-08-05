@@ -182,10 +182,21 @@ abstract interface class OnlineSearchService {
   /// Fetches the tapped [result]'s full record and builds an [OnlinePreview]
   /// (detail data + dedupe plan). Throws a `UrlFetchException` on a fetch
   /// failure or when the dance can't be parsed.
+  ///
+  /// [index] is an optional pre-built `DedupeIndex` snapshot to plan against.
+  /// The single-dance flows omit it and let `ImportPipeline.plan` build one, but
+  /// a **batch** caller (the title-list import, issue #823) passes one snapshot
+  /// for the whole run — otherwise each title would trigger its own
+  /// `buildDedupeIndex`, which loads the entire dance and choreographer
+  /// collections, making an N-title paste cost 2N full collection reads. Sharing
+  /// one snapshot across a batch is also what `ImportPipeline.plan` already does
+  /// for every multi-record source, so this changes no semantics — nothing is
+  /// written during planning, so a mid-batch snapshot could not differ anyway.
   Future<OnlinePreview> loadPreview(
     CompendiumRepositories repos,
     OnlineSearchResultRow result, {
     DateTime? now,
+    DedupeIndex? index,
   });
 
   /// Commits [plan] into the local collection (dedup-aware, single dance).

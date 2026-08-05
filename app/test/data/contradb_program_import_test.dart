@@ -50,6 +50,7 @@ class _FakeService implements OnlineSearchService {
     CompendiumRepositories repos,
     OnlineSearchResultRow result, {
     DateTime? now,
+    DedupeIndex? index,
   }) async {
     loadedIds.add(result.id);
     if (failLoadIds.contains(result.id)) {

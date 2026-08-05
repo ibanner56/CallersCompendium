@@ -821,25 +821,45 @@ void main() {
   });
 
   group('defaultImportSources', () {
-    test('returns the canonical [GenericJson, CallersBox, ContraDB, CC .USR] '
-        'list', () {
+    test('returns the canonical [TitleList, CallersBox, ContraDB, GenericJson, '
+        'CC .USR] list', () {
       final sources = defaultImportSources();
-      expect(sources, hasLength(4));
-      expect(sources[0].kind, ImportSourceKind.genericJson);
+      expect(sources, hasLength(5));
+      expect(sources[0].kind, ImportSourceKind.titleList);
       expect(sources[1].kind, ImportSourceKind.callersBox);
       expect(sources[2].kind, ImportSourceKind.contraDb);
-      expect(sources[3].kind, ImportSourceKind.callersCompanionUsr);
+      expect(sources[3].kind, ImportSourceKind.genericJson);
+      expect(sources[4].kind, ImportSourceKind.callersCompanionUsr);
       // Only the URL-backed sources carry a urlBuilder / matchesUrl; the
-      // generic-JSON default is file/paste only.
-      expect(sources[0].urlBuilder, isNull);
-      expect(sources[0].matchesUrl, isNull);
+      // generic-JSON source is file/paste only and the title list is
+      // paste-only.
       expect(sources[1].urlBuilder, isNotNull);
       expect(sources[2].urlBuilder, isNotNull);
-      // The CC source is the only byte-based source (a binary .USR picker);
-      // it has no URL affordances.
-      expect(sources[3].bytePicker, isNotNull);
       expect(sources[3].urlBuilder, isNull);
       expect(sources[3].matchesUrl, isNull);
+      // The title list is the only pasted-text source: no file picker, no URL
+      // affordances, and never auto-detected from a pasted link.
+      expect(sources[0].pastedTextOnly, isTrue);
+      expect(sources[0].urlBuilder, isNull);
+      expect(sources[0].matchesUrl, isNull);
+      expect(sources[0].bytePicker, isNull);
+      // The CC source is the only byte-based source (a binary .USR picker);
+      // it has no URL affordances.
+      expect(sources[4].bytePicker, isNotNull);
+      expect(sources[4].urlBuilder, isNull);
+      expect(sources[4].matchesUrl, isNull);
+    });
+
+    test('order and default selection are separate: The Caller\'s Box is '
+        'preselected even though it is not first (#823)', () {
+      final sources = defaultImportSources();
+      final preselected = sources.where((s) => s.preselected).toList();
+      // Exactly one, so the review screen's firstWhere can never be ambiguous.
+      expect(preselected, hasLength(1));
+      expect(preselected.single.kind, ImportSourceKind.callersBox);
+      // …and it is deliberately NOT sources.first, which is what the screen
+      // used to select. A regression that reunites the two would show up here.
+      expect(sources.first.preselected, isFalse);
     });
   });
 

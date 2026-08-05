@@ -34,6 +34,17 @@ Dance _dance({
   updatedAt: DateTime.utc(2026, 1, 1),
 );
 
+/// Picks the generic Caller's Compendium JSON source in the embedded import
+/// pane. Needed because #823 changed the default selection to The Caller's Box:
+/// order and default are now separate concerns, so a JSON archive must be routed
+/// to its own adapter explicitly.
+Future<void> _selectGenericJsonSource(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('import-source-select')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text("a Caller's Compendium JSON file").last);
+  await tester.pumpAndSettle();
+}
+
 /// Pump [CollectionShell] at a given surface [size].
 /// Wide surface (≥ 900 wide) triggers the split-pane layout.
 /// Use at least 1400 px wide for wide tests to give the 400 px list pane
@@ -458,6 +469,11 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('import-dances')));
       await tester.pumpAndSettle();
 
+      // The screen now opens on The Caller's Box (#823 changed the default from
+      // the generic-JSON source), so a Compendium archive has to be routed to
+      // its own source explicitly.
+      await _selectGenericJsonSource(tester);
+
       await tester.tap(find.byKey(const ValueKey('import-choose-file')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('import-continue')));
@@ -497,6 +513,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('import-dances')));
       await tester.pumpAndSettle();
+      await _selectGenericJsonSource(tester);
       await tester.tap(find.byKey(const ValueKey('import-choose-file')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('import-continue')));

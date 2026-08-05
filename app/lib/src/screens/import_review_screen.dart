@@ -4,12 +4,15 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/collection_refresh_scope.dart';
+import '../data/callersbox_online.dart';
 import '../data/import_diagnostic_labels.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
+import '../data/online_search.dart';
 import '../data/repositories_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/shorthand_mappings_scope.dart';
+import '../data/title_list_import.dart';
 import '../data/venue_entity_mode_scope.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/figure_diff_view.dart';
@@ -60,16 +63,21 @@ class SharedBundleImport {
 /// resolve any ambiguous matches, commit, and offer an undo.
 ///
 /// The screen takes a list of selectable [ImportSource]s so it is not tied to
-/// any one source; this wires the generic [GenericJsonAdapter] ("Caller's
-/// Compendium JSON", the default), the [CallersBoxAdapter] ("The Caller's Box"),
-/// the [ContraDbHtmlAdapter] ("ContraDB"), and the byte-based
+/// any one source; this wires a pasted list of dance titles ("a list of titles",
+/// issue #823), the [CallersBoxAdapter] ("The Caller's Box", the source selected
+/// on open), the [ContraDbHtmlAdapter] ("ContraDB"), the generic
+/// [GenericJsonAdapter] ("Caller's Compendium JSON"), and the byte-based
 /// [CallersCompanionUsrAdapter] ("a Caller's Companion .USR file"). The `.USR`
 /// source picks a binary file (bytes, not text) and — uniquely — commits and
 /// undoes **programs** alongside dances via [CallersCompanionUsrImporter]; every
-/// other source is dance-only text. The user picks the source explicitly (a
-/// dropdown) so a bare id — which has no host to auto-detect — routes
-/// unambiguously. A fresh adapter is built per plan because adapters may hold
-/// per-discovery state.
+/// other source is dance-only. The title-list source is the only one whose
+/// payload is typed rather than picked or fetched, and the only one that plans
+/// through [resolveTitleList] instead of an adapter — but it still commits
+/// through the same review/consent step as everything else, so nothing it
+/// resolves is written until the user confirms. The user picks the source
+/// explicitly (a dropdown) so a bare id — which has no host to auto-detect —
+/// routes unambiguously. A fresh adapter is built per plan because adapters may
+/// hold per-discovery state.
 class ImportReviewScreen extends StatefulWidget {
   const ImportReviewScreen({
     super.key,
@@ -77,6 +85,7 @@ class ImportReviewScreen extends StatefulWidget {
     this.picker,
     this.bytePicker,
     this.fetcher,
+    this.onlineService,
     this.onClose,
     this.sharedBundle,
   }) : assert(sources.length > 0, 'at least one import source is required');
@@ -97,6 +106,11 @@ class ImportReviewScreen extends StatefulWidget {
   /// GET). Widget tests inject canned text or a throwing fake so no real
   /// network call is made.
   final UrlFetcher? fetcher;
+
+  /// Test seam for the online source a pasted title list is resolved against;
+  /// defaults to a real [CallersBoxOnline]. Widget tests inject a fake so no
+  /// real search or per-dance fetch is made.
+  final OnlineSearchService? onlineService;
 
   /// Invoked to dismiss the screen when it is **embedded** (e.g. in the
   /// Collection blade's detail pane) rather than pushed as a route.
@@ -147,9 +161,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   late final CompendiumRepositories _repos;
   bool _started = false;
 
-  /// The currently selected import source (defaults to the first). Governs
-  /// which adapter parses the payload and how URL-mode input is transformed.
-  late ImportSource _selected = widget.sources.first;
+  /// The currently selected import source. Defaults to the source that marks
+  /// itself [ImportSource.preselected], falling back to the first — order and
+  /// default selection are deliberately separate (issue #823), so the dropdown
+  /// can lead with the title list while the screen opens on The Caller's Box.
+  late ImportSource _selected = widget.sources.firstWhere(
+    (s) => s.preselected,
+    orElse: () => widget.sources.first,
+  );
 
   /// Set once the user picks a source from the dropdown themselves. After that
   /// the URL field stops auto-detecting/overriding the source (manual choice
@@ -170,6 +189,31 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// True when the selected source imports from a picked binary file rather than
   /// pasted/fetched text (governs the input UI and which plan path runs).
   bool get _isByteSource => _selected.bytePicker != null;
+
+  /// True when the selected source's payload is typed by the user rather than
+  /// picked or fetched (the pasted title list, issue #823). Governs the input
+  /// affordances and routes planning through [resolveTitleList] instead of an
+  /// adapter.
+  bool get _isPastedTextSource => _selected.pastedTextOnly;
+
+  /// The resolved pasted title list awaiting review, or `null` for every other
+  /// source. Carries the rows for titles that produced nothing importable, which
+  /// have no place in [_batch] but must still be shown (issue #823).
+  TitleListResolution? _titleList;
+
+  /// Progress through the title-list online lookups as `(done, total)`, or
+  /// `null` when no title-list resolution is running.
+  (int, int)? _titleListProgress;
+
+  /// Set when the user cancels an in-flight title-list resolution; read by the
+  /// resolver between titles so the run stops without issuing further requests.
+  /// Nothing is ever written during resolution, so a cancel simply discards the
+  /// partial work.
+  bool _titleListCancelled = false;
+
+  /// User-presentable message from the last refused paste (a hard cap tripped),
+  /// or `null`.
+  String? _titleListError;
 
   /// The source URL the current payload was fetched from, stashed on
   /// [ImportRequest.uri] for provenance. Cleared whenever the payload is
@@ -334,6 +378,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     } else if (payload.trim().isEmpty) {
       return;
     }
+    if (_isPastedTextSource) return _planTitleList(payload);
     setState(() {
       _phase = _Phase.planning;
       _planError = null;
@@ -351,19 +396,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         request,
         index: index,
       );
-      final titles = {
-        for (final e in await _repos.dances.listIdsAndTitles()) e.id: e.title,
-      };
-      final confidentDiffs = await _computeConfidentDiffs(batch);
-      if (!mounted) return;
-      setState(() {
-        _batch = batch;
-        _titlesById = titles;
-        _confidentDiffs = confidentDiffs;
-        _choices = [for (final plan in batch.records) _defaultChoice(plan)];
-        _committed.clear();
-        _phase = _Phase.review;
-      });
+      await _adoptBatch(batch);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -371,6 +404,83 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         _phase = _Phase.review;
       });
     }
+  }
+
+  /// Plans a pasted list of dance titles (issue #823): each title is matched
+  /// against the local collection and, failing that, looked up online and
+  /// previewed — but **never committed**. The importable results become ordinary
+  /// review rows with the usual dedupe verdicts and per-row actions; the titles
+  /// that produced nothing importable are kept in [_titleList] and rendered as
+  /// their own informative groups, so no pasted title silently vanishes.
+  ///
+  /// A hard cap trips before any network access and leaves the user on the input
+  /// screen with the list intact.
+  Future<void> _planTitleList(String payload) async {
+    final l10n = AppLocalizations.of(context);
+    setState(() {
+      _phase = _Phase.planning;
+      _planError = null;
+      _titleListError = null;
+      _titleListCancelled = false;
+      _titleListProgress = (0, 0);
+    });
+    try {
+      final resolution = await resolveTitleList(
+        payload,
+        service: widget.onlineService ?? CallersBoxOnline(),
+        repos: _repos,
+        onProgress: (done, total) {
+          if (!mounted) return;
+          setState(() => _titleListProgress = (done, total));
+        },
+        isCancelled: () => _titleListCancelled || !mounted,
+      );
+      if (!mounted) return;
+      _titleList = resolution;
+      await _adoptBatch(resolution.batch);
+    } on TitleListTooLargeException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _titleListError = titleListTooLargeMessage(l10n, e);
+        _phase = _Phase.input;
+        _titleListProgress = null;
+      });
+    } on TitleListCancelled {
+      if (!mounted) return;
+      setState(() {
+        _phase = _Phase.input;
+        _titleListProgress = null;
+        _titleList = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _planError = e;
+        _phase = _Phase.review;
+        _titleListProgress = null;
+      });
+    }
+  }
+
+  /// Adopts a freshly planned [batch] into the review phase: default choices,
+  /// the local title lookup for candidate names, and the issue #686 confident
+  /// diffs. Shared by the adapter path and the title-list path so the two can
+  /// never drift in how a planned record is presented.
+  Future<void> _adoptBatch(ImportBatchResult batch) async {
+    final titles = {
+      for (final e in await _repos.dances.listIdsAndTitles()) e.id: e.title,
+    };
+    final confidentDiffs = await _computeConfidentDiffs(batch);
+    if (!mounted) return;
+    setState(() {
+      _batch = batch;
+      _titlesById = titles;
+      _confidentDiffs = confidentDiffs;
+      _choices = [for (final plan in batch.records) _defaultChoice(plan)];
+      _committed.clear();
+      _titleListProgress = null;
+      _phase = _Phase.review;
+    });
   }
 
   /// Computes the issue #686 figure-level diff for every row whose verdict
@@ -879,6 +989,25 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 l10n.importReviewSummaryVariation(varied),
               ),
               _summaryLine('Skipped', l10n.importReviewSummarySkipped(skipped)),
+              // A pasted title list's non-importable answers would otherwise be
+              // lost with the review screen when it auto-dismisses after a
+              // commit — and "which of these do I already have?" is worth
+              // keeping (issue #823). Null for every other source.
+              if (_titleList != null) ...[
+                const SizedBox(height: 8),
+                _summaryLine(
+                  'AlreadyOwned',
+                  l10n.importReviewSummaryAlreadyOwned(
+                    _titleList!.countIn(TitleListGroup.alreadyInCollection),
+                  ),
+                ),
+                _summaryLine(
+                  'NotFound',
+                  l10n.importReviewSummaryNotFound(
+                    _titleList!.countIn(TitleListGroup.notFound),
+                  ),
+                ),
+              ],
               if (ccResult != null) ...[
                 const SizedBox(height: 8),
                 _summaryLine(
@@ -1015,16 +1144,55 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
         body: switch (_phase) {
           _Phase.input => _buildInput(context),
-          _Phase.planning => const Center(
-            key: ValueKey('import-planning'),
-            child: CircularProgressIndicator(),
-          ),
+          _Phase.planning => _buildPlanning(context),
           _Phase.committing => const Center(
             key: ValueKey('import-committing'),
             child: CircularProgressIndicator(),
           ),
           _Phase.review => _buildReview(context),
         },
+      ),
+    );
+  }
+
+  /// The planning spinner. A pasted title list additionally shows how far
+  /// through the batch it is and a Cancel, because it makes one online lookup
+  /// per unmatched title — a bare indeterminate spinner would leave a long list
+  /// looking hung with no way out. Nothing has been written at this point, so
+  /// cancelling simply discards the partial work.
+  Widget _buildPlanning(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final progress = _titleListProgress;
+    if (progress == null) {
+      return const Center(
+        key: ValueKey('import-planning'),
+        child: CircularProgressIndicator(),
+      );
+    }
+    final (done, total) = progress;
+    return Center(
+      key: const ValueKey('import-planning'),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(value: total == 0 ? null : done / total),
+          const SizedBox(height: 16),
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              l10n.importReviewTitleListProgress(done, total),
+              key: const ValueKey('import-titles-progress'),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            key: const ValueKey('import-titles-cancel'),
+            onPressed: _titleListCancelled
+                ? null
+                : () => setState(() => _titleListCancelled = true),
+            child: Text(l10n.commonCancel),
+          ),
+        ],
       ),
     );
   }
@@ -1039,6 +1207,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // `_sourceUri` under the user, and so planning can't start on stale input.
     final busy = _picking || _fetching;
     final isUrlSource = _selected.urlBuilder != null;
+    final titlePreflight = _isPastedTextSource
+        ? preflightTitleList(_pasteController.text)
+        : null;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -1073,6 +1244,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                       // them when switching so a `.USR` can't plan through a
                       // text adapter (or vice versa).
                       _payloadBytes = null;
+                      // A cap refusal belongs to the title-list source; it must
+                      // not linger over a different source's input.
+                      _titleListError = null;
                     });
                   },
             items: [
@@ -1115,6 +1289,78 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   const SizedBox(width: 6),
                   Text(l10n.importReviewFileReady(_payloadBytes!.length)),
                 ],
+              ),
+            ),
+        ] else if (_isPastedTextSource) ...[
+          Text(
+            l10n.importReviewDancesFromSource(
+              importSourceLabel(l10n, _selected.kind),
+            ),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 4),
+          Text(l10n.importReviewTitleListSubtitle),
+          const SizedBox(height: 16),
+          TextField(
+            key: const ValueKey('import-titles-field'),
+            controller: _pasteController,
+            minLines: 6,
+            maxLines: 14,
+            enabled: !busy,
+            onChanged: (_) {
+              // A fresh edit invalidates any prior cap refusal, and the live
+              // count below has to keep up with what is actually in the box.
+              _sourceUri = null;
+              setState(() => _titleListError = null);
+            },
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              labelText: l10n.importReviewPasteTitles,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.importReviewTitleListCount(titlePreflight!.resolvableCount),
+            key: const ValueKey('import-titles-count'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (titlePreflight.duplicateLines > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                l10n.importReviewTitleListDuplicates(
+                  titlePreflight.duplicateLines,
+                ),
+                key: const ValueKey('import-titles-duplicates'),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          if (_titleListError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Semantics(
+                container: true,
+                liveRegion: true,
+                child: Row(
+                  key: const ValueKey('import-titles-error'),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        _titleListError!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
         ] else ...[
@@ -1256,7 +1502,16 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (batch == null) return const SizedBox.shrink();
 
     final unreadable = batch.errors;
+    final titleList = _titleList;
     if (batch.records.isEmpty) {
+      // A pasted title list with nothing importable is not a dead end (issue
+      // #823): the whole point of listing every pasted title is that "you
+      // already have these six, and these two couldn't be found" is a useful
+      // answer in itself. Fall through to the grouped review instead of the
+      // generic "no dances" message.
+      if (titleList != null && titleList.rows.isNotEmpty) {
+        return _buildTitleListOnlyReview(context, titleList);
+      }
       // A shared bundle can legitimately carry programs but no dances (e.g. a
       // program of only free-text/announcement slots). It passed intake (which
       // rejects only a bundle with neither dances nor programs), so the review
@@ -1315,8 +1570,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             children: [
               if (_showSoftCapWarning) _buildSoftCapWarning(context),
               if (unreadable.isNotEmpty) _buildBatchErrors(context, unreadable),
+              if (titleList != null) _buildTitleListSummary(context, titleList),
               for (var i = 0; i < batch.records.length; i++)
                 _buildRow(context, i, batch.records[i]),
+              if (titleList != null)
+                ..._buildTitleListGroups(context, titleList),
             ],
           ),
         ),
@@ -1355,6 +1613,174 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// The review body for a pasted title list that produced **nothing**
+  /// importable — every title was either already in the collection or could not
+  /// be found (issue #823).
+  ///
+  /// Deliberately not the generic "no dances found" dead end: that answer
+  /// ("which of these do I already have?") is worth showing on its own, and a
+  /// caller who pasted twelve titles and got none needs to see which six she
+  /// owns and which two the app couldn't find, because those need completely
+  /// different follow-up.
+  Widget _buildTitleListOnlyReview(
+    BuildContext context,
+    TitleListResolution titleList,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    return ListView(
+      key: const ValueKey('import-review-list'),
+      padding: const EdgeInsets.all(12),
+      children: [
+        _buildTitleListSummary(context, titleList),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            l10n.importReviewTitleListNothingToImport,
+            key: const ValueKey('import-titles-nothing-to-import'),
+          ),
+        ),
+        ..._buildTitleListGroups(context, titleList),
+      ],
+    );
+  }
+
+  /// The banner heading the title-list review: how many titles were pasted and
+  /// how they split across the three groups, so the shape of the answer is
+  /// legible before scrolling.
+  Widget _buildTitleListSummary(
+    BuildContext context,
+    TitleListResolution titleList,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final owned = titleList.countIn(TitleListGroup.alreadyInCollection);
+    final notFound = titleList.countIn(TitleListGroup.notFound);
+    final toImport = titleList.countIn(TitleListGroup.toImport);
+    final parts = <String>[
+      l10n.importReviewTitleListToImport(toImport),
+      l10n.importReviewTitleListOwned(owned),
+      l10n.importReviewTitleListNotFound(notFound),
+    ];
+    return Container(
+      key: const ValueKey('import-titles-summary'),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.importReviewTitleListPasted(titleList.rows.length),
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 4),
+          Text(parts.join(' · ')),
+          if (titleList.duplicateLines > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                l10n.importReviewTitleListDuplicates(titleList.duplicateLines),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// The two non-actionable groups, in the order a caller reads them: the
+  /// dances she already owns, then the ones nothing could be found for. Both are
+  /// omitted when empty. Each row states *why* it is here, because "already had
+  /// it" and "couldn't find it" need completely different follow-up (issue
+  /// #823).
+  List<Widget> _buildTitleListGroups(
+    BuildContext context,
+    TitleListResolution titleList,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final owned = titleList.rowsIn(TitleListGroup.alreadyInCollection).toList();
+    final notFound = titleList.rowsIn(TitleListGroup.notFound).toList();
+    return [
+      if (owned.isNotEmpty)
+        _buildTitleListGroup(
+          context,
+          key: 'owned',
+          icon: Icons.library_add_check_outlined,
+          heading: l10n.importReviewTitleListOwned(owned.length),
+          rows: owned,
+          detail: (row) => switch (row.localMatchCount) {
+            1 =>
+              row.localAuthors.isEmpty
+                  ? l10n.importReviewTitleListOwnedUnknownAuthor
+                  : l10n.importReviewTitleListOwnedBy(
+                      row.localAuthors.join(', '),
+                    ),
+            _ => l10n.importReviewTitleListOwnedMany(row.localMatchCount),
+          },
+        ),
+      if (notFound.isNotEmpty)
+        _buildTitleListGroup(
+          context,
+          key: 'not-found',
+          icon: Icons.search_off_outlined,
+          heading: l10n.importReviewTitleListNotFound(notFound.length),
+          rows: notFound,
+          detail: (row) => titleListNotFoundReasonMessage(l10n, row.reason!),
+        ),
+    ];
+  }
+
+  Widget _buildTitleListGroup(
+    BuildContext context, {
+    required String key,
+    required IconData icon,
+    required String heading,
+    required List<TitleListRow> rows,
+    required String Function(TitleListRow) detail,
+  }) {
+    final theme = Theme.of(context);
+    return Card(
+      key: ValueKey('import-titles-group-$key'),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(heading, style: theme.textTheme.titleSmall),
+                ),
+              ],
+            ),
+            for (final row in rows)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Column(
+                  key: ValueKey('import-titles-$key-${row.title}'),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(row.title, style: theme.textTheme.bodyLarge),
+                    Text(
+                      detail(row),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 

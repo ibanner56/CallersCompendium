@@ -66,12 +66,15 @@ class ContraDbOnline implements OnlineSearchService {
   /// Fetches the per-dance HTML for [result], parses it with
   /// [ContraDbHtmlAdapter], and builds an [OnlinePreview] (detail data + dedupe
   /// plan). Throws a [UrlFetchException] on a fetch failure or when the dance
-  /// can't be parsed.
+  /// can't be parsed. Pass [index] to plan against a shared `DedupeIndex`
+  /// snapshot instead of building a fresh one (see
+  /// [OnlineSearchService.loadPreview]).
   @override
   Future<OnlinePreview> loadPreview(
     CompendiumRepositories repos,
     OnlineSearchResultRow result, {
     DateTime? now,
+    DedupeIndex? index,
   }) async {
     final url = buildContraDbUrl(result.id);
     final payload = await _htmlFetcher(url);
@@ -80,6 +83,7 @@ class ContraDbOnline implements OnlineSearchService {
     final batch = await pipeline.plan(
       ContraDbHtmlAdapter(),
       ImportRequest(payload: payload, uri: url),
+      index: index,
     );
     if (batch.records.isEmpty) {
       // Never echo the lower-layer parse error into the UI (CWE-209); keep it

@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 
 import 'online_search.dart';
+import 'online_title_lookup.dart';
 import 'plaintext_program_import.dart';
 
 /// Resolves the `unmatched` lines of a parsed plaintext program against The
@@ -73,7 +74,8 @@ Future<ParsedProgramLine> _resolveLine(
 
 /// Searches [service] by [title] and, on a **confident match** — a UNIQUE
 /// exact-title hit (exactly one result whose name equals [title], trimmed and
-/// case-insensitive) — imports that dance and returns its new dance id.
+/// case-insensitive, found by [lookupUniqueExactTitle]) — imports that dance
+/// and returns its new dance id.
 ///
 /// Returns null when there is no confident match (no results, only fuzzy hits,
 /// or more than one exact hit), when the previewed dance is already a
@@ -81,12 +83,17 @@ Future<ParsedProgramLine> _resolveLine(
 /// overlapping tokenized author set, see [DedupeVerdict.hasConfidentMatch]),
 /// or when the import yields no id. Any fetch / parse / import [Exception] is
 /// swallowed and returns null so one bad title can't abort a batch; `Error`s
-/// (assertion/programmer bugs) still surface.
+/// (assertion/programmer bugs) still surface. The search step's own failures are
+/// already folded into an [OnlineTitleMiss]; every miss reason maps to the same
+/// null here, because a program line has no user present to tell them apart.
 ///
-/// This is the shared online-title→dance resolution used by both the plaintext
+/// This is the shared online-title→dance **import** used by both the plaintext
 /// program import (#313) and the ContraDB program import's Caller's Box fallback
-/// (#314). Performs a single search fetch plus, on a confident hit, a single
-/// import fetch — no crawling (import-fidelity rule).
+/// (#314). The Collection-side title-list import (#823) deliberately does **not**
+/// call it — it shares only the non-committing [lookupUniqueExactTitle] step and
+/// routes commits through the review screen instead. Performs a single search
+/// fetch plus, on a confident hit, a single import fetch — no crawling
+/// (import-fidelity rule).
 ///
 /// ### Confident-match figure-variation handling (issue #686, owner-locked)
 ///
@@ -132,15 +139,10 @@ Future<String?> resolveConfidentOnlineDanceId(
   required CompendiumRepositories repos,
   DateTime? now,
 }) async {
-  final wanted = title.trim().toLowerCase();
+  final lookup = await lookupUniqueExactTitle(title, service: service);
+  if (lookup is! OnlineTitleHit) return null;
   try {
-    final rows = await service.search(OnlineSearchQuery(title: title));
-    final exact = rows
-        .where((r) => r.name.trim().toLowerCase() == wanted)
-        .toList();
-    if (exact.length != 1) return null;
-
-    final preview = await service.loadPreview(repos, exact.single, now: now);
+    final preview = await service.loadPreview(repos, lookup.row, now: now);
     final verdict = preview.plan.verdict;
     if (verdict.hasConfidentMatch) {
       final targetId = verdict.candidates
