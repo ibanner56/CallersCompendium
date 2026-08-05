@@ -68,6 +68,16 @@ abstract final class ParamVocab {
     'nextNeighbors',
     'thirdNeighbors',
     'fourthNeighbors',
+    // Mixer partner series (issue #732, v24): a mixer's previous / successive
+    // partners beyond the current one (P1 = `partners`). Named to parallel the
+    // neighbour series above; `prevPartners` covers P0 (the partner before your
+    // current one). P6+ and every negative P-n have no token, mirroring the
+    // existing refusal of `N-1`/`N-2`.
+    'prevPartners',
+    'nextPartners',
+    'thirdPartners',
+    'fourthPartners',
+    'fifthPartners',
     // Roadmap 2.4a (PR3): the center dancers as a group (Rory O'More's
     // chooser_pairc_or_everyone).
     'centers',

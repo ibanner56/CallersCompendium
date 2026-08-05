@@ -344,7 +344,39 @@ import 'taxonomy.dart';
 ///     compound fan-out emits — dance 174 `(5) Women allemande right 1` +
 ///     `(3) Neighbor courtesy turn`, and dance 14823 `(10) Star left 1 & 1/4` +
 ///     `(6) Partner courtesy turn`. All genuine timing, none noise.
-const int contraTaxonomyVersion = 23;
+/// v24: ADDS five mixer partner-series tokens to `pairDancerSets`:
+///     `prevPartners` (Caller's Box P0), `nextPartners` (P2), `thirdPartners`
+///     (P3), `fourthPartners` (P4), `fifthPartners` (P5) — the previous and
+///     successive partners in a mixer's direction of progression beyond P1
+///     (`partners`, already the existing token). Named to parallel the neighbour
+///     series exactly (`prevNeighbors`/`nextNeighbors`/`thirdNeighbors`/
+///     `fourthNeighbors`); a reader who knows one series can read the other.
+///
+///     Depth is 5 (not 4, where the neighbour series stops). Measured over the
+///     whole 24,107-file Caller's Box mirror — counting bare `Pn` in prose AND
+///     pass codes `PnR`/`PnL`, which an earlier analysis missed — there are
+///     1,230 occurrences of P≥2 across 1,061 figure lines in 308 dances. Cutting
+///     at P5 covers 292 dances (95%) / 1,172 occurrences (95%); the next step
+///     (P6) adds only two dances and 17 occurrences. P5 is also structurally
+///     motivated: in an ascending-weave sequence, pass k people and you land on
+///     P(k+1); the conventional four-pass grand right and left therefore lands on
+///     P5. (This rule applies only to ascending-weave sequences — balance-wave
+///     orientation markers and descending sequences do not follow it.) P5 (83
+///     prose occurrences) accordingly outranks P4 (48). Example: TCB id 10467
+///     `Grand right and left mixer`: `(10) Grand right and left (P1R;P2L;P3R;P4L)`
+///     then `(4) P5 partner balance` / `(12) P5 partner swing` / `(16) P5 partner
+///     promenade counterclockwise`.
+///
+///     P6+ and every negative `P-n` have no token, mirroring the existing
+///     refusal of `N-1`/`N-2`. The neighbour series likewise has only
+///     `prevNeighbors` and nothing beyond it.
+///
+///     The five tokens are also added to `_heyMeetTargetChoices` (see comment
+///     there). Purely additive: no existing figure's derived output changes.
+///     Like v17 and v23, the tokens ride the existing `figures_json` codec —
+///     distinct from CompendiumDatabase.schemaVersion, NO persisted-data
+///     migration is implied.
+const int contraTaxonomyVersion = 24;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -376,6 +408,13 @@ const _heyPass2Choices = [...ParamVocab.pairDancerSets, ParamVocab.unspecified];
 // nonsensical as a hey meeting target), plus an `unspecified` sentinel default.
 // chooser_pairz = pairDancerSets minus {everyone, centers}, so we spell it out
 // rather than derive it, keeping the domain explicit and stable.
+//
+// EXTENDED beyond ContraDB at v24 (issue #732, orchestrating-session decision):
+// the five mixer partner-series tokens (`prevPartners`/`nextPartners`/
+// `thirdPartners`/`fourthPartners`/`fifthPartners`) are included even though
+// they do not exist in ContraDB. Without them a mixer's partial hey cannot name
+// the partner it runs until you meet (e.g. a hey that runs until P2). The param
+// defaults to `unspecified`, so existing data is unaffected.
 const _heyMeetTargetChoices = [
   'role1s',
   'role2s',
@@ -392,6 +431,11 @@ const _heyMeetTargetChoices = [
   'nextNeighbors',
   'thirdNeighbors',
   'fourthNeighbors',
+  'prevPartners',
+  'nextPartners',
+  'thirdPartners',
+  'fourthPartners',
+  'fifthPartners',
   ParamVocab.unspecified,
 ];
 

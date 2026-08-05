@@ -54,8 +54,8 @@ void main() {
     });
 
     test('meetTarget draws from ContraDB chooser_pairz + unspecified', () {
-      // The 15 pair tokens ContraDB allows as a hey meeting target, plus the
-      // unspecified sentinel default. Order is not asserted, only membership.
+      // The 20 pair tokens our meetTarget allows, plus the unspecified sentinel
+      // default. Order is not asserted, only membership.
       expect(spec!.choices!.toSet(), {
         'role1s',
         'role2s',
@@ -72,6 +72,11 @@ void main() {
         'nextNeighbors',
         'thirdNeighbors',
         'fourthNeighbors',
+        'prevPartners',
+        'nextPartners',
+        'thirdPartners',
+        'fourthPartners',
+        'fifthPartners',
         'unspecified',
       });
     });

@@ -26,9 +26,9 @@ void main() {
       parseFigureLines(rawText, beats: beats, frontEnd: tcbFigureFrontEnd);
 
   group('taxonomy — the v23 move', () {
-    test('contraTaxonomyVersion is 23', () {
-      expect(contraTaxonomyVersion, 23);
-      expect(tax.version, 23);
+    test('contraTaxonomyVersion is 24', () {
+      expect(contraTaxonomyVersion, 24);
+      expect(tax.version, 24);
     });
 
     test('v23 is purely additive — it owed no schema migration of its own', () {
@@ -42,7 +42,12 @@ void main() {
       // dropped unused storage (#781/#782) and schema 22 added the
       // dance_figures.group_idx search-correlation column (#748), and schema
       // 24 added the dances.mixer flag (#732), each while the taxonomy stood
-      // still. So a failure here means one of two things,
+      // still. At this point kCompendiumSchemaVersion and
+      // contraTaxonomyVersion both read 24 — coincidentally: schema 24 comes
+      // from dances.mixer (#732) and taxonomy 24 from the partner-series
+      // vocabulary tokens (#732); same issue, unrelated mechanisms, the two
+      // constants are still independent. So a failure here means one of two
+      // things,
       // and they are worth telling apart: either a taxonomy change quietly
       // started owing a migration (the hazard this test exists for), or an
       // unrelated schema change landed and this number simply needs updating.
