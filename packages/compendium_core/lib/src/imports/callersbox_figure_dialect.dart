@@ -1130,8 +1130,13 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   `firstCorners`/`secondCorners` model. C1 is "the non-partner next to you",
 ///   C2 "the person across from you", C3 "the remaining person" — a square/
 ///   four-face-four relationship the taxonomy has no token for.
-/// - `P2`…`P6`, `P0`, `P-n` — a mixer's *future/previous* partners ("The next
-///   partner in your direction of progression is P2"); no vocabulary token.
+/// - `P2`+, `P0`, `P-n` — a mixer's *future/previous* partners ("The next
+///   partner in your direction of progression is P2"). As of taxonomy v24
+///   (issue #732), `P2`–`P5` and `P0` have vocabulary tokens (`nextPartners`/
+///   `thirdPartners`/`fourthPartners`/`fifthPartners` and `prevPartners`
+///   respectively); `P6`+ and every `P-n` do not. This importer deliberately
+///   declines all of them regardless — wiring up the in-range codes is
+///   follow-up work under issue #732.
 /// - `N5`+, `N-1`, `N-2`, `S3`+, `S-n` — beyond the modelled neighbor/shadow
 ///   depth.
 /// - `Ph*` (phantoms), `TB*` (trail buddy), `SR*` (same-role), and bare `R`/`L`

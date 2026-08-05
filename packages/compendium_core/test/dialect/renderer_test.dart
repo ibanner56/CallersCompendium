@@ -1452,6 +1452,57 @@ void main() {
           'next neighbor swing',
         );
       });
+      // Mixer partner-series tokens (issue #732, v24).
+      // Falsification target: removing one entry from `_singularDancerSets`
+      // (e.g. `'nextPartners': 'next partner'`) causes that test to fail
+      // because `_humanize('nextPartners')` returns 'next partners' (plural),
+      // not 'next partner' — the `_singularDancerSets` map is the only route
+      // to the correct singular form.
+      test('prevPartners → prev partner', () {
+        expect(
+          renderer.render(
+            Figure(move: 'swing', params: {'who': 'prevPartners'}),
+            d,
+          ),
+          'prev partner swing',
+        );
+      });
+      test('nextPartners → next partner', () {
+        expect(
+          renderer.render(
+            Figure(move: 'swing', params: {'who': 'nextPartners'}),
+            d,
+          ),
+          'next partner swing',
+        );
+      });
+      test('thirdPartners → third partner', () {
+        expect(
+          renderer.render(
+            Figure(move: 'swing', params: {'who': 'thirdPartners'}),
+            d,
+          ),
+          'third partner swing',
+        );
+      });
+      test('fourthPartners → fourth partner', () {
+        expect(
+          renderer.render(
+            Figure(move: 'swing', params: {'who': 'fourthPartners'}),
+            d,
+          ),
+          'fourth partner swing',
+        );
+      });
+      test('fifthPartners → fifth partner', () {
+        expect(
+          renderer.render(
+            Figure(move: 'swing', params: {'who': 'fifthPartners'}),
+            d,
+          ),
+          'fifth partner swing',
+        );
+      });
       test('role tokens are NOT singularized (stay plural role terms)', () {
         expect(
           renderer.render(Figure(move: 'swing', params: {'who': 'role1s'}), d),

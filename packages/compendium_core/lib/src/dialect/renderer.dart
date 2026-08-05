@@ -849,6 +849,11 @@ class FigureRenderer {
     'nextNeighbors': 'next neighbor',
     'thirdNeighbors': 'third neighbor',
     'fourthNeighbors': 'fourth neighbor',
+    'prevPartners': 'prev partner',
+    'nextPartners': 'next partner',
+    'thirdPartners': 'third partner',
+    'fourthPartners': 'fourth partner',
+    'fifthPartners': 'fifth partner',
   };
 
   /// DISPLAY-ONLY base-line renderers that adopt ContraDB `libfigure`

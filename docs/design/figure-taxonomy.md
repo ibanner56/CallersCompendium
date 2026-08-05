@@ -36,7 +36,7 @@ searchKeywords: [allemande, almond]
 
 | Type | Values | Notes |
 |---|---|---|
-| dancerSet | everyone, larks*, robins*, ones, twos, firstCorners, secondCorners, partners, neighbors, sameRoles, shadows, nextNeighbors, prevNeighbors, … | *canonical role IDs are `role1`/`role2` — see below. Positional/relational tokens (all except `role1s`/`role2s`) are also **dialect-substitutable** via the dialect `dancers` map. |
+| dancerSet | everyone, larks*, robins*, ones, twos, firstCorners, secondCorners, partners, neighbors, sameRoles, shadows, nextNeighbors, prevNeighbors, nextPartners, prevPartners, … | *canonical role IDs are `role1`/`role2` — see below. Positional/relational tokens (all except `role1s`/`role2s`) are also **dialect-substitutable** via the dialect `dancers` map. |
 | dancerPair | subset of dancerSet valid for the move | |
 | handedness / shoulder | right, left | |
 | spinDirection | clockwise, counterclockwise | |
@@ -208,11 +208,14 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   (`ParamKind.dancerSet`, default `unspecified`) to `hey`, finally encoding
   ContraDB's deferred `dancer%%N` meeting *target* — WHICH pair you run a partial
   hey until you meet. The value domain is ContraDB `chooser_pairz`
+  (extended at v24 with five mixer partner-series tokens, issue #732)
   (`_heyMeetTargetChoices`: `role1s`/`role2s`/`ones`/`twos`/`partners`/
   `neighbors`/`sameRoles`/`firstCorners`/`secondCorners`/`shadows`/
   `secondShadows`/`prevNeighbors`/`nextNeighbors`/`thirdNeighbors`/
-  `fourthNeighbors` + `unspecified`) — **pairs only** (single dancers,
-  `everyone`, and `centers` are excluded, as ContraDB does). Our `length` already carries the meeting *count*
+  `fourthNeighbors`/`prevPartners`/`nextPartners`/`thirdPartners`/
+  `fourthPartners`/`fifthPartners` + `unspecified`) — **pairs only** (single
+  dancers, `everyone`, and `centers` are excluded, as ContraDB does). Our
+  `length` already carries the meeting *count*
   (`lessThanHalf`=first meeting/%%1, `betweenHalfAndFull`=second/%%2), so
   `meetTarget` supplies only the WHO. The display renderer names the target only
   for the two partial lengths — "until {target} meet[ the second time]" (bare
@@ -599,6 +602,23 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   - Import mapping and what deliberately stays custom are documented in
     `docs/design/imports.md`; the corpus census is in
     `docs/research/callersbox.md`.
+
+- **v24 (mixer partner series, issue #732):** five `pairDancerSets` tokens added
+  for a mixer's previous and successive partners beyond P1 (`partners`, already
+  the existing token): `prevPartners` (P0), `nextPartners` (P2), `thirdPartners`
+  (P3), `fourthPartners` (P4), `fifthPartners` (P5). Named to parallel the
+  neighbour series exactly; a reader who knows one series can read the other.
+  Depth 5 is set by corpus coverage (95% of partner-series dances, 95% of
+  occurrences) and structural motivation (a four-pass grand right and left lands
+  on P5). P6+ and every negative P-n have no token, mirroring the existing
+  refusal of N-1/N-2. The five tokens are also added to `_heyMeetTargetChoices`
+  — a deliberate extension beyond ContraDB's `chooser_pairz` (which has no
+  mixer-partner tokens), decided because without them a mixer's partial hey
+  cannot name the partner it runs until you meet. The importer still declines
+  the Caller's Box codes; wiring up the in-range codes is follow-up work
+  under #732. Purely additive: no existing
+  figure's derived output changes; the tokens ride the existing `figures_json`
+  codec, so no DB migration is implied.
 
 
 **The full ContraDB v1 contra move set is now modeled** (all five 2.4a slices
