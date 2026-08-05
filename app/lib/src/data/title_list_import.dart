@@ -8,11 +8,17 @@ import 'plaintext_program_import.dart';
 ///
 /// The paste is **untrusted input** (OWASP A04 Insecure Design — uncontrolled
 /// resource consumption): the user may paste anything, and unlike a picked file
-/// there is no filesystem to bound it. 64 KiB leaves generous room for the
-/// [kMaxTitleListTitles] × [kMaxTitleLength] worst case (~20 KB) while keeping a
-/// pathological paste from being split, normalized, and diffed on every
-/// keystroke. Enforced fail-closed: over the cap, nothing is parsed and no
-/// request is made.
+/// there is no filesystem to bound it. 65,536 code units leaves generous room
+/// for the [kMaxTitleListTitles] × [kMaxTitleLength] worst case (~20,000 code
+/// units) while keeping a pathological paste from being split, normalized, and
+/// diffed on every keystroke. Enforced fail-closed: over the cap, nothing is
+/// parsed and no request is made.
+///
+/// Deliberately **not** a byte cap, and not described as one: `String.length`
+/// counts UTF-16 code units, so the same number of units is roughly the same
+/// number of bytes for ASCII but around three times as many for Japanese or
+/// Chinese titles. Sizing a buffer or a request against this constant as though
+/// it were bytes would be wrong by that factor.
 const int kMaxTitleListChars = 64 * 1024;
 
 /// Hard cap on how many **distinct** titles one paste may resolve.

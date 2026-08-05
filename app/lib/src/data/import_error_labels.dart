@@ -121,10 +121,11 @@ String importSourceLabel(AppLocalizations l10n, ImportSourceKind kind) =>
 /// message names the cap and how many titles were actually pasted, letting the
 /// user see how far over they are instead of guessing.
 ///
-/// The raw-size refusal deliberately names **no** number: it is a byte cap, not
-/// a title cap, and a paste of very long lines can trip it with far fewer than
-/// [kMaxTitleListTitles] titles — so citing that limit would misdescribe why the
-/// paste was refused (raised in review of PR #842).
+/// The raw-size refusal deliberately names **no** number: it caps the *length of
+/// the pasted text*, not the number of titles, and a paste of very long lines
+/// can trip it with far fewer than [kMaxTitleListTitles] titles — so citing that
+/// limit would misdescribe why the paste was refused (raised in review of PR
+/// #842). Note the cap is in UTF-16 code units, not bytes.
 String titleListTooLargeMessage(
   AppLocalizations l10n,
   TitleListTooLargeException error,

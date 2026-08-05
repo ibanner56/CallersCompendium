@@ -603,7 +603,8 @@ generic "no dances found" message: that answer is worth showing on its own.
 
 The paste is untrusted text that turns into network requests, so
 `preflightTitleList` — pure, synchronous, and enforced by the resolver rather
-than only by the widget — applies: `kMaxTitleListChars` (64 KiB) on the raw text;
+than only by the widget — applies: `kMaxTitleListChars` (65,536 UTF-16 code
+units, not bytes) on the raw text;
 `kMaxTitleListTitles` (100) **distinct** titles, refused before any request and
 never silently truncated; `kMaxTitleLength` (200) per line, over which a line is
 reported rather than searched; blank-line drop; and case-insensitive

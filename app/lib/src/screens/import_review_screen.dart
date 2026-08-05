@@ -469,17 +469,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     } on TitleListTooLargeException catch (e) {
       if (!mounted) return;
       setState(() {
+        _resetToInput();
         _titleListError = titleListTooLargeMessage(l10n, e);
-        _phase = _Phase.input;
-        _titleListProgress = null;
       });
     } on TitleListCancelled {
       if (!mounted) return;
-      setState(() {
-        _phase = _Phase.input;
-        _titleListProgress = null;
-        _titleList = null;
-      });
+      setState(_resetToInput);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -544,18 +539,23 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// describing it.
   ///
   /// The counterpart to [_adoptBatch]: that method sets [_batch] and
-  /// [_titleList] together, this one clears them together. Both back-to-input
-  /// affordances route through here rather than resetting fields inline,
-  /// because clearing discipline spread across call sites is precisely what
-  /// caused the leak raised in review of PR #842 — [_titleList] was cleared at
-  /// one site while [_titleListError] was cleared at three. A third exit added
-  /// later gets the invariant for free.
+  /// [_titleList] together, this one clears them together. **Every** path back
+  /// to [_Phase.input] routes through here — both back-to-input buttons, the
+  /// cap refusal, and the cancel — because clearing discipline spread across
+  /// call sites is precisely what caused the leak raised in review of PR #842,
+  /// and a manual exit that merely *looks* equivalent is how the same defect
+  /// came back a second time. A fifth exit added later gets the invariant for
+  /// free.
+  ///
+  /// Deliberately does not clear [_titleListError]: the cap refusal resets and
+  /// *then* sets it, and the message belongs to the input step it returns to.
   ///
   /// Caller is responsible for being inside a [setState].
   void _resetToInput() {
     _phase = _Phase.input;
     _batch = null;
     _titleList = null;
+    _titleListProgress = null;
     _planError = null;
   }
 

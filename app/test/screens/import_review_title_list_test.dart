@@ -568,7 +568,7 @@ void main() {
       expect(
         find.textContaining('$kMaxTitleListTitles'),
         findsNothing,
-        reason: 'this is the byte cap, not the title-count cap',
+        reason: 'this is the paste-length cap, not the title-count cap',
       );
       expect(service.searchedTitles, isEmpty);
     });
