@@ -47,8 +47,7 @@ void main() {
       // from dances.mixer (#732) and taxonomy 24 from the partner-series
       // vocabulary tokens (#732); same issue, unrelated mechanisms, the two
       // constants are still independent. So a failure here means one of two
-      // things,
-      // and they are worth telling apart: either a taxonomy change quietly
+      // things, and they are worth telling apart: either a taxonomy change quietly
       // started owing a migration (the hazard this test exists for), or an
       // unrelated schema change landed and this number simply needs updating.
       expect(kCompendiumSchemaVersion, 24);

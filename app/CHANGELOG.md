@@ -22,6 +22,7 @@ each release so store builds and tags can be traced back to an entry.
   you import from The Caller's Box, dances already marked as mixers there come in
   ticked, and Circle Mixers and Scatter Mixers are recognised even when the
   source forgot to flag them.
+
 - **Mixer partner positions are now available as named dancer groups.** When you
   author a figure that involves a mixer's successive partners — the person you'll
   swing after a grand right and left, or the one beyond that — you can now name
