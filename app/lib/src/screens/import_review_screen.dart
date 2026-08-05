@@ -1401,7 +1401,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            l10n.importReviewTitleListCount(titlePreflight!.resolvableCount),
+            l10n.importReviewTitleListCount(titlePreflight!.distinctTitleCount),
             key: const ValueKey('import-titles-count'),
             style: Theme.of(context).textTheme.bodySmall,
           ),

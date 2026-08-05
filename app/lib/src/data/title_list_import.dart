@@ -327,8 +327,21 @@ class TitleListPreflight {
       if (l.rejected == null) l.title,
   ];
 
-  /// How many titles a resolution run would look up, at most. The real number is
-  /// lower whenever a title is already in the local collection.
+  /// How many distinct titles the paste contains — the answer to *"how many
+  /// titles are in the box"*, which is what the live count under the paste field
+  /// reports.
+  ///
+  /// Counts every non-blank, de-duplicated line **including** the over-long ones
+  /// [searchableTitles] omits. Those are still titles the user pasted and still
+  /// appear in the review, each with its own row saying it was too long to
+  /// search — so reporting them as absent would contradict the screen that
+  /// follows. Using the lookup estimate here made a paste of only over-long
+  /// lines read "No titles yet" (raised in review of PR #842).
+  int get distinctTitleCount => lines.length;
+
+  /// How many titles a resolution run would look up, at most — deliberately
+  /// **not** the same question as [distinctTitleCount]. The real number is lower
+  /// whenever a title is already in the local collection.
   int get resolvableCount => searchableTitles.length;
 }
 

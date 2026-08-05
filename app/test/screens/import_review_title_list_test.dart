@@ -545,6 +545,25 @@ void main() {
   });
 
   group('review round 2 (suppressed findings)', () {
+    testWidgets('over-long lines are still counted as titles in the live '
+        'count', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, service: _FakeOnline());
+      final long = 'x' * (kMaxTitleLength + 1);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('import-titles-field')),
+        '$long\n${long}y',
+      );
+      await tester.pumpAndSettle();
+
+      // These two will never be searched, but they are titles the user pasted
+      // and the review lists them both — so reporting "No titles yet" here would
+      // contradict the very next screen.
+      expect(find.text('2 titles'), findsOneWidget);
+      expect(find.text('No titles yet'), findsNothing);
+    });
+
     testWidgets('the raw-size refusal does not cite the title-count cap', (
       tester,
     ) async {
