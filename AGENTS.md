@@ -142,9 +142,9 @@ design docs, roadmap status, and code comments.
 
 - When a change alters documented behaviour, update the documentation **in the
   same PR**, not a follow-up.
-  - **DO NOT update CHANGELOG.md**, however - git history is the source of truth
-    for historical changes. CHANGELOG.md should only be updated when preparing
-    to cut a release tag, not used as an additional commit log by every worker.
+  - `app/CHANGELOG.md` is user-facing release notes, not a commit log. Update it
+    for user-visible changes under `## [Unreleased]` and when cutting a release
+    (move `[Unreleased]` into a version section).
 - When a reviewer flags a claim as wrong, **grep for the claim across the repo**
   before fixing the line they cited. False claims are usually copy-pasted: one
   wrong byte-stability claim took three PRs (#718 -> #721 -> #722) because each
