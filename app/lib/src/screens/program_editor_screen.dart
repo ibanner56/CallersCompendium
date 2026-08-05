@@ -557,6 +557,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Formation? _formationForDance(String danceId) =>
       _data?.dancesById[danceId]?.formation;
 
+  /// Resolves a dance's mixer flag for the slot editor (issue #732).
+  /// Returns false when the dance is unavailable.
+  bool _mixerForDance(String danceId) =>
+      _data?.dancesById[danceId]?.mixer ?? false;
+
   /// Shared renderer for the large-print Perform view (mirrors the dance
   /// detail / single-dance Perform screens).
   static final FigureRenderer _performRenderer = FigureRenderer(contraTaxonomy);
@@ -1374,6 +1379,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             slots: _slots,
             danceTitles: _titleForDance,
             formationFor: _formationForDance,
+            mixerFor: _mixerForDance,
             onReorder: _reorderSlot,
             onSlotChanged: _updateSlot,
             onRemove: _removeSlot,

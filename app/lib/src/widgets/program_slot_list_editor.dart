@@ -25,6 +25,7 @@ class ProgramSlotListEditor extends StatefulWidget {
     required this.slots,
     required this.danceTitles,
     required this.formationFor,
+    required this.mixerFor,
     required this.onReorder,
     required this.onSlotChanged,
     required this.onRemove,
@@ -41,6 +42,12 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// unavailable. Drives the redundant formation-family row accent (issue #270)
   /// and the formation text shown beside it.
   final Formation? Function(String danceId) formationFor;
+
+  /// Resolves a slot's `danceId` to its mixer flag (`Dance.mixer`). Returns
+  /// `false` for free-text slots and unavailable dances. Used together with
+  /// [formationFor] to resolve the mixer-aware row accent (issue #732) and to
+  /// append the mixer term to the subtitle when true.
+  final bool Function(String danceId) mixerFor;
 
   /// Reorder from [oldIndex] to [newIndex] using [ReorderableListView]'s
   /// `onReorderItem` semantics (newIndex is the post-removal insertion index).
@@ -128,6 +135,13 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     return danceId == null ? null : widget.formationFor(danceId);
   }
 
+  /// Resolves whether a slot's dance is a mixer. Always false for free-text
+  /// slots and unavailable dances.
+  bool _slotMixer(ProgramSlot slot) {
+    final danceId = slot.danceId;
+    return danceId == null ? false : widget.mixerFor(danceId);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -190,6 +204,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   slot: slots[i],
                   title: _slotTitle(l10n, slots[i]),
                   formation: _slotFormation(slots[i]),
+                  mixer: _slotMixer(slots[i]),
                   ordinal: _ordinalAtIndex(i),
                   isDanceSlot: slots[i].danceId != null,
                   isTombstone:
@@ -223,6 +238,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   slot: slots[i],
                   title: _slotTitle(l10n, slots[i]),
                   formation: _slotFormation(slots[i]),
+                  mixer: _slotMixer(slots[i]),
                   ordinal: _ordinalAtIndex(i),
                   isDanceSlot: slots[i].danceId != null,
                   isTombstone:
@@ -351,6 +367,7 @@ class _SlotTile extends StatelessWidget {
     required this.slot,
     required this.title,
     required this.formation,
+    required this.mixer,
     required this.ordinal,
     required this.isDanceSlot,
     required this.isTombstone,
@@ -374,6 +391,11 @@ class _SlotTile extends StatelessWidget {
   /// slots / unavailable dances. Drives the redundant accent + formation text.
   final Formation? formation;
 
+  /// Whether the dance is a mixer (issue #732). Always false for free-text
+  /// slots and unavailable dances. Used with [formation] to resolve the
+  /// mixer-aware accent and to append the mixer term to the subtitle.
+  final bool mixer;
+
   /// The 1-based running-order number for a primary slot, or `null` for an
   /// alternate (which is grouped under its primary and carries no number).
   final int? ordinal;
@@ -396,19 +418,26 @@ class _SlotTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final performed = slot.performedAt != null;
 
-    // Redundant formation-family accent (issue #270): only for dance slots with
-    // a resolved formation, when the user has colour-coding on. Paired with the
-    // formation text below, so colour is never the sole cue (ux.md §4).
+    // Redundant formation-family accent (issue #270, extended for mixer flag in
+    // issue #732): only for dance slots with a resolved formation, when the user
+    // has colour-coding on. Mixer-flagged dances get the mixer accent regardless
+    // of shape — see setListAccentForShapeAndMixer. The mixer term is also
+    // appended to the subtitle text so colour is never the sole cue (ux.md §4).
     final colorCodingEnabled = SetListColorCodingScope.of(context);
     final highContrast =
         (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
         MediaQuery.highContrastOf(context);
     final accent = (formation != null && colorCodingEnabled)
-        ? setListAccentForShape(formation!.shape, highContrast: highContrast)
+        ? setListAccentForShapeAndMixer(
+            formation!.shape,
+            mixer,
+            highContrast: highContrast,
+          )
         : null;
 
     final subtitleParts = <String>[
       if (formation != null) formationLabel(l10n, formation!),
+      if (mixer) l10n.commonMixer,
       if (isDanceSlot && (slot.text?.trim().isNotEmpty ?? false))
         l10n.programsSummaryNote(slot.text!.trim()),
       if (!isDanceSlot && (slot.text?.trim().isNotEmpty ?? false)) '',
