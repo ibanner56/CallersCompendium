@@ -34,6 +34,16 @@ each release so store builds and tags can be traced back to an entry.
   has one of these stored, it stays visible and editable on that figure — the
   dropdown just doesn't offer them to new figures until you mark the dance a mixer.
 
+- **Mixers are now findable and visible across your whole collection.** A
+  **Mixer** chip appears on each mixer dance in your collection list (alongside
+  the formation chip). The search and filter panel gains a **Mixer** facet so you
+  can filter to mixers in one tap — it only appears if your collection actually
+  contains any. In a program, mixer rows get the mixer accent colour (the same
+  pink used for scatter mixers), and the word "Mixer" is added to the row text,
+  regardless of what formation the dance is in — so a mixer duple improper reads
+  as a mixer, not a contra. Mixer dances also show the **Mixer** label on their
+  printed and exported dance cards.
+
 - **You can now import a list of dance titles straight into your collection.**
   Choose **a list of titles** in the import source list, paste your titles one
   per line, and the app checks each against your own collection first, then

@@ -419,6 +419,10 @@ tree. This section specifies the mapping; the widget work is 3.2c.
 | One-tap facet: Author | `Author(choreographerId)` |
 | One-tap facet: Tag(s) | `Tag(id)` (multiple tags AND-ed, or OR within the facet — see open Q) |
 | One-tap facet: Status | `Status(s)` |
+| One-tap facet: Level | `Level(level, op)` |
+| One-tap facet: Mixed level | `MixedLevelFilter(true)` |
+| One-tap facet: Mixer | `MixerFilter(true)` — tri-state (null / show-mixers-only); shown only when the collection contains at least one mixer dance (issue #732) |
+| One-tap facet: Rating | `RatingFilter(minimum)` — minimum-star floor |
 | One-tap facet: Custom field | `CustomField(fieldId, op, value)` |
 | **Multiple facets selected** | `And([...leaves])` — the common case |
 | Advanced ▸ boolean group | `And` / `Or` / `Not` group nodes |
