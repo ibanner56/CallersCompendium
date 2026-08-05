@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/collection_filter_scope.dart';
 import '../screens/dance_detail_screen.dart';
-import '../screens/program_editor_screen.dart';
+import '../screens/program_summary_screen.dart';
 import '../theme/app_spacing.dart';
 import '../update/update_banner.dart';
 import '../widgets/brand_mark.dart';
@@ -123,6 +123,11 @@ class _AppShellState extends State<AppShell> {
   /// Opens the global search palette and, if the user picks a result, switches
   /// to the matching section and opens that item's route. Wired to Ctrl/Cmd-K
   /// and the persistent rail search affordance (`ux-modernization.md` §6).
+  ///
+  /// Both kinds land on a **read view** — [DanceDetailScreen] and
+  /// [ProgramSummaryScreen] — rather than an editor. Search is a way to reach
+  /// something, not a request to change it, and the builder stays one tap away
+  /// behind the summary's "Edit program".
   Future<void> _openSearch() async {
     final result = await showCommandPalette(context);
     if (result == null || !mounted) return;
@@ -136,7 +141,7 @@ class _AppShellState extends State<AppShell> {
       CommandResultKind.program => (
         1,
         MaterialPageRoute<void>(
-          builder: (_) => ProgramEditorScreen(programId: result.id),
+          builder: (_) => ProgramSummaryScreen(programId: result.id),
         ),
       ),
     };
