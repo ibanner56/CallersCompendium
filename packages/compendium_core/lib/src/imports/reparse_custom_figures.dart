@@ -120,7 +120,10 @@ FigureReparseOutcome reparseImportGapFigures(
     // Only params['figures'] is replaced; beats lives at params['beats'] and
     // comes through the spread automatically.
     figure: figure.copyWith(
-      params: {...figure.params, 'figures': List<Figure>.unmodifiable(newSides)},
+      params: {
+        ...figure.params,
+        'figures': List<Figure>.unmodifiable(newSides),
+      },
     ),
     count: upgraded,
   );

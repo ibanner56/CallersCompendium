@@ -306,8 +306,7 @@ void main() {
     // permanently invisible to reparse — upgradedCount would be 0 for any
     // meanwhile input regardless of its sides.
     group('meanwhile recursion', () {
-      test(
-          'upgrades an import-gap custom side inside an existing meanwhile '
+      test('upgrades an import-gap custom side inside an existing meanwhile '
           'container', () {
         // "Neighbor swing" structures; "give and take" does not.
         final container = Figure.meanwhile(
@@ -331,8 +330,7 @@ void main() {
       // other container fields, AND loses the beats guarantee — use container
       // beats:10 / side beats:6 so a sum-of-sides rebuild yields 12 ≠ 10.
       // If this test breaks, confirm the fix is copyWith, not Figure.meanwhile.
-      test(
-          'preserves container beats when rebuilding — container beats are '
+      test('preserves container beats when rebuilding — container beats are '
           'the authoritative section total, not the sum of sides', () {
         final container = Figure.meanwhile(
           figures: [
@@ -397,20 +395,21 @@ void main() {
       // Figure.meanwhile(...) rebuild would silently drop walkthroughOverride
       // (and customOrigin, assumedSubject, schemaVersion). This test catches it.
       test(
-          'preserves walkthroughOverride on the container after a side upgrades',
-          () {
-        final container = Figure.meanwhile(
-          figures: [
-            importGap('Neighbor swing', beats: 8),
-            importGap('give and take', beats: 8),
-          ],
-          beats: 16,
-        ).copyWith(walkthroughOverride: 'caller note');
-        final result = reparseImportGapFigures([container]);
+        'preserves walkthroughOverride on the container after a side upgrades',
+        () {
+          final container = Figure.meanwhile(
+            figures: [
+              importGap('Neighbor swing', beats: 8),
+              importGap('give and take', beats: 8),
+            ],
+            beats: 16,
+          ).copyWith(walkthroughOverride: 'caller note');
+          final result = reparseImportGapFigures([container]);
 
-        expect(result.upgradedCount, 1);
-        expect(result.figures.single.walkthroughOverride, 'caller note');
-      });
+          expect(result.upgradedCount, 1);
+          expect(result.figures.single.walkthroughOverride, 'caller note');
+        },
+      );
     });
   });
 }

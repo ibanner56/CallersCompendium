@@ -46,8 +46,7 @@ void main() {
     // container is never isCustom, so a meanwhile whose every side was custom
     // scored 1.0 (fully structured). The recursive harness corrects this.
     group('meanwhile recursion', () {
-      test(
-          'meanwhile with all-custom sides is counted as custom '
+      test('meanwhile with all-custom sides is counted as custom '
           '(pre-fix harness scored 1.0; recursive harness scores 0.0)', () {
         final figures = [
           Figure.meanwhile(
@@ -78,8 +77,7 @@ void main() {
         expect(q.isFullyCustom, isFalse);
       });
 
-      test(
-          'meanwhile with one custom side and one structured side scores 0.5 '
+      test('meanwhile with one custom side and one structured side scores 0.5 '
           'when paired with a fully-structured figure', () {
         // One meanwhile is "custom" (has a custom side), one is fully structured.
         // 1 custom out of 2 top-level figures → 0.5.
