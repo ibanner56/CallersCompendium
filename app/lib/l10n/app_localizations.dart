@@ -7679,6 +7679,18 @@ abstract class AppLocalizations {
   /// **'Added {title}'**
   String collectionPickerAddedTooltip(String title);
 
+  /// Screen-reader label for the persistent in-program marker shown on a picker row when the dance already appears in the program being built (#796). Not a button — it is a status indicator.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} is already in the program'**
+  String collectionPickerInProgramSemantic(String title);
+
+  /// Screen-reader label for the persistent in-program marker when the dance appears more than once in the program (#796). Shown alongside the count badge.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} is in the program {count} times'**
+  String collectionPickerInProgramCountSemantic(String title, int count);
+
   /// App-bar title for the user-guide hub.
   ///
   /// In en, this message translates to:

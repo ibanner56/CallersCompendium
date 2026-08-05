@@ -111,7 +111,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   DateTime? _eventDate;
   ProgramStatus _status = ProgramStatus.draft;
   bool _hideAlternates = false;
-  List<ProgramSlot> _slots = const [];
+  List<ProgramSlot> _slotsBacking = const [];
+
+  /// Live view of [_danceSlotCounts] for the modal picker sheet, which does not
+  /// rebuild with this [State]. Kept in step by the `_slots` setter.
+  final ValueNotifier<Map<String, int>> _pickerCounts = ValueNotifier(const {});
+
   CollectionData? _data;
   bool _saving = false;
   bool _dirty = false;
@@ -326,6 +331,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   @override
   void dispose() {
     _autosaveTimer?.cancel();
+    _pickerCounts.dispose();
     _tabController.dispose();
     _titleController.dispose();
     _venueController.dispose();
@@ -641,6 +647,39 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   // --- Slot mutations -------------------------------------------------------
+
+  /// The working slot list.
+  ///
+  /// Reads go through the getter; every assignment refreshes [_pickerCounts].
+  /// That indirection exists because the dance picker is presented two ways,
+  /// and only one of them rebuilds with this [State]: the two-pane inline pane
+  /// is part of this widget's subtree, but the narrow-layout sheet is a
+  /// separate `Navigator` route, so `setState` here never reaches it. The sheet
+  /// deliberately stays open across several adds, so without a live channel its
+  /// picker would keep the counts it was born with for the whole session.
+  ///
+  /// Routing through a setter rather than updating the notifier at each mutation
+  /// site means a future slot mutation cannot forget to keep the two in step.
+  List<ProgramSlot> get _slots => _slotsBacking;
+
+  set _slots(List<ProgramSlot> value) {
+    _slotsBacking = value;
+    _pickerCounts.value = _danceSlotCounts();
+  }
+
+  /// How many times each dance already appears in the program being built.
+  ///
+  /// Keyed by dance id; dances absent from the program are absent from the map.
+  /// Free-text and break slots carry no dance id and are skipped.
+  Map<String, int> _danceSlotCounts() {
+    final counts = <String, int>{};
+    for (final slot in _slots) {
+      final danceId = slot.danceId;
+      if (danceId == null) continue;
+      counts[danceId] = (counts[danceId] ?? 0) + 1;
+    }
+    return counts;
+  }
 
   void _addDanceSlot(String danceId) {
     setState(() {
@@ -1115,6 +1154,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   data: data,
                   dialect: _dialect,
                   enrichment: _enrichment,
+                  addedDanceCounts: _pickerCounts.value,
                   onAddDance: _addDanceSlot,
                 ),
               ),
@@ -1377,14 +1417,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   ],
                 ),
                 Expanded(
-                  child: CollectionPicker(
-                    key: const ValueKey('sheet-picker'),
-                    data: data,
-                    dialect: _dialect,
-                    enrichment: _enrichment,
-                    scrollController: scrollController,
-                    // Keep the sheet open so callers can add several dances.
-                    onAddDance: _addDanceSlot,
+                  child: ValueListenableBuilder<Map<String, int>>(
+                    valueListenable: _pickerCounts,
+                    builder: (context, counts, _) => CollectionPicker(
+                      key: const ValueKey('sheet-picker'),
+                      data: data,
+                      dialect: _dialect,
+                      enrichment: _enrichment,
+                      scrollController: scrollController,
+                      addedDanceCounts: counts,
+                      // Keep the sheet open so callers can add several dances.
+                      onAddDance: _addDanceSlot,
+                    ),
                   ),
                 ),
               ],

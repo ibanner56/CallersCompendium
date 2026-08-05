@@ -4966,6 +4966,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String collectionPickerInProgramSemantic(String title) {
+    return '$title is already in the program';
+  }
+
+  @override
+  String collectionPickerInProgramCountSemantic(String title, int count) {
+    return '$title is in the program $count times';
+  }
+
+  @override
   String get userGuideTitle => 'User guide';
 
   @override

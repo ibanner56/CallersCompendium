@@ -5503,6 +5503,27 @@
       }
     }
   },
+  "collectionPickerInProgramSemantic": "{title} is already in the program",
+  "@collectionPickerInProgramSemantic": {
+    "description": "Screen-reader label for the persistent in-program marker shown on a picker row when the dance already appears in the program being built (#796). Not a button — it is a status indicator.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "collectionPickerInProgramCountSemantic": "{title} is in the program {count} times",
+  "@collectionPickerInProgramCountSemantic": {
+    "description": "Screen-reader label for the persistent in-program marker when the dance appears more than once in the program (#796). Shown alongside the count badge.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "userGuideTitle": "User guide",
   "@userGuideTitle": {
     "description": "App-bar title for the user-guide hub."

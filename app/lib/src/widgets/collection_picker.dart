@@ -31,6 +31,7 @@ class CollectionPicker extends StatefulWidget {
     required this.dialect,
     required this.enrichment,
     required this.onAddDance,
+    this.addedDanceCounts = const {},
     this.scrollController,
   });
 
@@ -49,6 +50,13 @@ class CollectionPicker extends StatefulWidget {
 
   /// Called with the tapped dance's id to add it to the program.
   final void Function(String danceId) onAddDance;
+
+  /// How many times each dance already appears in the program being built,
+  /// keyed by dance id and omitting dances that do not appear at all.
+  ///
+  /// Empty by default so hosts with no program context (e.g. Perform's insert
+  /// sheet) need not supply it.
+  final Map<String, int> addedDanceCounts;
 
   /// Optional controller for the results scroll view. When the picker is hosted
   /// in a [DraggableScrollableSheet], pass its controller so sheet dragging and
@@ -430,6 +438,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       itemBuilder: (context, index) {
         final entry = _results[index];
         final confirming = _confirmTimers.containsKey(entry.dance.id);
+        final inProgramCount = widget.addedDanceCounts[entry.dance.id] ?? 0;
         // Tapping a row adds the dance — a keyboard/AT-accessible add
         // affordance (announced via the builder's live region on add).
         //
@@ -447,6 +456,41 @@ class _CollectionPickerState extends State<CollectionPicker> {
                 entry: entry,
                 onTap: () => _handleAdd(entry.dance.id),
               ),
+              // Persistent in-program marker: visible whenever the dance
+              // already appears in the program being built, whether or not
+              // the user added it this session. Shape-based (icon + optional
+              // count), never colour-only (`docs/design/ux.md` §4, WCAG 1.4.1).
+              // Coexists with the transient add-button to the right; each
+              // signals something different — this one says "is in the
+              // program", the button says "you just tapped add".
+              if (inProgramCount > 0)
+                Positioned(
+                  top: 12,
+                  right: 56,
+                  child: Semantics(
+                    label: inProgramCount > 1
+                        ? l10n.collectionPickerInProgramCountSemantic(
+                            entry.dance.title,
+                            inProgramCount,
+                          )
+                        : l10n.collectionPickerInProgramSemantic(
+                            entry.dance.title,
+                          ),
+                    excludeSemantics: true,
+                    child: Row(
+                      key: ValueKey('picker-in-program-${entry.dance.id}'),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (inProgramCount > 1)
+                          Text(
+                            '$inProgramCount',
+                            style: Theme.of(context).textTheme.labelMedium,
+                          ),
+                        const Icon(Icons.playlist_add_check, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
               Positioned(
                 top: 8,
                 right: 8,
@@ -455,7 +499,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
                   tooltip: confirming
                       ? l10n.collectionPickerAddedTooltip(entry.dance.title)
                       : l10n.collectionPickerAddTooltip(entry.dance.title),
-                  // A shape change, not a colour change: colour is never the
+                  // Both this button and the persistent marker above use
+                  // shape changes, not colour changes — colour is never the
                   // only signal (`docs/design/ux.md` §4, WCAG 1.4.1). The
                   // button stays enabled throughout — a dance may legitimately
                   // appear in a program more than once.
