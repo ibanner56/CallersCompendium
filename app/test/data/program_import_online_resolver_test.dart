@@ -63,6 +63,7 @@ class _FakeOnlineService implements OnlineSearchService {
     CompendiumRepositories repos,
     OnlineSearchResultRow result, {
     DateTime? now,
+    DedupeIndex? index,
   }) async {
     loadedIds.add(result.id);
     final confident = confidentTitles.contains(
@@ -510,5 +511,42 @@ void main() {
     );
     expect(resolved.single.danceId, 'imported-some dance');
     expect(resolved.single.importedOnline, isTrue);
+  });
+
+  // Regression pin for issue #823. The Collection-side title-list import shares
+  // `lookupUniqueExactTitle` with this resolver but deliberately does NOT share
+  // the commit: it previews and hands the plan to the review screen instead.
+  // The simplification a future reader would reach for — "both callers just
+  // need the plan, make resolveConfidentOnlineDanceId preview-only too" —
+  // silently turns program import into a no-op, because a program line has no
+  // review screen to commit it. This test catches that mutation.
+  test('#823 regression: the PROGRAM path still imports on a confident hit — '
+      'sharing only the lookup step must not make it preview-only', () async {
+    final repos = openTestRepositories();
+    final service = _FakeOnlineService(
+      rowsByTitle: {
+        'money musk': [_row('Money Musk', id: '10600')],
+      },
+    );
+
+    final resolved = await resolveUnmatchedOnline(
+      [_unmatched('Money Musk')],
+      service: service,
+      repos: repos,
+    );
+
+    // The shared lookup ran…
+    expect(service.searchedTitles, ['Money Musk']);
+    // …and, unlike the Collection path, this one went on to commit.
+    expect(
+      service.importedIds,
+      ['Money Musk'],
+      reason:
+          'a preview-only program resolver would leave this empty and the '
+          'program line permanently unresolved',
+    );
+    expect(resolved.single.resolution, PlaintextLineResolution.matched);
+    expect(resolved.single.importedOnline, isTrue);
+    expect(resolved.single.danceId, isNotNull);
   });
 }

@@ -156,6 +156,13 @@ only for the genuinely interactive single-dance "search → tap Import" flow
 (an explicit user pick), and would otherwise force-import a confident local
 duplicate when reused from a batch/non-interactive path.
 
+Since #823 this resolver is no longer the only online-title→dance path. The
+Collection-side title-list import shares its **search** step
+(`lookupUniqueExactTitle`) but not its commit: it is interactive, so it plans
+into `ImportReviewScreen` instead of importing unattended. See
+[A list of titles](#5-a-list-of-titles-823) below for why that split is where it
+is.
+
 ## Sources
 
 ### 1. CallersBox snapshot (6.2, 6.3) — primary
@@ -538,6 +545,78 @@ what the fix removes is the fabricated dancers and the doubled balance.
 - Our own canonical export format (full fidelity: figures, programs, custom
   fields, provenance, dialect definitions). Serves backup/restore and
   user-to-user sharing. Versioned schema; forward-compatible reader.
+
+### 5. A list of titles (#823)
+
+The only source whose input is **pasted text** rather than a file or a URL, and
+the only one that does not plan through a `SourceAdapter`. A pasted blob of
+titles is resolved by `resolveTitleList` (`app/lib/src/data/title_list_import.dart`),
+which reuses the program importer's first two stages and skips its third:
+
+| stage | reuse |
+|---|---|
+| `parsePlaintextProgram(...)` — local title match | verbatim |
+| online title lookup | via the shared `lookupUniqueExactTitle` |
+| `buildProgramSlots(...)` | **skipped** — the only program-coupled stage |
+
+#### It plans; it does not commit
+
+This is the load-bearing difference from the program path, and the reason
+`resolveUnmatchedOnline` is **not** reused wholesale. That function commits as it
+goes (`resolveConfidentOnlineDanceId` calls `OnlineSearchService.import` /
+`ImportPipeline.commit`), which is correct for a program line — no user is
+present to adjudicate it. A Collection import *does* have a user present, so
+every resolved title becomes an `ImportRecordPlan` handed to `ImportReviewScreen`
+and written only on confirmation, where `_defaultChoice` already maps an
+`ambiguous` verdict to skip. Routing through the review is therefore what keeps
+#685's silent-duplicate risk out of this path rather than widening it.
+
+What the two paths share is exactly one non-committing step,
+`lookupUniqueExactTitle` (`app/lib/src/data/online_title_lookup.dart`): search a
+title, return the unique exact-title hit or a typed reason there isn't one.
+Collapsing more than that into the shared function would drag an unattended
+import into a flow that has a user watching; collapsing less would leave the two
+paths as parallel implementations of the same search rule.
+
+`OnlineSearchService.loadPreview` takes an optional `DedupeIndex` so the batch
+plans against one snapshot. Without it each title rebuilds the index — two full
+collection loads apiece — and this is the same one-index-per-batch discipline
+`ImportPipeline.plan` already applies to every multi-record source.
+
+#### Every pasted title is accounted for
+
+The review lists all three groups, because "six imported" alone cannot tell a
+caller which of the other six she already owned and which the app could not find,
+and those need different follow-up:
+
+- **to import** — an ordinary review row with its dedupe verdict and actions;
+- **already in your collection** — named with the matched dance's
+  choreographer(s), since the local match is by title alone and two dances can
+  share a title;
+- **not found** — carrying *which* way it missed (`noResults`, `noExactMatch`,
+  `multipleExactMatches`, `fetchError`, `lineTooLong`).
+
+A paste with nothing importable deliberately does **not** fall through to the
+generic "no dances found" message: that answer is worth showing on its own.
+
+#### Bounding untrusted input
+
+The paste is untrusted text that turns into network requests, so
+`preflightTitleList` — pure, synchronous, and enforced by the resolver rather
+than only by the widget — applies: `kMaxTitleListChars` (65,536 UTF-16 code
+units, not bytes) on the raw text;
+`kMaxTitleListTitles` (100) **distinct** titles, refused before any request and
+never silently truncated; `kMaxTitleLength` (200) per line, over which a line is
+reported rather than searched; blank-line drop; and case-insensitive
+de-duplication (first occurrence wins — unlike `parsePlaintextProgram`, which
+must keep repeats because a program may legitimately call a dance twice).
+
+An accepted paste therefore costs at most `2 × 100` requests, issued serially
+with progress and a cancel, and a per-title `on Exception` boundary means one
+unreachable dance becomes one `fetchError` row rather than an aborted batch. No
+new fetch path is introduced: the existing `buildCallersBoxSearchUrl` /
+`buildCallersBoxJsonUrl` host allowlist (#621, #766) still governs what is
+reachable.
 
 ### Simultaneous-action fan-out (`meanwhile`) (#591/#572)
 - Two source dialects write simultaneous action on one line instead of

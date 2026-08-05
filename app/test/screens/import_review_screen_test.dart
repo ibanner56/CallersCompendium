@@ -1389,6 +1389,25 @@ void main() {
     const tcbJson =
         '{"ID":1,"Name":"The Nice Combination","Permission":"full"}';
 
+    /// The real source list with its preselection moved to the generic-JSON
+    /// source. Every adapter, urlBuilder, and matchesUrl is the production one —
+    /// only which source the screen *opens* on changes, so a URL auto-flip to
+    /// The Caller's Box stays observable now that #823 made The Caller's Box the
+    /// default. Done through [ImportSource.preselected] rather than a tap
+    /// because a manual pick deliberately disables auto-detection.
+    List<ImportSource> sourcesOpeningOnGenericJson() => [
+      for (final s in defaultImportSources())
+        ImportSource(
+          kind: s.kind,
+          adapterFactory: s.adapterFactory,
+          urlBuilder: s.urlBuilder,
+          matchesUrl: s.matchesUrl,
+          bytePicker: s.bytePicker,
+          pastedTextOnly: s.pastedTextOnly,
+          preselected: s.kind == ImportSourceKind.genericJson,
+        ),
+    ];
+
     ImportSource selectedSource(WidgetTester tester) => tester
         .widget<DropdownButton<ImportSource>>(
           find.byKey(const ValueKey('import-source-select')),
@@ -1407,20 +1426,22 @@ void main() {
         'and routes through CallersBoxAdapter', (tester) async {
       final repos = openTestRepositories();
       String? fetchedUrl;
+      // #823 made The Caller's Box the source the screen opens on, which would
+      // make a flip *to* Caller's Box unobservable. Open on the generic-JSON
+      // source instead — but via the preselection, not a manual pick, because a
+      // deliberate pick deliberately disables auto-detection.
       await _pump(
         tester,
         repos,
         payload: 'unused',
-        sources: defaultImportSources(),
+        sources: sourcesOpeningOnGenericJson(),
         fetcher: (url) async {
           fetchedUrl = url;
           return tcbJson;
         },
       );
 
-      // Default selection is the generic-JSON source.
       expect(selectedSource(tester).kind, ImportSourceKind.genericJson);
-
       await typeUrl(
         tester,
         'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1',
@@ -1436,6 +1457,28 @@ void main() {
       await tester.pumpAndSettle();
       // Parsed by CallersBoxAdapter (the auto-detected source).
       expect(find.text('The Nice Combination'), findsOneWidget);
+    });
+
+    testWidgets('the screen opens on The Caller\'s Box, not the first source '
+        '(#823)', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: defaultImportSources(),
+        fetcher: (url) async => 'unused',
+      );
+
+      // Before #823 this was the generic-JSON source, purely because it was
+      // first. Order and default are now separate concerns, so the title list
+      // leads the dropdown while The Caller's Box is what the screen opens on.
+      expect(selectedSource(tester).kind, ImportSourceKind.callersBox);
+      expect(
+        defaultImportSources().first.kind,
+        ImportSourceKind.titleList,
+        reason: 'the default must not simply be sources.first again',
+      );
     });
 
     testWidgets('a ContraDB URL flips the selector to ContraDB', (

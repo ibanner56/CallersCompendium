@@ -620,7 +620,9 @@ typedef ImportUrlBuilder = String Function(String input);
 /// render a localized label (see `importSourceLabel` in
 /// `import_error_labels.dart`) instead of baking English on the data object.
 enum ImportSourceKind {
-  /// A Caller's Compendium JSON share file (the default, generic source).
+  /// A Caller's Compendium JSON share file (the generic, adapter-agnostic
+  /// source). It was the default selection until #823 moved that to The
+  /// Caller's Box; see [ImportSource.preselected].
   genericJson,
 
   /// The Caller's Box online source.
@@ -631,6 +633,11 @@ enum ImportSourceKind {
 
   /// A Caller's Companion `.USR` binary migration file.
   callersCompanionUsr,
+
+  /// A pasted list of dance titles, one per line, resolved against the local
+  /// collection and then The Caller's Box (issue #823). The only source whose
+  /// input is neither a file nor a URL.
+  titleList,
 }
 
 class ImportSource {
@@ -640,6 +647,8 @@ class ImportSource {
     this.urlBuilder,
     this.matchesUrl,
     this.bytePicker,
+    this.pastedTextOnly = false,
+    this.preselected = false,
   });
 
   /// Which source this is. Drives the localized label at the render site.
@@ -675,6 +684,31 @@ class ImportSource {
   /// The only byte source today is Caller's Companion `.USR` (see
   /// [defaultImportSources]).
   final ImportBytePicker? bytePicker;
+
+  /// When true this source's payload is **typed or pasted by the user**, not
+  /// read from a file or fetched from a URL, so the review screen hides its
+  /// file-picker button and URL row and relabels the paste field.
+  ///
+  /// Like [bytePicker] this governs the **input** concern only — which
+  /// affordances are shown and where the payload comes from. It deliberately
+  /// does **not** decide how the payload is planned or how commit/undo is
+  /// routed; commit routing stays gated on the concrete adapter type.
+  ///
+  /// The only pasted-text source today is the title list (see
+  /// [defaultImportSources]).
+  final bool pastedTextOnly;
+
+  /// Whether this source is the one selected when the review screen opens.
+  ///
+  /// Selection is deliberately **decoupled from list order** (issue #823): the
+  /// dropdown is ordered for scannability, with the pasted-title list first
+  /// because it is the entry point a caller reaches for most often, while The
+  /// Caller's Box is the source most imports actually come from and so is what
+  /// the screen opens on. Before #823 the screen simply selected
+  /// `sources.first`, which made the two inseparable. At most one source in a
+  /// list should set this; the screen falls back to the first source when none
+  /// does.
+  final bool preselected;
 }
 
 /// The host used to build a Caller's Box JSON endpoint from a **bare id**. The
@@ -1563,31 +1597,49 @@ bool _isCallersBoxUrl(Uri uri) {
 bool _isContraDbUrl(Uri uri) => _contraDbHosts.contains(uri.host.toLowerCase());
 
 /// The canonical, ordered list of selectable import sources
-/// (`docs/ROADMAP.md` Phase 6.3/6.4/6.5): the generic [GenericJsonAdapter]
-/// ("a Caller's Compendium JSON file", the default), the [CallersBoxAdapter]
-/// ("The Caller's Box"), the [ContraDbHtmlAdapter] ("ContraDB"), and the
-/// [CallersCompanionUsrAdapter] ("a Caller's Companion .USR file", a binary
-/// FileMaker 12 migration that also imports the program history).
+/// (`docs/ROADMAP.md` Phase 6.3/6.4/6.5): a pasted title list (issue #823), the
+/// [CallersBoxAdapter] ("The Caller's Box"), the [ContraDbHtmlAdapter]
+/// ("ContraDB"), the generic [GenericJsonAdapter] ("a Caller's Compendium JSON
+/// file"), and the [CallersCompanionUsrAdapter] ("a Caller's Companion .USR
+/// file", a binary FileMaker 12 migration that also imports the program
+/// history).
+///
+/// Order and default selection are separate concerns (see
+/// [ImportSource.preselected]): the title list leads the dropdown, while The
+/// Caller's Box is what the screen opens on. Before #823 the screen selected
+/// `sources.first`, so the generic-JSON source was both first *and* the default;
+/// this list changes that default deliberately, per the maintainer's request on
+/// issue #823.
 ///
 /// Extracted here so every launch point (Settings and the Collection blade)
 /// shares one definition and the two can never drift. `picker`/`fetcher`
 /// injection is handled separately by each caller via [ImportReviewScreen].
 List<ImportSource> defaultImportSources() => [
   ImportSource(
-    kind: ImportSourceKind.genericJson,
-    adapterFactory: GenericJsonAdapter.new,
+    kind: ImportSourceKind.titleList,
+    // The drafts this source reviews are parsed by the Caller's Box adapter (it
+    // resolves each title through `CallersBoxOnline.loadPreview`), so this is
+    // the honest factory — and it keeps the source on the shared dance-only
+    // commit path, never Caller's Companion's program persistence.
+    adapterFactory: CallersBoxAdapter.new,
+    pastedTextOnly: true,
   ),
   ImportSource(
     kind: ImportSourceKind.callersBox,
     adapterFactory: CallersBoxAdapter.new,
     urlBuilder: buildCallersBoxJsonUrl,
     matchesUrl: _isCallersBoxUrl,
+    preselected: true,
   ),
   ImportSource(
     kind: ImportSourceKind.contraDb,
     adapterFactory: ContraDbHtmlAdapter.new,
     urlBuilder: buildContraDbUrl,
     matchesUrl: _isContraDbUrl,
+  ),
+  ImportSource(
+    kind: ImportSourceKind.genericJson,
+    adapterFactory: GenericJsonAdapter.new,
   ),
   ImportSource(
     kind: ImportSourceKind.callersCompanionUsr,

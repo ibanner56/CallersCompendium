@@ -3547,6 +3547,145 @@ class AppLocalizationsNl extends AppLocalizations {
       'een Caller\'s Companion .USR-bestand';
 
   @override
+  String get importSourceLabelTitleList => 'a list of titles';
+
+  @override
+  String get importReviewTitleListSubtitle =>
+      'Paste one dance title per line. Every title is listed for review — the ones you already have are shown but never re-imported, and nothing is added to your collection until you confirm.';
+
+  @override
+  String get importReviewPasteTitles => 'Dance titles, one per line';
+
+  @override
+  String importReviewTitleListCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count titles',
+      one: '1 title',
+      zero: 'No titles yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewTitleListDuplicates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count repeated titles ignored',
+      one: '1 repeated title ignored',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importTitleListTooManyTitles(int count, int max) {
+    return 'That\'s $count titles. Import up to $max at a time.';
+  }
+
+  @override
+  String get importTitleListTextTooLong =>
+      'That paste is too long to read as a list of titles. Try pasting a shorter list.';
+
+  @override
+  String importReviewTitleListProgress(int done, int total) {
+    return 'Searching $done of $total…';
+  }
+
+  @override
+  String importReviewTitleListPasted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pasted titles',
+      one: '1 pasted title',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewTitleListToImport(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count to import',
+      one: '1 to import',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewTitleListOwned(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count already in your collection',
+      one: '1 already in your collection',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewTitleListNotFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count not found',
+      one: '1 not found',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewTitleListOwnedBy(String authors) {
+    return 'You already have this, by $authors.';
+  }
+
+  @override
+  String get importReviewTitleListOwnedUnknownAuthor =>
+      'You already have this dance.';
+
+  @override
+  String importReviewTitleListOwnedMany(int count) {
+    return 'You have $count dances with this title.';
+  }
+
+  @override
+  String get importTitleListReasonNoResults =>
+      'The Caller\'s Box has no dance by this name.';
+
+  @override
+  String get importTitleListReasonNoExactMatch =>
+      'Only near matches — nothing titled exactly this.';
+
+  @override
+  String get importTitleListReasonMultipleExactMatches =>
+      'Several dances share this exact title, so it isn\'t clear which you meant.';
+
+  @override
+  String get importTitleListReasonFetchError =>
+      'Couldn\'t reach The Caller\'s Box for this title.';
+
+  @override
+  String get importTitleListReasonLineTooLong =>
+      'Too long to be a dance title, so it wasn\'t searched.';
+
+  @override
+  String get importReviewTitleListNothingToImport =>
+      'Nothing here to import — every title is either already in your collection or couldn\'t be found.';
+
+  @override
+  String importReviewSummaryAlreadyOwned(int count) {
+    return 'Already in your collection: $count';
+  }
+
+  @override
+  String importReviewSummaryNotFound(int count) {
+    return 'Not found: $count';
+  }
+
+  @override
   String get importErrorFileTooLarge =>
       'Dat bestand is te groot om te importeren.';
 

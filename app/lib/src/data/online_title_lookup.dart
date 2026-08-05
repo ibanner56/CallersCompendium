@@ -1,0 +1,98 @@
+import 'online_search.dart';
+
+/// Why [lookupUniqueExactTitle] could not settle on a single online dance for a
+/// title. Each value is a *distinct* user-facing situation — a caller who pasted
+/// twelve titles needs to tell "the Box has never heard of this" apart from "the
+/// Box was unreachable just now", because only one of those is worth retrying.
+///
+/// Deliberately typed rather than prose: the data layer never bakes English in
+/// (the presentation layer localizes these at the render site), and the program
+/// path collapses every value to the same `null` without inspecting it.
+enum OnlineTitleLookupFailure {
+  /// The search returned nothing at all.
+  noResults,
+
+  /// The search returned results, but none whose name equals the pasted title
+  /// (trimmed, case-insensitive) — only fuzzy/substring neighbours.
+  noExactMatch,
+
+  /// More than one result has exactly this title, so which dance was meant is
+  /// genuinely ambiguous and must not be guessed at.
+  multipleExactMatches,
+
+  /// The search could not be performed (fetch/parse failure). Swallowed
+  /// per-title so one bad title can never abort a batch.
+  fetchError,
+}
+
+/// Outcome of [lookupUniqueExactTitle]: either the single unambiguous
+/// [OnlineTitleHit], or an [OnlineTitleMiss] carrying the reason.
+sealed class OnlineTitleLookupResult {
+  const OnlineTitleLookupResult();
+}
+
+/// The unique exact-title match for the searched title.
+final class OnlineTitleHit extends OnlineTitleLookupResult {
+  const OnlineTitleHit(this.row);
+
+  final OnlineSearchResultRow row;
+}
+
+/// No unique exact-title match, with the [failure] explaining which way it
+/// missed.
+final class OnlineTitleMiss extends OnlineTitleLookupResult {
+  const OnlineTitleMiss(this.failure);
+
+  final OnlineTitleLookupFailure failure;
+}
+
+/// Searches [service] for [title] and returns the **unique exact-title hit** —
+/// exactly one result whose [OnlineSearchResultRow.name] equals [title] once
+/// both are trimmed and lower-cased — or an [OnlineTitleMiss] saying why there
+/// isn't one.
+///
+/// This is the shared, **non-committing** title→result step. It performs a
+/// single search fetch and writes nothing; deciding what to *do* with a hit
+/// belongs to the caller, and the two callers decide differently:
+///
+/// - the **program** path ([resolveConfidentOnlineDanceId] in
+///   `program_import_online_resolver.dart`) is non-interactive — no user is
+///   present to adjudicate a program line — so it previews and commits the hit
+///   itself under the #685/#686 rules;
+/// - the **Collection** path (`title_list_import.dart`, issue #823) previews the
+///   hit into an `ImportRecordPlan` and hands it to `ImportReviewScreen`, which
+///   commits nothing until the user confirms.
+///
+/// Keeping only this step shared is what lets those two stay different: folding
+/// the commit in here would drag the program path's unattended import into a
+/// flow that has a user watching, which is exactly what #823's batch-review
+/// ruling exists to prevent.
+///
+/// Any fetch/parse [Exception] becomes [OnlineTitleLookupFailure.fetchError]
+/// rather than propagating, so one bad title can't abort a batch; `Error`s
+/// (assertion/programmer bugs) still surface.
+Future<OnlineTitleLookupResult> lookupUniqueExactTitle(
+  String title, {
+  required OnlineSearchService service,
+}) async {
+  final wanted = title.trim().toLowerCase();
+  final List<OnlineSearchResultRow> rows;
+  try {
+    rows = await service.search(OnlineSearchQuery(title: title));
+  } on Exception catch (_) {
+    return const OnlineTitleMiss(OnlineTitleLookupFailure.fetchError);
+  }
+  if (rows.isEmpty) {
+    return const OnlineTitleMiss(OnlineTitleLookupFailure.noResults);
+  }
+  final exact = rows
+      .where((r) => r.name.trim().toLowerCase() == wanted)
+      .toList();
+  if (exact.isEmpty) {
+    return const OnlineTitleMiss(OnlineTitleLookupFailure.noExactMatch);
+  }
+  if (exact.length > 1) {
+    return const OnlineTitleMiss(OnlineTitleLookupFailure.multipleExactMatches);
+  }
+  return OnlineTitleHit(exact.single);
+}

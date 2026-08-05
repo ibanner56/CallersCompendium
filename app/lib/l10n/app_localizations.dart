@@ -5546,6 +5546,144 @@ abstract class AppLocalizations {
   /// **'a Caller\'s Companion .USR file'**
   String get importSourceLabelCallersCompanionUsr;
 
+  /// Name of the pasted-dance-title-list import source (issue #823), shown in the import-source dropdown and in the 'Import dances from {source}.' heading.
+  ///
+  /// In en, this message translates to:
+  /// **'a list of titles'**
+  String get importSourceLabelTitleList;
+
+  /// Subtitle on the import input screen when the pasted-title-list source is selected, explaining the one-title-per-line format and that nothing is written before the review step.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste one dance title per line. Every title is listed for review — the ones you already have are shown but never re-imported, and nothing is added to your collection until you confirm.'**
+  String get importReviewTitleListSubtitle;
+
+  /// Label on the multi-line paste field when the pasted-title-list import source is selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance titles, one per line'**
+  String get importReviewPasteTitles;
+
+  /// Live count of distinct titles in the paste field, shown under it before the user continues.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No titles yet} =1{1 title} other{{count} titles}}'**
+  String importReviewTitleListCount(int count);
+
+  /// Note shown when the pasted list repeated a title; repeats are folded onto their first occurrence so a dance is never searched or imported twice.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 repeated title ignored} other{{count} repeated titles ignored}}'**
+  String importReviewTitleListDuplicates(int count);
+
+  /// Refusal shown when a pasted list holds more distinct titles than the per-import cap. The list is refused outright rather than truncated, so the user never believes a longer list imported in full.
+  ///
+  /// In en, this message translates to:
+  /// **'That\'s {count} titles. Import up to {max} at a time.'**
+  String importTitleListTooManyTitles(int count, int max);
+
+  /// Refusal shown when the raw pasted text exceeds the hard character cap, before it is parsed. Deliberately does NOT cite the title-count cap: this path is the raw size limit, which a paste of very long lines can trip with far fewer than the maximum number of titles, so naming that number would misdescribe why the paste was refused.
+  ///
+  /// In en, this message translates to:
+  /// **'That paste is too long to read as a list of titles. Try pasting a shorter list.'**
+  String get importTitleListTextTooLong;
+
+  /// Progress line while each unmatched title is looked up online, one at a time.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching {done} of {total}…'**
+  String importReviewTitleListProgress(int done, int total);
+
+  /// Heading of the review summary banner, naming how many titles were pasted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 pasted title} other{{count} pasted titles}}'**
+  String importReviewTitleListPasted(int count);
+
+  /// Summary/group count of pasted titles that resolved to a dance available to import.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 to import} other{{count} to import}}'**
+  String importReviewTitleListToImport(int count);
+
+  /// Summary/group count of pasted titles the user already has. Shown as its own group because 'which of these do I already have?' is useful on its own and needs different follow-up from 'not found'.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 already in your collection} other{{count} already in your collection}}'**
+  String importReviewTitleListOwned(int count);
+
+  /// Summary/group count of pasted titles nothing importable could be found for.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 not found} other{{count} not found}}'**
+  String importReviewTitleListNotFound(int count);
+
+  /// Detail under an already-in-collection row naming the matched dance's choreographer(s). The local match is by title alone, so the author is what lets the user tell a real match from a different dance sharing a title.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have this, by {authors}.'**
+  String importReviewTitleListOwnedBy(String authors);
+
+  /// Detail under an already-in-collection row when the matched dance has no recorded choreographer.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have this dance.'**
+  String get importReviewTitleListOwnedUnknownAuthor;
+
+  /// Detail under an already-in-collection row when several local dances share the pasted title. The count is the useful fact; listing every choreographer would be noise.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {count} dances with this title.'**
+  String importReviewTitleListOwnedMany(int count);
+
+  /// Reason under a not-found row: the online search returned nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box has no dance by this name.'**
+  String get importTitleListReasonNoResults;
+
+  /// Reason under a not-found row: results came back but none matched the title exactly, and fuzzy matches are never imported unasked.
+  ///
+  /// In en, this message translates to:
+  /// **'Only near matches — nothing titled exactly this.'**
+  String get importTitleListReasonNoExactMatch;
+
+  /// Reason under a not-found row: more than one online result has this exact title, so it is genuinely ambiguous.
+  ///
+  /// In en, this message translates to:
+  /// **'Several dances share this exact title, so it isn\'t clear which you meant.'**
+  String get importTitleListReasonMultipleExactMatches;
+
+  /// Reason under a not-found row: the search or the per-dance fetch failed. Isolated per title so one failure never aborts the rest of the list. The raw error is logged, never shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach The Caller\'s Box for this title.'**
+  String get importTitleListReasonFetchError;
+
+  /// Reason under a not-found row: the pasted line exceeded the per-title length cap, so it was reported rather than turned into a search query.
+  ///
+  /// In en, this message translates to:
+  /// **'Too long to be a dance title, so it wasn\'t searched.'**
+  String get importTitleListReasonLineTooLong;
+
+  /// Shown above the review groups when a pasted list produced no importable dance at all, so the informative rows are still presented instead of a dead-end 'no dances found' screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here to import — every title is either already in your collection or couldn\'t be found.'**
+  String get importReviewTitleListNothingToImport;
+
+  /// Import result summary line for a pasted title list: how many titles the user already had. Included so the answer survives the screen closing after a commit.
+  ///
+  /// In en, this message translates to:
+  /// **'Already in your collection: {count}'**
+  String importReviewSummaryAlreadyOwned(int count);
+
+  /// Import result summary line for a pasted title list: how many titles nothing importable could be found for.
+  ///
+  /// In en, this message translates to:
+  /// **'Not found: {count}'**
+  String importReviewSummaryNotFound(int count);
+
   /// Error shown when a chosen import file exceeds the maximum allowed size.
   ///
   /// In en, this message translates to:

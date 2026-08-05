@@ -54,12 +54,15 @@ class CallersBoxOnline implements OnlineSearchService {
 
   /// Fetches the per-dance JSON for [result], parses it, and builds an
   /// [OnlinePreview] (detail data + dedupe plan). Throws a [UrlFetchException]
-  /// on a fetch failure or when the dance can't be parsed.
+  /// on a fetch failure or when the dance can't be parsed. Pass [index] to plan
+  /// against a shared `DedupeIndex` snapshot instead of building a fresh one
+  /// (see [OnlineSearchService.loadPreview]).
   @override
   Future<OnlinePreview> loadPreview(
     CompendiumRepositories repos,
     OnlineSearchResultRow result, {
     DateTime? now,
+    DedupeIndex? index,
   }) async {
     final jsonUrl = buildCallersBoxJsonUrl(result.id);
     final payload = await _jsonFetcher(jsonUrl);
@@ -68,6 +71,7 @@ class CallersBoxOnline implements OnlineSearchService {
     final batch = await pipeline.plan(
       CallersBoxAdapter(),
       ImportRequest(payload: payload, uri: jsonUrl),
+      index: index,
     );
     if (batch.records.isEmpty) {
       // Never echo the lower-layer parse error into the UI (CWE-209); keep it
