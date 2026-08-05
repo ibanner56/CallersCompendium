@@ -832,3 +832,43 @@ rebuilding it — the same gap every earlier census in this document has.
   versus us hosting a derived snapshot.
 - How much of the figure corpus parses cleanly into our structured model —
   needs a prototype parser against a sample (Phase 1.8 input).
+
+## Coverage figures: correction (issue #769, 2026-08-04)
+
+All coverage percentages recorded in this document and in issues #295, #712,
+#718, #724, #728, #734, #737 were computed with a top-level-only check:
+`f.isCustom` on the dance's figure list. A `meanwhile` container is never
+`isCustom` even when every concurrent side inside it failed to structure, so
+those containers were counted as structured.
+
+The committed harness (`ParseQuality.ofFigures`, `structured_draft.dart`) was
+corrected in #835 (closes #769) to use the recursive
+definition: `f.isCustom || (f.isMeanwhile && f.subFigures.any((s) => s.isCustom))`.
+One level of recursion is sufficient and provably terminating — meanwhile
+containers are flat by construction (the codec flattens nested containers on
+decode). Future measurements using `ParseQuality.ofFigures` use this definition;
+any measurement that does not should say so.
+
+The restated figures are taken from Isaac's measurement in the #769 issue body,
+at `5af19a1b` on the local TCB mirror described in this document:
+
+| Population | As published (top-level) | Recursive | Correction |
+|---|---:|---:|---:|
+| non-mixer @ `22d5664b` | 82.57% | 80.69% | −1.88pp |
+| non-mixer @ `5af19a1b` | 83.03% | 81.15% | −1.88pp |
+| all `full` @ `5af19a1b` | 80.79% | 78.94% | −1.85pp |
+
+The `22d5664b → 5af19a1b` improvement (+0.45pp) is identical under both
+definitions — deltas are portable across harnesses, absolute counts are not,
+which is why this survived several review rounds (a metric that overstates the
+level but reports change correctly looks right every time you check whether a
+change helped).
+
+**Non-finding to record:** the figures at main as of the correction were not
+re-derived. The tool used to measure the corpus (`tool/tcb_coverage.dart` in
+earlier internal sessions) was never committed to this repository. If the
+main-branch numbers have moved since `5af19a1b` — several PRs merged between
+that SHA and when #835 landed, at least two touching the Caller's Box import
+path — a re-run will reveal it; the restated percentages above are the
+`5af19a1b` values, which is what the issue measured and what this correction
+is pinned to.

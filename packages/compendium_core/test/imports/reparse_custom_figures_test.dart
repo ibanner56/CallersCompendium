@@ -298,5 +298,145 @@ void main() {
         expect(identical(second.figures, first.figures), isTrue);
       });
     });
+
+    // --- meanwhile recursion ---
+    // Before this fix, reparseImportGapFigures iterated the top-level list
+    // only. _tryUpgrade bails on `!figure.isCustom`; a meanwhile container is
+    // never isCustom, so any custom figures nested inside a meanwhile were
+    // permanently invisible to reparse — upgradedCount would be 0 for any
+    // meanwhile input regardless of its sides.
+    group('meanwhile recursion', () {
+      test('upgrades an import-gap custom side inside an existing meanwhile '
+          'container', () {
+        // "Neighbor swing" structures; "give and take" does not.
+        final container = Figure.meanwhile(
+          figures: [
+            importGap('Neighbor swing', beats: 8),
+            importGap('give and take', beats: 8),
+          ],
+          beats: 16,
+        );
+        final result = reparseImportGapFigures([container]);
+
+        expect(result.upgradedCount, 1);
+        final rebuilt = result.figures.single;
+        expect(rebuilt.isMeanwhile, isTrue);
+        expect(rebuilt.subFigures[0].move, 'swing');
+        expect(rebuilt.subFigures[1].isCustom, isTrue);
+      });
+
+      // Mutation falsification: the naive "simplification" would replace copyWith
+      // with a Figure.meanwhile(...) rebuild. That loses walkthroughOverride and
+      // other container fields, AND loses the beats guarantee — use container
+      // beats:10 / side beats:6 so a sum-of-sides rebuild yields 12 ≠ 10.
+      // If this test breaks, confirm the fix is copyWith, not Figure.meanwhile.
+      test('preserves container beats when rebuilding — container beats are '
+          'the authoritative section total, not the sum of sides', () {
+        final container = Figure.meanwhile(
+          figures: [
+            importGap('Neighbor swing', beats: 6),
+            importGap('give and take', beats: 6),
+          ],
+          beats: 10,
+        );
+        final result = reparseImportGapFigures([container]);
+
+        expect(result.upgradedCount, 1);
+        expect(result.figures.single.beats, 10);
+      });
+
+      test('no-op when no side structures — input list identity preserved', () {
+        final container = Figure.meanwhile(
+          figures: [
+            importGap('give and take', beats: 8),
+            importGap('secret figure', beats: 8),
+          ],
+          beats: 16,
+        );
+        final input = [container];
+        final result = reparseImportGapFigures(input);
+
+        expect(result.changed, isFalse);
+        expect(result.upgradedCount, 0);
+        expect(identical(result.figures, input), isTrue);
+      });
+
+      test('idempotent — second run finds nothing further to upgrade', () {
+        final container = Figure.meanwhile(
+          figures: [
+            importGap('Neighbor swing', beats: 8),
+            importGap('give and take', beats: 8),
+          ],
+          beats: 16,
+        );
+        final first = reparseImportGapFigures([container]);
+        expect(first.upgradedCount, 1);
+
+        final second = reparseImportGapFigures(first.figures);
+        expect(second.upgradedCount, 0);
+        expect(identical(second.figures, first.figures), isTrue);
+      });
+
+      test('counts each upgraded side, not each container', () {
+        // Both sides of this meanwhile structure; upgradedCount should be 2.
+        final container = Figure.meanwhile(
+          figures: [
+            importGap('Neighbor swing', beats: 8),
+            importGap('Circle left 3/4', beats: 8),
+          ],
+          beats: 16,
+        );
+        final result = reparseImportGapFigures([container]);
+
+        expect(result.upgradedCount, 2);
+      });
+
+      // The most important mutation to guard: swapping copyWith back to a
+      // Figure.meanwhile(...) rebuild would silently drop walkthroughOverride
+      // (and customOrigin, assumedSubject, schemaVersion). This test catches it.
+      test(
+        'preserves walkthroughOverride on the container after a side upgrades',
+        () {
+          final container = Figure.meanwhile(
+            figures: [
+              importGap('Neighbor swing', beats: 8),
+              importGap('give and take', beats: 8),
+            ],
+            beats: 16,
+          ).copyWith(walkthroughOverride: 'caller note');
+          final result = reparseImportGapFigures([container]);
+
+          expect(result.upgradedCount, 1);
+          expect(result.figures.single.walkthroughOverride, 'caller note');
+        },
+      );
+
+      // A custom side whose stored text re-parses to a meanwhile is declined
+      // (left as-is). Nesting violates the flat-only invariant; flattening
+      // would corrupt section beat totals. The isMeanwhile guard in
+      // _tryUpgradeMeanwhile catches this; removing it causes a nested
+      // meanwhile to appear in the output, and this test goes red.
+      test('declines a side whose re-parse yields a meanwhile — '
+          'leaves it as custom rather than nesting or flattening', () {
+        // "Balance || swing" re-parses to a meanwhile via the ||/while fan-out.
+        final container = Figure.meanwhile(
+          figures: [
+            importGap('Balance || swing', beats: 8),
+            importGap('give and take', beats: 8),
+          ],
+          beats: 16,
+        );
+        final result = reparseImportGapFigures([container]);
+
+        // The side that would nest stays custom; no upgrade is counted.
+        expect(result.changed, isFalse);
+        expect(result.upgradedCount, 0);
+        // Confirm flatness: the container's sides are not meantimes.
+        expect(
+          result.figures.single.subFigures.any((s) => s.isMeanwhile),
+          isFalse,
+        );
+      });
+    });
   });
 }

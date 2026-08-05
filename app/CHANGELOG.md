@@ -87,6 +87,14 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Meanwhile containers now report their true structure quality, and the reparse
+  screen can now upgrade figures inside them.** Both the import review quality
+  chip and the "reparse custom figures" screen previously counted a meanwhile
+  group — two moves that happen at the same time — as fully structured even when
+  its concurrent sides were unstructured custom text. Quality chips will now show
+  lower scores for dances that contain such groups, and the reparse screen will
+  offer to upgrade sides inside them that the parser can now handle.
+
 - **Opening a program now takes you to the program, not the builder.** Two
   places dropped you straight into the program editor instead of the
   read-focused summary: the list of programs in a dance's calling history, and
