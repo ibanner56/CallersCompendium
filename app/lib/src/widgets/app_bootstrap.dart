@@ -9,7 +9,9 @@ import '../data/migration_guard.dart'
         DatabaseBelowFloorError,
         DatabaseDowngradeError,
         MigrationSnapshotAborted,
-        SnapshotFailureCause;
+        SnapshotFailure,
+        SnapshotFailureCause,
+        snapshotBeforeMigrate;
 
 /// Gates the app on a startup [future] — the schema migration / derived-index
 /// back-fill run by `CompendiumRepositories.ensureMigrated()`. Shows a loading

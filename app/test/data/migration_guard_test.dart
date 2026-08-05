@@ -489,4 +489,23 @@ void main() {
     expect(result, isA<ResetComplete>());
     expect(dbFile.existsSync(), isFalse);
   });
+
+  // Invariant guard: kBelowFloorBridgeTags must contain an entry for every
+  // floor raise, including the current one. If this fails after a floor raise,
+  // the recovery screen will show stale bridge guidance.
+  test(
+    'kBelowFloorBridgeTags has an entry whose floor == '
+    'kMinSupportedSchemaVersion (floor-raise checklist guard, issue #841)',
+    () {
+      final floors = kBelowFloorBridgeTags.map((e) => e.floor).toSet();
+      expect(
+        floors,
+        contains(kMinSupportedSchemaVersion),
+        reason:
+            'No bridge-tag entry for the current floor '
+            '($kMinSupportedSchemaVersion). Add one to kBelowFloorBridgeTags '
+            'as part of the floor-raise checklist.',
+      );
+    },
+  );
 }

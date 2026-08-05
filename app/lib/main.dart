@@ -910,7 +910,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
       appVersion: kAppVersion,
       platform:
           '${Platform.operatingSystem} ${Platform.operatingSystemVersion}',
-      bridgeTag: bridgeTagFor(error.fileVersion),
+      bridgeTag: error.bridgeTag,
     );
 
     if (result is BackUpFailed) {

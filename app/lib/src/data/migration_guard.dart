@@ -79,8 +79,11 @@ const List<({int floor, String bridgeTag})> kBelowFloorBridgeTags = [
 ];
 
 /// Returns the [bridgeTag] for a database at [fileVersion] — the release tag
-/// of the newest release able to open that file and migrate it past the current
-/// floor.
+/// of the release that can open that file and migrate it to a version the
+/// current floor permits. This may require a second hop if the floor has been
+/// raised more than once since that release shipped: the user installs the
+/// returned tag, opens the app to migrate, then sees a second recovery screen
+/// naming the next bridge if one is needed.
 ///
 /// Iterates [kBelowFloorBridgeTags] in order and returns the first entry whose
 /// [floor] exceeds [fileVersion]. If no entry matches (which should not occur
