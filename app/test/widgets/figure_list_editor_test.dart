@@ -48,6 +48,7 @@ class _Host extends StatefulWidget {
     this.phrase = PhraseStructure.standard,
     this.wireDuplicate = true,
     this.moveParamDefaults,
+    this.mixer = false,
     this.freeTextEntry = false,
     this.wireMeanwhile = true,
     this.aggressiveBeatsUpdate = false,
@@ -58,6 +59,7 @@ class _Host extends StatefulWidget {
   final PhraseStructure phrase;
   final bool wireDuplicate;
   final Map<String, Map<String, Object?>>? moveParamDefaults;
+  final bool mixer;
   final bool freeTextEntry;
   final bool wireMeanwhile;
 
@@ -106,6 +108,7 @@ class _HostState extends State<_Host> {
               taxonomy: widget.taxonomy,
               phraseStructure: widget.phrase,
               moveParamDefaults: widget.moveParamDefaults,
+              mixer: widget.mixer,
               freeTextEntry: widget.freeTextEntry,
               onChanged: () => setState(() {}),
               onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
@@ -177,6 +180,7 @@ Future<void> _pump(
   PhraseStructure phrase = PhraseStructure.standard,
   bool wireDuplicate = true,
   Map<String, Map<String, Object?>>? moveParamDefaults,
+  bool mixer = false,
   bool freeTextEntry = false,
   bool wireMeanwhile = true,
   bool aggressiveBeatsUpdate = false,
@@ -191,6 +195,7 @@ Future<void> _pump(
       phrase: phrase,
       wireDuplicate: wireDuplicate,
       moveParamDefaults: moveParamDefaults,
+      mixer: mixer,
       freeTextEntry: freeTextEntry,
       wireMeanwhile: wireMeanwhile,
       aggressiveBeatsUpdate: aggressiveBeatsUpdate,
@@ -2936,5 +2941,87 @@ void main() {
         );
       },
     );
+  });
+
+  // ---------------------------------------------------------------------------
+  // Mixer partner-series gating (issue #732)
+  // ---------------------------------------------------------------------------
+  group('mixer partner-series tokens', () {
+    // THE NON-NEGOTIABLE WIDGET TEST.
+    //
+    // A non-mixer dance whose figure already stores `nextPartners` as `who`
+    // must not have that value rewritten when the editor opens.
+    //
+    // The hazard: FigureParamEditor._dropdown writes back to the draft via
+    // addPostFrameCallback when `value ∉ selectable`. If `nextPartners` is
+    // filtered out of the offered domain without retaining the stored value,
+    // the reconciliation falls to the spec default (`partners` for swing),
+    // `current != value` holds, and the write-back fires — silently destroying
+    // transcribed choreography.
+    //
+    // Falsification of the write-back guard: remove `|| token == currentValue`
+    // from offerableDancerSets (the naive version a future simplification would
+    // produce). Verified: 5 core tests in offerable_dancer_sets_test.dart go red.
+    //
+    // Falsification of the threading: drop `mixer: widget.mixer` from
+    // _buildParams (~line 1914). Verified: "nextPartners offered when mixer is
+    // true" goes red (thread cut means `nextPartners` is never offered even in a
+    // mixer). The write-back test passes the threading mutation because the
+    // dance is non-mixer — `currentValue` retention still prevents write-back
+    // at `mixer: false`; the threading matters for the offering, not the guard.
+    // Both mutations tested; the test suite catches both hazards.
+    testWidgets('stored nextPartners value is preserved on non-mixer dance '
+        '(no write-back when value already in offered domain)', (tester) async {
+      final draft = FigureDraft(
+        move: 'swing',
+        params: {'who': 'nextPartners', 'beats': 8},
+      );
+      await _pump(tester, [draft], mixer: false);
+      await _openFigure(tester, 0);
+      // Let any postFrameCallback write-backs fire.
+      await tester.pumpAndSettle();
+
+      expect(
+        draft.params['who'],
+        'nextPartners',
+        reason:
+            'opening the editor on a non-mixer dance must not rewrite a '
+            'stored nextPartners value to the spec default',
+      );
+    });
+
+    testWidgets('nextPartners offered when mixer is true', (tester) async {
+      final draft = FigureDraft(move: 'swing', params: {'who': 'partners'});
+      await _pump(tester, [draft], mixer: true);
+      await _openFigure(tester, 0);
+      // Open the who dropdown to see available options.
+      await tester.tap(find.byKey(const ValueKey('figure-0-who')));
+      await tester.pumpAndSettle();
+      // displayToken → _humanize('nextPartners') → 'next partners'
+      expect(find.text('next partners'), findsOneWidget);
+    });
+
+    testWidgets('nextPartners NOT offered when mixer is false and not stored', (
+      tester,
+    ) async {
+      final draft = FigureDraft(move: 'swing', params: {'who': 'partners'});
+      await _pump(tester, [draft], mixer: false);
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-who')));
+      await tester.pumpAndSettle();
+      // displayToken → _humanize('nextPartners') → 'next partners'
+      expect(find.text('next partners'), findsNothing);
+    });
+
+    testWidgets('partners (P1) always offered when mixer is false', (
+      tester,
+    ) async {
+      final draft = FigureDraft(move: 'swing', params: {'who': 'role1s'});
+      await _pump(tester, [draft], mixer: false);
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-who')));
+      await tester.pumpAndSettle();
+      expect(find.text('partners'), findsWidgets);
+    });
   });
 }

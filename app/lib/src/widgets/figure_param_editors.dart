@@ -26,6 +26,7 @@ class FigureParamEditor extends StatelessWidget {
     required this.value,
     required this.onChanged,
     required this.dialect,
+    this.mixer = false,
   });
 
   /// Stem for the child widget's [ValueKey] (e.g. `figure-0`); the editor
@@ -40,6 +41,17 @@ class FigureParamEditor extends StatelessWidget {
   /// value stays canonical). Structural params ignore it.
   final Dialect dialect;
 
+  /// Whether the enclosing dance is a mixer (issue #732).
+  ///
+  /// When `false` (the default), the five mixer partner-series tokens
+  /// ([ParamVocab.mixerPartnerSeries]) are suppressed from dancer-set/pair
+  /// dropdowns — unless the figure already stores one of them as [value], in
+  /// which case it is retained so no write-back is triggered. When `true`,
+  /// every token in the domain is offered.
+  ///
+  /// Non-dancer-set params ignore this field entirely.
+  final bool mixer;
+
   String get _key => '$keyPrefix-$paramKey';
 
   @override
@@ -47,7 +59,11 @@ class FigureParamEditor extends StatelessWidget {
     switch (spec.kind) {
       case ParamKind.dancerSet:
       case ParamKind.dancerPair:
-        return _dropdown(context, spec.choices ?? ParamVocab.dancerSets);
+        final rawDomain = spec.choices ?? ParamVocab.dancerSets;
+        return _dropdown(
+          context,
+          offerableDancerSets(rawDomain, mixer: mixer, currentValue: value),
+        );
       case ParamKind.handedness:
       case ParamKind.shoulder:
         return _dropdown(context, spec.choices ?? ParamVocab.sides);
