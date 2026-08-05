@@ -1,9 +1,10 @@
 import 'dart:async';
-import 'dart:io' show exit, stderr;
+import 'dart:io' show Directory, File, FileSystemException, exit, stderr;
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 
 import 'l10n/app_localizations.dart';
 import 'src/data/active_dialect_scope.dart';
@@ -884,6 +885,154 @@ class _CompendiumAppState extends State<CompendiumApp> {
     });
   }
 
+  /// Back Up + Reset action for the below-floor recovery screen (issue #841).
+  ///
+  /// Fail-closed: writes a pre-reset snapshot via [snapshotBeforeMigrate] (the
+  /// same writer as the pre-migration preflight) and only wipes the database if
+  /// the snapshot succeeds. If the snapshot fails, surfaces the failure cause
+  /// to the user and leaves the database untouched.
+  Future<void> _backUpAndReset(DatabaseBelowFloorError error) async {
+    await WidgetsBinding.instance.endOfFrame;
+    final context = _navigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+
+    final l10n = AppLocalizations.of(context);
+    final dbFile = await resolveDatabaseFile();
+    final snapshotDir = Directory(
+      p.join(dbFile.parent.path, kDatabaseBackupsDirName),
+    );
+
+    try {
+      await snapshotBeforeMigrate(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        fromVersion: error.fileVersion,
+        timestamp: DateTime.now().toUtc(),
+      );
+    } on Object catch (snapshotError) {
+      if (!context.mounted) return;
+      final cause = classifySnapshotFailure(snapshotError);
+      final causeText = snapshotCauseSentence(l10n, cause);
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.warning_amber_rounded),
+          title: Text(l10n.migrationBelowFloorBackupFailedTitle),
+          content: Text(
+            causeText.isEmpty
+                ? l10n.migrationBelowFloorBackupFailedBody
+                : '${l10n.migrationBelowFloorBackupFailedBody} $causeText',
+          ),
+          actions: [
+            TextButton(
+              autofocus: true,
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l10n.commonOk),
+            ),
+          ],
+        ),
+      );
+      return; // Snapshot failed: do NOT wipe.
+    }
+
+    // Snapshot written — confirm then wipe.
+    if (!context.mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          icon: const Icon(Icons.warning_amber_rounded),
+          title: Text(l10n.migrationBelowFloorResetConfirmTitle),
+          content: Text(l10n.migrationBelowFloorResetConfirmBody),
+          actions: [
+            TextButton(
+              autofocus: true,
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.commonCancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.migrationBelowFloorBackUpAndReset),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true) return;
+
+    await _doReset(dbFile);
+  }
+
+  /// Reset Only action for the below-floor recovery screen (issue #841).
+  ///
+  /// Unrecoverable by definition. Shows a confirmation dialog before wiping.
+  Future<void> _resetOnly(DatabaseBelowFloorError error) async {
+    await WidgetsBinding.instance.endOfFrame;
+    final context = _navigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          icon: const Icon(Icons.warning_amber_rounded),
+          title: Text(l10n.migrationBelowFloorResetConfirmTitle),
+          content: Text(l10n.migrationBelowFloorResetOnlyConfirmBody),
+          actions: [
+            TextButton(
+              autofocus: true,
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.commonCancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.migrationBelowFloorResetOnly),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true) return;
+
+    final dbFile = await resolveDatabaseFile();
+    await _doReset(dbFile);
+  }
+
+  /// Wipes the database file, closes the current database, reopens a fresh one,
+  /// and restarts the bootstrap sequence so the app opens to a clean state.
+  Future<void> _doReset(File dbFile) async {
+    // Close the database before deleting its file so the OS (particularly
+    // Windows) does not hold a lock that prevents deletion.
+    await _appData.close();
+    if (await dbFile.exists()) {
+      await dbFile.delete();
+    }
+    // Remove any WAL/SHM sidecar files so SQLite doesn't try to replay a WAL
+    // that references the deleted main file.
+    for (final suffix in ['-wal', '-shm']) {
+      final sidecar = File('${dbFile.path}$suffix');
+      if (await sidecar.exists()) {
+        try {
+          await sidecar.delete();
+        } on FileSystemException {
+          // Best-effort: a missing sidecar is harmless.
+        }
+      }
+    }
+    if (!mounted) return;
+    // Reopen a fresh database and restart the bootstrap sequence.
+    setState(() {
+      _appData = AppData(openAppDatabase());
+      _corruptionBannerShown = false;
+      _bootstrap = _startupSequence();
+    });
+  }
+
   /// Content shown once the bootstrap future succeeds. When the integrity probe
   /// failed, schedules a one-time dismissible warning banner (the app still
   /// opens — the failure is advisory).
@@ -1090,6 +1239,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
           home: AppBootstrap(
             future: _bootstrap,
             onRetry: _retry,
+            onBackUpAndReset: _backUpAndReset,
+            onResetOnly: _resetOnly,
             builder: _buildReadyApp,
             rebuildProgress: _derivedRebuildProgress,
           ),

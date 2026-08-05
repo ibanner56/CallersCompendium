@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_core/compendium_core.dart'
-    show kCompendiumSchemaVersion;
+    show kCompendiumSchemaVersion, kMinSupportedSchemaVersion;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sql;
@@ -304,6 +304,92 @@ void main() {
         runningSchemaVersion: kCompendiumSchemaVersion,
       );
       expect(snapshotDir.existsSync(), isFalse);
+    },
+  );
+
+  test('refuses a DB stamped below the supported floor, leaving it untouched '
+      '(issue #841)', () async {
+    final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+    // Use a version below the floor, guaranteed to be there because
+    // kMinSupportedSchemaVersion is the floor.
+    final belowFloor = kMinSupportedSchemaVersion - 1;
+    _createFixture(dbFile.path, userVersion: belowFloor, seedValue: 'keep');
+
+    await expectLater(
+      runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+      ),
+      throwsA(isA<DatabaseBelowFloorError>()),
+    );
+
+    // The thrown error carries the correct version fields.
+    DatabaseBelowFloorError? thrown;
+    try {
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+      );
+    } on DatabaseBelowFloorError catch (e) {
+      thrown = e;
+    }
+    expect(thrown, isNotNull);
+    expect(thrown!.fileVersion, belowFloor);
+    expect(thrown.minSupportedVersion, kMinSupportedSchemaVersion);
+    expect(thrown.bridgeTag, isNotEmpty);
+
+    // The file is untouched: below-floor databases are never snapshotted or
+    // migrated.
+    expect(readUserVersion(dbFile.path), belowFloor);
+    final db = sql.sqlite3.open(dbFile.path);
+    expect(db.select('SELECT v FROM t').single['v'], 'keep');
+    db.close();
+    expect(snapshotDir.existsSync(), isFalse);
+  });
+
+  test(
+    'below-floor error reaches AppBootstrap, not the generic error path — '
+    'guard: mutate the check out and the generic path fires instead (issue #841)',
+    () async {
+      // This test verifies the guard's routing: a DatabaseBelowFloorError must
+      // reach the below-floor branch in AppBootstrap, not fall through to the
+      // generic retry screen.
+      //
+      // We cannot exercise AppBootstrap here (widget test); what we can prove is
+      // that runMigrationPreflight throws DatabaseBelowFloorError (not StateError
+      // or any other type) for a below-floor file, so the routing in
+      // AppBootstrap's error branch is unambiguous.
+      final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+      final belowFloor = kMinSupportedSchemaVersion - 1;
+      _createFixture(dbFile.path, userVersion: belowFloor);
+
+      Object? thrown;
+      try {
+        await runMigrationPreflight(
+          dbFile: dbFile,
+          snapshotDir: snapshotDir,
+          runningSchemaVersion: kCompendiumSchemaVersion,
+        );
+      } catch (e) {
+        thrown = e;
+      }
+
+      // Must be the typed error, NOT a StateError (which is the pre-#841 path
+      // that falls through to the generic screen). If a future simplification
+      // removes the DatabaseBelowFloorError check in runMigrationPreflight and
+      // lets the StateError from the migration steps fire instead, this test
+      // goes red — that is its purpose.
+      expect(
+        thrown,
+        isA<DatabaseBelowFloorError>(),
+        reason:
+            'Expected DatabaseBelowFloorError; got $thrown. '
+            'If this is a StateError, the below-floor check in '
+            'runMigrationPreflight was removed, which routes users to '
+            'the dead-end generic error screen instead of the recovery screen.',
+      );
     },
   );
 }

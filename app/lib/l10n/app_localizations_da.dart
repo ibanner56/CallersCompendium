@@ -81,6 +81,40 @@ class AppLocalizationsDa extends AppLocalizations {
   String get migrationSnapshotConsentProceed => 'Fortsæt uden sikkerhedskopi';
 
   @override
+  String get migrationBelowFloorHeadline =>
+      'Disse data stammer fra en version, der er for gammel til at åbne';
+
+  @override
+  String migrationBelowFloorBody(String bridgeTag) {
+    return 'Dine data kan gendannes. Installer $bridgeTag, åbn appen én gang for at lade den opdatere dine data, og installer derefter denne version igen.\n\nHvis du foretrækker at starte forfra, brug indstillingerne nedenfor — dine nuværende data vil gå tabt.';
+  }
+
+  @override
+  String get migrationBelowFloorBackUpAndReset => 'Sikkerhedskopi + Nulstil';
+
+  @override
+  String get migrationBelowFloorResetOnly => 'Kun nulstil';
+
+  @override
+  String get migrationBelowFloorBackupFailedTitle =>
+      'Sikkerhedskopi mislykkedes';
+
+  @override
+  String get migrationBelowFloorBackupFailedBody =>
+      'Sikkerhedskopien kunne ikke skrives, så dine data er ikke blevet nulstillet.';
+
+  @override
+  String get migrationBelowFloorResetConfirmTitle => 'Nulstil app-data?';
+
+  @override
+  String get migrationBelowFloorResetConfirmBody =>
+      'En sikkerhedskopi er gemt. Nulstilling erstatter dine nuværende data med en ny, tom database.';
+
+  @override
+  String get migrationBelowFloorResetOnlyConfirmBody =>
+      'Nulstilling erstatter dine nuværende data med en ny, tom database. Dette kan ikke fortrydes.';
+
+  @override
   String get confirmDeleteTitle => 'Slet?';
 
   @override

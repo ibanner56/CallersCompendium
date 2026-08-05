@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:compendium_core/compendium_core.dart'
+    show kMinSupportedSchemaVersion;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sql;
@@ -15,6 +17,83 @@ const int kDefaultSnapshotRetention = 5;
 
 const String _snapshotPrefix = 'compendium.pre-v';
 const String _snapshotSuffix = '.sqlite.bak';
+
+/// Thrown by [runMigrationPreflight] when the on-disk database was written by a
+/// build *older* than the minimum supported schema version floor
+/// ([kMinSupportedSchemaVersion]), meaning the migration steps for its version
+/// have been retired and cannot be applied.
+///
+/// Like [DatabaseDowngradeError] this is terminal with *no* Retry: the only
+/// forward path is a one-time migration bridge (open the database with the
+/// newest release that predates the floor, let it migrate to a supported
+/// version, then update again). The [AppBootstrap] error screen localizes the
+/// explanation and provides that guidance.
+///
+/// [bridgeTag] is the release tag of the newest release that can still open
+/// and migrate a database at [fileVersion] to a version at or above the floor —
+/// i.e., the tag whose schema version is the last one *before* [fileVersion]
+/// was retired. The app layer derives this from [kBelowFloorBridgeTags].
+class DatabaseBelowFloorError implements Exception {
+  const DatabaseBelowFloorError({
+    required this.fileVersion,
+    required this.minSupportedVersion,
+    required this.bridgeTag,
+  });
+
+  /// The `user_version` persisted in the database file (below the floor).
+  final int fileVersion;
+
+  /// The running app's [kMinSupportedSchemaVersion].
+  final int minSupportedVersion;
+
+  /// The release tag of the bridge release that can migrate [fileVersion] up
+  /// to a supported schema version.
+  final String bridgeTag;
+
+  @override
+  String toString() =>
+      'DatabaseBelowFloorError(file user_version $fileVersion < floor '
+      '$minSupportedVersion, bridge: $bridgeTag)';
+}
+
+/// Append-only list of `(floor, bridgeTag)` pairs, one entry per floor raise.
+///
+/// **[floor]** — the value of [kMinSupportedSchemaVersion] introduced by that
+/// raise.
+/// **[bridgeTag]** — the release tag of the newest release that predates the
+/// raise and can therefore still open *and* migrate any database below the new
+/// floor up to a supported version. Specifically, it is the tag whose schema
+/// version is the highest version still below [floor] after the raise.
+///
+/// When [kMinSupportedSchemaVersion] is next raised, add one entry here:
+/// the new floor value and the tag of the release whose schema is the last one
+/// below it. That is part of the floor-raise checklist.
+///
+/// Uses [int] floors and [String] tags so the list is encodable without
+/// importing the database package.
+const List<({int floor, String bridgeTag})> kBelowFloorBridgeTags = [
+  // Floor raised to 11 by #837 (d9546a15). beta.6 shipped schema v20, which
+  // is comfortably above v11, so it migrates any v1–v10 database through the
+  // now-retired steps and lands at a supported version.
+  (floor: 11, bridgeTag: 'v0.1.0-beta.6'),
+];
+
+/// Returns the [bridgeTag] for a database at [fileVersion] — the release tag
+/// of the newest release able to open that file and migrate it past the current
+/// floor.
+///
+/// Iterates [kBelowFloorBridgeTags] in order and returns the first entry whose
+/// [floor] exceeds [fileVersion]. If no entry matches (which should not occur
+/// for any file version the preflight accepts), returns the last entry's tag as
+/// a safe fallback.
+String _bridgeTagFor(int fileVersion, int minSupportedVersion) {
+  for (final entry in kBelowFloorBridgeTags) {
+    if (entry.floor > fileVersion) return entry.bridgeTag;
+  }
+  // Fallback: use the most recent entry. Should not be reachable for any
+  // below-floor version the preflight is called with.
+  return kBelowFloorBridgeTags.last.bridgeTag;
+}
 
 /// Thrown by [runMigrationPreflight] when the on-disk database was created by a
 /// *newer* build than the one running (its persisted `user_version` exceeds the
@@ -118,12 +197,16 @@ class MigrationSnapshotAborted implements Exception {
 }
 
 /// Runs the data-safety preflight against the database file *before* drift opens
-/// it. Two guards, in order:
+/// it. Three guards, in order:
 ///
 /// 1. **Downgrade protection** — if the file's `user_version` exceeds
 ///    [runningSchemaVersion], throw [DatabaseDowngradeError] and do NOT open /
 ///    migrate.
-/// 2. **Backup-before-migrate** — if an upgrade is pending (file version <
+/// 2. **Below-floor protection** — if the file's `user_version` is below
+///    [kMinSupportedSchemaVersion], throw [DatabaseBelowFloorError] and do NOT
+///    open / migrate. The migration steps for those versions are retired; the
+///    recovery path is a one-time bridge release, not a downgrade or a wipe.
+/// 3. **Backup-before-migrate** — if an upgrade is pending (file version <
 ///    running), snapshot the file into [snapshotDir] first (retaining the
 ///    newest [retain]), so a botched migration is recoverable. This step is
 ///    **fail-CLOSED**: if the snapshot cannot be written, the migration is
@@ -162,6 +245,17 @@ Future<void> runMigrationPreflight({
   }
 
   if (fileVersion < runningSchemaVersion) {
+    // Below-floor check: if the file version is retired (below the supported
+    // floor), migration steps no longer exist for it. Throw
+    // [DatabaseBelowFloorError] so the app can show a recovery screen with
+    // the bridge-release guidance rather than a dead-end Retry (issue #841).
+    if (fileVersion < kMinSupportedSchemaVersion) {
+      throw DatabaseBelowFloorError(
+        fileVersion: fileVersion,
+        minSupportedVersion: kMinSupportedSchemaVersion,
+        bridgeTag: _bridgeTagFor(fileVersion, kMinSupportedSchemaVersion),
+      );
+    }
     // Symmetric with the downgrade guard above: both are fail-CLOSED. The
     // pre-migration snapshot is a recoverability safety net; if it can't be
     // written (disk full, unwritable db_backups, checkpoint failure) we must
@@ -181,7 +275,7 @@ Future<void> runMigrationPreflight({
       final failure = SnapshotFailure(
         fromVersion: fileVersion,
         toVersion: runningSchemaVersion,
-        cause: _classifySnapshotFailure(error),
+        cause: classifySnapshotFailure(error),
         error: error,
       );
       // No seam to ask the user (e.g. a headless/test caller that opted out) is
@@ -205,7 +299,11 @@ Future<void> runMigrationPreflight({
 /// Classifies a snapshot [error] into a [SnapshotFailureCause] using the
 /// platform error code first (locale-independent) and the OS message only as a
 /// fallback. Never trusts message text for anything but a coarse hint.
-SnapshotFailureCause _classifySnapshotFailure(Object error) {
+///
+/// Exposed so the below-floor backup-before-reset flow ([AppBootstrap]'s
+/// Back Up + Reset action) can classify its own snapshot failures with the same
+/// logic, rather than duplicating the OS-code table.
+SnapshotFailureCause classifySnapshotFailure(Object error) {
   if (error is FileSystemException) {
     final code = error.osError?.errorCode;
     // Disk full: POSIX ENOSPC (28); Windows ERROR_DISK_FULL (112) /

@@ -9,6 +9,9 @@ import 'package:compendium_app/src/widgets/app_bootstrap.dart';
 
 import '../support/l10n_harness.dart';
 
+/// No-op reset callbacks for tests that don't exercise the below-floor screen.
+Future<void> _noopReset(DatabaseBelowFloorError _) async {}
+
 void main() {
   testWidgets('shows a loading screen until the startup future completes', (
     tester,
@@ -21,6 +24,8 @@ void main() {
         home: AppBootstrap(
           future: completer.future,
           onRetry: () {},
+          onBackUpAndReset: _noopReset,
+          onResetOnly: _noopReset,
           builder: (_) => const Text('Collection ready'),
         ),
       ),
@@ -49,6 +54,8 @@ void main() {
         home: AppBootstrap(
           future: completer.future,
           onRetry: () => retried = true,
+          onBackUpAndReset: _noopReset,
+          onResetOnly: _noopReset,
           builder: (_) => const Text('Collection ready'),
         ),
       ),
@@ -78,6 +85,8 @@ void main() {
         home: AppBootstrap(
           future: completer.future,
           onRetry: () {},
+          onBackUpAndReset: _noopReset,
+          onResetOnly: _noopReset,
           builder: (_) => const Text('Collection ready'),
         ),
       ),
@@ -98,6 +107,56 @@ void main() {
     expect(find.text('Collection ready'), findsNothing);
   });
 
+  testWidgets(
+    'a below-floor error shows the recovery screen and no Retry (issue #841)',
+    (tester) async {
+      var backUpAndResetCalled = false;
+      var resetOnlyCalled = false;
+      final completer = Completer<void>();
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: AppBootstrap(
+            future: completer.future,
+            onRetry: () {},
+            onBackUpAndReset: (_) async => backUpAndResetCalled = true,
+            onResetOnly: (_) async => resetOnlyCalled = true,
+            builder: (_) => const Text('Collection ready'),
+          ),
+        ),
+      );
+
+      const error = DatabaseBelowFloorError(
+        fileVersion: 5,
+        minSupportedVersion: 11,
+        bridgeTag: 'v0.1.0-beta.6',
+      );
+      completer.completeError(error);
+      await tester.pumpAndSettle();
+
+      // Shows the headline — not the generic error.
+      expect(
+        find.text('This data is from a version too old to open'),
+        findsOneWidget,
+      );
+      // Body mentions the bridge tag.
+      expect(find.textContaining('v0.1.0-beta.6'), findsOneWidget);
+      // The content is gated.
+      expect(find.text('Collection ready'), findsNothing);
+      // No Retry: retrying cannot apply retired migration steps.
+      expect(find.text('Retry'), findsNothing);
+      // Both reset buttons are present.
+      expect(find.text('Back Up + Reset'), findsOneWidget);
+      expect(find.text('Reset Only'), findsOneWidget);
+
+      // Tapping Back Up + Reset fires the callback.
+      await tester.tap(find.text('Back Up + Reset'));
+      expect(backUpAndResetCalled, isTrue);
+      expect(resetOnlyCalled, isFalse);
+    },
+  );
+
   testWidgets('shows determinate rebuild progress when reported (#440)', (
     tester,
   ) async {
@@ -111,6 +170,8 @@ void main() {
         home: AppBootstrap(
           future: completer.future,
           onRetry: () {},
+          onBackUpAndReset: _noopReset,
+          onResetOnly: _noopReset,
           builder: (_) => const Text('Collection ready'),
           rebuildProgress: progress,
         ),
@@ -154,6 +215,8 @@ void main() {
         home: AppBootstrap(
           future: completer.future,
           onRetry: () {},
+          onBackUpAndReset: _noopReset,
+          onResetOnly: _noopReset,
           builder: (_) => const Text('Collection ready'),
           rebuildProgress: progress,
         ),
