@@ -126,7 +126,7 @@ class DatabaseDowngradeError implements Exception {
 
 /// The most likely reason a pre-migration snapshot could not be written, so the
 /// consent surface can name the probable cause in plain language. Classified by
-/// [_classifySnapshotFailure] (invoked from [runMigrationPreflight]) from the
+/// [classifySnapshotFailure] (invoked from [runMigrationPreflight]) from the
 /// underlying [FileSystemException]'s OS error code; never trusts raw exception
 /// text for control flow.
 enum SnapshotFailureCause {
