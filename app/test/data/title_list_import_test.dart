@@ -233,6 +233,34 @@ void main() {
       },
     );
 
+    test('a repeated over-long line is folded like any other duplicate', () {
+      final long = 'x' * (kMaxTitleLength + 1);
+      final pre = preflightTitleList('$long\n$long\n$long\nMoney Musk');
+
+      // One row for the long line, not three: the review's premise is that
+      // repeats were folded, and a line being unsearchable does not exempt it.
+      final tooLong = pre.lines
+          .where((l) => l.rejected == TitleListNotFoundReason.lineTooLong)
+          .toList();
+      expect(tooLong, hasLength(1));
+      // …and the count that tells the user folding happened includes them.
+      expect(pre.duplicateLines, 2);
+      expect(pre.searchableTitles, ['Money Musk']);
+    });
+
+    test('an over-long line does not consume the fan-out budget', () {
+      // The cap bounds requests, and an over-long line is never searched — so
+      // it must not push a legitimate list over the limit.
+      final long = 'y' * (kMaxTitleLength + 1);
+      final titles = [
+        for (var i = 0; i < kMaxTitleListTitles; i++) 'Dance $i',
+      ].join('\n');
+      final pre = preflightTitleList('$long\n$titles');
+
+      expect(pre.rejection, isNull);
+      expect(pre.searchableTitles, hasLength(kMaxTitleListTitles));
+    });
+
     test(
       'refuses a paste over the distinct-title cap, counted after dedupe',
       () {

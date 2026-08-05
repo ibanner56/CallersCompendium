@@ -253,21 +253,32 @@ TitleListPreflight preflightTitleList(String text) {
   for (final raw in text.split('\n')) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) continue;
+    // Case-insensitive, first-occurrence-wins, and applied to **every** line
+    // before any other judgement is passed on it. A program may legitimately
+    // call the same dance twice, which is why `parsePlaintextProgram` keeps
+    // duplicates and this de-duplication lives out here instead: importing the
+    // same dance twice is never useful, and searching for it twice is pure
+    // waste against someone else's server.
+    //
+    // Ordering matters. Folding only the lines that survive the length check
+    // would let a repeated over-long line through repeatedly — listed once per
+    // occurrence in a review whose stated premise is that repeats were folded,
+    // and uncounted by [duplicateLines], which is the number telling the user
+    // that folding happened at all.
+    if (!seen.add(trimmed.toLowerCase())) {
+      duplicates++;
+      continue;
+    }
     if (trimmed.length > kMaxTitleLength) {
       lines.add(
         TitleListLine(trimmed, rejected: TitleListNotFoundReason.lineTooLong),
       );
       continue;
     }
-    // Case-insensitive, first-occurrence-wins. A program may legitimately call
-    // the same dance twice, which is why `parsePlaintextProgram` keeps
-    // duplicates and this de-duplication lives out here instead: importing the
-    // same dance twice is never useful, and searching for it twice is pure
-    // waste against someone else's server.
-    if (!seen.add(trimmed.toLowerCase())) {
-      duplicates++;
-      continue;
-    }
+    // Only searchable titles count toward the fan-out cap: an over-long line is
+    // reported without ever being searched, so it costs no request and must not
+    // consume the budget that exists to bound requests. It is still de-duped
+    // above, because that is about what the user is shown, not what is fetched.
     distinct++;
     lines.add(TitleListLine(trimmed));
   }
