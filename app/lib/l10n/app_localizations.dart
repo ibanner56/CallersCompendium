@@ -274,10 +274,22 @@ abstract class AppLocalizations {
   /// **'A backup has been saved. Resetting will replace your current data with a fresh, empty database.'**
   String get migrationBelowFloorResetConfirmBody;
 
-  /// Body of the confirmation dialog shown before a Reset Only action on the below-floor recovery screen. No backup is made.
+  /// Line shown in the Back Up + Reset confirmation dialog to tell the user where the backup file was written.
   ///
   /// In en, this message translates to:
-  /// **'Resetting will replace your current data with a fresh, empty database. This cannot be undone.'**
+  /// **'Backup saved to: {backupPath}'**
+  String migrationBelowFloorBackupSavedAt(String backupPath);
+
+  /// Line shown in the Back Up + Reset confirmation dialog to tell the user where the diagnostic log was written (alongside the backup).
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostic log saved to: {logPath}'**
+  String migrationBelowFloorDiagnosticLogSavedAt(String logPath);
+
+  /// Body of the confirmation dialog shown before a Reset Only action on the below-floor recovery screen. No backup is made. Must make the irreversibility and data loss explicit.
+  ///
+  /// In en, this message translates to:
+  /// **'No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This cannot be undone.'**
   String get migrationBelowFloorResetOnlyConfirmBody;
 
   /// Title of the optional confirm-before-delete dialog (shown only when the 'Confirm before delete' setting is on).

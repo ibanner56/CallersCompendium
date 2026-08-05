@@ -86,7 +86,7 @@ const List<({int floor, String bridgeTag})> kBelowFloorBridgeTags = [
 /// [floor] exceeds [fileVersion]. If no entry matches (which should not occur
 /// for any file version the preflight accepts), returns the last entry's tag as
 /// a safe fallback.
-String _bridgeTagFor(int fileVersion, int minSupportedVersion) {
+String bridgeTagFor(int fileVersion, int minSupportedVersion) {
   for (final entry in kBelowFloorBridgeTags) {
     if (entry.floor > fileVersion) return entry.bridgeTag;
   }
@@ -253,7 +253,7 @@ Future<void> runMigrationPreflight({
       throw DatabaseBelowFloorError(
         fileVersion: fileVersion,
         minSupportedVersion: kMinSupportedSchemaVersion,
-        bridgeTag: _bridgeTagFor(fileVersion, kMinSupportedSchemaVersion),
+        bridgeTag: bridgeTagFor(fileVersion, kMinSupportedSchemaVersion),
       );
     }
     // Symmetric with the downgrade guard above: both are fail-CLOSED. The
@@ -464,9 +464,13 @@ sealed class BackUpAndResetResult {
 
 /// The pre-reset snapshot was written successfully. The caller may proceed with
 /// the wipe (after any confirmation UI). [snapshotFile] is the written file.
+/// [diagnosticLogFile] is the accompanying log written beside the backup; may
+/// be `null` if writing the log failed (non-blocking — the snapshot is the
+/// load-bearing artefact).
 final class BackUpReady extends BackUpAndResetResult {
-  const BackUpReady(this.snapshotFile);
+  const BackUpReady(this.snapshotFile, {this.diagnosticLogFile});
   final File snapshotFile;
+  final File? diagnosticLogFile;
 }
 
 /// The pre-reset snapshot could not be written. The database must NOT be wiped.
@@ -480,10 +484,21 @@ final class BackUpFailed extends BackUpAndResetResult {
 }
 
 /// Fail-closed pre-reset backup: attempts to snapshot [dbFile] into
-/// [snapshotDir] before any wipe.
+/// [snapshotDir] before any wipe, then writes an accompanying diagnostic log.
 ///
 /// Returns [BackUpReady] if the snapshot succeeded, or [BackUpFailed] if it
 /// did not. The caller **must not wipe** when [BackUpFailed] is returned.
+///
+/// A diagnostic log (plain text, schema/version metadata only — no user
+/// content, no filesystem paths) is written beside the backup when possible.
+/// Log failure is non-blocking: [BackUpReady.diagnosticLogFile] is `null` when
+/// writing it failed, but the reset may still proceed.
+///
+/// Privacy: the diagnostic log contains only non-personal technical metadata
+/// (schema version, floor, app version, platform, timestamp). It is intended
+/// to be shared with support alongside the backup — egress: shareable,
+/// subject: none, DPV term: nonPersonal. No user-authored content, no
+/// filesystem paths, no personally identifiable information.
 ///
 /// [snapshotWriter] is injectable so tests can inject a failing writer without
 /// touching the filesystem; the production default is [snapshotBeforeMigrate].
@@ -495,6 +510,9 @@ Future<BackUpAndResetResult> performBackUpAndReset({
   required File dbFile,
   required Directory snapshotDir,
   required int fileVersion,
+  required String appVersion,
+  required String platform,
+  String? bridgeTag,
   Future<File> Function({
     required File dbFile,
     required Directory snapshotDir,
@@ -504,15 +522,63 @@ Future<BackUpAndResetResult> performBackUpAndReset({
   snapshotWriter,
 }) async {
   final writer = snapshotWriter ?? snapshotBeforeMigrate;
+  final now = DateTime.now().toUtc();
+  final File snapshot;
   try {
-    final snapshot = await writer(
+    snapshot = await writer(
       dbFile: dbFile,
       snapshotDir: snapshotDir,
       fromVersion: fileVersion,
-      timestamp: DateTime.now().toUtc(),
+      timestamp: now,
     );
-    return BackUpReady(snapshot);
   } on Object catch (error) {
     return BackUpFailed(cause: classifySnapshotFailure(error), error: error);
   }
+
+  // Snapshot succeeded. Attempt to write an accompanying diagnostic log.
+  // A log failure is non-blocking: the backup is the load-bearing artefact.
+  File? logFile;
+  try {
+    logFile = await _writeDiagnosticLog(
+      snapshotDir: snapshotDir,
+      timestamp: now,
+      fileVersion: fileVersion,
+      appVersion: appVersion,
+      platform: platform,
+      bridgeTag: bridgeTag,
+    );
+  } on Object {
+    // Non-fatal: proceed without a log file.
+  }
+
+  return BackUpReady(snapshot, diagnosticLogFile: logFile);
+}
+
+/// Writes a plain-text diagnostic log file beside the backup. Contains only
+/// non-personal technical metadata — no user content, no filesystem paths.
+///
+/// File name: `compendium-reset-diagnostics-<timestamp>.txt`
+Future<File> _writeDiagnosticLog({
+  required Directory snapshotDir,
+  required DateTime timestamp,
+  required int fileVersion,
+  required String appVersion,
+  required String platform,
+  String? bridgeTag,
+}) async {
+  await snapshotDir.create(recursive: true);
+  final ts = timestamp.toIso8601String().replaceAll(':', '-').split('.').first;
+  final file = File(
+    p.join(snapshotDir.path, 'compendium-reset-diagnostics-$ts.txt'),
+  );
+  final buffer = StringBuffer()
+    ..writeln('Caller\'s Compendium — below-floor reset diagnostics')
+    ..writeln('Generated: ${timestamp.toIso8601String()}')
+    ..writeln('App version: $appVersion')
+    ..writeln('Platform: $platform')
+    ..writeln('Database schema version: $fileVersion')
+    ..writeln('Minimum supported schema version: $kMinSupportedSchemaVersion')
+    ..writeln('Bridge release: ${bridgeTag ?? 'none'}');
+  await file.writeAsString(buffer.toString(), flush: true);
+  return file;
 }

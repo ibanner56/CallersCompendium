@@ -404,6 +404,8 @@ void main() {
       dbFile: dbFile,
       snapshotDir: snapshotDir,
       fileVersion: 5,
+      appVersion: '0.0.0-test',
+      platform: 'test',
       snapshotWriter:
           ({
             required dbFile,
@@ -440,6 +442,8 @@ void main() {
       dbFile: dbFile,
       snapshotDir: snapshotDir,
       fileVersion: 5,
+      appVersion: '0.0.0-test',
+      platform: 'test',
     );
 
     expect(result, isA<BackUpReady>());

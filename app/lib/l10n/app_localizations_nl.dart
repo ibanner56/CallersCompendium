@@ -109,8 +109,18 @@ class AppLocalizationsNl extends AppLocalizations {
       'Er is een back-up opgeslagen. Door te resetten worden je huidige gegevens vervangen door een nieuwe, lege database.';
 
   @override
+  String migrationBelowFloorBackupSavedAt(String backupPath) {
+    return 'Back-up opgeslagen in: $backupPath';
+  }
+
+  @override
+  String migrationBelowFloorDiagnosticLogSavedAt(String logPath) {
+    return 'Diagnoselogboek opgeslagen in: $logPath';
+  }
+
+  @override
   String get migrationBelowFloorResetOnlyConfirmBody =>
-      'Door te resetten worden je huidige gegevens vervangen door een nieuwe, lege database. Dit kan niet ongedaan worden gemaakt.';
+      'Er wordt geen back-up gemaakt. Door opnieuw in te stellen worden al je huidige gegevens definitief verwijderd en vervangen door een nieuwe, lege database. Dit kan niet ongedaan worden gemaakt.';
 
   @override
   String get confirmDeleteTitle => 'Verwijderen?';

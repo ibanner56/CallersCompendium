@@ -112,8 +112,18 @@ class AppLocalizationsFr extends AppLocalizations {
       'Une sauvegarde a été enregistrée. La réinitialisation remplacera vos données actuelles par une base de données vierge.';
 
   @override
+  String migrationBelowFloorBackupSavedAt(String backupPath) {
+    return 'Sauvegarde enregistrée dans : $backupPath';
+  }
+
+  @override
+  String migrationBelowFloorDiagnosticLogSavedAt(String logPath) {
+    return 'Journal de diagnostic enregistré dans : $logPath';
+  }
+
+  @override
   String get migrationBelowFloorResetOnlyConfirmBody =>
-      'La réinitialisation remplacera vos données actuelles par une base de données vierge. Cette opération est irréversible.';
+      'Aucune sauvegarde ne sera effectuée. La réinitialisation supprimera définitivement toutes vos données actuelles et les remplacera par une base de données vide. Cette opération est irréversible.';
 
   @override
   String get confirmDeleteTitle => 'Supprimer ?';

@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:io' show Directory, File, FileSystemException, exit, stderr;
+import 'dart:io'
+    show Directory, File, FileSystemException, Platform, exit, stderr;
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
@@ -67,6 +68,7 @@ import 'src/screens/settings_screen.dart'
         kTrackHistoryForAllCallersKey,
         kVenueEntityModeKey;
 import 'src/theme/app_theme.dart';
+import 'src/app_metadata.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
 import 'src/widgets/app_bootstrap.dart';
@@ -906,6 +908,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
       dbFile: dbFile,
       snapshotDir: snapshotDir,
       fileVersion: error.fileVersion,
+      appVersion: kAppVersion,
+      platform:
+          '${Platform.operatingSystem} ${Platform.operatingSystemVersion}',
+      bridgeTag: bridgeTagFor(error.fileVersion, kMinSupportedSchemaVersion),
     );
 
     if (result is BackUpFailed) {
@@ -933,8 +939,22 @@ class _CompendiumAppState extends State<CompendiumApp> {
       return; // Snapshot failed: do NOT wipe.
     }
 
-    // Snapshot written — confirm then wipe.
+    // Snapshot written — confirm then wipe, showing where the files were saved.
     if (!context.mounted) return;
+    final ready = result as BackUpReady;
+    final pathLines = StringBuffer(l10n.migrationBelowFloorResetConfirmBody);
+    pathLines
+      ..write('\n\n')
+      ..write(l10n.migrationBelowFloorBackupSavedAt(ready.snapshotFile.path));
+    if (ready.diagnosticLogFile != null) {
+      pathLines
+        ..write('\n')
+        ..write(
+          l10n.migrationBelowFloorDiagnosticLogSavedAt(
+            ready.diagnosticLogFile!.path,
+          ),
+        );
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -943,7 +963,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
         child: AlertDialog(
           icon: const Icon(Icons.warning_amber_rounded),
           title: Text(l10n.migrationBelowFloorResetConfirmTitle),
-          content: Text(l10n.migrationBelowFloorResetConfirmBody),
+          content: Text(pathLines.toString()),
           actions: [
             TextButton(
               autofocus: true,

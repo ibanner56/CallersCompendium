@@ -111,8 +111,18 @@ class AppLocalizationsDa extends AppLocalizations {
       'En sikkerhedskopi er gemt. Nulstilling erstatter dine nuværende data med en ny, tom database.';
 
   @override
+  String migrationBelowFloorBackupSavedAt(String backupPath) {
+    return 'Sikkerhedskopi gemt til: $backupPath';
+  }
+
+  @override
+  String migrationBelowFloorDiagnosticLogSavedAt(String logPath) {
+    return 'Diagnostiklog gemt til: $logPath';
+  }
+
+  @override
   String get migrationBelowFloorResetOnlyConfirmBody =>
-      'Nulstilling erstatter dine nuværende data med en ny, tom database. Dette kan ikke fortrydes.';
+      'Der oprettes ingen sikkerhedskopi. Nulstilling sletter permanent alle dine nuværende data og erstatter dem med en ny, tom database. Dette kan ikke fortrydes.';
 
   @override
   String get confirmDeleteTitle => 'Slet?';

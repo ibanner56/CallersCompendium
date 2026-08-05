@@ -107,8 +107,18 @@ class AppLocalizationsJa extends AppLocalizations {
       'バックアップは保存されました。リセットすると、現在のデータが新しい空のデータベースに置き換えられます。';
 
   @override
+  String migrationBelowFloorBackupSavedAt(String backupPath) {
+    return 'バックアップの保存先：$backupPath';
+  }
+
+  @override
+  String migrationBelowFloorDiagnosticLogSavedAt(String logPath) {
+    return '診断ログの保存先：$logPath';
+  }
+
+  @override
   String get migrationBelowFloorResetOnlyConfirmBody =>
-      'リセットすると、現在のデータが新しい空のデータベースに置き換えられます。この操作は元に戻せません。';
+      'バックアップは作成されません。リセットすると、現在のデータがすべて永久に削除され、新しい空のデータベースに置き換えられます。この操作は元に戻せません。';
 
   @override
   String get confirmDeleteTitle => '削除しますか？';

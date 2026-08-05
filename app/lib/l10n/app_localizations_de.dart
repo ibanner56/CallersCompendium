@@ -110,8 +110,18 @@ class AppLocalizationsDe extends AppLocalizations {
       'Eine Sicherung wurde gespeichert. Das Zurücksetzen ersetzt deine aktuellen Daten durch eine neue, leere Datenbank.';
 
   @override
+  String migrationBelowFloorBackupSavedAt(String backupPath) {
+    return 'Sicherungskopie gespeichert unter: $backupPath';
+  }
+
+  @override
+  String migrationBelowFloorDiagnosticLogSavedAt(String logPath) {
+    return 'Diagnoseprotokoll gespeichert unter: $logPath';
+  }
+
+  @override
   String get migrationBelowFloorResetOnlyConfirmBody =>
-      'Das Zurücksetzen ersetzt deine aktuellen Daten durch eine neue, leere Datenbank. Dies kann nicht rückgängig gemacht werden.';
+      'Es wird keine Sicherungskopie erstellt. Durch das Zurücksetzen werden alle Ihre aktuellen Daten dauerhaft gelöscht und durch eine neue, leere Datenbank ersetzt. Dies kann nicht rückgängig gemacht werden.';
 
   @override
   String get confirmDeleteTitle => 'Löschen?';

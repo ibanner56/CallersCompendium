@@ -109,8 +109,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'A backup has been saved. Resetting will replace your current data with a fresh, empty database.';
 
   @override
+  String migrationBelowFloorBackupSavedAt(String backupPath) {
+    return 'Backup saved to: $backupPath';
+  }
+
+  @override
+  String migrationBelowFloorDiagnosticLogSavedAt(String logPath) {
+    return 'Diagnostic log saved to: $logPath';
+  }
+
+  @override
   String get migrationBelowFloorResetOnlyConfirmBody =>
-      'Resetting will replace your current data with a fresh, empty database. This cannot be undone.';
+      'No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This cannot be undone.';
 
   @override
   String get confirmDeleteTitle => 'Delete?';
