@@ -1135,8 +1135,8 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   (issue #732), `P2`–`P5` and `P0` have vocabulary tokens (`nextPartners`/
 ///   `thirdPartners`/`fourthPartners`/`fifthPartners` and `prevPartners`
 ///   respectively); `P6`+ and every `P-n` do not. This importer deliberately
-///   declines all of them regardless — PR E wires up the in-range codes once
-///   the importer is ready.
+///   declines all of them regardless — wiring up the in-range codes is
+///   follow-up work under issue #732.
 /// - `N5`+, `N-1`, `N-2`, `S3`+, `S-n` — beyond the modelled neighbor/shadow
 ///   depth.
 /// - `Ph*` (phantoms), `TB*` (trail buddy), `SR*` (same-role), and bare `R`/`L`

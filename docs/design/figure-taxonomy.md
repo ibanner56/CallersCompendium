@@ -207,8 +207,9 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
 - **v17 (hey `meetTarget`, issue #576):** added a `meetTarget` param
   (`ParamKind.dancerSet`, default `unspecified`) to `hey`, finally encoding
   ContraDB's deferred `dancer%%N` meeting *target* — WHICH pair you run a partial
-  hey until you meet.   The value domain is `chooser_pairz` extended at v24 with the mixer partner
-  series (`_heyMeetTargetChoices`: `role1s`/`role2s`/`ones`/`twos`/`partners`/
+  hey until you meet. The value domain is ContraDB `chooser_pairz`
+  (extended at v24 with five mixer partner-series tokens, issue #732)
+  (`_heyMeetTargetChoices`: `role1s`/`role2s`/`ones`/`twos`/`partners`/
   `neighbors`/`sameRoles`/`firstCorners`/`secondCorners`/`shadows`/
   `secondShadows`/`prevNeighbors`/`nextNeighbors`/`thirdNeighbors`/
   `fourthNeighbors`/`prevPartners`/`nextPartners`/`thirdPartners`/
@@ -614,7 +615,8 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   — a deliberate extension beyond ContraDB's `chooser_pairz` (which has no
   mixer-partner tokens), decided because without them a mixer's partial hey
   cannot name the partner it runs until you meet. The importer still declines
-  the Caller's Box codes (PR E closes that). Purely additive: no existing
+  the Caller's Box codes; wiring up the in-range codes is follow-up work
+  under #732. Purely additive: no existing
   figure's derived output changes; the tokens ride the existing `figures_json`
   codec, so no DB migration is implied.
 

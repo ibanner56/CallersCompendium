@@ -138,11 +138,13 @@ and `pull by direction`.
 
 The last two entries are why `C1`–`C3` are **not** mapped: `ParamVocab`'s
 `firstCorners`/`secondCorners` model the ECD *First/second corners*, a different
-relationship from TCB's square corners. Mapping them would fabricate. Likewise `P2`–`P5` and `P0` now have vocabulary tokens (taxonomy v24,
-issue #732), but this importer deliberately declines all of them — PR E wires
-up the in-range codes; `P6`+, every `P-n`, `N5`+/`N-1`/`S3`+ have no token,
-and `Ph*` (phantoms) / `TB*` (trail buddy) / bare `R`/`L` name no representable
-dancer — every one of those declines the whole line to `custom`.
+relationship from TCB's square corners. Mapping them would fabricate.
+`P2`–`P5` and `P0` do now have vocabulary tokens (taxonomy v24,
+issue #732), but this importer still declines them; wiring up the
+in-range codes is follow-up work under #732. `P6`+, every `P-n`,
+`N5`+/`N-1`/`S3`+ have no token, and `Ph*` (phantoms) / `TB*`
+(trail buddy) / bare `R`/`L` name no representable dancer — every
+one of those declines the whole line to `custom`.
 
 #### Corpus measurements (full local TCB mirror, 24 107 dance files / 152 589 figure lines)
 
