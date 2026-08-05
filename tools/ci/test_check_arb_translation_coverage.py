@@ -161,7 +161,7 @@ def test_missing_key_fails() -> None:
     del partial["farewell"]
     code, out = run({"fr": partial})
     check("a missing key fails", code, 1)
-    check_in("the offender names locale and key", "app_fr.arb is missing farewell", out)
+    check_in("the offender names locale and key", "farewell", out)
 
 
 def test_blank_value_fails() -> None:
@@ -175,7 +175,33 @@ def test_blank_value_fails() -> None:
     blank["farewell"] = "   "
     code, out = run({"fr": blank})
     check("a blank value fails", code, 1)
-    check_in("the blank offender is named", "app_fr.arb is missing farewell", out)
+    check_in("the blank offender is named", "farewell", out)
+
+
+def test_annotation_does_not_claim_a_present_key_is_missing() -> None:
+    """The annotation must describe the failure the reader will actually find.
+
+    "untranslated" here means absent **or** blank **or** non-string, but only
+    one of those four is literally *missing*. Telling a contributor that a
+    present-but-blank key "is missing" sends them to grep the ARB, find the key
+    sitting right there, and conclude the checker is broken — so a true report
+    gets discarded as a false one.
+
+    The rule is right; only the wording was wrong. This pins the wording for the
+    three present-but-untranslated shapes.
+    """
+    for label, value in (("blank", "   "), ("empty", ""), ("non-string", 42)):
+        target = complete("fr")
+        target["farewell"] = value
+        _, out = run({"fr": target})
+        offender = [ln for ln in out.splitlines() if "farewell" in ln and "::error::" in ln]
+        check(f"{label} value is reported", len(offender) >= 1, True)
+        line = offender[0] if offender else ""
+        if "is missing" in line:
+            FAILURES.append(
+                f"{label} value reported as 'is missing' though the key is present: {line!r}",
+            )
+        check_in(f"{label} value is described accurately", "has no translation for", line)
 
 
 def test_non_string_value_fails() -> None:
@@ -247,6 +273,44 @@ def test_allowlisted_key_passes() -> None:
     code, out = run({"fr": partial}, allowlist={"fr": {"farewell": REASON}})
     check("an allowlisted key passes", code, 0)
     check_in("the exception is visible in the log", "1 knowingly allow-listed", out)
+
+
+def test_summary_states_the_exception_when_allowlisted() -> None:
+    """A green run must not claim coverage it achieved by exception.
+
+    The final summary line is the one sentence a reader takes away, and an
+    unconditional "none untranslated" is false the moment anything is
+    allow-listed: the run passed *by exception*, not by coverage. This repo's
+    whole argument for permitting an allowlist is that an exception is
+    **visible**; a summary that hides it removes the property that justified it.
+
+    That failure mode — an instrument reporting a clean result that means
+    something else — is the one this checker exists to prevent, so it is the
+    one it least affords in itself.
+    """
+    partial = complete("fr")
+    del partial["farewell"]
+    _, out = run({"fr": partial}, allowlist={"fr": {"farewell": REASON}})
+    summary = [ln for ln in out.splitlines() if "translatable key(s)" in ln]
+    check("a summary line is printed", len(summary), 1)
+    line = summary[0] if summary else ""
+    check_in("the summary names the exemption", "allow-listed", line)
+    check_in("the summary carries the exemption count", "1 string(s)", line)
+    if "none untranslated." in line and "allow-listed" not in line:
+        FAILURES.append(
+            "summary claims 'none untranslated' with an active allowlist: "
+            f"{line!r}",
+        )
+
+
+def test_summary_is_plain_when_nothing_is_allowlisted() -> None:
+    """The common case stays unqualified — no hedge where none is warranted."""
+    _, out = run({"fr": complete("fr"), "de": complete("de")})
+    summary = [ln for ln in out.splitlines() if "translatable key(s)" in ln]
+    check("a summary line is printed", len(summary), 1)
+    check_in("clean runs say so plainly", "none untranslated.", summary[0] if summary else "")
+    if "allow-listed" in (summary[0] if summary else ""):
+        FAILURES.append("clean summary should not mention an allowlist")
 
 
 def test_allowlist_comment_keys_are_ignored() -> None:

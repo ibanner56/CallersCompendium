@@ -71,8 +71,9 @@ jobs:
       # "OK ... 0 warning(s)" on a tree with 100 untranslated strings per locale
       # (issue #813): nothing measured completeness, so the backlog grew in
       # silence, 40 -> 45 -> 65 -> 77 -> 100, and only existed when someone
-      # to run the extractor. The baseline is now clean — every locale is fully
-      # translated — so this hard-fails at zero rather than ratcheting a count.
+      # thought to run the extractor. The baseline is now clean — every locale
+      # is fully translated — so this hard-fails at zero rather than ratcheting
+      # a count.
       # The escape hatch (tools/ci/untranslated_allowlist.json) starts EMPTY and
       # self-cleans, so shipping a string untranslated stays possible but has to
       # be named, justified, and reviewed. Pure-stdlib and offline, so it runs

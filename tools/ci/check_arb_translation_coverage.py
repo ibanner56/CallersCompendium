@@ -267,7 +267,10 @@ def run(arb_dir: Path, template_name: str, allowlist_path: Path) -> int:
         if flagged:
             offenders += len(flagged)
             for key in flagged:
-                print(f"::error::untranslated string: app_{locale}.arb is missing {key}")
+                print(
+                    f"::error::untranslated string: app_{locale}.arb has no "
+                    f"translation for {key}",
+                )
             print(
                 f"::error::{locale}: {len(flagged)} untranslated string(s) "
                 f"({len(allowed)} knowingly allow-listed).",
@@ -296,10 +299,25 @@ def run(arb_dir: Path, template_name: str, allowlist_path: Path) -> int:
             )
         return 1
 
-    print(
-        f"OK: {total_keys} translatable key(s) x {len(ordered)} locale(s), "
-        "none untranslated.",
-    )
+    # A pass achieved by exception is not a pass achieved by coverage, and the
+    # summary is the one line a reader takes away. Saying "none untranslated"
+    # while strings are knowingly exempt would make this checker the same kind
+    # of instrument it exists to replace: one whose green result means something
+    # other than what it says. The allowlist is defensible *because* it is
+    # visible, so the summary has to carry it.
+    exempt = sum(len(allowlist.get(locale, {})) for locale in ordered)
+    exempt_locales = sum(1 for locale in ordered if allowlist.get(locale))
+    if exempt:
+        print(
+            f"OK: {total_keys} translatable key(s) x {len(ordered)} locale(s); "
+            f"none untranslated except {exempt} string(s) allow-listed in "
+            f"{exempt_locales} locale(s).",
+        )
+    else:
+        print(
+            f"OK: {total_keys} translatable key(s) x {len(ordered)} locale(s), "
+            "none untranslated.",
+        )
     return 0
 
 

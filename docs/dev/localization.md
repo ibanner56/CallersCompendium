@@ -405,7 +405,9 @@ if the template is missing or no locale ARBs are found, because a check that
 greens out on an empty input set is worse than no check.
 
 On success it prints a per-locale count, so the number appears in **every** CI
-run instead of only when someone thinks to run the extractor.
+run instead of only when someone thinks to run the extractor. If anything is
+allow-listed, the summary line says so — a run that passed **by exception** must
+not report itself as a run that passed by coverage.
 
 **The allowlist.** `tools/ci/untranslated_allowlist.json` maps
 `{"<locale>": {"<key>": "<reason>"}}` and **starts empty**. A string can be
