@@ -200,8 +200,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// source. Carries the rows for titles that produced nothing importable, which
   /// have no place in [_batch] but must still be shown (issue #823).
   ///
-  /// Assigned **only** by [_adoptBatch], together with [_batch], so it always
-  /// describes the batch currently under review rather than an earlier one.
+  /// Changed **only** in lockstep with [_batch] — set by [_adoptBatch], cleared
+  /// by [_resetToInput] — so it never describes a batch other than the one under
+  /// review. Assigning it anywhere else reintroduces the leak raised in review of
+  /// PR #842, where a resolution outlived its plan and another source's review
+  /// rendered this one's already-owned / not-found groups and summary counts.
   TitleListResolution? _titleList;
 
   /// Progress through the title-list online lookups as `(done, total)`, or
@@ -506,6 +509,25 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _titleListProgress = null;
       _phase = _Phase.review;
     });
+  }
+
+  /// Returns to the input step, discarding the planned batch and everything
+  /// describing it.
+  ///
+  /// The counterpart to [_adoptBatch]: that method sets [_batch] and
+  /// [_titleList] together, this one clears them together. Both back-to-input
+  /// affordances route through here rather than resetting fields inline,
+  /// because clearing discipline spread across call sites is precisely what
+  /// caused the leak raised in review of PR #842 — [_titleList] was cleared at
+  /// one site while [_titleListError] was cleared at three. A third exit added
+  /// later gets the invariant for free.
+  ///
+  /// Caller is responsible for being inside a [setState].
+  void _resetToInput() {
+    _phase = _Phase.input;
+    _batch = null;
+    _titleList = null;
+    _planError = null;
   }
 
   /// Computes the issue #686 figure-level diff for every row whose verdict
@@ -1680,11 +1702,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             alignment: Alignment.centerLeft,
             child: OutlinedButton.icon(
               key: const ValueKey('import-back-to-input'),
-              onPressed: () => setState(() {
-                _phase = _Phase.input;
-                _batch = null;
-                _planError = null;
-              }),
+              onPressed: () => setState(_resetToInput),
               icon: const Icon(Icons.arrow_back),
               label: Text(l10n.commonBack),
             ),
@@ -2319,11 +2337,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             const SizedBox(height: 16),
             OutlinedButton(
               key: const ValueKey('import-back-to-input'),
-              onPressed: () => setState(() {
-                _phase = _Phase.input;
-                _batch = null;
-                _planError = null;
-              }),
+              onPressed: () => setState(_resetToInput),
               child: Text(l10n.importReviewTryAnother),
             ),
           ],
