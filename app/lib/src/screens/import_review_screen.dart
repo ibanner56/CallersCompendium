@@ -199,6 +199,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// The resolved pasted title list awaiting review, or `null` for every other
   /// source. Carries the rows for titles that produced nothing importable, which
   /// have no place in [_batch] but must still be shown (issue #823).
+  ///
+  /// Assigned **only** by [_adoptBatch], together with [_batch], so it always
+  /// describes the batch currently under review rather than an earlier one.
   TitleListResolution? _titleList;
 
   /// Progress through the title-list online lookups as `(done, total)`, or
@@ -436,8 +439,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         isCancelled: () => _titleListCancelled || !mounted,
       );
       if (!mounted) return;
-      _titleList = resolution;
-      await _adoptBatch(resolution.batch);
+      await _adoptBatch(resolution.batch, titleList: resolution);
     } on TitleListTooLargeException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -466,7 +468,28 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// the local title lookup for candidate names, and the issue #686 confident
   /// diffs. Shared by the adapter path and the title-list path so the two can
   /// never drift in how a planned record is presented.
-  Future<void> _adoptBatch(ImportBatchResult batch) async {
+  ///
+  /// [titleList] is the pasted-title resolution that produced [batch], or null
+  /// for every other source. It is assigned **here**, alongside `_batch`, rather
+  /// than by the caller, so the invariant *"`_titleList` always describes the
+  /// current `_batch`"* holds by construction: adopting any batch without one
+  /// clears it. A `_titleList` that outlived its plan would render another
+  /// source's review with this one's already-owned / not-found groups and
+  /// summary counts (raised in review of PR #842).
+  ///
+  /// That leak is **latent today, not live**: `_titleList` only becomes non-null
+  /// immediately before this method moves the screen to [_Phase.review], and
+  /// there is no route from a *successful* review back to [_Phase.input] — the
+  /// only returns are the cap refusal and the cancel (which clears it), plus the
+  /// error screen's "try another", which is unreachable after a success. So no
+  /// plan can currently start with a stale value. Coupling the two assignments
+  /// is deliberate precisely because that argument is incidental: adding a
+  /// back-to-input affordance to the grouped review — a plausible next change —
+  /// would otherwise make the leak live, and nothing would have caught it.
+  Future<void> _adoptBatch(
+    ImportBatchResult batch, {
+    TitleListResolution? titleList,
+  }) async {
     final titles = {
       for (final e in await _repos.dances.listIdsAndTitles()) e.id: e.title,
     };
@@ -474,6 +497,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (!mounted) return;
     setState(() {
       _batch = batch;
+      // Set together with _batch, never separately — see this method's doc.
+      _titleList = titleList;
       _titlesById = titles;
       _confidentDiffs = confidentDiffs;
       _choices = [for (final plan in batch.records) _defaultChoice(plan)];

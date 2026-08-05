@@ -1459,6 +1459,28 @@ void main() {
       expect(find.text('The Nice Combination'), findsOneWidget);
     });
 
+    testWidgets('the screen opens on The Caller\'s Box, not the first source '
+        '(#823)', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: defaultImportSources(),
+        fetcher: (url) async => 'unused',
+      );
+
+      // Before #823 this was the generic-JSON source, purely because it was
+      // first. Order and default are now separate concerns, so the title list
+      // leads the dropdown while The Caller's Box is what the screen opens on.
+      expect(selectedSource(tester).kind, ImportSourceKind.callersBox);
+      expect(
+        defaultImportSources().first.kind,
+        ImportSourceKind.titleList,
+        reason: 'the default must not simply be sources.first again',
+      );
+    });
+
     testWidgets('a ContraDB URL flips the selector to ContraDB', (
       tester,
     ) async {

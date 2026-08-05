@@ -13,6 +13,25 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **You can now import a list of dance titles straight into your collection.**
+  Choose **a list of titles** in the import source list, paste your titles one
+  per line, and the app checks each against your own collection first, then
+  looks up anything you don't already have in The Caller's Box — without
+  building a program. Every title you pasted is listed for review, grouped by
+  what happened to it: the ones ready to import, the ones you **already have**
+  (named with the choreographer, since two dances can share a title), and the
+  ones **nothing was found** for — and that last group says which kind of "not
+  found" it was, because "the archive has never heard of it" and "the archive
+  couldn't be reached" need very different follow-up. A dance is only ever taken
+  when exactly one result matches your title exactly; near matches are never
+  imported on a guess. Nothing is added until you confirm on the review screen,
+  and anything uncertain is set to Skip by default. Blank lines are ignored, a
+  repeated title is only looked up once, and you can watch the progress and
+  **Cancel** at any point. Lists are limited to 100 titles, and a longer one is
+  refused outright rather than partly imported, so you are never left thinking a
+  list came in whole when it didn't. Even when nothing turns out to be
+  importable, you still get the answer to "which of these do I already have?"
+
 - **You can now give your tags colours.** Settings → Appearance → Tag colours
   lists every tag you've created and lets you pick a colour for any of them; the
   colour then shows on that tag's chip in the collection list and on dance
@@ -60,6 +79,14 @@ each release so store builds and tags can be traced back to an entry.
   dance you already have, it links to your existing copy as before.
 
 ### Changed
+
+- **The import screen now opens on The Caller's Box.** It previously opened on
+  *a Caller's Compendium JSON file*. The source list is also reordered — a list
+  of titles, The Caller's Box, ContraDB, a Caller's Compendium JSON file, a
+  Caller's Companion .USR file — so the list order and the starting selection are
+  now separate things. If you import Compendium JSON files, you will need to pick
+  that source from the list rather than finding it already selected. This affects
+  both the import pane in Collection and Settings → Import.
 
 - **Qualifier notes on The Caller's Box figures now come through structured.**
   Lines from The Caller's Box that carry a qualifier — for example, a promenade
