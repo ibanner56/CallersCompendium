@@ -16,9 +16,15 @@ import 'plaintext_program_import.dart';
 ///
 /// Deliberately **not** a byte cap, and not described as one: `String.length`
 /// counts UTF-16 code units, so the same number of units is roughly the same
-/// number of bytes for ASCII but around three times as many for Japanese or
-/// Chinese titles. Sizing a buffer or a request against this constant as though
-/// it were bytes would be wrong by that factor.
+/// number of **UTF-8** bytes for ASCII but around three times as many for
+/// Japanese or Chinese titles — 65,536 units of kana or hanzi is ~196,608 UTF-8
+/// bytes. Sizing a buffer or a request against this constant as though it were
+/// bytes would be wrong by that factor.
+///
+/// UTF-8 is named deliberately. Measured in UTF-16 *bytes* the ratio is 2×, not
+/// 3×, because a BMP character is two bytes whether it is `A` or `日` — but
+/// UTF-16 bytes are not what any buffer or HTTP request here is sized in, so
+/// that figure would be true and useless.
 const int kMaxTitleListChars = 64 * 1024;
 
 /// Hard cap on how many **distinct** titles one paste may resolve.
@@ -387,11 +393,24 @@ Future<TitleListResolution> resolveTitleList(
     throw TitleListTooLargeException(rejection, pre.rejectionCount);
   }
 
-  final collection = await repos.dances.listIdsAndTitles();
+  final searchable = pre.searchableTitles;
+  // The collection listing exists solely to feed stage 1, and stage 1 has
+  // nothing to match when no line survived the per-line bounds — a paste of
+  // only over-long lines resolves entirely from `pre.lines`. Reading the whole
+  // collection for it would be the third instance of the same shape this file
+  // has already been corrected for twice: doing the expensive thing before
+  // checking whether there is anything to do it for.
+  //
+  // Guarded here, at the point the value is produced, rather than by an early
+  // return at the top: an early return would have to rebuild the not-found rows
+  // for those lines, and duplicated row-building is exactly the split-brain
+  // that produced the clearing bugs elsewhere in this feature.
+  final collection = searchable.isEmpty
+      ? const <({String id, String title})>[]
+      : await repos.dances.listIdsAndTitles();
   // Stage 1, reused verbatim rather than reimplemented: the searchable titles
   // are already trimmed and non-blank, so re-joining them on newlines round-
   // trips exactly and `parsed[i]` lines up with `searchableTitles[i]`.
-  final searchable = pre.searchableTitles;
   final parsed = parsePlaintextProgram(
     searchable.join('\n'),
     collection: collection,

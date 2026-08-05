@@ -660,6 +660,41 @@ void main() {
       );
     });
 
+    test(
+      'a paste of only over-long lines reads nothing from the collection',
+      () async {
+        final repos = _CountingRepositories(
+          CompendiumDatabase(NativeDatabase.memory()),
+        );
+        await repos.dances.create(_localDance(id: 'd1', title: 'Fiddleheads'));
+        final service = _CountingOnlineService();
+        final long = 'x' * (kMaxTitleLength + 1);
+
+        final result = await resolveTitleList(
+          '$long\n${long}y',
+          service: service,
+          repos: repos,
+        );
+
+        // Both lines are reported, so nothing is lost…
+        expect(result.countIn(TitleListGroup.notFound), 2);
+        expect(
+          result.rows.map((r) => r.reason),
+          everyElement(TitleListNotFoundReason.lineTooLong),
+        );
+        // …but nothing was searched and the collection was never read: stage 1
+        // has nothing to match when no line survived the per-line bounds.
+        expect(service.searchedTitles, isEmpty);
+        expect(
+          repos.countedDances.listIdsAndTitlesCalls,
+          0,
+          reason:
+              'no searchable title means stage 1 has nothing to match against',
+        );
+        expect(repos.fullCollectionReads, 0);
+      },
+    );
+
     test('an over-cap paste is refused before any collection read', () async {
       final repos = _CountingRepositories(
         CompendiumDatabase(NativeDatabase.memory()),
