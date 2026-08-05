@@ -94,8 +94,9 @@ No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
 
 ## Retiring a schema version
 
-`kMinSupportedSchemaVersion` (`packages/compendium_core/lib/src/storage/
-database.dart`) is the oldest on-disk version this build can still upgrade. It
+`kMinSupportedSchemaVersion`, declared in
+[`database.dart`](../../packages/compendium_core/lib/src/storage/database.dart),
+is the oldest on-disk version this build can still upgrade. It
 is the schema version of the oldest *supported release*, not the oldest version
 whose code happens to still exist.
 

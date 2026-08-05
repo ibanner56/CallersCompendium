@@ -34,7 +34,8 @@ Usage:
 merge commit, so the diff is the PR's net effect vs its base).
 
 Exit codes: 0 = OK (no bump, or bump with evidence), 1 = bump without evidence,
-2 = usage / git error.
+2 = usage / git error, including a base or head ref that does not resolve to a
+commit -- which must never be mistaken for "nothing to check".
 """
 
 from __future__ import annotations
@@ -74,6 +75,26 @@ def _git(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         ["git", *args], capture_output=True, text=True
     )
+
+
+def _require_commit(ref: str) -> None:
+    """Exit non-zero unless ``ref`` resolves to a commit.
+
+    Without this, a base ref that does not exist -- a typo, or a shallow fetch
+    that never pulled the PR base -- makes ``git show <ref>:<path>`` fail, which
+    :func:`_schema_version_at` cannot distinguish from "the file did not exist
+    at that ref". The gate would then report "schema gate not applicable" and
+    exit 0, silently passing a PR it never examined. A gate that passes because
+    it could not look is worse than no gate, so an unresolvable ref is a hard
+    usage error.
+    """
+    res = _git("rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
+    if res.returncode != 0 or not res.stdout.strip():
+        _fail(
+            f"ref {ref!r} does not resolve to a commit. Ensure full history is "
+            "fetched (checkout fetch-depth: 0) and that the ref is correct; "
+            "refusing to run the schema gate against an unknown ref.",
+        )
 
 
 def _artefact_version(path: str) -> int | None:
@@ -148,6 +169,12 @@ def main(argv: list[str]) -> int:
         _fail("usage: check_schema_migration.py <base_ref> [head_ref]")
     base = argv[1].strip()
     head = argv[2].strip() if len(argv) > 2 and argv[2].strip() else "HEAD"
+
+    # Both refs must resolve before anything reads from them; see
+    # _require_commit for why an unresolvable ref cannot be allowed to look
+    # like an absent file.
+    _require_commit(base)
+    _require_commit(head)
 
     old = _schema_version_at(base)
     new = _schema_version_at(head)

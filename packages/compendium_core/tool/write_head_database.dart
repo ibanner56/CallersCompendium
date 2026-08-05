@@ -54,7 +54,7 @@ Future<void> main(List<String> args) async {
 
   final stamped = await db
       .customSelect('PRAGMA user_version')
-      .map((row) => row.data.values.first as int)
+      .map((row) => row.read<int>('user_version'))
       .getSingle();
   await db.close();
 

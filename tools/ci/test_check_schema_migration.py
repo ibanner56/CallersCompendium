@@ -231,10 +231,97 @@ def test_floor() -> None:
     )
 
 
+# --------------------------------------------------------------------------
+# An unresolvable ref must be a hard error, never a silent pass.
+# --------------------------------------------------------------------------
+
+
+def test_unknown_refs() -> None:
+    print("unresolvable refs:")
+
+    with tempfile.TemporaryDirectory() as tmp_name:
+        repo = build_repo(Path(tmp_name))
+        write(repo, DB_PATH, database_source(24))
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", "bump with no evidence")
+
+        # A bad base ref must not be mistaken for "the file did not exist
+        # there", which would report the gate as not applicable and exit 0 --
+        # passing a PR the gate never examined.
+        result = run_gate(repo, base="refs/heads/no-such-ref")
+        check(
+            "an unknown base ref exits 2",
+            result.returncode == 2,
+            f"exit={result.returncode}: {result.stdout + result.stderr}",
+        )
+        check(
+            "the failure says the ref did not resolve",
+            "does not resolve to a commit" in (result.stdout + result.stderr),
+            result.stdout + result.stderr,
+        )
+        check(
+            "an unknown base ref is NOT reported as 'not applicable'",
+            "not applicable" not in (result.stdout + result.stderr),
+            result.stdout + result.stderr,
+        )
+
+    # The case the guard actually protects. When no floor constant is present
+    # the below-floor check is skipped, so nothing else touches the refs and a
+    # bad base ref reaches `_schema_version_at`, which cannot tell "unreadable
+    # ref" from "file absent at that ref" -- and the gate reports itself not
+    # applicable and exits 0. With a floor present the failure happens to be
+    # caught earlier by the below-floor check, which is why this case is tested
+    # separately rather than assumed to be covered.
+    with tempfile.TemporaryDirectory() as tmp_name:
+        repo = build_repo(Path(tmp_name))
+        # Same shape as database_source(), minus the floor constant only --
+        # the schemaVersion getter must still be present, or the gate would
+        # fail earlier for an unrelated reason and the case would pass without
+        # exercising the ref guard at all.
+        unfloored = (
+            "const int kCompendiumSchemaVersion = 24;\n"
+            "\n"
+            "class CompendiumDatabase {\n"
+            "  int get schemaVersion => kCompendiumSchemaVersion;\n"
+            "}\n"
+        )
+        write(repo, DB_PATH, unfloored)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", "bump, no floor constant")
+
+        result = run_gate(repo, base="refs/heads/no-such-ref")
+        check(
+            "with no floor constant, an unknown base ref still exits 2",
+            result.returncode == 2,
+            f"exit={result.returncode}: {result.stdout + result.stderr}",
+        )
+        check(
+            "with no floor constant, it is not reported as 'not applicable'",
+            "not applicable" not in (result.stdout + result.stderr),
+            result.stdout + result.stderr,
+        )
+
+    with tempfile.TemporaryDirectory() as tmp_name:
+        repo = build_repo(Path(tmp_name))
+        write(repo, DB_PATH, database_source(24))
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", "bump with no evidence")
+
+        # The valid-ref path still works, so the guard is not simply refusing
+        # everything.
+        result = run_gate(repo)
+        check(
+            "a valid base ref still reaches the evidence check",
+            result.returncode == 1,
+            f"exit={result.returncode}: {result.stdout + result.stderr}",
+        )
+
+
 def main() -> int:
     test_accepted()
     test_rejected()
     test_floor()
+    test_unknown_refs()
     print()
     if FAILURES:
         for failure in FAILURES:
