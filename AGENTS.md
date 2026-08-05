@@ -91,17 +91,18 @@ count, and comment count are all blind to suppressed findings — the review
   replied on `c11f747e`, and `.[-1].commit_id` returned `c11f747e` — matching
   head, reading as PASS.
 
-  Filter by reviewer identity instead:
+  Filter by reviewer identity instead, using `--slurp` to collect all pages
+  into a single array before filtering:
 
   ```sh
-  gh api --paginate repos/<owner>/<repo>/pulls/<N>/reviews \
-    --jq '[.[] | select(.user.login=="copilot-pull-request-reviewer[bot]")] | last | .commit_id'
+  gh api --paginate --slurp repos/<owner>/<repo>/pulls/<N>/reviews \
+    | jq '[.[][] | select(.user.login=="copilot-pull-request-reviewer[bot]")] | last | .commit_id'
   gh pr view <N> --json headRefOid -q .headRefOid
   ```
 
-  `--paginate` for the same reason as above. `--jq` (not `-q`) applies the
-  filter inside a single jq program over the full paginated stream, so `last`
-  returns the reviewer's latest entry rather than the tail of the last page.
+  `--slurp` wraps all pages into an outer array, so `.[][]` flattens them and
+  `last` reliably picks the reviewer's latest entry across pages. (`--slurp` is
+  incompatible with `-q`/`--jq`, so the filter is piped to a standalone `jq`.)
 
 - **`requested_reviewers` must not be used to determine review state.** The
   field is cleared on submission, so an empty result is ambiguous between *never
