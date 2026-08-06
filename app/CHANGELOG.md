@@ -132,6 +132,12 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Changed
 
+- **Saving a new dance from the collection view now selects it automatically.**
+  Previously, creating a dance and saving left the detail pane showing whatever
+  was there before — or the empty placeholder. Now, after a successful save, the
+  new dance is immediately selected and shown in the detail pane. Cancelling the
+  editor still leaves the previous selection unchanged.
+
 - **The import screen now opens on The Caller's Box.** It previously opened on
   *a Caller's Compendium JSON file*. The source list is also reordered — a list
   of titles, The Caller's Box, ContraDB, a Caller's Compendium JSON file, a

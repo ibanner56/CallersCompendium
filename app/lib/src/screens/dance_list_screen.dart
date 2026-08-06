@@ -82,6 +82,7 @@ class DanceListScreen extends StatefulWidget {
   const DanceListScreen({
     super.key,
     this.onSelectDance,
+    this.onNewDance,
     this.selectedDanceId,
     this.refreshTrigger,
     this.onImport,
@@ -94,6 +95,10 @@ class DanceListScreen extends StatefulWidget {
   /// Called with the tapped dance's id when the split-pane shell needs to
   /// control navigation. Null ⇒ use the standard [Navigator.push] route.
   final void Function(String danceId)? onSelectDance;
+
+  /// Called with the id of a newly created dance after a successful save in
+  /// split-pane mode. Null ⇒ has no effect (narrow mode or standalone use).
+  final void Function(String danceId)? onNewDance;
 
   /// Id of the currently selected dance for row highlighting in split-pane
   /// mode. Has no effect when [onSelectDance] is null.
@@ -1625,9 +1630,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
     // The editor bumps CollectionRefreshScope on save, which re-boots this list
     // (and re-derives the author filter), so no explicit reload is needed here
     // — doing both would double-load (issue #340).
-    await Navigator.of(context).push<String>(
+    final id = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const DanceEditorScreen()),
     );
+    if (!mounted || id == null) return;
+    widget.onNewDance?.call(id);
   }
 
   Future<void> _openCustomFields() async {
