@@ -132,6 +132,14 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Changed
 
+- **On a tablet or desktop, saving a new dance now selects it automatically in
+  the detail pane.** Previously, creating a dance and saving left the detail pane
+  showing whatever was selected before — or the empty placeholder. Now, after a
+  successful save, the new dance is immediately selected and shown beside the
+  list. Cancelling the editor still leaves the previous selection unchanged. On a
+  phone the editor closes as before — the list and detail are not side by side
+  there.
+
 - **The import screen now opens on The Caller's Box.** It previously opened on
   *a Caller's Compendium JSON file*. The source list is also reordered — a list
   of titles, The Caller's Box, ContraDB, a Caller's Compendium JSON file, a

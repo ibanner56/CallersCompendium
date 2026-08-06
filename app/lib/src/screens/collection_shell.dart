@@ -146,6 +146,15 @@ class _CollectionShellState extends State<CollectionShell> {
     });
   }
 
+  /// Called after a successful new-dance save. Selects the new dance so the
+  /// detail pane shows it immediately. Delegates to [_onSelectDance]: creating
+  /// a dance is a local selection and carries the same contract — exits import
+  /// mode, clears any online preview. Does not bump [_listRefresh] directly;
+  /// [CollectionRefreshScope.bump] already fires inside the editor on save and
+  /// bumping here too would double-load (issue #340). [_onSelectDance] likewise
+  /// does not bump [_listRefresh], so delegation is safe.
+  void _onNewDance(String danceId) => _onSelectDance(danceId);
+
   /// Wide layout: swap the detail pane over to the embedded import view.
   void _onImport() {
     setState(() {
@@ -381,6 +390,7 @@ class _CollectionShellState extends State<CollectionShell> {
           child: ScaffoldMessenger(
             child: DanceListScreen(
               onSelectDance: _onSelectDance,
+              onNewDance: _onNewDance,
               selectedDanceId: _selectedDanceId,
               refreshTrigger: _listRefresh,
               onImport: _onImport,

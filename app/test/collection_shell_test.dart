@@ -9,6 +9,7 @@ import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/collection_shell.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
+import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_app/src/widgets/brand_mark.dart';
@@ -338,6 +339,68 @@ void main() {
         // Both panes present — detail pane shows placeholder, list shows dances
         expect(find.byType(DanceListScreen), findsOneWidget);
         expect(find.text('Select a dance'), findsOneWidget);
+      },
+    );
+
+    testWidgets('saving a new dance selects it in the detail pane', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+
+      await _pumpShell(tester, repos, size: const Size(1400, 900));
+      await tester.pumpAndSettle();
+
+      // Empty-state placeholder is visible; no detail screen yet.
+      expect(find.text('Select a dance'), findsOneWidget);
+      expect(find.byType(DanceDetailScreen), findsNothing);
+
+      // Tap the new-dance FAB — DanceEditorScreen is pushed.
+      await tester.tap(find.byKey(const ValueKey('new-dance')));
+      await tester.pumpAndSettle();
+      expect(find.byType(DanceEditorScreen), findsOneWidget);
+
+      // Enter a title (minimum required to pass form validation) and save.
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Newly Created Dance',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      // Editor popped; detail pane now shows the new dance.
+      expect(find.byType(DanceEditorScreen), findsNothing);
+      expect(find.byType(DanceDetailScreen), findsOneWidget);
+      // Placeholder is gone — selection happened.
+      expect(find.text('Select a dance'), findsNothing);
+    });
+
+    testWidgets(
+      'cancelling the new-dance editor leaves the previous selection unchanged',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Existing Dance'));
+
+        await _pumpShell(tester, repos, size: const Size(1400, 900));
+        await tester.pumpAndSettle();
+
+        // Select an existing dance first.
+        await tester.tap(find.text('Existing Dance'));
+        await tester.pumpAndSettle();
+        expect(find.byType(DanceDetailScreen), findsOneWidget);
+
+        // Open the new-dance editor.
+        await tester.tap(find.byKey(const ValueKey('new-dance')));
+        await tester.pumpAndSettle();
+        expect(find.byType(DanceEditorScreen), findsOneWidget);
+
+        // Cancel via real back navigation — goes through PopScope, matching
+        // what a user can actually do.
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+
+        // Editor is gone; original selection is intact.
+        expect(find.byType(DanceEditorScreen), findsNothing);
+        expect(find.byType(DanceDetailScreen), findsOneWidget);
       },
     );
   });
