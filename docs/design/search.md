@@ -42,15 +42,21 @@ sealed DanceFilter
   // metadata leaves
   FullText(String query)               // → dance_fts MATCH
   Author(String choreographerId)
+  Source(String query)                 // substring match on cited source title/author
+  SourceId(String sourceId)            // identity match on cited source id
   Form(DanceForm form)                 // roadmap "Type": contra | ecd | square
   Formation(FormationShape shape)      // shape only; free-text detail via FullText
   Progression(Progression progression)
   Status(DanceStatus status)
+  Level(DanceLevel level, [LevelOp op = eq])  // ordered scale; see LevelOp below
+  MixedLevel(bool mixed)               // → dances.mixed_level
+  Mixer(bool mixer)                    // → dances.mixer (issue #732)
+  Rating(int minimum)                  // minimum-star floor, 1..5
   Tag(String tagId)
-  CustomField(String fieldId, CustomFieldOp op, Object? value)
+  CustomField(CustomFieldDef def, CustomFieldOp op, Object? value)
 
   // structural leaf
-  Figure(String move, {Map<String, Object?> params, String? section})
+  Figure(FigureQuery query)            // sugar: Figure.leaf(String move, {params, section})
 
   // sequence
   Then(FigureQuery before, FigureQuery after)
@@ -65,6 +71,11 @@ leaf is built against the field def, and again — defensively — at compile):
 | `number`  | `eq`, `lt`, `gt`, `between(lo, hi)` | `value_num` |
 | `boolean` | `is` (true/false) | `value_num` (0/1) |
 | `choice`  | `is`, `in(List<String>)` | `value_text` |
+
+`LevelOp` is the ordered comparison for a `Level` leaf (`eq` / `lte` / `gte`
+against the `DanceLevel` scale). An unspecified level (`dances.level IS NULL`)
+never matches `lte` or `gte` — an unspecified difficulty is not a point on the
+scale. `MixedLevel` is a separate boolean axis orthogonal to `Level`.
 
 `FigureQuery` (the operand grammar for `Then`, and the reusable shape of a
 structural predicate) is deliberately **narrower** than `DanceFilter`:
@@ -84,9 +95,9 @@ Metadata leaves (`Author`, `FullText`, `Form`, …) are per-*dance*, not
 per-figure, so they have no position in the sequence and are excluded from
 `FigureQuery`. `FigureAnd`/`FigureOr`/`FigureNot` combine constraints *on one
 figure* (e.g. "a `swing` in B1 that is a progression"), distinct from the
-dance-level `And`/`Or`/`Not`. The top-level `Figure` leaf is sugar for a
-`DanceFilter` wrapping a single `FigureLeaf` ("some figure in the dance
-matches").
+dance-level `And`/`Or`/`Not`. `Figure(query)` wraps any `FigureQuery` as a
+dance-level predicate ("some figure in the dance matches"); `Figure.leaf(move,
+{params, section})` is convenience sugar for the single-leaf case.
 
 ## SQL compilation
 
@@ -112,20 +123,27 @@ compiles to the literal `1` (TRUE); `Or([])` to `0` (FALSE); the outer
 |---|---|
 | `FullText(q)` | `id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?)` |
 | `Author(cid)` | `id IN (SELECT dance_id FROM dance_authors WHERE choreographer_id = ?)` |
+| `Source(q)` | `id IN (SELECT ds.dance_id FROM dance_sources ds JOIN published_sources ps ON ps.id = ds.source_id WHERE ps.title LIKE '%'‖?‖'%' OR ps.author LIKE '%'‖?‖'%')` (2 binds) |
+| `SourceId(sid)` | `id IN (SELECT dance_id FROM dance_sources WHERE source_id = ?)` |
 | `Tag(tid)` | `id IN (SELECT dance_id FROM dance_tags WHERE tag_id = ?)` |
 | `Form(f)` | `form = ?` (enum `.name`, e.g. `'contra'`) |
 | `Formation(s)` | `formation_shape = ?` (enum `.name`) |
 | `Progression(p)` | `progression = ?` (enum `.name`) |
 | `Status(s)` | `status = ?` (enum `.name`) |
+| `Level(l, eq)` | `level = ?` (enum `.name`) |
+| `Level(l, lte/gte)` | `level IS NOT NULL AND (CASE level … END) ≤/≥ ?` (ordinal comparison over the `DanceLevel` scale; see `FilterCompiler._level`) |
+| `MixedLevel(b)` | `mixed_level = ?` (bind `1`/`0`) |
+| `Mixer(b)` | `mixer = ?` (bind `1`/`0`) |
+| `Rating(n)` | `rating >= ?` (unrated dances excluded — NULL is not on the scale) |
 
 Enum leaves compare against the stored `EnumNameConverter` string (`.name`), so
 `Form(DanceForm.contra)` binds `'contra'`. The `IN (SELECT …)` subqueries stay
-cheap because `dance_authors`, `dance_tags`, and `dance_fts` are all keyed/
-indexed on `dance_id`.
+cheap because `dance_authors`, `dance_tags`, `dance_sources`, and `dance_fts` are
+all keyed/indexed on `dance_id`.
 
 ### Custom fields
 
-`CustomField(fieldId, op, value)` compiles to an `EXISTS` over the field's row:
+`CustomField(def, op, value)` compiles to an `EXISTS` over the field's row:
 
 ```sql
 EXISTS (SELECT 1 FROM custom_field_values v
@@ -528,10 +546,5 @@ Flagged for coordinator/user input before 3.2b:
 *Not part of 3.2; recorded so the AST/compiler grow consistently when the
 dance-model backfill lands (design/domain-model.md "CC parity backfill").*
 
-- `Level(level, op)` — filter by dance difficulty once `dance.level` exists
-  (a scalar column like Status/Progression; add a facet in the panel, and `op`
-  supports `lte`/`gte` when the scale is ordered — mirroring `CustomFieldOp`).
-  CC's `Level`/`LevelNum` is a primary programming axis, so this is the first
-  backfill leaf to add.
-- Optional `rating` and `composedOn`/`revisedOn` become scalar leaves + sort
-  keys if those land as core columns rather than custom fields.
+- Optional `composedOn`/`revisedOn` become scalar leaves + sort keys if those
+  land as core columns rather than custom fields.
