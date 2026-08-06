@@ -160,8 +160,10 @@ void main() {
         'N3 neighbor courtesy turn': 'thirdNeighbors',
         'Shadow courtesy turn': 'shadows',
         'Twos courtesy turn': 'twos',
-        // Mixer partner-series codes — added by taxonomy v24 / issue #732 PR E.
-        // Same _dancerWords map drives courtesy_turn as swing/allemande/promenade.
+        // Mixer partner-series: spot-checks that courtesy_turn routes through
+        // the same _dancerWords map as swing/allemande/promenade. P0–P5 are
+        // exhaustively asserted via that map in figure_parser_test.dart;
+        // only a representative subset is needed here.
         'P1 partner courtesy turn': 'partners',
         'P2 partner courtesy turn': 'nextPartners',
         'P4 partner courtesy turn': 'fourthPartners',
