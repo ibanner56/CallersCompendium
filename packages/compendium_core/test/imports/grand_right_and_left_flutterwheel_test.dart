@@ -174,9 +174,9 @@ void main() {
       expect(figures.every((f) => f.params.containsKey('beats')), isFalse);
     });
 
-    // Explicit taxonomy validation for the new P-series fixtures (issue #732).
-    // The decoder already validates internally, but AGENTS.md requires a
-    // direct validate call for any newly added fixture.
+    // Fixtures are not automatically validated against the taxonomy (AGENTS.md):
+    // an invalid param renders literally and the test still passes, so drift
+    // goes undetected. Validating explicitly here prevents that silent failure.
     test('P-series decoded figures pass taxonomy validation', () {
       final figures = _line(
         'Grand right and left (P0L;P1R;P2L;P3R;P4L;P5R)',
