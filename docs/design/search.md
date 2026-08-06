@@ -124,7 +124,7 @@ compiles to the literal `1` (TRUE); `OrFilter([])` to `0` (FALSE); the outer
 |---|---|
 | `FullTextFilter(q)` | `id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?)` |
 | `AuthorFilter(cid)` | `id IN (SELECT dance_id FROM dance_authors WHERE choreographer_id = ?)` |
-| `SourceFilter(q)` | `id IN (SELECT ds.dance_id FROM dance_sources ds JOIN published_sources ps ON ps.id = ds.source_id WHERE ps.title LIKE '%'‖?‖'%' OR ps.author LIKE '%'‖?‖'%')` (2 binds) |
+| `SourceFilter(q)` | `id IN (SELECT ds.dance_id FROM dance_sources ds JOIN published_sources ps ON ps.id = ds.source_id WHERE ps.title LIKE '%' \|\| ? \|\| '%' ESCAPE '\' OR ps.author LIKE '%' \|\| ? \|\| '%' ESCAPE '\')` (2 binds) |
 | `SourceIdFilter(sid)` | `id IN (SELECT dance_id FROM dance_sources WHERE source_id = ?)` |
 | `TagFilter(tid)` | `id IN (SELECT dance_id FROM dance_tags WHERE tag_id = ?)` |
 | `FormFilter(f)` | `form = ?` (enum `.name`, e.g. `'contra'`) |
@@ -144,7 +144,7 @@ all keyed/indexed on `dance_id`.
 
 ### Custom fields
 
-`CustomField(def, op, value)` compiles to an `EXISTS` over the field's row:
+`CustomFieldFilter(def, op, value)` compiles to an `EXISTS` over the field's row:
 
 ```sql
 EXISTS (SELECT 1 FROM custom_field_values v
