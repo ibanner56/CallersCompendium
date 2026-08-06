@@ -775,7 +775,14 @@ makes self-hosting materially harder, which constraint 4 forbids.
   otherwise a poisoned `local.updatedAt` no honest peer can exceed would freeze
   the record while appearing to participate. A record citing a quarantined
   entity is withheld with it, or a peer's batch fails at COMMIT on the cascading
-  foreign key. And an advertised fallback never counts as agreement: it is this
+  foreign key — computed as a fixpoint over the publish set, since the citation
+  graph is multi-hop, and excluding `Programs.venueId`, which is not a database
+  foreign key. That withholding does not resolve itself: an entity created while
+  a clock was broken has no peer copy to repair against, so it and everything
+  citing it stay unsynced until the user writes to it again. The report says how
+  many records each one holds back, because otherwise the only symptom is a
+  collection that quietly stops syncing. And an advertised fallback never counts
+  as agreement: it is this
   device's own hash coming back to it, and treating it otherwise would populate
   a baseline from the poisoned content it exists to repair.
 

@@ -925,6 +925,30 @@ one record — but it is only correct when every reader has been told which one 
 gets, and a document large enough to have distant readers will not tell them by
 itself.
 
+##### Read the tests before changing a rule
+
+> **When a rule changes, read the tests that assert it first.** They are the
+> compressed form of every prior round's conclusions, and they are where the
+> previous answer is written most precisely.
+
+The nineteenth habit, and the cheapest one here. A revision inserted a new
+disposition — "adopt the peer's record wholesale" — immediately ahead of an
+existing sentence giving the *same condition* the opposite outcome, leaving two
+contradictory instructions in one paragraph with the old sentence's tail carried
+forward unedited. Not a reasoning failure but an editing one, which is a distinct
+hazard in a document this size.
+
+Two tests already said "stays quarantined", and one of them explicitly asserted
+that passes do **not** clear the record and only a local write does. Reading them
+first would have surfaced the contradiction before the sentence was written,
+because the test list states outcomes without the prose's room for
+interpretation. It is also the fastest available check: the tests are a few
+hundred lines, and they encode what every earlier round concluded.
+
+This is the twelfth habit with a search order attached. Where that one says two
+disagreeing statements mean an unanswered question, this one says where to look
+for the answer that was already given.
+
 ##### Bounds are directional
 
 A related and simpler slip. Every bound in the quarantine mechanism —
@@ -1204,12 +1228,19 @@ other copies actually hold:
     repair itself. **Repair must never leave a record at equal `updatedAt` with
     content differing from the peer that supplied that timestamp.**
 
-    Where the body matches no peer at all, this device is genuinely stale rather
-    than merely poisoned, and takes the greatest in-window peer's record
-    **wholesale** — body and timestamp together — rather than pairing that
-    peer's clock with its own content. Where the body differs from every peer's, the record stays
-    **quarantined and reported** until a fresh in-window local write replaces the
-    poisoned stamp.
+    Where the body matches no peer at all, the record stays **quarantined and
+    reported** until a fresh in-window local write replaces the poisoned stamp.
+    A draft inserted a "wholesale adopt the greatest peer's record" rule here,
+    reasoning that a body matching nobody means this device is stale rather than
+    poisoned. That conclusion cannot be drawn on this branch, and drawing it
+    loses data: a device whose clock broke and whose user then made a genuine,
+    never-synced edit also matches no peer, and wholesale adoption silently
+    overwrites that edit with older content. Quarantine's premise is that the
+    device cannot trust its own clock, so it equally cannot conclude "I must be
+    behind" over "I edited before anyone saw it" — the same reasoning stated two
+    paragraphs above for the never-agreed case and three below for the union.
+    Pulling a genuinely stale record forward is the download path's job once
+    repair has cleared the timestamp, not repair's.
 
     **That second case does not resolve on its own, and an earlier draft said it
     would.** It claimed the record waits "a pass of delay" for agreement to
@@ -1276,10 +1307,39 @@ other copies actually hold:
     whole batch: the failure the pending-tombstone rule exists to prevent,
     reached through the door omission left open.
 
-    Withholding transitively is the narrower fix and needs no new state — the
-    citing record's own references are already in hand at manifest time. It is
-    also self-clearing, since publishing `C` after a repair makes `D` publishable
-    on the same pass.
+    Withholding is a **fixpoint over the publish set**, not a single-hop test.
+    "Is what I cite quarantined?" answers *no* for a dance that is merely
+    withheld rather than quarantined, so a program citing that dance would
+    publish and a peer would fail at COMMIT on the same class of foreign key.
+    `ProgramSlots.danceId` and `DanceLinks.targetDanceId` are real record-to-record
+    edges, so Program → Dance → Choreographer chains exist. The rule is therefore:
+    withhold any record referencing something **not in the manifest actually
+    being published**, iterated until nothing more is removed — the same chase to
+    a fixpoint the alias rule performs, and for the same reason. The evolving
+    publish set is per-pass working state and outlives nothing, so it adds no
+    schema.
+
+    **`Programs.venueId` is exempt**, because the justification does not reach it:
+    it is deliberately not a database foreign key — integrity is enforced at the
+    app layer, and import paths already resolve-or-null a dangling `venueId`
+    before persisting. A program citing a withheld venue commits fine on a peer
+    and simply arrives without its venue link, so withholding it would cost
+    availability for no protection. The rule is scoped to references that are
+    real FKs with cascade or restrict semantics.
+
+    **It does not self-clear on the same pass, and a draft claimed it would.**
+    Dependents clear when the cited entity becomes publishable — which for the
+    population that triggers this rule means never, by any pass: an entity
+    created locally while the clock was broken has no peer copy and no baseline,
+    and this document states elsewhere that such a record "simply stays
+    quarantined, since there is nothing to reconcile it against." Only a fresh
+    in-window local write to that entity clears it. So one quarantined
+    choreographer can silently withhold every dance crediting them, indefinitely.
+    That is a real cost of choosing correctness over availability here, and it is
+    why quarantined records are **reported**: the count of records held back by
+    each one belongs in that report, since the user is the only party who can
+    resolve it and the only visible symptom otherwise is a collection that
+    quietly stops syncing.
 
   In the union, a locally quarantined value is **excluded from arbitration and
   the local row is retained**, pending repair afterwards. It is not replaced by
@@ -3363,6 +3423,21 @@ must say this plainly rather than implying sync is opaque to us.
   by publishing it, after which a peer's batch fails at COMMIT on the cascading
   foreign key — the citing record is freshly stamped and not itself quarantined,
   so nothing else stops it.
+- **Withholding reaches the second hop** — a program citing a dance citing a
+  quarantined choreographer; assert the program is withheld too. Mutation-proved
+  by testing only direct citations, where the dance is withheld but not
+  quarantined, so the program publishes and its peer's batch fails on the same
+  foreign key the rule exists to protect.
+- **A program citing a quarantined venue still publishes** — assert the venue
+  exemption, and that the peer commits with a null venue link. Mutation-proved by
+  withholding it, which costs availability for a reference that is not a database
+  foreign key and that import paths already resolve-or-null.
+- **A never-agreed quarantined entity does not clear by syncing** — assert that
+  repeated passes leave it and its dependents withheld, that only a fresh
+  in-window local write clears it, and that the report names how many records it
+  is holding back. Mutation-proved by asserting it self-clears on the pass after
+  repair, which is what a draft claimed and which no pass can deliver for a
+  record with no peer copy and no baseline.
 - **A quarantined record is excluded from the steady-state merge table** — assert
   it is neither uploaded nor treated as a conflict while quarantined, and that
   repair is its only route back. Mutation-proved by leaving it in the table,
