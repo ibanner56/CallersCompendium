@@ -103,8 +103,13 @@ void main() {
       expect(marker, isNotEmpty);
 
       // Second attempt: the memo was cleared, so it retries and now succeeds.
+      // This attempt runs two rebuilds: one for derivedRebuildRequiredKey
+      // (the migration marker that survived the first failure) and one for
+      // sectionRuleVersionKey (the zero-beat phrase-boundary fix, #844, whose
+      // key was not yet written because the first attempt threw before reaching
+      // it).
       await repos.ensureMigrated();
-      expect(repos.rebuildAttempts, 2);
+      expect(repos.rebuildAttempts, 3);
       final cleared = await db
           .customSelect(
             'SELECT value_json FROM settings WHERE key = ?',

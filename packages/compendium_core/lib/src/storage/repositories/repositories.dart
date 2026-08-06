@@ -84,6 +84,7 @@ class CompendiumRepositories {
         ]);
       }
       await _repairPurgeCorruptionIfNeeded();
+      await _recomputeSectionLabelsIfNeeded();
     } catch (_) {
       // Don't cache a failed migration: clear the memo so a subsequent call
       // retries. The durable marker is still set (only deleted after a
@@ -136,5 +137,32 @@ class CompendiumRepositories {
         [purgeCorruptionRepairDoneKey, 'true'],
       );
     });
+  }
+
+  /// Recomputes `dance_figures.section` for all dances using the corrected
+  /// zero-beat phrase-boundary rule (#844), if this has not already been done.
+  ///
+  /// Guarded by [sectionRuleVersionKey] so it runs at most once per database.
+  /// The marker is written *after* [runDerivedRebuild] completes — an
+  /// interrupted rebuild leaves the key absent and the sweep retries on the
+  /// next open. On a fresh install the collection is empty and the rebuild is
+  /// a no-op; the key is still written so the sweep is skipped on subsequent
+  /// opens.
+  Future<void> _recomputeSectionLabelsIfNeeded() async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND value_json = ?',
+          variables: [
+            Variable.withString(sectionRuleVersionKey),
+            Variable.withString('"$kSectionRuleVersion"'),
+          ],
+        )
+        .get();
+    if (done.isNotEmpty) return;
+    await runDerivedRebuild();
+    await db.customStatement(
+      'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+      [sectionRuleVersionKey, '"$kSectionRuleVersion"'],
+    );
   }
 }
