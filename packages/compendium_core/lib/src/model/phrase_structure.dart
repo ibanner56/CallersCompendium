@@ -78,6 +78,23 @@ class PhraseStructure {
   String toString() => 'PhraseStructure($phraseCount x $beatsPerPhrase beats)';
 }
 
+/// Returns the phrase label for a figure starting at [beat] with [figureBeats]
+/// beats, using [structure] to map beats to labels.
+///
+/// For non-zero-length figures the start beat determines the label — the
+/// calling convention is "the phrase it starts in". For **zero-length** figures
+/// the tie is resolved backward: the figure belongs to the phrase that just
+/// ended, not the one that follows. Exception: beat 0 has no preceding phrase,
+/// so a zero-beat figure there stays in the first phrase.
+String labelForFigure(int beat, int figureBeats, PhraseStructure structure) {
+  if (figureBeats == 0 &&
+      beat > 0 &&
+      beat % structure.beatsPerPhrase == 0) {
+    return structure.labelAtBeat(beat - 1);
+  }
+  return structure.labelAtBeat(beat);
+}
+
 /// A figure's derived position within the phrase structure.
 @immutable
 class SectionedFigure {
@@ -97,6 +114,9 @@ class SectionedFigure {
 
   /// Label of the phrase in which this figure *starts* (e.g. `A2`). Figures
   /// may span phrase boundaries; the start phrase is the calling convention.
+  /// Zero-beat figures at a phrase boundary (beat > 0) are attributed to the
+  /// preceding phrase — they sit between two phrases and musically belong with
+  /// the one that just ended.
   final String label;
 }
 
@@ -124,7 +144,7 @@ List<SectionedFigure> deriveSections(
         index: i,
         figure: figures[i],
         startBeat: beat,
-        label: structure.labelAtBeat(beat),
+        label: labelForFigure(beat, figures[i].beats, structure),
       ),
     );
     // One list element → one beat advance. For a meanwhile container this is

@@ -507,7 +507,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         sectionStart[draft.id] = false;
         continue;
       }
-      final label = widget.phraseStructure.labelAtBeat(beat);
+      final label = labelForFigure(beat, draft.beats, widget.phraseStructure);
       labels[draft.id] = label;
       sectionStart[draft.id] = label != lastLabel;
       lastLabel = label;

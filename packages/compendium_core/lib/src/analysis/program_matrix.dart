@@ -35,6 +35,7 @@ import '../model/dance.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
+import '../model/phrase_structure.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/taxonomy.dart';
 
@@ -442,7 +443,9 @@ ProgramMatrix buildProgramMatrix(
         // dances can be checked for same-figure-same-phrase collisions. Custom
         // figures are excluded (their column is un-comparable) but still
         // advance the beat cursor below.
-        (phraseLabels[key] ??= <String>{}).add(structure.labelAtBeat(beat));
+        (phraseLabels[key] ??= <String>{}).add(
+          labelForFigure(beat, _effectiveBeats(tax, figure), structure),
+        );
       }
       beat += _effectiveBeats(tax, figure);
     }
