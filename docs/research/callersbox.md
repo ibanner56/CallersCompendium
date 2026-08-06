@@ -169,7 +169,7 @@ their pass count. The 196 declines break down as:
 
 *(Before PR E: 128 decompose / 225 decline / 163 unmappable-pass-code /
 P-series 66 / beats 1. Counts measured with the real adapter over the full
-corpus at commit `5b2e5ab4`; each line counted once, tie-broken by the first
+corpus at commit `5b05c4b3`; each line counted once, tie-broken by the first
 unmappable code in the decoder's own order. One corpus line —
 `(8) Grand right and left (TBR;L;R;L)` — qualifies for both trail-buddy and
 bare-R/L; under this methodology it is counted as trail-buddy.)*
@@ -188,7 +188,7 @@ Beats vs. pass count over the **177 lines** that reach the beats check: **157 of
 original N-series line plus the 19 newly surfaced P-series ones described above.
 
 **Prose-figure lines containing a `P` token (issue #732 PR E, measured at commit
-`5b2e5ab4`).** Every figure line in the full corpus that contains at least one
+`5b05c4b3`).** Every figure line in the full corpus that contains at least one
 `P`-prefixed dancer code (`P0`–`P5`, `P1`, etc.):
 
 | population | lines before | lines still custom | newly structured |
