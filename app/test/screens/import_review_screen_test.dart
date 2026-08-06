@@ -2365,7 +2365,7 @@ void main() {
   group('manual picker with .ccshare containing programs (issue #852)', () {
     // A minimal archive with one dance, one program referencing it, and one
     // venue — exactly the round-trip bundle a share produces.
-    CompendiumArchive _pickerArchive() => CompendiumArchive(
+    CompendiumArchive pickerArchive() => CompendiumArchive(
       exportedAt: DateTime.utc(2026, 7, 15),
       dances: [
         Dance(
@@ -2392,7 +2392,7 @@ void main() {
     // pushed on top of a home scaffold (mirroring main.dart's navigator push)
     // so the post-commit Undo snackbar — which rides the app-level
     // ScaffoldMessenger and outlives the popped review route — stays reachable.
-    Future<ValueNotifier<int>> _pumpWithPicker(
+    Future<ValueNotifier<int>> pumpWithPicker(
       WidgetTester tester,
       CompendiumRepositories repos,
       String payload,
@@ -2446,10 +2446,10 @@ void main() {
       (tester) async {
         final repos = openTestRepositories();
         addTearDown(repos.db.close);
-        final archive = _pickerArchive();
+        final archive = pickerArchive();
         final payload = encodeArchive(archive);
 
-        final refresh = await _pumpWithPicker(tester, repos, payload);
+        final refresh = await pumpWithPicker(tester, repos, payload);
 
         // Drive through the picker → plan → review flow.
         await _toReview(tester);
@@ -2491,9 +2491,9 @@ void main() {
       (tester) async {
         final repos = openTestRepositories();
         addTearDown(repos.db.close);
-        final payload = encodeArchive(_pickerArchive());
+        final payload = encodeArchive(pickerArchive());
 
-        await _pumpWithPicker(tester, repos, payload);
+        await pumpWithPicker(tester, repos, payload);
         await _toReview(tester);
         await tester.tap(find.byKey(const ValueKey('import-commit-button')));
         await tester.pumpAndSettle();
@@ -2529,7 +2529,7 @@ void main() {
         ),
       );
 
-      await _pumpWithPicker(tester, repos, payload);
+      await pumpWithPicker(tester, repos, payload);
       await _toReview(tester);
       await tester.tap(find.byKey(const ValueKey('import-commit-button')));
       await tester.pumpAndSettle();
