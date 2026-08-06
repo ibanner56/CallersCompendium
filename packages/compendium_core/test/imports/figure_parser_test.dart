@@ -618,7 +618,15 @@ void main() {
       'Hey 3/4 (M ricochet;NR;W ricochet;PR;M ricochet;NR;W ricochet;PR)',
       // P-series boundary: P6+ and P-n have no taxonomy token. A line naming
       // either must not be silently mapped onto a nearer partner — it stays
-      // custom. Falsify by adding p6/p-1 to _dancerWords.
+      // custom.
+      //
+      // To falsify, add the code to BOTH _dancerWords AND _pSeriesCodes.
+      // Adding it to _dancerWords alone leaves this test green: the pair
+      // absorption in _takeDancer/_takeLeadingDancer is gated on
+      // _pSeriesCodes, which excludes out-of-range codes, so the trailing
+      // "partner" survives as a leftover token, _swing returns null, and the
+      // line declines to custom without the boundary ever being exercised.
+      // Measured both ways for p6 and p-1: one map green, both maps red.
       'P6 partner swing', // depth boundary: one beyond the modelled range
       'P-1 partner swing', // negative index: no taxonomy token
       // Regression: the P-prefix pair-absorption guard must test set membership
