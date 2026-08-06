@@ -777,7 +777,8 @@ makes self-hosting materially harder, which constraint 4 forbids.
   entity is withheld with it, or a peer's batch fails at COMMIT on the cascading
   foreign key — computed as a fixpoint over the publish set, since the citation
   graph is multi-hop, and excluding `Programs.venueId`, which is not a database
-  foreign key. That withholding does not resolve itself: an entity created while
+  foreign key and is instead resolved-or-nulled on apply, as the archive
+  restorer already does. That withholding does not resolve itself: an entity created while
   a clock was broken has no peer copy to repair against, so it and everything
   citing it stay unsynced until the user writes to it again. The report says how
   many records each one holds back, because otherwise the only symptom is a

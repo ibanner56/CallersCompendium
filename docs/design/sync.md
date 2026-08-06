@@ -653,7 +653,7 @@ For existence:
 | Inbound validation | Out-of-range `existenceAt` *or* `updatedAt` rejected, never clamped |
 | Quarantine repair | Rebuilds only out-of-window fields, from peers sound in that same field; keyed on the baseline for `updatedAt` |
 | Repair's missing-baseline branch | Never-agreed only; upgraded and wiped entries take other paths |
-| Quarantined records | Excluded from merge table and union; manifest advertises last agreed hash; citing records withheld |
+| Quarantined records | Excluded from merge table and union; manifest advertises last agreed hash; records citing them withheld to a fixpoint over database-FK references, `venueId` exempt |
 
 Written as a table because the alternative is discovering the paths one review
 round at a time, which is what happened.
@@ -948,6 +948,32 @@ hundred lines, and they encode what every earlier round concluded.
 This is the twelfth habit with a search order attached. Where that one says two
 disagreeing statements mean an unanswered question, this one says where to look
 for the answer that was already given.
+
+##### An elaboration can be wrong where the decision is right
+
+> **A clause added to scope or justify a correct rule is as capable of being
+> false as the rule itself, and gets a fraction of the scrutiny.** Check a
+> narrowing against the thing it claims to narrow, and a justification against
+> the code it claims to describe.
+
+The twentieth habit, and the last one this design produced. Two defects survived
+into a closure audit, in one paragraph, both of this shape. The fixpoint rule was
+right; the clause scoping it to FKs "with cascade or restrict semantics" named a
+semantic this schema does not contain and excluded both edges the fixpoint
+existed for. The venue exemption was right; the sentence explaining it asserted
+that a program with a dangling `venueId` "commits fine", where the repository
+throws.
+
+In both cases the decision survived review and its supporting clause did not, and
+in both cases the clause was checkable in one grep. That they appeared together,
+in one paragraph, in the round that produced no other defect, is the tell: the
+attention went to the rule, and the sentences around it were written as though
+explaining a settled thing carried no risk.
+
+The ADR states both points correctly, and states them in one line each. It was
+right precisely where it declined to elaborate — which is not an argument for
+saying less, since this document exists to be implementable, but is an argument
+for treating every added clause as a claim rather than as commentary.
 
 ##### Bounds are directional
 
@@ -1322,10 +1348,18 @@ other copies actually hold:
     **`Programs.venueId` is exempt**, because the justification does not reach it:
     it is deliberately not a database foreign key — integrity is enforced at the
     app layer, and import paths already resolve-or-null a dangling `venueId`
-    before persisting. A program citing a withheld venue commits fine on a peer
-    and simply arrives without its venue link, so withholding it would cost
-    availability for no protection. The rule is scoped to references that are
-    real FKs with cascade or restrict semantics.
+    before persisting. The test is simply **whether the reference is a
+    database-enforced foreign key**: `ProgramSlots.danceId` and
+    `DanceLinks.targetDanceId` are, `Programs.venueId` is not.
+
+    A draft narrowed that to FKs "with cascade or restrict semantics", which is
+    wrong twice. `KeyAction.restrict` appears nowhere in this schema, and both
+    edges the fixpoint exists for are `setNull` — so the clause excluded exactly
+    what it was written to cover, and the second-hop test could not have passed
+    against its own prose. The premise was wrong too: `ON DELETE` governs what
+    happens when a *parent* is deleted, and says nothing about inserting a child
+    whose parent is absent. That insert fails at COMMIT on a `setNull` FK exactly
+    as on a `cascade` one, and that failure is the whole hazard here.
 
     **It does not self-clear on the same pass, and a draft claimed it would.**
     Dependents clear when the cited entity becomes publishable — which for the
@@ -2839,6 +2873,25 @@ Apply therefore proceeds in dependency order within the transaction:
 A record whose reference cannot be resolved is skipped and reported, never
 applied with a dangling id.
 
+**`Programs.venueId` is the one exception, and it is resolved rather than
+skipped.** It is a soft reference — no database foreign key, integrity enforced
+at the app layer — so a dangling value cannot corrupt the batch, and skipping the
+program would withhold a caller's whole set list because one venue has not
+arrived. Apply therefore **nulls a `venueId` with no matching local venue before
+the program reaches the repository**, exactly as the import path already does,
+and reports it; the program arrives complete apart from its venue link, and a
+later pass carrying the venue does not restore the link automatically.
+
+This step is required rather than optional. `ProgramRepository` **throws** on a
+non-null `venueId` with no matching venue — it is the only write path for
+programs — so an apply that passed one through would abort. The precedent is
+exact: `ArchiveRestorer` already clears a dangling `venueId` before writing a
+program from an untrusted bundle, for the same reason and with the same effect.
+A draft asserted that such a program "commits fine and simply arrives without its
+venue link", which was true of neither the repository nor the skipped-and-reported
+rule above it: three sections gave three different answers, and only this one is
+implementable.
+
 ### Failure and offline
 
 Device Sync is best-effort and never blocks the UI. Any failure leaves local data
@@ -3429,9 +3482,16 @@ must say this plainly rather than implying sync is opaque to us.
   quarantined, so the program publishes and its peer's batch fails on the same
   foreign key the rule exists to protect.
 - **A program citing a quarantined venue still publishes** — assert the venue
-  exemption, and that the peer commits with a null venue link. Mutation-proved by
-  withholding it, which costs availability for a reference that is not a database
-  foreign key and that import paths already resolve-or-null.
+  exemption holds, that the receiving peer nulls the dangling `venueId` before
+  the write, and that the program applies with the rest of its content intact.
+  Mutation-proved two ways: withhold the program, which costs a caller their set
+  list because one venue has not arrived; or apply it without the resolve-or-null
+  step, which throws in `ProgramRepository` and aborts the record.
+- **Withholding is scoped by whether the reference is a database FK** — assert
+  `ProgramSlots.danceId` and `DanceLinks.targetDanceId` trigger withholding and
+  `Programs.venueId` does not. Mutation-proved by scoping on `onDelete`
+  semantics, which exempts both real edges, since every FK in this schema is
+  `cascade` or `setNull` and none is `restrict`.
 - **A never-agreed quarantined entity does not clear by syncing** — assert that
   repeated passes leave it and its dependents withheld, that only a fresh
   in-window local write clears it, and that the report names how many records it
