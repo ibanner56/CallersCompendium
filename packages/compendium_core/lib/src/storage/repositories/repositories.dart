@@ -86,7 +86,10 @@ class CompendiumRepositories {
         ]);
       }
       await _repairPurgeCorruptionIfNeeded();
-      await _recomputeSectionLabelsIfNeeded(alreadyRebuilt: rebuiltThisCall);
+      await _recomputeSectionLabelsIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
     } catch (_) {
       // Don't cache a failed migration: clear the memo so a subsequent call
       // retries. The durable marker is still set (only deleted after a
@@ -152,8 +155,10 @@ class CompendiumRepositories {
   /// [runDerivedRebuild] earlier in this call (e.g. for [derivedRebuildRequiredKey]).
   /// In that case the section values are already correct and a second rebuild
   /// would be byte-identical work; the key is written directly instead.
+  /// [onProgress] is forwarded to [runDerivedRebuild] when a rebuild is needed.
   Future<void> _recomputeSectionLabelsIfNeeded({
     bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
   }) async {
     final done = await db
         .customSelect(
@@ -167,7 +172,7 @@ class CompendiumRepositories {
     if (done.isNotEmpty) return;
     // Skip the rebuild if one already ran this call — it used the current
     // labelForFigure code, so section values are already correct.
-    if (!alreadyRebuilt) await runDerivedRebuild();
+    if (!alreadyRebuilt) await runDerivedRebuild(onProgress: onProgress);
     await db.customStatement(
       'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
       [sectionRuleVersionKey, '"$kSectionRuleVersion"'],
