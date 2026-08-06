@@ -458,7 +458,7 @@ tree. This section specifies the mapping; the widget work is 3.2c.
   the editor); `params` = named-param pickers from the move's schema; `section`
   = dropdown of the dance form's phrase labels (`A1 A2 B1 B2 …`).
 - **Sequence row**: two figure-row editors joined by "then"; each side is a
-  `FigureQuery` (a figure leaf, or an `FigureAnd`/`FigureOr` group of figure leaves).
+  `FigureQuery` (a figure leaf, or a `FigureAnd`/`FigureOr` group of figure leaves).
 - **Accessibility**: result counts are announced politely to AT via a live
   region ("42 dances"), per [ux.md](ux.md) §1 and the accessibility baseline;
   the builder is fully keyboard-operable and every control is labelled.
