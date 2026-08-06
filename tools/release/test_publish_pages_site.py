@@ -381,6 +381,49 @@ def _cases() -> None:
         assert no_value.returncode != 0
         assert "requires a value" in no_value.stderr.lower()
 
+    # 9. REGRESSION: the Pages custom domain must survive a site publish.
+    #    With the Pages source set to "deploy from a branch", GitHub reads the
+    #    custom domain from `CNAME` at the branch root. Pruning that file silently
+    #    CLEARS the domain in repo settings — no error, no warning, the site just
+    #    reverts to `<user>.github.io/<repo>`. This happened twice in production
+    #    before "CNAME" joined the preserve list, because every publish triggered
+    #    by a `site/**` or `docs/user/**` change deleted it.
+    #
+    #    Two independent layers, asserted separately because they fail separately.
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        origin, checkout = _setup(tmp)
+
+        site_a = _make_site(tmp / "a", "a")
+        r = _publish_site(checkout, tmp / "wt-a", site_a)
+        assert r.returncode == 0, f"initial publish failed:\n{r.stderr}\n{r.stdout}"
+
+        # (a) SAFETY NET: a domain already on the branch survives a staged site
+        #     that ships no CNAME of its own.
+        _push_files_to_branch(checkout, tmp / "wt-seed", {"CNAME": "example.invalid"})
+        assert _exists(origin, f"{REMOTE_BRANCH}:CNAME"), "seeding CNAME failed"
+
+        site_b = _make_site(tmp / "b", "b")
+        assert not (site_b / "CNAME").exists(), "fixture must not ship a CNAME here"
+        r = _publish_site(checkout, tmp / "wt-b", site_b, source_ref="bsha")
+        assert r.returncode == 0, f"publish over seeded CNAME failed:\n{r.stderr}\n{r.stdout}"
+        assert _exists(origin, f"{REMOTE_BRANCH}:CNAME"), \
+            "CUSTOM DOMAIN LOST: the site publish pruned CNAME, which clears the " \
+            "custom domain in GitHub Pages settings"
+        assert _show(origin, f"{REMOTE_BRANCH}:CNAME").strip() == "example.invalid", \
+            "a preserved CNAME must keep its value when the staged site ships none"
+        assert "b" in _show(origin, f"{REMOTE_BRANCH}:index.html"), \
+            "preserving CNAME must not stop the page itself from updating"
+
+        # (b) SOURCE OF TRUTH: a checked-in `site/CNAME` is copied in after the
+        #     prune, so it overrides whatever the branch already carried.
+        site_c = _make_site(tmp / "c", "c")
+        (site_c / "CNAME").write_text("callerscompendium.com", encoding="utf-8")
+        r = _publish_site(checkout, tmp / "wt-c", site_c, source_ref="csha")
+        assert r.returncode == 0, f"publish with site CNAME failed:\n{r.stderr}\n{r.stdout}"
+        assert _show(origin, f"{REMOTE_BRANCH}:CNAME").strip() == "callerscompendium.com", \
+            "site/CNAME is the source of truth and must overwrite the branch value"
+
 
 def main() -> int:
     _cases()
