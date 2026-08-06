@@ -218,7 +218,9 @@ keeping you honest as you go. If a move is unusual and nothing matches, type it 
 as free text — it is still recorded as a figure.
 
 When you save, the dance is immediately selected in the detail pane so you can
-review it without having to find it in the list.
+review it without having to find it in the list — on a tablet or desktop, where
+the list and detail pane are side by side. On a phone the editor simply closes
+and returns you to the list.
 
 **[Write & edit dances](./authoring.md)** is the full guide to the editor:
 figures, meanwhile groups, walkthroughs, credits, drafts, and undo. The

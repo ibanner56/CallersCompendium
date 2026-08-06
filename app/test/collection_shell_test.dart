@@ -393,9 +393,9 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.byType(DanceEditorScreen), findsOneWidget);
 
-        // Cancel (back button / Navigator.pop with null).
-        final NavigatorState nav = tester.state(find.byType(Navigator).first);
-        nav.pop();
+        // Cancel via real back navigation — goes through PopScope, matching
+        // what a user can actually do.
+        await tester.pageBack();
         await tester.pumpAndSettle();
 
         // Editor is gone; original selection is intact.
