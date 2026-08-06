@@ -412,22 +412,22 @@ tree. This section specifies the mapping; the widget work is 3.2c.
 
 | Affordance | AST |
 |---|---|
-| Unified FTS search bar | `FullText(text)` |
-| One-tap facet: Form/Type | `Form(f)` |
-| One-tap facet: Formation | `Formation(shape)` |
-| One-tap facet: Progression | `Progression(p)` |
-| One-tap facet: Author | `Author(choreographerId)` |
-| One-tap facet: Tag(s) | `Tag(id)` (multiple tags AND-ed, or OR within the facet — see open Q) |
-| One-tap facet: Status | `Status(s)` |
+| Unified FTS search bar | `FullTextFilter(query)` |
+| One-tap facet: Form/Type | `FormFilter(form)` |
+| One-tap facet: Formation | `FormationFilter(shape)` |
+| One-tap facet: Progression | `ProgressionFilter(progression)` |
+| One-tap facet: Author | `AuthorFilter(choreographerId)` |
+| One-tap facet: Tag(s) | `TagFilter(tagId)` (multiple tags AND-ed, or OR within the facet — see open Q) |
+| One-tap facet: Status | `StatusFilter(status)` |
 | One-tap facet: Level | `LevelFilter(level)` — multiple levels OR-ed |
 | One-tap facet: Mixed level | `MixedLevelFilter(true)` |
 | One-tap facet: Mixer | `MixerFilter(true)` — tri-state (null / show-mixers-only); shown only when the collection contains at least one mixer dance (issue #732) |
 | One-tap facet: Rating | `RatingFilter(minimum)` — minimum-star floor |
-| One-tap facet: Custom field | `CustomField(fieldId, op, value)` |
-| **Multiple facets selected** | `And([...leaves])` — the common case |
-| Advanced ▸ boolean group | `And` / `Or` / `Not` group nodes |
-| Advanced ▸ figure row | `Figure(move, {params, section})` with move + param + section pickers |
-| Advanced ▸ sequence row ("X then Y") | `Then(before, after)` |
+| One-tap facet: Custom field | `CustomFieldFilter(def, op, value)` — `def` is a `CustomFieldDef`; `op` is a `CustomFieldOp` |
+| **Multiple facets selected** | `AndFilter([...leaves])` — the common case |
+| Advanced ▸ boolean group | `AndFilter` / `OrFilter` / `NotFilter` group nodes |
+| Advanced ▸ figure row | `FigureFilter(query)` with move + param + section pickers |
+| Advanced ▸ sequence row ("X then Y") | `ThenFilter(before, after)` — both operands are `FigureQuery` |
 
 - **Common case**: the facet chips compose into a flat `And` of leaves. No tree
   UI is shown until the user opens **Advanced**, which reveals the nested
