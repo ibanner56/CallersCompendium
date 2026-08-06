@@ -874,6 +874,31 @@ precondition down as a sentence about the world — not about a field — and th
 ask what else can make the field look that way. A precondition tested by proxy is
 a precondition that holds until someone adds a fifth way to clear a table.
 
+##### The scaffolding gets less scrutiny than the fix
+
+> **Apply the checks to the rules added to *support* a fix, not only to the fix
+> itself.** The supporting rule is where the next defect lives, because the fix
+> is what is being reasoned about and the scaffolding is what is being assumed.
+
+The seventeenth habit, and the fifteenth at a different scale: that one separated
+conveniences from answers, this one separates a load-bearing correction from the
+rules introduced to make it work.
+
+One revision produced three defects of this shape at once, none in the correction
+itself. "A quarantined record is never uploaded" was added to protect the fix and
+shipped without the advertise-versus-withhold analysis its sibling rule — pending
+tombstones — had received in full, leaving a manifest entry pointing at a blob
+nobody could fetch. A replacement diagnostic shipped claiming to need no state,
+having inherited that phrase from mechanisms that genuinely need none. And a
+safety branch shipped with a cost of "a pass of delay" that nobody traced — three
+existing rules formed a closed cycle around it and the wait was indefinite.
+
+Each was checkable by a habit already written down. What they had in common was
+attention: the fix was the thing under examination, and these were the things
+holding it up. **A rule you add without hesitation is a rule you have not
+examined** — hesitation is what triggers the checks, and scaffolding rarely
+produces any.
+
 ##### Bounds are directional
 
 A related and simpler slip. Every bound in the quarantine mechanism —
@@ -1131,10 +1156,26 @@ other copies actually hold:
     cannot substitute for the missing body hash either: under the previous scheme
     it was written **on upload**, not on observed agreement, so its meaning
     changed at the upgrade boundary and "matches the stored wire hash" now proves
-    only "nothing changed since I published", which is not the question. Such a
-    record stays **quarantined and reported** until one pass observes agreement
-    and populates a body hash. The cost is a pass of delay; the alternative is
-    classifying content on a hash whose semantics moved underneath it.
+    only "nothing changed since I published", which is not the question.
+
+    Where the local **body equals a peer's**, repair proceeds on the verbatim
+    branch. Content demonstrably never diverged, so there is no local edit to
+    protect and nothing to decide — this is the `softDelete`-poisoned case, where
+    the clock moved the timestamps and left the body untouched, and it is the
+    common one. Where the body differs from every peer's, the record stays
+    **quarantined and reported** until a fresh in-window local write replaces the
+    poisoned stamp.
+
+    **That second case does not resolve on its own, and an earlier draft said it
+    would.** It claimed the record waits "a pass of delay" for agreement to
+    populate a body hash; agreement is defined as a peer advertising this
+    device's *current* hash, the wire hash covers the timestamps, and a
+    quarantined record is never uploaded — so no peer can ever come to carry it,
+    the body hash never populates, and the wait is indefinite rather than one
+    pass. Three rules of this design formed a closed cycle, and the exit was
+    asserted rather than traced. It is a narrow population — a record poisoned in
+    the window between the schema upgrade and the first post-upgrade pass — but
+    the honest statement is that a user write is what clears it.
   - **A wholesale-wiped baseline** — restore, fresh attach, epoch reset. These
     would be indistinguishable from "never agreed" and are not, because every one
     of them routes through fresh attach, which repersists the baseline before
@@ -1155,10 +1196,37 @@ other copies actually hold:
   Narrow the input enough and a rejected signal becomes sound; what is not sound
   is keying that narrowing on something merely correlated with it.
 
-  **A quarantined record is never uploaded.** A device does not publish a value
-  it has itself judged impossible, which also keeps a locally poisoned value out
-  of a fresh attach's union — where "higher `updatedAt` wins" would otherwise let
-  it beat a peer's genuine edit before any classifier saw it.
+  **A quarantined record is never uploaded, and its manifest entry falls back to
+  the last agreed hash.** A device does not publish a value it has itself judged
+  impossible. But withholding a blob is not the same act as withholding a
+  manifest entry, and the two have to be decided separately — the same
+  distinction the pending-tombstone rule turns on:
+
+  - **The blob is withheld.** Nothing publishes a poisoned value.
+  - **The manifest advertises the record's last agreed hash**, whose blob peers
+    already hold — the **wire** hash, which is what a manifest carries and what
+    peers fetch by, and which survives the body-hash migration since it was never
+    dropped. Advertising the *current* hash would name a blob nobody can fetch,
+    and omitting the record entirely would break referential closure — a
+    fresh-attaching peer that downloads a dance citing the omitted entity fails
+    at COMMIT on the cascading foreign key and discards its whole batch, which is
+    the failure the pending-tombstone rule exists to prevent.
+
+    Advertising a hash older than what this device holds means peers may offer it
+    their newer content, which is correct and harmless: this device is genuinely
+    behind on that record until repair completes, and downloading a peer's record
+    is how it stops being behind. What it must not do is *publish* its own
+    poisoned value, and it does not.
+  - **A quarantined record with no agreed hash** — created locally while the
+    clock was already broken, so no peer ever held it — is omitted, and is safe
+    to omit for the reason the others are not: nothing on any peer can cite a
+    record no peer has ever seen.
+
+  In the union, a locally quarantined value is **excluded from arbitration and
+  the local row is retained**, pending repair afterwards. It is not replaced by
+  the peer's: a device holding a poisoned timestamp may still hold genuinely
+  newer content, and discarding it before the classifier runs would lose a real
+  edit — the round-20 defect reached one step earlier.
 
   A draft read a missing entry as agreement outright, reasoning that a record
   never agreed cannot have been edited *since* agreement. That does not follow —
@@ -1400,16 +1468,34 @@ A device already learns, per record, whether a peer's manifest came to carry the
 hash it published — that is how baseline entries advance. A device whose blobs
 are being refused sees its own uploads never reflected by **any** peer, pass
 after pass, while peers' own records continue to move. That is close to direct
-evidence of rejection, it needs no new state, and it covers the records that
-matter most: a record this device *created* is stored by no peer at all when its
-blob is refused, so there is no peer value to compare against — the case a
-trailing-value test cannot see, and exactly the case a user seeding a library on
-a fast device would hit.
+evidence of rejection, and it covers the records that matter most: a record this
+device *created* is stored by no peer at all when its blob is refused, so there
+is no peer value to compare against — the case a trailing-value test cannot see,
+and exactly the case a user seeding a library on a fast device would hit.
 
 The report fires when **every** record this device published in a pass goes
 unreflected by every peer whose manifest it observed, across **three consecutive
 passes**, with **at least one peer observed** in each. Zero observed peers is not
 evidence, for the same reason it is not evidence of a slow clock.
+
+**The streak counter is in-memory, per session, and that is a real limitation.**
+The per-record part is derived — reflection is already computed to advance the
+baseline — but "the last three passes were each fully unreflected" is a temporal
+aggregate that outlives a pass, and an earlier draft claimed the whole signal
+"needs no new state" by carrying over language that is true only of the derived
+half. It is state, and this design requires state that survives a restart to be
+named, placed and classified; rather than add a persisted counter for a
+diagnostic, the counter is scoped to the session and the cost is stated instead:
+**a device restarted between passes may never reach three, and may never surface
+the report at all.** That weakens exactly the dead-RTC case the signal exists for,
+since a phone rarely runs three uninterrupted passes in one session.
+
+It is kept anyway because the alternative is worse. Persisting it would mean new
+`deviceScoped` state, a migration and a classification for a warning message,
+where the same fault already surfaces through the records it poisons; and a
+single-pass trigger would fire on any transient network failure, which is the
+false positive that made the previous formulation useless. Three consecutive
+in-session passes is a compromise that is honest about being one.
 
 A draft instead required peer values to *trail* this device's by more than the
 acceptance window, across three records. That does not distinguish the fault from
@@ -3167,6 +3253,27 @@ must say this plainly rather than implying sync is opaque to us.
   classified as locally edited. Mutation-proved by routing a wire-hash-only entry
   through the never-agreed comparison, which reads the device's stale content as
   its own edit and pushes it over the peers' genuine one.
+- **An upgraded record poisoned *and* edited does not resolve on its own** — the
+  sub-case the trivial upgrade test misses: local body differs from every peer's,
+  so the record stays quarantined; assert that running passes does **not** clear
+  it, and that a fresh in-window local write does. Mutation-proved by asserting
+  it clears after one pass, which is what an earlier draft promised — agreement
+  needs a peer to advertise this device's current hash, the wire hash covers the
+  timestamps, and a quarantined record is never uploaded, so the three rules
+  close a cycle and the record waits for ever.
+- **An upgraded record poisoned but unedited repairs immediately** — local body
+  equals a peer's, so content never diverged; assert the verbatim branch runs
+  without waiting. This is the `softDelete`-poisoned case and the common one.
+- **A quarantined record advertises its last agreed hash** — assert the manifest
+  entry names a hash peers can actually fetch, that the poisoned blob is not
+  uploaded, and that a fresh-attaching peer downloading a dance citing that
+  entity commits successfully. Mutation-proved two ways: advertise the current
+  hash, and the entry names a blob nobody holds; omit the entry, and the peer's
+  batch fails at COMMIT on the cascading foreign key.
+- **A locally quarantined value is excluded from the union, not overwritten** —
+  assert the local row survives arbitration and is handed to repair afterwards.
+  Mutation-proved by letting the peer's value replace it, which discards a
+  genuine local edit before any classifier runs.
 - **A wiped baseline never reaches the never-agreed rule** — restore a backup,
   which drops the baseline and forces a fresh attach; assert the baseline is
   repersisted and quarantine/repair run only afterwards. Mutation-proved by

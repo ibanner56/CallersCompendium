@@ -765,7 +765,13 @@ makes self-hosting materially harder, which constraint 4 forbids.
   null and fills on the first pass that observes agreement.
 
   A quarantined record is also never uploaded: a device does not publish a value
-  it has judged impossible, which keeps it out of a fresh attach's union as well.
+  it has judged impossible. Its **manifest entry falls back to the last agreed
+  hash**, though — withholding a blob and withholding a manifest entry are
+  separate acts, and advertising a hash no peer can fetch or omitting the record
+  outright would each break something the pending-tombstone rule already settled.
+  In a union its value is excluded from arbitration and the local row retained,
+  never replaced, since a poisoned timestamp can accompany genuinely newer
+  content.
 
   **Choosing those classifiers was the substance of the decision.** Neither field
   carries a signal separating a value poisoned by a broken clock from a genuine
