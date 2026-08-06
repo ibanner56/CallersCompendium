@@ -148,10 +148,16 @@ one of those declines the whole line to `custom`.
 #### Corpus measurements (full local TCB mirror, 24 107 dance files / 152 589 figure lines)
 
 **`grand right and left`: 353 lines**, of which **157 decompose** to
-`pull_by_dancers` sequences (was 128 before issue #732 PR E). Top decodable shapes:
+`pull_by_dancers` sequences (128 before issue #732 PR E; +29 from P-series).
+Top decodable shapes among the original 128 (N/S-series only):
 `(N1R;N2L)` 32 · `(N3R;N2L)` 26 · `(S2R;S1L)` 15 · `(N1R;N2L;N3R)` 14 ·
-`(PR;S1L;S2R)` 9 · `(N2R;N3L)` / `(N1L;N2R)` / `(N4R;N3L)` 4 each. The 196
-declines break down as:
+`(PR;S1L;S2R)` 9 · `(N2R;N3L)` / `(N1L;N2R)` / `(N4R;N3L)` 4 each. The 29
+new P-series shapes are documented in the PR E section below; the commonest
+P-shapes by occurrence are `(P1R;P2L;P3R;P4L)` (21 occurrences — all
+beats-blocked, not decomposing) and `(P1R;P2L;P3R;P4L;P5R;P6L)` (10
+occurrences — out-of-range `P6`, still unmappable). The 29 that actually
+decompose are distributed across P-series shapes with beat counts divisible by
+their pass count. The 196 declines break down as:
 
 | reason | lines | detail |
 |---|---|---|
