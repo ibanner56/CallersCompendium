@@ -429,7 +429,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      '各ダンス行をフォーメーションファミリー（コントラ、ミキサー、スクエアなど）で着色します。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。';
+      '各ダンス行をフォーメーションファミリー（コントラ、ミキサー、スクエアなど）で着色します。ミキサーに設定されたダンスは、フォーメーションにかかわらず常にミキサーの色が使われます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。';
 
   @override
   String get settingsAppearanceFormationColoursTitle => 'フォーメーションラベルの色';
@@ -2934,6 +2934,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get exportLabelLevel => 'レベル';
+
+  @override
+  String get exportLabelMixer => 'ミキサー';
 
   @override
   String get exportLabelStatus => 'ステータス';

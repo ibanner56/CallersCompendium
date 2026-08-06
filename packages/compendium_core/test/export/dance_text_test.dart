@@ -14,6 +14,7 @@ void main() {
     String callingNotes = '',
     DanceStatus status = DanceStatus.active,
     DanceLevel? level,
+    bool mixer = false,
   }) => Dance(
     id: 'd1',
     title: title,
@@ -24,6 +25,7 @@ void main() {
     callingNotes: callingNotes,
     status: status,
     level: level,
+    mixer: mixer,
     createdAt: now,
     updatedAt: now,
   );
@@ -35,6 +37,7 @@ void main() {
     String formationLabel = 'Duple improper',
     String? levelLabel,
     String statusLabel = 'Active',
+    String mixerLabel = 'Mixer',
   }) => danceToPlainText(
     d,
     dialect: dialect ?? Dialect.canonical,
@@ -42,6 +45,7 @@ void main() {
     formationLabel: formationLabel,
     levelLabel: levelLabel,
     statusLabel: statusLabel,
+    labels: DanceExportLabels(mixer: mixerLabel),
   );
 
   group('danceToPlainText', () {
@@ -329,6 +333,17 @@ void main() {
       expect(text, contains('Carol Ormand'));
       expect(text, isNot(contains(email)));
       expect(text, isNot(contains(location)));
+    });
+
+    test('includes the Mixer line when dance.mixer is true (issue #732)', () {
+      final text = render(dance(mixer: true), mixerLabel: 'Mixer');
+      expect(text, contains('Mixer'));
+    });
+
+    test('omits the Mixer line when dance.mixer is false', () {
+      final text = render(dance(mixer: false), mixerLabel: 'Mixer');
+      // Only the formation label 'Duple improper' must appear, not the mixer line.
+      expect(text, isNot(contains('Mixer')));
     });
   });
 }

@@ -673,6 +673,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       final secondaryParts = <String>[
         if (dance != null) formationLabel(l10n, dance.formation),
         if (dance?.level != null) danceLevelLabel(l10n, dance!.level!),
+        if (dance != null && dance.mixer) l10n.commonMixer,
         // A dance slot may also carry a per-slot caller note (per ProgramSlot
         // docs); surface it like the builder UI does.
         if (slot.text != null && slot.text!.trim().isNotEmpty)
@@ -681,19 +682,21 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       ];
       final secondary = secondaryParts.join(' · ');
 
-      // Resolve the redundant formation accent (issue #270). Only when a dance
-      // resolves, color-coding is on, and the family has a themed accent.
+      // Resolve the redundant formation accent (issue #270, extended for mixer
+      // flag in issue #732). Only when a dance resolves, color-coding is on, and
+      // the family has a themed accent. Mixer-flagged dances get the mixer accent
+      // regardless of shape — see setListAccentForDance.
       final accent = (dance != null && colorCodingEnabled)
-          ? setListAccentForShape(
-              dance.formation.shape,
-              highContrast: highContrast,
-            )
+          ? setListAccentForDance(dance, highContrast: highContrast)
           : null;
-      // Expose the formation as text to AT so the row is fully readable without
-      // colour (ux.md §4): the accent is never the sole carrier of type/form.
+      // Expose the formation and, for mixer-flagged dances, the mixer term to AT
+      // so the row is fully readable without colour (ux.md §4): the accent is
+      // never the sole carrier of type/form — mixer-flagged dances append the
+      // mixer term to both the visible secondary text and the semantics label.
       final semanticsLabel = [
         slot.isAlt ? l10n.programsSummaryAlternateSemantic(title) : title,
         if (dance != null) formationLabel(l10n, dance.formation),
+        if (dance != null && dance.mixer) l10n.commonMixer,
         if (performed) l10n.programsPerformed,
       ].join('. ');
 

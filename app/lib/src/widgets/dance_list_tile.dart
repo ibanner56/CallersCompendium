@@ -200,6 +200,15 @@ class DanceListTile extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
+            if (effectiveFields.contains(CollectionTileField.level) &&
+                dance.mixer)
+              Chip(
+                key: const ValueKey('mixer-chip'),
+                avatar: const Icon(Icons.sync_alt_outlined, size: 16),
+                label: Text(l10n.commonMixer),
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             if (effectiveFields.contains(CollectionTileField.rating) &&
                 dance.rating != null)
               Chip(

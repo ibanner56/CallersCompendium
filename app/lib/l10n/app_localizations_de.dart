@@ -441,7 +441,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      'Jede Tanzzeile nach Formationsfamilie (Contra, Mixer, Square, …) einfärben. Die Formation wird immer als Text angezeigt, sodass Zeilen auch ohne Farbe lesbar bleiben.';
+      'Jede Tanzzeile nach Formationsfamilie (Contra, Mixer, Square, …) einfärben — Tänze, die als Mixer markiert sind, erhalten stets die Mixer-Farbe, unabhängig von der Formation. Die Formation wird immer als Text angezeigt, sodass Zeilen auch ohne Farbe lesbar bleiben.';
 
   @override
   String get settingsAppearanceFormationColoursTitle =>
@@ -3048,6 +3048,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get exportLabelLevel => 'Niveau';
+
+  @override
+  String get exportLabelMixer => 'Mixer';
 
   @override
   String get exportLabelStatus => 'Status';

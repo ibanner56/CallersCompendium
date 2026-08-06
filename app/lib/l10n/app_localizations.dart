@@ -845,7 +845,7 @@ abstract class AppLocalizations {
   /// Explanation for the set-list colour-coding toggle.
   ///
   /// In en, this message translates to:
-  /// **'Tint each dance row by its formation family (contra, mixer, square, …). The formation is always shown as text too, so rows stay readable without colour.'**
+  /// **'Tint each dance row by its formation family (contra, mixer, square, …) — dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.'**
   String get settingsAppearanceSetListColorSubtitle;
 
   /// List-tile title opening the formation-colour customisation screen.
@@ -4825,6 +4825,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Level'**
   String get exportLabelLevel;
+
+  /// Field label for the mixer line on an exported dance card (plain text and PDF); shown only when the dance is a mixer (Dance.mixer == true). A mixer is a dance in which dancers change partners each time through, NOT an audio or kitchen mixer.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixer'**
+  String get exportLabelMixer;
 
   /// Field label for the status (deprecated/broken) on an exported dance card (plain text and PDF).
   ///

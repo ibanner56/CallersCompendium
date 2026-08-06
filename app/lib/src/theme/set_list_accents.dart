@@ -9,8 +9,15 @@ import 'wcag.dart';
 /// The families are deliberately few (six) so the palette stays small,
 /// mutually distinguishable, and easy to keep contrast-safe across the light
 /// and high-contrast themes. The accent is only ever a *redundant* cue — every
-/// row also carries its formation **text** (`formationLabel`), which is what
-/// screen readers announce, per `docs/design/ux.md` §4 ("never colour alone").
+/// row also carries its formation **text** and, for mixer-flagged dances, the
+/// mixer term appended to that text, which is what screen readers announce,
+/// per `docs/design/ux.md` §4 ("never colour alone").
+///
+/// Note: when [Dance.mixer] is `true`, the row accent is [FormationFamily.mixer]
+/// **regardless of the dance's shape** — see [setListAccentForShapeAndMixer].
+/// This means the family here describes the shape-to-family mapping only; the
+/// resolved accent for a specific dance must go through [setListAccentForDance]
+/// or [setListAccentForShapeAndMixer], not [setListAccentForShape].
 enum FormationFamily {
   /// The bulk of contra dances: duple (improper/proper/indecent), becket, and
   /// generic longways sets.
@@ -84,10 +91,43 @@ Color? setListAccent(FormationFamily family, {required bool highContrast}) =>
     (highContrast ? _highContrastAccents : _lightAccents)[family];
 
 /// Convenience: resolve a [FormationShape] straight to its themed accent.
+/// Shape-only — ignores the mixer flag. Use [setListAccentForShapeAndMixer]
+/// when you have both a shape and a mixer flag, or [setListAccentForDance]
+/// when you have a full [Dance]. This version is correct for surfaces that
+/// operate on shape identity alone (e.g. the formation-colour settings screen).
 Color? setListAccentForShape(
   FormationShape shape, {
   required bool highContrast,
 }) => setListAccent(formationFamilyOf(shape), highContrast: highContrast);
+
+/// Resolves the accent for a dance row, respecting the mixer flag (issue #732).
+///
+/// When [mixer] is `true`, returns the [FormationFamily.mixer] accent regardless
+/// of [shape] — a mixer-flagged Duple Minor - Improper renders mixer pink, not
+/// contra teal, and a mixer-flagged Circle Mixer renders mixer pink, not
+/// sicilianCircle green (note: [FormationShape.circleMixer] maps to
+/// [FormationFamily.sicilianCircle] by shape alone — the mixer flag is what
+/// makes it pink). The 589 non-mixer Sicilian Circles stay green.
+///
+/// Leaves [formationFamilyOf] total and [setListAccentForShape] intact.
+Color? setListAccentForShapeAndMixer(
+  FormationShape shape,
+  bool mixer, {
+  required bool highContrast,
+}) => setListAccent(
+  mixer ? FormationFamily.mixer : formationFamilyOf(shape),
+  highContrast: highContrast,
+);
+
+/// Convenience: resolve a [Dance] straight to its themed accent.
+/// Delegates to [setListAccentForShapeAndMixer] with the dance's shape and
+/// mixer flag.
+Color? setListAccentForDance(Dance dance, {required bool highContrast}) =>
+    setListAccentForShapeAndMixer(
+      dance.formation.shape,
+      dance.mixer,
+      highContrast: highContrast,
+    );
 
 /// Resolves the color to use for a formation **label** (issue #367): the
 /// user's per-shape [overrides] win, otherwise the themed family accent (which

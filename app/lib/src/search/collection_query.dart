@@ -56,6 +56,13 @@ class FacetSelections {
   /// (mirrors the core [MixedLevelFilter] being distinct from [LevelFilter]).
   bool? mixedLevel;
 
+  /// Mixer facet: `null` = unselected, `true` = show mixers only.
+  /// Kept separate from formations for the same reason [mixedLevel] is
+  /// separate from [levels]: mixer-ness is orthogonal to shape (issue #732,
+  /// mirrors core [MixerFilter]). Only `true` is offered in the UI (tri-state
+  /// null / show-mixers-only; "show non-mixers" is not offered).
+  bool? mixer;
+
   /// Minimum-rating facet: `null` = unselected, otherwise a floor on the closed
   /// `1..5` scale that emits a [RatingFilter] (`rating >= minRating`; unrated
   /// dances are excluded). Single-valued (a floor, not a multi-select set).
@@ -96,6 +103,7 @@ class FacetSelections {
       statuses.isEmpty &&
       levels.isEmpty &&
       mixedLevel == null &&
+      mixer == null &&
       minRating == null &&
       authorIds.isEmpty &&
       tagIds.isEmpty &&
@@ -112,6 +120,7 @@ class FacetSelections {
     statuses.clear();
     levels.clear();
     mixedLevel = null;
+    mixer = null;
     minRating = null;
     authorIds.clear();
     tagIds.clear();
@@ -227,6 +236,9 @@ DanceFilter buildCollectionFilter({
   addOr([for (final l in facets.levels) LevelFilter(l)]);
   if (facets.mixedLevel != null) {
     branches.add(MixedLevelFilter(facets.mixedLevel!));
+  }
+  if (facets.mixer != null) {
+    branches.add(MixerFilter(facets.mixer!));
   }
   if (facets.minRating != null) {
     branches.add(RatingFilter(facets.minRating!));

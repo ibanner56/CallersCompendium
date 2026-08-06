@@ -48,6 +48,7 @@ void main() {
               slots: _slots(),
               danceTitles: (id) => 'Dance $id',
               formationFor: (_) => null,
+              mixerFor: (_) => false,
               onReorder: (_, _) {},
               onSlotChanged: (_, _) {},
               onRemove: (_) {},

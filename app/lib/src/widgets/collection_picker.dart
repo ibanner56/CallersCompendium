@@ -309,6 +309,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
           statuses: data.statuses,
           levels: data.levels,
           hasMixedLevel: data.hasMixedLevel,
+          hasMixer: data.hasMixer,
           hasRating: data.hasRating,
           authors: data.authors,
           tags: data.tags,

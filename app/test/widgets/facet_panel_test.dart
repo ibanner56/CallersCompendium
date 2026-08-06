@@ -17,6 +17,7 @@ Future<void> _pump(
   List<PublishedSource> citedSources = const [],
   List<Choreographer> authors = const [],
   bool hasMixedLevel = false,
+  bool hasMixer = false,
   bool hasRating = false,
   // Only set when a test needs to exercise ResponsiveAutocomplete's narrow
   // layout; existing (unset) tests keep relying on the default test window
@@ -44,6 +45,7 @@ Future<void> _pump(
               statuses: const [],
               levels: levels,
               hasMixedLevel: hasMixedLevel,
+              hasMixer: hasMixer,
               hasRating: hasRating,
               authors: authors,
               tags: const [],
@@ -665,5 +667,37 @@ void main() {
         expect(facets.authorIds, {'c1', 'c2'});
       },
     );
+  });
+
+  group('mixer facet (issue #732)', () {
+    testWidgets('mixer facet hidden when hasMixer is false', (tester) async {
+      final facets = FacetSelections();
+      await _pump(tester, facets, hasMixer: false, onChanged: () {});
+      expect(find.byKey(const ValueKey('mixer-yes')), findsNothing);
+    });
+
+    testWidgets('mixer facet shown when hasMixer is true', (tester) async {
+      final facets = FacetSelections();
+      await _pump(tester, facets, hasMixer: true, onChanged: () {});
+      expect(find.byKey(const ValueKey('mixer-yes')), findsOneWidget);
+    });
+
+    testWidgets('tapping mixer chip sets mixer to true', (tester) async {
+      final facets = FacetSelections();
+      await _pump(tester, facets, hasMixer: true, onChanged: () {});
+      await tester.tap(find.byKey(const ValueKey('mixer-yes')));
+      await tester.pumpAndSettle();
+      expect(facets.mixer, isTrue);
+    });
+
+    testWidgets('tapping active mixer chip clears it (tri-state null)', (
+      tester,
+    ) async {
+      final facets = FacetSelections()..mixer = true;
+      await _pump(tester, facets, hasMixer: true, onChanged: () {});
+      await tester.tap(find.byKey(const ValueKey('mixer-yes')));
+      await tester.pumpAndSettle();
+      expect(facets.mixer, isNull);
+    });
   });
 }

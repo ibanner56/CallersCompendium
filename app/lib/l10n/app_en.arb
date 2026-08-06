@@ -585,7 +585,7 @@
   "@settingsAppearanceSetListColorTitle": {
     "description": "Toggle title: tint set-list rows by formation family."
   },
-  "settingsAppearanceSetListColorSubtitle": "Tint each dance row by its formation family (contra, mixer, square, …). The formation is always shown as text too, so rows stay readable without colour.",
+  "settingsAppearanceSetListColorSubtitle": "Tint each dance row by its formation family (contra, mixer, square, …) — dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.",
   "@settingsAppearanceSetListColorSubtitle": {
     "description": "Explanation for the set-list colour-coding toggle."
   },
@@ -3786,6 +3786,10 @@
   "@exportLabelFormation": {"description": "Field label for the formation on an exported dance card (plain text and PDF)."},
   "exportLabelLevel": "Level",
   "@exportLabelLevel": {"description": "Field label for the difficulty level on an exported dance card or set list (plain text and PDF)."},
+  "exportLabelMixer": "Mixer",
+  "@exportLabelMixer": {
+    "description": "Field label for the mixer line on an exported dance card (plain text and PDF); shown only when the dance is a mixer (Dance.mixer == true). A mixer is a dance in which dancers change partners each time through, NOT an audio or kitchen mixer."
+  },
   "exportLabelStatus": "Status",
   "@exportLabelStatus": {"description": "Field label for the status (deprecated/broken) on an exported dance card (plain text and PDF)."},
   "exportLabelPhrase": "Phrase",

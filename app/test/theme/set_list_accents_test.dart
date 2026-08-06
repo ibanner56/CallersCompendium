@@ -102,6 +102,85 @@ void main() {
     });
   });
 
+  group('setListAccentForShapeAndMixer (issue #732)', () {
+    test(
+      'mixer=false delegates to formationFamilyOf — duple improper is contra',
+      () {
+        expect(
+          setListAccentForShapeAndMixer(
+            FormationShape.dupleImproper,
+            false,
+            highContrast: false,
+          ),
+          setListAccent(FormationFamily.contraLongways, highContrast: false),
+        );
+      },
+    );
+
+    test('mixer=true overrides formation — duple improper gets mixer accent, '
+        'not contra teal', () {
+      expect(
+        setListAccentForShapeAndMixer(
+          FormationShape.dupleImproper,
+          true,
+          highContrast: false,
+        ),
+        setListAccent(FormationFamily.mixer, highContrast: false),
+      );
+    });
+
+    test(
+      'mixer=true on circleMixer — gets mixer pink, not sicilianCircle green '
+      '(circleMixer maps to sicilianCircle by shape alone)',
+      () {
+        // Regression: circleMixer → sicilianCircle by formationFamilyOf, but
+        // a mixer-flagged circle mixer must still resolve to mixer pink.
+        expect(
+          formationFamilyOf(FormationShape.circleMixer),
+          FormationFamily.sicilianCircle, // confirm the shape-only mapping
+        );
+        expect(
+          setListAccentForShapeAndMixer(
+            FormationShape.circleMixer,
+            true,
+            highContrast: false,
+          ),
+          setListAccent(FormationFamily.mixer, highContrast: false),
+        );
+      },
+    );
+
+    test('non-mixer Sicilian Circle keeps sicilianCircle green', () {
+      // The negative pair: the 589 non-mixer Sicilian Circles must NOT get
+      // mixer pink (that was the whole maintainer ruling).
+      expect(
+        setListAccentForShapeAndMixer(
+          FormationShape.sicilianCircle,
+          false,
+          highContrast: false,
+        ),
+        setListAccent(FormationFamily.sicilianCircle, highContrast: false),
+      );
+      expect(
+        setListAccentForShapeAndMixer(
+          FormationShape.sicilianCircle,
+          false,
+          highContrast: false,
+        ),
+        isNot(setListAccent(FormationFamily.mixer, highContrast: false)),
+      );
+    });
+
+    test('formationFamilyOf totality still holds after new functions', () {
+      for (final shape in FormationShape.values) {
+        expect(
+          setListAccentForShapeAndMixer(shape, false, highContrast: false),
+          setListAccentForShape(shape, highContrast: false),
+        );
+      }
+    });
+  });
+
   group('resolveFormationLabelColor', () {
     test('a per-shape override beats the family default', () {
       const override = Color(0xFFFFEB3B);

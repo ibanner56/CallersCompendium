@@ -35,6 +35,7 @@ class DanceExportLabels {
   const DanceExportLabels({
     this.formation = 'Formation',
     this.level = 'Level',
+    this.mixer = 'Mixer',
     this.status = 'Status',
     this.phrase = 'Phrase',
     this.figures = 'Figures',
@@ -45,6 +46,9 @@ class DanceExportLabels {
 
   final String formation;
   final String level;
+
+  /// Label for the mixer flag line on the exported dance card.
+  final String mixer;
   final String status;
   final String phrase;
   final String figures;

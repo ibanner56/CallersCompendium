@@ -26,7 +26,7 @@ enum CollectionTileField {
   /// Non-active status chip (e.g. Draft, Retired).
   status,
 
-  /// Level chip and mixed-level chip.
+  /// Level chip, mixed-level chip, and mixer chip.
   level,
 
   /// Rating chip.

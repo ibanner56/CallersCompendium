@@ -179,6 +179,23 @@ class MixedLevelFilter extends DanceFilter {
   final bool mixed;
 }
 
+/// Dances whose "mixer" flag equals [mixer] (`dances.mixer`).
+///
+/// A separate boolean leaf for the partner-changing flag added in issue #732.
+/// Modelled orthogonally to [FormationShape] — a mixer can be in any shape
+/// and not every circle dance is a mixer (see [Dance.mixer]).
+///
+/// In the UI this filter is only ever constructed with `mixer = true`
+/// (the facet is tri-state null / "show mixers only"; "show non-mixers only"
+/// is not offered). `false` is valid but unused by the facet panel — the same
+/// pattern [MixedLevelFilter] uses for its `mixed` field.
+@immutable
+class MixerFilter extends DanceFilter {
+  const MixerFilter(this.mixer);
+
+  final bool mixer;
+}
+
 /// Dances whose curatorial rating is **at least** [minimum] (`rating >= N`) on
 /// the closed `1..5` scale.
 ///

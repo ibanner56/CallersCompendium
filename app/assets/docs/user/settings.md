@@ -162,10 +162,13 @@ There's a **High Contrast** theme for maximum legibility — see the
 - **Colour-code set-list rows** — tints each dance row in a program's set list
   (both the read-only summary and the builder) by its
   [formation](./glossary.md#formation) family — contras, triplets, mixers,
-  circles, and squares each get their own accent, so you can read the *shape* of a
-  program at a glance. The formation is always shown as text on the row too, so
-  rows stay fully readable without relying on colour, and the accents adapt to the
-  High Contrast theme. On by default; turn it off to hide the tints.
+  circles, and squares each get their own accent, so you can read the *shape* of a program at a
+  glance. Dances marked as [mixers](./glossary.md#mixer) always get the mixer
+  accent regardless of their formation, so a mixer-flagged Duple Improper reads as
+  a mixer rather than a contra. The formation (and "Mixer" when applicable) is
+  always shown as text on the row too, so rows stay fully readable without relying
+  on colour, and the accents adapt to the High Contrast theme. On by default; turn
+  it off to hide the tints.
 
 ### Formation colours
 

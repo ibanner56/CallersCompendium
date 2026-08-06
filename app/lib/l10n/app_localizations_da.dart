@@ -437,7 +437,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      'Farveton hver dansrække efter dens formationsfamilie (contra, mixer, firkantet dans, …). Formationen vises altid som tekst, så rækkerne forbliver læsbare uden farver.';
+      'Farveton hver dansrække efter dens formationsfamilie (contra, mixer, firkantet dans, …) — danse markeret som mixer-danse får altid mixer-farvetonen, uanset formation. Formationen vises altid som tekst, så rækkerne forbliver læsbare uden farver.';
 
   @override
   String get settingsAppearanceFormationColoursTitle =>
@@ -3019,6 +3019,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get exportLabelLevel => 'Niveau';
+
+  @override
+  String get exportLabelMixer => 'Mixer';
 
   @override
   String get exportLabelStatus => 'Status';
