@@ -71,6 +71,7 @@ class CompendiumRepositories {
       // Force the lazily-opened database to run its migration strategy now, so
       // the marker (if any) reflects this open before we check it.
       await db.customSelect('SELECT 1').get();
+      var rebuiltThisCall = false;
       final marker = await db
           .customSelect(
             'SELECT value_json FROM settings WHERE key = ?',
@@ -79,12 +80,13 @@ class CompendiumRepositories {
           .get();
       if (marker.isNotEmpty) {
         await runDerivedRebuild(onProgress: onDerivedRebuildProgress);
+        rebuiltThisCall = true;
         await db.customStatement('DELETE FROM settings WHERE key = ?', [
           derivedRebuildRequiredKey,
         ]);
       }
       await _repairPurgeCorruptionIfNeeded();
-      await _recomputeSectionLabelsIfNeeded();
+      await _recomputeSectionLabelsIfNeeded(alreadyRebuilt: rebuiltThisCall);
     } catch (_) {
       // Don't cache a failed migration: clear the memo so a subsequent call
       // retries. The durable marker is still set (only deleted after a
@@ -143,12 +145,16 @@ class CompendiumRepositories {
   /// zero-beat phrase-boundary rule (#844), if this has not already been done.
   ///
   /// Guarded by [sectionRuleVersionKey] so it runs at most once per database.
-  /// The marker is written *after* [runDerivedRebuild] completes — an
-  /// interrupted rebuild leaves the key absent and the sweep retries on the
-  /// next open. On a fresh install the collection is empty and the rebuild is
-  /// a no-op; the key is still written so the sweep is skipped on subsequent
-  /// opens.
-  Future<void> _recomputeSectionLabelsIfNeeded() async {
+  /// The marker is written *after* a rebuild completes — an interrupted rebuild
+  /// leaves the key absent and the sweep retries on the next open.
+  ///
+  /// [alreadyRebuilt] should be true when the caller already ran a full
+  /// [runDerivedRebuild] earlier in this call (e.g. for [derivedRebuildRequiredKey]).
+  /// In that case the section values are already correct and a second rebuild
+  /// would be byte-identical work; the key is written directly instead.
+  Future<void> _recomputeSectionLabelsIfNeeded({
+    bool alreadyRebuilt = false,
+  }) async {
     final done = await db
         .customSelect(
           'SELECT 1 FROM settings WHERE key = ? AND value_json = ?',
@@ -159,7 +165,9 @@ class CompendiumRepositories {
         )
         .get();
     if (done.isNotEmpty) return;
-    await runDerivedRebuild();
+    // Skip the rebuild if one already ran this call — it used the current
+    // labelForFigure code, so section values are already correct.
+    if (!alreadyRebuilt) await runDerivedRebuild();
     await db.customStatement(
       'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
       [sectionRuleVersionKey, '"$kSectionRuleVersion"'],

@@ -88,6 +88,8 @@ export 'src/storage/database.dart'
         CompendiumDatabase,
         derivedRebuildRequiredKey,
         purgeCorruptionRepairDoneKey,
+        sectionRuleVersionKey,
+        kSectionRuleVersion,
         kCompendiumSchemaVersion,
         kMinSupportedSchemaVersion;
 export 'src/storage/repositories/choreographer_repository.dart';

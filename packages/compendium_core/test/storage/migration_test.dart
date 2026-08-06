@@ -103,13 +103,8 @@ void main() {
       expect(marker, isNotEmpty);
 
       // Second attempt: the memo was cleared, so it retries and now succeeds.
-      // This attempt runs two rebuilds: one for derivedRebuildRequiredKey
-      // (the migration marker that survived the first failure) and one for
-      // sectionRuleVersionKey (the zero-beat phrase-boundary fix, #844, whose
-      // key was not yet written because the first attempt threw before reaching
-      // it).
       await repos.ensureMigrated();
-      expect(repos.rebuildAttempts, 3);
+      expect(repos.rebuildAttempts, 2);
       final cleared = await db
           .customSelect(
             'SELECT value_json FROM settings WHERE key = ?',
@@ -121,6 +116,46 @@ void main() {
         isEmpty,
         reason: 'a successful retry must clear the durable marker',
       );
+
+      await db.close();
+    });
+
+    test('ensureMigrated with both derivedRebuildRequired and sectionRuleVersion '
+        'pending performs exactly one rebuild', () async {
+      // Guard for the alreadyRebuilt optimisation (#844): when derivedRebuildRequired
+      // fires, the rebuild uses current labelForFigure code and already produces
+      // correct section values. _recomputeSectionLabelsIfNeeded must not run a
+      // second byte-identical pass — it doubles the startup cost for users
+      // upgrading from a schema that also sets derivedRebuildRequired.
+      //
+      // Falsification target: remove the alreadyRebuilt guard in _runMigration
+      // (pass alreadyRebuilt: false unconditionally) and this test goes red.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = _CountingRepositories(db, contraTaxonomy);
+
+      // v11 fixture needs upgrading → onUpgrade sets derivedRebuildRequiredKey.
+      // sectionRuleVersionKey is absent (fresh fixture, never run).
+      await repos.ensureMigrated();
+
+      expect(
+        repos.rebuildAttempts,
+        1,
+        reason:
+            'derivedRebuildRequired and sectionRuleVersion pending together '
+            'must produce exactly one rebuild, not two',
+      );
+
+      // Key is written so subsequent opens skip the sweep entirely.
+      final key = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ? AND value_json = ?',
+            variables: [
+              Variable.withString(sectionRuleVersionKey),
+              Variable.withString('"$kSectionRuleVersion"'),
+            ],
+          )
+          .get();
+      expect(key, isNotEmpty, reason: 'sectionRuleVersionKey must be written');
 
       await db.close();
     });
@@ -2307,6 +2342,21 @@ class _FailingOnceRepositories extends CompendiumRepositories {
     if (rebuildAttempts == 1) {
       throw StateError('injected rebuild failure');
     }
+    await super.runDerivedRebuild(onProgress: onProgress);
+  }
+}
+
+/// Counts [runDerivedRebuild] calls without interfering with the real rebuild.
+class _CountingRepositories extends CompendiumRepositories {
+  _CountingRepositories(super.db, super.taxonomy);
+
+  int rebuildAttempts = 0;
+
+  @override
+  Future<void> runDerivedRebuild({
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    rebuildAttempts++;
     await super.runDerivedRebuild(onProgress: onProgress);
   }
 }
