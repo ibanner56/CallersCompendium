@@ -87,9 +87,7 @@ class PhraseStructure {
 /// ended, not the one that follows. Exception: beat 0 has no preceding phrase,
 /// so a zero-beat figure there stays in the first phrase.
 String labelForFigure(int beat, int figureBeats, PhraseStructure structure) {
-  if (figureBeats == 0 &&
-      beat > 0 &&
-      beat % structure.beatsPerPhrase == 0) {
+  if (figureBeats == 0 && beat > 0 && beat % structure.beatsPerPhrase == 0) {
     return structure.labelAtBeat(beat - 1);
   }
   return structure.labelAtBeat(beat);

@@ -142,39 +142,55 @@ void main() {
       // Reported case: dance totals 64 beats, trailing form-waves gets beats=0.
       // Before fix: start=64 wraps to A1 via % totalBeats.
       final sections = deriveSections([
-        fig(16), fig(16), fig(16), fig(16), fig(0),
+        fig(16),
+        fig(16),
+        fig(16),
+        fig(16),
+        fig(0),
       ], PhraseStructure.standard);
       expect(sections.last.label, 'B2');
-      expect(
-        sections.map((s) => s.label).toList(),
-        ['A1', 'A2', 'B1', 'B2', 'B2'],
-      );
+      expect(sections.map((s) => s.label).toList(), [
+        'A1',
+        'A2',
+        'B1',
+        'B2',
+        'B2',
+      ]);
     });
 
     test('0-beat figure at interior boundary belongs to the ending phrase', () {
       // Interior case: 0-beat figure at start=16 (A1/A2 boundary).
       // Before fix: start=16 resolves to A2 — belongs with A1.
       final sections = deriveSections([
-        fig(16), fig(0), fig(16), fig(16), fig(16),
+        fig(16),
+        fig(0),
+        fig(16),
+        fig(16),
+        fig(16),
       ], PhraseStructure.standard);
       expect(sections[1].label, 'A1'); // not A2
     });
 
     test('0-beat figure at beat 0 stays in A1', () {
       // Beat-0 exception: no preceding phrase exists, must not wrap backward.
-      final sections = deriveSections(
-        [fig(0), fig(64)],
-        PhraseStructure.standard,
-      );
+      final sections = deriveSections([
+        fig(0),
+        fig(64),
+      ], PhraseStructure.standard);
       expect(sections.first.label, 'A1');
     });
 
-    test('non-zero figure spanning a boundary is still labeled by start phrase',
-        () {
-      // Regression guard: the forward "starts in" rule must hold for beats > 0.
-      // This test must pass both before and after the fix.
-      final sections = deriveSections([fig(12), fig(8)], PhraseStructure.standard);
-      expect(sections[1].label, 'A1'); // starts at beat 12, still inside A1
-    });
+    test(
+      'non-zero figure spanning a boundary is still labeled by start phrase',
+      () {
+        // Regression guard: the forward "starts in" rule must hold for beats > 0.
+        // This test must pass both before and after the fix.
+        final sections = deriveSections([
+          fig(12),
+          fig(8),
+        ], PhraseStructure.standard);
+        expect(sections[1].label, 'A1'); // starts at beat 12, still inside A1
+      },
+    );
   });
 }
