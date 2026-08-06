@@ -205,6 +205,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// sources plan/commit from these bytes instead of [_pasteController]'s text.
   Uint8List? _payloadBytes;
 
+  /// A [SharedBundleImport] decoded from a manually picked `.ccshare` file that
+  /// carries programs, set by [_chooseFile] and cleared by [_resetToInput].
+  ///
+  /// When non-null, [_commit] routes through [CompendiumArchiveImporter] (dances
+  /// + programs + venues) exactly as the OS share-target path does — so the
+  /// manual picker preserves programs that would otherwise be silently dropped by
+  /// the dance-only [GenericJsonAdapter] (issue #852).
+  SharedBundleImport? _pickedBundle;
+
   /// True when the selected source imports from a picked binary file rather than
   /// pasted/fetched text (governs the input UI and which plan path runs).
   bool get _isByteSource => _selected.bytePicker != null;
@@ -312,7 +321,32 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       // A freshly picked file replaces any URL-sourced payload; drop stale
       // provenance so this import is recorded as file/paste (uri == null).
       _sourceUri = null;
-      setState(() {});
+      // Detect a CompendiumArchive bundle with programs (issue #852): if the
+      // picked file decodes to a valid archive that carries programs, stash a
+      // SharedBundleImport so _commit routes through CompendiumArchiveImporter
+      // (dances + programs + venues) — the same path the OS share-target uses —
+      // rather than the dance-only GenericJsonAdapter. The text has already
+      // passed the size cap enforced by readImportTextCapped, so no second cap
+      // check is needed here. A decode error simply leaves _pickedBundle null
+      // (the existing dance-only path handles it unchanged).
+      SharedBundleImport? picked;
+      try {
+        final result = decodeArchive(text);
+        final hasRootError = result.errors.any(
+          (e) => e.entityType == 'archive' && e.kind == ArchiveErrorKind.read,
+        );
+        if (!hasRootError && result.archive.programs.isNotEmpty) {
+          picked = SharedBundleImport(
+            json: text,
+            archive: result.archive,
+            entityCount: compendiumArchiveEntityCount(result.archive),
+          );
+        }
+      } catch (_) {
+        // Not a decodable archive — fall through to the existing dance-only
+        // path; GenericJsonAdapter will report the error at plan time.
+      }
+      setState(() => _pickedBundle = picked);
     } on ImportFileTooLargeException catch (e) {
       // Untrusted input rejected before it was read into memory — tell the user
       // plainly (accessible SnackBar) and leave the input untouched.
@@ -557,6 +591,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     _titleList = null;
     _titleListProgress = null;
     _planError = null;
+    _pickedBundle = null;
   }
 
   /// Computes the issue #686 figure-level diff for every row whose verdict
@@ -778,7 +813,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // programs. A hypothetical future dance-only byte source would fall through
     // to the shared dance path and never touch programs.
     final adapter = _selected.adapterFactory();
-    final sharedBundle = widget.sharedBundle;
+    final sharedBundle = widget.sharedBundle ?? _pickedBundle;
     try {
       if (sharedBundle != null) {
         // Share target (issue #432): commit dances + programs + venues through
@@ -1598,8 +1633,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       // rejects only a bundle with neither dances nor programs), so the review
       // must still let the user consent to importing the programs — dead-ending
       // on "no dances" would regress the pre-#432 behavior that imported such
-      // bundles. Only fall through here when there is nothing importable at all.
-      final sharedBundle = widget.sharedBundle;
+      // bundles. Also applies to a manually picked .ccshare (issue #852).
+      // Only fall through here when there is nothing importable at all.
+      final sharedBundle = widget.sharedBundle ?? _pickedBundle;
       if (unreadable.isEmpty &&
           sharedBundle != null &&
           sharedBundle.archive.programs.isNotEmpty) {
@@ -1883,10 +1919,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
-  /// Whether the shared bundle exceeds the soft entity cap (issue #432). Only
-  /// ever true on the share-target path (a manual import has no [sharedBundle]).
+  /// Whether the shared bundle exceeds the soft entity cap (issue #432). True
+  /// on the OS share-target path ([widget.sharedBundle]) and also when a
+  /// manually picked file was detected as a bundle with programs ([_pickedBundle],
+  /// issue #852).
   bool get _showSoftCapWarning {
-    final bundle = widget.sharedBundle;
+    final bundle = widget.sharedBundle ?? _pickedBundle;
     return bundle != null && bundle.entityCount > kSharedBundleSoftCapEntities;
   }
 
@@ -1900,7 +1938,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final message = l10n.sharedImportSoftCapWarning(
-      widget.sharedBundle!.entityCount,
+      (widget.sharedBundle ?? _pickedBundle)!.entityCount,
     );
     return Semantics(
       container: true,
@@ -2113,8 +2151,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               // #266). It is suppressed for a shared bundle (issue #432) so a
               // shared file can never write before the single batch Import
               // consent, and so every imported row is covered by the transient
-              // batch Undo.
-              if (widget.sharedBundle == null) ...[
+              // batch Undo. Also suppressed for a manually picked .ccshare with
+              // programs (_pickedBundle, issue #852) for the same reason.
+              if (widget.sharedBundle == null && _pickedBundle == null) ...[
                 const SizedBox(height: 4),
                 Align(
                   alignment: Alignment.centerLeft,

@@ -2349,6 +2349,205 @@ void main() {
       },
     );
   });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Manual picker + .ccshare containing programs (issue #852)
+  // ──────────────────────────────────────────────────────────────────────────
+  //
+  // Regression guard: a .ccshare bundle containing programs must NOT silently
+  // drop the programs when imported via the manual file picker. The picker path
+  // must route through CompendiumArchiveImporter (dances + programs + venues),
+  // the same path the OS share-target uses. The falsification target for each
+  // test is reverting this fix: with the fix reverted the picker routes through
+  // GenericJsonAdapter (dance-only), the program is never committed, and the
+  // assertions on repos.programs.listAll() fail.
+
+  group('manual picker with .ccshare containing programs (issue #852)', () {
+    // A minimal archive with one dance, one program referencing it, and one
+    // venue — exactly the round-trip bundle a share produces.
+    CompendiumArchive _pickerArchive() => CompendiumArchive(
+      exportedAt: DateTime.utc(2026, 7, 15),
+      dances: [
+        Dance(
+          id: 'd1',
+          title: 'Picker Reel',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      ],
+      programs: [
+        Program(
+          id: 'p1',
+          title: 'Picker Spring Fling',
+          venueId: 'v1',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          createdAt: DateTime.utc(2026, 4, 1),
+          updatedAt: DateTime.utc(2026, 4, 1),
+        ),
+      ],
+      venues: [Venue(id: 'v1', name: 'The Picker Grange')],
+    );
+
+    // Mounts the review screen with a canned picker that returns [payload],
+    // pushed on top of a home scaffold (mirroring main.dart's navigator push)
+    // so the post-commit Undo snackbar — which rides the app-level
+    // ScaffoldMessenger and outlives the popped review route — stays reachable.
+    Future<ValueNotifier<int>> _pumpWithPicker(
+      WidgetTester tester,
+      CompendiumRepositories repos,
+      String payload,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1000, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final refresh = ValueNotifier<int>(0);
+      addTearDown(refresh.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => RepositoriesScope(
+            repositories: repos,
+            child: CollectionRefreshScope(revision: refresh, child: child!),
+          ),
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  key: const ValueKey('open-review'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => ImportReviewScreen(
+                        sources: [
+                          ImportSource(
+                            kind: ImportSourceKind.genericJson,
+                            adapterFactory: GenericJsonAdapter.new,
+                          ),
+                        ],
+                        picker: () async => payload,
+                      ),
+                    ),
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('open-review')));
+      await tester.pumpAndSettle();
+      return refresh;
+    }
+
+    testWidgets(
+      'picking a .ccshare with a program commits the dance AND program via '
+      'the archive importer, shows the transient undo snackbar',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+        final archive = _pickerArchive();
+        final payload = encodeArchive(archive);
+
+        final refresh = await _pumpWithPicker(tester, repos, payload);
+
+        // Drive through the picker → plan → review flow.
+        await _toReview(tester);
+
+        // The dance row appears; nothing is committed yet.
+        expect(
+          find.byKey(const ValueKey('import-review-list')),
+          findsOneWidget,
+        );
+        expect(find.text('Picker Reel'), findsOneWidget);
+        expect(await repos.dances.listAll(), isEmpty);
+        expect(await repos.programs.listAll(), isEmpty);
+
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        // Dance AND program committed — the fix under test.
+        final dances = await repos.dances.listAll();
+        expect(dances.map((d) => d.title), contains('Picker Reel'));
+        expect(await repos.programs.listAll(), hasLength(1));
+        expect(await repos.venues.listAll(), hasLength(1));
+        expect(refresh.value, greaterThan(0));
+
+        // Archive-importer path uses the transient snackbar (not the result
+        // dialog).
+        expect(
+          find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('import-result-dialog')),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'the transient Undo after a picked .ccshare removes the dance AND program',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+        final payload = encodeArchive(_pickerArchive());
+
+        await _pumpWithPicker(tester, repos, payload);
+        await _toReview(tester);
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        expect(await repos.dances.listAll(), hasLength(1));
+        expect(await repos.programs.listAll(), hasLength(1));
+
+        await tester.tap(find.text('Undo'));
+        await tester.pumpAndSettle();
+
+        expect(await repos.dances.listAll(), isEmpty);
+        expect(await repos.programs.listAll(), isEmpty);
+        expect(await repos.venues.listAll(), isEmpty);
+      },
+    );
+
+    testWidgets('picking a .json without programs still uses the dance-only path '
+        '(no regression on the pre-existing dance import)', (tester) async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      // A plain dance-only archive — no programs, no _pickedBundle.
+      final payload = encodeArchive(
+        CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [
+            Dance(
+              id: 'd2',
+              title: 'Plain Jig',
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        ),
+      );
+
+      await _pumpWithPicker(tester, repos, payload);
+      await _toReview(tester);
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      final dances = await repos.dances.listAll();
+      expect(dances.map((d) => d.title), contains('Plain Jig'));
+      // No programs — dance-only path used the result dialog, not undo snackbar.
+      expect(await repos.programs.listAll(), isEmpty);
+      expect(
+        find.byKey(const ValueKey('import-result-dialog')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('shared-import-undo-snackbar')),
+        findsNothing,
+      );
+    });
+  });
 }
 
 /// A [SourceAdapter] that records the [ImportRequest] it was planned with, so a
