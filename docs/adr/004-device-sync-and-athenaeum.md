@@ -148,7 +148,7 @@ and the latter would roll a newer local record backwards. With N peers, the
 newest `updatedAt` wins.
 
 **Absence never means deletion.** Deletions travel as `deletedAt` tombstones.
-`Dances` and `Programs` carry `deletedAt` today; schema v23 adds it to the other
+`Dances` and `Programs` carry `deletedAt` today; the sync migration adds it to the other
 six kinds and converts their repositories from hard to soft delete, because a
 kind that cannot express deletion cannot propagate it — the record would simply
 reappear from any peer that still held it. A device that has not synced for a
@@ -311,7 +311,8 @@ explicitly non-persisted, session-scoped `ImportSession`, and there is no
 and Device Sync runs unattended, with no import in progress to attach a decision
 to.
 
-Device Sync therefore adds a `review_queue` table — `deviceScoped`, beyond v23,
+Device Sync therefore adds a `review_queue` table — `deviceScoped`, beyond the
+sync migration,
 alongside `id_aliases` — carrying an immutable candidate blob as well as the pair
 of ids, because a rejected rename cannot be written locally under the `UNIQUE`
 constraint and so exists nowhere else to show the user. Queuing is idempotent
@@ -608,10 +609,11 @@ makes self-hosting materially harder, which constraint 4 forbids.
   implies — mitigated by the app working fully without it.
 - **Settings sync requires a schema migration, and it should ship first.**
   `settings` is `(key, value_json)` with no timestamp, so the `updatedAt`
-  conflict rule cannot reach it. Schema v23 adds `updated_at`, stamping existing
+  conflict rule cannot reach it. The sync migration adds `updated_at`, stamping existing
   rows at migration time.
 
-  **Sequencing is deliberate: v23 lands before any other sync work**, on its own.
+  **Sequencing is deliberate: the migration lands before any other sync
+  work**, on its own.
   Its real scope, stated honestly after an earlier draft understated it: `settings`
   gains `updated_at` **and `deleted_at`**, and the five kinds that lack them —
   choreographers, tags, published sources, custom-field defs, venues — gain both,
@@ -625,7 +627,7 @@ makes self-hosting materially harder, which constraint 4 forbids.
   the one-time ordering wart. Because each device stamps at *its own* migration
   time, the device that upgrades last would otherwise win every settings conflict
   on first sync. That only holds while the stamps still encode migration order.
-  Shipping v23 early means users spend the intervening releases changing settings
+  Shipping it early means users spend the intervening releases changing settings
   for real, and every real change overwrites a migration stamp with a meaningful
   one. The gap between releases is what fixes it, so earlier is strictly
   better.
@@ -676,7 +678,7 @@ makes self-hosting materially harder, which constraint 4 forbids.
   not announced. Chosen because a deletion silently reversed on every device is
   both worse and harder to notice than an edit that follows its record into the
   bin. It costs an `existence_at` column on all eight syncable kinds, which is
-  why v23 is eight tables rather than six.
+  why the migration is eight tables rather than six.
 
   It is stamped **causally rather than from a bare clock** — every transition
   lands strictly after the value already on the record,
@@ -851,7 +853,8 @@ makes self-hosting materially harder, which constraint 4 forbids.
   diverged from every peer with no error and no way back.
 
   The pending marker, the id aliases and the review queue are each persisted,
-  classified `deviceScoped`, scoped to the store, and land beyond v23 — except
+  classified `deviceScoped`, scoped to the store, and land beyond the sync
+  migration — except
   the retained tombstone bytes, which are `shareable`, since they are record
   content that is re-uploaded rather than device bookkeeping.
   `pending_deletions` deliberately survives an epoch

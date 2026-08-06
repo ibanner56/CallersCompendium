@@ -283,7 +283,8 @@ holds the losing id, so it gets a test.
 
 `id_aliases` is **`deviceScoped`** — a local remap of local row identity,
 meaningless on another device and never serialised. Like the baseline manifest it
-is a schema change **beyond v23**, belonging to the sync implementation rather
+is a schema change **beyond the sync migration**, belonging to the sync
+implementation rather
 than the migration, and it must be classified in the PR that creates it or the
 coverage ratchet fails.
 
@@ -477,7 +478,8 @@ unrelated store indefinitely, and a stale alias would silently redirect ids that
 mean nothing there.
 
 Every row is per-installation protocol state, meaningless on another device, and
-adding them means a schema change **beyond v23** — which the implementation issue
+adding them means a schema change **beyond the sync migration** — which the
+implementation issue
 must account for rather than discover. Note also that the settings ratchet scans
 only `app/lib/src`, so if the sync client lives elsewhere its keys are not
 covered by the existing guard and the ratchet's scope must be widened.
@@ -1848,7 +1850,7 @@ also the harder of the two to notice.
 
 `existenceAt` is `shareable`: it is a bare timestamp with no subject, it must
 travel for the rule to work, and it is stored per record on all eight syncable
-kinds (see the v23 scope).
+kinds (see the sync-migration scope).
 
 Because nothing has shipped, this lands in envelope `v: 1` rather than bumping
 the version — there is no deployed client that could receive a blob without it.
@@ -1883,7 +1885,7 @@ one device's whole set. Accepted; see ADR-004 consequences.
 
 This requires a schema change: `settings` is `(key, value_json)` with **no
 timestamp and no tombstone**, so neither the conflict rule nor deletion can reach
-it. **Schema v23** adds `updated_at` *and* `deleted_at`, stamping existing rows
+it. **The sync migration** adds `updated_at` *and* `deleted_at`, stamping existing rows
 at migration time. Both need classifying like any other column, and the coverage
 ratchet will require it.
 
@@ -1892,16 +1894,19 @@ so without a tombstone a removed setting cannot be expressed on the wire: the
 peer still holds it, "absence never deletes" preserves it, and the next sync
 **downloads it back**. The deletion would reverse every time, permanently.
 
-#### The real scope of v23
+#### The real scope of the sync migration
 
-**The version number was checked against `main`, not assumed.** An earlier draft
-called this migration v22. While the design was being written, #748 landed
-`dance_figures.group_idx` as v22 (PR #802), taking `kCompendiumSchemaVersion` to
-22 on `main`. The sync migration is therefore **v23**, and whoever implements it
-should re-check the number again at that point rather than trusting this line —
-the collision happened once precisely because a sibling merged between drafting
-and review. Nothing else about the two migrations interacts: v22 touches
-`dance_figures`, which this design does not migrate.
+**This design does not name a schema version, deliberately.** Two earlier drafts
+did, and both were wrong before review finished. The first called it v22; #748
+landed `dance_figures.group_idx` as v22 while the design was being written. The
+second called it v23; `main` reached 24 before the ADR was accepted. The number
+is whatever `kCompendiumSchemaVersion + 1` is on the day the migration lands, and
+that is the only form of the statement that cannot go stale — a design under
+review for weeks has no business pinning a counter that other work increments.
+
+Whoever implements it reads the constant rather than this document. Nothing about
+the intervening migrations interacts with this one: they touch `dance_figures`
+and tables this design does not migrate.
 
 An earlier draft also called it "one column on `settings`". Under first-class
 records, and with the provenance gate needing `existence_at` on every kind that can
@@ -2002,13 +2007,15 @@ converted naively.
 **`TagRepository.delete` relies on the FK cascade** to clear `dance_tags` — its
 own comment says so (`TagRepository.delete`). A soft delete is an `UPDATE`, so
 **the cascade never fires**: the join rows survive, and because `dance_tags`
-gains no `deleted_at` in v23, nothing filters them. The tag would vanish from the
+gains no `deleted_at` in the sync migration, nothing filters them. The tag would
+vanish from the
 tag manager while staying silently attached to every dance. The same applies to
 `custom_field_values` and `dance_sources`.
 
 > **Every read that joins through to a soft-deletable parent must filter
 > `parent.deleted_at IS NULL`.** This is a change to existing query paths, not
-> only to the sync code, and it is the part of v23 most likely to be missed —
+> only to the sync code, and it is the part of the migration most likely to be
+> missed —
 > the migration passes, the tests pass, and the defect only shows on a screen.
 
 **Deletes that are referential guards must keep guarding.**
@@ -2169,7 +2176,7 @@ still referenced by a live record.
 
 #### Land the migration first, before any other sync work
 
-**Schema v23 should ship ahead of every other piece of this programme**, on its
+**The sync migration should ship ahead of every other piece of this programme**, on its
 own, before the protocol, the client or the server exist.
 
 Three reasons, and the third is the one that matters most:
@@ -2185,7 +2192,7 @@ Three reasons, and the third is the one that matters most:
 3. **It defuses the one-time ordering effect.** The known wart is that each
    device stamps `updated_at` at *its own* migration time, so the device that
    upgrades last wins every settings conflict on first sync. That is only true
-   while the stamps still reflect *migration order*. Ship v23 early and users
+   while the stamps still reflect *migration order*. Ship it early and users
    spend the intervening releases actually changing settings — and every real
    change overwrites the migration stamp with a genuine one. By the time Device Sync
    arrives, `updated_at` largely reflects real recency, which is what the
@@ -2462,7 +2469,8 @@ block the sync that found them.
 Device Sync therefore **specifies the durable queue** rather than assuming it:
 a `review_queue` table (`kind`, `record_id`, `counterpart_id`, `reason`,
 `candidate_blob`, `candidate_hash`, `queued_at`), classified `deviceScoped`, a
-schema change beyond v23 alongside `id_aliases`. Deferring an item is a write,
+schema change beyond the sync migration alongside `id_aliases`. Deferring an
+item is a write,
 not a prompt; the user is shown a count and works through it whenever they
 choose.
 
@@ -2630,8 +2638,8 @@ The user is told the count afterwards ("merged 412 duplicates"), not asked.
 
    This rule is only universally applicable because of the record model: all
    eight syncable kinds carry `updatedAt` — the five that lacked it, plus
-   `settings`, gain it in schema v23. A kind without a modification timestamp
-   cannot participate in this rule at all, which is why v23 is a prerequisite
+   `settings`, gain it in the sync migration. A kind without a modification timestamp
+   cannot participate in this rule at all, which is why the migration is a prerequisite
    rather than a convenience.
 
 #### Content changes must move the discriminator
@@ -3685,7 +3693,7 @@ Recorded so the reasoning is not re-litigated.
 
 | Question | Ruling |
 | --- | --- |
-| Settings merge granularity | Per-key blobs, plus an `updated_at` column on `settings` at **schema v23**, stamping existing rows at migration time. |
+| Settings merge granularity | Per-key blobs, plus an `updated_at` column on `settings` in **the sync migration**, stamping existing rows at migration time. |
 | Entropy floor | Format fixed at **four hyphen-separated words**; strength floor **~2⁴⁰** scored on the string. |
 | Imported dances | **Full sync.** Reference-and-refetch demoted to a revisit trigger. *Exclude imported dances* ships in v1. |
 | Operator visibility | Opaque by design, with a **logged break-glass path** for abuse, disclosed in the privacy policy. |
