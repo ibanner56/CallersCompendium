@@ -82,6 +82,58 @@ class AppLocalizationsFr extends AppLocalizations {
   String get migrationSnapshotConsentProceed => 'Continuer sans sauvegarde';
 
   @override
+  String get migrationBelowFloorHeadline =>
+      'Ces données proviennent d’une version trop ancienne pour être ouvertes';
+
+  @override
+  String migrationBelowFloorBody(String bridgeTag) {
+    return 'Vos données sont récupérables. Installez $bridgeTag, ouvrez l’application une fois pour qu’elle mette à jour vos données, puis réinstallez cette version.\n\nSi vous préférez repartir de zéro, utilisez les options ci-dessous — vos données actuelles seront perdues.';
+  }
+
+  @override
+  String get migrationBelowFloorBackUpAndReset => 'Sauvegarder + Réinitialiser';
+
+  @override
+  String get migrationBelowFloorResetOnly => 'Réinitialiser uniquement';
+
+  @override
+  String get migrationBelowFloorBackupFailedTitle => 'Sauvegarde échouée';
+
+  @override
+  String get migrationBelowFloorBackupFailedBody =>
+      'La sauvegarde n’a pas pu être écrite, vos données n’ont donc pas été réinitialisées.';
+
+  @override
+  String get migrationBelowFloorResetConfirmTitle =>
+      'Réinitialiser les données de l’application ?';
+
+  @override
+  String get migrationBelowFloorResetConfirmBody =>
+      'Une sauvegarde a été enregistrée. La réinitialisation remplacera vos données actuelles par une base de données vierge.';
+
+  @override
+  String migrationBelowFloorBackupSavedAt(String backupPath) {
+    return 'Sauvegarde enregistrée dans : $backupPath';
+  }
+
+  @override
+  String migrationBelowFloorDiagnosticLogSavedAt(String logPath) {
+    return 'Journal de diagnostic enregistré dans : $logPath';
+  }
+
+  @override
+  String get migrationBelowFloorResetOnlyConfirmBody =>
+      'Aucune sauvegarde ne sera effectuée. La réinitialisation supprimera définitivement toutes vos données actuelles et les remplacera par une base de données vide. Cette opération est irréversible.';
+
+  @override
+  String get migrationBelowFloorWipeFailedTitle =>
+      'Échec de la réinitialisation';
+
+  @override
+  String get migrationBelowFloorWipeFailedBody =>
+      'Le fichier de base de données n’a pas pu être supprimé. Vos données n’ont pas été modifiées. Essayez de fermer les autres applications susceptibles d’utiliser ce fichier, puis réessayez.';
+
+  @override
   String get confirmDeleteTitle => 'Supprimer ?';
 
   @override

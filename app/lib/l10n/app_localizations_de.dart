@@ -81,6 +81,57 @@ class AppLocalizationsDe extends AppLocalizations {
   String get migrationSnapshotConsentProceed => 'Ohne Sicherung fortfahren';
 
   @override
+  String get migrationBelowFloorHeadline =>
+      'Diese Daten stammen aus einer Version, die zu alt ist zum Öffnen';
+
+  @override
+  String migrationBelowFloorBody(String bridgeTag) {
+    return 'Ihre Daten können wiederhergestellt werden. Installieren Sie $bridgeTag, öffnen Sie die App einmal, damit sie Ihre Daten aktualisiert, und installieren Sie dann diese Version erneut.\n\nWenn Sie lieber neu starten möchten, nutzen Sie die Optionen unten — Ihre aktuellen Daten gehen dabei verloren.';
+  }
+
+  @override
+  String get migrationBelowFloorBackUpAndReset => 'Sichern + Zurücksetzen';
+
+  @override
+  String get migrationBelowFloorResetOnly => 'Nur zurücksetzen';
+
+  @override
+  String get migrationBelowFloorBackupFailedTitle => 'Sicherung fehlgeschlagen';
+
+  @override
+  String get migrationBelowFloorBackupFailedBody =>
+      'Die Sicherung konnte nicht geschrieben werden, daher wurden Ihre Daten nicht zurückgesetzt.';
+
+  @override
+  String get migrationBelowFloorResetConfirmTitle => 'App-Daten zurücksetzen?';
+
+  @override
+  String get migrationBelowFloorResetConfirmBody =>
+      'Eine Sicherung wurde gespeichert. Das Zurücksetzen ersetzt Ihre aktuellen Daten durch eine neue, leere Datenbank.';
+
+  @override
+  String migrationBelowFloorBackupSavedAt(String backupPath) {
+    return 'Sicherungskopie gespeichert unter: $backupPath';
+  }
+
+  @override
+  String migrationBelowFloorDiagnosticLogSavedAt(String logPath) {
+    return 'Diagnoseprotokoll gespeichert unter: $logPath';
+  }
+
+  @override
+  String get migrationBelowFloorResetOnlyConfirmBody =>
+      'Es wird keine Sicherungskopie erstellt. Durch das Zurücksetzen werden alle Ihre aktuellen Daten dauerhaft gelöscht und durch eine neue, leere Datenbank ersetzt. Dies kann nicht rückgängig gemacht werden.';
+
+  @override
+  String get migrationBelowFloorWipeFailedTitle =>
+      'Zurücksetzen fehlgeschlagen';
+
+  @override
+  String get migrationBelowFloorWipeFailedBody =>
+      'Die Datenbankdatei konnte nicht gelöscht werden. Ihre Daten wurden nicht verändert. Schließen Sie andere Apps, die möglicherweise auf die Datei zugreifen, und versuchen Sie es erneut.';
+
+  @override
   String get confirmDeleteTitle => 'Löschen?';
 
   @override

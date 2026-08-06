@@ -1,9 +1,10 @@
 import 'dart:async';
-import 'dart:io' show exit, stderr;
+import 'dart:io' show Directory, File, Platform, exit, stderr;
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 
 import 'l10n/app_localizations.dart';
 import 'src/data/active_dialect_scope.dart';
@@ -66,6 +67,7 @@ import 'src/screens/settings_screen.dart'
         kTrackHistoryForAllCallersKey,
         kVenueEntityModeKey;
 import 'src/theme/app_theme.dart';
+import 'src/app_metadata.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
 import 'src/widgets/app_bootstrap.dart';
@@ -884,6 +886,193 @@ class _CompendiumAppState extends State<CompendiumApp> {
     });
   }
 
+  /// Back Up + Reset action for the below-floor recovery screen (issue #841).
+  ///
+  /// Delegates the fail-closed snapshot logic to [performBackUpAndReset] (see
+  /// `migration_guard.dart`): if the snapshot fails, shows a failure dialog and
+  /// returns without wiping. Only wipes after the snapshot succeeds and the user
+  /// confirms a second dialog.
+  Future<void> _backUpAndReset(DatabaseBelowFloorError error) async {
+    await WidgetsBinding.instance.endOfFrame;
+    final context = _navigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+
+    final l10n = AppLocalizations.of(context);
+    final dbFile = await resolveDatabaseFile();
+    final snapshotDir = Directory(
+      p.join(dbFile.parent.path, kDatabaseBackupsDirName),
+    );
+
+    final result = await performBackUpAndReset(
+      dbFile: dbFile,
+      snapshotDir: snapshotDir,
+      fileVersion: error.fileVersion,
+      appVersion: kAppVersion,
+      platform:
+          '${Platform.operatingSystem} ${Platform.operatingSystemVersion}',
+      bridgeTag: error.bridgeTag,
+    );
+
+    if (result is BackUpFailed) {
+      if (!context.mounted) return;
+      final causeText = snapshotCauseSentence(l10n, result.cause);
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.warning_amber_rounded),
+          title: Text(l10n.migrationBelowFloorBackupFailedTitle),
+          content: Text(
+            causeText.isEmpty
+                ? l10n.migrationBelowFloorBackupFailedBody
+                : '${l10n.migrationBelowFloorBackupFailedBody} $causeText',
+          ),
+          actions: [
+            TextButton(
+              autofocus: true,
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l10n.commonOk),
+            ),
+          ],
+        ),
+      );
+      return; // Snapshot failed: do NOT wipe.
+    }
+
+    // Snapshot written — confirm then wipe, showing where the files were saved.
+    if (!context.mounted) return;
+    final ready = result as BackUpReady;
+    final pathLines = StringBuffer(l10n.migrationBelowFloorResetConfirmBody);
+    pathLines
+      ..write('\n\n')
+      ..write(l10n.migrationBelowFloorBackupSavedAt(ready.snapshotFile.path));
+    if (ready.diagnosticLogFile != null) {
+      pathLines
+        ..write('\n')
+        ..write(
+          l10n.migrationBelowFloorDiagnosticLogSavedAt(
+            ready.diagnosticLogFile!.path,
+          ),
+        );
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          icon: const Icon(Icons.warning_amber_rounded),
+          title: Text(l10n.migrationBelowFloorResetConfirmTitle),
+          content: Text(pathLines.toString()),
+          actions: [
+            TextButton(
+              autofocus: true,
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.commonCancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.migrationBelowFloorBackUpAndReset),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true) return;
+
+    await _doReset(dbFile, l10n);
+  }
+
+  /// Reset Only action for the below-floor recovery screen (issue #841).
+  ///
+  /// The `error` parameter is unused here but matches the callback type
+  /// (`void Function(DatabaseBelowFloorError)`) shared with [_backUpAndReset],
+  /// so both slots on [AppBootstrap] accept the same signature.
+  Future<void> _resetOnly(DatabaseBelowFloorError error) async {
+    await WidgetsBinding.instance.endOfFrame;
+    final context = _navigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          icon: const Icon(Icons.warning_amber_rounded),
+          title: Text(l10n.migrationBelowFloorResetConfirmTitle),
+          content: Text(l10n.migrationBelowFloorResetOnlyConfirmBody),
+          actions: [
+            TextButton(
+              autofocus: true,
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.commonCancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.migrationBelowFloorResetOnly),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true) return;
+
+    final dbFile = await resolveDatabaseFile();
+    await _doReset(dbFile, l10n);
+  }
+
+  /// Wipes the database file and reopens a fresh one, restarting the bootstrap
+  /// sequence so the app opens to a clean state.
+  ///
+  /// Delegates to [performReset] (see `migration_guard.dart`) for an injectable,
+  /// testable deletion seam. On [ResetFailed], the database file is still
+  /// present: reopen it and restart bootstrap so the user lands back on the
+  /// recovery screen rather than a blank one.
+  Future<void> _doReset(File dbFile, AppLocalizations l10n) async {
+    // Close the database before deleting its file so the OS (particularly
+    // Windows) does not hold a lock that prevents deletion.
+    await _appData.close();
+    final result = await performReset(dbFile: dbFile);
+    if (result is ResetFailed) {
+      // Deletion failed: the file is intact. Reopen so the app is not left
+      // with a closed database, then surface the error.
+      if (mounted) {
+        setState(() {
+          _appData = AppData(openAppDatabase());
+          _corruptionBannerShown = false;
+          _bootstrap = _startupSequence();
+        });
+        final context = _navigatorKey.currentContext;
+        if (context != null && context.mounted) {
+          await showDialog<void>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              icon: const Icon(Icons.error_outline),
+              title: Text(l10n.migrationBelowFloorWipeFailedTitle),
+              content: Text(l10n.migrationBelowFloorWipeFailedBody),
+              actions: [
+                TextButton(
+                  autofocus: true,
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(l10n.commonOk),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+      return;
+    }
+    if (!mounted) return;
+    // Deletion succeeded — reopen a fresh database and restart bootstrap.
+    setState(() {
+      _appData = AppData(openAppDatabase());
+      _corruptionBannerShown = false;
+      _bootstrap = _startupSequence();
+    });
+  }
+
   /// Content shown once the bootstrap future succeeds. When the integrity probe
   /// failed, schedules a one-time dismissible warning banner (the app still
   /// opens — the failure is advisory).
@@ -1090,6 +1279,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
           home: AppBootstrap(
             future: _bootstrap,
             onRetry: _retry,
+            onBackUpAndReset: _backUpAndReset,
+            onResetOnly: _resetOnly,
             builder: _buildReadyApp,
             rebuildProgress: _derivedRebuildProgress,
           ),

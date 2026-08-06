@@ -226,6 +226,84 @@ abstract class AppLocalizations {
   /// **'Proceed without a backup'**
   String get migrationSnapshotConsentProceed;
 
+  /// Headline on the below-floor recovery screen shown when the on-disk database was written by a build older than the minimum supported schema version. Terminal, no Retry.
+  ///
+  /// In en, this message translates to:
+  /// **'This data is from a version too old to open'**
+  String get migrationBelowFloorHeadline;
+
+  /// Body of the below-floor recovery screen. {bridgeTag} is the release tag of the migration-bridge release (e.g. 'v0.1.0-beta.6').
+  ///
+  /// In en, this message translates to:
+  /// **'Your data can be recovered. Install {bridgeTag}, open the app once to let it update your data, then install this version again.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.'**
+  String migrationBelowFloorBody(String bridgeTag);
+
+  /// Button label on the below-floor recovery screen that first writes a backup of the current database, then resets it to a fresh state. The reset is only performed if the backup succeeds.
+  ///
+  /// In en, this message translates to:
+  /// **'Back Up + Reset'**
+  String get migrationBelowFloorBackUpAndReset;
+
+  /// Button label on the below-floor recovery screen that resets the database to a fresh state without making a backup first. Unrecoverable.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Only'**
+  String get migrationBelowFloorResetOnly;
+
+  /// Title of the dialog shown when the pre-reset backup fails on the below-floor recovery screen. The reset is NOT performed when this dialog is shown.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup failed'**
+  String get migrationBelowFloorBackupFailedTitle;
+
+  /// Body of the dialog shown when the pre-reset backup fails on the below-floor recovery screen. The reset is NOT performed.
+  ///
+  /// In en, this message translates to:
+  /// **'The backup could not be written, so your data has not been reset.'**
+  String get migrationBelowFloorBackupFailedBody;
+
+  /// Title of the confirmation dialog shown before a reset action on the below-floor recovery screen (both Back Up + Reset and Reset Only). Used after a successful backup to ask the user to confirm the wipe.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset app data?'**
+  String get migrationBelowFloorResetConfirmTitle;
+
+  /// Body of the confirmation dialog shown before a Back Up + Reset action once the backup has been written successfully.
+  ///
+  /// In en, this message translates to:
+  /// **'A backup has been saved. Resetting will replace your current data with a fresh, empty database.'**
+  String get migrationBelowFloorResetConfirmBody;
+
+  /// Line shown in the Back Up + Reset confirmation dialog to tell the user where the backup file was written.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup saved to: {backupPath}'**
+  String migrationBelowFloorBackupSavedAt(String backupPath);
+
+  /// Line shown in the Back Up + Reset confirmation dialog to tell the user where the diagnostic log was written (alongside the backup).
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostic log saved to: {logPath}'**
+  String migrationBelowFloorDiagnosticLogSavedAt(String logPath);
+
+  /// Body of the confirmation dialog shown before a Reset Only action on the below-floor recovery screen. No backup is made. Must make the irreversibility and data loss explicit.
+  ///
+  /// In en, this message translates to:
+  /// **'No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This cannot be undone.'**
+  String get migrationBelowFloorResetOnlyConfirmBody;
+
+  /// Title of the error dialog shown when the database file could not be deleted during a reset on the below-floor recovery screen. The database is intact.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset failed'**
+  String get migrationBelowFloorWipeFailedTitle;
+
+  /// Body of the error dialog shown when the database file could not be deleted. Instructs the user to close any apps locking the file and retry.
+  ///
+  /// In en, this message translates to:
+  /// **'The database file could not be deleted. Your data has not been changed. Try closing other apps that may be using the file, then try again.'**
+  String get migrationBelowFloorWipeFailedBody;
+
   /// Title of the optional confirm-before-delete dialog (shown only when the 'Confirm before delete' setting is on).
   ///
   /// In en, this message translates to:

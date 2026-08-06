@@ -79,6 +79,55 @@ class AppLocalizationsJa extends AppLocalizations {
   String get migrationSnapshotConsentProceed => 'バックアップなしで続行';
 
   @override
+  String get migrationBelowFloorHeadline => 'このデータは開けないほど古いバージョンのものです';
+
+  @override
+  String migrationBelowFloorBody(String bridgeTag) {
+    return 'データは復元できます。$bridgeTagをインストールし、データを更新するためにアプリを一度開いてから、このバージョンを再度インストールしてください。\n\n新しく始めたい場合は、下のオプションを使用してください。現在のデータは失われます。';
+  }
+
+  @override
+  String get migrationBelowFloorBackUpAndReset => 'バックアップしてリセット';
+
+  @override
+  String get migrationBelowFloorResetOnly => 'リセットのみ';
+
+  @override
+  String get migrationBelowFloorBackupFailedTitle => 'バックアップ失敗';
+
+  @override
+  String get migrationBelowFloorBackupFailedBody =>
+      'バックアップの書き込みに失敗したため、データはリセットされていません。';
+
+  @override
+  String get migrationBelowFloorResetConfirmTitle => 'アプリのデータをリセットしますか？';
+
+  @override
+  String get migrationBelowFloorResetConfirmBody =>
+      'バックアップは保存されました。リセットすると、現在のデータが新しい空のデータベースに置き換えられます。';
+
+  @override
+  String migrationBelowFloorBackupSavedAt(String backupPath) {
+    return 'バックアップの保存先：$backupPath';
+  }
+
+  @override
+  String migrationBelowFloorDiagnosticLogSavedAt(String logPath) {
+    return '診断ログの保存先：$logPath';
+  }
+
+  @override
+  String get migrationBelowFloorResetOnlyConfirmBody =>
+      'バックアップは作成されません。リセットすると、現在のデータがすべて永久に削除され、新しい空のデータベースに置き換えられます。この操作は元に戻せません。';
+
+  @override
+  String get migrationBelowFloorWipeFailedTitle => 'リセットに失敗しました';
+
+  @override
+  String get migrationBelowFloorWipeFailedBody =>
+      'データベースファイルを削除できませんでした。データは変更されていません。ファイルを使用している可能性のある他のアプリを閉じてから、再度お試しください。';
+
+  @override
   String get confirmDeleteTitle => '削除しますか？';
 
   @override

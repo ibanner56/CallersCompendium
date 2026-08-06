@@ -80,6 +80,56 @@ class AppLocalizationsEn extends AppLocalizations {
   String get migrationSnapshotConsentProceed => 'Proceed without a backup';
 
   @override
+  String get migrationBelowFloorHeadline =>
+      'This data is from a version too old to open';
+
+  @override
+  String migrationBelowFloorBody(String bridgeTag) {
+    return 'Your data can be recovered. Install $bridgeTag, open the app once to let it update your data, then install this version again.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.';
+  }
+
+  @override
+  String get migrationBelowFloorBackUpAndReset => 'Back Up + Reset';
+
+  @override
+  String get migrationBelowFloorResetOnly => 'Reset Only';
+
+  @override
+  String get migrationBelowFloorBackupFailedTitle => 'Backup failed';
+
+  @override
+  String get migrationBelowFloorBackupFailedBody =>
+      'The backup could not be written, so your data has not been reset.';
+
+  @override
+  String get migrationBelowFloorResetConfirmTitle => 'Reset app data?';
+
+  @override
+  String get migrationBelowFloorResetConfirmBody =>
+      'A backup has been saved. Resetting will replace your current data with a fresh, empty database.';
+
+  @override
+  String migrationBelowFloorBackupSavedAt(String backupPath) {
+    return 'Backup saved to: $backupPath';
+  }
+
+  @override
+  String migrationBelowFloorDiagnosticLogSavedAt(String logPath) {
+    return 'Diagnostic log saved to: $logPath';
+  }
+
+  @override
+  String get migrationBelowFloorResetOnlyConfirmBody =>
+      'No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This cannot be undone.';
+
+  @override
+  String get migrationBelowFloorWipeFailedTitle => 'Reset failed';
+
+  @override
+  String get migrationBelowFloorWipeFailedBody =>
+      'The database file could not be deleted. Your data has not been changed. Try closing other apps that may be using the file, then try again.';
+
+  @override
   String get confirmDeleteTitle => 'Delete?';
 
   @override

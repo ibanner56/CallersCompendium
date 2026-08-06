@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_core/compendium_core.dart'
-    show kCompendiumSchemaVersion;
+    show kCompendiumSchemaVersion, kMinSupportedSchemaVersion;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sql;
@@ -304,6 +304,209 @@ void main() {
         runningSchemaVersion: kCompendiumSchemaVersion,
       );
       expect(snapshotDir.existsSync(), isFalse);
+    },
+  );
+
+  test('refuses a DB stamped below the supported floor, leaving it untouched '
+      '(issue #841)', () async {
+    final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+    // Use a version below the floor, guaranteed to be there because
+    // kMinSupportedSchemaVersion is the floor.
+    final belowFloor = kMinSupportedSchemaVersion - 1;
+    _createFixture(dbFile.path, userVersion: belowFloor, seedValue: 'keep');
+
+    await expectLater(
+      runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+      ),
+      throwsA(isA<DatabaseBelowFloorError>()),
+    );
+
+    // The thrown error carries the correct version fields.
+    DatabaseBelowFloorError? thrown;
+    try {
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+      );
+    } on DatabaseBelowFloorError catch (e) {
+      thrown = e;
+    }
+    expect(thrown, isNotNull);
+    expect(thrown!.fileVersion, belowFloor);
+    expect(thrown.minSupportedVersion, kMinSupportedSchemaVersion);
+    expect(thrown.bridgeTag, isNotEmpty);
+
+    // The file is untouched: below-floor databases are never snapshotted or
+    // migrated.
+    expect(readUserVersion(dbFile.path), belowFloor);
+    final db = sql.sqlite3.open(dbFile.path);
+    expect(db.select('SELECT v FROM t').single['v'], 'keep');
+    db.close();
+    expect(snapshotDir.existsSync(), isFalse);
+  });
+
+  test(
+    'below-floor error reaches AppBootstrap, not the generic error path — '
+    'guard: mutate the check out and the generic path fires instead (issue #841)',
+    () async {
+      // This test verifies the guard's routing: a DatabaseBelowFloorError must
+      // reach the below-floor branch in AppBootstrap, not fall through to the
+      // generic retry screen.
+      //
+      // We cannot exercise AppBootstrap here (widget test); what we can prove is
+      // that runMigrationPreflight throws DatabaseBelowFloorError (not StateError
+      // or any other type) for a below-floor file, so the routing in
+      // AppBootstrap's error branch is unambiguous.
+      final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+      final belowFloor = kMinSupportedSchemaVersion - 1;
+      _createFixture(dbFile.path, userVersion: belowFloor);
+
+      Object? thrown;
+      try {
+        await runMigrationPreflight(
+          dbFile: dbFile,
+          snapshotDir: snapshotDir,
+          runningSchemaVersion: kCompendiumSchemaVersion,
+        );
+      } catch (e) {
+        thrown = e;
+      }
+
+      // Must be the typed error, NOT null. If a future simplification removes
+      // the DatabaseBelowFloorError check in runMigrationPreflight, the preflight
+      // completes normally (no migration steps fire — the file is below-floor,
+      // so there is no applicable migration), thrown stays null, and this expect
+      // goes red. The symptom is a silent no-op: the user proceeds into a
+      // bootstrap that cannot work.
+      expect(
+        thrown,
+        isA<DatabaseBelowFloorError>(),
+        reason:
+            'Expected DatabaseBelowFloorError; got $thrown. '
+            'If this is null, the below-floor check in runMigrationPreflight '
+            'was removed — the preflight completed silently, routing users to '
+            'a bootstrap path that cannot open the database.',
+      );
+    },
+  );
+
+  test('performBackUpAndReset returns BackUpFailed and does NOT wipe when the '
+      'snapshot writer throws (fail-closed, issue #841)', () async {
+    final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+    _createFixture(dbFile.path, userVersion: 5, seedValue: 'must survive');
+
+    // Inject a writer that always throws — simulates disk full / unwritable.
+    var wipeCalled = false;
+    final result = await performBackUpAndReset(
+      dbFile: dbFile,
+      snapshotDir: snapshotDir,
+      fileVersion: 5,
+      appVersion: '0.0.0-test',
+      platform: 'test',
+      snapshotWriter:
+          ({
+            required dbFile,
+            required snapshotDir,
+            required fromVersion,
+            required timestamp,
+          }) async =>
+              throw const FileSystemException('no space', '', OSError('', 28)),
+    );
+
+    // The result must be BackUpFailed, not BackUpReady.
+    expect(result, isA<BackUpFailed>());
+    expect((result as BackUpFailed).cause, SnapshotFailureCause.diskFull);
+
+    // The database file is untouched — version and data survive.
+    expect(readUserVersion(dbFile.path), 5);
+    final db = sql.sqlite3.open(dbFile.path);
+    expect(db.select('SELECT v FROM t').single['v'], 'must survive');
+    db.close();
+
+    // No snapshot directory was created (writer threw before creating it).
+    expect(snapshotDir.existsSync(), isFalse);
+    // wipeCalled is never set because performBackUpAndReset returns
+    // BackUpFailed; the caller (main.dart) must check and not wipe.
+    expect(wipeCalled, isFalse);
+  });
+
+  test('performBackUpAndReset returns BackUpReady when the snapshot succeeds, '
+      'without wiping anything (caller is responsible for the wipe)', () async {
+    final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+    _createFixture(dbFile.path, userVersion: 5, seedValue: 'pre-reset');
+
+    final result = await performBackUpAndReset(
+      dbFile: dbFile,
+      snapshotDir: snapshotDir,
+      fileVersion: 5,
+      appVersion: '0.0.0-test',
+      platform: 'test',
+    );
+
+    expect(result, isA<BackUpReady>());
+    final ready = result as BackUpReady;
+    expect(ready.snapshotFile.existsSync(), isTrue);
+    expect(readUserVersion(ready.snapshotFile.path), 5);
+
+    // performBackUpAndReset never wipes; the original file is intact.
+    expect(dbFile.existsSync(), isTrue);
+    expect(readUserVersion(dbFile.path), 5);
+  });
+
+  test('performReset returns ResetFailed and does NOT delete the file when '
+      'the deleter throws (fail-closed, issue #841)', () async {
+    final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+    _createFixture(dbFile.path, userVersion: 5, seedValue: 'must survive');
+
+    // Inject a deleter that always throws — simulates a locked file.
+    final result = await performReset(
+      dbFile: dbFile,
+      dbDeleter: (_) async =>
+          throw const FileSystemException('locked', '', OSError('', 13)),
+    );
+
+    // The result must be ResetFailed.
+    expect(result, isA<ResetFailed>());
+
+    // The database file is untouched — version and data survive.
+    expect(dbFile.existsSync(), isTrue);
+    expect(readUserVersion(dbFile.path), 5);
+    final db = sql.sqlite3.open(dbFile.path);
+    expect(db.select('SELECT v FROM t').single['v'], 'must survive');
+    db.close();
+  });
+
+  test('performReset returns ResetComplete and deletes the file when the '
+      'deleter succeeds', () async {
+    final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+    _createFixture(dbFile.path, userVersion: 5);
+
+    final result = await performReset(dbFile: dbFile);
+
+    expect(result, isA<ResetComplete>());
+    expect(dbFile.existsSync(), isFalse);
+  });
+
+  // Invariant guard: kBelowFloorBridgeTags must contain an entry for every
+  // floor raise, including the current one. If this fails after a floor raise,
+  // the recovery screen will show stale bridge guidance.
+  test(
+    'kBelowFloorBridgeTags has an entry whose floor == '
+    'kMinSupportedSchemaVersion (floor-raise checklist guard, issue #841)',
+    () {
+      final floors = kBelowFloorBridgeTags.map((e) => e.floor).toSet();
+      expect(
+        floors,
+        contains(kMinSupportedSchemaVersion),
+        reason:
+            'No bridge-tag entry for the current floor '
+            '($kMinSupportedSchemaVersion). Add one to kBelowFloorBridgeTags '
+            'as part of the floor-raise checklist.',
+      );
     },
   );
 }

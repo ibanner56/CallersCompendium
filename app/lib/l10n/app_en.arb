@@ -97,6 +97,77 @@
   "@migrationSnapshotConsentProceed": {
     "description": "Button that proceeds with the data upgrade even though no recoverable backup could be made."
   },
+
+  "migrationBelowFloorHeadline": "This data is from a version too old to open",
+  "@migrationBelowFloorHeadline": {
+    "description": "Headline on the below-floor recovery screen shown when the on-disk database was written by a build older than the minimum supported schema version. Terminal, no Retry."
+  },
+  "migrationBelowFloorBody": "Your data can be recovered. Install {bridgeTag}, open the app once to let it update your data, then install this version again.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.",
+  "@migrationBelowFloorBody": {
+    "description": "Body of the below-floor recovery screen. {bridgeTag} is the release tag of the migration-bridge release (e.g. 'v0.1.0-beta.6').",
+    "placeholders": {
+      "bridgeTag": {
+        "type": "String",
+        "example": "v0.1.0-beta.6"
+      }
+    }
+  },
+  "migrationBelowFloorBackUpAndReset": "Back Up + Reset",
+  "@migrationBelowFloorBackUpAndReset": {
+    "description": "Button label on the below-floor recovery screen that first writes a backup of the current database, then resets it to a fresh state. The reset is only performed if the backup succeeds."
+  },
+  "migrationBelowFloorResetOnly": "Reset Only",
+  "@migrationBelowFloorResetOnly": {
+    "description": "Button label on the below-floor recovery screen that resets the database to a fresh state without making a backup first. Unrecoverable."
+  },
+  "migrationBelowFloorBackupFailedTitle": "Backup failed",
+  "@migrationBelowFloorBackupFailedTitle": {
+    "description": "Title of the dialog shown when the pre-reset backup fails on the below-floor recovery screen. The reset is NOT performed when this dialog is shown."
+  },
+  "migrationBelowFloorBackupFailedBody": "The backup could not be written, so your data has not been reset.",
+  "@migrationBelowFloorBackupFailedBody": {
+    "description": "Body of the dialog shown when the pre-reset backup fails on the below-floor recovery screen. The reset is NOT performed."
+  },
+  "migrationBelowFloorResetConfirmTitle": "Reset app data?",
+  "@migrationBelowFloorResetConfirmTitle": {
+    "description": "Title of the confirmation dialog shown before a reset action on the below-floor recovery screen (both Back Up + Reset and Reset Only). Used after a successful backup to ask the user to confirm the wipe."
+  },
+  "migrationBelowFloorResetConfirmBody": "A backup has been saved. Resetting will replace your current data with a fresh, empty database.",
+  "@migrationBelowFloorResetConfirmBody": {
+    "description": "Body of the confirmation dialog shown before a Back Up + Reset action once the backup has been written successfully."
+  },
+  "migrationBelowFloorBackupSavedAt": "Backup saved to: {backupPath}",
+  "@migrationBelowFloorBackupSavedAt": {
+    "description": "Line shown in the Back Up + Reset confirmation dialog to tell the user where the backup file was written.",
+    "placeholders": {
+      "backupPath": {
+        "type": "String",
+        "description": "The file-system path of the written backup file."
+      }
+    }
+  },
+  "migrationBelowFloorDiagnosticLogSavedAt": "Diagnostic log saved to: {logPath}",
+  "@migrationBelowFloorDiagnosticLogSavedAt": {
+    "description": "Line shown in the Back Up + Reset confirmation dialog to tell the user where the diagnostic log was written (alongside the backup).",
+    "placeholders": {
+      "logPath": {
+        "type": "String",
+        "description": "The file-system path of the written diagnostic log file."
+      }
+    }
+  },
+  "migrationBelowFloorResetOnlyConfirmBody": "No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This cannot be undone.",
+  "@migrationBelowFloorResetOnlyConfirmBody": {
+    "description": "Body of the confirmation dialog shown before a Reset Only action on the below-floor recovery screen. No backup is made. Must make the irreversibility and data loss explicit."
+  },
+  "migrationBelowFloorWipeFailedTitle": "Reset failed",
+  "@migrationBelowFloorWipeFailedTitle": {
+    "description": "Title of the error dialog shown when the database file could not be deleted during a reset on the below-floor recovery screen. The database is intact."
+  },
+  "migrationBelowFloorWipeFailedBody": "The database file could not be deleted. Your data has not been changed. Try closing other apps that may be using the file, then try again.",
+  "@migrationBelowFloorWipeFailedBody": {
+    "description": "Body of the error dialog shown when the database file could not be deleted. Instructs the user to close any apps locking the file and retry."
+  },
   "confirmDeleteTitle": "Delete?",
   "@confirmDeleteTitle": {
     "description": "Title of the optional confirm-before-delete dialog (shown only when the 'Confirm before delete' setting is on)."

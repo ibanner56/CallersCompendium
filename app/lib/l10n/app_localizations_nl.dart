@@ -80,6 +80,56 @@ class AppLocalizationsNl extends AppLocalizations {
   String get migrationSnapshotConsentProceed => 'Doorgaan zonder back-up';
 
   @override
+  String get migrationBelowFloorHeadline =>
+      'Deze gegevens zijn van een versie die te oud is om te openen';
+
+  @override
+  String migrationBelowFloorBody(String bridgeTag) {
+    return 'Je gegevens kunnen worden hersteld. Installeer $bridgeTag, open de app één keer zodat je gegevens worden bijgewerkt en installeer daarna deze versie opnieuw.\n\nAls je liever opnieuw begint, gebruik dan de opties hieronder — je huidige gegevens gaan verloren.';
+  }
+
+  @override
+  String get migrationBelowFloorBackUpAndReset => 'Back-up maken + Resetten';
+
+  @override
+  String get migrationBelowFloorResetOnly => 'Alleen resetten';
+
+  @override
+  String get migrationBelowFloorBackupFailedTitle => 'Back-up mislukt';
+
+  @override
+  String get migrationBelowFloorBackupFailedBody =>
+      'De back-up kon niet worden geschreven, dus je gegevens zijn niet gereset.';
+
+  @override
+  String get migrationBelowFloorResetConfirmTitle => 'App-gegevens resetten?';
+
+  @override
+  String get migrationBelowFloorResetConfirmBody =>
+      'Er is een back-up opgeslagen. Door te resetten worden je huidige gegevens vervangen door een nieuwe, lege database.';
+
+  @override
+  String migrationBelowFloorBackupSavedAt(String backupPath) {
+    return 'Back-up opgeslagen in: $backupPath';
+  }
+
+  @override
+  String migrationBelowFloorDiagnosticLogSavedAt(String logPath) {
+    return 'Diagnoselogboek opgeslagen in: $logPath';
+  }
+
+  @override
+  String get migrationBelowFloorResetOnlyConfirmBody =>
+      'Er wordt geen back-up gemaakt. Door opnieuw in te stellen worden al je huidige gegevens definitief verwijderd en vervangen door een nieuwe, lege database. Dit kan niet ongedaan worden gemaakt.';
+
+  @override
+  String get migrationBelowFloorWipeFailedTitle => 'Opnieuw instellen mislukt';
+
+  @override
+  String get migrationBelowFloorWipeFailedBody =>
+      'Het databasebestand kon niet worden verwijderd. Je gegevens zijn niet gewijzigd. Sluit andere apps die het bestand mogelijk gebruiken en probeer het opnieuw.';
+
+  @override
   String get confirmDeleteTitle => 'Verwijderen?';
 
   @override
