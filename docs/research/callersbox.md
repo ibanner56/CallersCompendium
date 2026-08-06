@@ -139,9 +139,8 @@ and `pull by direction`.
 The last two entries are why `C1`–`C3` are **not** mapped: `ParamVocab`'s
 `firstCorners`/`secondCorners` model the ECD *First/second corners*, a different
 relationship from TCB's square corners. Mapping them would fabricate.
-`P2`–`P5` and `P0` do now have vocabulary tokens (taxonomy v24,
-issue #732), but this importer still declines them; wiring up the
-in-range codes is follow-up work under #732. `P6`+, every `P-n`,
+`P0`, `P2`–`P5` have vocabulary tokens (taxonomy v24, issue #732) and the
+importer now maps them (issue #732, PR E). `P6`+, every `P-n`,
 `N5`+/`N-1`/`S3`+ have no token, and `Ph*` (phantoms) / `TB*`
 (trail buddy) / bare `R`/`L` name no representable dancer — every
 one of those declines the whole line to `custom`.
@@ -155,11 +154,17 @@ one of those declines the whole line to `custom`.
 
 | reason | lines | detail |
 |---|---|---|
-| unmappable pass code | 163 | mixer partner series `P2`+/`P0`/`P-n` 66 · square corners `C1`–`C7` 55 · out-of-range neighbors `N5`+/`N-n` 25 · bare `R`/`L` with no dancer 11 · out-of-range shadows `S3`+/`S-n` 5 · trail buddy `TB` 1 |
+| unmappable pass code | *(see note)* | square corners `C1`–`C7` 55 · mixer partner series `P6`+/`P-n` *n* · out-of-range neighbors `N5`+/`N-n` 25 · bare `R`/`L` with no dancer 11 · out-of-range shadows `S3`+/`S-n` 5 · trail buddy `TB` 1 |
 | leftover prose outside the pass list | 56 | a second parenthetical 17 · a `[…]` qualifier 16 · other prose/`;`-tail 9 · `Progressive grand right and left` 8 · `Same-role grand right and left` 6 |
 | no pass list at all | 3 | |
 | degenerate list (`(N1R)`, `(N1R;;N2L)`) | 2 | |
 | beats do not divide by the pass count | 1 | `(8) Grand right and left (N0L;N1R;N2L)` |
+
+*(Unmappable pass-code total and decompose/decline split to be re-derived from
+corpus after issue #732 PR E lands — the 66 P-series pass-code lines that were
+previously unmappable are now decodable for P0/P2–P5; `P6`+/`P-n` still
+decline. Pre-PR-E baseline: unmappable total 163, P-series sub-bucket 66,
+decompose 128, declines 225.)*
 
 Beats vs. pass count over the 129 lines that reach the beats check: 4/2 ×89,
 6/3 ×29, 6/2 ×4, 8/4 ×3, 8/2 ×3 — **128 of 129 divide evenly**; the single

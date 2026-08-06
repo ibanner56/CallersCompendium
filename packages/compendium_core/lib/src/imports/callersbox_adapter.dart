@@ -892,11 +892,12 @@ class CallersBoxAdapter implements SourceAdapter {
   /// TCB people codes that name a ROLE/COUPLE pair — the dancers in the CENTRE
   /// of a short wave (`M`/`W` roles, `1`/`2` the ones/twos). Everything ELSE in
   /// [tcbPassPeople] names a pair RELATIONSHIP (the wave's sides): `N`,
-  /// `N0`–`N4`, `P`/`P1`, `S`/`S1`/`S2`. TCB uses one people-code notation
-  /// across heys, grand-right-and-lefts and wave annotations, so this reuses
-  /// that single map rather than duplicating it — and a code the map omits
-  /// (square corners, mixer partner series, phantoms, trail buddies, …) keeps
-  /// the line custom, exactly as it does everywhere else.
+  /// `N0`–`N4`, `P`/`P1`, `P0`/`P2`–`P5`, `S`/`S1`/`S2`. TCB uses one
+  /// people-code notation across heys, grand-right-and-lefts and wave
+  /// annotations, so this reuses that single map rather than duplicating it —
+  /// and a code the map omits (square corners, out-of-range partner/neighbor/
+  /// shadow codes, phantoms, trail buddies, …) keeps the line custom, exactly
+  /// as it does everywhere else.
   static const Map<String, String> _waveRoleCodes = {
     'm': 'role1s',
     'w': 'role2s',

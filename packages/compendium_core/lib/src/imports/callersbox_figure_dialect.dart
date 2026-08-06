@@ -1130,13 +1130,10 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   `firstCorners`/`secondCorners` model. C1 is "the non-partner next to you",
 ///   C2 "the person across from you", C3 "the remaining person" — a square/
 ///   four-face-four relationship the taxonomy has no token for.
-/// - `P2`+, `P0`, `P-n` — a mixer's *future/previous* partners ("The next
-///   partner in your direction of progression is P2"). As of taxonomy v24
-///   (issue #732), `P2`–`P5` and `P0` have vocabulary tokens (`nextPartners`/
-///   `thirdPartners`/`fourthPartners`/`fifthPartners` and `prevPartners`
-///   respectively); `P6`+ and every `P-n` do not. This importer deliberately
-///   declines all of them regardless — wiring up the in-range codes is
-///   follow-up work under issue #732.
+/// - `P0`, `P2`–`P5` — a mixer's previous/future partners (taxonomy v24,
+///   issue #732). These map to `prevPartners`, `nextPartners`, `thirdPartners`,
+///   `fourthPartners`, `fifthPartners` respectively (see entries below).
+///   `P6`+ and every `P-n` are absent from this map and decline to custom.
 /// - `N5`+, `N-1`, `N-2`, `S3`+, `S-n` — beyond the modelled neighbor/shadow
 ///   depth.
 /// - `Ph*` (phantoms), `TB*` (trail buddy), `SR*` (same-role), and bare `R`/`L`
@@ -1148,6 +1145,16 @@ const Map<String, String> tcbPassPeople = {
   // Glossary (Partners (mixers)): "Your current partner is P1." So `P1` is the
   // same person the bare `P` names.
   'p1': 'partners',
+  // Glossary (Partners (mixers)): "Your previous partner is P0."
+  'p0': 'prevPartners',
+  // Glossary (Partners (mixers)): "The next partner in your direction of
+  // progression is P2, then P3, and so forth." Taxonomy v24 (issue #732) adds
+  // tokens for P0 and P2–P5. P6+ and every P-n have no token and are absent
+  // from this map so they decline the whole line to custom.
+  'p2': 'nextPartners',
+  'p3': 'thirdPartners',
+  'p4': 'fourthPartners',
+  'p5': 'fifthPartners',
   'n': 'neighbors',
   'n0': 'prevNeighbors',
   // N1 is the current neighbor (glossary: callersbox.md L51; mirrors the
@@ -1570,10 +1577,10 @@ const String _grandRightAndLeftNote = 'grand right and left';
 ///   qualifier, a second parenthetical (`(ones and twos begin with neighbor…)`)
 ///   or any other leftover prose;
 /// - any cell is not `<people-code><R|L>` with the people code present in
-///   [tcbPassPeople] — square corners (`C1`..`C3`), mixer partner series
-///   (`P2`..`P6`), out-of-range neighbors/shadows, phantoms, trail buddies and
-///   bare `R`/`L` (a hand with no dancer) therefore all stay custom rather than
-///   being approximated onto a token that means something else;
+///   [tcbPassPeople] — square corners (`C1`..`C3`), out-of-range mixer partner
+///   codes (`P6`+/`P-n`), out-of-range neighbors/shadows, phantoms, trail
+///   buddies and bare `R`/`L` (a hand with no dancer) therefore all stay custom
+///   rather than being approximated onto a token that means something else;
 /// - [beats] does not divide evenly by the pass count. An even split is
 ///   arithmetic the source corroborates (TCB's 4 beats over 2 passes == ContraDB's
 ///   2 + 2); an UNEVEN split would invent a per-pass duration nothing states, so
