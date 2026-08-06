@@ -227,6 +227,11 @@ void main() {
 
       // Retry: ensureMigrated cleared its memo and the durable marker survived,
       // so the rebuild runs again — now succeeding — and the app recovers.
+      // This successful pass runs two rebuilds: one for derivedRebuildRequiredKey
+      // (the migration marker that survived the first failure) and one for
+      // sectionRuleVersionKey (the zero-beat phrase-boundary fix, #844, whose
+      // key was not yet written because the first attempt threw before reaching
+      // it).
       await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
 
@@ -235,7 +240,7 @@ void main() {
         findsNothing,
       );
       expect(find.byType(AppShell), findsOneWidget);
-      expect(appData.repositories.rebuildAttempts, 2);
+      expect(appData.repositories.rebuildAttempts, 3);
     },
   );
 
