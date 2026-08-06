@@ -208,11 +208,27 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// A [SharedBundleImport] decoded from a manually picked `.ccshare` file that
   /// carries programs, set by [_chooseFile] and cleared by [_resetToInput].
   ///
-  /// When non-null, [_commit] routes through [CompendiumArchiveImporter] (dances
-  /// + programs + venues) exactly as the OS share-target path does — so the
-  /// manual picker preserves programs that would otherwise be silently dropped by
-  /// the dance-only [GenericJsonAdapter] (issue #852).
+  /// **Never read directly.** Use [_effectivePickedBundle], which validates that
+  /// the stored json still matches [_pasteController.text] before returning the
+  /// bundle. If the user has edited the paste field after picking, the stored
+  /// decode is stale and must not be used.
   SharedBundleImport? _pickedBundle;
+
+  /// Returns [_pickedBundle] only when its [SharedBundleImport.json] still
+  /// matches the current paste-field text — i.e. the user has not edited it
+  /// since the file was picked. Returns `null` when [_pickedBundle] is unset or
+  /// when the texts differ (stale decode, edit has diverged the payload from
+  /// what was decoded at pick time).
+  ///
+  /// All four sites that formerly read `widget.sharedBundle ?? _effectivePickedBundle`
+  /// route through this accessor so they cannot diverge from each other, and so
+  /// a future writer cannot accidentally introduce the staleness hazard by
+  /// accessing [_pickedBundle] directly.
+  SharedBundleImport? get _effectivePickedBundle {
+    final bundle = _pickedBundle;
+    if (bundle == null) return null;
+    return bundle.json == _pasteController.text ? bundle : null;
+  }
 
   /// True when the selected source imports from a picked binary file rather than
   /// pasted/fetched text (governs the input UI and which plan path runs).
@@ -813,7 +829,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // programs. A hypothetical future dance-only byte source would fall through
     // to the shared dance path and never touch programs.
     final adapter = _selected.adapterFactory();
-    final sharedBundle = widget.sharedBundle ?? _pickedBundle;
+    final sharedBundle = widget.sharedBundle ?? _effectivePickedBundle;
     try {
       if (sharedBundle != null) {
         // Share target (issue #432): commit dances + programs + venues through
@@ -1635,7 +1651,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       // on "no dances" would regress the pre-#432 behavior that imported such
       // bundles. Also applies to a manually picked .ccshare (issue #852).
       // Only fall through here when there is nothing importable at all.
-      final sharedBundle = widget.sharedBundle ?? _pickedBundle;
+      final sharedBundle = widget.sharedBundle ?? _effectivePickedBundle;
       if (unreadable.isEmpty &&
           sharedBundle != null &&
           sharedBundle.archive.programs.isNotEmpty) {
@@ -1924,7 +1940,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// manually picked file was detected as a bundle with programs ([_pickedBundle],
   /// issue #852).
   bool get _showSoftCapWarning {
-    final bundle = widget.sharedBundle ?? _pickedBundle;
+    final bundle = widget.sharedBundle ?? _effectivePickedBundle;
     return bundle != null && bundle.entityCount > kSharedBundleSoftCapEntities;
   }
 
@@ -1938,7 +1954,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final message = l10n.sharedImportSoftCapWarning(
-      (widget.sharedBundle ?? _pickedBundle)!.entityCount,
+      (widget.sharedBundle ?? _effectivePickedBundle)!.entityCount,
     );
     return Semantics(
       container: true,
@@ -2152,8 +2168,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               // shared file can never write before the single batch Import
               // consent, and so every imported row is covered by the transient
               // batch Undo. Also suppressed for a manually picked .ccshare with
-              // programs (_pickedBundle, issue #852) for the same reason.
-              if (widget.sharedBundle == null && _pickedBundle == null) ...[
+              // programs (_effectivePickedBundle, issue #852) for the same reason.
+              if (widget.sharedBundle == null &&
+                  _effectivePickedBundle == null) ...[
                 const SizedBox(height: 4),
                 Align(
                   alignment: Alignment.centerLeft,
