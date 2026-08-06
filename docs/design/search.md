@@ -321,6 +321,9 @@ derivation logic:
   `deriveSections(figures, phraseStructure)` (phrase_structure.dart), a
   `List<SectionedFigure>` where `SectionedFigure.label` is the phrase label of
   the phrase in which the figure **starts** (`labelAtBeat`, cumulative beats).
+  Exception: a zero-beat figure at a phrase boundary (beat > 0) is attributed to
+  the preceding phrase — it sits between two phrases and musically belongs with
+  the one that just ended. A zero-beat figure at beat 0 stays in the first phrase.
 
 `_rebuildDerived` iterates `dance.sectionedFigures` (instead of `figures`
 alone) and writes `section: Value(sectioned.label)` into each

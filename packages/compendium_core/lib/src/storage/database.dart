@@ -110,6 +110,27 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 /// version, so a version-gated migration would miss them.
 const String purgeCorruptionRepairDoneKey = '__purge_corruption_repair_done__';
 
+/// Settings key marking that the `dance_figures.section` column has been
+/// recomputed under the corrected zero-beat phrase-boundary rule (#844).
+///
+/// Previous builds attributed a zero-beat figure at a phrase boundary to the
+/// *next* phrase; the fix attributes it to the *preceding* one. Existing rows
+/// carry the wrong label and must be recomputed.
+///
+/// Value `'1'` means the recomputation has run. [CompendiumRepositories.
+/// ensureMigrated] writes this key *after* [DanceRepository.rebuildAllDerived]
+/// succeeds, so a crash between them leaves the key absent and the rebuild
+/// retries on the next open. On a fresh install the collection is empty;
+/// the rebuild runs but produces no rows and the key is written immediately.
+///
+/// Deliberately a settings-marker rather than a schema bump: no column shape
+/// is changing, only values. #837 set the schema floor at v11; a no-DDL bump
+/// would muddy that history.
+const String sectionRuleVersionKey = '__section_rule_version__';
+
+/// The value written to [sectionRuleVersionKey] once the rebuild has run.
+const String kSectionRuleVersion = '1';
+
 /// The current on-disk schema version of [CompendiumDatabase].
 ///
 /// Exposed as a top-level constant (in addition to the [CompendiumDatabase.

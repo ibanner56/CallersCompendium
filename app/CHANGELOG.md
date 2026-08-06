@@ -183,6 +183,15 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **A figure with 0 beats at the end of a dance no longer creates a ghost
+  section.** If the last figure in your dance takes no beats of its own — like
+  a "form short waves" placed right at the end — it used to appear as a brand
+  new A1 section below B2 instead of staying at the bottom of B2. Similarly,
+  a 0-beat figure at any phrase boundary was quietly filed one phrase too late.
+  Both are now corrected. The fix also updates section-filtered search, so
+  searching for "B2, form short waves" now finds dances where that figure
+  was affected. Existing dances are recomputed on first open.
+
 - **Individual dancers now read by name everywhere, and you can reword them.**
   Where a figure names one dancer rather than a pair — the lead of a figure 8,
   the dolphin in a dolphin hey, or any "who"/"whom" you set to a single dancer —
