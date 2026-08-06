@@ -376,19 +376,20 @@ void main() {
         thrown = e;
       }
 
-      // Must be the typed error, NOT a StateError (which is the pre-#841 path
-      // that falls through to the generic screen). If a future simplification
-      // removes the DatabaseBelowFloorError check in runMigrationPreflight and
-      // lets the StateError from the migration steps fire instead, this test
-      // goes red — that is its purpose.
+      // Must be the typed error, NOT null. If a future simplification removes
+      // the DatabaseBelowFloorError check in runMigrationPreflight, the preflight
+      // completes normally (no migration steps fire — the file is below-floor,
+      // so there is no applicable migration), thrown stays null, and this expect
+      // goes red. The symptom is a silent no-op: the user proceeds into a
+      // bootstrap that cannot work.
       expect(
         thrown,
         isA<DatabaseBelowFloorError>(),
         reason:
             'Expected DatabaseBelowFloorError; got $thrown. '
-            'If this is a StateError, the below-floor check in '
-            'runMigrationPreflight was removed, which routes users to '
-            'the dead-end generic error screen instead of the recovery screen.',
+            'If this is null, the below-floor check in runMigrationPreflight '
+            'was removed — the preflight completed silently, routing users to '
+            'a bootstrap path that cannot open the database.',
       );
     },
   );

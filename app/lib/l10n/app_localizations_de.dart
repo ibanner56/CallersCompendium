@@ -86,7 +86,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String migrationBelowFloorBody(String bridgeTag) {
-    return 'Deine Daten können wiederhergestellt werden. Installiere $bridgeTag, öffne die App einmal, damit sie deine Daten aktualisiert, und installiere dann diese Version erneut.\n\nWenn du lieber neu starten möchtest, nutze die Optionen unten — deine aktuellen Daten gehen dabei verloren.';
+    return 'Ihre Daten können wiederhergestellt werden. Installieren Sie $bridgeTag, öffnen Sie die App einmal, damit sie Ihre Daten aktualisiert, und installieren Sie dann diese Version erneut.\n\nWenn Sie lieber neu starten möchten, nutzen Sie die Optionen unten — Ihre aktuellen Daten gehen dabei verloren.';
   }
 
   @override
@@ -100,14 +100,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get migrationBelowFloorBackupFailedBody =>
-      'Die Sicherung konnte nicht geschrieben werden, daher wurden deine Daten nicht zurückgesetzt.';
+      'Die Sicherung konnte nicht geschrieben werden, daher wurden Ihre Daten nicht zurückgesetzt.';
 
   @override
   String get migrationBelowFloorResetConfirmTitle => 'App-Daten zurücksetzen?';
 
   @override
   String get migrationBelowFloorResetConfirmBody =>
-      'Eine Sicherung wurde gespeichert. Das Zurücksetzen ersetzt deine aktuellen Daten durch eine neue, leere Datenbank.';
+      'Eine Sicherung wurde gespeichert. Das Zurücksetzen ersetzt Ihre aktuellen Daten durch eine neue, leere Datenbank.';
 
   @override
   String migrationBelowFloorBackupSavedAt(String backupPath) {

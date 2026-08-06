@@ -26,7 +26,7 @@ const String _snapshotSuffix = '.sqlite.bak';
 /// Like [DatabaseDowngradeError] this is terminal with *no* Retry: the only
 /// forward path is a one-time migration bridge (open the database with the
 /// newest release that predates the floor, let it migrate to a supported
-/// version, then update again). The [AppBootstrap] error screen localizes the
+/// version, then update again). The AppBootstrap error screen localizes the
 /// explanation and provides that guidance.
 ///
 /// [bridgeTag] is the release tag of the newest release that can still open
@@ -105,7 +105,7 @@ String bridgeTagFor(int fileVersion) {
 /// drift is forward-only with no `onDowngrade`, so migrating such a file would
 /// either silently stamp its version down (leaving newer tables/columns under
 /// an older code path) or corrupt data. Instead we refuse to open it and route
-/// to the [AppBootstrap] error screen, which localizes the explanation.
+/// to the AppBootstrap error screen, which localizes the explanation.
 class DatabaseDowngradeError implements Exception {
   const DatabaseDowngradeError({
     required this.fileVersion,
@@ -303,7 +303,7 @@ Future<void> runMigrationPreflight({
 /// platform error code first (locale-independent) and the OS message only as a
 /// fallback. Never trusts message text for anything but a coarse hint.
 ///
-/// Exposed so the below-floor backup-before-reset flow ([AppBootstrap]'s
+/// Exposed so the below-floor backup-before-reset flow (AppBootstrap's
 /// Back Up + Reset action) can classify its own snapshot failures with the same
 /// logic, rather than duplicating the OS-code table.
 SnapshotFailureCause classifySnapshotFailure(Object error) {
