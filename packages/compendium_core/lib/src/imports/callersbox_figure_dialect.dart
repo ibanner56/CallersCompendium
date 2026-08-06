@@ -1122,8 +1122,8 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 /// exactly one map. Public for that cross-file reuse; treat it as read-only.
 ///
 /// A code with no entry here is NOT approximated: the decoder that reads it
-/// declines the whole line to custom (prefer-custom / never fabricate). The
-/// deliberate omissions, per `Glossary.htm`:
+/// declines the whole line to custom (prefer-custom / never fabricate).
+/// Mapped and deliberately-omitted codes, per `Glossary.htm`:
 /// - `C1`/`C2`/`C3` — the glossary's *"Corners (square)"* are a DIFFERENT
 ///   concept from its separate *"First/second corners"* entry ("First corners
 ///   are man one and woman two"), which is what [ParamVocab]'s

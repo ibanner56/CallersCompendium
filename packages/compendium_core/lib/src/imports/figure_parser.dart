@@ -510,7 +510,7 @@ String? _takeDancer(List<String> w) {
       }
       // TCB pairs the P-prefix with a redundant "partner(s)" word
       // ("P2 partner swing"); drop it for the same reason.
-      if (raw.startsWith('p') &&
+      if (_pSeriesCodes.contains(raw) &&
           i < w.length &&
           (w[i] == 'partner' || w[i] == 'partners')) {
         w.removeAt(i);
@@ -539,7 +539,7 @@ String? _takeLeadingDancer(List<String> w) {
     w.removeAt(0);
   }
   // Mirror _takeDancer's "P2 partner" pair absorption for the leading slot.
-  if (raw.startsWith('p') &&
+  if (_pSeriesCodes.contains(raw) &&
       w.isNotEmpty &&
       (w[0] == 'partner' || w[0] == 'partners')) {
     w.removeAt(0);
@@ -562,6 +562,13 @@ String? _takeSide(List<String> w) {
 /// neighbor qualifier ("with neighbor N2", "chain to neighbor N2") that would
 /// otherwise be left over and force the custom fallback.
 const Set<String> _neighborNumbers = {'n0', 'n1', 'n2', 'n3', 'n4'};
+
+/// TCB P-prefix partner tags that have taxonomy tokens (`P`/`P0`–`P5`; taxonomy
+/// v24, issue #732). Used to identify the subset of [_dancerWords] keys whose
+/// "P2 partner" pair absorption should fire — membership is a taxonomy fact, not
+/// a spelling heuristic. `partner` and `partners` also start with `p` in
+/// [_dancerWords] but must NOT trigger the absorption.
+const Set<String> _pSeriesCodes = {'p', 'p0', 'p1', 'p2', 'p3', 'p4', 'p5'};
 
 /// Removes the first [_neighborNumbers] token from [w] and returns it, or null.
 String? _takeNeighborNumber(List<String> w) {

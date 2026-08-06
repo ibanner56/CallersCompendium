@@ -621,6 +621,12 @@ void main() {
       // custom. Falsify by adding p6/p-1 to _dancerWords.
       'P6 partner swing', // depth boundary: one beyond the modelled range
       'P-1 partner swing', // negative index: no taxonomy token
+      // Regression: the P-prefix pair-absorption guard must test set membership
+      // (in _pSeriesCodes), not raw.startsWith('p'). The key 'partner' also
+      // starts with 'p', so the loose guard would absorb the second 'partner' in
+      // 'partner partner swing' and produce swing(who: partners) — a fabricated
+      // structured result from a non-existent TCB construction.
+      'partner partner swing',
     ];
 
     for (final line in mustStayCustom) {
