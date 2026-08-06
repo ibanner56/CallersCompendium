@@ -653,6 +653,7 @@ For existence:
 | Inbound validation | Out-of-range `existenceAt` *or* `updatedAt` rejected, never clamped |
 | Quarantine repair | Rebuilds only out-of-window fields, from peers sound in that same field; keyed on the baseline for `updatedAt` |
 | Repair's missing-baseline branch | Never-agreed only; upgraded and wiped entries take other paths |
+| Quarantined records | Excluded from merge table and union; manifest advertises last agreed hash; citing records withheld |
 
 Written as a table because the alternative is discovering the paths one review
 round at a time, which is what happened.
@@ -898,6 +899,31 @@ attention: the fix was the thing under examination, and these were the things
 holding it up. **A rule you add without hesitation is a rule you have not
 examined** — hesitation is what triggers the checks, and scaffolding rarely
 produces any.
+
+##### Follow a changed value to its readers, not to its neighbours
+
+> **When a rule changes what a value *means*, trace that value to everything that
+> reads it.** Neighbouring rules are the ones you will check anyway; the readers
+> are a section away, and that is where the defect lands.
+
+The eighteenth habit, and the fourth inverted: that one asks what data a rule
+reads and whether the path can reach it, this one asks who reads what a rule
+writes.
+
+The manifest gained a second meaning in one revision — for quarantined records it
+began advertising a last-agreed hash rather than the current one — and that
+change was reasoned carefully against the pending-tombstone rule sitting beside
+it. Its *readers* were elsewhere: the baseline-advance trigger, which would have
+taken this device's own fallback echoing back as agreement; the steady-state
+merge table, which had no idea quarantined records existed at all; and
+referential closure, where omitting a record left the device free to publish
+another that cited it. Three sections, three defects, one changed meaning.
+
+The tell is a value that now means different things in different places. That is
+sometimes correct — the pending-tombstone rule deliberately holds two hashes for
+one record — but it is only correct when every reader has been told which one it
+gets, and a document large enough to have distant readers will not tell them by
+itself.
 
 ##### Bounds are directional
 
@@ -1147,8 +1173,9 @@ other copies actually hold:
   - **No entry at all.** This device has never observed agreement on this record,
     so a peer's copy cannot have moved past an agreement that never happened.
     Compare local content to the peers': matching means nothing was edited since,
-    and the verbatim branch is right; differing from every peer means this device
-    holds content no one else has, which it can only have written itself, and the
+    and the verbatim branch is right — adopting **that peer's** `updatedAt`, per
+    the pairing rule below; differing from every peer means this device holds
+    content no one else has, which it can only have written itself, and the
     differs-branch is right.
   - **An entry with a wire hash but no body hash** — a record agreed under the
     previous scheme, whose body hash could not be migrated. Agreement *did*
@@ -1159,10 +1186,28 @@ other copies actually hold:
     only "nothing changed since I published", which is not the question.
 
     Where the local **body equals a peer's**, repair proceeds on the verbatim
-    branch. Content demonstrably never diverged, so there is no local edit to
-    protect and nothing to decide — this is the `softDelete`-poisoned case, where
-    the clock moved the timestamps and left the body untouched, and it is the
-    common one. Where the body differs from every peer's, the record stays
+    branch, adopting **that peer's** `updatedAt` — not the greatest across the
+    peer set. Content demonstrably never diverged from *that* peer, so there is
+    no local edit to protect and nothing to decide; this is the
+    `softDelete`-poisoned case, where the clock moved the timestamps and left the
+    body untouched, and it is the common one.
+
+    **The timestamp must come from the peer whose body matched.** Taking the
+    global maximum instead pairs one peer's body with another's clock and
+    produces a `(body, updatedAt)` combination that exists on no device: if peer
+    B holds the pre-poison body and peer C genuinely edited it at a later
+    in-window time, the local record would keep B's content while claiming C's
+    recency. Against C that is `changed`/`changed` at **equal `updatedAt`**,
+    which the strict-`>` gate moves in neither direction, so C's real edit could
+    never displace stale content that now falsely claims C's timestamp — a
+    breach of *content changes must move the discriminator* manufactured by the
+    repair itself. **Repair must never leave a record at equal `updatedAt` with
+    content differing from the peer that supplied that timestamp.**
+
+    Where the body matches no peer at all, this device is genuinely stale rather
+    than merely poisoned, and takes the greatest in-window peer's record
+    **wholesale** — body and timestamp together — rather than pairing that
+    peer's clock with its own content. Where the body differs from every peer's, the record stays
     **quarantined and reported** until a fresh in-window local write replaces the
     poisoned stamp.
 
@@ -1218,9 +1263,23 @@ other copies actually hold:
     is how it stops being behind. What it must not do is *publish* its own
     poisoned value, and it does not.
   - **A quarantined record with no agreed hash** — created locally while the
-    clock was already broken, so no peer ever held it — is omitted, and is safe
-    to omit for the reason the others are not: nothing on any peer can cite a
-    record no peer has ever seen.
+    clock was already broken, so no peer ever held it — is omitted, **and any
+    record citing it is withheld with it.** Omission alone is not safe, and the
+    proof an earlier draft offered ("nothing on any peer can cite a record no
+    peer has ever seen") is true of peers and false of this device. Quarantine is
+    per-record: correcting the clock does not clear it without a fresh write to
+    *that* record. So a device can create choreographer `C` while broken —
+    quarantined, omitted — then correct its clock and create dance `D` citing
+    `C`, where `D` is freshly stamped, in-window, not quarantined, and uploads
+    normally. `D` is then in every manifest citing a record in none, and a peer
+    downloading it fails at COMMIT on the cascading foreign key and discards its
+    whole batch: the failure the pending-tombstone rule exists to prevent,
+    reached through the door omission left open.
+
+    Withholding transitively is the narrower fix and needs no new state — the
+    citing record's own references are already in hand at manifest time. It is
+    also self-clearing, since publishing `C` after a repair makes `D` publishable
+    on the same pass.
 
   In the union, a locally quarantined value is **excluded from arbitration and
   the local row is retained**, pending repair afterwards. It is not replaced by
@@ -1246,6 +1305,22 @@ other copies actually hold:
   is that agreement reached on content this device has since edited away from is
   never recorded — correctly, since by then the device *has* edited, and the
   content comparison above reaches the same answer without needing the memory.
+
+  **A quarantined record never advances its baseline, whatever its manifest
+  says.** Those two facts pull apart for exactly these records: the manifest
+  advertises the last agreed hash while the device holds a poisoned current one,
+  so a peer echoing the advertised hash would look like agreement on every pass
+  under a rule keyed to "the hash it published". It is not agreement — it is this
+  device's own fallback coming back to it — and treating it as such would
+  populate a null body hash from the poisoned body and land the edited sub-case
+  on the verbatim branch next pass, reopening the stranding defect. It would also
+  falsify the deadlock analysis above, which holds precisely because agreement is
+  keyed to the current hash and a quarantined record never publishes one.
+
+  This is the same two-hashes-on-one-device split the pending-tombstone rule
+  settled, and it is settled the same way: the merge and the baseline read the
+  live row's hash, and the fallback substitutes only when the manifest is
+  serialised.
 
   **The classifier must answer "did *I* edit", and only the baseline does.** A
   draft keyed the `updatedAt` rebuild on local content differing from *the
@@ -2398,6 +2473,16 @@ The user is told the count afterwards ("merged 412 duplicates"), not asked.
    | absent from baseline, present locally | — | upload (new here) |
    | — | absent from baseline, present remotely | download (new elsewhere) |
 
+   **A quarantined record is excluded from this table entirely**, in steady state
+   exactly as in a fresh attach's union: its local row is retained, nothing is
+   uploaded, and repair is its only route back. Leaving it in would be worse than
+   inert — `local.updatedAt` has no source but the live local row, which for a
+   quarantined record is the poisoned value, so no honest peer could ever exceed
+   it and the record would sit permanently frozen while appearing to participate.
+   The exclusion was first written for the union, where the wrong outcome was
+   easiest to see; it governs both, and the merge table is where an implementer
+   looks.
+
    **Existence disagreements are decided before this table is consulted, and by
    `existenceAt` alone.** If one side is a tombstone and the other is live, the
    greater `existenceAt` wins outright; `updatedAt` does not participate, on any
@@ -2525,9 +2610,11 @@ checked against the discriminator rule above.
    indexes.
 8. `PUT /v1/manifests/{self}`.
 9. Store the new baseline. A record's entry advances only where a peer's
-   manifest was observed to carry that hash — an upload not yet reflected by any
-   peer is not agreement, and quarantine repair reads this table to decide
-   whether *this* device edited.
+   manifest was observed to carry **this device's current content hash** — an
+   upload not yet reflected by any peer is not agreement, and quarantine repair
+   reads this table to decide whether *this* device edited. Keyed to the current
+   hash rather than to whatever was last published, so that a quarantined
+   record's advertised fallback cannot echo back and read as agreement.
 
 ### Backup restore invalidates the baseline
 
@@ -3264,6 +3351,29 @@ must say this plainly rather than implying sync is opaque to us.
 - **An upgraded record poisoned but unedited repairs immediately** — local body
   equals a peer's, so content never diverged; assert the verbatim branch runs
   without waiting. This is the `softDelete`-poisoned case and the common one.
+- **Repair adopts the matching peer's timestamp, not the greatest** — peer B
+  holds the pre-poison body, peer C edited it later and in-window; assert the
+  repaired record takes B's `updatedAt` alongside B's body. Mutation-proved by
+  taking the global maximum, which pairs B's content with C's clock, leaves the
+  pair at equal `updatedAt` against C, and permanently blocks C's genuine edit
+  behind a strict-`>` gate.
+- **A record citing a quarantined entity is withheld too** — create an entity on
+  a broken clock, correct the clock, create a record citing it, and sync; assert
+  the citing record is withheld until the entity is publishable. Mutation-proved
+  by publishing it, after which a peer's batch fails at COMMIT on the cascading
+  foreign key — the citing record is freshly stamped and not itself quarantined,
+  so nothing else stops it.
+- **A quarantined record is excluded from the steady-state merge table** — assert
+  it is neither uploaded nor treated as a conflict while quarantined, and that
+  repair is its only route back. Mutation-proved by leaving it in the table,
+  where its poisoned `local.updatedAt` cannot be exceeded by any honest peer and
+  the record freezes while appearing to participate.
+- **An advertised fallback does not read as agreement** — a quarantined record
+  whose manifest advertises the last agreed hash; assert the baseline does not
+  advance when a peer echoes it. Mutation-proved by keying agreement on "the hash
+  it published", which records this device's own fallback as agreement, populates
+  a null body hash from the poisoned body, and lands the edited sub-case on the
+  verbatim branch.
 - **A quarantined record advertises its last agreed hash** — assert the manifest
   entry names a hash peers can actually fetch, that the poisoned blob is not
   uploaded, and that a fresh-attaching peer downloading a dance citing that

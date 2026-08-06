@@ -769,9 +769,15 @@ makes self-hosting materially harder, which constraint 4 forbids.
   hash**, though — withholding a blob and withholding a manifest entry are
   separate acts, and advertising a hash no peer can fetch or omitting the record
   outright would each break something the pending-tombstone rule already settled.
-  In a union its value is excluded from arbitration and the local row retained,
-  never replaced, since a poisoned timestamp can accompany genuinely newer
-  content.
+  Its value is excluded from arbitration and the local row retained, never
+  replaced, since a poisoned timestamp can accompany genuinely newer content —
+  in a fresh attach's union and in the steady-state merge table alike, since
+  otherwise a poisoned `local.updatedAt` no honest peer can exceed would freeze
+  the record while appearing to participate. A record citing a quarantined
+  entity is withheld with it, or a peer's batch fails at COMMIT on the cascading
+  foreign key. And an advertised fallback never counts as agreement: it is this
+  device's own hash coming back to it, and treating it otherwise would populate
+  a baseline from the poisoned content it exists to repair.
 
   **Choosing those classifiers was the substance of the decision.** Neither field
   carries a signal separating a value poisoned by a broken clock from a genuine
