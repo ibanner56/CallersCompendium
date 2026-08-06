@@ -753,11 +753,19 @@ makes self-hosting materially harder, which constraint 4 forbids.
   stranding newer content where the strict-`>` gate moves nothing either way.
 
   A record with **no** baseline entry is resolved by comparing local content to
-  the peers' rather than assuming either answer, since "never agreed" and "never
-  edited" are different facts and the change above is what separates them.
-  Existing baselines cannot be migrated — the body was never retained, and every
-  backfill that invents a value re-opens a defect this design has closed — so the
-  column starts null and fills on the first pass that observes agreement.
+  the peers' — sound only where this device has *never agreed*, since staleness
+  needs an agreement for the peers to have moved past. That precondition is
+  stated as itself rather than as "there is no entry", because five paths clear
+  an entry and only one carries it: a record agreed under the previous scheme has
+  a wire hash and no body hash, and takes the wire-hash path or stays
+  quarantined; a wholesale-wiped baseline routes through fresh attach, which
+  repersists it before quarantine and repair run at all. Existing baselines
+  cannot be migrated — the body was never retained, and every backfill that
+  invents a value re-opens a defect this design has closed — so the column starts
+  null and fills on the first pass that observes agreement.
+
+  A quarantined record is also never uploaded: a device does not publish a value
+  it has judged impossible, which keeps it out of a fresh attach's union as well.
 
   **Choosing those classifiers was the substance of the decision.** Neither field
   carries a signal separating a value poisoned by a broken clock from a genuine

@@ -652,6 +652,7 @@ For existence:
 | Migration backfill | `T₀` for live rows, `deleted_at` for deleted ones — see the accepted consequence |
 | Inbound validation | Out-of-range `existenceAt` *or* `updatedAt` rejected, never clamped |
 | Quarantine repair | Rebuilds only out-of-window fields, from peers sound in that same field; keyed on the baseline for `updatedAt` |
+| Repair's missing-baseline branch | Never-agreed only; upgraded and wiped entries take other paths |
 
 Written as a table because the alternative is discovering the paths one review
 round at a time, which is what happened.
@@ -848,6 +849,30 @@ A useful sanity check on any such rule: work out the exact conditions under whic
 it fires. The clamp turned out to activate only when the selected peer sat
 precisely at the ceiling — which is exactly the case where clamping produces a
 tie — so its entire domain was the case it broke.
+
+##### A narrowing must be keyed on its precondition, not on an observable
+
+> **When a rejected signal is re-admitted under a narrowing, name the
+> precondition the narrowing actually requires, then enumerate every path that
+> produces the narrowing's *observable* without that precondition.**
+
+The sixteenth habit, and the deepest version of the eleventh: there a rule's
+scope was fixed by its wording; here a *precondition's* scope is fixed by
+whatever the implementation actually tests for.
+
+The worked example is the local-versus-peer content comparison, rejected as a
+general classifier for conflating "I edited" with "I am stale", then correctly
+re-admitted in one branch where staleness cannot arise. The precondition is
+**"this device has never agreed on this record"** — sound, and enough. What the
+rule tested was **"there is no baseline entry"**, which is a different statement:
+five paths produce a missing entry, and only one of them means never-agreed. The
+upgrade path that violates it was described seventy lines below the argument
+asserting it could not happen, in the same revision.
+
+The instinct to narrow is right and worth keeping. The discipline is to write the
+precondition down as a sentence about the world — not about a field — and then
+ask what else can make the field look that way. A precondition tested by proxy is
+a precondition that holds until someone adds a fifth way to clear a table.
 
 ##### Bounds are directional
 
@@ -1090,21 +1115,50 @@ other copies actually hold:
   clock-broken device — simply stays quarantined, since there is nothing to
   reconcile it against.
 
-  **A missing baseline entry is resolved by comparing local content to the
-  peers', not by assuming either answer.** Where local content matches a peer's,
-  there is nothing this device can have edited since, and the verbatim branch is
-  right; where it differs from every peer, this device holds content no one else
-  has, which is what "I edited" means, and the differs-branch is right.
+  **A missing baseline entry is resolved by what the entry's absence actually
+  proves**, which depends on *why* it is absent. The three cases are
+  distinguishable from state the design already keeps:
 
-  This is the local-versus-peer comparison rejected earlier as a *classifier*,
-  and it is sound here for a reason worth stating, since the two look identical.
-  Rejected as a general rule, it conflated "I edited" with "I am stale", because
-  a peer's newer content also reads as a difference. In this branch staleness is
-  excluded by construction: a stale record is one whose peers moved *after* an
-  agreement, and there is no agreement — no baseline entry — to have moved after.
-  A device with no recorded agreement holding content no peer has can only have
-  written it itself. Narrow the input enough and a rejected signal becomes a
-  sound one; what is not sound is reusing it where that narrowing does not hold.
+  - **No entry at all.** This device has never observed agreement on this record,
+    so a peer's copy cannot have moved past an agreement that never happened.
+    Compare local content to the peers': matching means nothing was edited since,
+    and the verbatim branch is right; differing from every peer means this device
+    holds content no one else has, which it can only have written itself, and the
+    differs-branch is right.
+  - **An entry with a wire hash but no body hash** — a record agreed under the
+    previous scheme, whose body hash could not be migrated. Agreement *did*
+    happen here, so the never-agreed comparison is unsound, and the wire hash
+    cannot substitute for the missing body hash either: under the previous scheme
+    it was written **on upload**, not on observed agreement, so its meaning
+    changed at the upgrade boundary and "matches the stored wire hash" now proves
+    only "nothing changed since I published", which is not the question. Such a
+    record stays **quarantined and reported** until one pass observes agreement
+    and populates a body hash. The cost is a pass of delay; the alternative is
+    classifying content on a hash whose semantics moved underneath it.
+  - **A wholesale-wiped baseline** — restore, fresh attach, epoch reset. These
+    would be indistinguishable from "never agreed" and are not, because every one
+    of them routes through fresh attach, which repersists the baseline before
+    steady-state sync resumes. **Quarantine and repair run after that**, so a
+    wipe never presents a record to this rule in the no-entry state.
+
+  **Why the local-versus-peer comparison is sound in the first case only.**
+  Rejected earlier as a general classifier, it conflated "I edited" with "I am
+  stale", because a peer's newer content also reads as a difference. Staleness
+  needs an agreement for the peers to have moved past; where no agreement exists,
+  there is nothing to be stale relative to. That is the precondition, and it is
+  worth separating from its observable: an earlier draft argued from "there is no
+  baseline entry to have moved after", which reads as the same statement and is
+  not — *five* paths produce a missing entry and only the first carries the
+  precondition. The upgrade path that violates it was described seventy lines
+  below the argument assuming it could not happen.
+
+  Narrow the input enough and a rejected signal becomes sound; what is not sound
+  is keying that narrowing on something merely correlated with it.
+
+  **A quarantined record is never uploaded.** A device does not publish a value
+  it has itself judged impossible, which also keeps a locally poisoned value out
+  of a fresh attach's union — where "higher `updatedAt` wins" would otherwise let
+  it beat a peer's genuine edit before any classifier saw it.
 
   A draft read a missing entry as agreement outright, reasoning that a record
   never agreed cannot have been edited *since* agreement. That does not follow —
@@ -1174,16 +1228,18 @@ other copies actually hold:
   covered was never retained. Both obvious backfills reintroduce bugs this design
   has already closed: taking the *current local content* records an unconfirmed
   edit as agreed, which is the advance-on-upload defect applied to every record
-  with an edit in flight at upgrade; leaving it null falls through to the
-  missing-entry rule, which now resolves by comparing against peers and is
-  therefore safe but wasteful.
+  with an edit in flight at upgrade; and inventing any other value is a guess
+  about content.
 
   So the body hash is **left null on upgrade and populated on the first pass that
-  observes agreement**, and the missing-entry rule carries the interval. There is
-  no safe backfill to write, which is worth saying outright rather than leaving an
-  implementer to discover it: unlike the `existence_at` migration, where the
-  wrong choice is available and tempting, here every choice that invents a value
-  is wrong, and the only correct one is to admit the value is not recoverable.
+  observes agreement**. In the interval, such a record is *not* handed to the
+  never-agreed comparison — it was agreed, and the surviving wire hash proves
+  that much — and it stays quarantined if quarantined at all, since the wire hash
+  cannot stand in for the body hash it lacks. There is no safe backfill to write, which
+  is worth saying outright rather than leaving an implementer to discover it:
+  unlike the `existence_at` migration, where the wrong choice is available and
+  tempting, here every choice that invents a value is wrong, and the only correct
+  one is to admit the value is not recoverable.
 
   This was harmless while every well-formed upload was accepted, and stopped
   being harmless in the same revision that widened inbound rejection — the two
@@ -1334,19 +1390,35 @@ free of new state. Detecting only the direction that inconveniences *other*
 devices, and staying quiet on the one that inconveniences the device that can
 act, would put the signal where it is least useful.
 
-It needs the same guards clock-suspect was given, and cannot borrow its scoping.
-Clock-suspect looks only at quarantined records, which is meaningless here: a
-fast device's own records are never future *relative to itself*, so none of them
-quarantines and the set would always be empty. Unqualified, "my values are above
-every peer's" is also true of a perfectly healthy device that is simply the most
-active one, or paired with a tablet used once a month — which is this app's
-central usage pattern, not an exotic case. So the report requires **every
-observed peer value for a record this device wrote to trail its own by more than
-the acceptance window**, across **at least three records** and **at least one
-peer**, in a single pass. Trailing by less than the window cannot be the fault
-being detected, since anything inside the window is accepted; requiring several
-records distinguishes a wrong clock, which offsets everything this device writes,
-from ordinary staleness, which does not.
+It needs the same guards clock-suspect was given, and cannot borrow either its
+scoping or its shape. Clock-suspect looks only at quarantined records, which is
+meaningless here: a fast device's own records are never future *relative to
+itself*, so none of them quarantines and the set would always be empty.
+
+**The signal is uploads that peers never reflect, not values that peers trail.**
+A device already learns, per record, whether a peer's manifest came to carry the
+hash it published — that is how baseline entries advance. A device whose blobs
+are being refused sees its own uploads never reflected by **any** peer, pass
+after pass, while peers' own records continue to move. That is close to direct
+evidence of rejection, it needs no new state, and it covers the records that
+matter most: a record this device *created* is stored by no peer at all when its
+blob is refused, so there is no peer value to compare against — the case a
+trailing-value test cannot see, and exactly the case a user seeding a library on
+a fast device would hit.
+
+The report fires when **every** record this device published in a pass goes
+unreflected by every peer whose manifest it observed, across **three consecutive
+passes**, with **at least one peer observed** in each. Zero observed peers is not
+evidence, for the same reason it is not evidence of a slow clock.
+
+A draft instead required peer values to *trail* this device's by more than the
+acceptance window, across three records. That does not distinguish the fault from
+the thing it was written to exclude: a healthy phone paired with a tablet used
+monthly has every record it has touched since trailing that tablet's month-old
+manifest by far more than a day, and importing one program touches three dances
+easily. The justification offered — that a wrong clock offsets everything this
+device writes while ordinary staleness does not — was simply false, since an
+inactive peer is stale on everything the active device has touched since.
 
 An earlier version of this section claimed both clock-failure directions "stay
 loud and contained". Containment held; loudness did not, once inbound rejection
@@ -2063,7 +2135,11 @@ sync ID entirely, so re-enabling is a fresh attach.
    this the ordinary union case and yielding the live entity. That premise is
    superseded — withholding broke referential closure — and so is the outcome it
    produced.
-6. Persist the epoch and the resulting manifest as the new baseline. A record
+6. Persist the epoch and the resulting manifest as the new baseline. **Quarantine
+   and repair run after this**, never during the union, so a wipe never presents
+   a record to the missing-entry rule looking like one that was never agreed, and
+   a locally quarantined record — which is not uploaded — cannot win the union
+   with a value this device already knows is impossible. A record
    revived by the citation rule during this attach is **pending-held**, so the
    same carve-out applies as in steady state: its baseline entry records the live
    hash it holds locally, not the tombstone it advertises. The same holds for
@@ -2333,6 +2409,27 @@ applied wholesale — poisoned `updatedAt` included, since `updatedAt` takes no
 part in that decision — spreading it fleet-wide and making every honestly-stamped
 later edit lose every content conflict until wall-clock time caught up. The loud,
 contained failure would have become a silent, general one.
+
+#### No write may stamp a timestamp and change nothing else
+
+> **Every write that advances `updatedAt` must also change the record's `body`
+> or its existence state.**
+
+The converse of the invariant above, and load-bearing for the *repair*
+classifier rather than the merge. Repair decides whether this device edited by
+comparing body hashes; a write that moved a timestamp while leaving both the body
+and the existence state untouched would be invisible to that comparison, and the
+record would be classified as unedited and have its timestamp adopted from a
+peer.
+
+Today no such write exists — every `updatedAt`-poisoning path either changes the
+body, where the comparison is correct, or changes existence, where content is
+moot. That is currently a **coincidence of the write paths**, not a guarantee,
+and it is written down here so it stops being one: a "touch", a favourite flag, a
+sync-envelope field held outside the body hash, or any metadata-only re-stamp
+would break repair silently and without resembling a sync change at the point it
+was added. Any new write is checked against this the way new write paths are
+checked against the discriminator rule above.
 
 5. `POST /v1/blobs/missing` with the hashes to upload; `PUT` only what is
    missing.
@@ -3038,6 +3135,13 @@ must say this plainly rather than implying sync is opaque to us.
   assert it quarantines and repairs. Mutation-proved by quarantining on
   `existenceAt` alone, which leaves the poison uncatchable for ever, since
   `updatedAt` has no inbound rejection to stop it either.
+- **The fast-clock report fires on rejection, not on staleness** — a healthy
+  device paired with a peer that has not synced in a month; assert it does *not*
+  report. Then refuse its uploads for three consecutive passes and assert it
+  does. Mutation-proved by testing whether peer values trail this device's by
+  more than the window, which fires on the healthy pairing — the app's central
+  usage pattern — and stays silent for a create-dominant device whose refused
+  records no peer stores at all.
 - **A poisoned `updatedAt` never enters circulation** — a device with a dead RTC
   makes an ordinary content edit, so its `existenceAt` is untouched and only its
   `updatedAt` is poisoned; assert peers refuse the blob rather than accepting it.
@@ -3057,6 +3161,21 @@ must say this plainly rather than implying sync is opaque to us.
   by clamping to the ceiling instead: that is the *only* case the clamp can fire
   in, it ties the peer it was meant to outrank, and on `existenceAt` the standing
   tie rule then silently reverts a user's un-delete.
+- **An upgraded record is not treated as never-agreed** — a device attached
+  under the wire-hash-only scheme holds a record its peers have since edited
+  past; poison its clock and repair. Assert the record is **quarantined**, not
+  classified as locally edited. Mutation-proved by routing a wire-hash-only entry
+  through the never-agreed comparison, which reads the device's stale content as
+  its own edit and pushes it over the peers' genuine one.
+- **A wiped baseline never reaches the never-agreed rule** — restore a backup,
+  which drops the baseline and forces a fresh attach; assert the baseline is
+  repersisted and quarantine/repair run only afterwards. Mutation-proved by
+  running repair during the union, where a wiped entry is indistinguishable from
+  a new record.
+- **A quarantined record is not uploaded** — assert a locally quarantined record
+  is absent from what the device publishes, including during a fresh attach.
+  Mutation-proved by publishing it, after which "higher `updatedAt` wins" lets a
+  value the device already knows is impossible beat a peer's genuine edit.
 - **A create-then-edit before agreement is classified as edited** — create a
   record with a good clock, let peers accept it, then edit it while the clock is
   broken, all before a pass observes agreement; assert repair takes the
