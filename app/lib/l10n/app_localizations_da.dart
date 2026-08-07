@@ -4093,10 +4093,10 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count programs',
+      other: '$count programmer',
       one: '1 program',
     );
-    return 'Also includes $_temp0.';
+    return 'Inkluderer også $_temp0.';
   }
 
   @override

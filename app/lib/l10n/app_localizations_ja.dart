@@ -3955,10 +3955,9 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count programs',
-      one: '1 program',
+      other: '$count件のプログラムも含まれます。',
     );
-    return 'Also includes $_temp0.';
+    return '$_temp0';
   }
 
   @override

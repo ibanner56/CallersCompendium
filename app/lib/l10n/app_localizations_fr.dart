@@ -4143,10 +4143,10 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count programs',
-      one: '1 program',
+      other: '$count programmes',
+      one: '1 programme',
     );
-    return 'Also includes $_temp0.';
+    return 'Comprend également $_temp0.';
   }
 
   @override

@@ -1032,6 +1032,7 @@
   "importReviewPasteJson": "Ou coller le JSON",
   "importReviewReviewButton": "Passer en revue l’import",
   "importReviewWillImport": "{importable} sur {total} seront importés",
+  "importReviewWillImportPrograms": "Comprend également {count, plural, =1{1 programme} other{{count} programmes}}.",
   "importReviewCouldNotRead": "Impossible de lire l’import",
   "importReviewNoDancesTitle": "Aucune danse trouvée",
   "importReviewNoDancesBody": "Le fichier ne contient aucune danse à importer.",

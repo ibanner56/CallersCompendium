@@ -1032,6 +1032,7 @@
   "importReviewPasteJson": "Of plak JSON",
   "importReviewReviewButton": "Import controleren",
   "importReviewWillImport": "{importable} van {total} worden geïmporteerd",
+  "importReviewWillImportPrograms": "Bevat ook {count, plural, =1{1 programma} other{{count} programma's}}.",
   "importReviewCouldNotRead": "De import kon niet worden gelezen",
   "importReviewNoDancesTitle": "Geen dansen gevonden",
   "importReviewNoDancesBody": "Het bestand bevatte geen dansen om te importeren.",

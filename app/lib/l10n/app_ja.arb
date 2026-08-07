@@ -1032,6 +1032,7 @@
   "importReviewPasteJson": "またはJSONを貼り付け",
   "importReviewReviewButton": "インポートを確認",
   "importReviewWillImport": "{total}件中{importable}件がインポートされます",
+  "importReviewWillImportPrograms": "{count, plural, other{{count}件のプログラムも含まれます。}}",
   "importReviewCouldNotRead": "インポートを読み取れませんでした",
   "importReviewNoDancesTitle": "ダンスが見つかりませんでした",
   "importReviewNoDancesBody": "ファイルにインポートできるダンスが含まれていませんでした。",
