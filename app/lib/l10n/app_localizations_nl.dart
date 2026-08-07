@@ -807,7 +807,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
-      'Als dit uit staat en er een standaardcaller is ingesteld, bevatten de callerhistorie en de aantallen alleen programma’s die door die caller zijn geleid. Als dit aan staat — of als er geen standaardcaller is ingesteld — wordt elk programma dat de dans bevat bijgehouden.';
+      'Als dit uit staat en er een standaardcaller is ingesteld, bevatten de callerhistorie en de aantallen programma’s die door die caller zijn geleid, plus programma’s zonder geregistreerde caller (behandeld als uw eigen). Als dit aan staat — of als er geen standaardcaller is ingesteld — wordt elk programma dat de dans bevat bijgehouden.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Toegankelijkheid';

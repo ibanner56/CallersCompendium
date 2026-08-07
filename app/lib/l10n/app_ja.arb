@@ -224,7 +224,7 @@
   "settingsGeneralRequirePerformedForHistoryTitle": "コーリング履歴には「実施済み」マークが必要",
   "settingsGeneralRequirePerformedForHistorySubtitle": "オンにすると、ダンスのコーリング履歴には、そのダンスのスロットが「実施済み」とマークされたプログラムのみが表示されます。オフにすると、ダンスを含むプログラムがすぐに表示されます。",
   "settingsGeneralTrackHistoryForAllCallersTitle": "すべてのコーラーのコーリング履歴を記録する",
-  "settingsGeneralTrackHistoryForAllCallersSubtitle": "オフで既定のコーラーが設定されている場合、コーリング履歴と回数にはそのコーラーが担当したプログラムのみが含まれます。オンの場合、または既定のコーラーが設定されていない場合は、そのダンスを含むすべてのプログラムが記録されます。",
+  "settingsGeneralTrackHistoryForAllCallersSubtitle": "オフで既定のコーラーが設定されている場合、コーリング履歴と回数にはそのコーラーが担当したプログラム、およびコーラーが記録されていないプログラム（自分のプログラムとして扱われます）が含まれます。オンの場合、または既定のコーラーが設定されていない場合は、そのダンスを含むすべてのプログラムが記録されます。",
   "settingsGeneralAccessibilityHeader": "アクセシビリティ",
   "settingsGeneralReduceMotionTitle": "モーションを低減",
   "settingsGeneralReduceMotionSubtitle": "検索結果やフィギュア間を移動する際のアニメーションスクロールなど、不要なアニメーションを抑制またはスキップします。",

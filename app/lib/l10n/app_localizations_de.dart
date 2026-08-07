@@ -816,7 +816,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
-      'Wenn aus und ein Standard-Caller festgelegt ist, enthalten Calling-Verlauf und Zählungen nur Programme, die von diesem Caller geleitet wurden. Wenn ein — oder wenn kein Standard-Caller festgelegt ist — wird jedes Programm erfasst, das den Tanz enthält.';
+      'Wenn aus und ein Standard-Caller festgelegt ist, enthalten Calling-Verlauf und Zählungen Programme, die von diesem Caller geleitet wurden, sowie Programme ohne eingetragenen Caller (die als Ihre eigenen gezählt werden). Wenn ein — oder wenn kein Standard-Caller festgelegt ist — wird jedes Programm erfasst, das den Tanz enthält.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Barrierefreiheit';
