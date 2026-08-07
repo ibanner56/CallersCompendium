@@ -2964,12 +2964,24 @@ data/
 
 Blobs are fanned out two levels to keep directory sizes sane.
 
-**Every handler validates `{hash}` against `^[0-9a-f]{64}$` before touching the
-filesystem.** An earlier draft argued traversal-safety from the hash being
-"verified" — but verification happens on `PUT`, where the body is hashed. On
-`GET` and `DELETE` the hash is attacker-controlled path input fanned into
-`blobs/<aa>/<bb>/<hash>` with nothing checking it. The guard belongs on every
-handler, not on the one that happens to compute a hash.
+**Every path that turns a caller-supplied hash into a filesystem path validates
+it against `^[0-9a-f]{64}$` first.** An earlier draft argued traversal-safety
+from the hash being "verified" — but verification happens on `PUT`, where the
+body is hashed. Everywhere else the hash is attacker-controlled path input
+fanned into `blobs/<aa>/<bb>/<hash>` with nothing checking it. The guard
+belongs on every path, not on the one that happens to compute a hash.
+
+**Stating that as a list of methods got it wrong twice**, which is the argument
+for stating it as a property. The draft said "on `GET` and `DELETE` as well as
+`PUT`" — but blobs have no `DELETE` endpoint at all (removal is GC), so a third
+of the enumeration guarded nothing, while `POST /v1/blobs/missing` takes a
+caller-supplied list of hashes and was not named despite being the one endpoint
+that accepts them in bulk. The property "caller-supplied hash becomes a path"
+selects the right set without needing the contract re-read each time it changes.
+
+The GC sweep reads hashes from the database rather than from a caller, so it is
+not covered by that property, and it applies the check anyway: a row written
+before this rule existed would otherwise escape it.
 
 ```sql
 CREATE TABLE stores (

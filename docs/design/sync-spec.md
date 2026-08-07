@@ -581,8 +581,12 @@ data/
   blobs/<aa>/<bb>/<hash>
 ```
 
-Every handler MUST validate `{hash}` against `^[0-9a-f]{64}$` before touching
-the filesystem — on `GET` and `DELETE` as well as `PUT`.
+Every path that turns a **caller-supplied** hash into a filesystem path MUST
+validate it against `^[0-9a-f]{64}$` before touching the filesystem: `GET`,
+`PUT`, and every hash in a `POST /v1/blobs/missing` body. Blobs have no `DELETE`
+endpoint — removal is GC (§7.3) — but the sweep MUST apply the same check to
+values read back from the database, so a row written before this rule cannot
+escape it.
 
 ```sql
 CREATE TABLE stores (
