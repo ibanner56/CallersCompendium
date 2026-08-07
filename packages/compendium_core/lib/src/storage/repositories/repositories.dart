@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
 import '../../model/enums.dart';
+import '../../serialization/figure_codec.dart';
 import '../../taxonomy/taxonomy.dart';
 import '../database.dart';
 import 'choreographer_repository.dart';
@@ -87,6 +88,10 @@ class CompendiumRepositories {
       }
       await _repairPurgeCorruptionIfNeeded();
       await _recomputeSectionLabelsIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
+      await _normaliseInversePairMoveIdsIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
@@ -176,6 +181,70 @@ class CompendiumRepositories {
     await db.customStatement(
       'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
       [sectionRuleVersionKey, '"$kSectionRuleVersion"'],
+    );
+  }
+
+  /// One-time normalisation of `figures_json` for inverse-pair alias
+  /// re-routing (#870). Scans all dances, and for any figure whose move id
+  /// should be re-routed (e.g. `box_the_gnat{hand: left}` →
+  /// `swat_the_flea`), rewrites `figures_json` with the corrected id.
+  ///
+  /// Guarded by [inversePairNormalisationDoneKey] so it runs at most once.
+  /// The marker is written AFTER the pass succeeds — an interrupted
+  /// normalisation retries on the next open.
+  ///
+  /// When [alreadyRebuilt] is true (a derived rebuild already ran this call),
+  /// the derived rows are already correct — UNLESS this pass rewrites any
+  /// `figures_json` rows, in which case a second rebuild is needed because
+  /// the prior one ran against the pre-normalisation data. When false, a
+  /// rebuild always follows because the balance.hand addition changes
+  /// canonical keys even if no move ids were re-routed.
+  ///
+  /// **Fresh install:** no incoherent figures exist, so the scan finds
+  /// nothing to update and writes the marker immediately. The pass is a
+  /// no-op.
+  Future<void> _normaliseInversePairMoveIdsIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ?',
+          variables: [Variable.withString(inversePairNormalisationDoneKey)],
+        )
+        .get();
+    if (done.isNotEmpty) return;
+
+    final allDances = await dances.listAll(includeDeleted: true);
+    var rewroteAny = false;
+    for (final dance in allDances) {
+      final normalised = dances.normaliseMoveIdsPublic(dance);
+      if (!identical(normalised, dance)) {
+        rewroteAny = true;
+        // Rewrite only the figures_json column — nothing else about the dance
+        // changes, and a full _upsert would needlessly rebuild derived rows
+        // per dance (the bulk rebuild at the end is cheaper).
+        await db.customStatement(
+          'UPDATE dances SET figures_json = ? WHERE id = ?',
+          [encodeFigures(normalised.figures), dance.id],
+        );
+      }
+    }
+
+    // A derived rebuild is needed when:
+    // - no rebuild has run yet this call (balance.hand changes canonical keys
+    //   for every balance figure even if no figures_json was rewritten), OR
+    // - this pass rewrote figures_json rows (the derived index is now stale
+    //   even if a prior rebuild already ran — it ran against the old data).
+    if (!alreadyRebuilt || rewroteAny) {
+      await runDerivedRebuild(onProgress: onProgress);
+    }
+
+    // Write the marker AFTER success — if the rebuild throws, the marker is
+    // not written and the next startup retries.
+    await db.customStatement(
+      'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+      [inversePairNormalisationDoneKey, '"done"'],
     );
   }
 }

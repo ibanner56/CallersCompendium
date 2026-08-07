@@ -87,6 +87,7 @@ export 'src/storage/database.dart'
     show
         CompendiumDatabase,
         derivedRebuildRequiredKey,
+        inversePairNormalisationDoneKey,
         purgeCorruptionRepairDoneKey,
         sectionRuleVersionKey,
         kSectionRuleVersion,

@@ -131,6 +131,11 @@ const String sectionRuleVersionKey = '__section_rule_version__';
 /// The value written to [sectionRuleVersionKey] once the rebuild has run.
 const String kSectionRuleVersion = '1';
 
+/// Settings key for the one-time inverse-pair move-id normalisation (#870).
+/// Written after a successful pass so it runs at most once per database.
+const String inversePairNormalisationDoneKey =
+    '__inverse_pair_normalisation_done__';
+
 /// The current on-disk schema version of [CompendiumDatabase].
 ///
 /// Exposed as a top-level constant (in addition to the [CompendiumDatabase.
