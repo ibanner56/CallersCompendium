@@ -190,6 +190,12 @@ abstract interface class OnlineSearchService {
   /// Searches the source and returns source-neutral result rows. Throws a
   /// `UrlFetchException` (message safe to show) on any fetch failure or when
   /// there is nothing to search.
+  ///
+  /// An implementation may return **fewer** rows than the source matched: rows
+  /// the user could not act on are the implementation's to exclude, and
+  /// [OnlineSearchResultRow.figuresAvailable] is the one such reason so far
+  /// (see `CallersBoxOnline.search`, issue #845). Callers must therefore not
+  /// treat an empty or short result as proof the source holds nothing.
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query);
 
   /// Fetches the tapped [result]'s full record and builds an [OnlinePreview]

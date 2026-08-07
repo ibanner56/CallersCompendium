@@ -8,6 +8,11 @@ import 'online_search.dart';
 /// Deliberately typed rather than prose: the data layer never bakes English in
 /// (the presentation layer localizes these at the render site), and the program
 /// path collapses every value to the same `null` without inspecting it.
+///
+/// Note that a source may exclude rows the user could not act on before this
+/// ever sees them — a Caller's Box search omits dances whose figures TCB will
+/// not serve (issue #845) — so [noResults] and [noExactMatch] mean "nothing
+/// usable was offered", not "the archive holds no such dance".
 enum OnlineTitleLookupFailure {
   /// The search returned nothing at all.
   noResults,
@@ -18,6 +23,10 @@ enum OnlineTitleLookupFailure {
 
   /// More than one result has exactly this title, so which dance was meant is
   /// genuinely ambiguous and must not be guessed at.
+  ///
+  /// Source-side exclusions are applied first, so two same-titled Caller's Box
+  /// dances of which only one will serve its figures resolve to a hit rather
+  /// than landing here.
   multipleExactMatches,
 
   /// The search could not be performed (fetch/parse failure). Swallowed
