@@ -207,3 +207,40 @@ List<CallersBoxSearchResult> parseCallersBoxSearchResults(String html) {
 /// HTML's pretty-printing) to single spaces.
 String _collapseWhitespace(String text) =>
     text.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+/// Matches TCB's total-match count line, e.g.
+/// `Of 16874 dances in the db, your query matches 10287.` (verified live on
+/// both title and by-phrase searches, 2026-08-06).
+///
+/// Digits are capped at seven so a hostile page cannot force an oversized
+/// parse; the corpus is ~16,900 dances, so anything near that cap is already
+/// nonsense. The trailing `(?!\d)` makes the cap a REJECTION rather than a
+/// truncation — without it a nine-digit value matches its first seven digits
+/// and yields a plausible-looking number that was never on the page. Anchored
+/// on the full phrase rather than the bare word `matches`.
+final RegExp _matchCountLine = RegExp(r'your query matches\s+(\d{1,7})(?!\d)');
+
+/// Reads the **total** number of dances TCB says a query matched, or `null`
+/// when the page carries no readable count.
+///
+/// TCB returns only the first 50 rows unless `show_all` is requested, but it
+/// always states the full total. [CallersBoxOnline] uses this to decide whether
+/// re-requesting the complete set is worth the payload, so that filtering out
+/// figure-hidden dances does not compound the cap by shrinking an already
+/// truncated page.
+///
+/// Read from the parsed document's decoded text rather than the raw HTML, and
+/// bounded. A spoofed value can do no more than add or skip a single further
+/// bounded request, so this deliberately does not try to prove the line came
+/// from TCB's own chrome rather than from a dance title.
+int? parseCallersBoxMatchCount(String html) {
+  final dom.Document document;
+  try {
+    document = html_parser.parse(html);
+  } on Object {
+    return null;
+  }
+  final match = _matchCountLine.firstMatch(document.body?.text ?? '');
+  if (match == null) return null;
+  return int.tryParse(match.group(1)!);
+}

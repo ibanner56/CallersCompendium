@@ -63,24 +63,26 @@ const String _resultsHtml = '''
 /// TCB's database and are searchable, but the endpoint serves none of them
 /// (`phrases` is empty). Mirrors the live shape of id 5419 ("Cabin Contra"),
 /// verified 2026-08-06.
-String _searchTierDanceJson({String id = '5419', String name = 'Cabin Contra'}) =>
-    jsonEncode({
-      'ID': id,
-      'Name': name,
-      'Authors': <String>['Bob Howell'],
-      'InterpretedBy': <String>[],
-      'Permission': 'search',
-      'FormationBase': 'Triple Minor',
-      'FormationDetail': '',
-      'Progression': 'Single',
-      'PhraseStructure': '',
-      'CallingNotes': <String>[],
-      'OtherNames': <String>[],
-      'Music': <String>[],
-      'Tunes': <String>[],
-      'Appearances': <Map<String, Object?>>[],
-      'phrases': <Map<String, Object?>>[],
-    });
+String _searchTierDanceJson({
+  String id = '5419',
+  String name = 'Cabin Contra',
+}) => jsonEncode({
+  'ID': id,
+  'Name': name,
+  'Authors': <String>['Bob Howell'],
+  'InterpretedBy': <String>[],
+  'Permission': 'search',
+  'FormationBase': 'Triple Minor',
+  'FormationDetail': '',
+  'Progression': 'Single',
+  'PhraseStructure': '',
+  'CallingNotes': <String>[],
+  'OtherNames': <String>[],
+  'Music': <String>[],
+  'Tunes': <String>[],
+  'Appearances': <Map<String, Object?>>[],
+  'phrases': <Map<String, Object?>>[],
+});
 
 /// Two rows trimmed verbatim from the live `?title=moon` page (2026-08-06): one
 /// carrying the Ⓕ figures-permission marker, one carrying only Ⓛ (a link to an
@@ -260,6 +262,34 @@ void main() {
       expect(params['phr2_pos_lines'], 'swing');
       expect(params['phr2_pos_mode'], 'all_any');
     });
+
+    test('omits show_all by default and emits it when asked', () {
+      // The default request must stay byte-identical to today's: show_all on a
+      // broad query is megabytes, and search runs on an as-you-type debounce.
+      final plain = Uri.parse(buildCallersBoxSearchUrl('Money Musk'));
+      expect(plain.queryParameters.containsKey('show_all'), isFalse);
+
+      final all = Uri.parse(
+        buildCallersBoxSearchUrl('Money Musk', showAll: true),
+      );
+      expect(all.queryParameters.containsKey('show_all'), isTrue);
+      expect(all.queryParameters['title'], 'Money Musk');
+      // Verified live: TCB treats `show_all=` identically to the bare flag, so
+      // this stays inside Uri.https rather than concatenating a query string.
+      expect(all.queryParameters['show_all'], '');
+    });
+
+    test('show_all combines with by-phrase criteria', () {
+      final uri = Uri.parse(
+        buildCallersBoxSearchUrl(
+          '',
+          phrases: const CallersBoxPhraseQuery(globalPos: ['balance']),
+          showAll: true,
+        ),
+      );
+      expect(uri.queryParameters['pos_lines'], 'balance');
+      expect(uri.queryParameters.containsKey('show_all'), isTrue);
+    });
   });
 
   group('CallersBoxPhraseQuery.fromSelections', () {
@@ -435,15 +465,18 @@ void main() {
       expect(results.every((r) => r.figuresAvailable), isTrue);
     });
 
-    test('an all-figureless page yields no results rather than stubs', () async {
-      final online = CallersBoxOnline(
-        searchFetcher: (_) async => _figurelessOnlyResultsHtml,
-      );
-      expect(
-        await online.search(const OnlineSearchQuery(title: 'moon')),
-        isEmpty,
-      );
-    });
+    test(
+      'an all-figureless page yields no results rather than stubs',
+      () async {
+        final online = CallersBoxOnline(
+          searchFetcher: (_) async => _figurelessOnlyResultsHtml,
+        );
+        expect(
+          await online.search(const OnlineSearchQuery(title: 'moon')),
+          isEmpty,
+        );
+      },
+    );
 
     test('a surviving row still carries every display field', () async {
       final online = CallersBoxOnline(
@@ -505,17 +538,20 @@ void main() {
   // discovered: two same-title rows where one is figureless collapse from
   // `multipleExactMatches` (an unresolvable no-op) into a single confident hit.
   group('lookupUniqueExactTitle under permission-tier filtering (#845)', () {
-    test('a duplicate title resolves once its figureless twin is gone', () async {
-      final online = CallersBoxOnline(
-        searchFetcher: (_) async => _duplicateTitleResultsHtml,
-      );
-      final outcome = await lookupUniqueExactTitle(
-        'Cabin Contra',
-        service: online,
-      );
-      expect(outcome, isA<OnlineTitleHit>());
-      expect((outcome as OnlineTitleHit).row.id, '9001');
-    });
+    test(
+      'a duplicate title resolves once its figureless twin is gone',
+      () async {
+        final online = CallersBoxOnline(
+          searchFetcher: (_) async => _duplicateTitleResultsHtml,
+        );
+        final outcome = await lookupUniqueExactTitle(
+          'Cabin Contra',
+          service: online,
+        );
+        expect(outcome, isA<OnlineTitleHit>());
+        expect((outcome as OnlineTitleHit).row.id, '9001');
+      },
+    );
 
     test('a title whose only match is figureless misses instead of '
         'resolving to a stub', () async {
@@ -531,6 +567,190 @@ void main() {
         (outcome as OnlineTitleMiss).failure,
         OnlineTitleLookupFailure.noResults,
       );
+    });
+  });
+
+  // Issue #845, pagination half. TCB caps a normal response at 50 rows, so
+  // filtering that page would compound the cap: the user would lose matches
+  // twice over and learn about neither. `show_all` lifts the cap, but broad
+  // queries are enormous (measured live: `?title=a` states 12,805 matches,
+  // ~3.0 MB) and search runs on a 500 ms as-you-type debounce — so the second
+  // request is issued only when the page's own stated total says it is cheap.
+  group('CallersBoxOnline.search — two-phase show_all (#845)', () {
+    /// Builds a results page stating [total] matches and containing [rows]
+    /// result rows, every one of which carries the figures marker.
+    String page({required int total, required int rows}) {
+      final trs = [
+        for (var i = 0; i < rows; i++)
+          "<tr><td>\u24bb</td><td></td><td></td>"
+              "<td><a href='dance.php?id=${1000 + i}'>Dance $i</a></td>"
+              '<td>Auth</td><td>Form</td></tr>',
+      ].join();
+      return '<html><body>'
+          '<p>Of 16874 dances in the db, your query matches $total.</p>'
+          '<table>$trs</table></body></html>';
+    }
+
+    /// Records every URL the fetch seam is asked for, so the number of requests
+    /// and their exact shape are both assertable.
+    ({CallersBoxOnline online, List<String> urls}) recording(
+      String Function(String url) respond,
+    ) {
+      final urls = <String>[];
+      return (
+        online: CallersBoxOnline(
+          searchFetcher: (url) async {
+            urls.add(url);
+            return respond(url);
+          },
+        ),
+        urls: urls,
+      );
+    }
+
+    test(
+      'a capped page under the limit is re-requested with show_all',
+      () async {
+        final r = recording(
+          (url) => url.contains('show_all')
+              ? page(total: 68, rows: 68)
+              : page(total: 68, rows: 50),
+        );
+        final results = await r.online.search(
+          const OnlineSearchQuery(title: 'moon'),
+        );
+
+        expect(r.urls, hasLength(2));
+        expect(r.urls.first, isNot(contains('show_all')));
+        expect(r.urls.last, contains('show_all'));
+        // The full set is what gets filtered, not the capped page.
+        expect(results, hasLength(68));
+      },
+    );
+
+    test('a total above the limit is NOT re-requested', () async {
+      // The guard that stops a one-character query pulling megabytes on every
+      // debounce tick. Without it this issues a second, enormous request.
+      final r = recording((_) => page(total: 12805, rows: 50));
+      final results = await r.online.search(
+        const OnlineSearchQuery(title: 'a'),
+      );
+
+      expect(r.urls, hasLength(1));
+      expect(r.urls.single, isNot(contains('show_all')));
+      expect(results, hasLength(50));
+    });
+
+    test('a complete first page is not re-requested', () async {
+      // Everything already fits, so a second request would buy nothing. This is
+      // the common narrow search and must stay exactly as cheap as it is today.
+      final r = recording((_) => page(total: 9, rows: 9));
+      await r.online.search(const OnlineSearchQuery(title: 'Money Musk'));
+
+      expect(r.urls, hasLength(1));
+      expect(r.urls.single, isNot(contains('show_all')));
+    });
+
+    test('a page with no readable total is not re-requested', () async {
+      // Fails toward the cheap path: an unreadable count must never be treated
+      // as a licence to fetch the whole corpus.
+      final r = recording(
+        (_) =>
+            "<html><body><table><tr><td>\u24bb</td>"
+            "<td><a href='dance.php?id=1'>D</a></td>"
+            '<td>A</td><td>F</td></tr></table></body></html>',
+      );
+      final results = await r.online.search(
+        const OnlineSearchQuery(title: 'moon'),
+      );
+
+      expect(r.urls, hasLength(1));
+      expect(results, hasLength(1));
+    });
+
+    test('an oversized total is not re-requested', () async {
+      // The count parser rejects >7 digits, so this reaches search as null and
+      // must take the same cheap path. Catches an unguarded int.parse.
+      final r = recording(
+        (_) =>
+            '<html><body>'
+            '<p>Of 16874 dances in the db, your query matches 999999999.</p>'
+            "<table><tr><td>\u24bb</td>"
+            "<td><a href='dance.php?id=1'>D</a></td>"
+            '<td>A</td><td>F</td></tr></table></body></html>',
+      );
+      await r.online.search(const OnlineSearchQuery(title: 'moon'));
+
+      expect(r.urls, hasLength(1));
+    });
+
+    test('the show_all request differs ONLY by show_all', () async {
+      // Both phases must stay inside the existing guarded fetch path, and the
+      // re-request must carry every original criterion. Dropping `phrases` when
+      // rebuilding the URL is the dangerous mutation: a by-phrase search would
+      // silently re-request with no figure criteria at all and return an
+      // unrelated slice of the corpus, which no count or row assertion catches.
+      final r = recording(
+        (url) => url.contains('show_all')
+            ? page(total: 68, rows: 68)
+            : page(total: 68, rows: 50),
+      );
+      await r.online.search(
+        const OnlineSearchQuery(
+          title: 'moon',
+          phrases: CallersBoxPhraseQuery(
+            globalPos: ['balance'],
+            globalNeg: ['hey'],
+          ),
+        ),
+      );
+
+      expect(r.urls, hasLength(2));
+      final first = Uri.parse(r.urls.first);
+      final second = Uri.parse(r.urls.last);
+
+      expect(second.scheme, 'https');
+      expect(second.host, callersBoxHost);
+      expect(second.path, startsWith(callersBoxPathPrefix));
+      expect(second.queryParameters['show_all'], '');
+
+      final rebuilt = Map<String, String>.from(second.queryParameters)
+        ..remove('show_all');
+      expect(rebuilt, first.queryParameters);
+      // Named explicitly so a silently-dropped criterion cannot pass by both
+      // maps happening to be empty.
+      expect(rebuilt['title'], 'moon');
+      expect(rebuilt['pos_lines'], 'balance');
+      expect(rebuilt['neg_lines'], 'hey');
+    });
+
+    test('filtering applies to the re-requested full set', () async {
+      // The two halves of #845 have to compose: fetch everything, then hide the
+      // figureless rows — not filter the capped page and call it complete.
+      String mixed({required int rows}) {
+        final trs = [
+          for (var i = 0; i < rows; i++)
+            "<tr><td>${i.isEven ? '\u24bb' : ''}</td><td></td><td></td>"
+                "<td><a href='dance.php?id=${2000 + i}'>Dance $i</a></td>"
+                '<td>Auth</td><td>Form</td></tr>',
+        ].join();
+        return '<html><body>'
+            '<p>Of 16874 dances in the db, your query matches 60.</p>'
+            '<table>$trs</table></body></html>';
+      }
+
+      final r = recording(
+        (url) => url.contains('show_all') ? mixed(rows: 60) : mixed(rows: 50),
+      );
+      final results = await r.online.search(
+        const OnlineSearchQuery(title: 'moon'),
+      );
+
+      expect(r.urls, hasLength(2));
+      // 60 rows, every other one figure-hidden → 30 survive. Filtering the
+      // capped 50 would have yielded 25.
+      expect(results, hasLength(30));
+      expect(results.every((x) => x.figuresAvailable), isTrue);
     });
   });
 

@@ -300,7 +300,8 @@ void main() {
       // entity-encode any non-windows-1252 character, so a title containing Ⓕ
       // arrives decoded and indistinguishable from a real marker — unless
       // detection is scoped to the cells BEFORE the dance link.
-      const html = '''
+      const html =
+          '''
 <table><tr>
 <td></td><td></td><td></td>
 <td><a href='dance.php?id=3'>$markerFigures Sneaky Contra</a></td>
@@ -313,7 +314,8 @@ void main() {
 
     test('an Ⓕ in the author or formation cell cannot spoof the marker', () {
       // Both cells FOLLOW the link, so a whole-row text scan would fire.
-      const html = '''
+      const html =
+          '''
 <table><tr>
 <td></td><td></td><td></td>
 <td><a href='dance.php?id=6'>Plain Contra</a></td>
@@ -331,7 +333,8 @@ void main() {
       // author reads as 'Ⓕ' and the formation as 'Phantom'. Enumerating only
       // DIRECT-CHILD cells yields ['', '', '', 'EvilⒻPhantom', 'Auth', 'Form']
       // and both columns stay correct.
-      const html = '''
+      const html =
+          '''
 <table><tr>
 <td></td><td></td><td></td>
 <td><a href='dance.php?id=7'>Evil</a>
@@ -351,7 +354,8 @@ void main() {
       // its own leading cell carries Ⓕ, so it would enter the results claiming
       // figures it does not have. A real TCB result row is never nested inside
       // another row, so rows with a <tr> ancestor are skipped.
-      const html = '''
+      const html =
+          '''
 <table><tr>
 <td></td><td></td><td></td>
 <td><a href='dance.php?id=8'>Host Dance</a>
@@ -370,7 +374,6 @@ void main() {
       expect(parseCallersBoxSearchResults('<table><tr><td'), isEmpty);
       expect(parseCallersBoxSearchResults('\u0000<<<>>>'), isEmpty);
     });
-
     test('id / name / author / formation are unaffected by the scan', () {
       // Guards the direct-child enumeration change against regressing the flat
       // happy path that every real TCB page uses.
@@ -387,6 +390,72 @@ void main() {
         'Triplet',
       ]);
       expect(rows.map((r) => r.figuresAvailable), [true, true, false]);
+    });
+  });
+
+  // Issue #845. TCB caps a normal response at 50 rows but always states the
+  // full total, which is what lets the app decide whether re-requesting the
+  // complete set with `show_all` is worth the payload — so that filtering
+  // figure-hidden rows cannot compound the cap.
+  group('parseCallersBoxMatchCount (#845)', () {
+    test('reads the total from a title search page', () {
+      expect(parseCallersBoxMatchCount(_moneyMuskResults), 9);
+    });
+
+    test('reads the total from a by-phrase search page', () {
+      // Verbatim wording from a live by-phrase response (`pos_lines=balance`,
+      // 2026-08-06), which is phrased identically to the title search's.
+      const html =
+          '<html><body><div></div>'
+          '<p>Of 16874 dances in the db, your query matches 10287.</p>'
+          '</body></html>';
+      expect(parseCallersBoxMatchCount(html), 10287);
+    });
+
+    test('a page with no count line yields null, not zero', () {
+      // null and 0 must stay distinguishable: 0 would read as "TCB says there
+      // are no matches", null as "TCB did not say", and only the latter should
+      // suppress the second request on an otherwise healthy page.
+      expect(
+        parseCallersBoxMatchCount('<html><body><p>hi</p></body></html>'),
+        isNull,
+      );
+    });
+
+    test(
+      'an oversized or non-numeric count yields null rather than parsing',
+      () {
+        // Catches an unguarded int.parse on attacker-controlled text. Eight
+        // digits exceed the seven-digit cap, so the anchored match never fires.
+        expect(
+          parseCallersBoxMatchCount(
+            '<html><body><p>your query matches 999999999.</p></body></html>',
+          ),
+          isNull,
+        );
+        expect(
+          parseCallersBoxMatchCount(
+            '<html><body><p>your query matches lots.</p></body></html>',
+          ),
+          isNull,
+        );
+      },
+    );
+
+    test('the bare word "matches" is not enough to be read as a count', () {
+      // Anchored on the full phrase, so ordinary prose containing "matches"
+      // followed by a number cannot masquerade as the count line.
+      expect(
+        parseCallersBoxMatchCount(
+          '<html><body><p>This dance matches 3 others.</p></body></html>',
+        ),
+        isNull,
+      );
+    });
+
+    test('malformed input yields null rather than throwing', () {
+      expect(parseCallersBoxMatchCount(''), isNull);
+      expect(parseCallersBoxMatchCount('<p your query matches 5'), isNull);
     });
   });
 }

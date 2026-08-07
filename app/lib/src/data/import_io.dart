@@ -845,12 +845,23 @@ typedef CallersBoxSearchFetcher = Future<String> Function(String url);
 /// Returns e.g.
 /// `https://www.ibiblio.org/contradance/thecallersbox/index.php?title=<encoded>`.
 ///
+/// Pass [showAll] to append TCB's `show_all` parameter, which lifts the default
+/// 50-row cap and returns the complete match set (verified live 2026-08-06:
+/// `?title=moon` returns 50 of a stated 68, `?title=moon&show_all` returns all
+/// 68; the `show_all=` form with an empty value behaves identically to the bare
+/// flag, which is what lets this stay inside [Uri.https]'s parameter map rather
+/// than hand-building a query string outside the fetch guard). Broad queries can
+/// match many thousands of dances, so callers must decide against the page's
+/// stated total rather than requesting it unconditionally — see
+/// [parseCallersBoxMatchCount] and `CallersBoxOnline.search`.
+///
 /// Throws a [UrlFetchException] (message safe to show) when there is nothing to
 /// search — an empty [title] and no effective [phrases].
 String buildCallersBoxSearchUrl(
   String title, {
   CallersBoxPhraseQuery? phrases,
   String host = callersBoxHost,
+  bool showAll = false,
 }) {
   final trimmed = title.trim();
   final hasPhrases = phrases != null && !phrases.isEmpty;
@@ -860,6 +871,7 @@ String buildCallersBoxSearchUrl(
 
   final params = <String, String>{};
   if (trimmed.isNotEmpty) params['title'] = trimmed;
+  if (showAll) params['show_all'] = '';
   if (hasPhrases) {
     if (phrases.globalPos.isNotEmpty) {
       params['pos_lines'] = phrases.globalPos.join('\n');
