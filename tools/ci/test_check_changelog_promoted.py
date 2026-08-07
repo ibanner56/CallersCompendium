@@ -44,14 +44,19 @@ def changelog(*, unreleased: str, released: str) -> str:
 """
 
 
+FAILURES: list[str] = []
+
+
 def check(name: str, condition: bool, detail: str = "") -> None:
     if condition:
         print(f"  ok   {name}")
         return
-    raise AssertionError(f"{name}: {detail}")
+    FAILURES.append(f"{name}{': ' + detail if detail else ''}")
+    print(f"  FAIL {name}{': ' + detail if detail else ''}")
 
 
 def main() -> int:
+    FAILURES.clear()
     with tempfile.TemporaryDirectory() as temp:
         repo = Path(temp)
         subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
@@ -111,6 +116,11 @@ def main() -> int:
         check("unchanged schema needs no migration section",
               unchanged.returncode == 0, unchanged.stderr)
 
+    if FAILURES:
+        for failure in FAILURES:
+            print(f"::error::{failure}")
+        print(f"{len(FAILURES)} check(s) failed")
+        return 1
     print("OK: all CHANGELOG promotion gate tests passed")
     return 0
 
