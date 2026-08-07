@@ -60,6 +60,8 @@ jobs:
       pub_date: ${{ steps.resolve.outputs.pub_date }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - name: Resolve version/channel and reconcile with pubspec
         id: resolve
         run: |
@@ -100,13 +102,9 @@ jobs:
 
           echo "Resolved: version=$version tag=v$version channel=$channel prerelease=$prerelease"
 
-      # Fail-fast (A12): a STABLE release must ship hand-written notes, so a
-      # plain x.y.z tag with no matching `## [x.y.z]` section in
-      # app/CHANGELOG.md is rejected here in the cheap meta job — BEFORE the
-      # 3-OS build matrix. A prerelease (beta/rc) is allowed through and falls
-      # back to a loud "add notes" draft body at publish time. Guarded to tag
-      # pushes so a build-only workflow_dispatch dry run is never blocked.
-      - name: Require a CHANGELOG section for stable releases
+      # Fail-fast CHANGELOG checks run only for tag pushes, so a build-only
+      # workflow_dispatch dry run is never blocked.
+      - name: Require current CHANGELOG release notes
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           VERSION: ${{ steps.resolve.outputs.version }}
@@ -119,6 +117,13 @@ jobs:
             --tag "$TAG" \
             --channel "$CHANNEL" \
             --changelog app/CHANGELOG.md
+          previous_tag="$(git tag --merged HEAD --sort=-version:refname |
+            grep -E '^v[0-9]' | grep -Fxv "$TAG" | head -n1 || true)"
+          args=(--version "$VERSION")
+          if [ -n "$previous_tag" ]; then
+            args+=(--previous-ref "$previous_tag")
+          fi
+          python3 tools/ci/check_changelog_promoted.py "${args[@]}"
 
   # Same lint/analyze/test gate PRs pass — single-sourced from A5's reusable
   # workflow so a release can never ship code the PR gate would reject.

@@ -106,8 +106,9 @@ and produces no Android artifact.
    draft's body is generated from — see
    [CHANGELOG-driven release notes](#changelog-driven-release-notes)). Promote
    the accumulated `## [Unreleased]` items into a new versioned section **before**
-   tagging. **For a stable (plain `x.y.z`) tag this is mandatory** — the release
-   fails fast in the `meta` job if the section is missing.
+   tagging. The release fails fast in the `meta` job if `Unreleased` still has
+   list items. For a stable (plain `x.y.z`) tag, it also requires the matching
+   versioned section.
 
    ```md
    ## [Unreleased]
@@ -138,10 +139,10 @@ and produces no Android artifact.
    ```
 
 4. Watch the run under **Actions → Release**. It resolves + validates metadata
-   (a **stable** tag with no matching CHANGELOG section fails here, fast), gates
-   on the reusable checks, builds + packages on all three OSes, creates the
-   **draft** release (`publish`), then **verifies each artifact's SLSA provenance
-   and SBOM attestation** (`verify`).
+   (an unpromoted CHANGELOG fails here, fast; schema changes also require a
+   current Data / Migrations range), gates on the reusable checks, builds +
+   packages on all three OSes, creates the **draft** release (`publish`), then
+   **verifies each artifact's SLSA provenance and SBOM attestation** (`verify`).
 5. Review the draft under **Releases**: confirm the six binaries, `SHA256SUMS`,
    and the channel manifest are present and named correctly, **and that the
    notes body matches the CHANGELOG section**. For a prerelease, a
@@ -188,6 +189,10 @@ The draft release body is produced by `tools/release/gen_release_notes.py`
     and a `::warning::` in the log — a reviewer-visible nudge that keeps beta
     iteration frictionless. Fix the CHANGELOG and re-push, or edit the draft,
     before publishing.
+- On every tag, `## [Unreleased]` must contain no list items. When
+  `kCompendiumSchemaVersion` changed since the previous release, the selected
+  versioned section must also have a **Data / Migrations** schema range ending
+  at the current version. These checks run before the build matrix.
 
 The stable guard runs the tool in `--check` mode from the `meta` job; a
 build-only `workflow_dispatch` dry run is exempt (it never publishes).
