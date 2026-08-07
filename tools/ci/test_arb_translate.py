@@ -459,6 +459,13 @@ def _validate_cases() -> None:
             )
             assert code == 1 and a.SOURCE_HASH_FIELD in out and "is stale" not in out
 
+        # A wrong-typed @key block is one error, not a type error plus a
+        # missing-marker error for the same block.
+        code, out = _one_locale("de", {**base, "@@locale": "de", "@greeting": "oops"})
+        assert code == 1 and "must be a JSON object" in out
+        assert a.SOURCE_HASH_FIELD not in out
+        assert out.count("@greeting") == 1
+
         # Content safety: a bidi-override control is a hard error.
         code, out = _one_locale(
             "de", {**base, "@@locale": "de", "greeting": "Hi\u202eevil"}

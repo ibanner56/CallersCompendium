@@ -158,7 +158,8 @@ User-visible strings are internationalized with `flutter_localizations` +
 `app/lib/l10n/app_en.arb` (not inline in widgets), then use them via
 `AppLocalizations.of(context)`. Translating the app needs **no handwritten
 Dart**: copy `app_en.arb` to `app_<locale>.arb`, translate the values with
-`arb_translate.py apply` so per-key English-source markers are recorded, then
+`arb_translate.py extract`/`apply` so per-key English-source markers are
+recorded, then
 regenerate the committed localizations (a one-line `gen-l10n` step) and, for
 iOS, add the locale to the Runner's `Info.plist`. See
 [docs/dev/localization.md](docs/dev/localization.md) for the key-naming

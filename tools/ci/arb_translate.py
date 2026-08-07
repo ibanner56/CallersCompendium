@@ -18,9 +18,11 @@ free/offline tooling constraint of the other ``tools/ci`` scripts.
 
 Subcommands
 -----------
-``extract``   Emit the keys missing (or empty) in a locale as a JSON batch with
-              each key's English source, description, declared placeholders, and
-              any matched glossary hints — the payload the model translates.
+``extract``   Emit the keys a locale still needs — missing, empty, or carrying no
+              marker matching the current English source — as a JSON batch with
+              each key's English source and its hash, description, declared
+              placeholders, and any matched glossary hints — the payload the
+              model translates.
 ``apply``     Merge a ``{key: value}`` translation map into ``app_<locale>.arb``
               (values plus per-key English-source markers, template key order).
 ``validate``  Gate a locale (or ``--all``) against the template: subset keys,
@@ -352,10 +354,18 @@ def cmd_extract(args) -> int:
         if not is_translatable(src):
             continue
         translated = target.get(key)
-        # A key needs translating if it is absent, non-string, blank, or was
-        # translated from an older English source.
-        stale = _source_marker_problem(template, target, key, target_path.name) is not None
-        if key in existing and isinstance(translated, str) and translated.strip() and not stale:
+        # A key needs translating if it is absent, non-string, blank, or carries
+        # no usable marker tying it to the current English source (missing,
+        # malformed, or recording an older source).
+        unmarked_or_stale = (
+            _source_marker_problem(template, target, key, target_path.name) is not None
+        )
+        if (
+            key in existing
+            and isinstance(translated, str)
+            and translated.strip()
+            and not unmarked_or_stale
+        ):
             continue
         items.append(
             {
@@ -535,15 +545,18 @@ def validate_locale(arb_dir: Path, template: dict, locale: str) -> tuple[list[st
         # source it came from. Any other copied @key fields must still match the
         # template's (translators change values only).
         meta = "@" + key
-        marker_problem = _source_marker_problem(template, data, key, path.name)
-        if marker_problem:
-            errors.append(marker_problem)
         if meta in data and not isinstance(data[meta], dict):
+            # A wrong-typed @key block is one fault, not two: reporting the
+            # missing marker as well would bury the cause under its symptom.
             errors.append(f"{path.name}: metadata {meta!r} must be a JSON object")
-        elif meta in data:
-            locale_meta = _metadata_without_source_marker(data[meta])
-            if locale_meta and locale_meta != template.get(meta):
-                errors.append(f"{path.name}: metadata {meta!r} differs from the template")
+        else:
+            marker_problem = _source_marker_problem(template, data, key, path.name)
+            if marker_problem:
+                errors.append(marker_problem)
+            if meta in data:
+                locale_meta = _metadata_without_source_marker(data[meta])
+                if locale_meta and locale_meta != template.get(meta):
+                    errors.append(f"{path.name}: metadata {meta!r} differs from the template")
         # ICU argument / placeholder parity.
         try:
             t_args = parse_icu(template[key])

@@ -305,12 +305,24 @@ You do **not** need to write code to translate the app.
 2. **Set the file's `"@@locale"`** to the copied locale (e.g. `"pt_BR"` or
    `"zh_Hant"`). The template still carries `"en"`; leaving it unchanged makes
    gen-l10n see conflicting locale metadata and can misfile your translations.
-3. **Translate the string values only.** Leave the keys unchanged, and let
-   `arb_translate.py apply` write each locale `@key` block's
-   `x-sourceSha256` marker. That marker records the English source text the
-   translation came from, so a later English edit fails validation until the
-   translation is refreshed. Keep every ICU placeholder (e.g. `{example}`) and
-   plural form intact — only the surrounding words change.
+3. **Translate the string values only**, through `arb_translate.py`. Get the
+   queue for your locale, translate the values it hands you, and merge them
+   back:
+   ```bash
+   python3 tools/ci/arb_translate.py extract --locale <locale> > batch.json
+   # translate each item's "source" into a {"key": "value"} map, then:
+   python3 tools/ci/arb_translate.py apply --locale <locale> --input map.json
+   ```
+   `apply` is what writes each locale `@key` block's `x-sourceSha256` marker,
+   recording the English source text the translation came from, so a later
+   English edit fails validation until the translation is refreshed. Editing
+   `app_<locale>.arb` by hand instead leaves those markers missing and
+   `validate` will reject the file, so re-run `apply` for anything you hand-edit
+   — and never write or adjust an `x-sourceSha256` value yourself, since a
+   marker you set by hand asserts a translation is current without anyone having
+   read the English it claims to match. Leave the keys unchanged, and keep every
+   ICU placeholder (e.g. `{example}`) and plural form intact — only the
+   surrounding words change.
 
    This step means *translate*, not *fill in*. Never leave (or paste) the
    **English** value in a locale ARB to make a key look done: a key carrying
@@ -360,8 +372,9 @@ validating it in line with OWASP guidance.
 
 A model-agnostic pipeline with three subcommands:
 
-- `extract --locale <code>` — prints the keys still missing, blank, or stale in
-  `app_<code>.arb` as a JSON batch. Each entry carries the English source, its
+- `extract --locale <code>` — prints the keys still missing, blank, or without a
+  marker matching the current English source in `app_<code>.arb` as a JSON
+  batch. Each entry carries the English source, its
   `sourceHash`, its `description`, its declared placeholders, and any matched
   **glossary** hints (`tools/ci/i18n_glossary.json`). This is the payload a
   translator — human or model — works from.
