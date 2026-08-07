@@ -209,6 +209,16 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Skipping every dance in a shared import no longer disables Import when the
+  bundle carries a program.** Previously, if you already owned every dance in a
+  shared bundle and set them all to Skip, the Import button went grey — making
+  the program unreachable even though it was the only thing you wanted. The fix
+  covers both the share-target path (opening a `.ccshare` sent to you) and the
+  manual-pick path (choosing a `.ccshare` from "Choose file"). Programs are now
+  committed regardless of how dance rows are dispositioned, and a note in the
+  review panel tells you a program will be included so the summary is never
+  misleading (#869).
+
 - **Importing a `.ccshare` file through the manual Import picker now includes the
   program.** Previously, picking a `.ccshare` file from the "Choose file" button
   silently dropped any program it contained — you'd see the dances arrive but the

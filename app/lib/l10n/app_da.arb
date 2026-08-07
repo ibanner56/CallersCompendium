@@ -1032,6 +1032,7 @@
   "importReviewPasteJson": "Eller indsæt JSON",
   "importReviewReviewButton": "Gennemse import",
   "importReviewWillImport": "{importable} af {total} importeres",
+  "importReviewWillImportPrograms": "Inkluderer også {count, plural, =1{1 program} other{{count} programmer}}.",
   "importReviewCouldNotRead": "Kunne ikke læse importen",
   "importReviewNoDancesTitle": "Ingen danse fundet",
   "importReviewNoDancesBody": "Filen indeholdt ingen danse at importere.",

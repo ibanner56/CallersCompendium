@@ -4344,6 +4344,8 @@
   "@importReviewReviewButton": {"description": "Button that plans the import and moves to the review step."},
   "importReviewWillImport": "{importable} of {total} will be imported",
   "@importReviewWillImport": {"description": "Count summary above the commit button showing how many records will be imported.", "placeholders": {"importable": {"type": "int"}, "total": {"type": "int"}}},
+  "importReviewWillImportPrograms": "Also includes {count, plural, =1{1 program} other{{count} programs}}.",
+  "@importReviewWillImportPrograms": {"description": "Secondary summary line shown above the commit button when a shared bundle (share-target or manual pick) carries programs. Appears alongside importReviewWillImport to indicate the programs will be written regardless of how dance rows are dispositioned.", "placeholders": {"count": {"type": "int"}}},
   "importReviewCouldNotRead": "Couldn't read the import",
   "@importReviewCouldNotRead": {"description": "Title shown when the import payload could not be parsed."},
   "importReviewNoDancesTitle": "No dances found",

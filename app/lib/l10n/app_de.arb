@@ -1032,6 +1032,7 @@
   "importReviewPasteJson": "Oder JSON einfügen",
   "importReviewReviewButton": "Import prüfen",
   "importReviewWillImport": "{importable} von {total} werden importiert",
+  "importReviewWillImportPrograms": "Enthält außerdem {count, plural, =1{1 Programm} other{{count} Programme}}.",
   "importReviewCouldNotRead": "Import konnte nicht gelesen werden",
   "importReviewNoDancesTitle": "Keine Tänze gefunden",
   "importReviewNoDancesBody": "Die Datei enthielt keine Tänze zum Importieren.",
