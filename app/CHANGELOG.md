@@ -75,6 +75,18 @@ each release so store builds and tags can be traced back to an entry.
   list came in whole when it didn't. Even when nothing turns out to be
   importable, you still get the answer to "which of these do I already have?"
 
+- **The Caller's Box importer now recognises mixer partner-series codes in
+  pass lists and prose.** Figures like `Grand right and left (P1R;P2L;P3R;P4L)`
+  now decompose into the correct `pull_by_dancers` sequence instead of
+  importing as a custom figure. Prose lines like `P2 partner swing` now parse
+  as a swing with the named partner set. The range matches the vocabulary: `P`
+  and `P1` both mean your current partner, `P0` the previous one, and `P2`–`P5`
+  the next through fifth. Pass lists already understood `P` and `P1`; the rest
+  of the range is new there, and in prose every one of them is new. `P6` and
+  beyond, and any negative form (`P-1`, etc.), continue to decline to custom —
+  the taxonomy has no token for them and importing them as a nearer partner
+  would be wrong.
+
 - **You can now give your tags colours.** Settings → Appearance → Tag colours
   lists every tag you've created and lets you pick a colour for any of them; the
   colour then shows on that tag's chip in the collection list and on dance

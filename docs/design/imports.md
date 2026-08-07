@@ -421,13 +421,15 @@ lowers the line onto one `pull_by_dancers` per stated pass, carrying that pass's
   decoder uses (one notation, one map). Glossary-backed:
   `N`/`N1`→`neighbors`, `N0`→`prevNeighbors`, `N2`→`nextNeighbors`,
   `N3`→`thirdNeighbors`, `N4`→`fourthNeighbors`, `P`/`P1`→`partners`,
+  `P0`→`prevPartners`, `P2`→`nextPartners`, `P3`→`thirdPartners`,
+  `P4`→`fourthPartners`, `P5`→`fifthPartners`,
   `S`/`S1`→`shadows`, `S2`→`secondShadows`, `M`/`W`→`role1s`/`role2s`.
 - **Codes we deliberately do NOT map** (the line stays custom rather than being
   approximated): `C1`–`C3` — TCB's *"Corners (square)"* ("the non-partner next
   to you… the person across from you… the remaining person") are a **different
   concept** from its separate *"First/second corners"* entry, which is what
-  `firstCorners`/`secondCorners` model; `P2`–`P6`/`P0`/`P-n` (a mixer's
-  future/previous partners); `N5`+/`N-1`/`N-2`, `S3`+/`S-n`; `Ph*` (phantoms),
+  `firstCorners`/`secondCorners` model; `P6`+/`P-n` (mixer partners beyond the
+  modelled depth); `N5`+/`N-1`/`N-2`, `S3`+/`S-n`; `Ph*` (phantoms),
   `TB*` (trail buddy), `SR*`; and a bare `R`/`L` cell, which states a hand but
   no dancer.
 - **Whole-line strictness.** The text outside the pass list must be exactly

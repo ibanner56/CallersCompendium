@@ -444,6 +444,17 @@ const Map<String, String> _dancerWords = {
   'n2': 'nextNeighbors',
   'n3': 'thirdNeighbors',
   'n4': 'fourthNeighbors',
+  // Tier B: TCB P-prefix partner-series shorthand ("P1 partner", "P2 partner",
+  // …). P/P1 = current partner; P0 = previous; P2–P5 = successive next
+  // partners (taxonomy v24, issue #732). P6+ and P-n have no taxonomy token
+  // and are absent from this map so they decline the whole line to custom.
+  'p': 'partners',
+  'p1': 'partners',
+  'p0': 'prevPartners',
+  'p2': 'nextPartners',
+  'p3': 'thirdPartners',
+  'p4': 'fourthPartners',
+  'p5': 'fifthPartners',
   // TCB explicit-dancer codes map to the single-dancer identities: M/W are the
   // roles, 1 = the active couple (ones), 2 = the inactive couple (twos). So
   // M1 = active role1 (onesRole1), W1 = active role2 (onesRole2), M2 = inactive
@@ -497,6 +508,13 @@ String? _takeDancer(List<String> w) {
           (w[i] == 'neighbor' || w[i] == 'neighbors')) {
         w.removeAt(i);
       }
+      // TCB pairs the P-prefix with a redundant "partner(s)" word
+      // ("P2 partner swing"); drop it for the same reason.
+      if (_pSeriesCodes.contains(raw) &&
+          i < w.length &&
+          (w[i] == 'partner' || w[i] == 'partners')) {
+        w.removeAt(i);
+      }
       return token;
     }
   }
@@ -520,6 +538,12 @@ String? _takeLeadingDancer(List<String> w) {
       (w[0] == 'neighbor' || w[0] == 'neighbors')) {
     w.removeAt(0);
   }
+  // Mirror _takeDancer's "P2 partner" pair absorption for the leading slot.
+  if (_pSeriesCodes.contains(raw) &&
+      w.isNotEmpty &&
+      (w[0] == 'partner' || w[0] == 'partners')) {
+    w.removeAt(0);
+  }
   return token;
 }
 
@@ -538,6 +562,13 @@ String? _takeSide(List<String> w) {
 /// neighbor qualifier ("with neighbor N2", "chain to neighbor N2") that would
 /// otherwise be left over and force the custom fallback.
 const Set<String> _neighborNumbers = {'n0', 'n1', 'n2', 'n3', 'n4'};
+
+/// TCB P-prefix partner tags that have taxonomy tokens (`P`/`P0`–`P5`; taxonomy
+/// v24, issue #732). Used to identify the subset of [_dancerWords] keys whose
+/// "P2 partner" pair absorption should fire — membership is a taxonomy fact, not
+/// a spelling heuristic. `partner` and `partners` also start with `p` in
+/// [_dancerWords] but must NOT trigger the absorption.
+const Set<String> _pSeriesCodes = {'p', 'p0', 'p1', 'p2', 'p3', 'p4', 'p5'};
 
 /// Removes the first [_neighborNumbers] token from [w] and returns it, or null.
 String? _takeNeighborNumber(List<String> w) {

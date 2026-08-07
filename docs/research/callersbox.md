@@ -139,31 +139,70 @@ and `pull by direction`.
 The last two entries are why `C1`–`C3` are **not** mapped: `ParamVocab`'s
 `firstCorners`/`secondCorners` model the ECD *First/second corners*, a different
 relationship from TCB's square corners. Mapping them would fabricate.
-`P2`–`P5` and `P0` do now have vocabulary tokens (taxonomy v24,
-issue #732), but this importer still declines them; wiring up the
-in-range codes is follow-up work under #732. `P6`+, every `P-n`,
+`P0`, `P2`–`P5` have vocabulary tokens (taxonomy v24, issue #732) and the
+importer now maps them (issue #732, PR E). `P6`+, every `P-n`,
 `N5`+/`N-1`/`S3`+ have no token, and `Ph*` (phantoms) / `TB*`
 (trail buddy) / bare `R`/`L` name no representable dancer — every
 one of those declines the whole line to `custom`.
 
 #### Corpus measurements (full local TCB mirror, 24 107 dance files / 152 589 figure lines)
 
-**`grand right and left`: 353 lines**, of which **128 decompose** to
-`pull_by_dancers` sequences. Top decodable shapes: `(N1R;N2L)` 32 ·
-`(N3R;N2L)` 26 · `(S2R;S1L)` 15 · `(N1R;N2L;N3R)` 14 · `(PR;S1L;S2R)` 9 ·
-`(N2R;N3L)` / `(N1L;N2R)` / `(N4R;N3L)` 4 each. The 225 declines break down as:
+**`grand right and left`: 353 lines**, of which **157 decompose** to
+`pull_by_dancers` sequences (128 before issue #732 PR E; +29 from P-series).
+Top decodable shapes among the original 128 (N/S-series only):
+`(N1R;N2L)` 32 · `(N3R;N2L)` 26 · `(S2R;S1L)` 15 · `(N1R;N2L;N3R)` 14 ·
+`(PR;S1L;S2R)` 9 · `(N2R;N3L)` / `(N1L;N2R)` / `(N4R;N3L)` 4 each. The 29
+new P-series shapes are documented in the PR E section below; the commonest
+P-shapes by occurrence are `(P1R;P2L;P3R;P4L)` (21 occurrences — all
+beats-blocked, not decomposing) and `(P1R;P2L;P3R;P4L;P5R;P6L)` (10
+occurrences — out-of-range `P6`, still unmappable). The 29 that actually
+decompose are distributed across P-series shapes with beat counts divisible by
+their pass count. The 196 declines break down as:
 
 | reason | lines | detail |
 |---|---|---|
-| unmappable pass code | 163 | mixer partner series `P2`+/`P0`/`P-n` 66 · square corners `C1`–`C7` 55 · out-of-range neighbors `N5`+/`N-n` 25 · bare `R`/`L` with no dancer 11 · out-of-range shadows `S3`+/`S-n` 5 · trail buddy `TB` 1 |
+| unmappable pass code | 115 | square corners `C1`–`C7` 55 · mixer partner series `P6`+/`P-n` 18 · out-of-range neighbors `N5`+/`N-n` 25 · bare `R`/`L` with no dancer 11 · out-of-range shadows `S3`+/`S-n` 5 · trail buddy `TB` 1 |
 | leftover prose outside the pass list | 56 | a second parenthetical 17 · a `[…]` qualifier 16 · other prose/`;`-tail 9 · `Progressive grand right and left` 8 · `Same-role grand right and left` 6 |
 | no pass list at all | 3 | |
 | degenerate list (`(N1R)`, `(N1R;;N2L)`) | 2 | |
-| beats do not divide by the pass count | 1 | `(8) Grand right and left (N0L;N1R;N2L)` |
+| beats do not divide by the pass count | 20 | 1 original `(8) Grand right and left (N0L;N1R;N2L)` (3 passes, 8 beats) · 19 newly-surfaced P-series lines of the shape `(10) Grand right and left (P1R;P2L;P3R;P4L)` (4 passes, 10 beats) |
 
-Beats vs. pass count over the 129 lines that reach the beats check: 4/2 ×89,
-6/3 ×29, 6/2 ×4, 8/4 ×3, 8/2 ×3 — **128 of 129 divide evenly**; the single
-exception stays custom rather than inventing an uneven 3+3+2 split.
+*(Before PR E: 128 decompose / 225 decline / 163 unmappable-pass-code /
+P-series 66 / beats 1. Counts measured with the real adapter over the full
+corpus at commit `5b05c4b3`; each line counted once, tie-broken by the first
+unmappable code in the decoder's own order. One corpus line —
+`(8) Grand right and left (TBR;L;R;L)` — qualifies for both trail-buddy and
+bare-R/L; under this methodology it is counted as trail-buddy.)*
+
+The **48 P-series pass-list lines** that left the unmappable bucket break into
+three outcomes: **29 decompose** (pass-code mapping succeeds and beats divide
+evenly), **19 surface in the beats-blocked row** (pass-code mapping now
+succeeds, but 10 beats over 4 passes does not divide — the code check previously
+fired first and hid the real blocker), **0 remain P-alone-blocked**. The 18 that
+stay in the unmappable bucket each contain an in-range P code *and* an
+out-of-range `P6` or `P-n` in the same list; since decomposition is
+all-or-nothing, the out-of-range code still declines the whole line.
+
+Beats vs. pass count over the **177 lines** that reach the beats check: **157 of
+177 divide evenly** (all 20 exceptions fail); the 20 that do not are the 1
+original N-series line plus the 19 newly surfaced P-series ones described above.
+
+**Prose-figure lines containing a `P` token (issue #732 PR E, measured at commit
+`5b05c4b3`).** Every figure line in the full corpus that contains at least one
+`P`-prefixed dancer code (`P0`–`P5`, `P1`, etc.):
+
+| population | lines before | lines still custom | newly structured |
+|---|---|---|---|
+| any `P` token | 1 956 | 771 | **1 185** |
+| `P1` token | 929 | 374 | **555** |
+| `P1` and no other in-range `P` | 916 | 368 | **548** |
+
+The prose path is the main gain — **1,185 lines** become structured, of which
+**555** involve only the current-partner `P1` mapping. The grand-right-and-left
+path adds a further 29 lines. What still declines: ~89 mid-line `to P2` /
+`face P2` forms whose trailing `partner` qualifier leaves leftover prose; the
+deliberately-unmapped "new partner" prose forms (~95 lines in mixers); and any
+line whose remaining constructs cannot be structured regardless of the P mapping.
 
 **`flutterwheel`: 143 lines, 143 of them compound parents TCB decomposes
 itself.** The children are always an allemande plus a star promenade, summing

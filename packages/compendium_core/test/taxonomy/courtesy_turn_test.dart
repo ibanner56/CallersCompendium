@@ -160,6 +160,13 @@ void main() {
         'N3 neighbor courtesy turn': 'thirdNeighbors',
         'Shadow courtesy turn': 'shadows',
         'Twos courtesy turn': 'twos',
+        // Mixer partner-series: spot-checks that courtesy_turn routes through
+        // the same _dancerWords map as swing/allemande/promenade. P0–P5 are
+        // exhaustively asserted via that map in figure_parser_test.dart;
+        // only a representative subset is needed here.
+        'P1 partner courtesy turn': 'partners',
+        'P2 partner courtesy turn': 'nextPartners',
+        'P4 partner courtesy turn': 'fourthPartners',
       };
       cases.forEach((line, who) {
         final f = parseTcb(line, beats: 4);
@@ -442,14 +449,14 @@ void main() {
   group(
     'must stay custom — dancers the taxonomy deliberately does not map',
     () {
-      // `P2`+ (a mixer's future partners), phantoms, square corners and the
-      // free-form positional phrases have no faithful token; approximating them
-      // onto one that means someone else would be worse than declining.
+      // `P6`+, negative `P-n`, phantoms, square corners and the free-form
+      // positional phrases have no faithful token; approximating them onto one
+      // that means someone else would be worse than declining.
+      // (`P1`/`P2`/`P4` now have tokens — see "attested subject" test above.)
       for (final line in [
+        'P6 partner courtesy turn',
+        'P-1 partner courtesy turn',
         'Phantom partner courtesy turn',
-        'P1 partner courtesy turn',
-        'P2 partner courtesy turn',
-        'P4 partner courtesy turn',
         'Next corner courtesy turn',
         '[Ends] Opposite neighbor courtesy turn',
         'Bottom couple courtesy turn',

@@ -616,6 +616,25 @@ void main() {
       'Hey (ML;NR;WL;PR;M ricochet;PR;WL)',
       // 3/4 caps at rico3, so a pos7 ricochet (rico4) exceeds it -> custom.
       'Hey 3/4 (M ricochet;NR;W ricochet;PR;M ricochet;NR;W ricochet;PR)',
+      // P-series boundary: P6+ and P-n have no taxonomy token. A line naming
+      // either must not be silently mapped onto a nearer partner — it stays
+      // custom.
+      //
+      // To falsify, add the code to BOTH _dancerWords AND _pSeriesCodes.
+      // Adding it to _dancerWords alone leaves this test green: the pair
+      // absorption in _takeDancer/_takeLeadingDancer is gated on
+      // _pSeriesCodes, which excludes out-of-range codes, so the trailing
+      // "partner" survives as a leftover token, _swing returns null, and the
+      // line declines to custom without the boundary ever being exercised.
+      // Measured both ways for p6 and p-1: one map green, both maps red.
+      'P6 partner swing', // depth boundary: one beyond the modelled range
+      'P-1 partner swing', // negative index: no taxonomy token
+      // Regression: the P-prefix pair-absorption guard must test set membership
+      // (in _pSeriesCodes), not raw.startsWith('p'). The key 'partner' also
+      // starts with 'p', so the loose guard would absorb the second 'partner' in
+      // 'partner partner swing' and produce swing(who: partners) — a fabricated
+      // structured result from a non-existent TCB construction.
+      'partner partner swing',
     ];
 
     for (final line in mustStayCustom) {
@@ -967,6 +986,17 @@ void main() {
         move: 'give_and_take',
         params: {'who': 'role2s', 'whom': 'neighbors'},
       ),
+      // 22. P-prefix partner-series shorthand (taxonomy v24, issue #732).
+      // TCB writes "Pn partner <verb>" — the Pn code identifies the dancer set
+      // and the trailing "partner" qualifier is dropped (mirrors "N2 neighbor").
+      // Falsify these tests by removing the corresponding p→token entry from
+      // _dancerWords.
+      'P1 partner swing': (move: 'swing', params: {'who': 'partners'}),
+      'P0 partner swing': (move: 'swing', params: {'who': 'prevPartners'}),
+      'P2 partner swing': (move: 'swing', params: {'who': 'nextPartners'}),
+      'P3 partner swing': (move: 'swing', params: {'who': 'thirdPartners'}),
+      'P4 partner swing': (move: 'swing', params: {'who': 'fourthPartners'}),
+      'P5 partner swing': (move: 'swing', params: {'who': 'fifthPartners'}),
     };
 
     cases.forEach((line, expected) {

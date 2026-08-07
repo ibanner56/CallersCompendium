@@ -35,25 +35,31 @@ compiler and UI both exhaustively switch over it.
 ```
 sealed DanceFilter
   // combinators
-  And(List<DanceFilter> children)      // ∅ ⇒ TRUE  (matches everything)
-  Or(List<DanceFilter> children)       // ∅ ⇒ FALSE (matches nothing)
-  Not(DanceFilter child)
+  AndFilter(List<DanceFilter> children)      // ∅ ⇒ TRUE  (matches everything)
+  OrFilter(List<DanceFilter> children)       // ∅ ⇒ FALSE (matches nothing)
+  NotFilter(DanceFilter child)
 
   // metadata leaves
-  FullText(String query)               // → dance_fts MATCH
-  Author(String choreographerId)
-  Form(DanceForm form)                 // roadmap "Type": contra | ecd | square
-  Formation(FormationShape shape)      // shape only; free-text detail via FullText
-  Progression(Progression progression)
-  Status(DanceStatus status)
-  Tag(String tagId)
-  CustomField(String fieldId, CustomFieldOp op, Object? value)
+  FullTextFilter(String query)               // → dance_fts MATCH
+  AuthorFilter(String choreographerId)
+  SourceFilter(String query)                 // substring match on cited source title/author
+  SourceIdFilter(String sourceId)            // identity match on cited source id
+  FormFilter(DanceForm form)                 // roadmap "Type": contra | ecd | square
+  FormationFilter(FormationShape shape)      // shape only; free-text detail via FullTextFilter
+  ProgressionFilter(Progression progression)
+  StatusFilter(DanceStatus status)
+  LevelFilter(DanceLevel level, [LevelOp op = eq])  // ordered scale; see LevelOp below
+  MixedLevelFilter(bool mixed)               // → dances.mixed_level
+  MixerFilter(bool mixer)                    // → dances.mixer (issue #732)
+  RatingFilter(int minimum)                  // minimum-star floor, 1..5
+  TagFilter(String tagId)
+  CustomFieldFilter(CustomFieldDef def, CustomFieldOp op, Object? value)
 
   // structural leaf
-  Figure(String move, {Map<String, Object?> params, String? section})
+  FigureFilter(FigureQuery query)            // sugar: FigureFilter.leaf(String move, {params, section})
 
   // sequence
-  Then(FigureQuery before, FigureQuery after)
+  ThenFilter(FigureQuery before, FigureQuery after)
 ```
 
 `CustomFieldOp` is typed by the field's `CustomFieldType` (validated when the
@@ -66,7 +72,12 @@ leaf is built against the field def, and again — defensively — at compile):
 | `boolean` | `is` (true/false) | `value_num` (0/1) |
 | `choice`  | `is`, `in(List<String>)` | `value_text` |
 
-`FigureQuery` (the operand grammar for `Then`, and the reusable shape of a
+`LevelOp` is the ordered comparison for a `LevelFilter` leaf (`eq` / `lte` / `gte`
+against the `DanceLevel` scale). An unspecified level (`dances.level IS NULL`)
+never matches `lte` or `gte` — an unspecified difficulty is not a point on the
+scale. `MixedLevelFilter` is a separate boolean axis orthogonal to `LevelFilter`.
+
+`FigureQuery` (the operand grammar for `ThenFilter`, and the reusable shape of a
 structural predicate) is deliberately **narrower** than `DanceFilter`:
 
 ```
@@ -78,15 +89,16 @@ sealed FigureQuery
 ```
 
 Rationale for the split (see *Open questions* for the flagged decision): a
-`Then` asks "does a figure matching X occur *before* a figure matching Y", which
-is only meaningful for predicates evaluated **per `dance_figures` row**.
-Metadata leaves (`Author`, `FullText`, `Form`, …) are per-*dance*, not
-per-figure, so they have no position in the sequence and are excluded from
-`FigureQuery`. `FigureAnd`/`FigureOr`/`FigureNot` combine constraints *on one
-figure* (e.g. "a `swing` in B1 that is a progression"), distinct from the
-dance-level `And`/`Or`/`Not`. The top-level `Figure` leaf is sugar for a
-`DanceFilter` wrapping a single `FigureLeaf` ("some figure in the dance
-matches").
+`ThenFilter` asks "does a figure matching X occur *before* a figure matching Y",
+which is only meaningful for predicates evaluated **per `dance_figures` row**.
+Metadata leaves (`AuthorFilter`, `FullTextFilter`, `FormFilter`, …) are
+per-*dance*, not per-figure, so they have no position in the sequence and are
+excluded from `FigureQuery`. `FigureAnd`/`FigureOr`/`FigureNot` combine
+constraints *on one figure* (e.g. "a `swing` in B1 that is a progression"),
+distinct from the dance-level `AndFilter`/`OrFilter`/`NotFilter`.
+`FigureFilter(query)` wraps any `FigureQuery` as a dance-level predicate ("some
+figure in the dance matches"); `FigureFilter.leaf(move, {params, section})` is
+convenience sugar for the single-leaf case.
 
 ## SQL compilation
 
@@ -102,30 +114,37 @@ ORDER BY <sort>;
 
 Each node compiles to a **boolean predicate over the current `dances` row**.
 Binds are collected in **pre-order, left-to-right** as the predicate string is
-built, so the bind list index always matches the emitted `?` order. `And([])`
-compiles to the literal `1` (TRUE); `Or([])` to `0` (FALSE); the outer
+built, so the bind list index always matches the emitted `?` order. `AndFilter([])`
+compiles to the literal `1` (TRUE); `OrFilter([])` to `0` (FALSE); the outer
 `deleted_at IS NULL` always stands regardless of the tree.
 
 ### Metadata leaves
 
 | Node | Predicate |
 |---|---|
-| `FullText(q)` | `id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?)` |
-| `Author(cid)` | `id IN (SELECT dance_id FROM dance_authors WHERE choreographer_id = ?)` |
-| `Tag(tid)` | `id IN (SELECT dance_id FROM dance_tags WHERE tag_id = ?)` |
-| `Form(f)` | `form = ?` (enum `.name`, e.g. `'contra'`) |
-| `Formation(s)` | `formation_shape = ?` (enum `.name`) |
-| `Progression(p)` | `progression = ?` (enum `.name`) |
-| `Status(s)` | `status = ?` (enum `.name`) |
+| `FullTextFilter(q)` | `id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?)` |
+| `AuthorFilter(cid)` | `id IN (SELECT dance_id FROM dance_authors WHERE choreographer_id = ?)` |
+| `SourceFilter(q)` | `id IN (SELECT ds.dance_id FROM dance_sources ds JOIN published_sources ps ON ps.id = ds.source_id WHERE ps.title LIKE '%' \|\| ? \|\| '%' ESCAPE '\' OR ps.author LIKE '%' \|\| ? \|\| '%' ESCAPE '\')` (2 binds) |
+| `SourceIdFilter(sid)` | `id IN (SELECT dance_id FROM dance_sources WHERE source_id = ?)` |
+| `TagFilter(tid)` | `id IN (SELECT dance_id FROM dance_tags WHERE tag_id = ?)` |
+| `FormFilter(f)` | `form = ?` (enum `.name`, e.g. `'contra'`) |
+| `FormationFilter(s)` | `formation_shape = ?` (enum `.name`) |
+| `ProgressionFilter(p)` | `progression = ?` (enum `.name`) |
+| `StatusFilter(s)` | `status = ?` (enum `.name`) |
+| `LevelFilter(l, eq)` | `level = ?` (enum `.name`) |
+| `LevelFilter(l, lte/gte)` | `level IS NOT NULL AND (CASE level … END) ≤/≥ ?` (ordinal comparison over the `DanceLevel` scale; see `FilterCompiler._level`) |
+| `MixedLevelFilter(b)` | `mixed_level = ?` (bind `1`/`0`) |
+| `MixerFilter(b)` | `mixer = ?` (bind `1`/`0`) |
+| `RatingFilter(n)` | `rating >= ?` (unrated dances excluded — NULL is not on the scale) |
 
 Enum leaves compare against the stored `EnumNameConverter` string (`.name`), so
-`Form(DanceForm.contra)` binds `'contra'`. The `IN (SELECT …)` subqueries stay
-cheap because `dance_authors`, `dance_tags`, and `dance_fts` are all keyed/
-indexed on `dance_id`.
+`FormFilter(DanceForm.contra)` binds `'contra'`. The `IN (SELECT …)` subqueries stay
+cheap because `dance_authors`, `dance_tags`, `dance_sources`, and `dance_fts` are
+all keyed/indexed on `dance_id`.
 
 ### Custom fields
 
-`CustomField(fieldId, op, value)` compiles to an `EXISTS` over the field's row:
+`CustomFieldFilter(def, op, value)` compiles to an `EXISTS` over the field's row:
 
 ```sql
 EXISTS (SELECT 1 FROM custom_field_values v
@@ -149,7 +168,7 @@ with `<op predicate>` selected by operator (all values bound):
 allow-list above by exhaustive `switch` on `(CustomFieldType, CustomFieldOp)`;
 an illegal pairing is rejected when the leaf is constructed.
 
-### Structural: `Figure` / `FigureLeaf`
+### Structural: `FigureFilter` / `FigureLeaf`
 
 A figure leaf compiles to an `EXISTS` over the dance's `dance_figures` rows:
 
@@ -182,13 +201,13 @@ distinct paths, because `FigureNot` lives in `FigureQuery`, not `DanceFilter`:
   `COALESCE` keeps SQL's three-valued logic (a NULL `json_extract` on a missing
   param) from swallowing the row.
 - **A dance-level structural predicate wrapping a `FigureNot`** —
-  `Figure(FigureNot(FigureLeaf(...)))`, read as "the dance has no figure
+  `FigureFilter(FigureNot(FigureLeaf(...)))`, read as "the dance has no figure
   matching X" — compiles to
   `id NOT IN (SELECT dance_id FROM dance_figures f WHERE <clause>)`. This is
   NULL-safe because `dance_figures.dance_id` is `NOT NULL`, so the subquery can
   never yield a NULL that would break `NOT IN`.
 
-Dance-level boolean negation of any *other* predicate stays `Not(<child>)` →
+Dance-level boolean negation of any *other* predicate stays `NotFilter(<child>)` →
 `NOT (<child>)` (see Combinators below).
 
 #### `meanwhile` containers are flattened per constituent (#590)
@@ -205,24 +224,24 @@ sides occupy consecutive slots in order; the container itself supplies their
 shared section/beat placement. A second column, `group_idx`, is **shared** by
 every row flattened from one top-level figure (all concurrent sides of a
 container included) and is monotonic across top-level figures; it is what the
-`Then` operator correlates on (see below), so simultaneous sides — which share a
+`ThenFilter` operator correlates on (see below), so simultaneous sides — which share a
 group — are never read as sequential.
 
-**Concurrency vs. sequence in `Then` (#748, was a #590 limitation).** Because a
+**Concurrency vs. sequence in `ThenFilter` (#748, was a #590 limitation).** Because a
 container's concurrent sides get consecutive `idx` values, a positional
 correlation on `a.idx < b.idx` could not tell them apart from a genuine
-sequence: `Then(X, Y)` — and, symmetrically, `Then(Y, X)` — would both match an
+sequence: `ThenFilter(X, Y)` — and, symmetrically, `ThenFilter(Y, X)` — would both match an
 `X while Y` container even though neither side happens before the other. The
 signal needed to separate "two sides of one container" from "two sequential
 figures" is not derivable from `idx`, `section` (sequential figures can share a
 phrase) or `beats` (each side stores its own), so it is carried explicitly as
-`group_idx`. `Then` correlates on `a.group_idx < b.group_idx`: two sides of one
+`group_idx`. `ThenFilter` correlates on `a.group_idx < b.group_idx`: two sides of one
 container share a group and are excluded in **both** directions, while a real
 sequence (distinct, increasing groups) still matches. This was originally
 recorded as a limitation deferred to #594; #594 shipped without addressing it,
 so #748 tracked and fixed it.
 
-### Sequence: `Then(before, after)`
+### Sequence: `ThenFilter(before, after)`
 
 "A figure matching `before` occurs earlier in the dance than a figure matching
 `after`" → a self-join on `dance_figures.group_idx`:
@@ -243,19 +262,19 @@ compiled against aliases `a` and `b` respectively (same clause shapes as the
 `a.group_idx < b.group_idx` gives strict "before" while excluding the concurrent
 sides of one `meanwhile` (which share a `group_idx`; see the flatten note
 above); consecutive-only ("immediately then") is **not** in v1 (see *Open
-questions*). Nested `Then` is not supported in v1 — `Then` operands are
-`FigureQuery`, which excludes `Then` — keeping the compiled join to a single
+questions*). Nested `ThenFilter` is not supported in v1 — `ThenFilter` operands are
+`FigureQuery`, which excludes `ThenFilter` — keeping the compiled join to a single
 pair of aliases.
 
 ### Combinators & sort
 
-`And`/`Or` wrap children in `( … AND … )` / `( … OR … )`; `Not(child)` emits
+`AndFilter`/`OrFilter` wrap children in `( … AND … )` / `( … OR … )`; `NotFilter(child)` emits
 `NOT (<child>)`.
 
 **Execution model — one SELECT, plus a post-fetch sort for two cases.** The
 single compiled `SELECT` performs *all filtering* and every **SQL-expressible**
 sort: `title COLLATE NOCASE` (the default), `updated_at DESC` (recently added/
-edited), and — only when the tree is a bare `FullText` leaf — `bm25(dance_fts)`
+edited), and — only when the tree is a bare `FullTextFilter` leaf — `bm25(dance_fts)`
 relevance. Two sorts are **not** expressible in that one statement and are
 applied as a **post-fetch pass in Dart** over the returned id set:
 
@@ -266,7 +285,7 @@ applied as a **post-fetch pass in Dart** over the returned id set:
 So the compiler always emits exactly one `SELECT` (filter + SQL sort); when the
 requested sort is `author` or `last-called`, the id set it returns is reordered
 by an explicit Dart post-processing step — not by the SQL. `bm25` relevance is
-available only for a bare `FullText` tree; any other tree falls back to the
+available only for a bare `FullTextFilter` tree; any other tree falls back to the
 `title` default, because `bm25` isn't defined outside a `MATCH` query.
 
 ### Worked example
@@ -274,9 +293,9 @@ available only for a bare `FullText` tree; any other tree falls back to the
 UX: *form = contra, has a `petronella` in B1, then a `swing`*:
 
 ```
-And([
-  Form(DanceForm.contra),
-  Then(
+AndFilter([
+  FormFilter(DanceForm.contra),
+  ThenFilter(
     FigureLeaf('petronella', section: 'B1'),
     FigureLeaf('swing'),
   ),
@@ -364,8 +383,8 @@ CREATE INDEX dance_figures_move_section ON dance_figures(move, section);
 CREATE INDEX dance_figures_dance_idx    ON dance_figures(dance_id, idx);
 ```
 
-- `(move, section)` serves the common `Figure` leaf (`move = ? AND section = ?`).
-- `(dance_id, idx)` serves the `Then` self-join's ordering and correlation.
+- `(move, section)` serves the common `FigureFilter` leaf (`move = ? AND section = ?`).
+- `(dance_id, idx)` serves the `ThenFilter` self-join's ordering and correlation.
 
 **Migration test** (`test/storage/migration_test.dart`, replacing the scaffold's
 placeholder note). Following the scaffold's own instructions for "when schema
@@ -391,7 +410,7 @@ Search input is canonicalized at the **compiler boundary**, once, before any
 bind is produced — so storage/search stay dialect-agnostic exactly as writes
 are ([dialect.md](dialect.md) "Canonicalization on input"):
 
-- **`FullText(query)`**: the query string is run through
+- **`FullTextFilter(query)`**: the query string is run through
   `canonicalizeText(query, activeDialect)` before it becomes the `MATCH` bind,
   so a dialect term ("robins", "gents") maps to the canonical role token stored
   in `dance_fts.figures_text`. FTS operators the user typed (`AND`, `"…"`,
@@ -432,14 +451,14 @@ tree. This section specifies the mapping; the widget work is 3.2c.
 | Advanced ▸ figure row | `FigureFilter(query)` with move + param + section pickers |
 | Advanced ▸ sequence row ("X then Y") | `ThenFilter(before, after)` — both operands are `FigureQuery` |
 
-- **Common case**: the facet chips compose into a flat `And` of leaves. No tree
+- **Common case**: the facet chips compose into a flat `AndFilter` of leaves. No tree
   UI is shown until the user opens **Advanced**, which reveals the nested
   group/figure/sequence editor (ez-query lesson).
 - **Figure row pickers**: `move` = taxonomy type-ahead (dialect-aware, same as
   the editor); `params` = named-param pickers from the move's schema; `section`
   = dropdown of the dance form's phrase labels (`A1 A2 B1 B2 …`).
 - **Sequence row**: two figure-row editors joined by "then"; each side is a
-  `FigureQuery` (a figure leaf, or an And/Or group of figure leaves).
+  `FigureQuery` (a figure leaf, or a `FigureAnd`/`FigureOr` group of figure leaves).
 - **Accessibility**: result counts are announced politely to AT via a live
   region ("42 dances"), per [ux.md](ux.md) §1 and the accessibility baseline;
   the builder is fully keyboard-operable and every control is labelled.
@@ -465,9 +484,9 @@ in-memory scans.
    counts (≈8–12 figures each) and varied moves/sections/authors/tags/custom
    fields, into an on-disk SQLite DB (not in-memory, to reflect real I/O).
    Deterministic seed so runs are comparable.
-2. **Query set**: a handful of representative trees — a bare `FullText`, a
-   single facet, a multi-facet `And`, a `Figure` leaf with a param+section, and
-   a `Then` sequence — each executed after a warm-up.
+2. **Query set**: a handful of representative trees — a bare `FullTextFilter`, a
+   single facet, a multi-facet `AndFilter`, a `FigureFilter` leaf with a param+section, and
+   a `ThenFilter` sequence — each executed after a warm-up.
 3. **Assertion**: measure median wall-clock per query; assert median **< 50 ms**
    with headroom (fail threshold set with margin, e.g. alert well before 50 ms
    to catch regressions early). Report timings in CI output.
@@ -480,16 +499,16 @@ in-memory scans.
 
 Flagged for coordinator/user input before 3.2b:
 
-1. **`Then` operand grammar** *(want input)*. This doc recommends `Then`
+1. **`ThenFilter` operand grammar** *(want input)*. This doc recommends `ThenFilter`
    operands are `FigureQuery` (figure leaves + `FigureAnd`/`FigureOr`/
-   `FigureNot`), **not** arbitrary `DanceFilter` and **not** nested `Then`.
-   Metadata/`FullText` under `Then` has no per-position meaning and would force
+   `FigureNot`), **not** arbitrary `DanceFilter` and **not** nested `ThenFilter`.
+   Metadata/`FullTextFilter` under `ThenFilter` has no per-position meaning and would force
    a much heavier compile. Confirm this restriction is acceptable, or specify
    the intended semantics if metadata-in-sequence is wanted.
-2. **`Not` semantics** *(want input)*. Recommended: dance-level `Not(child)` =
+2. **`NotFilter` semantics** *(want input)*. Recommended: dance-level `NotFilter(child)` =
    boolean `NOT (<child>)`; `FigureNot(leaf)` at dance level = `NOT EXISTS`
-   ("no figure matches"). Note the subtlety that `Not(Figure(x))` (dance has no
-   x) and `Figure` under a De Morgan expansion behave differently around
+   ("no figure matches"). Note the subtlety that `NotFilter(FigureFilter(x))` (dance has no
+   x) and `FigureFilter` under a De Morgan expansion behave differently around
    `EXISTS`/`NOT EXISTS`; confirm the "no figure matches" reading is what users
    expect.
 3. **Custom-field operator set** *(confirm)*. Proposed per-type operators are in
@@ -500,11 +519,11 @@ Flagged for coordinator/user input before 3.2b:
    (`A1 A2 B1 B2 …`) verbatim as the `section` string. Non-standard structures
    (`6*8*2`) yield `A1 A2 B1 …` per the existing `labels` rule. Confirm no
    separate canonical section vocabulary is wanted.
-5. **Mixing `FullText` with structural leaves** *(confirm)*. Freely allowed
-   under `And`/`Or` at dance level (each compiles independently); disallowed
-   **inside `Then`** per Q1. Confirm.
+5. **Mixing `FullTextFilter` with structural leaves** *(confirm)*. Freely allowed
+   under `AndFilter`/`OrFilter` at dance level (each compiles independently); disallowed
+   **inside `ThenFilter`** per Q1. Confirm.
 6. **`bm25` relevance vs. metadata sort** *(confirm)*. Relevance ordering is
-   offered only for a bare `FullText` tree; any other tree uses the fixed sort
+   offered only for a bare `FullTextFilter` tree; any other tree uses the fixed sort
    allow-list. Acceptable, or is a blended ranking wanted later?
 7. **Multi-tag facet semantics** *(minor)*. When the user picks several tags in
    the Tag facet: AND (has all) or OR (has any)? Proposed: OR within a single
@@ -528,10 +547,5 @@ Flagged for coordinator/user input before 3.2b:
 *Not part of 3.2; recorded so the AST/compiler grow consistently when the
 dance-model backfill lands (design/domain-model.md "CC parity backfill").*
 
-- `Level(level, op)` — filter by dance difficulty once `dance.level` exists
-  (a scalar column like Status/Progression; add a facet in the panel, and `op`
-  supports `lte`/`gte` when the scale is ordered — mirroring `CustomFieldOp`).
-  CC's `Level`/`LevelNum` is a primary programming axis, so this is the first
-  backfill leaf to add.
-- Optional `rating` and `composedOn`/`revisedOn` become scalar leaves + sort
-  keys if those land as core columns rather than custom fields.
+- Optional `composedOn`/`revisedOn` become scalar leaves + sort keys if those
+  land as core columns rather than custom fields.
