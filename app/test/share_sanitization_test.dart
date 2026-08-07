@@ -35,7 +35,10 @@ void main() {
       expect(sanitized.name, 'Cary Ravitz');
       expect(sanitized.website, 'https://ravitz.example');
       expect(sanitized.notes, 'Prolific New England composer.');
-      expect(sanitized.deceased, isTrue);
+      // `deceased` is classified deviceLocal in the privacy registry
+      // ("personal data about someone who cannot exercise any rights over
+      // it"), so it is redacted rather than preserved (issue #853).
+      expect(sanitized.deceased, isFalse);
     });
 
     test('is a no-op for a choreographer with no contact data', () {
@@ -111,18 +114,12 @@ void main() {
       expect(sanitized.contact2Email, isNull);
     });
 
-    test('keeps every descriptive field when clearing contacts', () {
+    test('keeps the descriptive fields and clears the postal address', () {
       final sanitized = sanitizeVenueForShare(fullVenue());
 
       expect(sanitized.id, 'v1');
       expect(sanitized.name, 'Town Hall');
-      expect(sanitized.address1, '10 Main St');
-      expect(sanitized.address2, 'Suite 2');
-      expect(sanitized.city, 'Montpelier');
-      expect(sanitized.stateProv, 'VT');
-      expect(sanitized.country, 'USA');
-      expect(sanitized.postalCode, '05602');
-      expect(sanitized.plus4, '1234');
+      // Descriptive fields are classified shareable and survive.
       expect(sanitized.website, 'https://townhall.example');
       expect(sanitized.sponsor, 'Local Dance Society');
       expect(sanitized.eventName, 'Friday Contra');
@@ -130,6 +127,17 @@ void main() {
       expect(sanitized.genericSchedule, '1st & 3rd Fridays');
       expect(sanitized.price, '\$12');
       expect(sanitized.notes, 'Wooden floor.');
+
+      // The postal address is classified deviceLocal in the privacy registry
+      // (venues.address1 .. venues.plus4) and has no opt-in, so it is cleared
+      // unconditionally (issue #853).
+      expect(sanitized.address1, isNull);
+      expect(sanitized.address2, isNull);
+      expect(sanitized.city, isNull);
+      expect(sanitized.stateProv, isNull);
+      expect(sanitized.country, isNull);
+      expect(sanitized.postalCode, isNull);
+      expect(sanitized.plus4, isNull);
     });
 
     test('honors include: only listed contact fields survive', () {
@@ -150,13 +158,21 @@ void main() {
       expect(sanitized.contact2Phone, isNull);
     });
 
-    test('is a no-op for a venue with no contact data', () {
+    test('clears the address even when there is no contact data', () {
       final sanitized = sanitizeVenueForShare(
-        Venue(id: 'v1', name: 'Bare Hall', city: 'Montpelier'),
+        Venue(
+          id: 'v1',
+          name: 'Bare Hall',
+          city: 'Montpelier',
+          eventName: 'Friday Contra',
+        ),
       );
 
       expect(sanitized.name, 'Bare Hall');
-      expect(sanitized.city, 'Montpelier');
+      expect(sanitized.eventName, 'Friday Contra');
+      // Not a no-op: the address block goes regardless of contacts, because
+      // it is withheld for what it is, not because a contact person is set.
+      expect(sanitized.city, isNull);
       expect(populatedVenueContactFields(sanitized), isEmpty);
     });
   });
@@ -168,10 +184,12 @@ void main() {
         final result = venuesWithSanitizedContact({'v1': fullVenue()}, 'v1');
 
         final v = result['v1']!;
-        // Descriptive fields survive; every contact field is cleared.
+        // Descriptive fields survive; the address block and every contact
+        // field are cleared.
         expect(v.name, 'Town Hall');
-        expect(v.address1, '10 Main St');
         expect(v.website, 'https://townhall.example');
+        expect(v.address1, isNull);
+        expect(v.city, isNull);
         expect(populatedVenueContactFields(v), isEmpty);
       },
     );
