@@ -1937,8 +1937,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   /// Whether the shared bundle exceeds the soft entity cap (issue #432). True
   /// on the OS share-target path ([widget.sharedBundle]) and also when a
-  /// manually picked file was detected as a bundle with programs ([_pickedBundle],
-  /// issue #852).
+  /// manually picked file was detected as a bundle with programs
+  /// ([_effectivePickedBundle], issue #852). The banner follows the *effective*
+  /// bundle, so it disappears if an edit makes the stored decode stale.
   bool get _showSoftCapWarning {
     final bundle = widget.sharedBundle ?? _effectivePickedBundle;
     return bundle != null && bundle.entityCount > kSharedBundleSoftCapEntities;

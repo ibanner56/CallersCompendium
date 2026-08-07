@@ -2357,10 +2357,18 @@ void main() {
   // Regression guard: a .ccshare bundle containing programs must NOT silently
   // drop the programs when imported via the manual file picker. The picker path
   // must route through CompendiumArchiveImporter (dances + programs + venues),
-  // the same path the OS share-target uses. The falsification target for each
-  // test is reverting this fix: with the fix reverted the picker routes through
-  // GenericJsonAdapter (dance-only), the program is never committed, and the
-  // assertions on repos.programs.listAll() fail.
+  // the same path the OS share-target uses.
+  //
+  // Falsification targets differ by test:
+  // - Most tests (routing, undo, dance-only scope guard): revert this fix.
+  //   With the fix reverted the picker routes through GenericJsonAdapter
+  //   (dance-only), the program is never committed, and the assertions on
+  //   repos.programs.listAll() fail.
+  // - The staleness test (editing the paste field): mutate-out _effectivePickedBundle
+  //   back to ?? _pickedBundle. The hazard did not exist before this PR created
+  //   the cache, so a revert cannot reach it — reverting would also remove the
+  //   test. The mutate-out target restores the naive form a future simplification
+  //   might produce and confirms the test catches that.
 
   group('manual picker with .ccshare containing programs (issue #852)', () {
     // A minimal archive with one dance, one program referencing it, and one
