@@ -1994,8 +1994,9 @@ void main() {
     Future<ValueNotifier<int>> pumpShared(
       WidgetTester tester,
       CompendiumRepositories repos,
-      SharedBundleImport bundle,
-    ) async {
+      SharedBundleImport bundle, {
+      SourceAdapter Function()? adapterFactory,
+    }) async {
       await tester.binding.setSurfaceSize(const Size(1000, 1600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final refresh = ValueNotifier<int>(0);
@@ -2019,7 +2020,8 @@ void main() {
                         sources: [
                           ImportSource(
                             kind: ImportSourceKind.genericJson,
-                            adapterFactory: GenericJsonAdapter.new,
+                            adapterFactory:
+                                adapterFactory ?? GenericJsonAdapter.new,
                           ),
                         ],
                         sharedBundle: bundle,
@@ -2095,6 +2097,69 @@ void main() {
           find.byKey(const ValueKey('import-result-dialog')),
           findsNothing,
         );
+      },
+    );
+
+    testWidgets(
+      '#880: after Try another edits share-target text, Import commits the edit',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+        var planAttempts = 0;
+        final editedArchive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [sharedDance('d2', 'Edited Reel')],
+          programs: [
+            Program(
+              id: 'p2',
+              title: 'Edited Dance Party',
+              venueId: 'v2',
+              slots: [ProgramSlot(id: 's2', position: 0, danceId: 'd2')],
+              createdAt: DateTime.utc(2026, 4, 2),
+              updatedAt: DateTime.utc(2026, 4, 2),
+            ),
+          ],
+          venues: [Venue(id: 'v2', name: 'Edited Hall')],
+        );
+
+        await pumpShared(
+          tester,
+          repos,
+          bundleFor(danceProgramVenueArchive()),
+          adapterFactory: () =>
+              planAttempts++ == 0 ? _FailingAdapter() : GenericJsonAdapter(),
+        );
+
+        expect(find.text("Couldn't read the import"), findsOneWidget);
+
+        await tester.tap(find.byKey(const ValueKey('import-back-to-input')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('import-paste-field')),
+          encodeArchive(editedArchive),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('import-continue')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Edited Reel'), findsOneWidget);
+        expect(find.text('Shared Reel'), findsNothing);
+
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        final dances = await repos.dances.listAll();
+        final programs = await repos.programs.listAll();
+        final venues = await repos.venues.listAll();
+        expect(dances.map((d) => d.title), contains('Edited Reel'));
+        expect(dances.map((d) => d.title), isNot(contains('Shared Reel')));
+        expect(programs.map((p) => p.title), contains('Edited Dance Party'));
+        expect(
+          programs.map((p) => p.title),
+          isNot(contains('Shared Spring Fling')),
+        );
+        expect(venues.map((v) => v.name), contains('Edited Hall'));
+        expect(venues.map((v) => v.name), isNot(contains('The Grange Hall')));
       },
     );
 
@@ -2892,6 +2957,26 @@ class _CapturingAdapter implements SourceAdapter {
     ),
     raw: raw,
   );
+}
+
+class _FailingAdapter implements SourceAdapter {
+  @override
+  ProvenanceSource get source => ProvenanceSource.json;
+
+  @override
+  Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
+    throw StateError('forced plan failure');
+  }
+
+  @override
+  Future<RawRecord> fetch(DiscoveredRecord record) async {
+    throw StateError('unreachable');
+  }
+
+  @override
+  StructuredDraft parse(RawRecord raw) {
+    throw StateError('unreachable');
+  }
 }
 
 /// A [SourceAdapter] that discovers two records but fails to fetch one — used
