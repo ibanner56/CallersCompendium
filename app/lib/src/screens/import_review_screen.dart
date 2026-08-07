@@ -233,9 +233,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   ///
   /// A cheap pre-screen (`contains('"programs"')`) skips the full decode for
   /// text that cannot possibly be an archive with programs — title lists, plain
-  /// JSON, and any bundle without programs. This cannot produce a false
-  /// negative: a [CompendiumArchive] with programs always serialises the
-  /// `"programs"` key, so any text that would decode to one passes the screen.
+  /// JSON, and any bundle without programs. This screens out all text this app
+  /// serialises that does not carry programs. It does not guarantee that every
+  /// text that passes the screen is valid (a parse error leaves [bundle] null),
+  /// and it does not handle JSON with escaped key characters (`\u0070rograms`),
+  /// which no [CompendiumArchive] serialiser produces but a conforming JSON
+  /// parser would accept. That edge is near-zero in practice and is not handled.
   void _onPasteChanged() {
     final text = _pasteController.text;
     if (text == _lastDecodedText) return;
@@ -260,9 +263,16 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // plan time.
       }
     }
-    // setState is intentionally not called here: _cachedPickedBundle is read
-    // at plan/commit time, not during build. The listener fires synchronously
-    // before any dependent call site reads it, so no rebuild is needed.
+    // The listener fires synchronously inside TextEditingController.value =,
+    // which is called before the onChanged callback at the TextField. That
+    // callback calls setState(), which schedules a rebuild. Because the
+    // listener fires first, _cachedPickedBundle is already current by the time
+    // the rebuild reads it from the build-path sites (_buildReview,
+    // _showSoftCapWarning, _buildSoftCapWarning, _buildRow). Do not call
+    // setState here: the rebuild is already scheduled by onChanged, and calling
+    // it a second time from the listener would double-schedule unnecessarily.
+    // If the onChanged setState were ever removed, this listener would need its
+    // own setState to trigger a rebuild for the build-path reads.
     _cachedPickedBundle = bundle;
   }
 
