@@ -118,9 +118,18 @@ typedef ImportPicker = Future<String?> Function();
 /// exported UTI `org.callerscompendium.compendiumApp.share` (issue #298, PR 2) —
 /// **and** plain `.json`/`public.json` for backward compatibility with bundles
 /// produced before the dedicated type existed. The payload is the same
-/// canonical Caller's Compendium JSON (`GenericJsonAdapter`) in either case. The
-/// review flow itself is adapter-agnostic; a future source (CallersBox/ContraDB)
-/// can supply its own picker/type group without changing the queue UI.
+/// canonical Caller's Compendium JSON in either case; the extension only decides
+/// whether the OS hands the file to this app, never how it is read.
+///
+/// **Which importer consumes it depends on the payload, not the extension**
+/// (issue #874): the review screen decodes text carrying `"programs"` as a
+/// [CompendiumArchive] and commits it through `CompendiumArchiveImporter`
+/// (dances *and* programs, choreographers and venues); anything else falls
+/// through to the dance-only `GenericJsonAdapter`. A `.ccshare` file picked here
+/// therefore imports its program too — before #874 it did not, which was the
+/// defect that issue fixed. The review flow itself is adapter-agnostic; a future
+/// source (CallersBox/ContraDB) can supply its own picker/type group without
+/// changing the queue UI.
 Future<String?> pickImportFile() async {
   const jsonGroup = XTypeGroup(
     label: 'Compendium share',
@@ -172,10 +181,14 @@ Future<Uint8List?> pickImportUsrFile() async {
 /// return canned text (or throw) so no real network call is made.
 ///
 /// Mirrors [ImportPicker] above — HTTP transport lives in the app layer only,
-/// so the pure-Dart core adapters never perform I/O. The fetched body is fed to
-/// the same adapter (`GenericJsonAdapter`) as the file/paste inputs; the source
-/// URL is stashed on `ImportRequest.uri` for provenance. A future source
-/// (CallersBox/ContraDB link) can reuse this seam without changing the queue.
+/// so the pure-Dart core adapters never perform I/O. The fetched body lands in
+/// the same review-screen input as the file/paste paths (it is written into the
+/// paste field), so it is routed the same way: a payload carrying `"programs"`
+/// decodes as a [CompendiumArchive] and commits through
+/// `CompendiumArchiveImporter`, and anything else goes to the dance-only
+/// `GenericJsonAdapter`. The source URL is stashed on `ImportRequest.uri` for
+/// provenance. A future source (CallersBox/ContraDB link) can reuse this seam
+/// without changing the queue.
 typedef UrlFetcher = Future<String> Function(String url);
 
 /// Why a [UrlFetcher] / URL builder / online-import step failed.
