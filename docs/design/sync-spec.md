@@ -129,6 +129,14 @@ MUST be proven by test rather than hand-maintained.
 
 All payloads are UTF-8 JSON.
 
+**Compression.** Requests and responses MAY use `Content-Encoding: gzip`; it is
+optional on both sides, so a conforming implementation MUST accept an
+uncompressed body and MUST NOT require the header. A receiver that accepts a
+compressed body MUST enforce the decompression limits in §5.4 while inflating —
+aborting as soon as a running total is exceeded, never after inflating to
+completion. Compression is a transport encoding only: it MUST NOT change the
+bytes that the content hash in §4.2 is computed over.
+
 ### 4.1 Canonical JSON
 
 Canonical JSON means:
@@ -271,7 +279,7 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | Bytes per store | 250 MB |
 | Devices per store | 32 |
 | JSON parse depth | 32 |
-| Decompressed size | 10× compressed, cap 32 MB |
+| Decompressed size of a `Content-Encoding: gzip` body (§4) | 10× compressed, cap 32 MB |
 | Request rate | per-IP and per-store |
 
 ## 6. Client conformance

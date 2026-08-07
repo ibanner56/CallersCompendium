@@ -403,7 +403,10 @@ and walkthrough snippets represent real work a user would hate to redo.
 
 - `shareable` → travels
 - `deviceLocal` → **never reaches Athenaeum**
-- `deviceScoped` → never travels at all (window position, per-device text scale)
+- `deviceScoped` → never travels **as record content** (window position,
+  per-device text scale). The class governs serialised record fields, not a
+  transport's own routing metadata: the device ID is `deviceScoped` and still
+  appears in manifest envelopes and request paths as an opaque routing key.
 - `derived` → never transmitted; rebuilt on arrival
 
 **There is no device-to-device channel.** `deviceLocal` data moves only by the
