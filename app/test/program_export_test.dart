@@ -1089,18 +1089,62 @@ void main() {
       final dir = Directory.systemTemp.createTempSync('share_json_test');
       addTearDown(() => dir.deleteSync(recursive: true));
 
+      // Every entity kind the bundle can carry must actually be present, or
+      // the comparison is vacuous for the missing ones: a payload fork that
+      // dropped, say, the choreographers would compare equal against a fixture
+      // whose dances have no authors. So: two dances, one of them credited,
+      // a resolvable choreographer, and a linked venue.
+      final authored = Dance(
+        id: 'd3',
+        title: 'Ada\'s Whim',
+        authorIds: const ['c1'],
+        figures: [
+          Figure(move: 'swing', params: const {'beats': 16, 'who': 'partners'}),
+        ],
+        sourceCitations: const [],
+        customFields: const [],
+        createdAt: _now,
+        updatedAt: _now,
+      );
+      final choreographer = Choreographer(
+        id: 'c1',
+        name: 'Ada Caller',
+        website: 'https://ada.example',
+      );
       final program = _program(
         venueId: 'v1',
         slots: [
           ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
-          ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd3'),
         ],
       );
 
       Future<Map<String, Object?>> payloadFor(String menuLabel) async {
         ShareParams? captured;
         await tester.pumpWidget(
-          _shareBundleMenu(program, {'v1': _venue}, dir, (p) => captured = p),
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: program,
+                    titleFor: _titles,
+                    venuesById: {'v1': _venue},
+                    danceFor: (id) => id == 'd3' ? authored : _danceFor(id),
+                    choreographerFor: (id) => id == 'c1' ? choreographer : null,
+                    bundleFileWriter: (json, fileName) async {
+                      final file = File('${dir.path}/$fileName');
+                      file.writeAsStringSync(json);
+                      return XFile(file.path, mimeType: 'application/json');
+                    },
+                    shareInvoker: (params) async => captured = params,
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('program-export-menu')));
@@ -1123,6 +1167,14 @@ void main() {
 
       final bundle = await payloadFor('Share (program + dances)');
       final json = await payloadFor('Export as JSON file');
+
+      // Guard the guard: a comparison of two empty-ish payloads would pass
+      // whatever the code did, so assert the fixture really exercised every
+      // entity list before comparing them.
+      expect((bundle['programs']! as List), hasLength(1));
+      expect((bundle['dances']! as List), hasLength(2));
+      expect((bundle['choreographers']! as List), hasLength(1));
+      expect((bundle['venues']! as List), hasLength(1));
 
       expect(json, equals(bundle));
     });
