@@ -286,6 +286,11 @@ def _source_marker_problem(template: dict, data: dict, key: str, path_name: str)
         )
     expected = source_hash(template[key])
     actual = meta.get(SOURCE_HASH_FIELD)
+    if not isinstance(actual, str):
+        return (
+            f"{path_name}: metadata {meta_name!r} must record "
+            f"{SOURCE_HASH_FIELD} as a string for stale-translation detection"
+        )
     if actual != expected:
         return (
             f"{path_name}: {key!r} is stale; English source changed since this "

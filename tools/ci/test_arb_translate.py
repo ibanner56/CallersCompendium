@@ -451,6 +451,14 @@ def _validate_cases() -> None:
         )
         assert code == 1 and "stale" in out and "greeting" in out
 
+        # A @key block without a usable marker is reported as a missing marker,
+        # not as a stale translation.
+        for bad in ({"description": "x"}, {a.SOURCE_HASH_FIELD: 42}):
+            code, out = _one_locale(
+                "de", {**base, "@@locale": "de", "@greeting": bad}
+            )
+            assert code == 1 and a.SOURCE_HASH_FIELD in out and "is stale" not in out
+
         # Content safety: a bidi-override control is a hard error.
         code, out = _one_locale(
             "de", {**base, "@@locale": "de", "greeting": "Hi\u202eevil"}
