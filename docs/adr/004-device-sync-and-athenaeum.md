@@ -6,8 +6,11 @@
   device-to-device sync, beyond Apple-native AirDrop support". Referenced by
   text rather than line number: both moved when this PR edited that file.
 - **Deciders**: @ibanner56
-- **Specification**: [docs/design/sync.md](../design/sync.md) — wire format,
-  HTTP contract, client algorithm, server implementation and threat model.
+- **Specification**: [docs/design/sync-spec.md](../design/sync-spec.md) — the
+  normative contract: wire format, HTTP endpoints, client and server
+  conformance requirements. Build from this.
+- **Design rationale**: [docs/design/sync.md](../design/sync.md) — why each rule
+  is the way it is, the alternatives rejected, and the threat model.
 
 ## Context
 
