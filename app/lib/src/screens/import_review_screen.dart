@@ -357,6 +357,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // validated Dart-side. Seed it and plan immediately so the user lands
         // on the review/consent list — skipping the manual input phase — with
         // nothing written until they confirm.
+        //
+        // Prime _lastDecodedText before the controller write so _onPasteChanged
+        // short-circuits at the identity check and skips the redundant decode.
+        // _cachedPickedBundle stays null, which is correct: all call sites
+        // prefer widget.sharedBundle over _effectivePickedBundle, so the cache
+        // is never consulted on this path.
+        _lastDecodedText = bundle.json;
         _pasteController.text = bundle.json;
         _sourceUri = null;
         _plan();
