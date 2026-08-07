@@ -1709,6 +1709,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       for (var i = 0; i < _choices.length; i++)
         if (!_committed.contains(i) && _choices[i].kind != _ActionKind.skip) i,
     ].length;
+    // A shared bundle (share-target or manual pick, issue #852/#869) commits
+    // programs regardless of how dance rows are dispositioned, so the button
+    // gate must account for programs — not just the dance count. Mirrors the
+    // identical check at the top of this method that routes zero-dance archives
+    // to _buildSharedProgramsOnlyReview.
+    final effectiveBundle = widget.sharedBundle ?? _effectivePickedBundle;
+    final hasPrograms =
+        effectiveBundle != null &&
+        effectiveBundle.archive.programs.isNotEmpty;
     // How many *distinct* existing local dances a commit would overwrite (issue
     // #446): the unique re-import target ids across rows the user has set to
     // "Re-import onto …", excluding rows already committed on their own via
@@ -1753,6 +1762,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   _buildOverwriteWarning(context, overwriteCount),
                   const SizedBox(height: 8),
                 ],
+                if (hasPrograms) ...[
+                  Text(
+                    l10n.importReviewWillImportPrograms(
+                      effectiveBundle!.archive.programs.length,
+                    ),
+                    key: const ValueKey('import-programs-label'),
+                  ),
+                  const SizedBox(height: 4),
+                ],
                 Row(
                   children: [
                     Expanded(
@@ -1766,7 +1784,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                     ),
                     FilledButton.icon(
                       key: const ValueKey('import-commit-button'),
-                      onPressed: importable == 0 ? null : _commit,
+                      onPressed:
+                          (importable == 0 && !hasPrograms) ? null : _commit,
                       icon: const Icon(Icons.download_done),
                       label: Text(l10n.importAction),
                     ),

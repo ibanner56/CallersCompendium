@@ -4110,6 +4110,17 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String importReviewWillImportPrograms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programs',
+      one: '1 program',
+    );
+    return 'Also includes $_temp0.';
+  }
+
+  @override
   String get importReviewCouldNotRead => 'De import kon niet worden gelezen';
 
   @override
