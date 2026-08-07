@@ -350,11 +350,21 @@ void main() {
       expect(f.params['slide'], 'right');
     });
 
-    test('star promenade', () {
+    // Taxonomy v26 (#843): ContraDB star promenades DELIBERATELY fall to the
+    // custom fallback. ContraDB's `who`+`hand` name, as a pair, the dancers
+    // with a hand in the CENTER, while our `who` now names the dancer you PICK
+    // UP on the side (owner ruling, 2026-08-06). The pick-up relationship is
+    // not recoverable from the center role, so structuring the line would
+    // assert the wrong dancers. Owner-accepted structure regression.
+    //
+    // Falsification target: re-register `_starPromenade` in
+    // `contraDbHtmlFigureFrontEnd` and this test goes red.
+    test('star promenade falls to custom (v26 — the hand names the center)', () {
       final f = _parse('star promenade left ½');
-      expect(f.move, 'star_promenade');
-      expect(f.params['hand'], 'left');
-      expect(f.params['turn'], 0.5);
+      expect(f.isCustom, isTrue);
+      // Nothing is LOST by declining: the custom fallback keeps ContraDB's own
+      // wording verbatim, hand included.
+      expect(f.params['text'], contains('star promenade left'));
     });
 
     test('allemande orbit combined line -> meanwhile[allemande, orbit] '

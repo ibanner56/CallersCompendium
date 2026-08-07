@@ -18,6 +18,74 @@
 
 ### Changed
 
+- **`contraTaxonomyVersion` 26 (#843, Part A).** `star_promenade` LOSES its
+  `hand` param and `{hand}` leaves its `renderTemplate` — the first param
+  removal in this taxonomy (v19 retired a whole move; v21 renamed one).
+
+  Owner ruling (2026-08-06): `who` names the dancer you PICK UP on the side,
+  which is TCB's reading. The `hand` described a DIFFERENT pair — the two
+  dancers in the centre — while rendering beside the subject, so "Neighbor star
+  promenade right ½" implied a right-hand connection with the neighbour. TCB's
+  flutterwheel decomposition shows both facts coexisting in one figure
+  (`(4) Women allemande right 1/2` + `(4) Neighbor star promenade 1/2 (WR)`:
+  `who` is `neighbors`, `(WR)` names the women), which is why they cannot share
+  a slot.
+
+  **Canonical-key change:** removing a declared param changes
+  `figureCanonicalKey` for EVERY `star_promenade` figure, not only those that
+  stored a `hand` — `effectiveParams` used to fill the `right` default for the
+  rest. The derived rebuild is therefore owed unconditionally, and is run by
+  `_stripStarPromenadeHandIfNeeded` (marker
+  `starPromenadeHandRemovalDoneKey`, written after success), mirroring #870.
+  **No DB schema bump:** nothing structural changes, and a leftover stored
+  `hand` is already inert because `effectiveParams` iterates the MoveDef's
+  declared params only. The strip is hygiene — it stops dead data resurrecting
+  if a later taxonomy re-declares `hand` here with another meaning.
+
+  Stored explicit `hand` values are DROPPED rather than converted into the new
+  centre note: `figures_json` does not record which adapter wrote a figure, and
+  the value means the real centre hand on a ContraDB-imported figure but a
+  default on a TCB one. (Decided by the implementing agent, not the owner.)
+
+- **Doc correction in the v25 block.** It claimed "the taxonomy version bump
+  triggers a derived rebuild". It does not — `Taxonomy.version` is stored on the
+  object and is never read by any runtime code, and #870's rebuild in fact came
+  from its own settings-marker pass. Believing the claim is how a canonical-key
+  change ships with a stale FTS index, so the mechanism is now named explicitly.
+
+- **`FigureFrontEnd` gains an optional `declineToCustom` veto.** A front-end
+  cannot decline a move by deleting its own recognizer: the shared recognizers
+  in `figure_parser.dart` are source-neutral and will claim the line anyway.
+  ContraDB's `star promenade` needed a real veto, since its subject means the
+  centre role there and the pick-up relationship everywhere else. Runs before
+  every recognizer, inside the existing try, so a throwing predicate degrades to
+  custom like anything else.
+
+- **TCB star-promenade centre annotation (#843).** New pre-recognizer
+  `_starPromenadeAnnotation` in `callersbox_figure_dialect.dart`, on the
+  existing `_annotatedMatch` seam (so it inherits the OWASP annotation caps and
+  adds no new bound). `(WR)` becomes the note `role2s by the right in the
+  center` — canonical role tokens, so it renders under the active dialect
+  instead of freezing `W`. `who` is never written or overwritten. Anything that
+  is not exactly one mapped `<people-code><R|L>` cell (multi-cell run, unmapped
+  prefix, no `R`/`L` tail) is preserved verbatim rather than approximated,
+  mirroring `_gateAnnotation`'s treatment of `(men stay put)`.
+
+  Corpus (pristine `c9a0185f`, 24,107 files / 20,516 parseable / 11,499
+  `Permission: full`): 626 raw lines import as `star_promenade`, all 626 carry
+  an annotation, 625 are exactly one mapped cell (`m` 358, `w` 265, `n`/`n1` 2)
+  and 1 is an unmapped `c` prefix. ZERO carry a prose hand, so the visible
+  change is the removal of a DEFAULTED "right" that rendered on every one.
+
+- **ContraDB star promenades decline to custom (#843).** Both producing paths
+  are closed: the `'star promenade'` `_MoveMap` entry in
+  `contradb_adapter.dart` is removed, and `contraDbHtmlFigureFrontEnd` carries
+  the `declineToCustom` veto (its own recognizer is deleted, which alone was not
+  enough). A deliberate, owner-accepted structure regression; the custom
+  fallback keeps ContraDB's wording verbatim. **The count of affected ContraDB
+  dances is NOT measured** — no ContraDB corpus or dump exists locally or is
+  documented in `docs/research/contradb.md`.
+
 - **`contraTaxonomyVersion` 25 (#870).** Three changes:
   - `balance` gains a `hand` param (default `unspecified`, choices
     `_handOrUnspecified`). Precedent: `form_long_waves.hand` (v21).

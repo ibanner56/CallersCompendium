@@ -107,8 +107,9 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
 **2.4a progress:**
 - **PR1 (simple moves, no new vocab):** added `butterfly_whirl`, `arch_and_dive`,
   `california_twirl`, `stand_still`, `slide_along_set`, `mad_robin`,
-  `revolving_door`, `star_promenade` (and originally the fused `allemande_orbit`,
-  since retired — see v19). All fit the existing
+  `revolving_door`, `star_promenade` (whose `hand` was later removed — see v26;
+  and originally the fused `allemande_orbit`, since retired — see v19). All fit
+  the existing
   `ParamKind` set (no new vocabulary). ContraDB params with "no default" (which
   force a chooser selection there) take sensible community defaults here, since
   `ParamSpec.defaultValue` is required; rotations are stored in full turns.
@@ -619,6 +620,43 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   under #732. Purely additive: no existing
   figure's derived output changes; the tokens ride the existing `figures_json`
   codec, so no DB migration is implied.
+
+- **v25 (`balance.hand` + inverse-pair aliases, issue #870):** `balance` gains a
+  `hand` (default `unspecified`), and two inverse pairs are declared
+  (`box_the_gnat` ⇄ `swat_the_flea` on `hand`, `do_si_do` ⇄ `see_saw` on
+  `shoulder`) so a figure whose effective param contradicts its alias pin is
+  re-routed at write time. Canonical keys change (`hand=unspecified` joins every
+  balance key); the derived rebuild rides the one-time
+  `inversePairNormalisationDoneKey` pass, NOT the version bump — nothing reads
+  `Taxonomy.version` at runtime.
+
+- **v26 (`star_promenade` loses `hand`, issue #843):** the first param REMOVAL
+  in this taxonomy — v19 retired a whole move and v21 renamed one, but no
+  version had previously deleted a param from a surviving move.
+
+  `who` now means the dancer you PICK UP on the side, per the owner's
+  2026-08-06 ruling, which adopts The Caller's Box's reading over ContraDB's.
+  The removed `hand` described a *different* pair — the two dancers with hands
+  in the centre — while rendering beside the subject, so "Neighbor star
+  promenade right ½" asserted a right-hand connection with the neighbour that
+  the dance never claimed. The two facts genuinely coexist, which is why they
+  could not share one figure's slots: TCB's flutterwheel decomposes to
+  `(4) Women allemande right 1/2` + `(4) Neighbor star promenade 1/2 (WR)`,
+  where `who` is `neighbors` and `(WR)` names the women.
+
+  The centre is preserved as a NOTE on TCB imports (`role2s by the right in the
+  center`), storing canonical role tokens so it renders under the active
+  dialect rather than freezing a gendered `W`. ContraDB star promenades import
+  as custom figures instead — an accepted structure regression, because ContraDB
+  supplies the centre role rather than the pick-up relationship.
+
+  Removing a declared param changes `figureCanonicalKey` for *every*
+  `star_promenade` figure, not only those that stored a hand, because
+  `effectiveParams` used to fill the default for the rest. A derived rebuild is
+  therefore owed unconditionally and runs from the one-time
+  `starPromenadeHandRemovalDoneKey` pass. No DB schema bump: nothing structural
+  changes, and a stored `hand` is inert the moment the MoveDef stops declaring
+  it.
 
 
 **The full ContraDB v1 contra move set is now modeled** (all five 2.4a slices

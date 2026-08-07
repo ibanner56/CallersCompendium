@@ -1262,7 +1262,9 @@ void main() {
         'everyone up the hall forward': Figure(move: 'up_the_hall'),
         'everyone turn alone': Figure(move: 'turn_alone'),
         'everyone Rory O\'More right': Figure(move: 'rory_o_more'),
-        'role1s star promenade right ½': Figure(move: 'star_promenade'),
+        // v26 (#843): `hand` was removed from star_promenade, so the canonical
+        // render no longer carries it.
+        'role1s star promenade ½': Figure(move: 'star_promenade'),
         'neighbors shoulder round once': Figure(move: 'shoulder_round'),
       };
       cases.forEach((expected, figure) {
@@ -1392,7 +1394,7 @@ void main() {
       test('star_promenade omits the default role1s subject', () {
         expect(
           renderer.render(Figure(move: 'star_promenade'), d),
-          'star promenade right ½',
+          'star promenade ½',
         );
       });
       test('a non-default subject still renders (down_the_hall)', () {
@@ -1413,7 +1415,7 @@ void main() {
             Figure(move: 'star_promenade', params: {'who': 'role2s'}),
             d,
           ),
-          'role2s star promenade right ½',
+          'role2s star promenade ½',
         );
       });
     });

@@ -136,6 +136,12 @@ const String kSectionRuleVersion = '1';
 const String inversePairNormalisationDoneKey =
     '__inverse_pair_normalisation_done__';
 
+/// Settings key for the one-time `star_promenade.hand` retirement (#843,
+/// taxonomy v26). Written after a successful pass so it runs at most once per
+/// database.
+const String starPromenadeHandRemovalDoneKey =
+    '__star_promenade_hand_removal_done__';
+
 /// The current on-disk schema version of [CompendiumDatabase].
 ///
 /// Exposed as a top-level constant (in addition to the [CompendiumDatabase.

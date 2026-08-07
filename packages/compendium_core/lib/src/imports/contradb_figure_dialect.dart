@@ -37,6 +37,32 @@ import 'figure_text_scrub.dart';
 /// rendered as HTML.
 const FigureFrontEnd contraDbHtmlFigureFrontEnd = FigureFrontEnd(
   preRecognizers: _recognizers,
+  declineToCustom: _declineStarPromenade,
+);
+
+/// Vetoes ContraDB `star promenade` lines so they reach the custom fallback
+/// rather than being structured (taxonomy v26, #843).
+///
+/// **Deleting the recognizer is not enough, and that is the whole reason this
+/// hook exists.** The shared recognizers in `figure_parser.dart` are
+/// source-neutral, and one of them recognises `star promenade` for every
+/// front-end. So removing ContraDB's own recognizer merely handed the line to
+/// the shared one, which reads the prose subject as `who` — and ContraDB's
+/// subject is the role with a hand in the CENTER, while our `who` now names the
+/// dancer you PICK UP on the side (owner ruling, 2026-08-06). The line would
+/// have kept structuring, with the wrong dancers, and no test that only checked
+/// the dialect file would have noticed.
+///
+/// Anchored on the two-word phrase so a plain `promenade` — a different move,
+/// with an unaffected reading — is untouched. Matching is on the SCRUBBED text,
+/// which is lowercased and role-canonicalized, so `Gentlespoons Star Promenade
+/// Right 1` is caught along with every casing variant.
+bool _declineStarPromenade(String scrubbed) =>
+    _starPromenadeVeto.hasMatch(scrubbed);
+
+final RegExp _starPromenadeVeto = RegExp(
+  r'\bstar\s+promenades?\b',
+  caseSensitive: false,
 );
 
 /// A "while"/"whiles" simultaneity connective, matched as a whole word
@@ -215,7 +241,6 @@ const List<FigureMatch? Function(String)> _recognizers =
       _pullByDancers,
       _gate,
       _contraCorners,
-      _starPromenade,
       _zigZag,
       _boxCirculate,
       _slice,
@@ -1111,24 +1136,22 @@ FigureMatch? _roryOMore(String text) {
   return FigureMatch('rory_o_more', params: params, note: s.note());
 }
 
-/// starPromenadeWords: `[<who>] star promenade <hand> <rotation>` (who omitted
-/// when it is the role1s default).
-FigureMatch? _starPromenade(String text) {
-  final s = _Scan(text);
-  final who = _subject(s);
-  if (!s.eatPhrase('star promenade')) return null;
-  final hand = _leftRight(s.peek());
-  if (hand == null) return null;
-  s.take();
-  final params = <String, Object?>{'hand': hand};
-  if (who != null) params['who'] = who;
-  final rot = _rotation(s.peek());
-  if (rot != null) {
-    s.take();
-    params['turn'] = rot;
-  }
-  return FigureMatch('star_promenade', params: params, note: s.note());
-}
+/// ContraDB's `starPromenadeWords` — the `[who] star promenade HAND ROTATION`
+/// grammar — has **no recognizer here, deliberately** (taxonomy v26, #843).
+///
+/// ContraDB's `who`+`hand` name, as a pair, the dancers with a hand in the
+/// CENTER; our `who` now names the dancer you PICK UP on the side (owner
+/// ruling, 2026-08-06). The pick-up relationship is not recoverable from the
+/// center role, and approximating it would assert the wrong dancers — so these
+/// lines fall to the custom fallback, which keeps ContraDB's own wording
+/// verbatim. This is a deliberate, owner-accepted structure regression, not an
+/// oversight.
+///
+/// The recognizer was DELETED rather than left unregistered: it emitted a
+/// `hand` param that `star_promenade` no longer declares, so re-registering it
+/// would write a param the taxonomy would silently ignore. The corresponding
+/// `contradb_adapter.dart` `_MoveMap` entry is likewise absent, with a comment
+/// pointing here.
 
 /// zigZagWords: `[<who>] zig <dir> zag <dir> [, <ender>]`. Captures the zig
 /// (turn) direction; the ender, if any, survives verbatim as the note.

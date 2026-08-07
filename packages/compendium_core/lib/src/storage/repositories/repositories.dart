@@ -87,11 +87,20 @@ class CompendiumRepositories {
         ]);
       }
       await _repairPurgeCorruptionIfNeeded();
-      await _recomputeSectionLabelsIfNeeded(
+      // Each sweep below reports back whether a derived rebuild has happened
+      // during THIS call, so a later sweep can skip a byte-identical second
+      // pass. The flag is threaded rather than recomputed because the sweeps
+      // can each trigger the first rebuild of the call, and the "exactly one
+      // rebuild" property is asserted in migration_test.dart.
+      rebuiltThisCall = await _recomputeSectionLabelsIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
-      await _normaliseInversePairMoveIdsIfNeeded(
+      rebuiltThisCall = await _normaliseInversePairMoveIdsIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
+      await _stripStarPromenadeHandIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
@@ -161,7 +170,11 @@ class CompendiumRepositories {
   /// In that case the section values are already correct and a second rebuild
   /// would be byte-identical work; the key is written directly instead.
   /// [onProgress] is forwarded to [runDerivedRebuild] when a rebuild is needed.
-  Future<void> _recomputeSectionLabelsIfNeeded({
+  ///
+  /// Returns whether a derived rebuild has happened during this call — i.e.
+  /// [alreadyRebuilt] OR this sweep ran one — so the caller can thread the flag
+  /// into the next sweep.
+  Future<bool> _recomputeSectionLabelsIfNeeded({
     bool alreadyRebuilt = false,
     DerivedRebuildProgressCallback? onProgress,
   }) async {
@@ -174,7 +187,7 @@ class CompendiumRepositories {
           ],
         )
         .get();
-    if (done.isNotEmpty) return;
+    if (done.isNotEmpty) return alreadyRebuilt;
     // Skip the rebuild if one already ran this call — it used the current
     // labelForFigure code, so section values are already correct.
     if (!alreadyRebuilt) await runDerivedRebuild(onProgress: onProgress);
@@ -182,6 +195,7 @@ class CompendiumRepositories {
       'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
       [sectionRuleVersionKey, '"$kSectionRuleVersion"'],
     );
+    return true;
   }
 
   /// One-time normalisation of `figures_json` for inverse-pair alias
@@ -203,7 +217,11 @@ class CompendiumRepositories {
   /// **Fresh install:** no incoherent figures exist, so the scan finds
   /// nothing to update and writes the marker immediately. The pass is a
   /// no-op.
-  Future<void> _normaliseInversePairMoveIdsIfNeeded({
+  ///
+  /// Returns whether a derived rebuild has happened during this call — i.e.
+  /// [alreadyRebuilt] OR this pass ran one — so the caller can thread the flag
+  /// into the next sweep.
+  Future<bool> _normaliseInversePairMoveIdsIfNeeded({
     bool alreadyRebuilt = false,
     DerivedRebuildProgressCallback? onProgress,
   }) async {
@@ -213,7 +231,7 @@ class CompendiumRepositories {
           variables: [Variable.withString(inversePairNormalisationDoneKey)],
         )
         .get();
-    if (done.isNotEmpty) return;
+    if (done.isNotEmpty) return alreadyRebuilt;
 
     final allDances = await dances.listAll(includeDeleted: true);
     var rewroteAny = false;
@@ -236,7 +254,8 @@ class CompendiumRepositories {
     //   for every balance figure even if no figures_json was rewritten), OR
     // - this pass rewrote figures_json rows (the derived index is now stale
     //   even if a prior rebuild already ran — it ran against the old data).
-    if (!alreadyRebuilt || rewroteAny) {
+    final rebuilt = !alreadyRebuilt || rewroteAny;
+    if (rebuilt) {
       await runDerivedRebuild(onProgress: onProgress);
     }
 
@@ -245,6 +264,86 @@ class CompendiumRepositories {
     await db.customStatement(
       'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
       [inversePairNormalisationDoneKey, '"done"'],
+    );
+    return alreadyRebuilt || rebuilt;
+  }
+
+  /// One-time retirement of the `star_promenade.hand` param (#843, taxonomy
+  /// v26). Scans all dances, strips a `hand` the MoveDef no longer declares
+  /// from every stored `star_promenade` figure (including `meanwhile` sides),
+  /// and rebuilds the derived index.
+  ///
+  /// Guarded by [starPromenadeHandRemovalDoneKey] so it runs at most once. The
+  /// marker is written AFTER the pass succeeds — an interrupted pass retries on
+  /// the next open.
+  ///
+  /// **The rebuild is owed by the TAXONOMY CHANGE, not by the rewrite count**
+  /// — this is the one place this pass differs in spirit from
+  /// [_normaliseInversePairMoveIdsIfNeeded], and the distinction is
+  /// load-bearing:
+  ///
+  /// - **Every `star_promenade` figure's canonical key changes, not just the
+  ///   ones that stored a `hand`.** `figureCanonicalKey` builds from
+  ///   `Taxonomy.effectiveParams`, which used to fill `hand: right` for figures
+  ///   that omitted it. Removing the declaration drops `hand=right` from every
+  ///   key. So gating the rebuild on "did we rewrite any `figures_json`?" would
+  ///   skip it precisely for the databases whose star promenades never stored
+  ///   an explicit hand — the common case — leaving a stale FTS/dedupe index
+  ///   forever. The rewrite count is the wrong signal entirely.
+  /// - Nothing triggers a rebuild from the taxonomy version. `Taxonomy.version`
+  ///   is stored on the object and never read by any runtime code, so this pass
+  ///   is the ONLY thing that re-indexes for v26. (The v25 doc block in
+  ///   `contra_taxonomy.dart` used to claim otherwise; corrected there.)
+  ///
+  /// [alreadyRebuilt] is still honoured, and unlike #870's pass it is honoured
+  /// even when this pass rewrote rows. That is safe for a reason specific to
+  /// this change: the strip removes a param the MoveDef no longer declares, so
+  /// it changes NO derived value — `effectiveParams` was already ignoring it.
+  /// A rebuild that ran earlier in this call therefore produced exactly the
+  /// rows a post-strip rebuild would. #870's pass cannot make that claim
+  /// because re-routing changes `figure.move`, which every derived row depends
+  /// on.
+  ///
+  /// **Fresh install:** no stored figure carries the retired param, the scan
+  /// rewrites nothing, and the rebuild (if not already done this call) runs
+  /// over an empty database before the marker is written.
+  ///
+  /// The strip itself is hygiene rather than a correctness fix — a leftover
+  /// `hand` is already inert, per the reasoning above. It stops dead data
+  /// silently resurrecting if a later taxonomy re-declares `hand` on this move
+  /// with a different meaning.
+  Future<void> _stripStarPromenadeHandIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ?',
+          variables: [Variable.withString(starPromenadeHandRemovalDoneKey)],
+        )
+        .get();
+    if (done.isNotEmpty) return;
+
+    final allDances = await dances.listAll(includeDeleted: true);
+    for (final dance in allDances) {
+      final stripped = dances.stripStarPromenadeHandPublic(dance);
+      if (identical(stripped, dance)) continue;
+      // Rewrite only the figures_json column — nothing else about the dance
+      // changes, and a full _upsert would needlessly rebuild derived rows per
+      // dance (the bulk rebuild below is cheaper).
+      await db.customStatement(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        [encodeFigures(stripped.figures), dance.id],
+      );
+    }
+
+    if (!alreadyRebuilt) await runDerivedRebuild(onProgress: onProgress);
+
+    // Write the marker AFTER success — if the rebuild throws, the marker is
+    // not written and the next startup retries.
+    await db.customStatement(
+      'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+      [starPromenadeHandRemovalDoneKey, '"done"'],
     );
   }
 }

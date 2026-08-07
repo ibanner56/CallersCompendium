@@ -90,6 +90,7 @@ export 'src/storage/database.dart'
         inversePairNormalisationDoneKey,
         purgeCorruptionRepairDoneKey,
         sectionRuleVersionKey,
+        starPromenadeHandRemovalDoneKey,
         kSectionRuleVersion,
         kCompendiumSchemaVersion,
         kMinSupportedSchemaVersion;

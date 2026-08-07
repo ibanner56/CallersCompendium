@@ -36,10 +36,14 @@ import 'figure_text_scrub.dart';
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
 ///
 /// Pre-recognizer order is not correctness-critical: each requires a distinct
-/// anchor (`hey` / `circulate:` / `square through <n>` / `gate` / `courtesy
-/// turn` / `walk forward` / `chain` / `promenade` / `right (and) left through`)
-/// plus a successful resolution to its own move, so no two can claim the same
-/// line.
+/// anchor (`hey` / `circulate:` / `square through <n>` / `balance` / `gate` /
+/// `courtesy turn` / `walk forward` / `chain` / `star promenade` / `promenade`
+/// / `right (and) left through`) plus a successful resolution to its own move,
+/// so no two can claim the same line. The one anchor pair that OVERLAPS —
+/// `\bpromenades?\b` matches a `star promenade` line too — is separated by that
+/// second condition: such a line resolves to `star_promenade`, so
+/// `_promenadeAnnotation` (which pins `promenade`) declines it. They are listed
+/// star-first anyway, so the ordering reads the way the precedence works.
 final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
   preRecognizers: [
     _hey,
@@ -50,6 +54,7 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _courtesyTurnAnnotation,
     _walkForwardAnnotation,
     _chainAnnotation,
+    _starPromenadeAnnotation,
     _promenadeAnnotation,
     _rightLeftThroughAnnotation,
   ],
@@ -1089,12 +1094,101 @@ FigureMatch? _rightLeftThroughAnnotation(String scrubbed) {
 }
 
 final RegExp _chainAnchor = RegExp(r'\bchains?\b', caseSensitive: false);
-final RegExp _promenadeAnchor = RegExp(
-  r'\bpromenades?\b',
-  caseSensitive: false,
-);
 final RegExp _rightLeftThroughAnchor = RegExp(
   r'\bright\s+(and\s+)?left\s+through\b',
+  caseSensitive: false,
+);
+
+// --- Star-promenade center annotation (taxonomy v26, #843) -------------------
+
+/// TCB states the CENTER of a star promenade in a trailing parenthetical —
+/// `Neighbor star promenade 1/2 (WR)`, `Partner star promenade 3/4 (ML)` — and
+/// [_stripAnnotations] drops it for recognition.
+///
+/// **Why this is a note and not a param.** The parenthetical does NOT qualify
+/// `who`. `(WR)` notates *"the women have right hands in the center"*, while
+/// `who` names the dancer you PICK UP on the side. The two facts coexist, and
+/// TCB's own flutterwheel decomposition shows both in one figure:
+///
+/// ```
+/// (8) Neighbor flutterwheel  ->  (4) Women allemande right 1/2
+///                            +  (4) Neighbor star promenade 1/2 (WR)
+/// ```
+///
+/// `who` is `neighbors`; `(WR)` names the women. Different sets. Until taxonomy
+/// v26 the center hand lived in a `star_promenade.hand` param that rendered
+/// beside the subject — *"Neighbor star promenade right ½"* — implying a
+/// right-hand connection with the NEIGHBOR when the right-hand connection is
+/// between the two dancers in the center. The owner removed the param on
+/// 2026-08-06; this pre-recognizer is what keeps the fact the param used to
+/// (mis)carry.
+///
+/// **The note stores CANONICAL ROLE TOKENS, never `W`/`M`.** `role2s by the
+/// right in the center` renders as *"Robins by the right in the center"* under
+/// larks/robins and *"Ladies …"* under a gendered dialect, because notes go
+/// through the renderer's `renderFreeText` role substitution. A literal `W`
+/// would be frozen gendered text forever, in every dialect, permanently.
+///
+/// **`who` is never written or overwritten here.** It comes from the prose
+/// subject via the shared recognizer, which is the whole point of the ruling:
+/// the annotation names a different set, so letting it reach `who` would
+/// reintroduce the exact confusion v26 removed.
+///
+/// Conservative, and shares [_annotatedMatch] with the gate / courtesy-turn /
+/// walk-forward / chain paths — so the OWASP caps (`_maxAnnotations`,
+/// `_maxAnnotationNote`, the per-run length bound in `_annotationRe`, rune-safe
+/// truncation) are the SAME ones and this adds no new bound. An annotation that
+/// is not exactly one `<people-code><R|L>` cell — a multi-cell run, an unmapped
+/// people code (`O`, `Ph`, `SRN`, …), a missing or non-`R`/`L` tail — is
+/// PRESERVED VERBATIM as the note rather than approximated onto a role token
+/// that means something else. That mirrors `_gateAnnotation`'s treatment of
+/// `(men stay put)`: prefer-custom applied at param granularity.
+FigureMatch? _starPromenadeAnnotation(String scrubbed) {
+  final base = _annotatedMatch(
+    scrubbed,
+    _starPromenadeAnchor,
+    'star_promenade',
+  );
+  if (base == null) return null;
+
+  final phrases = <String>[];
+  for (final body in base.annotations) {
+    phrases.add(_centerHandPhrase(body) ?? body);
+  }
+  final note = _joinAnnotations(phrases);
+  if (note == null) return null;
+  return _withAnnotationNote(base.match, note);
+}
+
+/// `<people-code><R|L>` → `<canonical role token> by the <hand> in the center`,
+/// or `null` when the body is not exactly one such cell (the caller then keeps
+/// it verbatim).
+///
+/// Deliberately STRICTER than the pass-list decoders: a star promenade has one
+/// center, so a `;`-run states something this phrasing cannot express, and is
+/// left verbatim rather than being collapsed onto its first cell.
+String? _centerHandPhrase(String body) {
+  final cell = body.trim().toLowerCase();
+  if (cell.length < 2 || cell.contains(';')) return null;
+  final handChar = cell[cell.length - 1];
+  final hand = handChar == 'r'
+      ? 'right'
+      : handChar == 'l'
+      ? 'left'
+      : null;
+  if (hand == null) return null;
+  final who = tcbPassPeople[cell.substring(0, cell.length - 1)];
+  if (who == null) return null;
+  return '$who by the $hand in the center';
+}
+
+final RegExp _starPromenadeAnchor = RegExp(
+  r'\bstar\s+promenades?\b',
+  caseSensitive: false,
+);
+
+final RegExp _promenadeAnchor = RegExp(
+  r'\bpromenades?\b',
   caseSensitive: false,
 );
 
