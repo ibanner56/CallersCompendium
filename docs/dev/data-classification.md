@@ -80,7 +80,7 @@ know exists.
 | --- | --- |
 | `shareable` | May travel by any route the user chooses, including project-operated infrastructure: file export, share sheet, device sync |
 | `deviceLocal` | Must never reach project-operated infrastructure. Leaves only by a transfer the user deliberately initiates between their own devices, or in a local backup file they control |
-| `deviceScoped` | Never transmitted **as record content**, because the value is meaningless or actively wrong on another device — a window position, a per-device marker. Distinct from `deviceLocal`: that is withheld for what it *contains*, this for what it *means*. Scope note: this governs the fields serialised into a record, not a transport's own routing metadata (a device identifier, a content hash), which carries no user data by construction |
+| `deviceScoped` | Never transmitted **as record content**, because the value is meaningless or actively wrong on another device — a window position, a per-device marker. Distinct from `deviceLocal`: that is withheld for what it *contains*, this for what it *means*. Scope note: this governs the fields serialised into a record, not a transport's own routing metadata (a device identifier, a content hash), which is outside this classification's scope rather than proven harmless — a routing identifier can still be linkable, and is governed by the retention and access rules of whatever protocol carries it |
 | `derived` | Never transmitted at all. Rebuildable from other fields on arrival, so sending it would be redundant as well as an extra copy to protect |
 
 ## Vocabulary

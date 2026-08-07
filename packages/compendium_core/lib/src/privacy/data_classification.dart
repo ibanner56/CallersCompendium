@@ -166,8 +166,10 @@ enum EgressClass {
   /// **Scope of "transmitted".** This class governs *record content*: the
   /// fields serialised into an exported, shared or synced record. It does not
   /// govern protocol envelopes — a transport's own routing metadata (a device
-  /// identifier, a store epoch, a content hash) carries no user data by
-  /// construction and is outside the classification's reach. A value may
+  /// identifier, a store epoch, a content hash) is outside this
+  /// classification's scope rather than proven harmless. Such an identifier can
+  /// still be linkable, and is governed by the retention and access rules of
+  /// whatever protocol carries it. A value may
   /// therefore be `deviceScoped` and still appear in a request header or a
   /// sync manifest, and both statements are true because they are about
   /// different things. See `docs/design/sync.md`.
