@@ -59,7 +59,7 @@ def main() -> int:
     FAILURES.clear()
     with tempfile.TemporaryDirectory() as temp:
         repo = Path(temp)
-        subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+        subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
         subprocess.run(["git", "config", "user.email", "test@example.invalid"],
                        cwd=repo, check=True)
         subprocess.run(["git", "config", "user.name", "Test"], cwd=repo,
