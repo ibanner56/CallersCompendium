@@ -52,6 +52,8 @@ jobs:
       # tools/ci/check_schema_migration.py.
       - name: Test the schema-bump gate
         run: python3 tools/ci/test_check_schema_migration.py
+      - name: Test the CHANGELOG promotion gate
+        run: python3 tools/ci/test_check_changelog_promoted.py
       # Localization tooling: pure-stdlib, offline, and fast, so it runs before
       # the (slower) Flutter setup and fails fast. First self-test the assisted
       # translation tool, then gate every committed app_<locale>.arb against the
