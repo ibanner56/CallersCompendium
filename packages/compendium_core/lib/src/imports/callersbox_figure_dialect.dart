@@ -45,6 +45,7 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _hey,
     _circulate,
     _squareThroughPassList,
+    _balanceHandAnnotation,
     _gateAnnotation,
     _courtesyTurnAnnotation,
     _walkForwardAnnotation,
@@ -697,6 +698,55 @@ List<String> _splitTopLevel(String t, String sep) {
 String _stripAnnotations(String lowercased) => lowercased
     .replaceAll(RegExp(r'\([^)]*\)'), ' ')
     .replaceAll(RegExp(r'\[[^\]]*\]'), ' ');
+
+// --- Balance hand annotation extraction (#870) --------------------------------
+
+/// Pre-recognizer that extracts `(RH)` / `(LH)` hand annotations from TCB
+/// balance lines before [_stripAnnotations] drops them.
+///
+/// TCB writes `Neighbor balance (RH)` or `Partner balance (LH)` on ~1,066
+/// corpus lines. Without this, the `(RH)` parenthetical is stripped by
+/// [_stripAnnotations] before the shared `_balance` recognizer runs, and the
+/// hand is silently lost — the structured figure carries no hand while the
+/// custom fallback (which reads the un-normalized text) would have kept it.
+///
+/// The annotation is **consumed** into the `hand` param, not preserved as a
+/// note: the parenthetical states a hand the taxonomy now models (#870), and
+/// duplicating parsed data into prose is the outcome #744's triage rules out.
+///
+/// Returns `null` (→ the normal path) unless the line contains a `balance`
+/// anchor AND a `(RH)` or `(LH)` annotation AND the annotation-stripped text
+/// resolves to the `balance` move through the shared recognizers.
+FigureMatch? _balanceHandAnnotation(String scrubbed) {
+  if (!_balanceAnchor.hasMatch(scrubbed)) return null;
+  final handMatch = _balanceHandRe.firstMatch(scrubbed);
+  if (handMatch == null) return null;
+  final handCode = handMatch.group(1)!.toUpperCase();
+  final hand = handCode == 'RH' ? 'right' : 'left';
+
+  // Strip the hand annotation AND any other annotations, then run the shared
+  // recognizer to confirm this is a `balance` line (not, say, "balance the
+  // ring" or a custom balance-wave form).
+  final stripped = scrubbed.replaceFirst(handMatch.group(0)!, ' ').trim();
+  final match = recognizeSharedFigureLine(
+    stripped,
+    recognitionNormalize: _stripAnnotations,
+  );
+  if (match == null || match.moveId != 'balance') return null;
+
+  return FigureMatch(
+    'balance',
+    params: {...match.params, 'hand': hand},
+    note: match.note,
+    assumedSubject: match.assumedSubject,
+  );
+}
+
+final RegExp _balanceAnchor = RegExp(r'\bbalance\b', caseSensitive: false);
+
+/// Matches `(RH)` or `(LH)` — the TCB hand annotation on balance lines.
+/// Case-insensitive, bounded to exactly two characters inside the parens.
+final RegExp _balanceHandRe = RegExp(r'\(\s*([RrLl][Hh])\s*\)');
 
 // --- Gate annotation preservation (taxonomy v22) -----------------------------
 

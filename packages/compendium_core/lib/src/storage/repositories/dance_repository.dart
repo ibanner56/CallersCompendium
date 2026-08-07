@@ -80,6 +80,57 @@ class DanceRepository {
 
   FigureRenderer get _renderer => FigureRenderer(_taxonomy);
 
+  /// Returns [dance] with every figure's move id normalised through
+  /// [Taxonomy.resolvedMoveId]. Returns the original [dance] unchanged if no
+  /// figures need re-routing (avoids an allocation when nothing moves).
+  Dance _normaliseMoveIds(Dance dance) {
+    List<Figure>? normalised;
+    final figures = dance.figures;
+    for (var i = 0; i < figures.length; i++) {
+      final f = figures[i];
+      final resolved = _normaliseFigure(f);
+      if (!identical(resolved, f) && normalised == null) {
+        // First change: lazily allocate and backfill.
+        normalised = figures.sublist(0, i);
+      }
+      normalised?.add(resolved);
+    }
+    return normalised != null ? dance.copyWith(figures: normalised) : dance;
+  }
+
+  /// Public entry point for [_normaliseMoveIds], used by the one-time
+  /// migration in [CompendiumRepositories._normaliseInversePairMoveIdsIfNeeded].
+  Dance normaliseMoveIdsPublic(Dance dance) => _normaliseMoveIds(dance);
+
+  /// Normalises a single figure's move id, recursing into meanwhile
+  /// sub-figures. Returns the original [figure] unchanged if no sub-figures
+  /// need re-routing (avoids an allocation when nothing moves).
+  Figure _normaliseFigure(Figure figure) {
+    if (figure.isMeanwhile) {
+      List<Figure>? subs;
+      final origSubs = figure.subFigures;
+      for (var i = 0; i < origSubs.length; i++) {
+        final sub = origSubs[i];
+        final resolved = _normaliseFigure(sub);
+        if (!identical(resolved, sub) && subs == null) {
+          subs = origSubs.sublist(0, i);
+        }
+        subs?.add(resolved);
+      }
+      if (subs == null) return figure;
+      // Use copyWith so schemaVersion, customOrigin, assumedSubject, and
+      // walkthroughOverride survive — a bare Figure(...) resets them to
+      // defaults, which silently loses metadata during the one-time migration.
+      return figure.copyWith(
+        params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
+      );
+    }
+    final resolvedId = _taxonomy.resolvedMoveId(figure);
+    return resolvedId != figure.move
+        ? figure.copyWith(move: resolvedId)
+        : figure;
+  }
+
   Future<void> create(Dance dance) => _upsert(dance);
 
   Future<void> update(Dance dance) => _upsert(dance);
@@ -92,22 +143,25 @@ class DanceRepository {
       dance.provenance?.importedAt,
       'dance.provenance.importedAt',
     );
+    // v25 (#870): normalise move ids for inverse-pair aliases before
+    // persisting. This is the single convergence point for all figure writers.
+    final normalisedDance = _normaliseMoveIds(dance);
     await _db
         .into(_db.dances)
         .insertOnConflictUpdate(
           DancesCompanion.insert(
-            id: dance.id,
-            title: dance.title,
-            form: dance.form,
-            formationShape: dance.formation.shape,
-            formationDetail: Value(dance.formation.detail),
-            progression: dance.progression,
-            phraseStructure: Value(dance.phraseStructure.raw),
-            figuresJson: Value(encodeFigures(dance.figures)),
-            hook: Value(dance.hook),
-            callingNotes: Value(dance.callingNotes),
-            walkthrough: Value(dance.walkthrough),
-            status: dance.status,
+            id: normalisedDance.id,
+            title: normalisedDance.title,
+            form: normalisedDance.form,
+            formationShape: normalisedDance.formation.shape,
+            formationDetail: Value(normalisedDance.formation.detail),
+            progression: normalisedDance.progression,
+            phraseStructure: Value(normalisedDance.phraseStructure.raw),
+            figuresJson: Value(encodeFigures(normalisedDance.figures)),
+            hook: Value(normalisedDance.hook),
+            callingNotes: Value(normalisedDance.callingNotes),
+            walkthrough: Value(normalisedDance.walkthrough),
+            status: normalisedDance.status,
             level: Value(dance.level),
             mixedLevel: Value(dance.mixedLevel),
             mixer: Value(dance.mixer),
@@ -234,7 +288,7 @@ class DanceRepository {
           );
     }
 
-    await _rebuildDerived(dance);
+    await _rebuildDerived(normalisedDance);
   });
 
   /// Rewrites the derived `dance_figures`/`dance_fts` rows for a single dance:

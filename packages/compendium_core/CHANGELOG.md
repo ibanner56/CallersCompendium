@@ -2,6 +2,39 @@
 
 ### Changed
 
+- **`contraTaxonomyVersion` 25 (#870).** Three changes:
+  - `balance` gains a `hand` param (default `unspecified`, choices
+    `_handOrUnspecified`). Precedent: `form_long_waves.hand` (v21).
+    **Canonical-key change:** every `balance` figure's `figureCanonicalKey`
+    gains `hand=unspecified` — two different notions of "canonical" are in play
+    (the renderer's canonical text vs. `figureCanonicalKey`'s dedupe/FTS key;
+    `ParamVocab.unspecified` renders as empty but is a non-null STRING that the
+    key includes). A derived rebuild is triggered by
+    `inversePairNormalisationDoneKey`.
+  - `MoveAlias` gains an optional `inversePairId` field. Two pairs declared:
+    `swat_the_flea` ⇄ `box_the_gnat` (hand), `see_saw` ⇄ `do_si_do`
+    (shoulder). `meltdown_swing` is not part of a pair (`prefix` is not a
+    two-valued axis).
+  - `Taxonomy.resolvedMoveId(figure)` re-routes a figure whose effective param
+    contradicts its alias pin to the correct half of the pair. Called at write
+    time (the single convergence point: `DanceRepository._upsert`) rather than
+    on every read — `effectiveParams` (hot path) is untouched.
+  - One-time normalisation of existing incoherent `figures_json` entries via
+    `_normaliseInversePairMoveIdsIfNeeded` (rides the same startup path as
+    `_recomputeSectionLabelsIfNeeded`). **Fresh install:** no incoherent figures
+    exist; the scan finds nothing and writes the marker immediately.
+
+- **TCB balance hand annotation extraction (#870).** New pre-recognizer
+  `_balanceHandAnnotation` in `callersbox_figure_dialect.dart` extracts
+  `(RH)` → `right`, `(LH)` → `left` from balance lines before
+  `_stripAnnotations` drops them. The parenthetical is consumed into the
+  `hand` param, not preserved as a note.
+
+- **Balance fold hand threading (#870).** `_foldBalanceIntoMove` threads
+  `balance.params['hand']` into the merged figure when the balance states a
+  hand and the move accepts one. The convergence-point normalisation then
+  re-routes the move id if the hand contradicts the alias pin.
+
 - **The sentinel workaround params now carry their natural `ParamKind`s
   (#739). Type information only — no behaviour change, no
   `contraTaxonomyVersion` bump.** `form_long_waves.hand` was declared

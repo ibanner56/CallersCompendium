@@ -14,6 +14,7 @@ import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
+import '../taxonomy/contra_taxonomy.dart' show contraTaxonomy;
 
 /// A [SourceAdapter] that imports dances from **The Caller's Box** (TCB)
 /// per-dance JSON, as served by
@@ -775,6 +776,13 @@ class CallersBoxAdapter implements SourceAdapter {
     }
     final beats = _sumBeats(balance, move);
     final note = combineFigureNotes(move.note, balance.note);
+    // v25 (#870): thread the balance line's `hand` into the merged figure when
+    // the balance states one and the move accepts a `hand` param. A balance
+    // with `(RH)` folded into `box_the_gnat` sets `hand: right`; with `(LH)`
+    // it sets `hand: left`. The convergence-point normalisation
+    // (DanceRepository._normaliseMoveIds) then re-routes the move id if the
+    // hand contradicts the alias pin.
+    final balanceHand = balance.params['hand'];
     if (move.move == 'swing') {
       final prefix = move.params['prefix'];
       if (prefix != null && prefix != 'none') return null;
@@ -784,8 +792,23 @@ class CallersBoxAdapter implements SourceAdapter {
       );
     }
     if (move.params['balance'] == true) return null;
+    // v25 (#870): thread the balance's hand only when the resolved merge
+    // target actually declares a `hand` param. Querying the taxonomy (one
+    // source of truth) rather than maintaining a hardcoded move list that
+    // would drift every time a move gains or loses a hand slot.
+    final mergeTargetDef = contraTaxonomy.resolve(move.move);
+    final targetAcceptsHand =
+        mergeTargetDef != null && mergeTargetDef.params.containsKey('hand');
     return move.copyWith(
-      params: {...move.params, 'balance': true, 'beats': ?beats},
+      params: {
+        ...move.params,
+        'balance': true,
+        'beats': ?beats,
+        if (balanceHand != null &&
+            balanceHand != 'unspecified' &&
+            targetAcceptsHand)
+          'hand': balanceHand,
+      },
       note: note,
     );
   }

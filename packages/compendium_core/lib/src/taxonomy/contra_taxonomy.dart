@@ -376,7 +376,33 @@ import 'taxonomy.dart';
 ///     Like v17 and v23, the tokens ride the existing `figures_json` codec —
 ///     distinct from CompendiumDatabase.schemaVersion, NO persisted-data
 ///     migration is implied.
-const int contraTaxonomyVersion = 24;
+/// v25 (#870): `balance` gains a `hand` param (default `unspecified`), and
+///     inverse-pair aliases (`box_the_gnat` ⇄ `swat_the_flea` on `hand`,
+///     `do_si_do` ⇄ `see_saw` on `shoulder`) are declared so
+///     `Taxonomy.resolvedMoveId` can re-route a figure whose effective param
+///     contradicts the alias pin. **Canonical-key change:** every `balance`
+///     figure's `figureCanonicalKey` gains `hand=unspecified` — a derived
+///     rebuild is required. The `unspecified` sentinel is a non-null STRING
+///     that `figureCanonicalKey` includes (only `null` is skipped), so the
+///     key genuinely changes. Note the tension: `ParamVocab.unspecified`'s
+///     doc says the renderer emits it as the empty string, "which is what
+///     lets such a param sit in a renderTemplate without changing the
+///     canonical text of any figure that leaves it unset." That is true of
+///     **canonical text** (the renderer output) and false of
+///     **`figureCanonicalKey`** (the dedupe/FTS key), which includes every
+///     declared param regardless of rendering — two different notions of
+///     "canonical."
+///
+///     Adding `balance.hand` is purely additive to the persisted codec —
+///     existing figures with no `hand` key produce the same effective value
+///     (`unspecified`) from `effectiveParams` — so NO DB schema migration is
+///     needed. The taxonomy version bump triggers a derived rebuild that
+///     re-indexes FTS and canonical keys.
+///
+///     The inverse-pair re-routing changes only `figure.move` at write time
+///     (import, editor save); canonical keys are unaffected because both
+///     halves of a pair already resolve to the same `MoveDef` id.
+const int contraTaxonomyVersion = 25;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -578,6 +604,16 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'balance',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        // v25 (#870): TCB writes `(RH)` / `(LH)` on ~1,066 balance lines; the
+        // hand was silently dropped because balance had no slot. Defaults to
+        // `unspecified` — not `right` — because most balances state no hand, and
+        // defaulting to a side would assert something the source never said.
+        // Precedent: `form_long_waves.hand` (v21).
+        'hand': ParamSpec(
+          ParamKind.handedness,
+          defaultValue: ParamVocab.unspecified,
+          choices: _handOrUnspecified,
+        ),
         'beats': _beats4,
       },
       renderTemplate: '{who} {move}',
@@ -1830,12 +1866,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'see saw',
       targetMove: 'do_si_do',
       pinnedParams: {'shoulder': 'left'},
+      inversePairId: 'do_si_do',
     ),
     const MoveAlias(
       id: 'swat_the_flea',
       displayName: 'swat the flea',
       targetMove: 'box_the_gnat',
       pinnedParams: {'hand': 'left'},
+      inversePairId: 'box_the_gnat',
     ),
     const MoveAlias(
       id: 'meltdown_swing',

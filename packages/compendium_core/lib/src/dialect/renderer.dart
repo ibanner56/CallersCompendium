@@ -277,6 +277,10 @@ class FigureRenderer {
     // Params pinned by an alias are baked into its display name (e.g.
     // "meltdown swing" pins prefix=meltdown), so they must not be rendered a
     // second time as a template token — otherwise the word would double up.
+    // Since v25 (#870), this invariant is ENFORCED at write time by
+    // Taxonomy.resolvedMoveId: a figure whose effective param contradicts the
+    // alias pin is re-routed to the correct half of the pair before it
+    // reaches the renderer, so the pin and the data can never disagree.
     final pinned = alias?.pinnedParams ?? const <String, Object?>{};
     final rendered = def.renderTemplate.replaceAllMapped(_placeholder, (m) {
       final name = m[1]!;

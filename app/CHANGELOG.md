@@ -13,6 +13,12 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Balance figures now carry an optional hand (right / left / unspecified).**
+  When The Caller's Box writes `(RH)` or `(LH)` on a balance line, the hand
+  is now preserved instead of being silently dropped — 1,066 instances measured
+  corpus-wide. The hand defaults to unspecified, so balances that don't name one
+  stay neutral.
+
 - **You can now mark a dance as a mixer.** A mixer is a dance where you change
   partners each time through, so you dance with lots of different people rather
   than staying with one. Tick **Mixer** in the dance editor, just under the
@@ -210,6 +216,17 @@ each release so store builds and tags can be traced back to an entry.
   the program, venue, and all slot details are imported alongside the dances,
   exactly as they are when you open the file directly from Files. The import can
   be undone in one tap.
+
+- **Aliased moves now re-route when their defining param is toggled.** Setting
+  `hand: left` on a box the gnat makes it a swat the flea (and vice versa); the
+  same applies to do si do ⇄ see saw on shoulder. Previously the move's name and
+  data could disagree — the figure would read "swat the flea" while carrying
+  right-hand data. The fix lives in the taxonomy so every writer (import, editor,
+  share) benefits, not just the editor.
+
+- **The Caller's Box balance + box/swat import fold now preserves handedness.**
+  A balance with `(RH)` followed by a box the gnat imports as one figure with
+  the hand set, rather than losing the hand annotation.
 
 - **A figure with 0 beats at the end of a dance no longer creates a ghost
   section.** If the last figure in your dance takes no beats of its own — like

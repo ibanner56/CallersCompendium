@@ -27,8 +27,8 @@ void main() {
 
   group('taxonomy — the v23 move', () {
     test('contraTaxonomyVersion is 24', () {
-      expect(contraTaxonomyVersion, 24);
-      expect(tax.version, 24);
+      expect(contraTaxonomyVersion, 25);
+      expect(tax.version, 25);
     });
 
     test('v23 is purely additive — it owed no schema migration of its own', () {

@@ -64,6 +64,12 @@ class ParamBeats {
 
 /// An alias entry: resolves to a canonical move with pinned params
 /// (e.g. `see saw` → `do_si_do{shoulder: left}`).
+///
+/// When [inversePairId] is set, this alias is one half of a two-valued
+/// inverse pair: toggling the pinned param to its opposite value should
+/// re-route the figure to [inversePairId] (and vice versa). The taxonomy's
+/// [Taxonomy.resolvedMoveId] uses this to enforce the invariant at write
+/// time.
 @immutable
 class MoveAlias {
   const MoveAlias({
@@ -72,6 +78,7 @@ class MoveAlias {
     required this.targetMove,
     this.pinnedParams = const {},
     this.searchKeywords = const [],
+    this.inversePairId,
   });
 
   final String id;
@@ -79,4 +86,11 @@ class MoveAlias {
   final String targetMove;
   final Map<String, Object?> pinnedParams;
   final List<String> searchKeywords;
+
+  /// The id of the counterpart alias (or move) that this alias forms an
+  /// inverse pair with. For `swat_the_flea` (pins `hand: left`), this is
+  /// `'box_the_gnat'`; for `see_saw` (pins `shoulder: left`), this is
+  /// `'do_si_do'`. `null` when the alias is not part of an inverse pair
+  /// (e.g. `meltdown_swing`).
+  final String? inversePairId;
 }
