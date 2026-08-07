@@ -305,9 +305,12 @@ You do **not** need to write code to translate the app.
 2. **Set the file's `"@@locale"`** to the copied locale (e.g. `"pt_BR"` or
    `"zh_Hant"`). The template still carries `"en"`; leaving it unchanged makes
    gen-l10n see conflicting locale metadata and can misfile your translations.
-3. **Translate the string values only.** Leave the keys and the `@key` metadata
-   blocks unchanged. Keep every ICU placeholder (e.g. `{example}`) and plural
-   form intact — only the surrounding words change.
+3. **Translate the string values only.** Leave the keys unchanged, and let
+   `arb_translate.py apply` write each locale `@key` block's
+   `x-sourceSha256` marker. That marker records the English source text the
+   translation came from, so a later English edit fails validation until the
+   translation is refreshed. Keep every ICU placeholder (e.g. `{example}`) and
+   plural form intact — only the surrounding words change.
 
    This step means *translate*, not *fill in*. Never leave (or paste) the
    **English** value in a locale ARB to make a key look done: a key carrying
@@ -329,8 +332,9 @@ You do **not** need to write code to translate the app.
    ```bash
    python3 tools/ci/arb_translate.py validate --locale <locale>
    ```
-   It flags missing/renamed placeholders, mismatched plural arguments, a wrong
-   `@@locale`, and unsafe content before the change ever reaches a build.
+   It flags stale English-source markers, missing/renamed placeholders,
+   mismatched plural arguments, a wrong `@@locale`, and unsafe content before
+   the change ever reaches a build.
 5. **iOS only:** add your locale to `app/ios/Runner/Info.plist` under a
    `CFBundleLocalizations` array, using the **hyphenated BCP-47 tag** (e.g.
    `<string>fr</string>`, `<string>pt-BR</string>`, `<string>zh-Hant</string>`) —
@@ -356,25 +360,26 @@ validating it in line with OWASP guidance.
 
 A model-agnostic pipeline with three subcommands:
 
-- `extract --locale <code>` — prints the keys still missing (or blank) in
+- `extract --locale <code>` — prints the keys still missing, blank, or stale in
   `app_<code>.arb` as a JSON batch. Each entry carries the English source, its
-  `description`, its declared placeholders, and any matched **glossary** hints
-  (`tools/ci/i18n_glossary.json`). This is the payload a translator — human or
-  model — works from.
+  `sourceHash`, its `description`, its declared placeholders, and any matched
+  **glossary** hints (`tools/ci/i18n_glossary.json`). This is the payload a
+  translator — human or model — works from.
 - `apply --locale <code> --input <map.json>` — merges a `{key: value}` map into
-  `app_<code>.arb`, writing **values only** in template key order, refusing any
-  key not in the template and any non-string value. It never invents keys or
-  `@key` metadata.
+  `app_<code>.arb`, writing translated values plus adjacent `x-sourceSha256`
+  source markers in template key order, refusing any key not in the template
+  and any non-string value.
 - `validate --locale <code>` / `validate --all` — gates a translation against
   `app_en.arb`: keys must be a subset of the template; every message must keep
   the **same ICU arguments/placeholders** as the source (locale-specific plural
   categories such as `zero`/`few`/`many` are allowed, but a dropped, added, or
-  renamed placeholder — or a plural→plain change — fails); `@@locale` must match
-  the filename; any `@key` block that is present must equal the template's; and
-  each value passes a content-safety scan (no C0/C1 control characters, no
-  bidirectional-override characters — the Trojan-Source vectors — and no
-  `javascript:`/`vbscript:`/`data:text/html` URIs). Non-fatal warnings cover
-  HTML-looking tags, non-NFC text, and unusually long expansions.
+  renamed placeholder — or a plural→plain change — fails); each present value's
+  `@key.x-sourceSha256` must match the current English source; `@@locale` must
+  match the filename; any other copied `@key` metadata must equal the
+  template's; and each value passes a content-safety scan (no C0/C1 control
+  characters, no bidirectional-override characters — the Trojan-Source vectors
+  — and no `javascript:`/`vbscript:`/`data:text/html` URIs). Non-fatal warnings
+  cover HTML-looking tags, non-NFC text, and unusually long expansions.
 
 CI runs `validate --all` (and the tool's own `test_arb_translate.py`) in
 [`_checks.yml`](../../.github/workflows/_checks.yml) before the Flutter build,

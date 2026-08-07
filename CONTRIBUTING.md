@@ -157,7 +157,8 @@ User-visible strings are internationalized with `flutter_localizations` +
 `gen-l10n`, with **English as the source locale**. Add or change strings in
 `app/lib/l10n/app_en.arb` (not inline in widgets), then use them via
 `AppLocalizations.of(context)`. Translating the app needs **no handwritten
-Dart**: copy `app_en.arb` to `app_<locale>.arb` and translate the values, then
+Dart**: copy `app_en.arb` to `app_<locale>.arb`, translate the values with
+`arb_translate.py apply` so per-key English-source markers are recorded, then
 regenerate the committed localizations (a one-line `gen-l10n` step) and, for
 iOS, add the locale to the Runner's `Info.plist`. See
 [docs/dev/localization.md](docs/dev/localization.md) for the key-naming
@@ -306,4 +307,3 @@ telemetry**, so nothing is ever collected automatically. You decide what to shar
 - **Worried about your data?** Don't be — export a backup from
   **Settings → General** first. Backup and restore are built in, so testing a
   pre-release build never puts your collection at risk.
-

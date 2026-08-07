@@ -22,12 +22,13 @@ Subcommands
               each key's English source, description, declared placeholders, and
               any matched glossary hints — the payload the model translates.
 ``apply``     Merge a ``{key: value}`` translation map into ``app_<locale>.arb``
-              (values only, template key order, never inventing keys/metadata).
+              (values plus per-key English-source markers, template key order).
 ``validate``  Gate a locale (or ``--all``) against the template: subset keys,
               ICU argument/placeholder parity (allowing locale-specific plural
-              categories), metadata integrity, a sane ``@@locale``, and a
-              content-safety scan (control/bidi-override chars, dangerous URI
-              schemes). Exit non-zero on any error; ``::error::`` annotations.
+              categories), English-source freshness, metadata integrity, a sane
+              ``@@locale``, and a content-safety scan (control/bidi-override
+              chars, dangerous URI schemes). Exit non-zero on any error;
+              ``::error::`` annotations.
 
 Usage::
 
@@ -42,6 +43,7 @@ bad input, 2 = usage / IO error.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -81,6 +83,7 @@ _DANGEROUS_URI_RE = re.compile(
     r"(?i)(?:(?:javascript|vbscript)\s*:|data\s*:\s*text/html)"
 )
 _HTML_TAG_RE = re.compile(r"</?[A-Za-z][A-Za-z0-9]*(?:\s[^<>]*)?/?>")
+SOURCE_HASH_FIELD = "x-sourceSha256"
 
 
 class ArbError(Exception):
@@ -250,6 +253,47 @@ def declared_placeholders(data: dict, key: str) -> dict:
     return {}
 
 
+def source_hash(value: str) -> str:
+    """Stable hash of the English source string a translation was based on."""
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _source_marker_meta(template: dict, key: str, existing_meta) -> dict:
+    """Return locale ``@key`` metadata with an up-to-date source marker.
+
+    Locale files do not need to duplicate the template's descriptions and
+    placeholder declarations, but if they already carry copied metadata, keep it
+    in place so ``apply`` remains non-destructive for human-created ARBs.
+    """
+    meta = dict(existing_meta) if isinstance(existing_meta, dict) else {}
+    meta[SOURCE_HASH_FIELD] = source_hash(template[key])
+    return meta
+
+
+def _metadata_without_source_marker(meta: dict) -> dict:
+    out = dict(meta)
+    out.pop(SOURCE_HASH_FIELD, None)
+    return out
+
+
+def _source_marker_problem(template: dict, data: dict, key: str, path_name: str) -> str | None:
+    meta_name = "@" + key
+    meta = data.get(meta_name)
+    if not isinstance(meta, dict):
+        return (
+            f"{path_name}: metadata {meta_name!r} must record "
+            f"{SOURCE_HASH_FIELD} for stale-translation detection"
+        )
+    expected = source_hash(template[key])
+    actual = meta.get(SOURCE_HASH_FIELD)
+    if actual != expected:
+        return (
+            f"{path_name}: {key!r} is stale; English source changed since this "
+            "translation was last applied"
+        )
+    return None
+
+
 # ---------------------------------------------------------------------------
 # extract
 # ---------------------------------------------------------------------------
@@ -303,13 +347,16 @@ def cmd_extract(args) -> int:
         if not is_translatable(src):
             continue
         translated = target.get(key)
-        # A key needs translating if it is absent, non-string, or blank.
-        if key in existing and isinstance(translated, str) and translated.strip():
+        # A key needs translating if it is absent, non-string, blank, or was
+        # translated from an older English source.
+        stale = _source_marker_problem(template, target, key, target_path.name) is not None
+        if key in existing and isinstance(translated, str) and translated.strip() and not stale:
             continue
         items.append(
             {
                 "key": key,
                 "source": src,
+                "sourceHash": source_hash(src),
                 "description": (template.get("@" + key) or {}).get("description", ""),
                 "placeholders": declared_placeholders(template, key),
                 "glossary": glossary_hints(src, glossary),
@@ -375,6 +422,7 @@ def cmd_apply(args) -> int:
     result["@@locale"] = args.locale
     for key, value in translations.items():
         result[key] = value
+        result["@" + key] = _source_marker_meta(template, key, result.get("@" + key))
 
     ordered = _reorder(result, template, args.locale)
     target_path.write_text(
@@ -478,11 +526,19 @@ def validate_locale(arb_dir: Path, template: dict, locale: str) -> tuple[list[st
         if not is_translatable(value):
             errors.append(f"{path.name}: value for {key!r} must be a string")
             continue
-        # Metadata integrity: if the file carries a @key block, it must be
-        # byte-identical to the template's (translators change values only).
+        # Metadata integrity: every present translation records which English
+        # source it came from. Any other copied @key fields must still match the
+        # template's (translators change values only).
         meta = "@" + key
-        if meta in data and data[meta] != template.get(meta):
-            errors.append(f"{path.name}: metadata {meta!r} differs from the template")
+        marker_problem = _source_marker_problem(template, data, key, path.name)
+        if marker_problem:
+            errors.append(marker_problem)
+        if meta in data and not isinstance(data[meta], dict):
+            errors.append(f"{path.name}: metadata {meta!r} must be a JSON object")
+        elif meta in data:
+            locale_meta = _metadata_without_source_marker(data[meta])
+            if locale_meta and locale_meta != template.get(meta):
+                errors.append(f"{path.name}: metadata {meta!r} differs from the template")
         # ICU argument / placeholder parity.
         try:
             t_args = parse_icu(template[key])
