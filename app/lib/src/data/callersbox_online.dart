@@ -36,20 +36,32 @@ class CallersBoxOnline implements OnlineSearchService {
   /// Title and phrase criteria combine (TCB accepts both in one request). Throws
   /// a typed [UrlFetchException] on any fetch failure, or when
   /// there is nothing to search.
+  ///
+  /// Rows whose figures TCB will not serve are **excluded** (issue #845). TCB's
+  /// non-`full` permission tiers mean a dance imports as a metadata-only stub —
+  /// title, formation, notes, no figures — which is almost never what a dance
+  /// search was for, and is at its worst on a by-phrase search, where the user
+  /// searched *by a figure* the result will then refuse to show. Roughly 31% of
+  /// a live result set is affected (measured on `?title=moon&show_all`).
+  ///
+  /// The exclusion is a **search** policy only. Importing such a dance by its
+  /// direct URL still works and still produces the stub with its
+  /// `callersbox_search_tier` warning — [CallersBoxAdapter] is untouched.
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
     final url = buildCallersBoxSearchUrl(query.title, phrases: query.phrases);
     final html = await _searchFetcher(url);
     return [
       for (final r in parseCallersBoxSearchResults(html))
-        OnlineSearchResultRow(
-          source: OnlineSource.callersBox,
-          id: r.id,
-          name: r.name,
-          author: r.author,
-          formation: r.formation,
-          figuresAvailable: r.figuresAvailable,
-        ),
+        if (r.figuresAvailable)
+          OnlineSearchResultRow(
+            source: OnlineSource.callersBox,
+            id: r.id,
+            name: r.name,
+            author: r.author,
+            formation: r.formation,
+            figuresAvailable: r.figuresAvailable,
+          ),
     ];
   }
 
