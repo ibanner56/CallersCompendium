@@ -1731,7 +1731,14 @@ void main() {
           sampleProgram(
             id: 'p-blank',
             caller: '',
-            slots: [ProgramSlot(id: 's-bl', position: 0, danceId: 'd1')],
+            slots: [
+              ProgramSlot(
+                id: 's-bl',
+                position: 0,
+                danceId: 'd1',
+                performedAt: DateTime.utc(2026, 6, 1),
+              ),
+            ],
           ),
         );
 
@@ -1749,6 +1756,14 @@ void main() {
         // Count must match exactly: 4.
         final counts = await repo.countByDance(callerFilter: 'Alice');
         expect(counts['d1']!.countFor(false), 4);
+        // lastCalledByDance must also include the blank-caller program:
+        // p-blank (2026-06-01) is the latest performed slot in the set.
+        expect(
+          await repo.lastCalledByDance(callerFilter: 'Alice'),
+          {'d1': DateTime.utc(2026, 6, 1)},
+          reason:
+              'blank-caller program must appear in lastCalledByDance (#850)',
+        );
       },
     );
   });
