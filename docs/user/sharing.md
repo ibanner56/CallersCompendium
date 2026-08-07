@@ -81,9 +81,18 @@ AirDrop, email, a messaging app, a USB stick.
 On the receiving end, opening the file launches Caller's Compendium straight into
 its [import review](./imports.md#open-a-shared-program-someone-sent-you) screen,
 loaded with the program, its dances, and its venue. Nothing is added until the
-recipient confirms. Bringing the same file in twice does not create duplicates:
-the importer matches what is already there rather than piling up copies. Plain
-`.json` files are accepted too, so an older bundle still opens.
+recipient confirms. Bringing the same file in twice does not pile up duplicate
+*dances* — the importer matches what is already there. Plain `.json` files are
+accepted too, so an older bundle still opens.
+
+One exception worth knowing about: **venues do get duplicated.** The importer
+recognises a repeated venue by its name *and* its address, and a shared file
+deliberately carries no address (see [What stays private](#what-stays-private)).
+So importing two programs held at the same hall, or the same program twice,
+leaves a separate venue record each time. They are name-only records, nothing is
+lost or overwritten, and you can tidy the extras with
+[**Settings ▸ Venues ▸ Manage venues**](./settings.md#venues) — but the app
+cannot spot them for you.
 
 ### The same thing, as a plain `.json` file
 

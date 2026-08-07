@@ -64,17 +64,23 @@ import 'share_sanitization.dart';
 /// [now] stamps the archive's `exportedAt`; it defaults to the current time and
 /// is injectable for deterministic tests.
 ///
-/// Cross-import venue dedupe (issue #456, landed): re-importing a bundle no
-/// longer blindly duplicates venue records. `CompendiumArchiveImporter` matches
-/// each incoming venue against the venues the receiver already holds by a
-/// best-effort content fingerprint (`venueFingerprint` / `VenueFingerprintIndex`,
-/// over name + a locating field); on a unique match the incoming venue is dropped
-/// and the program is repointed to the existing venue. This is strictly a
-/// repoint, never an overwrite — the matched local record is left untouched.
-/// Remaining limitation: the match key is the venue's *content*, not a stable
-/// provenance/identity key, so it tolerates false splits to never risk a false
-/// merge — a weakly-described venue, an ambiguous fingerprint, or a descriptive
-/// field edited between imports can still fresh-mint a separate record.
+/// Cross-import venue dedupe (issue #456) does **not** apply to bundles this
+/// function produces, since issue #853. `CompendiumArchiveImporter` matches an
+/// incoming venue against the receiver's existing ones by content fingerprint
+/// (`venueFingerprint` / `VenueFingerprintIndex`), and that key needs the venue's
+/// name **plus a locating field** (`address1` or `city`). The address block is
+/// classified `EgressClass.deviceLocal`, so [sanitizeVenueForShare] clears it
+/// above — which leaves no locating field, no fingerprint, and no dedupe.
+///
+/// **Consequence: a recipient who imports the same bundle twice, or two bundles
+/// naming the same hall, gets a separate venue record each time.** They are
+/// name-only records, so they are easy to spot and merge by hand, and no data
+/// is lost or overwritten — but they do accumulate.
+///
+/// This is an accepted tradeoff of the privacy fix, not an oversight: it is
+/// pinned by `app/test/export/share_venue_dedupe_seam_test.dart` and explained
+/// at [venueFingerprint]. Dedupe still works for venues that reach the importer
+/// with their address intact (`.USR` import, backup restore, local venues).
 String buildProgramShareBundle(
   Program program, {
   required Dance? Function(String danceId) danceFor,
