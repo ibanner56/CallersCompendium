@@ -4815,7 +4815,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorChoreographerDetailsIntro =>
-      'Deze details zijn gedeeld over elke dans op naam van deze auteur. E-mail, locatie en de markering ‘overleden’ zijn privé — alleen opgeslagen op dit apparaat en nooit gedeeld of geëxporteerd.';
+      'Deze details zijn gedeeld over elke dans op naam van deze auteur. E-mail, locatie en de markering “overleden” zijn privé — alleen opgeslagen op dit apparaat en nooit gedeeld of geëxporteerd.';
 
   @override
   String get danceEditorNameRequiredLabel => 'Naam *';

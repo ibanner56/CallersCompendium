@@ -1212,7 +1212,7 @@
   "danceEditorDeleteDanceTooltip": "Dans verwijderen",
   "danceEditorLoadError": "De dans kon niet worden geladen.",
   "danceEditorChoreographerDetailsTitle": "Choreografendetails",
-  "danceEditorChoreographerDetailsIntro": "Deze details zijn gedeeld over elke dans op naam van deze auteur. E-mail, locatie en de markering ‘overleden’ zijn privé — alleen opgeslagen op dit apparaat en nooit gedeeld of geëxporteerd.",
+  "danceEditorChoreographerDetailsIntro": "Deze details zijn gedeeld over elke dans op naam van deze auteur. E-mail, locatie en de markering “overleden” zijn privé — alleen opgeslagen op dit apparaat en nooit gedeeld of geëxporteerd.",
   "danceEditorNameRequiredLabel": "Naam *",
   "danceEditorNameRequired": "Naam is vereist",
   "danceEditorWebsiteLabel": "Website",
