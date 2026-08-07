@@ -2964,6 +2964,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportSetListCopied => 'セットリストをクリップボードにコピーしました。';
 
   @override
+  String get exportShareProgramJson => 'JSONファイルとして書き出す';
+
+  @override
   String get exportShareSetListError => 'このセットリストを共有できませんでした';
 
   @override
@@ -4623,7 +4626,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorChoreographerDetailsIntro =>
-      'これらの詳細は、この作者のすべてのダンスで共有されます。メールと場所はプライベートです — このデバイスにのみ保存され、共有またはエクスポートされることはありません。';
+      'これらの詳細は、この作者のすべてのダンスで共有されます。メール、場所、故人の印はプライベートです — このデバイスにのみ保存され、共有またはエクスポートされることはありません。';
 
   @override
   String get danceEditorNameRequiredLabel => '名前 *';

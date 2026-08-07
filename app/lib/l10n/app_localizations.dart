@@ -4862,6 +4862,12 @@ abstract class AppLocalizations {
   /// **'Set list copied to clipboard.'**
   String get exportSetListCopied;
 
+  /// Program export-menu item: share the program and its dances as a plain .json file, the same content as the .ccshare bundle but in a format any device can open.
+  ///
+  /// In en, this message translates to:
+  /// **'Export as JSON file'**
+  String get exportShareProgramJson;
+
   /// Snackbar shown when sharing a set list fails.
   ///
   /// In en, this message translates to:
@@ -7413,7 +7419,7 @@ abstract class AppLocalizations {
   /// Introductory copy explaining shared and private choreographer details.
   ///
   /// In en, this message translates to:
-  /// **'These details are shared across every dance credited to this author. Email and location are private — stored only on this device and never shared or exported.'**
+  /// **'These details are shared across every dance credited to this author. Email, location, and the deceased mark are private — stored only on this device and never shared or exported.'**
   String get danceEditorChoreographerDetailsIntro;
 
   /// Required name field label; the asterisk marks the field as required.

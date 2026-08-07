@@ -19,6 +19,18 @@ each release so store builds and tags can be traced back to an entry.
   corpus-wide. The hand defaults to unspecified, so balances that don't name one
   stay neutral.
 
+- **You can now export a program as a plain `.json` file.** The program
+  **Export** menu gains **Export as JSON file**, between **Copy set list** and
+  **Export / print PDF**. It builds exactly the same content as **Share (program
+  + dances)** — the program, every dance it uses with full figures, the
+  choreographers, and the venue — but names the file `.json` instead of
+  `.ccshare`. A `.ccshare` file is registered to Caller's Compendium and opens
+  straight into import review on a device that has the app; a device that
+  doesn't may not know what to do with it. Reach for the JSON version when you
+  are emailing a program to someone who hasn't installed the app, putting it
+  somewhere that rejects unfamiliar file types, or just want to read the file
+  yourself. Either one imports back into the app the same way.
+
 - **You can now mark a dance as a mixer.** A mixer is a dance where you change
   partners each time through, so you dance with lots of different people rather
   than staying with one. Tick **Mixer** in the dance editor, just under the
@@ -237,6 +249,25 @@ each release so store builds and tags can be traced back to an entry.
   explicitly match the default caller. Programs led by a different, non-blank
   caller remain excluded as before. (#850, supersedes the null-caller exclusion
   from #583)
+
+- **A venue's street address no longer leaves your device when you share,
+  export, print, or copy a program.** The address line, city, state or province,
+  country, and postcode were being included in shared program files, exported
+  PDFs, and the plain-text set list — even though they are classified as
+  device-only data, and even though the venue's *contact people* were correctly
+  held back behind a tick box. There was never a prompt for the address, so
+  there was never a way to say no to it. It is now removed from every export
+  path. What still travels is the venue's name, plus its website, schedule,
+  price, sponsor, event name, and notes, so a recipient still knows which hall
+  you mean. Your own records are untouched: the address is still on the venue,
+  and a backup still contains it.
+
+- **A choreographer's deceased mark is no longer included in a shared file.** It
+  was travelling alongside the author's name and website, while their email and
+  location were correctly stripped. It is personal information about someone who
+  cannot object to it being passed on, so it now stays on your device with the
+  rest of their private details. The **Choreographer details** dialog and the
+  user guide now say so.
 
 - **A figure with 0 beats at the end of a dance no longer creates a ghost
   section.** If the last figure in your dance takes no beats of its own — like

@@ -3,10 +3,14 @@ import 'package:meta/meta.dart';
 /// A dance author. "Traditional" and "Unknown" are real rows, not magic
 /// values, so authorship stays a uniform ordered list on every dance.
 ///
-/// Privacy: [email] and [location] are private contact data. They are safe in
-/// the user's own full-DB snapshot/backup, but MUST NOT be emitted in any
-/// shareable export (program/dance share paths). No core export currently
-/// serializes choreographers; the 4b.4b UI/export work must preserve this.
+/// Privacy: the authority is the classification registry
+/// (`lib/src/privacy/field_registry.dart`), not this comment. [email],
+/// [location] and [deceased] are all classified `EgressClass.deviceLocal`
+/// there: safe in the user's own full-DB snapshot/backup, but they MUST NOT be
+/// emitted in any shareable export. `archive_codec.dart` serializes
+/// choreographers verbatim for both purposes, so the redaction lives at the
+/// send-side choke point — `sanitizeChoreographerForShare` in the app package,
+/// which every share path must route through.
 @immutable
 class Choreographer {
   Choreographer({

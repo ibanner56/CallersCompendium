@@ -3842,6 +3842,8 @@
   "@exportCopySetList": {"description": "Program export-menu item: copy the set list text to the clipboard."},
   "exportSetListCopied": "Set list copied to clipboard.",
   "@exportSetListCopied": {"description": "Snackbar confirming the set list text was copied to the clipboard."},
+  "exportShareProgramJson": "Export as JSON file",
+  "@exportShareProgramJson": {"description": "Program export-menu item: share the program and its dances as a plain .json file, the same content as the .ccshare bundle but in a format any device can open."},
   "exportShareSetListError": "Couldn't share this set list",
   "@exportShareSetListError": {"description": "Snackbar shown when sharing a set list fails."},
   "exportShareProgramError": "Couldn't share this program",
@@ -5026,7 +5028,7 @@
   "@danceEditorChoreographerDetailsTitle":   {
     "description": "Dialog title for editing shared choreographer/contact details."
   },
-  "danceEditorChoreographerDetailsIntro": "These details are shared across every dance credited to this author. Email and location are private — stored only on this device and never shared or exported.",
+  "danceEditorChoreographerDetailsIntro": "These details are shared across every dance credited to this author. Email, location, and the deceased mark are private — stored only on this device and never shared or exported.",
   "@danceEditorChoreographerDetailsIntro":   {
     "description": "Introductory copy explaining shared and private choreographer details."
   },

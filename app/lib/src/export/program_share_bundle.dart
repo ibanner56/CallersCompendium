@@ -143,14 +143,36 @@ String buildProgramShareBundle(
 /// plain `.json` for backward compatibility.
 const String programShareBundleExtension = 'ccshare';
 
+/// The plain-JSON extension for the same bundle payload (issue #853).
+///
+/// A `.json` file carries **byte-identical** content to a `.ccshare` one — both
+/// are [buildProgramShareBundle]'s canonical [CompendiumArchive] JSON. Only the
+/// extension differs, and it differs deliberately: `.ccshare` binds the file to
+/// the app's exported UTI so a received file auto-opens here, whereas `.json`
+/// stays a generic document. That is the point of offering it — a recipient
+/// without the app installed, an email attachment, or a caller who just wants
+/// to read or diff the file gets something their system will open.
+///
+/// Because it is the same payload, it is read back by the same
+/// `GenericJsonAdapter`/`decodeArchive` path, with no relaxed validation.
+const String programShareJsonExtension = 'json';
+
 /// A filesystem-safe file name for a program share bundle. See the library-level
 /// notes above for the extension rationale.
-String programShareBundleFileName(String title) {
+///
+/// [extension] selects between the native [programShareBundleExtension] and the
+/// plain [programShareJsonExtension]. The base name is derived identically
+/// either way, so a crafted program title cannot construct a different path
+/// through the `.json` action than it could through the `.ccshare` one.
+String programShareBundleFileName(
+  String title, {
+  String extension = programShareBundleExtension,
+}) {
   final sanitized = replaceUnsafeNameChars(title.trim());
   // Fall back when the title has no alphanumeric content (empty, all
   // whitespace, or only illegal/punctuation characters) so the file always has
   // a meaningful, path-safe name.
   final hasContent = sanitized.contains(RegExp(r'[A-Za-z0-9]'));
   final base = hasContent ? sanitized : 'program';
-  return '$base.$programShareBundleExtension';
+  return '$base.$extension';
 }
