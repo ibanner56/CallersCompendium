@@ -71,6 +71,18 @@ keep.
 5. Select a result to open a **preview** of that dance.
 6. If it is the one you want, choose **Import** to add it to your collection.
 
+**Caller's Box results only include dances whose figures it will share.** Not
+every dance in The Caller's Box has its choreographer's permission for the
+figures to be shown — for some, the Box can search the figures but not display
+them. Those dances would come in as a title and a formation with no figures at
+all, so a Caller's Box search leaves them out. About three in ten of the dances
+matching a typical search are affected, so if a dance you know is in the Box
+does not appear, this is the likely reason. You can still bring such a dance in
+deliberately by [importing it by link or ID](#import-a-dance-by-link-or-id) —
+you will get its title, formation, and notes, and the review screen will tell
+you the figures were not available. ContraDB has no such restriction, so nothing
+is left out of a ContraDB search.
+
 If the dance is already in your collection from an earlier import, the app tells
 you so and does not add a second copy — see
 [Avoiding duplicates](#avoiding-duplicates) below.
@@ -95,7 +107,10 @@ A few honest notes about these online imports:
 - The app reads each archive's public dance page, so it depends on how that page
   is laid out; if a page changes or a dance has no figures listed, the dance
   still comes in with whatever the app could read (its title, formation, and
-  notes), following the *nothing gets lost* promise above.
+  notes), following the *nothing gets lost* promise above. This applies to the
+  link-or-ID route described here — it is deliberately how you can still bring
+  in a Caller's Box dance whose figures the Box will not share, even though
+  online search leaves those out.
 - Figures come in as recognised moves where the app can read them and as
   plain-text figures otherwise, the same as every other import.
 
@@ -162,6 +177,10 @@ A few honest notes:
 
 - The app only takes a dance when **exactly one** result matches your title
   exactly. Near matches are never imported on a guess.
+- The Caller's Box search it uses leaves out dances whose figures the Box will
+  not share, so a title only held by one of those comes back as **not found**
+  rather than arriving with no figures. You can still bring such a dance in
+  deliberately by [importing it by link or ID](#import-a-dance-by-link-or-id).
 - Nothing is written until you commit on the review screen, and an uncertain
   match is set to **Skip** by default, so a paste can never quietly duplicate
   something you already have.

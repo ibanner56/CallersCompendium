@@ -518,6 +518,12 @@ Future<TitleListRow> _resolveOne(
   required List<ImportRecordPlan> plans,
   DateTime? now,
 }) async {
+  // requireFigures is left at its #845 default (true) on purpose: unlike the
+  // program resolver, this path commits NOTHING on its own — it previews into
+  // ImportReviewScreen and waits for the user — so narrowing the result set
+  // only changes what is offered, never what is written. A title held solely by
+  // a figure-hidden dance therefore reports "not found" here rather than
+  // arriving as an empty stub.
   final lookup = await lookupUniqueExactTitle(title, service: service);
   if (lookup is OnlineTitleMiss) {
     return TitleListRow.notFound(
