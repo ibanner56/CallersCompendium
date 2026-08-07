@@ -1739,15 +1739,14 @@ void main() {
           'd1',
           callerFilter: 'Alice',
         );
-        // NULL-caller and blank-caller programs must appear alongside Alice's.
+        // Exact set: Alice (p-alice, p-alice2), null-caller (p-null), and
+        // blank-caller (p-blank). Bob must not appear — guard against
+        // over-correction.
         expect(
           history.map((r) => r.programId),
-          containsAll(['p-alice', 'p-null', 'p-blank']),
+          unorderedEquals(['p-alice', 'p-alice2', 'p-null', 'p-blank']),
         );
-        // Bob (different non-blank caller) must NOT appear — guard against
-        // over-correction.
-        expect(history.map((r) => r.programId), isNot(contains('p-bob')));
-        // Count must match exactly: p-alice, p-alice2, p-null, p-blank = 4.
+        // Count must match exactly: 4.
         final counts = await repo.countByDance(callerFilter: 'Alice');
         expect(counts['d1']!.countFor(false), 4);
       },
