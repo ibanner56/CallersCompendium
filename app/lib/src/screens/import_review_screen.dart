@@ -220,7 +220,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// when the texts differ (stale decode, edit has diverged the payload from
   /// what was decoded at pick time).
   ///
-  /// All four sites that formerly read `widget.sharedBundle ?? _effectivePickedBundle`
+  /// All five sites that formerly read `widget.sharedBundle ?? _pickedBundle`
   /// route through this accessor so they cannot diverge from each other, and so
   /// a future writer cannot accidentally introduce the staleness hazard by
   /// accessing [_pickedBundle] directly.
