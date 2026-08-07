@@ -459,35 +459,61 @@ void main() {
       await db.close();
     });
 
-    // The derived index must reflect the removal. This is the assertion that
-    // would have caught shipping the taxonomy change with no rebuild at all —
-    // the failure mode that the (false) "the version bump triggers a rebuild"
-    // note in the v25 doc block would have produced.
-    test('the derived canonical text drops the hand', () async {
-      await seed([
-        Figure(
-          move: 'star_promenade',
-          params: {'who': 'neighbors', 'turn': 0.5, 'beats': 4},
-        ),
-      ]);
+    // The derived index must be REBUILT, not merely left correct.
+    //
+    // The obvious version of this test cannot fail: `seed()` writes the dance
+    // through the current (v26) repository, so its `dance_figures` row is
+    // already right, and the `hand` injected afterwards is inert — asserting on
+    // that row passes whether or not a rebuild ever runs. Verified by mutation:
+    // deleting the `runDerivedRebuild` call left the obvious test green.
+    //
+    // So the stale row is written EXPLICITLY, exactly as a pre-v26 build would
+    // have left it, and the assertion is that the pass corrects it. That is the
+    // failure mode the (false) "the version bump triggers a rebuild" note in
+    // the v25 doc block would have produced: a canonical-key change shipping
+    // with a permanently stale FTS/dedupe index.
+    test(
+      'the derived canonical text is REBUILT, not just left correct',
+      () async {
+        await seed([
+          Figure(
+            move: 'star_promenade',
+            params: {'who': 'neighbors', 'turn': 0.5, 'beats': 4},
+          ),
+        ]);
 
-      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
-      final repos = CompendiumRepositories(db, contraTaxonomy);
-      await repos.ensureMigrated();
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        await db.customStatement(
+          'UPDATE dance_figures SET canonical_text = ? WHERE dance_id = ?',
+          ['neighbors star promenade right ½', 'd1'],
+        );
+        // Guard the guard: if this row is not actually stale going in, the
+        // assertion below proves nothing.
+        final before = await db
+            .customSelect(
+              'SELECT canonical_text FROM dance_figures WHERE dance_id = ?',
+              variables: [Variable.withString('d1')],
+            )
+            .getSingle();
+        expect(before.data['canonical_text'], contains('right'));
 
-      final rows = await db
-          .customSelect(
-            'SELECT canonical_text FROM dance_figures WHERE dance_id = ?',
-            variables: [Variable.withString('d1')],
-          )
-          .get();
-      expect(rows, hasLength(1));
-      final canonical = rows.single.data['canonical_text'] as String;
-      expect(canonical, 'neighbors star promenade ½');
-      expect(canonical, isNot(contains('right')));
-      expect(canonical, isNot(contains('left')));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
 
-      await db.close();
-    });
+        final rows = await db
+            .customSelect(
+              'SELECT canonical_text FROM dance_figures WHERE dance_id = ?',
+              variables: [Variable.withString('d1')],
+            )
+            .get();
+        expect(rows, hasLength(1));
+        final canonical = rows.single.data['canonical_text'] as String;
+        expect(canonical, 'neighbors star promenade ½');
+        expect(canonical, isNot(contains('right')));
+        expect(canonical, isNot(contains('left')));
+
+        await db.close();
+      },
+    );
   });
 }
