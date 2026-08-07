@@ -203,6 +203,14 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Importing a `.ccshare` file through the manual Import picker now includes the
+  program.** Previously, picking a `.ccshare` file from the "Choose file" button
+  silently dropped any program it contained — you'd see the dances arrive but the
+  program (with its event details, venue, and slot order) was quietly lost. Now
+  the program, venue, and all slot details are imported alongside the dances,
+  exactly as they are when you open the file directly from Files. The import can
+  be undone in one tap.
+
 - **A figure with 0 beats at the end of a dance no longer creates a ghost
   section.** If the last figure in your dance takes no beats of its own — like
   a "form short waves" placed right at the end — it used to appear as a brand

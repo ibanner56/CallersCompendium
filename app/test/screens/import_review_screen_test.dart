@@ -2349,6 +2349,355 @@ void main() {
       },
     );
   });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Manual picker + .ccshare containing programs (issue #852)
+  // ──────────────────────────────────────────────────────────────────────────
+  //
+  // Regression guard: a .ccshare bundle containing programs must NOT silently
+  // drop the programs when imported via the manual file picker. The picker path
+  // must route through CompendiumArchiveImporter (dances + programs + venues),
+  // the same path the OS share-target uses.
+  //
+  // Falsification targets differ by test:
+  // - Most tests (routing, undo, dance-only scope guard): revert this fix.
+  //   With the fix reverted the picker routes through GenericJsonAdapter
+  //   (dance-only), the program is never committed, and the assertions on
+  //   repos.programs.listAll() fail.
+  // - The staleness test (overwrite paste field with dance-only payload): mutate-out
+  //   _onPasteChanged's bundle-detection logic so it always leaves
+  //   _cachedPickedBundle null. The hazard is that _commit could route on a
+  //   stale cache; the mutate-out restores that path. A revert is wrong here
+  //   because the hazard only exists in code introduced by this PR.
+  // - The harmless-edit test (trailing-newline edit keeps programs): also
+  //   mutate-out. With the listener-based cache, a harmless edit to an archive
+  //   re-decodes and keeps the bundle — but a stale-equality check (the round-3
+  //   approach) would drop it. Mutate-out restores that stale check.
+
+  group('manual picker with .ccshare containing programs (issue #852)', () {
+    // A minimal archive with one dance, one program referencing it, and one
+    // venue — exactly the round-trip bundle a share produces.
+    CompendiumArchive pickerArchive() => CompendiumArchive(
+      exportedAt: DateTime.utc(2026, 7, 15),
+      dances: [
+        Dance(
+          id: 'd1',
+          title: 'Picker Reel',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      ],
+      programs: [
+        Program(
+          id: 'p1',
+          title: 'Picker Spring Fling',
+          venueId: 'v1',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          createdAt: DateTime.utc(2026, 4, 1),
+          updatedAt: DateTime.utc(2026, 4, 1),
+        ),
+      ],
+      venues: [Venue(id: 'v1', name: 'The Picker Grange')],
+    );
+
+    // Mounts the review screen with a canned picker that returns [payload],
+    // pushed on top of a home scaffold (mirroring main.dart's navigator push)
+    // so the post-commit Undo snackbar — which rides the app-level
+    // ScaffoldMessenger and outlives the popped review route — stays reachable.
+    Future<ValueNotifier<int>> pumpWithPicker(
+      WidgetTester tester,
+      CompendiumRepositories repos,
+      String payload,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1000, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final refresh = ValueNotifier<int>(0);
+      addTearDown(refresh.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => RepositoriesScope(
+            repositories: repos,
+            child: CollectionRefreshScope(revision: refresh, child: child!),
+          ),
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  key: const ValueKey('open-review'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => ImportReviewScreen(
+                        sources: [
+                          ImportSource(
+                            kind: ImportSourceKind.genericJson,
+                            adapterFactory: GenericJsonAdapter.new,
+                          ),
+                        ],
+                        picker: () async => payload,
+                      ),
+                    ),
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('open-review')));
+      await tester.pumpAndSettle();
+      return refresh;
+    }
+
+    testWidgets(
+      'picking a .ccshare with a program commits the dance AND program via '
+      'the archive importer, shows the transient undo snackbar',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+        final archive = pickerArchive();
+        final payload = encodeArchive(archive);
+
+        final refresh = await pumpWithPicker(tester, repos, payload);
+
+        // Drive through the picker → plan → review flow.
+        await _toReview(tester);
+
+        // The dance row appears; nothing is committed yet.
+        expect(
+          find.byKey(const ValueKey('import-review-list')),
+          findsOneWidget,
+        );
+        expect(find.text('Picker Reel'), findsOneWidget);
+        expect(await repos.dances.listAll(), isEmpty);
+        expect(await repos.programs.listAll(), isEmpty);
+
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        // Dance AND program committed — the fix under test.
+        final dances = await repos.dances.listAll();
+        expect(dances.map((d) => d.title), contains('Picker Reel'));
+        expect(await repos.programs.listAll(), hasLength(1));
+        expect(await repos.venues.listAll(), hasLength(1));
+        expect(refresh.value, greaterThan(0));
+
+        // Archive-importer path uses the transient snackbar (not the result
+        // dialog).
+        expect(
+          find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('import-result-dialog')),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'the transient Undo after a picked .ccshare removes the dance AND program',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+        final payload = encodeArchive(pickerArchive());
+
+        await pumpWithPicker(tester, repos, payload);
+        await _toReview(tester);
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        expect(await repos.dances.listAll(), hasLength(1));
+        expect(await repos.programs.listAll(), hasLength(1));
+
+        await tester.tap(find.text('Undo'));
+        await tester.pumpAndSettle();
+
+        expect(await repos.dances.listAll(), isEmpty);
+        expect(await repos.programs.listAll(), isEmpty);
+        expect(await repos.venues.listAll(), isEmpty);
+      },
+    );
+
+    testWidgets(
+      'picking a .ccshare without programs still uses the dance-only path '
+      '(no regression on the pre-existing dance import)',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+        // A plain dance-only archive — no programs, no _pickedBundle.
+        final payload = encodeArchive(
+          CompendiumArchive(
+            exportedAt: DateTime.utc(2026, 7, 15),
+            dances: [
+              Dance(
+                id: 'd2',
+                title: 'Plain Jig',
+                createdAt: DateTime.utc(2026, 1, 1),
+                updatedAt: DateTime.utc(2026, 1, 1),
+              ),
+            ],
+          ),
+        );
+
+        await pumpWithPicker(tester, repos, payload);
+        await _toReview(tester);
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        final dances = await repos.dances.listAll();
+        expect(dances.map((d) => d.title), contains('Plain Jig'));
+        // No programs — dance-only path used the result dialog, not undo snackbar.
+        expect(await repos.programs.listAll(), isEmpty);
+        expect(
+          find.byKey(const ValueKey('import-result-dialog')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'a harmless edit to the paste field after picking a .ccshare still '
+      'commits the dance and program',
+      (tester) async {
+        // Regression guard for the round-4 finding: the round-3 fix used a
+        // stale-equality check (_effectivePickedBundle returned null when the
+        // texts differed). A trailing newline — a plausible, harmless user
+        // action — changed the text, cleared the check, and silently dropped
+        // the program. Issue #852 recurring via a trivial edit.
+        //
+        // The listener-based cache (_onPasteChanged) re-decodes on every
+        // change, so a trailing newline that still decodes to an archive with
+        // programs updates the cache with the new decode rather than clearing
+        // it. Both the dance and the program must commit.
+        //
+        // Mutate-out target: restore the round-3 stale-equality check
+        // (`return bundle.json == _pasteController.text ? bundle : null`).
+        // With it, the newline causes _effectivePickedBundle to return null,
+        // _commit falls through to GenericJsonAdapter, and the program-count
+        // assertion below fails (isEmpty instead of hasLength(1)).
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+        final archive = pickerArchive(); // has one dance + one program
+        final payload = encodeArchive(archive);
+
+        await pumpWithPicker(tester, repos, payload);
+        await tester.tap(find.byKey(const ValueKey('import-choose-file')));
+        await tester.pumpAndSettle();
+
+        // Add a trailing newline — the minimal harmless edit that changed the
+        // text equality check while preserving the archive.
+        await tester.enterText(
+          find.byKey(const ValueKey('import-paste-field')),
+          '$payload\n',
+        );
+        await tester.pumpAndSettle();
+
+        // Plan and commit.
+        await tester.tap(find.byKey(const ValueKey('import-continue')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        // Both the dance and the program must be committed.
+        final dances = await repos.dances.listAll();
+        expect(dances.map((d) => d.title), contains('Picker Reel'));
+        expect(await repos.programs.listAll(), hasLength(1));
+        // Archive path: undo snackbar, not result dialog.
+        expect(
+          find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('import-result-dialog')),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'editing the paste field after picking a .ccshare commits the edited '
+      'text only — the original decoded bundle is not used',
+      (tester) async {
+        // This guards the staleness hazard identified in PR #874 review:
+        // overwriting the paste field with a dance-only payload must commit
+        // only what is in the paste field — the program from the originally
+        // picked archive must not bleed through.
+        //
+        // With the listener-based cache, _onPasteChanged re-decodes on each
+        // change and updates _cachedPickedBundle to match the current text.
+        // An overwrite with dance-only JSON produces a cache miss (no programs),
+        // and _commit falls through to GenericJsonAdapter.
+        //
+        // Mutate-out target: disable program detection in _onPasteChanged so
+        // _cachedPickedBundle is always null. The round-3 stale-equality check
+        // had the same surface — with it, the cache is set at pick time and
+        // cleared when the text changes; with its absence, the cache stays set
+        // from the original pick, so _commit routes through
+        // CompendiumArchiveImporter and writes the original program. Either
+        // mutation causes the "programs isEmpty" assertion below to fail.
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+        final original = pickerArchive(); // has a program
+        final originalPayload = encodeArchive(original);
+
+        // A dance-only archive we will substitute by editing the paste field.
+        final editedPayload = encodeArchive(
+          CompendiumArchive(
+            exportedAt: DateTime.utc(2026, 7, 15),
+            dances: [
+              Dance(
+                id: 'd99',
+                title: 'Edited Reel',
+                createdAt: DateTime.utc(2026, 1, 1),
+                updatedAt: DateTime.utc(2026, 1, 1),
+              ),
+            ],
+          ),
+        );
+
+        // Pick the bundle-with-programs, then overwrite the paste field with the
+        // dance-only payload before planning — simulating a user edit.
+        await pumpWithPicker(tester, repos, originalPayload);
+        await tester.tap(find.byKey(const ValueKey('import-choose-file')));
+        await tester.pumpAndSettle();
+        // Overwrite the paste field (simulates the user editing after pick).
+        await tester.enterText(
+          find.byKey(const ValueKey('import-paste-field')),
+          editedPayload,
+        );
+        await tester.pumpAndSettle();
+
+        // Plan and commit the edited payload.
+        await tester.tap(find.byKey(const ValueKey('import-continue')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        // The edited payload's dance committed, not the original bundle's.
+        final dances = await repos.dances.listAll();
+        expect(dances.map((d) => d.title), contains('Edited Reel'));
+        // No program — the stale decoded bundle was not used.
+        expect(await repos.programs.listAll(), isEmpty);
+        // Dance-only path: result dialog, not undo snackbar.
+        expect(
+          find.byKey(const ValueKey('import-result-dialog')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          findsNothing,
+        );
+      },
+    );
+  });
 }
 
 /// A [SourceAdapter] that records the [ImportRequest] it was planned with, so a

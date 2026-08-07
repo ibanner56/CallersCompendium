@@ -187,6 +187,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       widget.sources.where((s) => s.preselected).length <= 1,
       'at most one import source may be preselected',
     );
+    _pasteController.addListener(_onPasteChanged);
   }
 
   /// Set once the user picks a source from the dropdown themselves. After that
@@ -204,6 +205,76 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// `.USR`), or `null` when none is chosen / the source is text-based. Byte
   /// sources plan/commit from these bytes instead of [_pasteController]'s text.
   Uint8List? _payloadBytes;
+
+  /// A [SharedBundleImport] decoded from the current paste-field text when
+  /// that text is a valid [CompendiumArchive] that carries programs.
+  /// Maintained by [_onPasteChanged], which fires on every controller change
+  /// (programmatic or user). Null when the text is absent, not an archive,
+  /// or decodes to an archive with no programs.
+  ///
+  /// **Never write directly.** [_onPasteChanged] is the sole writer; it keeps
+  /// this in sync with [_pasteController.text] automatically.
+  SharedBundleImport? _cachedPickedBundle;
+
+  /// The text value that produced [_cachedPickedBundle]. Used by
+  /// [_onPasteChanged] to skip a re-decode when the text has not changed.
+  String _lastDecodedText = '';
+
+  /// Returns [_cachedPickedBundle], which is always in sync with the current
+  /// paste-field text. Non-null only when the paste field holds a valid
+  /// [CompendiumArchive] with programs.
+  ///
+  /// All five sites that formerly read `widget.sharedBundle ?? _pickedBundle`
+  /// route through this accessor so they cannot diverge from each other.
+  SharedBundleImport? get _effectivePickedBundle => _cachedPickedBundle;
+
+  /// Listener registered on [_pasteController] in [initState]. Re-decodes the
+  /// paste-field text whenever it changes and updates [_cachedPickedBundle].
+  ///
+  /// A cheap pre-screen (`contains('"programs"')`) skips the full decode for
+  /// text that cannot possibly be an archive with programs — title lists, plain
+  /// JSON, and any bundle without programs. This screens out all text this app
+  /// serialises that does not carry programs. It does not guarantee that every
+  /// text that passes the screen is valid (a parse error leaves [bundle] null),
+  /// and it does not handle JSON with escaped key characters (`\u0070rograms`),
+  /// which no [CompendiumArchive] serialiser produces but a conforming JSON
+  /// parser would accept. That edge is near-zero in practice and is not handled.
+  void _onPasteChanged() {
+    final text = _pasteController.text;
+    if (text == _lastDecodedText) return;
+    _lastDecodedText = text;
+    SharedBundleImport? bundle;
+    if (text.contains('"programs"')) {
+      try {
+        final result = decodeArchive(text);
+        final hasRootError = result.errors.any(
+          (e) => e.entityType == 'archive' && e.kind == ArchiveErrorKind.read,
+        );
+        if (!hasRootError && result.archive.programs.isNotEmpty) {
+          bundle = SharedBundleImport(
+            json: text,
+            archive: result.archive,
+            entityCount: compendiumArchiveEntityCount(result.archive),
+          );
+        }
+      } catch (_) {
+        // Not a decodable archive — leave bundle null; the dance-only path
+        // handles it unchanged and GenericJsonAdapter will report the error at
+        // plan time.
+      }
+    }
+    // The listener fires synchronously inside TextEditingController.value =,
+    // which is called before the onChanged callback at the TextField. That
+    // callback calls setState(), which schedules a rebuild. Because the
+    // listener fires first, _cachedPickedBundle is already current by the time
+    // the rebuild reads it from the build-path sites (_buildReview,
+    // _showSoftCapWarning, _buildSoftCapWarning, _buildRow). Do not call
+    // setState here: the rebuild is already scheduled by onChanged, and calling
+    // it a second time from the listener would double-schedule unnecessarily.
+    // If the onChanged setState were ever removed, this listener would need its
+    // own setState to trigger a rebuild for the build-path reads.
+    _cachedPickedBundle = bundle;
+  }
 
   /// True when the selected source imports from a picked binary file rather than
   /// pasted/fetched text (governs the input UI and which plan path runs).
@@ -286,6 +357,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // validated Dart-side. Seed it and plan immediately so the user lands
         // on the review/consent list — skipping the manual input phase — with
         // nothing written until they confirm.
+        //
+        // Prime _lastDecodedText before the controller write so _onPasteChanged
+        // short-circuits at the identity check and skips the redundant decode.
+        // _cachedPickedBundle stays null, which is correct: all call sites
+        // prefer widget.sharedBundle over _effectivePickedBundle, so the cache
+        // is never consulted on this path.
+        _lastDecodedText = bundle.json;
         _pasteController.text = bundle.json;
         _sourceUri = null;
         _plan();
@@ -295,6 +373,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   @override
   void dispose() {
+    _pasteController.removeListener(_onPasteChanged);
     _pasteController.dispose();
     _urlController.dispose();
     super.dispose();
@@ -311,8 +390,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _pasteController.text = text;
       // A freshly picked file replaces any URL-sourced payload; drop stale
       // provenance so this import is recorded as file/paste (uri == null).
+      // _onPasteChanged fires synchronously and updates _cachedPickedBundle.
       _sourceUri = null;
-      setState(() {});
     } on ImportFileTooLargeException catch (e) {
       // Untrusted input rejected before it was read into memory — tell the user
       // plainly (accessible SnackBar) and leave the input untouched.
@@ -557,6 +636,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     _titleList = null;
     _titleListProgress = null;
     _planError = null;
+    // _cachedPickedBundle is maintained by _onPasteChanged and does not need
+    // explicit clearing here; it stays valid as long as the paste text is
+    // unchanged, and will update if the text is later modified.
   }
 
   /// Computes the issue #686 figure-level diff for every row whose verdict
@@ -778,7 +860,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // programs. A hypothetical future dance-only byte source would fall through
     // to the shared dance path and never touch programs.
     final adapter = _selected.adapterFactory();
-    final sharedBundle = widget.sharedBundle;
+    final sharedBundle = widget.sharedBundle ?? _effectivePickedBundle;
     try {
       if (sharedBundle != null) {
         // Share target (issue #432): commit dances + programs + venues through
@@ -1598,8 +1680,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       // rejects only a bundle with neither dances nor programs), so the review
       // must still let the user consent to importing the programs — dead-ending
       // on "no dances" would regress the pre-#432 behavior that imported such
-      // bundles. Only fall through here when there is nothing importable at all.
-      final sharedBundle = widget.sharedBundle;
+      // bundles. Also applies to a manually picked .ccshare (issue #852).
+      // Only fall through here when there is nothing importable at all.
+      final sharedBundle = widget.sharedBundle ?? _effectivePickedBundle;
       if (unreadable.isEmpty &&
           sharedBundle != null &&
           sharedBundle.archive.programs.isNotEmpty) {
@@ -1883,10 +1966,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
-  /// Whether the shared bundle exceeds the soft entity cap (issue #432). Only
-  /// ever true on the share-target path (a manual import has no [sharedBundle]).
+  /// Whether the shared bundle exceeds the soft entity cap (issue #432). True
+  /// on the OS share-target path ([widget.sharedBundle]) and also when the
+  /// current paste-field text decodes to a bundle with programs
+  /// ([_effectivePickedBundle], issue #852). The banner tracks the current
+  /// paste-field text via [_onPasteChanged], so it updates whenever the text
+  /// changes.
   bool get _showSoftCapWarning {
-    final bundle = widget.sharedBundle;
+    final bundle = widget.sharedBundle ?? _effectivePickedBundle;
     return bundle != null && bundle.entityCount > kSharedBundleSoftCapEntities;
   }
 
@@ -1900,7 +1987,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final message = l10n.sharedImportSoftCapWarning(
-      widget.sharedBundle!.entityCount,
+      (widget.sharedBundle ?? _effectivePickedBundle)!.entityCount,
     );
     return Semantics(
       container: true,
@@ -2113,8 +2200,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               // #266). It is suppressed for a shared bundle (issue #432) so a
               // shared file can never write before the single batch Import
               // consent, and so every imported row is covered by the transient
-              // batch Undo.
-              if (widget.sharedBundle == null) ...[
+              // batch Undo. Also suppressed for a manually picked .ccshare with
+              // programs (_effectivePickedBundle, issue #852) for the same reason.
+              if (widget.sharedBundle == null &&
+                  _effectivePickedBundle == null) ...[
                 const SizedBox(height: 4),
                 Align(
                   alignment: Alignment.centerLeft,
