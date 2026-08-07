@@ -48,6 +48,7 @@ class CallersBoxOnline implements OnlineSearchService {
           name: r.name,
           author: r.author,
           formation: r.formation,
+          figuresAvailable: r.figuresAvailable,
         ),
     ];
   }

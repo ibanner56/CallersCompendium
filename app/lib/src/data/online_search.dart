@@ -40,6 +40,7 @@ class OnlineSearchResultRow {
     required this.name,
     required this.author,
     required this.formation,
+    this.figuresAvailable = true,
   });
 
   /// Which source this row came from (drives the attribution line).
@@ -57,6 +58,15 @@ class OnlineSearchResultRow {
   /// Formation / start type; may be empty.
   final String formation;
 
+  /// Whether the source will actually serve this dance's figures.
+  ///
+  /// Defaults to `true`: sources without a permission model (ContraDB) always
+  /// serve figures, so they never set it. The Caller's Box does have one — a
+  /// non-`full` permission tier means the dance imports as a metadata-only
+  /// stub — and its results page publishes the tier per row, so
+  /// [CallersBoxOnline] carries it here (issue #845).
+  final bool figuresAvailable;
+
   @override
   bool operator ==(Object other) =>
       other is OnlineSearchResultRow &&
@@ -64,15 +74,18 @@ class OnlineSearchResultRow {
       other.id == id &&
       other.name == name &&
       other.author == author &&
-      other.formation == formation;
+      other.formation == formation &&
+      other.figuresAvailable == figuresAvailable;
 
   @override
-  int get hashCode => Object.hash(source, id, name, author, formation);
+  int get hashCode =>
+      Object.hash(source, id, name, author, formation, figuresAvailable);
 
   @override
   String toString() =>
       'OnlineSearchResultRow(source: $source, id: $id, name: $name, '
-      'author: $author, formation: $formation)';
+      'author: $author, formation: $formation, '
+      'figuresAvailable: $figuresAvailable)';
 }
 
 /// A source-neutral online search request.

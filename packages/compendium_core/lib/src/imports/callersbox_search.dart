@@ -18,6 +18,7 @@ class CallersBoxSearchResult {
     required this.name,
     required this.author,
     required this.formation,
+    required this.figuresAvailable,
   });
 
   /// TCB dance id (numeric string), from the row's `dance.php?id=N` link.
@@ -32,21 +33,37 @@ class CallersBoxSearchResult {
   /// Formation column (e.g. `Triple Minor`); may be empty.
   final String formation;
 
+  /// Whether TCB's row carried the **figures-permission** marker `Ⓕ`
+  /// (U+24BB, `&#x24bb;` in the source bytes) in one of the icon cells that
+  /// precede the dance link.
+  ///
+  /// False means TCB holds the dance's figures but will not serve them
+  /// (`Permission` is `search` or blank rather than `full`), so importing it
+  /// yields a metadata-only stub with no figures — see [CallersBoxAdapter].
+  ///
+  /// This is **not** the same as TCB's `Ⓛ` (U+24C1) marker, which only says a
+  /// link to an external source for the figures is known; a row can carry `Ⓛ`
+  /// and/or `Ⓥ` (U+24CB, video) while still refusing to serve its figures.
+  /// Only `Ⓕ` implies the figures are available.
+  final bool figuresAvailable;
+
   @override
   bool operator ==(Object other) =>
       other is CallersBoxSearchResult &&
       other.id == id &&
       other.name == name &&
       other.author == author &&
-      other.formation == formation;
+      other.formation == formation &&
+      other.figuresAvailable == figuresAvailable;
 
   @override
-  int get hashCode => Object.hash(id, name, author, formation);
+  int get hashCode =>
+      Object.hash(id, name, author, formation, figuresAvailable);
 
   @override
   String toString() =>
       'CallersBoxSearchResult(id: $id, name: $name, author: $author, '
-      'formation: $formation)';
+      'formation: $formation, figuresAvailable: $figuresAvailable)';
 }
 
 /// Matches a TCB per-dance link (`dance.php?id=N`, any host/leading path) and
@@ -117,6 +134,7 @@ List<CallersBoxSearchResult> parseCallersBoxSearchResults(String html) {
         name: name,
         author: author,
         formation: formation,
+        figuresAvailable: true,
       ),
     );
   }
