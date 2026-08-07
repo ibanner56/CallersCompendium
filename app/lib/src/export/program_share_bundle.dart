@@ -7,14 +7,17 @@ import 'share_sanitization.dart';
 /// §4.3, issue #298 — AirDrop/OS share-sheet sharing, send side).
 ///
 /// The bundle is **not a new format**: it is the canonical [CompendiumArchive]
-/// exchange JSON (`docs/design/imports.md` §"Generic JSON (6.6)"), the same
-/// format the manual Import flow's `GenericJsonAdapter` already consumes. Here
-/// the archive carries a single [program] plus the full definitions of every
-/// dance the program references, so the receiving device can re-import the
-/// dances through the existing import path with nothing else attached. The
-/// program is carried alongside them for the forthcoming receive-side
-/// auto-open (issue #298, PR 2), which will import the program itself; the
-/// current manual Import flow imports the dances only.
+/// exchange JSON (`docs/design/imports.md` §"Generic JSON (6.6)"). Here the
+/// archive carries a single [program] plus the full definitions of every dance
+/// the program references, so the receiving device gets a self-contained
+/// evening with nothing else attached.
+///
+/// On the receive side the import screen recognizes an archive that carries
+/// programs, decodes it with `decodeArchive`, and commits it through
+/// `CompendiumArchiveImporter` — dances, choreographers, venue **and** the
+/// program itself. That holds for a file opened from the OS share sheet and,
+/// since #874, for one picked manually through Import too. (A JSON file that
+/// is not an archive still routes to the dance-only `GenericJsonAdapter`.)
 ///
 /// [danceFor] resolves a slot's `danceId` to its full [Dance]; a referenced id
 /// that can't be resolved is skipped (best-effort, never fatal — mirrors the
@@ -153,8 +156,12 @@ const String programShareBundleExtension = 'ccshare';
 /// without the app installed, an email attachment, or a caller who just wants
 /// to read or diff the file gets something their system will open.
 ///
-/// Because it is the same payload, it is read back by the same
-/// `GenericJsonAdapter`/`decodeArchive` path, with no relaxed validation.
+/// Because it is the same payload, it is read back by the same path a
+/// `.ccshare` file takes: the import screen detects a [CompendiumArchive]
+/// carrying programs, decodes it with `decodeArchive`, and commits it through
+/// `CompendiumArchiveImporter` — with no relaxed validation. (A `.json` file
+/// that is *not* an archive still falls through to the dance-only
+/// `GenericJsonAdapter`, unchanged.)
 const String programShareJsonExtension = 'json';
 
 /// A filesystem-safe file name for a program share bundle. See the library-level
