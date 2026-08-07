@@ -59,7 +59,8 @@ class CallersBoxOnline implements OnlineSearchService {
   /// a typed [UrlFetchException] on any fetch failure, or when
   /// there is nothing to search.
   ///
-  /// Rows whose figures TCB will not serve are **excluded** (issue #845). TCB's
+  /// Rows whose figures TCB will not serve are excluded unless the caller sets
+  /// [OnlineSearchQuery.requireFigures] to `false` (issue #845). TCB's
   /// non-`full` permission tiers mean a dance imports as a metadata-only stub —
   /// title, formation, notes, no figures — which is almost never what a dance
   /// search was for, and is at its worst on a by-phrase search, where the user
@@ -94,7 +95,7 @@ class CallersBoxOnline implements OnlineSearchService {
 
     return [
       for (final r in rows)
-        if (r.figuresAvailable)
+        if (r.figuresAvailable || !query.requireFigures)
           OnlineSearchResultRow(
             source: OnlineSource.callersBox,
             id: r.id,

@@ -157,9 +157,11 @@ each release so store builds and tags can be traced back to an entry.
   three in ten results were affected, and it was worst when searching *by
   figure* — a quarter of the answers to "which dances have a balance" were
   dances whose balance you couldn't then read. Those dances are now left out of
-  Caller's Box search results, including when a pasted title list or a program
-  paste looks a title up online. You can still bring one in deliberately by
-  importing it by its link or ID, which works exactly as before. ContraDB
+  Caller's Box search results, including when a pasted title list looks a title
+  up online. You can still bring one in deliberately by importing it by its link
+  or ID, which works exactly as before. The **Resolve unmatched online** button
+  on a pasted program is deliberately left alone — it imports unattended, so
+  changing what it finds would change what it decides to keep. ContraDB
   searches are unaffected.
 - **Caller's Box searches now consider every match, not just the first fifty.**
   The Caller's Box returns fifty results at a time; the app now asks for the

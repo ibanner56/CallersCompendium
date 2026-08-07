@@ -491,6 +491,19 @@ void main() {
       expect(r.figuresAvailable, isTrue);
     });
 
+    test('a search-tier row survives when requireFigures is false', () async {
+      // The opt-out must reach the row mapping, not just the lookup helper.
+      final online = CallersBoxOnline(
+        searchFetcher: (_) async => _mixedTierResultsHtml,
+      );
+      final results = await online.search(
+        const OnlineSearchQuery(title: 'moon', requireFigures: false),
+      );
+      expect(results.map((r) => r.id), ['12037', '5419']);
+      // The flag is still reported truthfully; only the filtering changed.
+      expect(results.map((r) => r.figuresAvailable), [true, false]);
+    });
+
     test(
       'a search-tier dance imported by DIRECT URL still yields its stub',
       () async {
@@ -552,6 +565,24 @@ void main() {
         expect((outcome as OnlineTitleHit).row.id, '9001');
       },
     );
+
+    test('requireFigures: false keeps the pre-#845 ambiguity', () async {
+      // The opt-out the unattended program resolver uses. Same two rows, same
+      // real search path; only the policy differs, so this isolates it.
+      final online = CallersBoxOnline(
+        searchFetcher: (_) async => _duplicateTitleResultsHtml,
+      );
+      final outcome = await lookupUniqueExactTitle(
+        'Cabin Contra',
+        service: online,
+        requireFigures: false,
+      );
+      expect(outcome, isA<OnlineTitleMiss>());
+      expect(
+        (outcome as OnlineTitleMiss).failure,
+        OnlineTitleLookupFailure.multipleExactMatches,
+      );
+    });
 
     test('a title whose only match is figureless misses instead of '
         'resolving to a stub', () async {

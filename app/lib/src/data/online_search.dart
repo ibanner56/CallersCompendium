@@ -94,10 +94,34 @@ class OnlineSearchResultRow {
 /// criteria for sources that support them ([OnlineSource.supportsByPhrase]);
 /// title-only sources ignore it.
 class OnlineSearchQuery {
-  const OnlineSearchQuery({required this.title, this.phrases});
+  const OnlineSearchQuery({
+    required this.title,
+    this.phrases,
+    this.requireFigures = true,
+  });
 
   final String title;
   final CallersBoxPhraseQuery? phrases;
+
+  /// Whether results are limited to dances whose figures the source will
+  /// actually serve (issue #845).
+  ///
+  /// Named for the policy rather than for any one caller, so that it reads as
+  /// a search requirement and its default can be flipped in one line.
+  ///
+  /// Defaulting to `true` is the point of #845: a dance the source will only
+  /// hand over as a figureless stub is not a useful answer to a dance search,
+  /// least of all to a by-phrase one. Sources without a permission model
+  /// (ContraDB) always serve figures, so this filters nothing for them.
+  ///
+  /// Set it to `false` where *changing* which dances are found would change
+  /// something more consequential than what is displayed. The unattended
+  /// program-line resolver does exactly that: it commits without a user
+  /// present, and narrowing its result set can turn an ambiguous
+  /// multiple-exact-match — which is a deliberate no-op — into a single
+  /// confident hit that it then imports on its own. Preserving the wider set
+  /// there keeps that path's auto-commit behaviour unchanged.
+  final bool requireFigures;
 }
 
 /// What a direct online import ended up doing (drives the result snackbar).

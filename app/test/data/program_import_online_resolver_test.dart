@@ -45,6 +45,7 @@ class _FakeOnlineService implements OnlineSearchService {
   final Set<String> needsConfirmationTitles;
 
   final searchedTitles = <String>[];
+  final searchedQueries = <OnlineSearchQuery>[];
   final loadedIds = <String>[];
   final importedIds = <String>[];
 
@@ -54,6 +55,7 @@ class _FakeOnlineService implements OnlineSearchService {
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
     searchedTitles.add(query.title);
+    searchedQueries.add(query);
     if (throwOnSearch) throw Exception('offline');
     return rowsByTitle[query.title.trim().toLowerCase()] ?? const [];
   }
@@ -549,4 +551,65 @@ void main() {
     expect(resolved.single.importedOnline, isTrue);
     expect(resolved.single.danceId, isNotNull);
   });
+
+  // Issue #845. The Caller's Box search now excludes dances whose figures TCB
+  // will not serve. This path is UNATTENDED — it commits with nobody watching —
+  // so it deliberately opts out via `requireFigures: false` and keeps the wider,
+  // pre-#845 result set. Narrowing it would promote an ambiguous
+  // multiple-exact-match, which is a considered no-op, into a single confident
+  // hit that this function then imports on its own.
+  //
+  // Both tests drive the real resolver entry points rather than
+  // `lookupUniqueExactTitle` directly, so they cover the actual call site.
+  test('#845: the unattended path asks for the WIDER result set', () async {
+    final repos = openTestRepositories();
+    final service = _FakeOnlineService(
+      rowsByTitle: {
+        'petronella': [_row('Petronella', id: '1')],
+      },
+    );
+
+    await resolveUnmatchedOnline(
+      [_unmatched('Petronella')],
+      service: service,
+      repos: repos,
+    );
+
+    // Unconditional: assert the query was made AND what it asked for. A
+    // `.where(...).firstOrNull`-style check would pass vacuously if the search
+    // never happened at all.
+    expect(service.searchedQueries, hasLength(1));
+    expect(service.searchedQueries.single.requireFigures, isFalse);
+  });
+
+  test(
+    '#845: a title with a figure-hidden twin stays ambiguous here',
+    () async {
+      // The behavioural consequence of the opt-out, stated end to end. On the
+      // Collection screen these two rows collapse to one and resolve to a hit;
+      // on this unattended path both are still seen, so it stays a no-op and
+      // nothing is committed. Guards against the opt-out being quietly dropped:
+      // without it, this test's dance would be imported automatically.
+      final repos = openTestRepositories();
+      final service = _FakeOnlineService(
+        rowsByTitle: {
+          'petronella': [
+            _row('Petronella', id: '1'),
+            _row('Petronella', id: '2'),
+          ],
+        },
+      );
+
+      final danceId = await resolveConfidentOnlineDanceId(
+        'Petronella',
+        service: service,
+        repos: repos,
+      );
+
+      expect(danceId, isNull);
+      expect(service.loadedIds, isEmpty);
+      expect(service.importedIds, isEmpty);
+      expect(service.searchedQueries.single.requireFigures, isFalse);
+    },
+  );
 }
