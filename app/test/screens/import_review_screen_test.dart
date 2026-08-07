@@ -2852,10 +2852,7 @@ void main() {
       await _toReview(tester);
 
       // No sharedBundle and no _effectivePickedBundle: programs label must be absent.
-      expect(
-        find.byKey(const ValueKey('import-programs-label')),
-        findsNothing,
-      );
+      expect(find.byKey(const ValueKey('import-programs-label')), findsNothing);
     },
   );
 }

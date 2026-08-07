@@ -1716,8 +1716,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // to _buildSharedProgramsOnlyReview.
     final effectiveBundle = widget.sharedBundle ?? _effectivePickedBundle;
     final hasPrograms =
-        effectiveBundle != null &&
-        effectiveBundle.archive.programs.isNotEmpty;
+        effectiveBundle != null && effectiveBundle.archive.programs.isNotEmpty;
     // How many *distinct* existing local dances a commit would overwrite (issue
     // #446): the unique re-import target ids across rows the user has set to
     // "Re-import onto …", excluding rows already committed on their own via
@@ -1784,8 +1783,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                     ),
                     FilledButton.icon(
                       key: const ValueKey('import-commit-button'),
-                      onPressed:
-                          (importable == 0 && !hasPrograms) ? null : _commit,
+                      onPressed: (importable == 0 && !hasPrograms)
+                          ? null
+                          : _commit,
                       icon: const Icon(Icons.download_done),
                       label: Text(l10n.importAction),
                     ),
