@@ -1715,8 +1715,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // identical check at the top of this method that routes zero-dance archives
     // to _buildSharedProgramsOnlyReview.
     final effectiveBundle = widget.sharedBundle ?? _effectivePickedBundle;
-    final hasPrograms =
-        effectiveBundle != null && effectiveBundle.archive.programs.isNotEmpty;
+    final programCount = effectiveBundle?.archive.programs.length ?? 0;
+    final hasPrograms = programCount > 0;
     // How many *distinct* existing local dances a commit would overwrite (issue
     // #446): the unique re-import target ids across rows the user has set to
     // "Re-import onto …", excluding rows already committed on their own via
@@ -1763,9 +1763,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 ],
                 if (hasPrograms) ...[
                   Text(
-                    l10n.importReviewWillImportPrograms(
-                      effectiveBundle!.archive.programs.length,
-                    ),
+                    l10n.importReviewWillImportPrograms(programCount),
                     key: const ValueKey('import-programs-label'),
                   ),
                   const SizedBox(height: 4),
