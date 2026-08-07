@@ -57,7 +57,13 @@ class _FakeOnlineService implements OnlineSearchService {
     searchedTitles.add(query.title);
     searchedQueries.add(query);
     if (throwOnSearch) throw Exception('offline');
-    return rowsByTitle[query.title.trim().toLowerCase()] ?? const [];
+    final rows = rowsByTitle[query.title.trim().toLowerCase()] ?? const [];
+    // Honour the #845 policy exactly as a real service does. Without this the
+    // fake would return the same rows whatever the caller asked for, and any
+    // test of the opt-out could only ever assert the flag was passed — never
+    // that it changed the outcome.
+    if (!query.requireFigures) return rows;
+    return rows.where((r) => r.figuresAvailable).toList();
   }
 
   @override
@@ -162,14 +168,18 @@ class _FakeOnlineService implements OnlineSearchService {
   );
 }
 
-OnlineSearchResultRow _row(String name, {String id = '1'}) =>
-    OnlineSearchResultRow(
-      source: OnlineSource.callersBox,
-      id: id,
-      name: name,
-      author: '',
-      formation: '',
-    );
+OnlineSearchResultRow _row(
+  String name, {
+  String id = '1',
+  bool figuresAvailable = true,
+}) => OnlineSearchResultRow(
+  source: OnlineSource.callersBox,
+  id: id,
+  name: name,
+  author: '',
+  formation: '',
+  figuresAvailable: figuresAvailable,
+);
 
 ParsedProgramLine _unmatched(String text) => ParsedProgramLine(
   text: text,
@@ -582,34 +592,37 @@ void main() {
     expect(service.searchedQueries.single.requireFigures, isFalse);
   });
 
-  test(
-    '#845: a title with a figure-hidden twin stays ambiguous here',
-    () async {
-      // The behavioural consequence of the opt-out, stated end to end. On the
-      // Collection screen these two rows collapse to one and resolve to a hit;
-      // on this unattended path both are still seen, so it stays a no-op and
-      // nothing is committed. Guards against the opt-out being quietly dropped:
-      // without it, this test's dance would be imported automatically.
-      final repos = openTestRepositories();
-      final service = _FakeOnlineService(
-        rowsByTitle: {
-          'petronella': [
-            _row('Petronella', id: '1'),
-            _row('Petronella', id: '2'),
-          ],
-        },
-      );
+  test('#845: a title with a figure-hidden twin stays ambiguous here', () async {
+    // The behavioural consequence of the opt-out, end to end. Two rows share
+    // the title and only ONE would survive #845 filtering, so this is exactly
+    // the case where filtering promotes an ambiguous multiple-exact-match into
+    // a single confident hit — and this path would then import it with nobody
+    // watching. The opt-out keeps both rows visible, so it stays a no-op.
+    //
+    // The assertions below are behavioural on purpose. `_FakeOnlineService`
+    // honours `requireFigures`, so flipping the default to filter here makes
+    // `danceId` non-null and `importedIds` non-empty — the test goes red on
+    // what the code DID, not merely on which flag it passed, and the decision
+    // becomes visible instead of silent.
+    final repos = openTestRepositories();
+    final service = _FakeOnlineService(
+      rowsByTitle: {
+        'petronella': [
+          _row('Petronella', id: '1', figuresAvailable: false),
+          _row('Petronella', id: '2'),
+        ],
+      },
+    );
 
-      final danceId = await resolveConfidentOnlineDanceId(
-        'Petronella',
-        service: service,
-        repos: repos,
-      );
+    final danceId = await resolveConfidentOnlineDanceId(
+      'Petronella',
+      service: service,
+      repos: repos,
+    );
 
-      expect(danceId, isNull);
-      expect(service.loadedIds, isEmpty);
-      expect(service.importedIds, isEmpty);
-      expect(service.searchedQueries.single.requireFigures, isFalse);
-    },
-  );
+    expect(danceId, isNull);
+    expect(service.loadedIds, isEmpty);
+    expect(service.importedIds, isEmpty);
+    expect(service.searchedQueries.single.requireFigures, isFalse);
+  });
 }
