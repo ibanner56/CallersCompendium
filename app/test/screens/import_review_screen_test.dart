@@ -2364,11 +2364,15 @@ void main() {
   //   With the fix reverted the picker routes through GenericJsonAdapter
   //   (dance-only), the program is never committed, and the assertions on
   //   repos.programs.listAll() fail.
-  // - The staleness test (editing the paste field): mutate-out _effectivePickedBundle
-  //   back to ?? _pickedBundle. The hazard did not exist before this PR created
-  //   the cache, so a revert cannot reach it — reverting would also remove the
-  //   test. The mutate-out target restores the naive form a future simplification
-  //   might produce and confirms the test catches that.
+  // - The staleness test (overwrite paste field with dance-only payload): mutate-out
+  //   _onPasteChanged's bundle-detection logic so it always leaves
+  //   _cachedPickedBundle null. The hazard is that _commit could route on a
+  //   stale cache; the mutate-out restores that path. A revert is wrong here
+  //   because the hazard only exists in code introduced by this PR.
+  // - The harmless-edit test (trailing-newline edit keeps programs): also
+  //   mutate-out. With the listener-based cache, a harmless edit to an archive
+  //   re-decodes and keeps the bundle — but a stale-equality check (the round-3
+  //   approach) would drop it. Mutate-out restores that stale check.
 
   group('manual picker with .ccshare containing programs (issue #852)', () {
     // A minimal archive with one dance, one program referencing it, and one
@@ -2560,19 +2564,85 @@ void main() {
     );
 
     testWidgets(
+      'a harmless edit to the paste field after picking a .ccshare still '
+      'commits the dance and program',
+      (tester) async {
+        // Regression guard for the round-4 finding: the round-3 fix used a
+        // stale-equality check (_effectivePickedBundle returned null when the
+        // texts differed). A trailing newline — a plausible, harmless user
+        // action — changed the text, cleared the check, and silently dropped
+        // the program. Issue #852 recurring via a trivial edit.
+        //
+        // The listener-based cache (_onPasteChanged) re-decodes on every
+        // change, so a trailing newline that still decodes to an archive with
+        // programs updates the cache with the new decode rather than clearing
+        // it. Both the dance and the program must commit.
+        //
+        // Mutate-out target: restore the round-3 stale-equality check
+        // (`return bundle.json == _pasteController.text ? bundle : null`).
+        // With it, the newline causes _effectivePickedBundle to return null,
+        // _commit falls through to GenericJsonAdapter, and the program-count
+        // assertion below fails (isEmpty instead of hasLength(1)).
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+        final archive = pickerArchive(); // has one dance + one program
+        final payload = encodeArchive(archive);
+
+        await pumpWithPicker(tester, repos, payload);
+        await tester.tap(find.byKey(const ValueKey('import-choose-file')));
+        await tester.pumpAndSettle();
+
+        // Add a trailing newline — the minimal harmless edit that changed the
+        // text equality check while preserving the archive.
+        await tester.enterText(
+          find.byKey(const ValueKey('import-paste-field')),
+          '$payload\n',
+        );
+        await tester.pumpAndSettle();
+
+        // Plan and commit.
+        await tester.tap(find.byKey(const ValueKey('import-continue')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        // Both the dance and the program must be committed.
+        final dances = await repos.dances.listAll();
+        expect(dances.map((d) => d.title), contains('Picker Reel'));
+        expect(await repos.programs.listAll(), hasLength(1));
+        // Archive path: undo snackbar, not result dialog.
+        expect(
+          find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('import-result-dialog')),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
       'editing the paste field after picking a .ccshare commits the edited '
       'text only — the original decoded bundle is not used',
       (tester) async {
         // This guards the staleness hazard identified in PR #874 review:
-        // _pickedBundle is decoded at pick time; if the user edits the paste
-        // field before committing, _effectivePickedBundle returns null (texts
-        // differ) and _commit falls through to the dance-only GenericJsonAdapter
-        // path rather than writing the stale decoded archive.
+        // overwriting the paste field with a dance-only payload must commit
+        // only what is in the paste field — the program from the originally
+        // picked archive must not bleed through.
         //
-        // Mutate-out target: restoring `?? _pickedBundle` (bypassing the
-        // accessor) causes _commit to route through CompendiumArchiveImporter
-        // using the stale original archive instead of the edited payload, so the
-        // program count assertion below fails (hasLength(1) instead of isEmpty).
+        // With the listener-based cache, _onPasteChanged re-decodes on each
+        // change and updates _cachedPickedBundle to match the current text.
+        // An overwrite with dance-only JSON produces a cache miss (no programs),
+        // and _commit falls through to GenericJsonAdapter.
+        //
+        // Mutate-out target: disable program detection in _onPasteChanged so
+        // _cachedPickedBundle is always null. The round-3 stale-equality check
+        // had the same surface — with it, the cache is set at pick time and
+        // cleared when the text changes; with its absence, the cache stays set
+        // from the original pick, so _commit routes through
+        // CompendiumArchiveImporter and writes the original program. Either
+        // mutation causes the "programs isEmpty" assertion below to fail.
         final repos = openTestRepositories();
         addTearDown(repos.db.close);
         final original = pickerArchive(); // has a program

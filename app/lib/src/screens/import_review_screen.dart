@@ -187,6 +187,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       widget.sources.where((s) => s.preselected).length <= 1,
       'at most one import source may be preselected',
     );
+    _pasteController.addListener(_onPasteChanged);
   }
 
   /// Set once the user picks a source from the dropdown themselves. After that
@@ -205,29 +206,64 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// sources plan/commit from these bytes instead of [_pasteController]'s text.
   Uint8List? _payloadBytes;
 
-  /// A [SharedBundleImport] decoded from a manually picked `.ccshare` file that
-  /// carries programs, set by [_chooseFile] and cleared by [_resetToInput].
+  /// A [SharedBundleImport] decoded from the current paste-field text when
+  /// that text is a valid [CompendiumArchive] that carries programs.
+  /// Maintained by [_onPasteChanged], which fires on every controller change
+  /// (programmatic or user). Null when the text is absent, not an archive,
+  /// or decodes to an archive with no programs.
   ///
-  /// **Never read directly.** Use [_effectivePickedBundle], which validates that
-  /// the stored json still matches [_pasteController.text] before returning the
-  /// bundle. If the user has edited the paste field after picking, the stored
-  /// decode is stale and must not be used.
-  SharedBundleImport? _pickedBundle;
+  /// **Never write directly.** [_onPasteChanged] is the sole writer; it keeps
+  /// this in sync with [_pasteController.text] automatically.
+  SharedBundleImport? _cachedPickedBundle;
 
-  /// Returns [_pickedBundle] only when its [SharedBundleImport.json] still
-  /// matches the current paste-field text — i.e. the user has not edited it
-  /// since the file was picked. Returns `null` when [_pickedBundle] is unset or
-  /// when the texts differ (stale decode, edit has diverged the payload from
-  /// what was decoded at pick time).
+  /// The text value that produced [_cachedPickedBundle]. Used by
+  /// [_onPasteChanged] to skip a re-decode when the text has not changed.
+  String _lastDecodedText = '';
+
+  /// Returns [_cachedPickedBundle], which is always in sync with the current
+  /// paste-field text. Non-null only when the paste field holds a valid
+  /// [CompendiumArchive] with programs.
   ///
   /// All five sites that formerly read `widget.sharedBundle ?? _pickedBundle`
-  /// route through this accessor so they cannot diverge from each other, and so
-  /// a future writer cannot accidentally introduce the staleness hazard by
-  /// accessing [_pickedBundle] directly.
-  SharedBundleImport? get _effectivePickedBundle {
-    final bundle = _pickedBundle;
-    if (bundle == null) return null;
-    return bundle.json == _pasteController.text ? bundle : null;
+  /// route through this accessor so they cannot diverge from each other.
+  SharedBundleImport? get _effectivePickedBundle => _cachedPickedBundle;
+
+  /// Listener registered on [_pasteController] in [initState]. Re-decodes the
+  /// paste-field text whenever it changes and updates [_cachedPickedBundle].
+  ///
+  /// A cheap pre-screen (`contains('"programs"')`) skips the full decode for
+  /// text that cannot possibly be an archive with programs — title lists, plain
+  /// JSON, and any bundle without programs. This cannot produce a false
+  /// negative: a [CompendiumArchive] with programs always serialises the
+  /// `"programs"` key, so any text that would decode to one passes the screen.
+  void _onPasteChanged() {
+    final text = _pasteController.text;
+    if (text == _lastDecodedText) return;
+    _lastDecodedText = text;
+    SharedBundleImport? bundle;
+    if (text.contains('"programs"')) {
+      try {
+        final result = decodeArchive(text);
+        final hasRootError = result.errors.any(
+          (e) => e.entityType == 'archive' && e.kind == ArchiveErrorKind.read,
+        );
+        if (!hasRootError && result.archive.programs.isNotEmpty) {
+          bundle = SharedBundleImport(
+            json: text,
+            archive: result.archive,
+            entityCount: compendiumArchiveEntityCount(result.archive),
+          );
+        }
+      } catch (_) {
+        // Not a decodable archive — leave bundle null; the dance-only path
+        // handles it unchanged and GenericJsonAdapter will report the error at
+        // plan time.
+      }
+    }
+    // setState is intentionally not called here: _cachedPickedBundle is read
+    // at plan/commit time, not during build. The listener fires synchronously
+    // before any dependent call site reads it, so no rebuild is needed.
+    _cachedPickedBundle = bundle;
   }
 
   /// True when the selected source imports from a picked binary file rather than
@@ -320,6 +356,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   @override
   void dispose() {
+    _pasteController.removeListener(_onPasteChanged);
     _pasteController.dispose();
     _urlController.dispose();
     super.dispose();
@@ -336,33 +373,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _pasteController.text = text;
       // A freshly picked file replaces any URL-sourced payload; drop stale
       // provenance so this import is recorded as file/paste (uri == null).
+      // _onPasteChanged fires synchronously and updates _cachedPickedBundle.
       _sourceUri = null;
-      // Detect a CompendiumArchive bundle with programs (issue #852): if the
-      // picked file decodes to a valid archive that carries programs, stash a
-      // SharedBundleImport so _commit routes through CompendiumArchiveImporter
-      // (dances + programs + venues) — the same path the OS share-target uses —
-      // rather than the dance-only GenericJsonAdapter. The text has already
-      // passed the size cap enforced by readImportTextCapped, so no second cap
-      // check is needed here. A decode error simply leaves _pickedBundle null
-      // (the existing dance-only path handles it unchanged).
-      SharedBundleImport? picked;
-      try {
-        final result = decodeArchive(text);
-        final hasRootError = result.errors.any(
-          (e) => e.entityType == 'archive' && e.kind == ArchiveErrorKind.read,
-        );
-        if (!hasRootError && result.archive.programs.isNotEmpty) {
-          picked = SharedBundleImport(
-            json: text,
-            archive: result.archive,
-            entityCount: compendiumArchiveEntityCount(result.archive),
-          );
-        }
-      } catch (_) {
-        // Not a decodable archive — fall through to the existing dance-only
-        // path; GenericJsonAdapter will report the error at plan time.
-      }
-      setState(() => _pickedBundle = picked);
     } on ImportFileTooLargeException catch (e) {
       // Untrusted input rejected before it was read into memory — tell the user
       // plainly (accessible SnackBar) and leave the input untouched.
@@ -607,7 +619,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     _titleList = null;
     _titleListProgress = null;
     _planError = null;
-    _pickedBundle = null;
+    // _cachedPickedBundle is maintained by _onPasteChanged and does not need
+    // explicit clearing here; it stays valid as long as the paste text is
+    // unchanged, and will update if the text is later modified.
   }
 
   /// Computes the issue #686 figure-level diff for every row whose verdict
@@ -1936,10 +1950,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   /// Whether the shared bundle exceeds the soft entity cap (issue #432). True
-  /// on the OS share-target path ([widget.sharedBundle]) and also when a
-  /// manually picked file was detected as a bundle with programs
-  /// ([_effectivePickedBundle], issue #852). The banner follows the *effective*
-  /// bundle, so it disappears if an edit makes the stored decode stale.
+  /// on the OS share-target path ([widget.sharedBundle]) and also when the
+  /// current paste-field text decodes to a bundle with programs
+  /// ([_effectivePickedBundle], issue #852). The banner tracks the current
+  /// paste-field text via [_onPasteChanged], so it updates whenever the text
+  /// changes.
   bool get _showSoftCapWarning {
     final bundle = widget.sharedBundle ?? _effectivePickedBundle;
     return bundle != null && bundle.entityCount > kSharedBundleSoftCapEntities;
