@@ -83,11 +83,11 @@ details are handled when you export.
   program the dance appears in.
 - **Track calling history for all callers** (off) — when off *and* you've set a
   [default caller for new programs](#program-defaults), a dance's calling history
-  and "called ×N" counts include only programs led by that caller, so your history
-  reflects the dances **you** called. Turn it on — or leave the default caller
-  blank — to track every program that contains the dance. Matching ignores
-  surrounding spaces and letter case, and applies on top of the *Require "mark
-  performed"* setting (both must pass).
+  and "called ×N" counts include only programs led by that caller (plus any
+  programs with no caller recorded, which are treated as your own). Turn it on —
+  or leave the default caller blank — to track every program that contains the
+  dance. Matching ignores surrounding spaces and letter case, and applies on top
+  of the *Require "mark performed"* setting (both must pass).
 
 ### Accessibility
 

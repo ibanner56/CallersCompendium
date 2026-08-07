@@ -228,6 +228,16 @@ each release so store builds and tags can be traced back to an entry.
   A balance with `(RH)` followed by a box the gnat imports as one figure with
   the hand set, rather than losing the hand annotation.
 
+- **Programs recorded before you set a default caller now appear in calling
+  history and "called ×N" counts.** With "Track calling history for all
+  callers" off and a default caller configured, any program whose caller field
+  was blank or never filled in was silently excluded — so setting your own name
+  as default caller would make your entire pre-existing history disappear. Those
+  programs are now treated as your own and included alongside programs that
+  explicitly match the default caller. Programs led by a different, non-blank
+  caller remain excluded as before. (#850, supersedes the null-caller exclusion
+  from #583)
+
 - **A figure with 0 beats at the end of a dance no longer creates a ghost
   section.** If the last figure in your dance takes no beats of its own — like
   a "form short waves" placed right at the end — it used to appear as a brand
