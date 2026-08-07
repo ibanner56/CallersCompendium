@@ -4,9 +4,11 @@ import 'package:flutter/widgets.dart';
 /// (issue #583) as a live [ValueNotifier] to the widget tree.
 ///
 /// When `false` (the default) and a default caller is configured, a dance's
-/// calling history and counts are scoped to programs whose host caller matches
-/// that default caller; when `true` — or when no default caller is set —
-/// history tracks every program that contains the dance, as it always has.
+/// calling history and counts include programs whose host caller matches that
+/// default caller **and** programs with a NULL or blank caller (treated as the
+/// user's own; #850 supersedes the original #583 exclusion); when `true` — or
+/// when no default caller is set — history tracks every program that contains
+/// the dance, as it always has.
 /// Descendants that call [TrackHistoryForAllCallersScope.of] rebuild
 /// automatically when the setting changes (live update), so an open Collection
 /// list or dance-detail screen re-derives its counts/history immediately.

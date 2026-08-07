@@ -785,7 +785,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
-      'オフで既定のコーラーが設定されている場合、コーリング履歴と回数にはそのコーラーが担当したプログラムのみが含まれます。オンの場合、または既定のコーラーが設定されていない場合は、そのダンスを含むすべてのプログラムが記録されます。';
+      'オフで既定のコーラーが設定されている場合、コーリング履歴と回数にはそのコーラーが担当したプログラム、およびコーラーが記録されていないプログラム（自分のプログラムとして扱われます）が含まれます。オンの場合、または既定のコーラーが設定されていない場合は、そのダンスを含むすべてのプログラムが記録されます。';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'アクセシビリティ';

@@ -224,7 +224,7 @@
   "settingsGeneralRequirePerformedForHistoryTitle": "“Markeer als uitgevoerd” vereisen voor callerhistorie",
   "settingsGeneralRequirePerformedForHistorySubtitle": "Als ingeschakeld, toont de callerhistorie van een dans alleen programma’s waarvan het slot voor die dans als uitgevoerd is gemarkeerd. Als uitgeschakeld, verschijnt een programma zodra het de dans bevat.",
   "settingsGeneralTrackHistoryForAllCallersTitle": "Callerhistorie voor alle callers bijhouden",
-  "settingsGeneralTrackHistoryForAllCallersSubtitle": "Als dit uit staat en er een standaardcaller is ingesteld, bevatten de callerhistorie en de aantallen alleen programma’s die door die caller zijn geleid. Als dit aan staat — of als er geen standaardcaller is ingesteld — wordt elk programma dat de dans bevat bijgehouden.",
+  "settingsGeneralTrackHistoryForAllCallersSubtitle": "Als dit uit staat en er een standaardcaller is ingesteld, bevatten de callerhistorie en de aantallen programma’s die door die caller zijn geleid, plus programma’s zonder geregistreerde caller (behandeld als uw eigen). Als dit aan staat — of als er geen standaardcaller is ingesteld — wordt elk programma dat de dans bevat bijgehouden.",
   "settingsGeneralAccessibilityHeader": "Toegankelijkheid",
   "settingsGeneralReduceMotionTitle": "Beweging verminderen",
   "settingsGeneralReduceMotionSubtitle": "Dempt of slaat niet-essentiële animaties over, zoals geanimeerd scrollen bij het navigeren tussen zoekresultaten of figuren.",

@@ -224,7 +224,7 @@
   "settingsGeneralRequirePerformedForHistoryTitle": "Kræv \"markeret som fremført\" til kaldshistorik",
   "settingsGeneralRequirePerformedForHistorySubtitle": "Når aktiveret viser en dans' kaldshistorik kun programmer, hvis slot for den dans er markeret som fremført. Når deaktiveret vises et program, så snart det indeholder dansen.",
   "settingsGeneralTrackHistoryForAllCallersTitle": "Spor kaldshistorik for alle callere",
-  "settingsGeneralTrackHistoryForAllCallersSubtitle": "Når den er slået fra, og der er valgt en standardcaller, omfatter kaldshistorik og antal kun programmer ledet af den caller. Når den er slået til — eller når der ikke er valgt en standardcaller — spores alle programmer, der indeholder dansen.",
+  "settingsGeneralTrackHistoryForAllCallersSubtitle": "Når den er slået fra, og der er valgt en standardcaller, omfatter kaldshistorik og antal programmer ledet af den caller samt programmer uden registreret caller (behandlet som dine egne). Når den er slået til — eller når der ikke er valgt en standardcaller — spores alle programmer, der indeholder dansen.",
   "settingsGeneralAccessibilityHeader": "Tilgængelighed",
   "settingsGeneralReduceMotionTitle": "Reducer bevægelse",
   "settingsGeneralReduceMotionSubtitle": "Dæmp eller spring ikke-essentielle animationer over, f.eks. animeret rulning ved flytning mellem søgeresultater eller figurer.",

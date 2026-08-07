@@ -157,14 +157,19 @@ class ProgramRepository {
 
   /// SQL fragment restricting a derived history query to programs whose HOST
   /// caller matches [caller] (already normalized by [_normalizedCallerFilter]),
-  /// or the empty string for no restriction. Folds both sides with
-  /// `LOWER(TRIM(...))` so every query site matches identically (trim +
-  /// case-insensitive; issue #583) and the value is bound as a parameter (no
-  /// injection). Programs with a `NULL` caller never satisfy the equality, so
-  /// they are excluded whenever a filter is active — as intended.
+  /// or the empty string (no SQL appended) when [caller] is `null` — meaning no
+  /// restriction. [caller] is always either `null` or a non-empty trimmed string;
+  /// callers must use [_normalizedCallerFilter] to canonicalize before passing it
+  /// here. Folds both sides with `LOWER(TRIM(...))` so every query site matches
+  /// identically (trim + case-insensitive; issue #583) and the value is bound as
+  /// a parameter (no injection). Programs with a `NULL` or blank caller are
+  /// treated as the user's own and are included alongside explicitly matching
+  /// programs (#850 supersedes the original #583 exclusion of unattributed
+  /// programs).
   static String _callerClause(String? caller) => caller == null
       ? ''
-      : 'AND LOWER(TRIM(programs.caller)) = LOWER(TRIM(?)) ';
+      : 'AND (programs.caller IS NULL OR TRIM(programs.caller) = \'\' '
+            'OR LOWER(TRIM(programs.caller)) = LOWER(TRIM(?))) ';
 
   /// The bound variables for [_callerClause]: a single [Variable] when a filter
   /// is active, otherwise empty.

@@ -1045,9 +1045,9 @@
   },
   "settingsGeneralTrackHistoryForAllCallersTitle": "Track calling history for all callers",
   "@settingsGeneralTrackHistoryForAllCallersTitle": {
-    "description": "Title of the General settings toggle that controls whether calling history counts programs called by everyone, or only those led by the default caller."
+    "description": "Title of the General settings toggle that controls whether calling history counts programs from everyone, or only those led by the default caller (plus unattributed programs)."
   },
-  "settingsGeneralTrackHistoryForAllCallersSubtitle": "When off and a default caller is set, calling history and counts include only programs led by that caller. When on — or when no default caller is set — every program that contains the dance is tracked.",
+  "settingsGeneralTrackHistoryForAllCallersSubtitle": "When off and a default caller is set, calling history and counts include programs led by that caller plus any programs with no caller recorded (treated as your own). When on — or when no default caller is set — every program that contains the dance is tracked.",
   "@settingsGeneralTrackHistoryForAllCallersSubtitle": {
     "description": "Subtitle explaining the track-calling-history-for-all-callers toggle."
   },

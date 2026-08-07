@@ -19,9 +19,11 @@ const String kRequirePerformedForHistoryKey = 'require_performed_for_history';
 /// When OFF (the default) AND a default caller is configured
 /// ([kDefaultProgramCallerKey] non-empty), a dance's calling history and counts
 /// only include programs whose HOST caller matches that default caller (trim +
-/// case-insensitive). When ON — or when no default caller is set — history
-/// tracks every program that contains the dance, as it always has. This gate is
-/// AND-combined with [kRequirePerformedForHistoryKey], never a replacement.
+/// case-insensitive) **or** whose caller is NULL or blank (unattributed programs
+/// are treated as the user's own; #850 supersedes the original #583 exclusion).
+/// When ON — or when no default caller is set — history tracks every program
+/// that contains the dance, as it always has. This gate is AND-combined with
+/// [kRequirePerformedForHistoryKey], never a replacement.
 const String kTrackHistoryForAllCallersKey = 'track_history_for_all_callers';
 
 /// Key used to persist and load the "auto-size Perform cards" preference

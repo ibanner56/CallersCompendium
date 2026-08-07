@@ -808,7 +808,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
-      'Når den er slået fra, og der er valgt en standardcaller, omfatter kaldshistorik og antal kun programmer ledet af den caller. Når den er slået til — eller når der ikke er valgt en standardcaller — spores alle programmer, der indeholder dansen.';
+      'Når den er slået fra, og der er valgt en standardcaller, omfatter kaldshistorik og antal programmer ledet af den caller samt programmer uden registreret caller (behandlet som dine egne). Når den er slået til — eller når der ikke er valgt en standardcaller — spores alle programmer, der indeholder dansen.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Tilgængelighed';

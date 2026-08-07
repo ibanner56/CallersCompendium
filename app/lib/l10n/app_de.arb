@@ -224,7 +224,7 @@
   "settingsGeneralRequirePerformedForHistoryTitle": "„Als aufgeführt markieren“ für Calling-Verlauf erfordern",
   "settingsGeneralRequirePerformedForHistorySubtitle": "Wenn aktiviert, listet der Calling-Verlauf eines Tanzes nur Programme auf, deren Slot für diesen Tanz als aufgeführt markiert wurde. Wenn deaktiviert, erscheint ein Programm, sobald es den Tanz enthält.",
   "settingsGeneralTrackHistoryForAllCallersTitle": "Calling-Verlauf für alle Caller erfassen",
-  "settingsGeneralTrackHistoryForAllCallersSubtitle": "Wenn aus und ein Standard-Caller festgelegt ist, enthalten Calling-Verlauf und Zählungen nur Programme, die von diesem Caller geleitet wurden. Wenn ein — oder wenn kein Standard-Caller festgelegt ist — wird jedes Programm erfasst, das den Tanz enthält.",
+  "settingsGeneralTrackHistoryForAllCallersSubtitle": "Wenn aus und ein Standard-Caller festgelegt ist, enthalten Calling-Verlauf und Zählungen Programme, die von diesem Caller geleitet wurden, sowie Programme ohne eingetragenen Caller (die als Ihre eigenen gezählt werden). Wenn ein — oder wenn kein Standard-Caller festgelegt ist — wird jedes Programm erfasst, das den Tanz enthält.",
   "settingsGeneralAccessibilityHeader": "Barrierefreiheit",
   "settingsGeneralReduceMotionTitle": "Bewegung reduzieren",
   "settingsGeneralReduceMotionSubtitle": "Nicht wesentliche Animationen dämpfen oder überspringen, z. B. animiertes Scrollen beim Navigieren zwischen Suchergebnissen oder Figuren.",

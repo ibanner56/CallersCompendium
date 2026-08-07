@@ -823,7 +823,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
-      'Lorsque cette option est désactivée et qu’un caller par défaut est défini, l’historique d’appel et les comptes n’incluent que les programmes menés par ce caller. Lorsqu’elle est activée — ou qu’aucun caller par défaut n’est défini — chaque programme contenant la danse est suivi.';
+      'Lorsque cette option est désactivée et qu’un caller par défaut est défini, l’historique d’appel et les comptes incluent les programmes menés par ce caller ainsi que les programmes sans caller enregistré (considérés comme les vôtres). Lorsqu’elle est activée — ou qu’aucun caller par défaut n’est défini — chaque programme contenant la danse est suivi.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Accessibilité';
