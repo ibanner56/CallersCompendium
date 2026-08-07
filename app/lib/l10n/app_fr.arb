@@ -224,7 +224,7 @@
   "settingsGeneralRequirePerformedForHistoryTitle": "Exiger « marquer comme joué » pour l’historique d’appel",
   "settingsGeneralRequirePerformedForHistorySubtitle": "Activé : l’historique d’appel d’une danse ne liste que les programmes dont le créneau pour cette danse a été marqué comme joué. Désactivé : un programme apparaît dès qu’il contient la danse.",
   "settingsGeneralTrackHistoryForAllCallersTitle": "Suivre l’historique d’appel pour tous les callers",
-  "settingsGeneralTrackHistoryForAllCallersSubtitle": "Lorsque cette option est désactivée et qu'un caller par défaut est défini, l'historique d'appel et les comptes incluent les programmes menés par ce caller ainsi que les programmes sans caller enregistré (considérés comme les vôtres). Lorsqu'elle est activée — ou qu'aucun caller par défaut n'est défini — chaque programme contenant la danse est suivi.",
+  "settingsGeneralTrackHistoryForAllCallersSubtitle": "Lorsque cette option est désactivée et qu’un caller par défaut est défini, l’historique d’appel et les comptes incluent les programmes menés par ce caller ainsi que les programmes sans caller enregistré (considérés comme les vôtres). Lorsqu’elle est activée — ou qu’aucun caller par défaut n’est défini — chaque programme contenant la danse est suivi.",
   "settingsGeneralAccessibilityHeader": "Accessibilité",
   "settingsGeneralReduceMotionTitle": "Réduire les animations",
   "settingsGeneralReduceMotionSubtitle": "Atténue ou supprime les animations non essentielles, comme le défilement animé lors du passage entre les résultats de recherche ou les figures.",
