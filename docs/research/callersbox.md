@@ -428,8 +428,8 @@ begins with `Balance` and names a wave.
 > qualified lines (`Men balance long wave in center` → scrubbed to `role1s
 > balance long wave in center`) were excluded from both. The 4,613 figure
 > therefore understates the true population. The widened predicate now folds
-> such lines; the census has not been re-run against the full mirror, so the
-> corrected total and per-bucket breakdown remain unverified.
+> such lines; re-running the census against the full mirror to produce an
+> updated total and per-bucket breakdown is tracked in issue #872.
 
 | bucket | lines | disposition |
 | --- | --- | --- |
