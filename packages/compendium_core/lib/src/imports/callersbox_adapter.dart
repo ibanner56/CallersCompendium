@@ -554,6 +554,10 @@ class CallersBoxAdapter implements SourceAdapter {
     // uses, which is why it carries no `paramBeats`. (v12: `star_through` was
     // removed from this set — it now mirrors california_twirl with no balance.)
     'box_circulate',
+    // #804: ContraDB folds a preceding balance into square_through as
+    // `balance: true`; TCB writes it as a separate figure. Matching ContraDB's
+    // shape so both sources produce the same structured figure.
+    'square_through',
   };
 
   /// Ocean/wave moves a TRAILING balance-WAVE line folds into (#577). TCB writes
@@ -581,7 +585,8 @@ class CallersBoxAdapter implements SourceAdapter {
   /// Folds figures that The Caller's Box writes as separate lines into a single
   /// structured move, flipping PR3a's neutral cross-line values to real ones:
   ///  - a balance LINE immediately preceding a swing / petronella /
-  ///    rory_o_more / box_the_gnat / swat_the_flea folds into that move (swing →
+  ///    rory_o_more / box_the_gnat / swat_the_flea / box_circulate /
+  ///    square_through folds into that move (swing →
   ///    `prefix: 'balance'`; the others → `balance: true`, upgrading rory's
   ///    neutral `false`);
   ///  - a bend-the-line LINE immediately following a structured down/up the hall
