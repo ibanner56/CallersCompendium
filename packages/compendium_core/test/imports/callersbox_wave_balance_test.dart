@@ -330,10 +330,11 @@ void main() {
     );
 
     test(
-      'a dancer-qualified balance whose prefix AGREES with the wave who folds',
+      'a dancer-qualified balance folds when the wave has no who (null waveWho)',
       () async {
-        // pass_the_ocean has no `who` param, so balanceWho is set but waveWho is
-        // null — the guard passes and the fold proceeds.
+        // pass_the_ocean has no `who` param (waveWho is null), so the mismatch
+        // guard short-circuits and the fold proceeds regardless of the balance
+        // line's dancer prefix.
         final figures = await _figuresFor([
           '(4) Pass the ocean',
           '(4) Women balance wave of four',
