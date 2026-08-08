@@ -356,6 +356,42 @@ Substring search on title/author; controlled formation + progression filters;
 positive/negative figure-line matching with any/all modes; **per-phrase (A1..B2)
 figure search** (2023). Matches our roadmap search requirements almost 1:1.
 
+### Results-page markers and paging (verified live 2026-08-06, issue #845)
+
+The HTML results table carries three leading icon `<td>`s per row, whose legend
+the page publishes verbatim:
+
+```
+&#x24bb; = we have permission to show the dance's figures
+&#x24c1; = we have a link to a source for the dance's figures
+&#x24cb; = we have one or more links to videos of the dance
+```
+
+They are independent, and an absent marker is an **empty cell**, not a missing
+one. Only `Ⓕ` (U+24BB) implies the figures will be served: `Ⓛ` (U+24C1) says
+only that an *external* source is known, so an `Ⓛ`-only row is still a `search`
+-tier dance. Spot-checked against the JSON endpoint — id 5419 carries `Ⓛ` and no
+`Ⓕ` and reports `Permission: search` with zero phrases; id 12037 carries `Ⓕ` and
+reports `Permission: full` with four.
+
+Rate on a live result set: `?title=moon` returns 50 rows of which 14 (28%) lack
+`Ⓕ`; the full 68-row set has 21 (31%). Consistent with the corpus figure below
+(12,001 `full` of 16,874 fetched, ≈29% non-`full`).
+
+Because the page is `windows-1252`, which cannot encode any of these characters,
+TCB has no choice but to emit them as entities — so a parser must match the
+**decoded codepoint**, never the entity text.
+
+**Paging.** A normal response is capped at 50 rows, but the page always states
+the full total (`Of 16874 dances in the db, your query matches N.`, on both title
+and by-phrase searches). Appending **`show_all`** returns the complete set;
+`show_all=` with an empty value behaves identically to the bare flag. The cost is
+payload: the moon delta works out at ~238 B/row on top of ~13 KB of page chrome,
+and broad queries are large — `?title=a` states **12,805** matches (~3.0 MB) and
+the by-phrase `balance` search states 10,287. Those two totals were read from the
+cheap capped responses; the multi-megabyte `show_all` requests were deliberately
+**not** issued against a volunteer-run host merely to confirm a size estimate.
+
 ## Permissions & rehosting (critical)
 
 Four author-controlled tiers: **full** (figures visible), **search** (figures

@@ -1994,8 +1994,9 @@ void main() {
     Future<ValueNotifier<int>> pumpShared(
       WidgetTester tester,
       CompendiumRepositories repos,
-      SharedBundleImport bundle,
-    ) async {
+      SharedBundleImport bundle, {
+      SourceAdapter Function()? adapterFactory,
+    }) async {
       await tester.binding.setSurfaceSize(const Size(1000, 1600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final refresh = ValueNotifier<int>(0);
@@ -2019,7 +2020,8 @@ void main() {
                         sources: [
                           ImportSource(
                             kind: ImportSourceKind.genericJson,
-                            adapterFactory: GenericJsonAdapter.new,
+                            adapterFactory:
+                                adapterFactory ?? GenericJsonAdapter.new,
                           ),
                         ],
                         sharedBundle: bundle,
@@ -2095,6 +2097,69 @@ void main() {
           find.byKey(const ValueKey('import-result-dialog')),
           findsNothing,
         );
+      },
+    );
+
+    testWidgets(
+      '#880: after Try another edits share-target text, Import commits the edit',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+        var planAttempts = 0;
+        final editedArchive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [sharedDance('d2', 'Edited Reel')],
+          programs: [
+            Program(
+              id: 'p2',
+              title: 'Edited Dance Party',
+              venueId: 'v2',
+              slots: [ProgramSlot(id: 's2', position: 0, danceId: 'd2')],
+              createdAt: DateTime.utc(2026, 4, 2),
+              updatedAt: DateTime.utc(2026, 4, 2),
+            ),
+          ],
+          venues: [Venue(id: 'v2', name: 'Edited Hall')],
+        );
+
+        await pumpShared(
+          tester,
+          repos,
+          bundleFor(danceProgramVenueArchive()),
+          adapterFactory: () =>
+              planAttempts++ == 0 ? _FailingAdapter() : GenericJsonAdapter(),
+        );
+
+        expect(find.text("Couldn't read the import"), findsOneWidget);
+
+        await tester.tap(find.byKey(const ValueKey('import-back-to-input')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('import-paste-field')),
+          encodeArchive(editedArchive),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('import-continue')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Edited Reel'), findsOneWidget);
+        expect(find.text('Shared Reel'), findsNothing);
+
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        final dances = await repos.dances.listAll();
+        final programs = await repos.programs.listAll();
+        final venues = await repos.venues.listAll();
+        expect(dances.map((d) => d.title), contains('Edited Reel'));
+        expect(dances.map((d) => d.title), isNot(contains('Shared Reel')));
+        expect(programs.map((p) => p.title), contains('Edited Dance Party'));
+        expect(
+          programs.map((p) => p.title),
+          isNot(contains('Shared Spring Fling')),
+        );
+        expect(venues.map((v) => v.name), contains('Edited Hall'));
+        expect(venues.map((v) => v.name), isNot(contains('The Grange Hall')));
       },
     );
 
@@ -2269,6 +2334,104 @@ void main() {
         expect(await repos.dances.listAll(), isEmpty);
         expect(
           find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    // ── Issue #869: Import gating when all dances are skipped ────────────────
+
+    testWidgets(
+      '#869: skipping every dance still enables Import when the bundle carries '
+      'a program (share-target path)',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+
+        await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+
+        // Set the one dance row to Skip — now importable == 0.
+        await tester.tap(find.byKey(const ValueKey('import-row-0-skip')));
+        await tester.pumpAndSettle();
+
+        // Import must still be enabled: the program will be written regardless
+        // of how dance rows are dispositioned.
+        final button = tester.widget<FilledButton>(
+          find.byKey(const ValueKey('import-commit-button')),
+        );
+        expect(button.onPressed, isNotNull);
+
+        // The programs label must be present to satisfy the acceptance criterion
+        // that the label cannot read "0 of 1" beside an enabled button without
+        // indicating the program.
+        expect(
+          find.byKey(const ValueKey('import-programs-label')),
+          findsOneWidget,
+        );
+
+        // Committing writes the program but not the skipped dance.
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        expect(await repos.programs.listAll(), hasLength(1));
+        expect(await repos.dances.listAll(), isEmpty);
+      },
+    );
+
+    testWidgets(
+      '#869: skipping every dance keeps Import disabled when the bundle has no '
+      'program — nothing to write',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+
+        // Dance-only archive: no programs, so skipping the dance leaves nothing
+        // to import.
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [
+            Dance(
+              id: 'd1',
+              title: 'Skip Jig',
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+        await pumpShared(tester, repos, bundleFor(archive));
+
+        // Set the one dance row to Skip.
+        await tester.tap(find.byKey(const ValueKey('import-row-0-skip')));
+        await tester.pumpAndSettle();
+
+        // importable == 0 and no programs → button must stay disabled.
+        final button = tester.widget<FilledButton>(
+          find.byKey(const ValueKey('import-commit-button')),
+        );
+        expect(button.onPressed, isNull);
+      },
+    );
+
+    testWidgets(
+      '#869: programs label is shown on the common path (dances selected, bundle '
+      'carries a program)',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+
+        // Leave default choices — dance is set to Import.
+        await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+
+        // Import is enabled (existing behaviour).
+        final button = tester.widget<FilledButton>(
+          find.byKey(const ValueKey('import-commit-button')),
+        );
+        expect(button.onPressed, isNotNull);
+
+        // Programs label is also shown on the common path, not only in the
+        // all-dances-skipped edge case.
+        expect(
+          find.byKey(const ValueKey('import-programs-label')),
           findsOneWidget,
         );
       },
@@ -2697,7 +2860,66 @@ void main() {
         );
       },
     );
+
+    // ── Issue #869: Import gating when all dances are skipped (picker path) ─
+
+    testWidgets(
+      '#869: skipping every dance still enables Import when a picked .ccshare '
+      'carries a program (_effectivePickedBundle path)',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+        final payload = encodeArchive(pickerArchive());
+
+        await pumpWithPicker(tester, repos, payload);
+        await _toReview(tester);
+
+        // Set the one dance row to Skip — now importable == 0.
+        await tester.tap(find.byKey(const ValueKey('import-row-0-skip')));
+        await tester.pumpAndSettle();
+
+        // Import must still be enabled: the program will be written regardless
+        // of how dance rows are dispositioned.
+        final button = tester.widget<FilledButton>(
+          find.byKey(const ValueKey('import-commit-button')),
+        );
+        expect(button.onPressed, isNotNull);
+
+        // Programs label must be present.
+        expect(
+          find.byKey(const ValueKey('import-programs-label')),
+          findsOneWidget,
+        );
+
+        // Committing writes the program but not the skipped dance.
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        expect(await repos.programs.listAll(), hasLength(1));
+        expect(await repos.dances.listAll(), isEmpty);
+      },
+    );
   });
+
+  // ── Issue #869: programs label absent on the non-shared import path ────────
+
+  testWidgets(
+    '#869: programs label is absent on a non-shared (manual-input) import',
+    (tester) async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+
+      await _pump(
+        tester,
+        repos,
+        payload: _archivePayload([_dance('d1', 'Non-Shared Reel')]),
+      );
+      await _toReview(tester);
+
+      // No sharedBundle and no _effectivePickedBundle: programs label must be absent.
+      expect(find.byKey(const ValueKey('import-programs-label')), findsNothing);
+    },
+  );
 }
 
 /// A [SourceAdapter] that records the [ImportRequest] it was planned with, so a
@@ -2735,6 +2957,26 @@ class _CapturingAdapter implements SourceAdapter {
     ),
     raw: raw,
   );
+}
+
+class _FailingAdapter implements SourceAdapter {
+  @override
+  ProvenanceSource get source => ProvenanceSource.json;
+
+  @override
+  Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
+    throw StateError('forced plan failure');
+  }
+
+  @override
+  Future<RawRecord> fetch(DiscoveredRecord record) async {
+    throw StateError('unreachable');
+  }
+
+  @override
+  StructuredDraft parse(RawRecord raw) {
+    throw StateError('unreachable');
+  }
 }
 
 /// A [SourceAdapter] that discovers two records but fails to fetch one — used

@@ -57,7 +57,10 @@ looks each unmatched title up in [The Caller's Box](./glossary.md#the-callers-bo
 and, where it finds a confident single match, imports that dance and links the
 slot to it — so a paste can pull in dances you don't own yet, not just the ones
 you already have. It needs an internet connection, and anything it still can't
-place stays a note for you to sort out by hand.
+place stays a note for you to sort out by hand. Unlike a Caller's Box search on
+the Collection screen, this looks at every dance the Box knows — including ones
+whose figures it won't share — because it runs unattended and adding to it what
+it can find is not the same as changing what it decides to import on its own.
 
 ### Import a program from ContraDB
 

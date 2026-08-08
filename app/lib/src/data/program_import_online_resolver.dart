@@ -139,7 +139,18 @@ Future<String?> resolveConfidentOnlineDanceId(
   required CompendiumRepositories repos,
   DateTime? now,
 }) async {
-  final lookup = await lookupUniqueExactTitle(title, service: service);
+  // requireFigures: false — this path is NON-INTERACTIVE and commits on its
+  // own (see the #685/#686 rules above), so it deliberately keeps the wider,
+  // pre-#845 result set. Narrowing it can promote an ambiguous
+  // multipleExactMatches — which is a considered no-op — into a single
+  // confident hit that this function then imports with nobody watching.
+  // Changing what an unattended committer finds is a bigger decision than
+  // changing what a search screen shows, so it is not made here.
+  final lookup = await lookupUniqueExactTitle(
+    title,
+    service: service,
+    requireFigures: false,
+  );
   if (lookup is! OnlineTitleHit) return null;
   try {
     final preview = await service.loadPreview(repos, lookup.row, now: now);

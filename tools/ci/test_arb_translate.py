@@ -200,7 +200,12 @@ def _extract_cases() -> None:
         # A partial French file: greeting translated, danceCount present-but-blank.
         _write(
             arb / "app_fr.arb",
-            {"@@locale": "fr", "greeting": "Bonjour", "danceCount": "   "},
+            {
+                "@@locale": "fr",
+                "greeting": "Bonjour",
+                "@greeting": {a.SOURCE_HASH_FIELD: a.source_hash("Hello")},
+                "danceCount": "   ",
+            },
         )
         gloss = arb / "glossary.json"
         _write(gloss, {"doNotTranslate": ["ContraDB"], "terms": {}})
@@ -253,8 +258,11 @@ def _apply_cases() -> None:
         result = json.loads((arb / "app_fr.arb").read_text("utf-8"))
         assert result["@@locale"] == "fr"
         assert result["greeting"] == "Bonjour"
-        # Values only: no @key metadata is invented into the translation file.
-        assert "@greeting" not in result
+        # Applying a translation records the English source it was translated from,
+        # so a later source edit can be detected as stale.
+        assert result["@greeting"] == {
+            a.SOURCE_HASH_FIELD: a.source_hash("Hello"),
+        }
         # Deterministic template key order, @@locale first.
         assert list(result.keys())[0] == "@@locale"
         assert a.message_keys(result) == ["appTitle", "greeting", "search", "danceCount"]
@@ -284,7 +292,8 @@ def _apply_cases() -> None:
         assert code == 0
         assert json.loads((arb / "app_es.arb").read_text("utf-8"))["greeting"] == "Salut"
 
-        # Pre-existing @key metadata (human copy-the-template file) is preserved.
+        # Pre-existing @key metadata (human copy-the-template file) is preserved
+        # while the source marker is added for the key being applied.
         _write(
             arb / "app_de.arb",
             {"@@locale": "de", "greeting": "Hallo", "@greeting": {"description": "keep"}},
@@ -297,6 +306,9 @@ def _apply_cases() -> None:
         assert code == 0
         de = json.loads((arb / "app_de.arb").read_text("utf-8"))
         assert de["@greeting"] == {"description": "keep"}
+        assert de["@appTitle"] == {
+            a.SOURCE_HASH_FIELD: a.source_hash("Caller's Compendium"),
+        }
 
         # A stale message key already in the locale file (since removed from the
         # template) is pruned on the next apply, with an explicit warning — the
@@ -362,9 +374,17 @@ def _validate_cases() -> None:
             {
                 "@@locale": "fr",
                 "appTitle": "Caller's Compendium",
+                "@appTitle": {a.SOURCE_HASH_FIELD: a.source_hash("Caller's Compendium")},
                 "greeting": "Bonjour",
+                "@greeting": {a.SOURCE_HASH_FIELD: a.source_hash("Hello")},
                 "search": "Rechercher ({hint})",
+                "@search": {a.SOURCE_HASH_FIELD: a.source_hash("Search ({hint})")},
                 "danceCount": "{count, plural, one{{count} danse} other{{count} danses}}",
+                "@danceCount": {
+                    a.SOURCE_HASH_FIELD: a.source_hash(
+                        "{count, plural, =1{1 dance} other{{count} dances}}"
+                    ),
+                },
             },
         )
         code, out = _run(["--arb-dir", str(arb), "validate", "--locale", "fr"])
@@ -378,8 +398,15 @@ def _validate_cases() -> None:
         base = {
             "@@locale": "xx",
             "greeting": "Hi",
+            "@greeting": {a.SOURCE_HASH_FIELD: a.source_hash("Hello")},
             "search": "S ({hint})",
+            "@search": {a.SOURCE_HASH_FIELD: a.source_hash("Search ({hint})")},
             "danceCount": "{count, plural, other{{count} d}}",
+            "@danceCount": {
+                a.SOURCE_HASH_FIELD: a.source_hash(
+                    "{count, plural, =1{1 dance} other{{count} dances}}"
+                ),
+            },
         }
 
         # @@locale mismatch with the filename.
@@ -411,6 +438,33 @@ def _validate_cases() -> None:
             "de", {**base, "@@locale": "de", "@greeting": {"description": "changed"}}
         )
         assert code == 1 and "metadata" in out
+
+        # A stale source marker means the English source changed after this
+        # translation was produced.
+        code, out = _one_locale(
+            "de",
+            {
+                **base,
+                "@@locale": "de",
+                "@greeting": {a.SOURCE_HASH_FIELD: a.source_hash("Old hello")},
+            },
+        )
+        assert code == 1 and "stale" in out and "greeting" in out
+
+        # A @key block without a usable marker is reported as a missing marker,
+        # not as a stale translation.
+        for bad in ({"description": "x"}, {a.SOURCE_HASH_FIELD: 42}):
+            code, out = _one_locale(
+                "de", {**base, "@@locale": "de", "@greeting": bad}
+            )
+            assert code == 1 and a.SOURCE_HASH_FIELD in out and "is stale" not in out
+
+        # A wrong-typed @key block is one error, not a type error plus a
+        # missing-marker error for the same block.
+        code, out = _one_locale("de", {**base, "@@locale": "de", "@greeting": "oops"})
+        assert code == 1 and "must be a JSON object" in out
+        assert a.SOURCE_HASH_FIELD not in out
+        assert out.count("@greeting") == 1
 
         # Content safety: a bidi-override control is a hard error.
         code, out = _one_locale(

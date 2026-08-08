@@ -8,6 +8,13 @@ import 'online_search.dart';
 /// Deliberately typed rather than prose: the data layer never bakes English in
 /// (the presentation layer localizes these at the render site), and the program
 /// path collapses every value to the same `null` without inspecting it.
+///
+/// Note that a source may exclude rows the user could not act on before this
+/// ever sees them — a Caller's Box search omits dances whose figures TCB will
+/// not serve (issue #845) — so [noResults] and [noExactMatch] mean "nothing
+/// usable was offered", not "the archive holds no such dance". A caller that
+/// needs the wider set passes `requireFigures: false` to
+/// [lookupUniqueExactTitle].
 enum OnlineTitleLookupFailure {
   /// The search returned nothing at all.
   noResults,
@@ -18,6 +25,12 @@ enum OnlineTitleLookupFailure {
 
   /// More than one result has exactly this title, so which dance was meant is
   /// genuinely ambiguous and must not be guessed at.
+  ///
+  /// Source-side exclusions are applied first, so two same-titled Caller's Box
+  /// dances of which only one will serve its figures resolve to a hit rather
+  /// than landing here — except where the caller opted out with
+  /// `requireFigures: false`, which is precisely why the unattended program
+  /// path does so.
   multipleExactMatches,
 
   /// The search could not be performed (fetch/parse failure). Swallowed
@@ -71,14 +84,24 @@ final class OnlineTitleMiss extends OnlineTitleLookupResult {
 /// Any fetch/parse [Exception] becomes [OnlineTitleLookupFailure.fetchError]
 /// rather than propagating, so one bad title can't abort a batch; `Error`s
 /// (assertion/programmer bugs) still surface.
+///
+/// [requireFigures] is forwarded to the search (see
+/// [OnlineSearchQuery.requireFigures]). It defaults to `true` — a title that
+/// only resolves to a dance the source won't hand over with its figures is not
+/// a useful match — but the unattended program path passes `false`, because
+/// there a narrower result set can turn a deliberate no-op into an automatic
+/// commit.
 Future<OnlineTitleLookupResult> lookupUniqueExactTitle(
   String title, {
   required OnlineSearchService service,
+  bool requireFigures = true,
 }) async {
   final wanted = title.trim().toLowerCase();
   final List<OnlineSearchResultRow> rows;
   try {
-    rows = await service.search(OnlineSearchQuery(title: title));
+    rows = await service.search(
+      OnlineSearchQuery(title: title, requireFigures: requireFigures),
+    );
   } on Exception catch (_) {
     return const OnlineTitleMiss(OnlineTitleLookupFailure.fetchError);
   }

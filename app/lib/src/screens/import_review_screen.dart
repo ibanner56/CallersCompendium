@@ -224,9 +224,24 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// paste-field text. Non-null only when the paste field holds a valid
   /// [CompendiumArchive] with programs.
   ///
-  /// All five sites that formerly read `widget.sharedBundle ?? _pickedBundle`
-  /// route through this accessor so they cannot diverge from each other.
+  /// Manual-picker shared-bundle sites route through this accessor so they
+  /// cannot diverge from each other.
   SharedBundleImport? get _effectivePickedBundle => _cachedPickedBundle;
+
+  /// The shared-bundle archive represented by the current paste-field text.
+  ///
+  /// The immutable [widget.sharedBundle] is authoritative only while the text is
+  /// still the JSON seeded by the share target. After "Try another" returns the
+  /// user to the editable input and they change the text, routing must follow
+  /// the listener-maintained live decode instead of silently committing the
+  /// original shared bundle (issue #880).
+  SharedBundleImport? get _effectiveSharedBundle {
+    final sharedBundle = widget.sharedBundle;
+    if (sharedBundle != null && _pasteController.text == sharedBundle.json) {
+      return sharedBundle;
+    }
+    return _effectivePickedBundle;
+  }
 
   /// Listener registered on [_pasteController] in [initState]. Re-decodes the
   /// paste-field text whenever it changes and updates [_cachedPickedBundle].
@@ -360,9 +375,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         //
         // Prime _lastDecodedText before the controller write so _onPasteChanged
         // short-circuits at the identity check and skips the redundant decode.
-        // _cachedPickedBundle stays null, which is correct: all call sites
-        // prefer widget.sharedBundle over _effectivePickedBundle, so the cache
-        // is never consulted on this path.
+        // _cachedPickedBundle stays null, which is correct: while the text is
+        // unchanged, _effectiveSharedBundle returns widget.sharedBundle without
+        // consulting the cache. If the user edits after "Try another", the
+        // listener decodes the new text and _effectiveSharedBundle follows it.
         _lastDecodedText = bundle.json;
         _pasteController.text = bundle.json;
         _sourceUri = null;
@@ -860,7 +876,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // programs. A hypothetical future dance-only byte source would fall through
     // to the shared dance path and never touch programs.
     final adapter = _selected.adapterFactory();
-    final sharedBundle = widget.sharedBundle ?? _effectivePickedBundle;
+    final sharedBundle = _effectiveSharedBundle;
     try {
       if (sharedBundle != null) {
         // Share target (issue #432): commit dances + programs + venues through
@@ -1682,7 +1698,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       // on "no dances" would regress the pre-#432 behavior that imported such
       // bundles. Also applies to a manually picked .ccshare (issue #852).
       // Only fall through here when there is nothing importable at all.
-      final sharedBundle = widget.sharedBundle ?? _effectivePickedBundle;
+      final sharedBundle = _effectiveSharedBundle;
       if (unreadable.isEmpty &&
           sharedBundle != null &&
           sharedBundle.archive.programs.isNotEmpty) {
@@ -1709,6 +1725,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       for (var i = 0; i < _choices.length; i++)
         if (!_committed.contains(i) && _choices[i].kind != _ActionKind.skip) i,
     ].length;
+    // A shared bundle (share-target or manual pick, issue #852/#869) commits
+    // programs regardless of how dance rows are dispositioned, so the button
+    // gate must account for programs — not just the dance count. Mirrors the
+    // identical check at the top of this method that routes zero-dance archives
+    // to _buildSharedProgramsOnlyReview.
+    final effectiveBundle = _effectiveSharedBundle;
+    final programCount = effectiveBundle?.archive.programs.length ?? 0;
+    final hasPrograms = programCount > 0;
     // How many *distinct* existing local dances a commit would overwrite (issue
     // #446): the unique re-import target ids across rows the user has set to
     // "Re-import onto …", excluding rows already committed on their own via
@@ -1753,6 +1777,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   _buildOverwriteWarning(context, overwriteCount),
                   const SizedBox(height: 8),
                 ],
+                if (hasPrograms) ...[
+                  Text(
+                    l10n.importReviewWillImportPrograms(programCount),
+                    key: const ValueKey('import-programs-label'),
+                  ),
+                  const SizedBox(height: 4),
+                ],
                 Row(
                   children: [
                     Expanded(
@@ -1766,7 +1797,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                     ),
                     FilledButton.icon(
                       key: const ValueKey('import-commit-button'),
-                      onPressed: importable == 0 ? null : _commit,
+                      onPressed: (importable == 0 && !hasPrograms)
+                          ? null
+                          : _commit,
                       icon: const Icon(Icons.download_done),
                       label: Text(l10n.importAction),
                     ),
@@ -1973,7 +2006,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// paste-field text via [_onPasteChanged], so it updates whenever the text
   /// changes.
   bool get _showSoftCapWarning {
-    final bundle = widget.sharedBundle ?? _effectivePickedBundle;
+    final bundle = _effectiveSharedBundle;
     return bundle != null && bundle.entityCount > kSharedBundleSoftCapEntities;
   }
 
@@ -1987,7 +2020,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final message = l10n.sharedImportSoftCapWarning(
-      (widget.sharedBundle ?? _effectivePickedBundle)!.entityCount,
+      _effectiveSharedBundle!.entityCount,
     );
     return Semantics(
       container: true,
@@ -2201,9 +2234,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               // shared file can never write before the single batch Import
               // consent, and so every imported row is covered by the transient
               // batch Undo. Also suppressed for a manually picked .ccshare with
-              // programs (_effectivePickedBundle, issue #852) for the same reason.
-              if (widget.sharedBundle == null &&
-                  _effectivePickedBundle == null) ...[
+              // programs (_effectiveSharedBundle, issue #852/#880) for the same
+              // reason.
+              if (_effectiveSharedBundle == null) ...[
                 const SizedBox(height: 4),
                 Align(
                   alignment: Alignment.centerLeft,

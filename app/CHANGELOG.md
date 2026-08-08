@@ -162,6 +162,26 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Changed
 
+- **Caller's Box online search no longer offers dances whose figures it won't
+  share.** Not every dance in The Caller's Box has permission for its figures to
+  be shown; picking one of those used to give you a title and a formation with
+  no figures at all, which is almost never what a dance search was for. About
+  three in ten results were affected, and it was worst when searching *by
+  figure* — a quarter of the answers to "which dances have a balance" were
+  dances whose balance you couldn't then read. Those dances are now left out of
+  Caller's Box search results, including when a pasted title list looks a title
+  up online. You can still bring one in deliberately by importing it by its link
+  or ID, which works exactly as before. The **Resolve unmatched online** button
+  on a pasted program is deliberately left alone — it imports unattended, so
+  changing what it finds would change what it decides to keep. ContraDB
+  searches are unaffected.
+- **Caller's Box searches now consider every match, not just the first fifty.**
+  The Caller's Box returns fifty results at a time; the app now asks for the
+  complete set when a search is small enough to make that cheap, so hiding the
+  dances above doesn't quietly cost you ones you could have used. Very broad
+  searches still show the first fifty, so typing a single letter doesn't pull
+  megabytes from a volunteer-run site.
+
 - **On a tablet or desktop, saving a new dance now selects it automatically in
   the detail pane.** Previously, creating a dance and saving left the detail pane
   showing whatever was selected before — or the empty placeholder. Now, after a
@@ -220,6 +240,16 @@ each release so store builds and tags can be traced back to an entry.
   this release can open it.
 
 ### Fixed
+
+- **Skipping every dance in a shared import no longer disables Import when the
+  bundle carries a program.** Previously, if you already owned every dance in a
+  shared bundle and set them all to Skip, the Import button went grey — making
+  the program unreachable even though it was the only thing you wanted. The fix
+  covers both the share-target path (opening a `.ccshare` sent to you) and the
+  manual-pick path (choosing a `.ccshare` from "Choose file"). Programs are now
+  committed regardless of how dance rows are dispositioned, and a note in the
+  review panel tells you a program will be included so the summary is never
+  misleading (#869).
 
 - **Importing a `.ccshare` file through the manual Import picker now includes the
   program.** Previously, picking a `.ccshare` file from the "Choose file" button

@@ -52,17 +52,20 @@ jobs:
       # tools/ci/check_schema_migration.py.
       - name: Test the schema-bump gate
         run: python3 tools/ci/test_check_schema_migration.py
+      - name: Test the CHANGELOG promotion gate
+        run: python3 tools/ci/test_check_changelog_promoted.py
       # Localization tooling: pure-stdlib, offline, and fast, so it runs before
       # the (slower) Flutter setup and fails fast. First self-test the assisted
       # translation tool, then gate every committed app_<locale>.arb against the
       # English template — key subset, ICU/placeholder parity (locale-specific
-      # plural categories allowed), @@locale agreement, metadata integrity, and
-      # OWASP content safety (control/bidi-override chars, dangerous URIs). A
-      # translated ARB is untrusted input (community PRs / import-sharing), so a
-      # parity or safety violation fails the build. See tools/ci/arb_translate.py.
+      # plural categories allowed), English-source freshness, @@locale agreement,
+      # metadata integrity, and OWASP content safety (control/bidi-override
+      # chars, dangerous URIs). A translated ARB is untrusted input (community
+      # PRs / import-sharing), so a stale, parity, or safety violation fails the
+      # build. See tools/ci/arb_translate.py.
       - name: Test localization tooling (arb_translate)
         run: python3 tools/ci/test_arb_translate.py
-      - name: Validate translation ARBs (parity + content safety)
+      - name: Validate translation ARBs (freshness + parity + content safety)
         run: python3 tools/ci/arb_translate.py validate --all
       # Ratchet: no user-facing string may ship untranslated in a locale we
       # publish. `validate` above enforces that a locale is a SUBSET of the
