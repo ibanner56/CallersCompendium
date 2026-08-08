@@ -475,6 +475,13 @@ void main() {
         );
       });
 
+      test('classifies quadruplet formations', () async {
+        final draft = await _importOne(
+          jsonEncode(_dance(formationBase: 'Quadruplet')),
+        );
+        expect(draft.dance.formation.shape, FormationShape.quadruplet);
+      });
+
       test('resolves Becket direction from the Direction field', () async {
         final ccw = await _importOne(
           jsonEncode(

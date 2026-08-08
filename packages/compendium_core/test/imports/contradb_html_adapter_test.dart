@@ -289,6 +289,16 @@ void main() {
       expect(draft.dance.formation.shape, FormationShape.becketCw);
     });
 
+    test('a quadruplet formation classifies to quadruplet', () async {
+      final draft = await _importOne(
+        _page(
+          '<h1 class="dance-show-title">Q</h1>'
+          '<p class="dance-show-formation">formation: Quadruplet</p>',
+        ),
+      );
+      expect(draft.dance.formation.shape, FormationShape.quadruplet);
+    });
+
     test('a missing choreographer yields empty authorNames', () async {
       final draft = await _importOne(
         _page(

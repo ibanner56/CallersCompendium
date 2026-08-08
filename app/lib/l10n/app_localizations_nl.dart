@@ -1206,6 +1206,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get commonFormationGrid => 'Grid';
 
   @override
+  String get commonFormationQuadruplet => 'Quadruplet';
+
+  @override
   String get commonFormationOther => 'Overig';
 
   @override
