@@ -1672,9 +1672,11 @@ class FigureRenderer {
       final dir = params['dir'];
       // Silence the default 'along' direction (ContraDB set_direction_along).
       final dirClause = (dir is String && dir != 'along') ? _humanize(dir) : '';
-      return [move, shoulderClause, dirClause]
-          .where((s) => s.isNotEmpty)
-          .join(' ');
+      return [
+        move,
+        shoulderClause,
+        dirClause,
+      ].where((s) => s.isNotEmpty).join(' ');
     },
   };
 

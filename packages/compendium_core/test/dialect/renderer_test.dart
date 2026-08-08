@@ -1550,41 +1550,44 @@ void main() {
     });
 
     // Issue #873: pass_by and pass_through shoulder rendering.
-    group('pass_by renders the shoulder at every value (ContraDB figureGenericWords)', () {
-      // ContraDB always emits the shoulder for pass by (figureGenericWords).
-      // Word forms from ContraDB `stringParamShoulders`: "right shoulders" /
-      // "left shoulders" / "* shoulders".
-      test('default right: neighbor pass by right shoulders', () {
-        expect(
-          renderer.render(Figure(move: 'pass_by'), d),
-          'neighbor pass by right shoulders',
-        );
-      });
-      test('left: neighbor pass by left shoulders', () {
-        expect(
-          renderer.render(
-            Figure(move: 'pass_by', params: {'shoulder': 'left'}),
-            d,
-          ),
-          'neighbor pass by left shoulders',
-        );
-      });
-      test('wildcard: neighbor pass by * shoulders', () {
-        expect(
-          renderer.render(
-            Figure(move: 'pass_by', params: {'shoulder': '*'}),
-            d,
-          ),
-          'neighbor pass by * shoulders',
-        );
-      });
-      test('verbose output matches terse', () {
-        expect(
-          renderer.renderVerbose(Figure(move: 'pass_by'), d),
-          'neighbor pass by right shoulders',
-        );
-      });
-    });
+    group(
+      'pass_by renders the shoulder at every value (ContraDB figureGenericWords)',
+      () {
+        // ContraDB always emits the shoulder for pass by (figureGenericWords).
+        // Word forms from ContraDB `stringParamShoulders`: "right shoulders" /
+        // "left shoulders" / "* shoulders".
+        test('default right: neighbor pass by right shoulders', () {
+          expect(
+            renderer.render(Figure(move: 'pass_by'), d),
+            'neighbor pass by right shoulders',
+          );
+        });
+        test('left: neighbor pass by left shoulders', () {
+          expect(
+            renderer.render(
+              Figure(move: 'pass_by', params: {'shoulder': 'left'}),
+              d,
+            ),
+            'neighbor pass by left shoulders',
+          );
+        });
+        test('wildcard: neighbor pass by * shoulders', () {
+          expect(
+            renderer.render(
+              Figure(move: 'pass_by', params: {'shoulder': '*'}),
+              d,
+            ),
+            'neighbor pass by * shoulders',
+          );
+        });
+        test('verbose output matches terse', () {
+          expect(
+            renderer.renderVerbose(Figure(move: 'pass_by'), d),
+            'neighbor pass by right shoulders',
+          );
+        });
+      },
+    );
 
     group('pass_by canonical is byte-identical regardless of shoulder', () {
       // The canonical render uses the bare renderTemplate ({who} {move}) —
@@ -1613,100 +1616,109 @@ void main() {
       });
     });
 
-    group('pass_through renders shoulder only for non-right values (ContraDB passThroughWords)', () {
-      // ContraDB: right shoulder is implicit (suppressed); left and * are
-      // rendered explicitly. The default "along" direction continues to be
-      // silenced on all paths.
-      test('default (right shoulder + along dir): pass through', () {
-        expect(
-          renderer.render(Figure(move: 'pass_through'), d),
-          'pass through',
+    group(
+      'pass_through renders shoulder only for non-right values (ContraDB passThroughWords)',
+      () {
+        // ContraDB: right shoulder is implicit (suppressed); left and * are
+        // rendered explicitly. The default "along" direction continues to be
+        // silenced on all paths.
+        test('default (right shoulder + along dir): pass through', () {
+          expect(
+            renderer.render(Figure(move: 'pass_through'), d),
+            'pass through',
+          );
+        });
+        test(
+          'left shoulder suppresses dir default: pass through left shoulders',
+          () {
+            expect(
+              renderer.render(
+                Figure(move: 'pass_through', params: {'shoulder': 'left'}),
+                d,
+              ),
+              'pass through left shoulders',
+            );
+          },
         );
-      });
-      test('left shoulder suppresses dir default: pass through left shoulders', () {
-        expect(
-          renderer.render(
-            Figure(move: 'pass_through', params: {'shoulder': 'left'}),
-            d,
-          ),
-          'pass through left shoulders',
-        );
-      });
-      test('wildcard shoulder: pass through * shoulders', () {
-        expect(
-          renderer.render(
-            Figure(move: 'pass_through', params: {'shoulder': '*'}),
-            d,
-          ),
-          'pass through * shoulders',
-        );
-      });
-      test('non-default dir still renders (right shoulder suppressed)', () {
-        expect(
-          renderer.render(
-            Figure(move: 'pass_through', params: {'dir': 'across'}),
-            d,
-          ),
-          'pass through across',
-        );
-      });
-      test('left shoulder + non-default dir: both render', () {
-        expect(
-          renderer.render(
-            Figure(
-              move: 'pass_through',
-              params: {'shoulder': 'left', 'dir': 'across'},
+        test('wildcard shoulder: pass through * shoulders', () {
+          expect(
+            renderer.render(
+              Figure(move: 'pass_through', params: {'shoulder': '*'}),
+              d,
             ),
-            d,
-          ),
-          'pass through left shoulders across',
-        );
-      });
-      test('verbose output matches terse', () {
-        expect(
-          renderer.renderVerbose(
-            Figure(move: 'pass_through', params: {'shoulder': 'left'}),
-            d,
-          ),
-          'pass through left shoulders',
-        );
-      });
-    });
+            'pass through * shoulders',
+          );
+        });
+        test('non-default dir still renders (right shoulder suppressed)', () {
+          expect(
+            renderer.render(
+              Figure(move: 'pass_through', params: {'dir': 'across'}),
+              d,
+            ),
+            'pass through across',
+          );
+        });
+        test('left shoulder + non-default dir: both render', () {
+          expect(
+            renderer.render(
+              Figure(
+                move: 'pass_through',
+                params: {'shoulder': 'left', 'dir': 'across'},
+              ),
+              d,
+            ),
+            'pass through left shoulders across',
+          );
+        });
+        test('verbose output matches terse', () {
+          expect(
+            renderer.renderVerbose(
+              Figure(move: 'pass_through', params: {'shoulder': 'left'}),
+              d,
+            ),
+            'pass through left shoulders',
+          );
+        });
+      },
+    );
 
-    group('pass_through canonical is byte-identical regardless of shoulder', () {
-      // The canonical render keeps expanding {move} {dir} — the base renderer
-      // is display-only.
-      test('default: canonical unchanged', () {
-        expect(
-          renderer.renderCanonical(Figure(move: 'pass_through')),
-          'pass through along',
-        );
-      });
-      test('left shoulder: canonical unchanged', () {
-        expect(
-          renderer.renderCanonical(
-            Figure(move: 'pass_through', params: {'shoulder': 'left'}),
-          ),
-          'pass through along',
-        );
-      });
-      test('wildcard shoulder: canonical unchanged', () {
-        expect(
-          renderer.renderCanonical(
-            Figure(move: 'pass_through', params: {'shoulder': '*'}),
-          ),
-          'pass through along',
-        );
-      });
-      test('non-default dir: canonical unchanged', () {
-        expect(
-          renderer.renderCanonical(
-            Figure(move: 'pass_through', params: {'dir': 'across'}),
-          ),
-          'pass through across',
-        );
-      });
-    });
+    group(
+      'pass_through canonical is byte-identical regardless of shoulder',
+      () {
+        // The canonical render keeps expanding {move} {dir} — the base renderer
+        // is display-only.
+        test('default: canonical unchanged', () {
+          expect(
+            renderer.renderCanonical(Figure(move: 'pass_through')),
+            'pass through along',
+          );
+        });
+        test('left shoulder: canonical unchanged', () {
+          expect(
+            renderer.renderCanonical(
+              Figure(move: 'pass_through', params: {'shoulder': 'left'}),
+            ),
+            'pass through along',
+          );
+        });
+        test('wildcard shoulder: canonical unchanged', () {
+          expect(
+            renderer.renderCanonical(
+              Figure(move: 'pass_through', params: {'shoulder': '*'}),
+            ),
+            'pass through along',
+          );
+        });
+        test('non-default dir: canonical unchanged', () {
+          expect(
+            renderer.renderCanonical(
+              Figure(move: 'pass_through', params: {'dir': 'across'}),
+            ),
+            'pass through across',
+          );
+        });
+      },
+    );
   });
 
   group('PR2 display parity — idioms & adopted ContraDB wording', () {
