@@ -267,6 +267,7 @@ String _englishFormationLabel(Formation formation) {
     FormationShape.longways => 'Longways',
     FormationShape.triplet => 'Triplet',
     FormationShape.grid => 'Grid',
+    FormationShape.quadruplet => 'Quadruplet',
     FormationShape.other => 'Other',
   };
   final detail = formation.detail?.trim();

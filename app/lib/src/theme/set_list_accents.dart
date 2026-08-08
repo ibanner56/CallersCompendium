@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import 'wcag.dart';
 
-/// Coarse "family" grouping of the 15 canonical [FormationShape]s, used to
+/// Coarse "family" grouping of the 16 canonical [FormationShape]s, used to
 /// drive the optional set-list row **accent colour** (issue #270).
 ///
 /// The families are deliberately few (six) so the palette stays small,
@@ -56,6 +56,7 @@ FormationFamily formationFamilyOf(FormationShape shape) => switch (shape) {
   FormationShape.fourFaceFour ||
   FormationShape.threeFaceThree ||
   FormationShape.grid => FormationFamily.bigSetSquare,
+  FormationShape.quadruplet ||
   FormationShape.other => FormationFamily.other,
 };
 
