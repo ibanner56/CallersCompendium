@@ -407,7 +407,7 @@ void main() {
       () async {
         final figures = await _figuresFor([
           '(4) Pass the ocean',
-          '(4) Balance wave of four (NR,WL)',
+          '(4) Balance long wave (NL, women face in)',
         ]);
         expect(figures, hasLength(1));
         expect(figures.single.params['balance'], isTrue);
