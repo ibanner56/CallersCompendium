@@ -1571,6 +1571,7 @@ void main() {
             'neighbor pass by left shoulders',
           );
         });
+        // invalid-fixture: value is deliberately out of domain — pass_by surfaces an unknown shoulder value via the %S expansion rather than blanking it
         test('wildcard: neighbor pass by * shoulders', () {
           expect(
             renderer.render(
@@ -1606,6 +1607,7 @@ void main() {
           'neighbors pass by',
         );
       });
+      // invalid-fixture: value is deliberately out of domain — pass_by canonical keeps bare display name regardless of shoulder
       test('wildcard shoulder: canonical unchanged', () {
         expect(
           renderer.renderCanonical(
@@ -1640,6 +1642,7 @@ void main() {
             );
           },
         );
+        // invalid-fixture: value is deliberately out of domain — pass_through surfaces an unknown shoulder value rather than blanking it
         test('wildcard shoulder: pass through * shoulders', () {
           expect(
             renderer.render(
@@ -1682,43 +1685,41 @@ void main() {
       },
     );
 
-    group(
-      'pass_through canonical is byte-identical regardless of shoulder',
-      () {
-        // The canonical render keeps expanding {move} {dir} — the base renderer
-        // is display-only.
-        test('default: canonical unchanged', () {
-          expect(
-            renderer.renderCanonical(Figure(move: 'pass_through')),
-            'pass through along',
-          );
-        });
-        test('left shoulder: canonical unchanged', () {
-          expect(
-            renderer.renderCanonical(
-              Figure(move: 'pass_through', params: {'shoulder': 'left'}),
-            ),
-            'pass through along',
-          );
-        });
-        test('wildcard shoulder: canonical unchanged', () {
-          expect(
-            renderer.renderCanonical(
-              Figure(move: 'pass_through', params: {'shoulder': '*'}),
-            ),
-            'pass through along',
-          );
-        });
-        test('non-default dir: canonical unchanged', () {
-          expect(
-            renderer.renderCanonical(
-              Figure(move: 'pass_through', params: {'dir': 'across'}),
-            ),
-            'pass through across',
-          );
-        });
-      },
-    );
+    group('pass_through canonical is byte-identical regardless of shoulder', () {
+      // The canonical render keeps expanding {move} {dir} — the base renderer
+      // is display-only.
+      test('default: canonical unchanged', () {
+        expect(
+          renderer.renderCanonical(Figure(move: 'pass_through')),
+          'pass through along',
+        );
+      });
+      test('left shoulder: canonical unchanged', () {
+        expect(
+          renderer.renderCanonical(
+            Figure(move: 'pass_through', params: {'shoulder': 'left'}),
+          ),
+          'pass through along',
+        );
+      });
+      // invalid-fixture: value is deliberately out of domain — pass_through canonical keeps bare {move} {dir} expansion regardless of shoulder
+      test('wildcard shoulder: canonical unchanged', () {
+        expect(
+          renderer.renderCanonical(
+            Figure(move: 'pass_through', params: {'shoulder': '*'}),
+          ),
+          'pass through along',
+        );
+      });
+      test('non-default dir: canonical unchanged', () {
+        expect(
+          renderer.renderCanonical(
+            Figure(move: 'pass_through', params: {'dir': 'across'}),
+          ),
+          'pass through across',
+        );
+      });
+    });
   });
 
   group('PR2 display parity — idioms & adopted ContraDB wording', () {
