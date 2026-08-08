@@ -586,9 +586,8 @@ class CallersBoxAdapter implements SourceAdapter {
   /// structured move, flipping PR3a's neutral cross-line values to real ones:
   ///  - a balance LINE immediately preceding a swing / petronella /
   ///    rory_o_more / box_the_gnat / swat_the_flea / box_circulate /
-  ///    square_through folds into that move (swing →
-  ///    `prefix: 'balance'`; the others → `balance: true`, upgrading rory's
-  ///    neutral `false`);
+  ///    square_through folds into that move (swing → `prefix: 'balance'`;
+  ///    the others → `balance: true`, upgrading rory's neutral `false`);
   ///  - a bend-the-line LINE immediately following a structured down/up the hall
   ///    folds in as `ender: 'bendTheLine'` (upgrading the neutral `'none'`).
   ///  - a balance-WAVE LINE immediately following a `pass_the_ocean` /
