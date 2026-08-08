@@ -713,22 +713,43 @@ class CallersBoxAdapter implements SourceAdapter {
   };
 
   /// A balance-WAVE line: a custom figure whose scrubbed text leads with
-  /// "balance" AND names a wave (`Balance wave of four`, `Balance the wave`,
-  /// `Balance long wave`). This is deliberately NARROWER than [_isBalanceLine]:
-  /// a bare dancer balance (`Partner balance`, `Neighbor balance`) must NOT fold
-  /// into a preceding ocean/wave, because it belongs to the FOLLOWING move
-  /// (e.g. a swing) via Fold 1. Structured `balance` / `balance_the_ring` moves
-  /// are excluded too — the balance-wave forms fall through to custom. A line
-  /// naming an unmodeled formation ([_unmodeledWaveQualifiers]) is excluded as
-  /// well, so the fold and the promotion agree about exactly which wordings
-  /// they are willing to represent.
+  /// "balance" — or with a known dancer-set prefix followed by "balance"
+  /// (`Men balance long wave`, `role1s balance long wave`) — AND names a wave
+  /// (`Balance wave of four`, `Balance the wave`, `Balance long wave`). This is
+  /// deliberately NARROWER than [_isBalanceLine]: a bare dancer balance
+  /// (`Partner balance`, `Neighbor balance`) must NOT fold into a preceding
+  /// ocean/wave, because it belongs to the FOLLOWING move (e.g. a swing) via
+  /// Fold 1. Structured `balance` / `balance_the_ring` moves are excluded too —
+  /// the balance-wave forms fall through to custom. A line naming an unmodeled
+  /// formation ([_unmodeledWaveQualifiers]) is excluded as well, so the fold
+  /// and the promotion agree about exactly which wordings they are willing to
+  /// represent.
   static bool _isBalanceWaveLine(Figure f) {
     if (!f.isCustom) return false;
     final words = _figureWords(f).map(_stripEdgePunctuation).toList();
-    if (words.isEmpty || words.first != 'balance') return false;
+    if (words.isEmpty) return false;
+    // Accept an optional leading dancer-set word (e.g. "role1s balance long
+    // wave in center"); the scrubber already canonicalized "Men" → "role1s".
+    final balanceIdx = _tcbDancerPrefixes.contains(words.first) ? 1 : 0;
+    if (words.length <= balanceIdx || words[balanceIdx] != 'balance') {
+      return false;
+    }
     if (words.any(_unmodeledWaveQualifiers.contains)) return false;
     return words.any((w) => w == 'wave' || w == 'waves');
   }
+
+  /// The dancer-set prefix of a balance-wave line (after text scrubbing), or
+  /// `null` when the line is bare (`Balance long wave …`).
+  static String? _balanceWaveWho(Figure f) {
+    final words = _figureWords(f).map(_stripEdgePunctuation).toList();
+    if (words.isEmpty) return null;
+    return _tcbDancerPrefixes.contains(words.first) ? words.first : null;
+  }
+
+  /// Dancer-set words that [scrubFigureText] produces for role/couple prefixes
+  /// in TCB figure lines (`Men` → `role1s`, `Women` → `role2s`, `Ones` →
+  /// `ones`, `Twos` → `twos`).
+  static const _tcbDancerPrefixes = {'role1s', 'role2s', 'ones', 'twos'};
 
   /// A bend-the-line line: a custom figure whose scrubbed text is "bend the
   /// line" (or the bare "bend" / "bend line" shorthands). Bend never recognises
@@ -816,10 +837,11 @@ class CallersBoxAdapter implements SourceAdapter {
   /// Returns [wave] with the TRAILING [balance] wave line folded in as
   /// `balance: true` and the summed beats (#577), or `null` when [wave] already
   /// carries the balance (guarding against a double-fold of an ocean/wave figure
-  /// that was already balanced upstream). [wave] is a confirmed ocean/wave move
-  /// ([_isOceanWaveMove]) and [balance] a confirmed balance-wave line
-  /// ([_isBalanceWaveLine]); no `who` guard is needed because a balance-wave
-  /// names a formation, not dancers.
+  /// that was already balanced upstream) or when the balance line names a dancer
+  /// set that DISAGREES with the wave's `who` — folding in that case would
+  /// silently assert the wrong choreography (prefer-custom). [wave] is a
+  /// confirmed ocean/wave move ([_isOceanWaveMove]) and [balance] a confirmed
+  /// balance-wave line ([_isBalanceWaveLine]).
   ///
   /// The balance line often states hands the forming line did not
   /// (`Pass the ocean` / `(4) Balance wave of four (NR,WL)`), so any param the
@@ -830,6 +852,15 @@ class CallersBoxAdapter implements SourceAdapter {
   /// [_compatibleFormParams]); an existing value is never overwritten.
   static Figure? _foldTrailingBalanceIntoWave(Figure wave, Figure balance) {
     if (wave.params['balance'] == true) return null;
+    // Dancer-prefix mismatch guard (#872): if the balance line names a specific
+    // dancer set (e.g. "role1s balance long wave") and the wave's `who` names a
+    // DIFFERENT set, they describe different choreography — refuse the fold and
+    // leave the custom in place.
+    final balanceWho = _balanceWaveWho(balance);
+    final waveWho = wave.params['who'];
+    if (balanceWho != null && waveWho != null && balanceWho != waveWho) {
+      return null;
+    }
     final beats = _sumBeats(wave, balance);
     final decoded = _balanceWaveAsFormMove(balance);
     final extra = decoded == null
