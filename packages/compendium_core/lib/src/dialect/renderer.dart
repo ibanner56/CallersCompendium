@@ -803,8 +803,6 @@ class FigureRenderer {
   /// forward`, etc.).
   static const Map<String, String> _silencedDefaultParams = {
     // ContraDB set_direction_along → silences default 'along'.
-    // Note: pass_through's dir silencing is handled by its _displayBaseRenderers
-    // entry (which also handles the shoulder), so it is intentionally absent here.
     'pull_by_direction': 'dir',
     // ContraDB set_direction_across/acrossish → silences default 'across'.
     'right_left_through': 'dir',
