@@ -134,6 +134,15 @@ class Venue {
   /// reflects the current fields. Concatenates [name], [address1], [city],
   /// [stateProv] and [country] (in that order), skipping any that are null,
   /// joined by ", ". Since [name] is always present, this is never empty.
+  ///
+  /// **Not safe on an export path as-is.** Four of those five fields
+  /// ([address1], [city], [stateProv], [country]) are classified
+  /// `EgressClass.deviceLocal` in the privacy registry, so this label carries
+  /// data that must not leave the device — reading it straight off a stored
+  /// record and putting the result in a shared file, printed page or clipboard
+  /// is a leak, and one that happened (issue #853). On-screen use is fine; that
+  /// is what the label is for. Any export must pass the venue through
+  /// `sanitizeVenueForShare` **first**, after which this collapses to [name].
   String get displayName =>
       [name, address1, city, stateProv, country].whereType<String>().join(', ');
 

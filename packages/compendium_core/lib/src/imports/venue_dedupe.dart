@@ -56,8 +56,31 @@ String? _normalizeField(String? value) {
 /// **Contact/PII-independent:** deliberately excludes the redactable contact
 /// fields (`contact1/2*`), `notes`, `price`, `website`, `schedule`, etc. #515
 /// strips a shared venue's contact PII by default, so a fingerprint over those
-/// fields could never match a local venue — the key uses only fields that always
-/// travel with a shared venue.
+/// fields could never match a local venue.
+///
+/// **Shared venues no longer produce a key at all (issue #853).** This function
+/// was written when a shared venue still carried its postal address, and its
+/// original rationale — that the key uses only fields that always travel — no
+/// longer holds. The address block (`address1`/`address2`/`city`/`stateProv`/
+/// `country`/`postalCode`/`plus4`) is classified `EgressClass.deviceLocal` in
+/// the privacy registry, so `sanitizeVenueForShare` now clears it on every
+/// export. That removes **both** locating fields the strong-key threshold
+/// accepts, so `venueFingerprint` returns `null` for any venue that arrived in
+/// a share bundle, `CompendiumArchiveImporter` never preloads its index, and
+/// **cross-import dedupe does not apply to shared bundles** — re-importing the
+/// same bundle mints another venue record.
+///
+/// This is a known, accepted limitation rather than an oversight, and it is
+/// pinned by `app/test/export/share_venue_dedupe_seam_test.dart`. Dedupe still
+/// works for venues that reach the importer with their address intact (a
+/// Caller's Companion `.USR` import, a backup restore, or any local venue
+/// already in the collection).
+///
+/// Re-keying on fields that *do* still travel (`name` + `website`/`eventName`)
+/// would restore dedupe for bundles, but it weakens the key: two distinct halls
+/// that share a name and an event name would then merge, and a false merge is
+/// far less recoverable than a duplicate. That tradeoff has not been taken —
+/// see issue #853's discussion before changing it.
 String? venueFingerprint(Venue venue) {
   final name = _normalizeField(venue.name);
   final city = _normalizeField(venue.city);

@@ -232,13 +232,16 @@ menu:
 - **Share (program + dances)** — writes one file holding the program *and* every
   dance it uses, so another caller gets the dances too, not just a list of titles.
 - **Copy set list** — puts the same text on your clipboard.
+- **Export as JSON file** — the same file as **Share (program + dances)**, named
+  `.json` so a device without the app can still open it.
 - **Export / print PDF** — builds a PDF and opens your system's print dialog.
 
 A set list is titles, event details, and slot notes — deliberately not a
 figure-by-figure breakdown of every dance. If your program is linked to a
-[venue](./glossary.md#venue) with contact people recorded, the PDF and the
-program-plus-dances share ask before including any of those personal details, and
-leave them out unless you say otherwise.
+[venue](./glossary.md#venue) with contact people recorded, the PDF and the two
+file exports ask before including any of those personal details, and leave them
+out unless you say otherwise. A venue's street address is never included in any
+export, with or without a prompt.
 
 [Share, print & export](./sharing.md#share-a-program) covers all of this in
 detail, including what a shared bundle contains and what never leaves your

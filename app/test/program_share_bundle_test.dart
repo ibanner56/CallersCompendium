@@ -359,8 +359,10 @@ void main() {
 
         expect(venue.id, 'v1');
         expect(venue.name, 'Town Hall');
-        expect(venue.city, 'Montpelier');
-        expect(venue.stateProv, 'VT');
+        // The postal address is classified deviceLocal in the privacy
+        // registry and is cleared unconditionally (issue #853).
+        expect(venue.city, isNull);
+        expect(venue.stateProv, isNull);
         // All six contact fields are redacted by default (omit-by-default).
         expect(venue.contact1Name, isNull);
         expect(venue.contact1Phone, isNull);
@@ -680,7 +682,9 @@ void main() {
       final venue = await repos.venues.getById(importedProgram.venueId!);
       expect(venue, isNotNull);
       expect(venue!.name, 'Town Hall');
-      expect(venue.city, 'Montpelier');
+      // The address was redacted on the send side, so the receiver's copy of
+      // the venue carries the name but not the postal address (issue #853).
+      expect(venue.city, isNull);
       // Contact PII was redacted on the send side and never reaches the receiver.
       expect(venue.contact1Name, isNull);
       expect(venue.contact1Email, isNull);

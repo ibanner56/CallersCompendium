@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -261,8 +262,28 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(clipboardText, isNotNull);
-      expect(clipboardText, contains(_venue.displayName));
+      // The linked venue wins over the free text, but only its public name
+      // travels: `Venue.displayName` is `name, address1, city, stateProv,
+      // country`, and those seven address columns are classified deviceLocal
+      // in the privacy registry, so the export routes the venue through
+      // `sanitizeVenueForShare` first (issue #853).
+      expect(clipboardText, contains('Grange Hall'));
       expect(clipboardText, isNot(contains('Town Hall')));
+      for (final leaked in const [
+        '123 Main St',
+        'Room 2',
+        'Montpelier',
+        'VT',
+        'USA',
+        '05602',
+        '1234',
+      ]) {
+        expect(
+          clipboardText,
+          isNot(contains(leaked)),
+          reason: 'venue address field "$leaked" must not reach a set list',
+        );
+      }
     });
 
     testWidgets('Copy set list falls back to free text when link unresolved', (
@@ -753,7 +774,14 @@ void main() {
               venueId: 'v2',
               slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
             ),
-            {'v2': Venue(id: 'v2', name: 'Bare Hall', city: 'Montpelier')},
+            {
+              'v2': Venue(
+                id: 'v2',
+                name: 'Bare Hall',
+                city: 'Montpelier',
+                eventName: 'Second Saturday Contra',
+              ),
+            },
             dir,
             (p) => captured = p,
           ),
@@ -774,7 +802,11 @@ void main() {
           File(captured!.files!.single.path).readAsStringSync(),
         ).archive.venues.single;
         expect(venue.name, 'Bare Hall');
-        expect(venue.city, 'Montpelier');
+        // Descriptive fields are `shareable` and travel.
+        expect(venue.eventName, 'Second Saturday Contra');
+        // The address block is classified deviceLocal, so it is stripped
+        // unconditionally — there is no consent path for it (issue #853).
+        expect(venue.city, isNull);
       },
     );
 
@@ -960,6 +992,191 @@ void main() {
         findsNothing,
       );
       expect(exports, 1);
+    });
+  });
+
+  group('Export as JSON file (issue #853)', () {
+    testWidgets('menu lists it between Copy set list and Export / print PDF', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('share_json_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      await tester.pumpWidget(
+        _shareBundleMenu(_program(), const {}, dir, (_) {}),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+
+      // Document order of the menu's ListTiles is the order the user sees.
+      // The issue specifies the JSON action's position exactly, so assert the
+      // whole sequence rather than mere presence.
+      final titles = tester
+          .widgetList<ListTile>(find.byType(ListTile))
+          .map((t) => (t.title! as Text).data)
+          .toList();
+      expect(titles, const [
+        'Share set list (text)',
+        'Share (program + dances)',
+        'Copy set list',
+        'Export as JSON file',
+        'Export / print PDF',
+      ]);
+    });
+
+    testWidgets('is omitted when there is no dance resolver', (tester) async {
+      // Same gate as the bundle action: nothing to embed without `danceFor`.
+      await _pumpMenu(tester, _program());
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Export as JSON file'), findsNothing);
+    });
+
+    testWidgets('shares a .json file carrying the program and its dances', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('share_json_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      ShareParams? captured;
+      await tester.pumpWidget(
+        _shareBundleMenu(
+          _program(
+            slots: [
+              ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+              ProgramSlot(id: 's2', position: 1, text: 'Break'),
+              ProgramSlot(id: 's3', position: 2, danceId: 'd2'),
+            ],
+          ),
+          const {},
+          dir,
+          (params) => captured = params,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export as JSON file'));
+      await tester.pumpAndSettle();
+
+      expect(captured, isNotNull);
+      final files = captured!.files!;
+      expect(files, hasLength(1));
+      expect(files.single.mimeType, 'application/json');
+      expect(files.single.path, endsWith('.json'));
+      expect(files.single.path, isNot(endsWith('.ccshare')));
+      expect(captured!.fileNameOverrides, ['Friday_Contra.json']);
+
+      final archive = decodeArchive(
+        File(files.single.path).readAsStringSync(),
+      ).archive;
+      expect(archive.programs.single.id, 'p1');
+      expect(archive.dances.map((d) => d.id).toSet(), {'d1', 'd2'});
+    });
+
+    testWidgets('emits the same payload as the .ccshare action', (
+      tester,
+    ) async {
+      // The whole point of the action is a second *file name* for the existing
+      // bytes. If the two payloads ever diverge, a second program JSON format
+      // has been introduced by accident — which is exactly what this asserts
+      // against.
+      final dir = Directory.systemTemp.createTempSync('share_json_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      // Every entity kind the bundle can carry must actually be present, or
+      // the comparison is vacuous for the missing ones: a payload fork that
+      // dropped, say, the choreographers would compare equal against a fixture
+      // whose dances have no authors. So: two dances, one of them credited,
+      // a resolvable choreographer, and a linked venue.
+      final authored = Dance(
+        id: 'd3',
+        title: 'Ada\'s Whim',
+        authorIds: const ['c1'],
+        figures: [
+          Figure(move: 'swing', params: const {'beats': 16, 'who': 'partners'}),
+        ],
+        sourceCitations: const [],
+        customFields: const [],
+        createdAt: _now,
+        updatedAt: _now,
+      );
+      final choreographer = Choreographer(
+        id: 'c1',
+        name: 'Ada Caller',
+        website: 'https://ada.example',
+      );
+      final program = _program(
+        venueId: 'v1',
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd3'),
+        ],
+      );
+
+      Future<Map<String, Object?>> payloadFor(String menuLabel) async {
+        ShareParams? captured;
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: program,
+                    titleFor: _titles,
+                    venuesById: {'v1': _venue},
+                    danceFor: (id) => id == 'd3' ? authored : _danceFor(id),
+                    choreographerFor: (id) => id == 'c1' ? choreographer : null,
+                    bundleFileWriter: (json, fileName) async {
+                      final file = File('${dir.path}/$fileName');
+                      file.writeAsStringSync(json);
+                      return XFile(file.path, mimeType: 'application/json');
+                    },
+                    shareInvoker: (params) async => captured = params,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(menuLabel));
+        await tester.pumpAndSettle();
+        // The venue has contact fields, so the consent dialog appears; confirm
+        // with nothing ticked, identically for both actions.
+        await tester.tap(
+          find.byKey(const ValueKey('venue-contact-share-confirm')),
+        );
+        await tester.pumpAndSettle();
+
+        final raw = File(captured!.files!.single.path).readAsStringSync();
+        return jsonDecode(raw) as Map<String, Object?>
+          // `exportedAt` is stamped at build time, so it necessarily differs
+          // between two separate invocations; everything else must match.
+          ..remove('exportedAt');
+      }
+
+      final bundle = await payloadFor('Share (program + dances)');
+      final json = await payloadFor('Export as JSON file');
+
+      // Guard the guard: a comparison of two empty-ish payloads would pass
+      // whatever the code did, so assert the fixture really exercised every
+      // entity list before comparing them.
+      expect((bundle['programs']! as List), hasLength(1));
+      expect((bundle['dances']! as List), hasLength(2));
+      expect((bundle['choreographers']! as List), hasLength(1));
+      expect((bundle['venues']! as List), hasLength(1));
+
+      expect(json, equals(bundle));
     });
   });
 

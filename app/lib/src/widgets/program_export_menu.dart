@@ -17,7 +17,7 @@ import '../utils/safe_name.dart';
 import 'venue_contact_share_dialog.dart';
 
 /// Actions offered by the [ProgramExportMenu].
-enum _ExportAction { shareText, shareBundle, copyText, pdf }
+enum _ExportAction { shareText, shareBundle, copyText, shareJson, pdf }
 
 /// Hands the shareable set list to the OS share sheet. Defaults to
 /// [SharePlus.instance.share]; overridable so tests can force a failure.
@@ -73,13 +73,20 @@ typedef PdfLayouter =
 
 /// A labeled, keyboard-reachable export control for a [Program] (ROADMAP §4.3).
 ///
-/// Renders a [PopupMenuButton] (icon + tooltip "Export") with three actions:
+/// Renders a [PopupMenuButton] (icon + tooltip "Export") with these actions:
 /// - **Share set list (text)** — the emailable plain-text set list, via the OS
 ///   share sheet (`share_plus`, text sharing is supported on all platforms).
-/// - **Copy set list** — copies the same text to the clipboard; an
+/// - **Share (program + dances)** — the self-contained `.ccshare` bundle, which
+///   the recipient's copy of the app opens directly.
+/// - **Copy set list** — copies the set-list text to the clipboard; an
 ///   always-available fallback where a share target is unavailable.
+/// - **Export as JSON** — the *same* bundle payload named `.json` (issue #853),
+///   for a recipient without the app, an email attachment, or plain inspection.
 /// - **Export / print PDF** — hands a generated PDF to the OS print/save dialog
 ///   (`printing`, all platforms including Linux).
+///
+/// The two file actions are gated on [danceFor]: without a dance resolver there
+/// is nothing to embed.
 ///
 /// Titles for dance slots are resolved through [titleFor]; the event date is
 /// formatted with the ambient [MaterialLocalizations].
@@ -130,7 +137,22 @@ class ProgramExportMenu extends StatelessWidget {
   String _formatDate(BuildContext context, DateTime date) =>
       MaterialLocalizations.of(context).formatMediumDate(date);
 
-  String? _venueNameFor(String venueId) => venuesById[venueId]?.displayName;
+  /// Resolves a linked venue's display label for the **text** exports.
+  ///
+  /// [Venue.displayName] is `name, address1, city, stateProv, country`, so
+  /// reading it straight off the stored record would put the venue's postal
+  /// address — seven fields classified [EgressClass.deviceLocal] — into the
+  /// shared/copied set list. The venue is therefore routed through
+  /// [sanitizeVenueForShare] first, exactly as the bundle and PDF paths do, and
+  /// the label collapses to the venue's public name (issue #853).
+  ///
+  /// No `include` set is threaded through: the six opt-in contact fields are
+  /// not part of `displayName`, so there is nothing here for the consent dialog
+  /// to grant, and the text export never prompts.
+  String? _venueNameFor(String venueId) {
+    final venue = venuesById[venueId];
+    return venue == null ? null : sanitizeVenueForShare(venue).displayName;
+  }
 
   String _plainText(BuildContext context) => programToPlainText(
     program,
@@ -176,15 +198,20 @@ class ProgramExportMenu extends StatelessWidget {
   /// canonical [CompendiumArchive] JSON — see [buildProgramShareBundle]) to a
   /// temp file and hands it to the OS share sheet as a JSON [XFile].
   ///
+  /// Serves **both** file-share actions. [extension] is the only difference
+  /// between them: `.ccshare` (the default) binds the file to the app's
+  /// exported UTI so a recipient's device opens it here, while `.json`
+  /// (issue #853) leaves it a generic document for a recipient without the app,
+  /// an email attachment, or plain inspection. The payload is byte-identical —
+  /// there is deliberately no second encoder, so the two can never drift.
+  ///
   /// The bundle *carries* the program plus the full definition of every dance
-  /// its slots reference. On the receiving device the **existing** manual
-  /// Import flow (`GenericJsonAdapter`) imports the embedded **dances** today;
-  /// it does not yet import the program. The program travels in the bundle for
-  /// the forthcoming receive-side auto-open (issue #298, PR 2), which will
-  /// import the program itself. This send-side action ships first, so a
-  /// recipient on a build without the receive side gets the dances now and the
-  /// program once PR 2 lands.
-  Future<void> _shareBundle(BuildContext context, Rect? origin) async {
+  /// its slots reference, and the receive side imports both.
+  Future<void> _shareBundle(
+    BuildContext context,
+    Rect? origin, {
+    String extension = programShareBundleExtension,
+  }) async {
     final resolveDance = danceFor;
     if (resolveDance == null) return;
 
@@ -202,7 +229,10 @@ class ProgramExportMenu extends StatelessWidget {
       venueFor: (id) => venuesById[id],
       includeVenueContact: includeVenueContact,
     );
-    final fileName = programShareBundleFileName(program.title);
+    final fileName = programShareBundleFileName(
+      program.title,
+      extension: extension,
+    );
 
     final writeFile = bundleFileWriter ?? writeBundleTempFile;
     final xfile = await writeFile(json, fileName);
@@ -285,6 +315,16 @@ class ProgramExportMenu extends StatelessWidget {
         );
       case _ExportAction.copyText:
         await _copyText(context);
+      case _ExportAction.shareJson:
+        await _guard(
+          messenger,
+          l10n.exportShareProgramError,
+          () => _shareBundle(
+            context,
+            origin,
+            extension: programShareJsonExtension,
+          ),
+        );
       case _ExportAction.pdf:
         await _guard(
           messenger,
@@ -347,6 +387,18 @@ class ProgramExportMenu extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
+        // Sits between "Copy set list" and "Export / print PDF" (issue #853).
+        // Gated on `danceFor` for the same reason as the bundle action above:
+        // without a dance resolver there is nothing to embed.
+        if (danceFor != null)
+          PopupMenuItem<_ExportAction>(
+            value: _ExportAction.shareJson,
+            child: ListTile(
+              leading: const Icon(Icons.data_object_outlined),
+              title: Text(l10n.exportShareProgramJson),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
         PopupMenuItem<_ExportAction>(
           value: _ExportAction.pdf,
           child: ListTile(

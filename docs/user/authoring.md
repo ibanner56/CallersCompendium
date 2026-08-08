@@ -224,9 +224,10 @@ explicit about two things, and both matter:
 
 - These details are **shared across every dance credited to that author**, so
   correcting a spelling here corrects it everywhere.
-- **Email and location are private.** They are stored only on this device and are
-  never shared or exported. See [Share, print & export](./sharing.md#what-stays-private)
-  for exactly what leaves the app.
+- **Email and location are private, and so is the deceased mark.** They are
+  stored only on this device and are never shared or exported. See
+  [Share, print & export](./sharing.md#what-stays-private) for exactly what
+  leaves the app.
 
 **Source details** works the same way: a source's details are shared across every
 dance that cites it, and editing them here updates the source everywhere it is

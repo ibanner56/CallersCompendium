@@ -3062,6 +3062,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportSetListCopied => 'Setlijst gekopieerd naar klembord.';
 
   @override
+  String get exportShareProgramJson => 'Exporteren als JSON-bestand';
+
+  @override
   String get exportShareSetListError => 'Deze setlijst kon niet worden gedeeld';
 
   @override
@@ -4823,7 +4826,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorChoreographerDetailsIntro =>
-      'Deze details zijn gedeeld over elke dans op naam van deze auteur. E-mail en locatie zijn privé — alleen opgeslagen op dit apparaat en nooit gedeeld of geëxporteerd.';
+      'Deze details zijn gedeeld over elke dans op naam van deze auteur. E-mail, locatie en de markering “overleden” zijn privé — alleen opgeslagen op dit apparaat en nooit gedeeld of geëxporteerd.';
 
   @override
   String get danceEditorNameRequiredLabel => 'Naam *';
