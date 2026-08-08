@@ -117,38 +117,41 @@ void main() {
   });
 
   group('#799 — end-to-end: Tangled Yarns B1 compound (TCB 18623)', () {
-    test('the two interrupted-square-through blocks import faithfully', () async {
-      final figures = await _importedFigures([
-        '(8) Interrupted square through 2 [with N2, shadow]:',
-        '     (4) N2 neighbor balance (RH)',
-        '     (4) Square through 2 (N2R;SL)',
-        '(8) Interrupted square through 2 [with N2, partner]:',
-        '     (4) Partner balance (RH)',
-        '     (4) Square through 2 (PR;N2L)',
-      ]);
+    test(
+      'the two interrupted-square-through blocks import faithfully',
+      () async {
+        final figures = await _importedFigures([
+          '(8) Interrupted square through 2 [with N2, shadow]:',
+          '     (4) N2 neighbor balance (RH)',
+          '     (4) Square through 2 (N2R;SL)',
+          '(8) Interrupted square through 2 [with N2, partner]:',
+          '     (4) Partner balance (RH)',
+          '     (4) Square through 2 (PR;N2L)',
+        ]);
 
-      // #804: square_through is now in _balanceMergeMoves, so the preceding
-      // balance folds into the square_through (balance: true, summed beats),
-      // matching ContraDB's shape. Two figures, none custom.
-      expect(figures, hasLength(2));
-      expect(figures.every((f) => !f.isCustom), isTrue);
+        // #804: square_through is now in _balanceMergeMoves, so the preceding
+        // balance folds into the square_through (balance: true, summed beats),
+        // matching ContraDB's shape. Two figures, none custom.
+        expect(figures, hasLength(2));
+        expect(figures.every((f) => !f.isCustom), isTrue);
 
-      // Block 1: balance folded into square through neighbors → shadows.
-      expect(figures[0].move, 'square_through');
-      expect(figures[0].params['who'], 'nextNeighbors');
-      expect(figures[0].params['who2'], 'shadows');
-      expect(figures[0].params['balance'], isTrue);
-      expect(figures[0].beats, 8);
+        // Block 1: balance folded into square through neighbors → shadows.
+        expect(figures[0].move, 'square_through');
+        expect(figures[0].params['who'], 'nextNeighbors');
+        expect(figures[0].params['who2'], 'shadows');
+        expect(figures[0].params['balance'], isTrue);
+        expect(figures[0].beats, 8);
 
-      // Block 2: balance folded into square through partners → nextNeighbors.
-      expect(figures[1].move, 'square_through');
-      expect(figures[1].params['who'], 'partners');
-      expect(figures[1].params['who2'], 'nextNeighbors');
-      expect(figures[1].params['balance'], isTrue);
-      expect(figures[1].beats, 8);
+        // Block 2: balance folded into square through partners → nextNeighbors.
+        expect(figures[1].move, 'square_through');
+        expect(figures[1].params['who'], 'partners');
+        expect(figures[1].params['who2'], 'nextNeighbors');
+        expect(figures[1].params['balance'], isTrue);
+        expect(figures[1].beats, 8);
 
-      // The whole B1 phrase's beats are preserved (8 + 8 = 16).
-      expect(figures.fold<int>(0, (a, f) => a + f.beats), 16);
-    });
+        // The whole B1 phrase's beats are preserved (8 + 8 = 16).
+        expect(figures.fold<int>(0, (a, f) => a + f.beats), 16);
+      },
+    );
   });
 }
