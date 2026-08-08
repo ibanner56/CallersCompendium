@@ -860,7 +860,8 @@ class CallersBoxAdapter implements SourceAdapter {
     // defaults to `role2s`). A move with no `who` param at all (e.g.
     // `pass_the_ocean`) yields null and the guard short-circuits.
     final balanceWho = _balanceWaveWho(balance);
-    final waveWho = wave.params['who'] ??
+    final waveWho =
+        wave.params['who'] ??
         contraTaxonomy.resolve(wave.move)?.params['who']?.defaultValue;
     if (balanceWho != null && waveWho != null && balanceWho != waveWho) {
       return null;
