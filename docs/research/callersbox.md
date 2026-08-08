@@ -423,6 +423,14 @@ begins with `Balance` and names a wave.
 **4,613 such lines** across **296 distinct wordings** — the single largest
 `custom` bucket before taxonomy v21.
 
+> **Note (issue #872, 2026-08-08):** The `Balance`-leading filter was shared
+> by both the predicate (`_isBalanceWaveLine`) and this census, so dancer-set–
+> qualified lines (`Men balance long wave in center` → scrubbed to `role1s
+> balance long wave in center`) were excluded from both. The 4,613 figure
+> therefore understates the true population. The widened predicate now folds
+> such lines; the census has not been re-run against the full mirror, so the
+> corrected total and per-bucket breakdown remain unverified.
+
 | bucket | lines | disposition |
 | --- | --- | --- |
 | `Balance wave of four …` | 2,764 | → `form_short_waves{balance}` |

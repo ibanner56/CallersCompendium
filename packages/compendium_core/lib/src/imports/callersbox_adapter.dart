@@ -853,11 +853,15 @@ class CallersBoxAdapter implements SourceAdapter {
   static Figure? _foldTrailingBalanceIntoWave(Figure wave, Figure balance) {
     if (wave.params['balance'] == true) return null;
     // Dancer-prefix mismatch guard (#872): if the balance line names a specific
-    // dancer set (e.g. "role1s balance long wave") and the wave's `who` names a
-    // DIFFERENT set, they describe different choreography — refuse the fold and
-    // leave the custom in place.
+    // dancer set (e.g. "role1s balance long wave") and the wave's effective
+    // `who` names a DIFFERENT set, they describe different choreography —
+    // refuse the fold and leave the custom in place. Effective who: the figure's
+    // explicit param first, then the taxonomy default (e.g. `form_a_long_wave`
+    // defaults to `role2s`). A move with no `who` param at all (e.g.
+    // `pass_the_ocean`) yields null and the guard short-circuits.
     final balanceWho = _balanceWaveWho(balance);
-    final waveWho = wave.params['who'];
+    final waveWho = wave.params['who'] ??
+        contraTaxonomy.resolve(wave.move)?.params['who']?.defaultValue;
     if (balanceWho != null && waveWho != null && balanceWho != waveWho) {
       return null;
     }

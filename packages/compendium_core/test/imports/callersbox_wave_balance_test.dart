@@ -307,97 +307,144 @@ void main() {
     });
   });
 
-  group('dancer-qualified balance folds when who agrees, stays custom when not',
-      () {
-    // Issue #872: "Men balance long wave in center" (dancer-qualified) must fold
-    // into the preceding wave exactly like the bare form does.
-    test(
-      'dance 18878 A1: Men walk forward → form long wave + Men balance → '
-      'single form_a_long_wave beats=8, no trailing custom',
-      () async {
-        final figures = await _figuresFor([
-          '(4) Men walk forward; form long wave in center',
-          '(4) Men balance long wave in center',
-        ]);
-        // One wave figure — NO trailing custom balance.
-        expect(figures, hasLength(1));
-        expect(figures.single.move, 'form_a_long_wave');
-        expect(figures.single.params['balance'], isTrue);
-        // Beats are summed: 4 (form) + 4 (balance).
-        expect(figures.single.params['beats'], 8);
-        expect(_totalBeats(figures), 8);
-      },
-    );
+  group(
+    'dancer-qualified balance folds when who agrees, stays custom when not',
+    () {
+      // Issue #872: "Men balance long wave in center" (dancer-qualified) must fold
+      // into the preceding wave exactly like the bare form does.
+      test(
+        'dance 18878 A1: Men walk forward → form long wave + Men balance → '
+        'single form_a_long_wave beats=8, no trailing custom',
+        () async {
+          final figures = await _figuresFor([
+            '(4) Men walk forward; form long wave in center',
+            '(4) Men balance long wave in center',
+          ]);
+          // One wave figure — NO trailing custom balance.
+          expect(figures, hasLength(1));
+          expect(figures.single.move, 'form_a_long_wave');
+          expect(figures.single.params['balance'], isTrue);
+          // Beats are summed: 4 (form) + 4 (balance).
+          expect(figures.single.params['beats'], 8);
+          expect(_totalBeats(figures), 8);
+        },
+      );
 
-    test(
-      'a dancer-qualified balance folds when the wave has no who (null waveWho)',
-      () async {
-        // pass_the_ocean has no `who` param (waveWho is null), so the mismatch
-        // guard short-circuits and the fold proceeds regardless of the balance
-        // line's dancer prefix.
-        final figures = await _figuresFor([
-          '(4) Pass the ocean',
-          '(4) Women balance wave of four',
-        ]);
-        expect(figures, hasLength(1));
-        expect(figures.single.move, 'pass_the_ocean');
-        expect(figures.single.params['balance'], isTrue);
-        expect(figures.single.params['beats'], 8);
-        expect(_totalBeats(figures), 8);
-      },
-    );
+      test(
+        'a dancer-qualified balance folds when the wave has no who (null waveWho)',
+        () async {
+          // pass_the_ocean has no `who` param (waveWho is null), so the mismatch
+          // guard short-circuits and the fold proceeds regardless of the balance
+          // line's dancer prefix.
+          final figures = await _figuresFor([
+            '(4) Pass the ocean',
+            '(4) Women balance wave of four',
+          ]);
+          expect(figures, hasLength(1));
+          expect(figures.single.move, 'pass_the_ocean');
+          expect(figures.single.params['balance'], isTrue);
+          expect(figures.single.params['beats'], 8);
+          expect(_totalBeats(figures), 8);
+        },
+      );
 
-    test(
-      'a dancer-qualified balance whose prefix DISAGREES with the wave who '
-      'does NOT fold, stays custom',
-      () async {
-        // form_a_long_wave{who: role1s} followed by "Women balance long wave":
-        // balance prefix is role2s, wave who is role1s — mismatch → no fold.
-        final figures = await _figuresFor([
-          '(4) Men walk forward; form long wave in center',
-          '(4) Women balance long wave in center',
-        ]);
-        expect(figures, hasLength(2));
-        expect(figures[0].move, 'form_a_long_wave');
-        expect(figures[0].params.containsKey('balance'), isFalse);
-        expect(figures[1].isCustom, isTrue);
-        expect(
-          figures[1].params['text'],
-          contains('balance'),
-          reason: 'the balance line must survive as-is',
-        );
-        expect(_totalBeats(figures), 8);
-      },
-    );
+      test(
+        'a dancer-qualified balance whose prefix DISAGREES with the wave who '
+        'does NOT fold, stays custom',
+        () async {
+          // form_a_long_wave{who: role1s} followed by "Women balance long wave":
+          // balance prefix is role2s, wave who is role1s — mismatch → no fold.
+          final figures = await _figuresFor([
+            '(4) Men walk forward; form long wave in center',
+            '(4) Women balance long wave in center',
+          ]);
+          expect(figures, hasLength(2));
+          expect(figures[0].move, 'form_a_long_wave');
+          expect(figures[0].params.containsKey('balance'), isFalse);
+          expect(figures[1].isCustom, isTrue);
+          expect(
+            figures[1].params['text'],
+            contains('balance'),
+            reason: 'the balance line must survive as-is',
+          );
+          expect(_totalBeats(figures), 8);
+        },
+      );
 
-    test(
-      'bare Balance long wave … still folds unchanged (predicate not narrowed)',
-      () async {
-        final figures = await _figuresFor([
-          '(4) Pass the ocean',
-          '(4) Balance wave of four (NR,WL)',
-        ]);
-        expect(figures, hasLength(1));
-        expect(figures.single.params['balance'], isTrue);
-        expect(figures.single.params['beats'], 8);
-      },
-    );
+      test(
+        'a dancer-qualified balance whose prefix disagrees with the TAXONOMY '
+        'DEFAULT who does NOT fold, stays custom',
+        () async {
+          // A bare "form long wave in center" (no walk-forward prefix) yields
+          // form_a_long_wave with no explicit `who` param; the taxonomy default
+          // is `role2s`. A "Men balance long wave" (role1s) disagrees with that
+          // default — the mismatch guard must check the effective who, not only
+          // the explicit param, so the fold is refused.
+          final figures = await _figuresFor([
+            '(4) form long wave in center',
+            '(4) Men balance long wave in center',
+          ]);
+          expect(figures, hasLength(2));
+          expect(figures[0].move, 'form_a_long_wave');
+          expect(figures[0].params.containsKey('balance'), isFalse);
+          expect(figures[1].isCustom, isTrue);
+          expect(
+            figures[1].params['text'],
+            contains('balance'),
+            reason: 'the balance line must survive as-is',
+          );
+          expect(_totalBeats(figures), 8);
+        },
+      );
 
-    test(
-      'a dancer-qualified balance with an unmodeled qualifier stays custom',
-      () async {
-        final figures = await _figuresFor([
-          '(4) Pass the ocean',
-          '(4) Men balance interlocking long waves in center',
-        ]);
-        expect(figures, hasLength(2));
-        expect(figures[0].params.containsKey('balance'), isFalse);
-        expect(figures[1].isCustom, isTrue);
-        expect(figures[1].params['text'], contains('interlocking'));
-        expect(_totalBeats(figures), 8);
-      },
-    );
-  });
+      test(
+        'a dancer-qualified balance whose prefix AGREES with the taxonomy '
+        'default who folds',
+        () async {
+          // Same bare "form long wave" wave (taxonomy default who = role2s)
+          // followed by "Women balance long wave" (role2s): prefix agrees with
+          // the effective who → fold proceeds.
+          final figures = await _figuresFor([
+            '(4) form long wave in center',
+            '(4) Women balance long wave in center',
+          ]);
+          expect(figures, hasLength(1));
+          expect(figures.single.move, 'form_a_long_wave');
+          expect(figures.single.params['balance'], isTrue);
+          expect(figures.single.params['beats'], 8);
+          expect(_totalBeats(figures), 8);
+        },
+      );
+
+      test(
+        'bare Balance long wave … still folds unchanged (predicate not narrowed)',
+        () async {
+          final figures = await _figuresFor([
+            '(4) Pass the ocean',
+            '(4) Balance wave of four (NR,WL)',
+          ]);
+          expect(figures, hasLength(1));
+          expect(figures.single.params['balance'], isTrue);
+          expect(figures.single.params['beats'], 8);
+        },
+      );
+
+      test(
+        'a dancer-qualified balance with an unmodeled qualifier stays custom',
+        () async {
+          final figures = await _figuresFor([
+            '(4) Pass the ocean',
+            '(4) Men balance interlocking long waves in center',
+          ]);
+          expect(figures, hasLength(2));
+          expect(figures[0].params.containsKey('balance'), isFalse);
+          expect(figures[1].isCustom, isTrue);
+          expect(figures[1].params['text'], contains('interlocking'));
+          expect(_totalBeats(figures), 8);
+        },
+      );
+    },
+  );
 
   group('conservative negatives — these stay custom', () {
     const negatives = <String>[
