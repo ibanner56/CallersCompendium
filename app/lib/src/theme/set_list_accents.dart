@@ -56,8 +56,7 @@ FormationFamily formationFamilyOf(FormationShape shape) => switch (shape) {
   FormationShape.fourFaceFour ||
   FormationShape.threeFaceThree ||
   FormationShape.grid => FormationFamily.bigSetSquare,
-  FormationShape.quadruplet ||
-  FormationShape.other => FormationFamily.other,
+  FormationShape.quadruplet || FormationShape.other => FormationFamily.other,
 };
 
 /// Light-theme accent palette. Each hue clears WCAG ≥3:1 against the light
