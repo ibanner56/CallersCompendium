@@ -1374,7 +1374,7 @@
   },
   "commonFormationQuadruplet": "Quadruplet",
   "@commonFormationQuadruplet": {
-    "description": "Formation shape value: quadruplet (longways set for four couples)."
+    "x-sourceSha256": "1a4503658501cb8eb4017e00998da5d5b3e33a3717d422c87d0fbf610fcf4528"
   },
   "commonFormationOther": "Overig",
   "@commonFormationOther": {
