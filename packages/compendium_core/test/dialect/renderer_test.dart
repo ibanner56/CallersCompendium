@@ -1590,7 +1590,10 @@ void main() {
       // The canonical render uses the bare renderTemplate ({who} {move}) —
       // the shoulder override is display-only.
       test('default right shoulder: canonical unchanged', () {
-        expect(renderer.renderCanonical(Figure(move: 'pass_by')), 'neighbors pass by');
+        expect(
+          renderer.renderCanonical(Figure(move: 'pass_by')),
+          'neighbors pass by',
+        );
       });
       test('left shoulder: canonical unchanged', () {
         expect(
@@ -1650,7 +1653,10 @@ void main() {
       test('left shoulder + non-default dir: both render', () {
         expect(
           renderer.render(
-            Figure(move: 'pass_through', params: {'shoulder': 'left', 'dir': 'across'}),
+            Figure(
+              move: 'pass_through',
+              params: {'shoulder': 'left', 'dir': 'across'},
+            ),
             d,
           ),
           'pass through left shoulders across',

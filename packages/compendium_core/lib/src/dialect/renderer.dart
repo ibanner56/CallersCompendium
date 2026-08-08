@@ -1666,12 +1666,15 @@ class FigureRenderer {
       final shoulder = params['shoulder'];
       // Suppress the default 'right' shoulder; render 'left shoulders' / '* shoulders'
       // for any other value, matching ContraDB `stringParamShoulders` word forms.
-      final shoulderClause =
-          (shoulder is String && shoulder != 'right') ? '$shoulder shoulders' : '';
+      final shoulderClause = (shoulder is String && shoulder != 'right')
+          ? '$shoulder shoulders'
+          : '';
       final dir = params['dir'];
       // Silence the default 'along' direction (ContraDB set_direction_along).
       final dirClause = (dir is String && dir != 'along') ? _humanize(dir) : '';
-      return [move, shoulderClause, dirClause].where((s) => s.isNotEmpty).join(' ');
+      return [move, shoulderClause, dirClause]
+          .where((s) => s.isNotEmpty)
+          .join(' ');
     },
   };
 
