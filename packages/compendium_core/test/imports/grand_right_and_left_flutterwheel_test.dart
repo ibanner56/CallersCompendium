@@ -502,13 +502,16 @@ void main() {
           ({List<String> lines, List<String> moves, int beats, String note})
         >{
           // 331 blocks (with the `… 4` and `[with …]` variants), dance #19238.
+          // #804: square_through is now in _balanceMergeMoves, so the
+          // preceding balance child folds into the square_through (balance:
+          // true, summed beats = 8). One structured figure, not two.
           'interrupted square through 2': (
             lines: [
               '(8) Interrupted square through 2:',
               '     (4) Partner balance (RH)',
               '     (4) Square through 2 (PR;N1L)',
             ],
-            moves: ['balance', 'square_through'],
+            moves: ['square_through'],
             beats: 8,
             note: 'Interrupted square through 2',
           ),
