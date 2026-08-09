@@ -3154,15 +3154,15 @@
   },
   "exportProgramContentPromptTitle": "何を含めますか？",
   "@exportProgramContentPromptTitle": {
-    "x-sourceSha256": "6a522f3b6f2d0e9f3f1eacbc989f67c0f6228b31b98b2dbccf7cc4f13f66e6c0"
+    "x-sourceSha256": "6f737b0c97348a736cf913d5cbc1a12f6630c17b8ec795fa86254774f0f10549"
   },
   "exportProgramContentSetListOnly": "セットリストのみ",
   "@exportProgramContentSetListOnly": {
-    "x-sourceSha256": "f3b2b5d44e52ec3f7c749d87175fda87f03f97a7f8bdcf0f4df3e43d30644b62"
+    "x-sourceSha256": "5878794b3a332468e6dee2379c4d3d7cc9d213fe91422e41fb7d00a0dcfcb2e2"
   },
   "exportProgramContentSetListWithFigures": "セットリスト + フィギュア",
   "@exportProgramContentSetListWithFigures": {
-    "x-sourceSha256": "213b7d52d3db3cc95d243a9e84dc4cbf8de51f23f1f70f5f8e0ae47f356558e1"
+    "x-sourceSha256": "a41caa43a18d10a55b36bcc29b910445bb7a8ae1963848f37c60f0fa3c3f5ee5"
   },
   "exportShareSetListError": "このセットリストを共有できませんでした",
   "@exportShareSetListError": {
@@ -4861,11 +4861,11 @@
     "x-sourceSha256": "509fe3661d05c24d66b935dcab410804443c03952d32273ea7dc217e1512a02d"
   },
   "danceEditorChoreographerDetailsTitle": "振付師の詳細",
-"@danceEditorChoreographerDetailsTitle": {
+  "@danceEditorChoreographerDetailsTitle": {
     "x-sourceSha256": "bb906d790d274120a78975f5f9ffe20350d35f33d56fd55c7bd7c579bedb6df1"
   },
   "danceEditorChoreographerDetailsIntro": "これらの詳細は、この作者のすべてのダンスで共有されます。メール、場所、故人の印はプライベートです — このデバイスにのみ保存され、共有またはエクスポートされることはありません。",
-"@danceEditorChoreographerDetailsIntro": {
+  "@danceEditorChoreographerDetailsIntro": {
     "x-sourceSha256": "2f019ad38a0c76ed265a40383c91046bfac31624abeaa26d381d7c6617613e69"
   },
   "danceEditorNameRequiredLabel": "名前 *",
