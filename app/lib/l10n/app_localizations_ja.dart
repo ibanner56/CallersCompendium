@@ -2967,6 +2967,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportShareProgramJson => 'JSONファイルとして書き出す';
 
   @override
+  String get exportProgramContentPromptTitle => '何を含めますか？';
+
+  @override
+  String get exportProgramContentSetListOnly => 'セットリストのみ';
+
+  @override
+  String get exportProgramContentSetListWithFigures => 'セットリスト + フィギュア';
+
+  @override
   String get exportShareSetListError => 'このセットリストを共有できませんでした';
 
   @override

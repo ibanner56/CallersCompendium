@@ -151,7 +151,7 @@ Future<Uint8List> buildProgramPdf(
         if (danceCards.isNotEmpty) ...[
           for (final card in danceCards) ...[
             pw.NewPage(),
-            pw.Text(card, style: const pw.TextStyle(fontSize: 11)),
+            _danceCardText(card),
           ],
         ],
       ],
@@ -160,6 +160,16 @@ Future<Uint8List> buildProgramPdf(
 
   return doc.save();
 }
+
+pw.Widget _danceCardText(String card) => pw.Column(
+  crossAxisAlignment: pw.CrossAxisAlignment.start,
+  children: [
+    for (final line in card.split('\n'))
+      line.isEmpty
+          ? pw.SizedBox(height: 8)
+          : pw.Text(line, style: const pw.TextStyle(fontSize: 11)),
+  ],
+);
 
 List<pw.Widget> _slotWidgets(
   Program program,

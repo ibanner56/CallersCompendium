@@ -3152,6 +3152,18 @@
   "@exportShareProgramJson": {
     "x-sourceSha256": "ca5ee6339b52619e756521f9a2fb118cf0180e677fecf93134e7cff9d21a2c56"
   },
+  "exportProgramContentPromptTitle": "Was soll enthalten sein?",
+  "@exportProgramContentPromptTitle": {
+    "x-sourceSha256": "6a522f3b6f2d0e9f3f1eacbc989f67c0f6228b31b98b2dbccf7cc4f13f66e6c0"
+  },
+  "exportProgramContentSetListOnly": "Nur Setliste",
+  "@exportProgramContentSetListOnly": {
+    "x-sourceSha256": "f3b2b5d44e52ec3f7c749d87175fda87f03f97a7f8bdcf0f4df3e43d30644b62"
+  },
+  "exportProgramContentSetListWithFigures": "Setliste + Figuren",
+  "@exportProgramContentSetListWithFigures": {
+    "x-sourceSha256": "213b7d52d3db3cc95d243a9e84dc4cbf8de51f23f1f70f5f8e0ae47f356558e1"
+  },
   "exportShareSetListError": "Diese Setliste konnte nicht geteilt werden",
   "@exportShareSetListError": {
     "x-sourceSha256": "eca98fb71a1d0f8be402ff1f37e099cb659c71b411cba34baef5d6285c233297"

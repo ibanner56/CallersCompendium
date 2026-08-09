@@ -4868,6 +4868,26 @@ abstract class AppLocalizations {
   /// **'Export as JSON file'**
   String get exportShareProgramJson;
 
+  /// Title shown before sharing set list text or exporting/printing a program
+  /// PDF, asking what content to include.
+  ///
+  /// In en, this message translates to:
+  /// **'What should this include?'**
+  String get exportProgramContentPromptTitle;
+
+  /// Choice in the program-export content prompt: include only the set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Set list only'**
+  String get exportProgramContentSetListOnly;
+
+  /// Choice in the program-export content prompt: include the set list and
+  /// per-dance figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Set list + figures'**
+  String get exportProgramContentSetListWithFigures;
+
   /// Snackbar shown when sharing a set list fails.
   ///
   /// In en, this message translates to:

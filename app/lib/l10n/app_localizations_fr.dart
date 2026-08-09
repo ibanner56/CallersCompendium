@@ -3089,6 +3089,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportShareProgramJson => 'Exporter en fichier JSON';
 
   @override
+  String get exportProgramContentPromptTitle => 'Que faut-il inclure ?';
+
+  @override
+  String get exportProgramContentSetListOnly => 'Liste de sets uniquement';
+
+  @override
+  String get exportProgramContentSetListWithFigures => 'Liste de sets + figures';
+
+  @override
   String get exportShareSetListError =>
       'Impossible de partager cette liste de sets';
 

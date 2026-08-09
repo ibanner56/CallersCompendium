@@ -167,8 +167,8 @@ class ProgramExportMenu extends StatelessWidget {
     labels: programExportLabels(AppLocalizations.of(context)),
   );
 
-  String _plainTextWithFigures(BuildContext context) {
-    final cards = _danceCardsPlainText(context);
+  String _plainTextWithFigures(BuildContext context, List<Dance> dances) {
+    final cards = _danceCardsPlainText(context, dances);
     if (cards.isEmpty) return _plainText(context);
     return '${_plainText(context)}\n\n${cards.join('\n\n')}';
   }
@@ -202,8 +202,10 @@ class ProgramExportMenu extends StatelessWidget {
     return dance.mixedLevel ? l10n.exportLevelMixedOnly : null;
   }
 
-  List<String> _danceCardsPlainText(BuildContext context) {
+  List<String> _danceCardsPlainText(BuildContext context, List<Dance> dances) {
     final l10n = AppLocalizations.of(context);
+    // Tests can mount this menu without wiring the app-level dialect scope.
+    // Falling back to the app's historical default keeps export text stable.
     final dialect =
         context.dependOnInheritedWidgetOfExactType<ActiveDialectScope>()
             ?.notifier
@@ -212,7 +214,7 @@ class ProgramExportMenu extends StatelessWidget {
     final labels = danceExportLabels(l10n);
     final resolveChoreographer = choreographerFor ?? (_) => null;
     return [
-      for (final dance in _orderedExportDances())
+      for (final dance in dances)
         danceToPlainText(
           dance,
           dialect: dialect,
@@ -231,14 +233,16 @@ class ProgramExportMenu extends StatelessWidget {
   }
 
   Future<_ProgramExportContent?> _chooseProgramExportContent(
-    BuildContext context,
+    BuildContext context, {
+    required bool hasFigureOption,
   ) async {
-    if (_orderedExportDances().isEmpty) return _ProgramExportContent.setListOnly;
+    if (!hasFigureOption) return _ProgramExportContent.setListOnly;
+    final l10n = AppLocalizations.of(context);
     return showDialog<_ProgramExportContent>(
       context: context,
       builder: (context) => AlertDialog(
         key: const ValueKey('program-export-content-dialog'),
-        title: const Text('What should this include?'),
+        title: Text(l10n.exportProgramContentPromptTitle),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -248,13 +252,13 @@ class ProgramExportMenu extends StatelessWidget {
             onPressed: () => Navigator.of(
               context,
             ).pop(_ProgramExportContent.setListOnly),
-            child: const Text('Set list only'),
+            child: Text(l10n.exportProgramContentSetListOnly),
           ),
           FilledButton(
             onPressed: () => Navigator.of(
               context,
             ).pop(_ProgramExportContent.setListWithFigures),
-            child: const Text('Set list + figures'),
+            child: Text(l10n.exportProgramContentSetListWithFigures),
           ),
         ],
       ),
@@ -262,14 +266,18 @@ class ProgramExportMenu extends StatelessWidget {
   }
 
   Future<void> _shareText(BuildContext context, Rect? origin) async {
-    final content = await _chooseProgramExportContent(context);
+    final dances = _orderedExportDances();
+    final content = await _chooseProgramExportContent(
+      context,
+      hasFigureOption: dances.isNotEmpty,
+    );
     if (content == null) return;
     if (!context.mounted) return;
     final share = shareInvoker ?? SharePlus.instance.share;
     await share(
       ShareParams(
         text: content == _ProgramExportContent.setListWithFigures
-            ? _plainTextWithFigures(context)
+            ? _plainTextWithFigures(context, dances)
             : _plainText(context),
         subject: program.title,
         sharePositionOrigin: origin,
@@ -360,7 +368,11 @@ class ProgramExportMenu extends StatelessWidget {
   }
 
   Future<void> _exportPdf(BuildContext context) async {
-    final content = await _chooseProgramExportContent(context);
+    final dances = _orderedExportDances();
+    final content = await _chooseProgramExportContent(
+      context,
+      hasFigureOption: dances.isNotEmpty,
+    );
     if (content == null) return;
     if (!context.mounted) return;
 
@@ -385,7 +397,7 @@ class ProgramExportMenu extends StatelessWidget {
 
     final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
     final danceCards = content == _ProgramExportContent.setListWithFigures
-        ? _danceCardsPlainText(context)
+        ? _danceCardsPlainText(context, dances)
         : const <String>[];
     await layoutPdf(
       name: sanitizeExportName(program.title, fallback: 'program'),
