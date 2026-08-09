@@ -9,15 +9,20 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/active_dialect_scope.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_pdf.dart';
 import '../export/program_share_bundle.dart';
 import '../export/share_sanitization.dart';
+import '../search/facet_labels.dart'
+    show danceLevelLabel, danceStatusLabel, formationLabel;
 import '../utils/safe_name.dart';
 import 'venue_contact_share_dialog.dart';
 
 /// Actions offered by the [ProgramExportMenu].
 enum _ExportAction { shareText, shareBundle, copyText, shareJson, pdf }
+
+enum _ProgramExportContent { setListOnly, setListWithFigures }
 
 /// Hands the shareable set list to the OS share sheet. Defaults to
 /// [SharePlus.instance.share]; overridable so tests can force a failure.
@@ -162,11 +167,110 @@ class ProgramExportMenu extends StatelessWidget {
     labels: programExportLabels(AppLocalizations.of(context)),
   );
 
+  String _plainTextWithFigures(BuildContext context) {
+    final cards = _danceCardsPlainText(context);
+    if (cards.isEmpty) return _plainText(context);
+    return '${_plainText(context)}\n\n${cards.join('\n\n')}';
+  }
+
+  Iterable<ProgramSlot> _outputSlots() sync* {
+    for (final group in program.outputGrouped) {
+      yield group.primary;
+      yield* group.alternates;
+    }
+  }
+
+  List<Dance> _orderedExportDances() {
+    final resolveDance = danceFor;
+    if (resolveDance == null) return const [];
+    final seen = <String>{};
+    final resolved = <Dance>[];
+    for (final slot in _outputSlots()) {
+      final id = slot.danceId;
+      if (id == null || !seen.add(id)) continue;
+      final dance = resolveDance(id);
+      if (dance != null) resolved.add(dance);
+    }
+    return resolved;
+  }
+
+  String? _danceLevelLabel(AppLocalizations l10n, Dance dance) {
+    final base = dance.level == null ? null : danceLevelLabel(l10n, dance.level!);
+    if (base != null) {
+      return dance.mixedLevel ? l10n.exportLevelWithMixed(base) : base;
+    }
+    return dance.mixedLevel ? l10n.exportLevelMixedOnly : null;
+  }
+
+  List<String> _danceCardsPlainText(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final dialect =
+        context.dependOnInheritedWidgetOfExactType<ActiveDialectScope>()
+            ?.notifier
+            ?.value ??
+        Dialect.larksRobins;
+    final labels = danceExportLabels(l10n);
+    final resolveChoreographer = choreographerFor ?? (_) => null;
+    return [
+      for (final dance in _orderedExportDances())
+        danceToPlainText(
+          dance,
+          dialect: dialect,
+          authorNames: [
+            for (final id in dance.authorIds)
+              if (resolveChoreographer(id)?.name case final String name
+                  when name.trim().isNotEmpty)
+                name.trim(),
+          ],
+          formationLabel: formationLabel(l10n, dance.formation),
+          levelLabel: _danceLevelLabel(l10n, dance),
+          statusLabel: danceStatusLabel(l10n, dance.status),
+          labels: labels,
+        ),
+    ];
+  }
+
+  Future<_ProgramExportContent?> _chooseProgramExportContent(
+    BuildContext context,
+  ) async {
+    if (_orderedExportDances().isEmpty) return _ProgramExportContent.setListOnly;
+    return showDialog<_ProgramExportContent>(
+      context: context,
+      builder: (context) => AlertDialog(
+        key: const ValueKey('program-export-content-dialog'),
+        title: const Text('What should this include?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(
+              context,
+            ).pop(_ProgramExportContent.setListOnly),
+            child: const Text('Set list only'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(
+              context,
+            ).pop(_ProgramExportContent.setListWithFigures),
+            child: const Text('Set list + figures'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _shareText(BuildContext context, Rect? origin) async {
+    final content = await _chooseProgramExportContent(context);
+    if (content == null) return;
+    if (!context.mounted) return;
     final share = shareInvoker ?? SharePlus.instance.share;
     await share(
       ShareParams(
-        text: _plainText(context),
+        text: content == _ProgramExportContent.setListWithFigures
+            ? _plainTextWithFigures(context)
+            : _plainText(context),
         subject: program.title,
         sharePositionOrigin: origin,
       ),
@@ -256,6 +360,10 @@ class ProgramExportMenu extends StatelessWidget {
   }
 
   Future<void> _exportPdf(BuildContext context) async {
+    final content = await _chooseProgramExportContent(context);
+    if (content == null) return;
+    if (!context.mounted) return;
+
     final localizations = MaterialLocalizations.of(context);
     final labels = programExportLabels(AppLocalizations.of(context));
 
@@ -276,6 +384,9 @@ class ProgramExportMenu extends StatelessWidget {
     );
 
     final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
+    final danceCards = content == _ProgramExportContent.setListWithFigures
+        ? _danceCardsPlainText(context)
+        : const <String>[];
     await layoutPdf(
       name: sanitizeExportName(program.title, fallback: 'program'),
       onLayout: (format) => buildProgramPdf(
@@ -284,6 +395,7 @@ class ProgramExportMenu extends StatelessWidget {
         venuesById: venuesForPdf,
         formatDate: localizations.formatMediumDate,
         labels: labels,
+        danceCards: danceCards,
       ),
     );
   }

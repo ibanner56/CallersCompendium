@@ -101,6 +101,7 @@ Future<Uint8List> buildProgramPdf(
   Map<String, Venue> venuesById = const {},
   String Function(DateTime date)? formatDate,
   ProgramExportLabels labels = const ProgramExportLabels(),
+  List<String> danceCards = const [],
   pw.ThemeData? theme,
 }) async {
   final fmtDate = formatDate ?? _isoDate;
@@ -146,6 +147,13 @@ Future<Uint8List> buildProgramPdf(
             program.notes.trim(),
             style: const pw.TextStyle(fontSize: 12),
           ),
+        ],
+        if (danceCards.isNotEmpty) ...[
+          pw.NewPage(),
+          for (var i = 0; i < danceCards.length; i++) ...[
+            if (i > 0) pw.SizedBox(height: 16),
+            pw.Text(danceCards[i], style: const pw.TextStyle(fontSize: 11)),
+          ],
         ],
       ],
     ),

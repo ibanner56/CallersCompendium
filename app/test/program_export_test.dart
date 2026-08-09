@@ -153,6 +153,7 @@ Widget _pdfMenu(
   Program program,
   Map<String, Venue> venuesById,
   void Function() onExport,
+  {Dance? Function(String id)? danceFor}
 ) => MaterialApp(
   localizationsDelegates: testLocalizationsDelegates,
   supportedLocales: testSupportedLocales,
@@ -163,6 +164,7 @@ Widget _pdfMenu(
           program: program,
           titleFor: _titles,
           venuesById: venuesById,
+          danceFor: danceFor,
           pdfLayouter: ({required name, required onLayout}) async => onExport(),
         ),
       ],
@@ -419,6 +421,89 @@ void main() {
       expect(captured, isNotNull);
       expect(captured!.sharePositionOrigin, isNotNull);
     });
+
+    testWidgets(
+      'Share set list (text): prompts for content and can share set list only',
+      (tester) async {
+        ShareParams? captured;
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: _program(
+                      slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+                    ),
+                    titleFor: _titles,
+                    danceFor: _danceFor,
+                    shareInvoker: (params) async => captured = params,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share set list (text)'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('program-export-content-dialog')),
+          findsOneWidget,
+        );
+        await tester.tap(find.text('Set list only'));
+        await tester.pumpAndSettle();
+
+        expect(captured, isNotNull);
+        expect(captured!.text, contains('1. Rory O\'More'));
+        expect(captured!.text, isNot(contains('Figures:')));
+      },
+    );
+
+    testWidgets(
+      'Share set list (text): set list + figures includes dance figure text',
+      (tester) async {
+        ShareParams? captured;
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: _program(
+                      slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+                    ),
+                    titleFor: _titles,
+                    danceFor: _danceFor,
+                    shareInvoker: (params) async => captured = params,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share set list (text)'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Set list + figures'));
+        await tester.pumpAndSettle();
+
+        expect(captured, isNotNull);
+        expect(captured!.text, contains('1. Rory O\'More'));
+        expect(captured!.text, contains('Figures:'));
+      },
+    );
 
     testWidgets('surfaces a SnackBar when the PDF export throws', (
       tester,
@@ -876,6 +961,36 @@ void main() {
         expect(exports, 1);
       },
     );
+
+    testWidgets('PDF export: prompts for content when dance data is available', (
+      tester,
+    ) async {
+      var exports = 0;
+      await tester.pumpWidget(
+        _pdfMenu(
+          _program(slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')]),
+          const {},
+          () => exports++,
+          danceFor: _danceFor,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export / print PDF'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('program-export-content-dialog')),
+        findsOneWidget,
+      );
+      expect(exports, 0);
+
+      await tester.tap(find.text('Set list + figures'));
+      await tester.pumpAndSettle();
+      expect(exports, 1);
+    });
 
     testWidgets('PDF export: opting a field in still proceeds', (tester) async {
       var exports = 0;
