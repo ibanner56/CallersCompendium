@@ -149,10 +149,9 @@ Future<Uint8List> buildProgramPdf(
           ),
         ],
         if (danceCards.isNotEmpty) ...[
-          pw.NewPage(),
-          for (var i = 0; i < danceCards.length; i++) ...[
-            if (i > 0) pw.SizedBox(height: 16),
-            pw.Text(danceCards[i], style: const pw.TextStyle(fontSize: 11)),
+          for (final card in danceCards) ...[
+            pw.NewPage(),
+            pw.Text(card, style: const pw.TextStyle(fontSize: 11)),
           ],
         ],
       ],
