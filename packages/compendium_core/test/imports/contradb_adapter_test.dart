@@ -602,6 +602,13 @@ void main() {
         );
       });
 
+      test('quadruplet', () async {
+        expect(
+          (await formationFor('Quadruplet')).shape,
+          FormationShape.quadruplet,
+        );
+      });
+
       test('an odd string → other with a warning, detail preserved', () async {
         final draft = await _importOne(
           jsonEncode(_dance(startType: 'spiral galaxy')),

@@ -16,6 +16,7 @@ enum FormationShape {
   longways,
   triplet,
   grid,
+  quadruplet,
   other,
 }
 

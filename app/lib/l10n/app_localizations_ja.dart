@@ -1172,6 +1172,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonFormationGrid => 'グリッド';
 
   @override
+  String get commonFormationQuadruplet => 'Quadruplet';
+
+  @override
   String get commonFormationOther => 'その他';
 
   @override

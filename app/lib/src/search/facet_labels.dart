@@ -81,6 +81,7 @@ String formationShapeLabel(AppLocalizations l10n, FormationShape shape) =>
       FormationShape.longways => l10n.commonFormationLongways,
       FormationShape.triplet => l10n.commonFormationTriplet,
       FormationShape.grid => l10n.commonFormationGrid,
+      FormationShape.quadruplet => l10n.commonFormationQuadruplet,
       FormationShape.other => l10n.commonFormationOther,
     };
 

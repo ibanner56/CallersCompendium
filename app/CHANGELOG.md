@@ -13,6 +13,13 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Quadruplet is now a first-class formation shape.** Dances in a longways
+  set for four couples are recognised as "Quadruplet" instead of collapsing to
+  "Other". Imports from The Caller's Box, ContraDB (JSON), and ContraDB (HTML)
+  now detect the word "quadruplet" and map it to the dedicated shape, which
+  means quadruplet dances can be filtered, colour-coded, and reasoned about as a
+  distinct formation.
+
 - **Balance figures now carry an optional hand (right / left / unspecified).**
   When The Caller's Box writes `(RH)` or `(LH)` on a balance line, the hand
   is now preserved instead of being silently dropped — 1,066 instances measured

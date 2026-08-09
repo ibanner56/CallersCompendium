@@ -2168,6 +2168,12 @@ abstract class AppLocalizations {
   /// **'Grid'**
   String get commonFormationGrid;
 
+  /// Formation shape value: quadruplet (longways set for four couples).
+  ///
+  /// In en, this message translates to:
+  /// **'Quadruplet'**
+  String get commonFormationQuadruplet;
+
   /// Formation shape value: some other formation not covered by the named shapes.
   ///
   /// In en, this message translates to:
