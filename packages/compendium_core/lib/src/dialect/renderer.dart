@@ -796,12 +796,13 @@ class FigureRenderer {
   /// (`app/javascript/libfigure/param.js` @13f38a5) for the `dir` (set
   /// direction) params, and the `facing`/`march_forward` "forward" default for
   /// the hall moves. A non-default value still renders. `cross_trails` is
-  /// intentionally absent — it is out of PR1 scope. The canonical render is
-  /// never affected (it keeps `pass through along`, `everyone down the hall
+  /// intentionally absent — it is out of PR1 scope. `pass_through`'s default
+  /// direction silencing is handled by its `_displayBaseRenderers` entry (which
+  /// also handles the shoulder), so it is intentionally absent here. The
+  /// canonical render is never affected (it keeps `everyone down the hall
   /// forward`, etc.).
   static const Map<String, String> _silencedDefaultParams = {
     // ContraDB set_direction_along → silences default 'along'.
-    'pass_through': 'dir',
     'pull_by_direction': 'dir',
     // ContraDB set_direction_across/acrossish → silences default 'across'.
     'right_left_through': 'dir',
@@ -835,6 +836,12 @@ class FigureRenderer {
   /// The canonical render keeps the bare `{move}` display name.
   static const Map<String, String> _displayMoveNameOverrides = {
     'shoulder_round': '%S shoulder round',
+    // ContraDB `figureGenericWords` always emits every non-who/bal/beats param,
+    // so the shoulder appears unconditionally. `%S` expands to the side word
+    // ("right" / "left" / "*"); ContraDB `stringParamShoulders` appends
+    // "shoulders" making "right shoulders" etc. The canonical render keeps the
+    // bare `{move}` display name (template: `{who} {move}`).
+    'pass_by': 'pass by %S shoulders',
   };
 
   /// DISPLAY-ONLY singular forms for the positional dancer-set vocabulary that
@@ -1648,6 +1655,28 @@ class FigureRenderer {
         return '$base - single file';
       }
       return base;
+    },
+    // pass_through (ContraDB `passThroughWords`): renders the shoulder ONLY when
+    // it is not the default 'right' (right shoulders are implicit), and silences
+    // the default 'along' direction — exactly matching ContraDB's behaviour.
+    // `renderCanonical` keeps expanding `renderTemplate` (`{move} {dir}`) and is
+    // unaffected; this entry handles the display path only.
+    'pass_through': (r, def, params, dialect, verbose, decimals) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final shoulder = params['shoulder'];
+      // Suppress the default 'right' shoulder; render 'left shoulders' / '* shoulders'
+      // for any other value, matching ContraDB `stringParamShoulders` word forms.
+      final shoulderClause = (shoulder is String && shoulder != 'right')
+          ? '$shoulder shoulders'
+          : '';
+      final dir = params['dir'];
+      // Silence the default 'along' direction (ContraDB set_direction_along).
+      final dirClause = (dir is String && dir != 'along') ? _humanize(dir) : '';
+      return [
+        move,
+        shoulderClause,
+        dirClause,
+      ].where((s) => s.isNotEmpty).join(' ');
     },
   };
 
