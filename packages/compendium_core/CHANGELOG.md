@@ -1,5 +1,21 @@
 ## Unreleased
 
+### Fixed
+
+- **Dancer-qualified balance-wave lines now fold into the preceding wave figure
+  (#872).** TCB writes `Men balance long wave in center`; the scrubber
+  canonicalises that to `role1s balance long wave in center`. The previous
+  `_isBalanceWaveLine` predicate required the text to lead with `balance`, so
+  dancer-prefixed lines were not recognised and the balance appeared twice —
+  once in `form_a_long_wave` (taxonomy default) and once as a surviving
+  `custom` figure. Dance 18878 A1 now imports as a single
+  `form_a_long_wave{beats: 8}` with no trailing custom.
+  - The dancer-prefix mismatch guard in `_foldTrailingBalanceIntoWave` now
+    resolves the wave's **effective** `who` — explicit param first, then the
+    taxonomy default — so a bare `form_a_long_wave` (no explicit `who`,
+    taxonomy default `role2s`) correctly refuses a `role1s balance long wave`
+    line rather than silently folding it.
+
 ### Changed
 
 - **`contraTaxonomyVersion` 25 (#870).** Three changes:
