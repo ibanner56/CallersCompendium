@@ -131,6 +131,7 @@ class FigureFrontEnd {
   const FigureFrontEnd({
     this.preRecognizers = const [],
     this.recognitionNormalize,
+    this.declineToCustom,
   });
 
   /// Source-specific recognizers run before the shared ones, on raw scrubbed
@@ -140,6 +141,33 @@ class FigureFrontEnd {
   /// Optional recognition-only normalization applied to the lowercased text
   /// inside `_normalize` (does not affect the stored custom-fallback text).
   final String Function(String)? recognitionNormalize;
+
+  /// Optional source-specific veto: when it returns true for a line, that line
+  /// goes STRAIGHT to the custom fallback, skipping both the pre-recognizers
+  /// and the shared ones.
+  ///
+  /// This exists because "delete the recognizer" is NOT how a front-end
+  /// declines a move (taxonomy v26, #843). The shared recognizers in
+  /// `figure_parser.dart` are source-neutral by design, so a grammar this
+  /// front-end removes from its own dialect file can still be claimed by the
+  /// shared layer — which is exactly what happened to ContraDB's
+  /// `star promenade`, whose `who` means the CENTER role there and the pick-up
+  /// relationship everywhere else. Structuring it would assert the wrong
+  /// dancers, so it must not structure AT ALL for this source.
+  ///
+  /// Use sparingly, and only where a source's wording means something
+  /// materially different from the shared reading. When it fires the line takes
+  /// the custom fallback with `CustomOrigin.importGap` — the same outcome as
+  /// any unrecognised line — carrying the SCRUBBED text.
+  ///
+  /// Scrubbed, not verbatim: [scrubFigureText] has already canonicalized role
+  /// terms by then, so `Gentlespoons star promenade right 1` is stored as
+  /// `role1s star promenade right 1`. That is a user-visible difference, and it
+  /// applies to every custom figure, not just this path. What IS preserved
+  /// against the structured reading is everything `recognitionNormalize`
+  /// removes — annotations and the like — which is the precise sense in which
+  /// [recognitionNormalize] and [parseFigureLine] use the word "verbatim".
+  final bool Function(String scrubbed)? declineToCustom;
 }
 
 /// The neutral canonical front-end: no source-specific handling. This is the
@@ -206,6 +234,11 @@ Figure? parseFigureLine(
   );
 
   try {
+    // A source-specific veto runs BEFORE any recognizer, including this
+    // front-end's own pre-recognizers: the point is that the line must not
+    // structure at all for this source. Inside the try so a throwing predicate
+    // degrades to custom like everything else (parse-never-fails).
+    if (frontEnd.declineToCustom?.call(scrubbed) ?? false) return fallback();
     final match = _recognize(scrubbed, frontEnd);
     if (match == null) return fallback();
 
@@ -1795,20 +1828,32 @@ _Match? _weaveTheLine(List<String> w) {
 }
 
 /// Tier A: TCB writes "Partner star promenade 1/2" (dance id 30 "Mad Gypsy").
-/// The optional dancer set maps to `who`, an explicit hand to `hand`, and a
-/// rotation amount to `turn`. TCB's "(WL)"/"(WR)" hand annotations are stripped
-/// by `_normalize`, so the hand there stays on the taxonomy default. Must
-/// precede `_star` in `_recognizers` so the shared "star" lead phrase resolves
-/// to this more specific move first.
+/// The optional dancer set maps to `who` — the dancer you PICK UP on the side
+/// (taxonomy v26, #843) — and a rotation amount to `turn`.
+///
+/// **A stated hand is consumed and DISCARDED here, on purpose.** `star_promenade`
+/// declared a `hand` until v26, and prose like "Neighbor star promenade right
+/// 1/2" set it. The owner ruled (2026-08-06) that rendering the hand beside the
+/// subject implies a right-hand connection with the neighbor when the
+/// connection is between the two dancers in the CENTER, so the param was
+/// removed. The side is still EATEN rather than left in `w`, because an
+/// unconsumed token forces the whole line to the custom fallback and would
+/// regress every "star promenade right" line from structured to custom.
+///
+/// TCB's `(WR)`/`(ML)` annotations state the center pair. `_normalize` strips
+/// them before this runs, so they are picked up earlier by
+/// `_starPromenadeAnnotation` in `callersbox_figure_dialect.dart`, which
+/// preserves them as a note. Must precede `_star` in `_recognizers` so the
+/// shared "star" lead phrase resolves to this more specific move first.
 _Match? _starPromenade(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['star', 'promenade'])) return null;
   final who2 = who ?? _takeDancer(w);
-  final hand = _takeSide(w);
+  _takeSide(w); // consumed, then discarded — see the doc comment above.
   final turn = _takeRotation(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('star_promenade', {'who': ?who2, 'hand': ?hand, 'turn': ?turn});
+  return _Match('star_promenade', {'who': ?who2, 'turn': ?turn});
 }
 
 /// Tier A: TCB writes "Square through 3" / "Square through 4" (dance id 322

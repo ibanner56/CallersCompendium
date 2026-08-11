@@ -387,6 +387,26 @@ declines the collapse.
   (positional→named table per move, gyre → shoulder_round term migration). It is
   **`@Deprecated` and wired into no live path** — that JSON input is unobtainable
   from the site — and is retained only as reference prior art plus its unit tests.
+- **`star promenade` is DECLINED, not mapped (taxonomy v26, #843).** ContraDB's
+  `who`+`hand` name, as a pair, the dancers with a hand in the CENTRE. Our `who`
+  names the dancer you PICK UP on the side (owner ruling, 2026-08-06), and the
+  pick-up relationship is not recoverable from the centre role, so structuring
+  the line would assert the wrong dancers. These lines therefore reach the custom
+  fallback, which keeps ContraDB's own wording (scrubbed, so role terms are
+  canonicalized — see `figure_parser.dart`'s `declineToCustom`) — a deliberate,
+  owner-accepted structure regression.
+
+  **Deleting the recognizer was not sufficient, and this is the general lesson.**
+  The shared recognizers in `figure_parser.dart` are source-neutral: a grammar a
+  dialect file removes can still be claimed by the shared layer, silently. So
+  `contraDbHtmlFigureFrontEnd` carries an explicit `declineToCustom` veto (a
+  `FigureFrontEnd` hook added by the same change), which runs ahead of every
+  recognizer. The deprecated JSON adapter's `_MoveMap` entry is removed too, so
+  both producing paths are closed.
+
+  The number of ContraDB dances that lose structure is **not measured**: no
+  ContraDB corpus or dump exists locally, and none is documented in
+  `docs/research/contradb.md`.
 
 ### Compound-shorthand fan-out: grand right and left (#295)
 
@@ -818,6 +838,31 @@ reachable.
   could not while the walk line was custom — 4 dances change which figure that
   balance attaches to (see "Balance-a-wave lines" below). Beat totals are
   unaffected.
+  **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
+  centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on
+  **all 626** of the corpus lines that import as `star_promenade` (measured
+  against `c9a0185f`). It does **not** qualify `who`: `(WR)` says *the women
+  have right hands in the centre*, while `who` names the dancer you PICK UP on
+  the side. Both facts appear in one figure in TCB's own flutterwheel
+  decomposition (`(4) Women allemande right 1/2` + `(4) Neighbor star promenade
+  1/2 (WR)`), so they cannot share a slot — which is why taxonomy v26 removed
+  the `hand` param rather than re-pointing it.
+  The annotation becomes the figure's **note**, via the same
+  annotation-preserving pre-recognizer mechanism `gate` and `courtesy_turn` use:
+  `role2s by the right in the center`. It stores **canonical role tokens**, so
+  the note renders under the active dialect ("robins…", "follows…") instead of
+  freezing the source's gendered `W` forever. `who` is never written or
+  overwritten from the annotation.
+  *Stays verbatim (never approximated):* an unmapped people code (1 corpus line,
+  a `c` square-corner prefix), a multi-cell `;` run (a star promenade has one
+  centre, so a run states something this phrasing cannot express), and any
+  annotation with no `R`/`L` tail. *Secondary effect:* other annotations on
+  these lines — `(hand-in-hand with neighbor)`, `[with N1]` — were previously
+  dropped outright and are now kept alongside the centre note.
+  Prefix mix across the 626: `m` 358 → `role1s`, `w` 265 → `role2s`, `n`/`n1` 2
+  → `neighbors`, 1 unmapped. **Zero** lines state a prose hand, so the visible
+  change is the removal of a DEFAULTED "right" that used to render on every one
+  of these figures.
   **Out (→ custom
   for now, tracked on #295):** cast off,
   two-hand turn & other ECD figures, promenade

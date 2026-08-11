@@ -399,7 +399,20 @@ void main() {
       ]);
       expect(figures.first.note?.toLowerCase(), contains('flutterwheel'));
       expect(figures.first.note?.toLowerCase(), contains('partner'));
-      expect(figures[1].note, isNull);
+      // The parent's shorthand name rides on the FIRST child only — it must
+      // never be duplicated onto the second.
+      expect(
+        figures[1].note?.toLowerCase() ?? '',
+        isNot(contains('flutterwheel')),
+      );
+      // Taxonomy v26 (#843): the star promenade's own annotations now survive.
+      // `(WR)` becomes the center note (canonical role token, so it renders
+      // under the active dialect) and the trailing prose qualifier — which this
+      // line previously dropped outright — is preserved verbatim beside it.
+      expect(
+        figures[1].note,
+        'role2s by the right in the center; hand-in-hand with partner',
+      );
     });
 
     final variants = <String, List<String>>{
@@ -612,7 +625,13 @@ void main() {
           '     (8) Women allemande right 1',
         ]);
         expect(modified.map((f) => f.move), ['star_promenade', 'allemande']);
-        expect(modified.first.note, 'Modified revolving door');
+        // v26 (#843): the star promenade's `(WR)` center annotation and its
+        // `[with N1]` qualifier both survive now — the latter was silently
+        // dropped before — and combine ahead of the parent's shorthand name.
+        expect(
+          modified.first.note,
+          'role2s by the right in the center; with N1 — Modified revolving door',
+        );
         expect(_totalBeats(modified), 10);
 
         final bare = await _figures([

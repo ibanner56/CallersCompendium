@@ -396,13 +396,86 @@ import 'taxonomy.dart';
 ///     Adding `balance.hand` is purely additive to the persisted codec —
 ///     existing figures with no `hand` key produce the same effective value
 ///     (`unspecified`) from `effectiveParams` — so NO DB schema migration is
-///     needed. The taxonomy version bump triggers a derived rebuild that
-///     re-indexes FTS and canonical keys.
+///     needed. The derived rebuild that re-indexes FTS and canonical keys comes
+///     from `CompendiumRepositories._normaliseInversePairMoveIdsIfNeeded`,
+///     which rebuilds if a rebuild has NOT already happened during this
+///     `ensureMigrated` call, or if its own scan rewrote any `figures_json`,
+///     and then writes its `settings` marker.
+///
+///     It does NOT rebuild unconditionally, and the difference is reachable
+///     rather than theoretical: `alreadyRebuilt: rebuiltThisCall` is threaded
+///     in from the caller, so when an earlier sweep already rebuilt and this
+///     pass rewrites nothing, it correctly skips. Measured on a database with
+///     every one-time marker cleared and `derivedRebuildRequired` set: **1**
+///     rebuild across the four sweeps that could each have run one.
+///
+///     (Corrected while writing v26, #843: this paragraph previously said "the
+///     taxonomy version bump triggers a derived rebuild". It does not, and
+///     nothing else does either — `Taxonomy.version` is stored on the object
+///     and never read by any runtime code. Believing otherwise is how a
+///     canonical-key change ships with a stale FTS index, so the mechanism is
+///     named explicitly here rather than assumed.)
 ///
 ///     The inverse-pair re-routing changes only `figure.move` at write time
 ///     (import, editor save); canonical keys are unaffected because both
 ///     halves of a pair already resolve to the same `MoveDef` id.
-const int contraTaxonomyVersion = 25;
+/// v26 (#843): `star_promenade` LOSES its `hand` param, and `{hand}` leaves its
+///     `renderTemplate`. This is a param REMOVAL — the first in this taxonomy;
+///     v19's `allemande_orbit` retired a whole move, and v21 renamed one.
+///
+///     **Why.** `star_promenade.who` meant two different things depending on
+///     which adapter wrote it. ContraDB's `who`+`hand` name the pair with a
+///     hand in the CENTER; TCB's prose subject names the dancer you PICK UP on
+///     the side. Owner ruling (2026-08-06): TCB's reading is what we store, so
+///     `who` is the pick-up relationship. The `hand` then describes a
+///     DIFFERENT pair from the subject it renders next to — "Neighbor star
+///     promenade right ½" implies a right-hand connection with the neighbor
+///     when the right-hand connection is between the two dancers in the
+///     center. A param that renders as though it qualifies the subject, while
+///     actually describing another pair, is misinformation dressed as
+///     precision, so it is removed rather than re-documented.
+///
+///     The TCB flutterwheel decomposition shows both facts coexisting in one
+///     figure, which is why they cannot share a slot:
+///       `(8) Neighbor flutterwheel`
+///         -> `(4) Women allemande right 1/2`
+///          + `(4) Neighbor star promenade 1/2 (WR)`
+///     `who` is `neighbors` (whom you promenade); `(WR)` names the women (who
+///     form the star). Different sets. The center survives as a NOTE
+///     (`<role token> by the <hand> in the center`), written by the TCB
+///     import's `_starPromenadeAnnotation`; it stores canonical role tokens so
+///     it renders under the active dialect rather than freezing `W`/`M`.
+///
+///     **Canonical-key change + one-time pass.** `figureCanonicalKey` is built
+///     from every DECLARED param (`figure_diff.dart`), so removing `hand`
+///     changes the key of EVERY `star_promenade` figure — not only those that
+///     stored one, because `effectiveParams` used to fill the `right` default
+///     for the rest. A derived rebuild is therefore OWED unconditionally —
+///     unlike the schema-v18/v19 precedents, which schedule one only when a
+///     figure actually changed — and it is NOT triggered by this version
+///     number: nothing reads `Taxonomy.version` at runtime.
+///     `CompendiumRepositories._stripStarPromenadeHandIfNeeded` does the work,
+///     mirroring #870 — strip the now-undeclared `hand` from stored
+///     `figures_json`, rebuild, then write the `settings` marker, in that
+///     order, so an interrupted pass retries on the next open.
+///
+///     "Owed unconditionally" is about the DEBT, not the call: the pass still
+///     skips its own `runDerivedRebuild` when an earlier sweep already
+///     rebuilt during the same `ensureMigrated`, because that rebuild already
+///     paid the debt. Conflating the two is exactly how the v25 paragraph
+///     above came to claim a rebuild that does not happen.
+///
+///     No DB SCHEMA bump: nothing structural changes, and a leftover `hand` is
+///     already inert for rendering and keying the moment the param leaves the
+///     MoveDef (`effectiveParams` iterates `def.params` only). The strip is
+///     hygiene — it stops dead data silently resurrecting if some later
+///     taxonomy re-declares `hand` here with a different meaning.
+///
+///     **ContraDB star promenades now import as CUSTOM figures** — a
+///     deliberate structure regression, accepted by the owner. ContraDB
+///     supplies the center role, not the pick-up relationship, and we will not
+///     guess the relationship.
+const int contraTaxonomyVersion = 26;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -1082,16 +1155,20 @@ final Taxonomy contraTaxonomy = Taxonomy(
       renderTemplate: '{who} {move} {hand} {whom}',
       goodBeats: [8],
     ),
+    // v26 (#843): `who` names the dancer you PICK UP on the side (TCB's
+    // reading, per the owner's 2026-08-06 ruling) — NOT the pair with a hand in
+    // the center. The `hand` param was removed with this ruling: it described
+    // the center pair while rendering as though it qualified `who`. The center
+    // survives as a note written by the TCB import; see the v26 entry above.
     const MoveDef(
       id: 'star_promenade',
       displayName: 'star promenade',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
-        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
         'turn': ParamSpec(ParamKind.rotation, defaultValue: 0.5),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
       },
-      renderTemplate: '{who} {move} {hand} {turn}',
+      renderTemplate: '{who} {move} {turn}',
       goodBeats: [4],
     ),
     // Issue #295: `orbit` is a first-class move. The fused `allemande_orbit`

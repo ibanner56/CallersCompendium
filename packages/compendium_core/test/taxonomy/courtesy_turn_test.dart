@@ -26,9 +26,9 @@ void main() {
       parseFigureLines(rawText, beats: beats, frontEnd: tcbFigureFrontEnd);
 
   group('taxonomy — the v23 move', () {
-    test('contraTaxonomyVersion is 24', () {
-      expect(contraTaxonomyVersion, 25);
-      expect(tax.version, 25);
+    test('contraTaxonomyVersion is 26', () {
+      expect(contraTaxonomyVersion, 26);
+      expect(tax.version, 26);
     });
 
     test('v23 is purely additive — it owed no schema migration of its own', () {
@@ -42,13 +42,19 @@ void main() {
       // dropped unused storage (#781/#782) and schema 22 added the
       // dance_figures.group_idx search-correlation column (#748), and schema
       // 24 added the dances.mixer flag (#732), each while the taxonomy stood
-      // still. At this point kCompendiumSchemaVersion and
-      // contraTaxonomyVersion both read 24 — coincidentally: schema 24 comes
-      // from dances.mixer (#732) and taxonomy 24 from the partner-series
-      // vocabulary tokens (#732); same issue, unrelated mechanisms, the two
-      // constants are still independent. So a failure here means one of two
-      // things, and they are worth telling apart: either a taxonomy change quietly
-      // started owing a migration (the hazard this test exists for), or an
+      // still. The two constants briefly both read 24 — coincidentally: schema
+      // 24 comes from dances.mixer (#732) and taxonomy 24 from the
+      // partner-series vocabulary tokens (#732); same issue, unrelated
+      // mechanisms. They have since diverged again, and HOW they diverged is
+      // the useful part: taxonomy v25 (#870) and v26 (#843) both changed
+      // canonical keys and neither bumped the schema, because a figures_json
+      // rewrite does not need one — a one-time `settings` marker in
+      // `CompendiumRepositories` does the pass and the derived rebuild (see
+      // `_normaliseInversePairMoveIdsIfNeeded` and
+      // `_stripStarPromenadeHandIfNeeded`). A schema bump is for a change in
+      // STRUCTURE. So a failure here means one of two things, and they are
+      // worth telling apart: either a taxonomy change quietly started owing a
+      // structural migration (the hazard this test exists for), or an
       // unrelated schema change landed and this number simply needs updating.
       expect(kCompendiumSchemaVersion, 24);
     });

@@ -102,6 +102,58 @@ class DanceRepository {
   /// migration in [CompendiumRepositories._normaliseInversePairMoveIdsIfNeeded].
   Dance normaliseMoveIdsPublic(Dance dance) => _normaliseMoveIds(dance);
 
+  /// Returns [dance] with the retired `star_promenade.hand` param stripped from
+  /// every figure that still carries it, recursing into `meanwhile` sides.
+  /// Returns the original [dance] unchanged when nothing carries it (avoiding
+  /// an allocation, and letting the caller skip the write entirely).
+  ///
+  /// Used by the one-time pass in
+  /// [CompendiumRepositories._stripStarPromenadeHandIfNeeded] (taxonomy v26,
+  /// #843). Nothing WRITES this param any more, so unlike [_normaliseMoveIds]
+  /// there is no write-time counterpart — this exists purely to retire data
+  /// already on disk.
+  Dance stripStarPromenadeHandPublic(Dance dance) {
+    List<Figure>? stripped;
+    final figures = dance.figures;
+    for (var i = 0; i < figures.length; i++) {
+      final f = figures[i];
+      final result = _stripStarPromenadeHand(f);
+      if (!identical(result, f) && stripped == null) {
+        stripped = figures.sublist(0, i);
+      }
+      stripped?.add(result);
+    }
+    return stripped != null ? dance.copyWith(figures: stripped) : dance;
+  }
+
+  /// Strips a single figure's retired `star_promenade.hand`, recursing into
+  /// `meanwhile` sub-figures. Returns the original [figure] unchanged when
+  /// nothing needs stripping.
+  Figure _stripStarPromenadeHand(Figure figure) {
+    if (figure.isMeanwhile) {
+      List<Figure>? subs;
+      final origSubs = figure.subFigures;
+      for (var i = 0; i < origSubs.length; i++) {
+        final sub = origSubs[i];
+        final result = _stripStarPromenadeHand(sub);
+        if (!identical(result, sub) && subs == null) {
+          subs = origSubs.sublist(0, i);
+        }
+        subs?.add(result);
+      }
+      if (subs == null) return figure;
+      // copyWith, not a bare Figure(...), so schemaVersion / customOrigin /
+      // assumedSubject / walkthroughOverride survive the one-time pass.
+      return figure.copyWith(
+        params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
+      );
+    }
+    if (figure.move != 'star_promenade' || !figure.params.containsKey('hand')) {
+      return figure;
+    }
+    return figure.copyWith(params: {...figure.params}..remove('hand'));
+  }
+
   /// Normalises a single figure's move id, recursing into meanwhile
   /// sub-figures. Returns the original [figure] unchanged if no sub-figures
   /// need re-routing (avoids an allocation when nothing moves).

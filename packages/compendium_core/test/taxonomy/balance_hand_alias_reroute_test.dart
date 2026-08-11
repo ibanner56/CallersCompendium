@@ -44,9 +44,9 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('Part 1 — balance.hand param', () {
-    test('contraTaxonomyVersion is 25', () {
-      expect(contraTaxonomyVersion, 25);
-      expect(tax.version, 25);
+    test('contraTaxonomyVersion is 26', () {
+      expect(contraTaxonomyVersion, 26);
+      expect(tax.version, 26);
     });
 
     test('balance exposes a hand param defaulting to unspecified', () {

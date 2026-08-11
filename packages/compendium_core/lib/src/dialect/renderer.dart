@@ -399,7 +399,7 @@ class FigureRenderer {
   /// - default-subject omission: `who` is omitted when it equals the move's
   ///   `who` default, for the moves in [_omitDefaultSubject] (ContraDB
   ///   `upOrDownTheHallWords` `who === "everyone" ? "" : swho`, plus
-  ///   star_promenade's role-subject omission).
+  ///   star_promenade's default-subject omission).
   bool _isDisplaySilenced(MoveDef def, String name, Object? value) {
     if (name == 'who' && _omitDefaultSubject.contains(def.id)) {
       return value == def.params['who']?.defaultValue;
@@ -817,9 +817,18 @@ class FigureRenderer {
   /// move's `who` default. Mirrors ContraDB `upOrDownTheHallWords`
   /// (`who === "everyone" ? "" : swho`) for the hall moves, ContraDB's
   /// `everyone`-omitting subject rendering for `turn_alone`/`rory_o_more`, and
-  /// star_promenade's role-subject omission (ContraDB drops the gentlespoons
-  /// subject there). This omission is NOT generalized to other role subjects.
-  /// A non-default `who` still renders.
+  /// star_promenade's subject omission (ContraDB drops the gentlespoons subject
+  /// there). This omission is NOT generalized to other subjects. A non-default
+  /// `who` still renders.
+  ///
+  /// **star_promenade's entry no longer describes a ROLE-subject omission**
+  /// (taxonomy v26, #843). Its `who` now means the dancer you PICK UP on the
+  /// side, so the norm for an imported figure is a RELATIONSHIP value
+  /// (`neighbors`/`partners`) — which is non-default and therefore renders.
+  /// The `role1s` default it silences is now the residue of the old ContraDB
+  /// reading rather than the common case, and ContraDB star promenades no
+  /// longer import as this move at all. The entry is kept so a figure that
+  /// really does carry the default subject renders as it always did.
   static const Set<String> _omitDefaultSubject = {
     'down_the_hall',
     'up_the_hall',
