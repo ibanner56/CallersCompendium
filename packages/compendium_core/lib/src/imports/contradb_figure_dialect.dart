@@ -54,12 +54,25 @@ const FigureFrontEnd contraDbHtmlFigureFrontEnd = FigureFrontEnd(
 /// the dialect file would have noticed.
 ///
 /// Anchored on the two-word phrase so a plain `promenade` — a different move,
-/// with an unaffected reading — is untouched. Matching is on the SCRUBBED text,
-/// which is lowercased and role-canonicalized, so `Gentlespoons Star Promenade
-/// Right 1` is caught along with every casing variant.
+/// with an unaffected reading — is untouched.
+///
+/// **Case-insensitivity comes from the regex flag, NOT from the input.**
+/// Matching runs on the SCRUBBED text, which is role-canonicalized but is
+/// **not** lowercased — `scrubFigureText` never lowercases, and `_normalize`
+/// (which does) runs AFTER this veto. So `Gentlespoons Star Promenade Right 1`
+/// scrubs to `role1s Star Promenade Right 1`, with the casing intact, and is
+/// caught only because [_starPromenadeVeto] is declared `caseSensitive: false`.
+/// Verified: the same pattern without that flag does not match that string.
+///
+/// This is spelled out because the earlier wording credited the input, which
+/// was wrong in a way that would not surface here — the veto works either way —
+/// but would bite the next person to add one: drop the flag, trust the comment,
+/// and you ship a matcher that silently misses every capitalised line.
 bool _declineStarPromenade(String scrubbed) =>
     _starPromenadeVeto.hasMatch(scrubbed);
 
+/// `caseSensitive: false` is LOAD-BEARING — see [_declineStarPromenade]. The
+/// scrubbed text this runs against retains its source casing.
 final RegExp _starPromenadeVeto = RegExp(
   r'\bstar\s+promenades?\b',
   caseSensitive: false,

@@ -20,11 +20,14 @@ each release so store builds and tags can be traced back to an entry.
   simply wrong, so it has been removed from the figure. Where The Caller's Box
   states the centre — the `(WR)` in `Neighbor star promenade 1/2 (WR)` — it now
   appears as a note beside the figure, reading "robins by the right in the
-  centre" in your chosen dialect rather than a frozen "W". 626 imported figures
-  are affected corpus-wide, and existing dances are updated on first launch.
+  center" in your chosen dialect rather than a frozen "W". (That quotation is
+  verbatim app output, which uses the US spelling like the rest of the
+  interface; the surrounding prose keeps this file's British voice.) 626
+  imported figures are affected corpus-wide, and existing dances are updated on
+  first launch.
 
   Two smaller improvements ride along. Anything else written beside a star
-  promenade — a qualifier like "(hand-in-hand with neighbour)" or "[with N1]" —
+  promenade — a qualifier like "(hand-in-hand with neighbor)" or "[with N1]" —
   used to be dropped on import and is now kept. And star promenades imported
   from ContraDB now come in as plain text figures instead: ContraDB records who
   is in the centre rather than whom you pick up, and rather than guess the
