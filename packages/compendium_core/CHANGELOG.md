@@ -2,6 +2,17 @@
 
 ### Fixed
 
+- **Bare ContraDB box-circulate form now recognized (#752).** ContraDB
+  sometimes writes the figure as the component cross/loop path — `larks cross
+  while robins loop` — without the `box circulate` head phrase. Previously this
+  fell through to custom and, with #591's `while` fan-out active, became a
+  `meanwhile[custom, custom]` container carrying no structured information. A
+  new pre-recognizer `_boxCirculateBare` detects the `<subject> cross while
+  <subject> loop [left|right]` form and maps it to `box_circulate`, recovering
+  `who` from the crossing subject and `hand` from a trailing `left`/`right`
+  when present. Both dancer-set subjects must resolve to known sets — unrelated
+  `while` lines still reach the fan-out unchanged.
+
 - **Dancer-qualified balance-wave lines now fold into the preceding wave figure
   (#872).** TCB writes `Men balance long wave in center`; the scrubber
   canonicalises that to `role1s balance long wave in center`. The previous

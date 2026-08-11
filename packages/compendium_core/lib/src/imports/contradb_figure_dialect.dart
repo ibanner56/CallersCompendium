@@ -92,9 +92,11 @@ final RegExp _whileConnective = RegExp(r'\bwhiles?\b', caseSensitive: false);
 /// structured (non-custom) figure.
 ///
 /// ## Precedence (locked #591 requirement)
-/// The named combined move `boxCirculateWords` ([_boxCirculate], "box
-/// circulate - WHO cross while OTHER loop …") — and every OTHER recognizer in
-/// [contraDbHtmlFigureFrontEnd] (plus the canonical shared recognizers) get
+/// The named combined moves `boxCirculateWords` ([_boxCirculate], "box
+/// circulate - WHO cross while OTHER loop …") and the bare ContraDB form
+/// ([_boxCirculateBare], "WHO cross while OTHER loop …") — and every OTHER
+/// recognizer in [contraDbHtmlFigureFrontEnd] (plus the canonical shared
+/// recognizers) get
 /// their full, unmodified first attempt at the WHOLE line via the ordinary
 /// [parseFigureLine] call below. Only when that degrades to custom does this
 /// function look for a general top-level `while`/`whiles` connective, so a
@@ -255,6 +257,7 @@ const List<FigureMatch? Function(String)> _recognizers =
       _gate,
       _contraCorners,
       _zigZag,
+      _boxCirculateBare,
       _boxCirculate,
       _slice,
       _revolvingDoor,
@@ -1182,8 +1185,84 @@ FigureMatch? _zigZag(String text) {
   return FigureMatch('zig_zag', params: params, note: s.note());
 }
 
+/// Parses `<subject> cross while <subject> loop [left|right]` at the current
+/// [_Scan] position: consumes the matched tokens and returns
+/// `{'who': …, 'hand'?: …}`, or returns `null` leaving [s] **unchanged** on
+/// any mismatch.
+///
+/// Both dancer-set subjects must resolve via [_subject] (unknown role →
+/// decline). [who] is the crossing subject; [hand] from a trailing
+/// `left`/`right` when present.
+///
+/// **Why a shared helper.** [_boxCirculateBare] and [_boxCirculate] both parse
+/// this clause. Extracting it into one site prevents silent grammar drift: two
+/// parsers for one grammar will diverge — a change to one path, a doc comment
+/// asserting both mirror each other, and a silent mismatch that no test catches
+/// until behaviour differs. Keep the clause in one place.
+///
+/// **Security.** The params map is allocated only after a full match. Input is
+/// already sanitised upstream; [_Scan] tokenizes on `\S+` (bounded by input
+/// length) and this function reads at most ~5 tokens, returning early on the
+/// first mismatch. `_subject` and `eatPhrase` do allocate internally (string
+/// comparisons, `split`), but those are O(1) per token against a fixed
+/// vocabulary and bounded by the input length already enforced upstream.
+///
+/// **Measured consequence of the guards:**
+/// - Dropping the [_subject] null-check on the looping dancer would admit
+///   lines whose second role is unrecognized — e.g.
+///   `role1s cross while unknown loop` — turning an unknown into a structured
+///   `box_circulate` with the wrong `who`.
+/// - Dropping `s.eat('loop')` would match any `<subject> cross while <subject>`
+///   prefix, absorbing unrelated content into the note — e.g.
+///   `role1s cross while role2s - all balance` would silently become
+///   `box_circulate` with note `"- all balance"`.
+Map<String, Object?>? _crossWhileLoopParams(_Scan s) {
+  final save = s.pos;
+  final who = _subject(s);
+  if (who == null) {
+    s.reset(save);
+    return null;
+  }
+  if (!s.eatPhrase('cross while')) {
+    s.reset(save);
+    return null;
+  }
+  if (_subject(s) == null) {
+    s.reset(save);
+    return null;
+  }
+  if (!s.eat('loop')) {
+    s.reset(save);
+    return null;
+  }
+  final params = <String, Object?>{'who': who};
+  final hand = _leftRight(s.peek());
+  if (hand != null) {
+    s.take();
+    params['hand'] = hand;
+  }
+  return params;
+}
+
+/// Bare ContraDB box-circulate form:
+/// `[balance &] <subject> cross while <subject> loop [left|right]`.
+///
+/// ContraDB renders the component cross/loop path directly, without the
+/// `box circulate` head phrase. Calls [_crossWhileLoopParams] (the shared
+/// clause parser) for the cross/loop clause; mirrors [_boxCirculate]'s
+/// optional `balance &` prefix so the two forms handle balance identically.
+FigureMatch? _boxCirculateBare(String text) {
+  final s = _Scan(text);
+  final balance = _eatBalanceAmp(s);
+  final clause = _crossWhileLoopParams(s);
+  if (clause == null) return null;
+  final params = <String, Object?>{...clause, if (balance) 'balance': true};
+  return FigureMatch('box_circulate', params: params, note: s.note());
+}
+
 /// boxCirculateWords. Renders as: "[balance] box circulate - WHO cross while
-/// OTHER loop HAND".
+/// OTHER loop HAND". Calls [_crossWhileLoopParams] (the shared clause parser)
+/// for the optional `- …` clause.
 FigureMatch? _boxCirculate(String text) {
   final s = _Scan(text);
   final balance = _eatBalanceAmp(s);
@@ -1191,17 +1270,9 @@ FigureMatch? _boxCirculate(String text) {
   final params = <String, Object?>{if (balance) 'balance': true};
   final save = s.pos;
   if (s.eat('-')) {
-    final who = _subject(s);
-    if (who != null &&
-        s.eatPhrase('cross while') &&
-        _subject(s) != null &&
-        s.eat('loop')) {
-      params['who'] = who;
-      final hand = _leftRight(s.peek());
-      if (hand != null) {
-        s.take();
-        params['hand'] = hand;
-      }
+    final clause = _crossWhileLoopParams(s);
+    if (clause != null) {
+      params.addAll(clause);
     } else {
       s.reset(save);
     }

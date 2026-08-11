@@ -400,6 +400,57 @@ void main() {
       expect(f.params['hand'], 'right');
     });
 
+    // issue #752 — bare ContraDB form: <subject> cross while <subject> loop
+    test('bare box circulate — larks cross while robins loop (#752)', () {
+      final f = _parse('larks cross while robins loop');
+      expect(f.move, 'box_circulate');
+      expect(f.params['who'], 'role1s');
+      expect(f.params.containsKey('hand'), isFalse);
+    });
+
+    test(
+      'bare box circulate — gentlespoons cross while ladles loop (#752)',
+      () {
+        final f = _parse('gentlespoons cross while ladles loop');
+        expect(f.move, 'box_circulate');
+        expect(f.params['who'], 'role1s');
+        expect(f.params.containsKey('hand'), isFalse);
+      },
+    );
+
+    test('bare box circulate — ladles cross while gentlespoons loop right '
+        '(#752)', () {
+      final f = _parse('ladles cross while gentlespoons loop right');
+      expect(f.move, 'box_circulate');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['hand'], 'right');
+    });
+
+    // Equivalence: headed and bare forms must produce identical params. Both
+    // forms now support `balance &` via `_eatBalanceAmp`, but the two test
+    // inputs here do NOT include that prefix — so the two
+    // `containsKey('balance')` assertions below are asserting about the test
+    // inputs, not a property of the code. They confirm this test is measuring
+    // what it claims (neither form has an unexpected balance on these inputs);
+    // the balance path itself is tested by the existing headed-form balance
+    // test. The shared-grammar invariant is pinned by the move/who/hand
+    // assertions: if _crossWhileLoopParams is ever split back into two sites
+    // and one drifts, those will catch it.
+    test(
+      'headed and bare forms yield identical who/hand (#752 equivalence)',
+      () {
+        final headed = _parse(
+          'box circulate - larks cross while robins loop right',
+        );
+        final bare = _parse('larks cross while robins loop right');
+        expect(bare.move, headed.move);
+        expect(bare.params['who'], headed.params['who']);
+        expect(bare.params['hand'], headed.params['hand']);
+        expect(bare.params.containsKey('balance'), isFalse);
+        expect(headed.params.containsKey('balance'), isFalse);
+      },
+    );
+
     test('slice', () {
       final f = _parse('slice left');
       expect(f.move, 'slice');
@@ -885,6 +936,81 @@ void main() {
       expect(f.params['balance'], isTrue);
       expect(f.params['who'], 'role1s');
       expect(f.params['hand'], 'right');
+    });
+
+    // issue #752 — bare form resolves to box_circulate, NOT a meanwhile container
+    test('issue #752 — bare "larks cross while robins loop" resolves to '
+        'box_circulate, not meanwhile', () {
+      final f = parseContraDbFigureLine(
+        'larks cross while robins loop',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.move, 'box_circulate');
+      expect(f.params['who'], 'role1s');
+      expect(f.params.containsKey('hand'), isFalse);
+      expect(f.beats, 8);
+    });
+
+    test('issue #752 — bare "gentlespoons cross while ladles loop" resolves '
+        'to box_circulate', () {
+      final f = parseContraDbFigureLine(
+        'gentlespoons cross while ladles loop',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.move, 'box_circulate');
+      expect(f.params['who'], 'role1s');
+      expect(f.params.containsKey('hand'), isFalse);
+    });
+
+    test('issue #752 — bare "ladles cross while gentlespoons loop right" '
+        'resolves to box_circulate with hand', () {
+      final f = parseContraDbFigureLine(
+        'ladles cross while gentlespoons loop right',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.move, 'box_circulate');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['hand'], 'right');
+    });
+
+    // Guard test: without a `loop` token the recognizer must decline, so the
+    // line falls through to the fan-out. This falsifies the loop guard: if
+    // `s.eat('loop')` were removed from _boxCirculateBare, this line would
+    // match as box_circulate(who: role1s, note: "- all balance") instead of
+    // fanning into meanwhile.
+    test('issue #752 guard — "larks cross while robins - all balance" (no '
+        '"loop") does NOT resolve to box_circulate (loop guard)', () {
+      final f = parseContraDbFigureLine(
+        'larks cross while robins - all balance',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      // Must NOT be a structured box_circulate — the `loop` word is absent.
+      // The line fans into a meanwhile container (two custom sides) instead.
+      expect(f!.isMeanwhile, isTrue);
+    });
+
+    // Second-subject null-check: when the token between `cross while` and
+    // `loop` is not a dancer set, _crossWhileLoopParams returns null and the
+    // line falls through. This tests the guard in isolation; it is untested
+    // by the #326 control (which fails before reaching this check because
+    // `eatPhrase('cross while')` rejects it).
+    test('issue #752 guard — unknown second subject declines (second-subject '
+        'null-check)', () {
+      // `something` is not in _subjectPhrases → _crossWhileLoopParams
+      // returns null → _boxCirculateBare returns null → fan-out fires.
+      final f = parseContraDbFigureLine(
+        'role1s cross while something loop',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isTrue);
     });
 
     test('dances/1603 "Eye Of The Tiger" A1 — "whiles" spelling fans into '

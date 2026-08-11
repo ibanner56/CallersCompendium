@@ -11,6 +11,14 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Bare ContraDB box circulates now import correctly (#752).** A ContraDB
+  dance written as `larks cross while robins loop` (or any role pair) was not
+  recognized as a box circulate. It now imports as `box_circulate`, with the
+  crossing dancer set recorded as `who` and the hand recorded when stated — so
+  it shows up correctly when filtering or searching by move.
+
 ### Changed
 
 - **Imported figures now keep the hand and dancers The Caller's Box wrote in

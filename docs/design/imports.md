@@ -681,9 +681,10 @@ reachable.
 - **ContraDB `while`/`whiles`:** `parseContraDbFigureLine`
   (`imports/contradb_figure_dialect.dart`) runs the FULL existing recognizer
   pipeline first — so a line matching a dedicated named combined move (e.g.
-  `box_circulate`) is returned completely unmodified, with named-recognizer
-  precedence fully preserved (the box-circulate dual-clause form is a
-  regression case, not a fan-out). The ContraDB combined
+  `box_circulate` via the `box circulate` head phrase or the bare `<subject>
+  cross while <subject> loop` form) is returned completely unmodified, with
+  named-recognizer precedence fully preserved (both box-circulate forms are
+  regression cases, not fan-outs). The ContraDB combined
   `allemandeOrbitWords` line (dance #1717) is the one exception: since the
   fused `allemande_orbit` move was retired (issue #295), it is resolved by
   `_allemandeOrbitMeanwhile` into a `meanwhile[allemande, orbit]` container —
