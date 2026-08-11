@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
@@ -434,6 +435,18 @@ void main() {
         expect(session.records.single.authorResolutions.single.created, isTrue);
       });
 
+      /// Raw `existence_at` for a choreographer, bypassing the repository's
+      /// live-row filter so a tombstoned row is still readable.
+      Future<int?> existenceOf(String id) async {
+        final rows = await db
+            .customSelect(
+              "SELECT existence_at AS v FROM choreographers WHERE id = ?",
+              variables: [Variable.withString(id)],
+            )
+            .get();
+        return rows.single.data['v'] as int?;
+      }
+
       test('adopts a tombstoned choreographer rather than wiring dances to a '
           'phantom id', () async {
         // Schema v25: `choreographers.name` is UNIQUE and a soft-deleted row
@@ -512,6 +525,7 @@ void main() {
           isNotNull,
           reason: 'the import revived it — that is the state undo must revert',
         );
+        final revivedExistence = await existenceOf('ghost');
 
         await pipeline.undo(session);
 
@@ -524,7 +538,8 @@ void main() {
         // Tombstoned, not erased: the user can still restore what they deleted.
         final rows = await db
             .customSelect(
-              "SELECT deleted_at FROM choreographers WHERE id = 'ghost'",
+              "SELECT deleted_at, existence_at FROM choreographers "
+              "WHERE id = 'ghost'",
             )
             .get();
         expect(
@@ -533,6 +548,18 @@ void main() {
           reason: 'undo must not destroy a record that predates the import',
         );
         expect(rows.single.data['deleted_at'], isNotNull);
+        // The point of the fix, and the part `deleted_at` alone does not pin:
+        // the re-tombstone must OUTRANK the revival it reverts. §6.4 orders
+        // existence by `existence_at` and resolves a tie in favour of the
+        // tombstone — so a re-tombstone that merely tied would still lose to
+        // the revival on a peer, and a refactor that restored the original
+        // `deleted_at` with a raw UPDATE would pass every other assertion here
+        // while reinstating exactly the defect this test is named for.
+        expect(
+          rows.single.data['existence_at'] as int,
+          greaterThan(revivedExistence!),
+          reason: 'the re-tombstone must strictly outrank the revival',
+        );
       });
 
       test(
