@@ -782,9 +782,11 @@ def test_adjacency_matrix() -> None:
             return f"{quote}{text}{quote}"
         if kind == "raw":
             return f"r{quote}{text}{quote}"
+        if kind == "raw-triple":
+            return f"r{quote * 3}{text}{quote * 3}"
         return f"{quote * 3}{text}{quote * 3}"
 
-    kinds = ("normal", "raw", "triple")
+    kinds = ("normal", "raw", "triple", "raw-triple")
     quote_pairs = (("'", "'"), ("'", '"'), ('"', '"'))
     separators = (" ", "\n    ", "  // interposed comment\n    ")
 
@@ -833,7 +835,7 @@ def test_adjacency_matrix() -> None:
     # A raw middle literal must NOT truncate the run; all three fragments must
     # end up in one group.
     print("adjacency matrix (three-literal runs):")
-    thirds = ("normal", "raw", "triple")
+    thirds = ("normal", "raw", "triple", "raw-triple")
     for first_kind in thirds:
         for mid_kind in thirds:
             for last_kind in thirds:

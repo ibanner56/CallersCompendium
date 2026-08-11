@@ -233,12 +233,20 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
                 adj_raw2 = text[k] in ("r", "R") and k + 1 < n and text[k + 1] in ("'", '"')
                 if adj_raw2:
                     aq2 = text[k + 1]
-                    qstart2 = k + 2  # content start: skip 'r' + quote
-                    j2 = qstart2
-                    while j2 < n and text[j2] != aq2:
-                        j2 += 1
-                    group_content += text[qstart2:j2]
-                    i = j2 + 1
+                    adj_raw_triple2 = k + 3 < n and text[k + 2] == aq2 and text[k + 3] == aq2
+                    if adj_raw_triple2:
+                        # r'''...''' or r"""...""": content starts at k+4
+                        close2 = aq2 * 3
+                        end2 = text.find(close2, k + 4)
+                        group_content += text[k + 4 : end2] if end2 != -1 else text[k + 4 :]
+                        i = (end2 + 3) if end2 != -1 else n
+                    else:
+                        # r'...': content starts at k+2 (after 'r' + quote)
+                        j2 = k + 2
+                        while j2 < n and text[j2] != aq2:
+                            j2 += 1
+                        group_content += text[k + 2 : j2]
+                        i = j2 + 1
                 elif text[k] in ("'", '"'):
                     aq2 = text[k]
                     adj_triple2 = k + 2 < n and text[k + 1] == aq2 and text[k + 2] == aq2
@@ -320,7 +328,8 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
             adj_raw = text[k] in ("r", "R") and k + 1 < n and text[k + 1] in ("'", '"')
             if adj_raw:
                 aq = text[k + 1]
-                adj_triple = False  # r'...' can't be triple-quoted in Dart
+                # r'''...''' and r"""...""" are valid Dart raw triple-quoted literals.
+                adj_triple = k + 3 < n and text[k + 2] == aq and text[k + 3] == aq
             elif text[k] in ("'", '"'):
                 aq = text[k]
                 adj_triple = k + 2 < n and text[k + 1] == aq and text[k + 2] == aq
@@ -338,14 +347,16 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
                 group_parseable = False
                 if adj_triple:
                     close_seq = aq * 3
-                    end = text.find(close_seq, k + 3)
-                    raw_frag = text[k + 3 : end] if end != -1 else text[k + 3 :]
+                    # Content offset: for r'''...''' k points at 'r' so +4;
+                    # for plain '''...''' k points at first quote so +3.
+                    content_start = k + 4 if adj_raw else k + 3
+                    end = text.find(close_seq, content_start)
+                    raw_frag = text[content_start : end] if end != -1 else text[content_start :]
                     lit_content += raw_frag
                     i = (end + 3) if end != -1 else n
                 else:
-                    # raw: literal starts at k+1 (after the 'r' prefix) + 1 (after quote)
-                    quote_start = k + 1 if adj_raw else k
-                    j2 = quote_start + 1
+                    # raw single-quoted: 'r' at k, quote at k+1, content starts at k+2
+                    j2 = k + 2
                     raw_chars: list[str] = []
                     while j2 < n and text[j2] != aq:
                         raw_chars.append(text[j2])
