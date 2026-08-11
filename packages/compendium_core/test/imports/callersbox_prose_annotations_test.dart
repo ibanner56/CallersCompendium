@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
+final _renderer = FigureRenderer(contraTaxonomy);
+
 /// Issue #744 — prose annotation preservation for three new annotation classes:
 ///
 /// 1. **Balance role-hand pair** (`_balancePairHandAnnotation`): `(MRH,WLH)` /
@@ -234,6 +236,53 @@ void main() {
       expect(f.move, 'swing');
       expect(f.note, 'in center');
       expect(f.note, isNot(contains('OR')));
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // 4. Round-trip: synthesised role tokens reach renderFreeText
+  // ---------------------------------------------------------------------------
+  //
+  // Proves that notes produced by the annotation pre-recognizers carry
+  // canonical role tokens (`role1s`/`role2s`) and that [FigureRenderer.renderFreeText]
+  // substitutes them for the active dialect.
+  //
+  // This closes the "parser produces it → user sees it" gap: in the app,
+  // `DanceEditorController._renderNote` calls `_noteRenderer.renderFreeText(
+  // stored, _activeDialect)` on every `FigureDraft.note` at load and
+  // dialect-change time. The same function is exercised here.
+
+  group('#744 — round-trip: role tokens in notes are dialect-rendered', () {
+    test('balance pair-hand note: role1s/role2s → larks/robins', () {
+      // Corpus line: `Neighbor balance (MRH,WLH)` (dance 03601571).
+      // Parser stores `role1s by the right, role2s by the left` — canonical.
+      // renderFreeText in the larks/robins dialect maps role1s → larks,
+      // role2s → robins.
+      final f = _single('Neighbor balance (MRH,WLH)', beats: 4);
+      final note = f.note!;
+      expect(note, contains('role1s'));
+      final rendered = _renderer.renderFreeText(note, Dialect.larksRobins);
+      expect(rendered, 'larks by the right, robins by the left');
+    });
+
+    test('per-role choreo note: role1s/role2s → leads/follows', () {
+      // `(W roll R, M side-step L)` on a roll away: parser synthesises
+      // `role2s roll right, role1s side-step left`.  Leads/follows dialect
+      // maps role2s → follows, role1s → leads.
+      final f = _single('Neighbor roll away (W roll R, M side-step L)', beats: 8);
+      final note = f.note!;
+      expect(note, contains('role1s'));
+      expect(note, contains('role2s'));
+      final rendered = _renderer.renderFreeText(note, Dialect.leadsFollows);
+      expect(rendered, 'follows roll right, leads side-step left');
+    });
+
+    test('prose note: no role tokens → passes through unchanged in any dialect', () {
+      // `(in center)` carries no role tokens, so renderFreeText is a no-op.
+      final f = _single('Neighbor swing (in center)', beats: 8);
+      final note = f.note!;
+      expect(_renderer.renderFreeText(note, Dialect.larksRobins), note);
+      expect(_renderer.renderFreeText(note, Dialect.leadsFollows), note);
     });
   });
 }

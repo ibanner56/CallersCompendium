@@ -1505,6 +1505,14 @@ FigureMatch? _perRoleChoreoAnnotation(String scrubbed) {
     // All-uppercase / code-like: shape rule skips.
   }
 
+  // Delegation guard: only claim this line if at least one per-role annotation
+  // was successfully synthesised.  Without this, a line with only prose
+  // annotations (e.g. `(in center)` on a swing) would be claimed here and
+  // produce a note identical to what `_proseAnnotation` — which fires next —
+  // would produce anyway.  The guard is structural (not note-content): removing
+  // it does not change what note is stored, only which function "claims" the
+  // line.  The shape discrimination that keeps shorthand out of notes is tested
+  // by the `_proseAnnotation` red-run in callersbox_prose_annotations_test.dart.
   if (!hasSynthesized) return null;
 
   final match = recognizeSharedFigureLine(
