@@ -148,16 +148,38 @@ void main() {
     },
   );
 
+  test('a tombstoned star-promenade marker does NOT skip the strip', () async {
+    // Added by #885 (taxonomy v26) after this PR's filters were written, and it
+    // arrived without one — the read was `WHERE key = ?` with no
+    // `deleted_at IS NULL`. The two PRs never touched the same line, so nothing
+    // conflicted; the collision is on the *contract*, because #898 changed what
+    // a settings row means and #885 added a new reader of one.
+    final repos = _CountingRepositories(db, contraTaxonomy);
+    await tombstoneMarker(repos, starPromenadeHandRemovalDoneKey, 'done');
+    await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
+    await repos.settings.set(inversePairNormalisationDoneKey, 'done');
+
+    await repos.ensureMigrated();
+
+    expect(
+      repos.rebuildAttempts,
+      greaterThan(0),
+      reason: 'a tombstoned done-marker must not suppress the strip',
+    );
+    expect(await repos.settings.get(starPromenadeHandRemovalDoneKey), 'done');
+  });
+
   test(
     'a tombstoned rebuild-required marker is not treated as work owed',
     () async {
       // Opposite polarity to the three above: here *present* means "a rebuild is
-      // owed". Pin the other two one-time passes live so this marker is the only
+      // owed". Pin every other one-time pass live so this marker is the only
       // thing that could trigger a rebuild, then assert none happens.
       final repos = _CountingRepositories(db, contraTaxonomy);
       await tombstoneMarker(repos, derivedRebuildRequiredKey, 'true');
       await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
       await repos.settings.set(inversePairNormalisationDoneKey, 'done');
+      await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
 
       await repos.ensureMigrated();
 

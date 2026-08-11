@@ -337,7 +337,7 @@ class CompendiumRepositories {
   }) async {
     final done = await db
         .customSelect(
-          'SELECT 1 FROM settings WHERE key = ?',
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
           variables: [Variable.withString(starPromenadeHandRemovalDoneKey)],
         )
         .get();
