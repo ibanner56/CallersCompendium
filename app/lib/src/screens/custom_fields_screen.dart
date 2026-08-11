@@ -99,7 +99,13 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
     );
     if (result != null) {
       final isNew = existing == null;
-      await _repos.customFieldDefs.upsert(result);
+      // Consume the returned id: `result` may hold a freshly minted UUID
+      // (widget.existing?.id ?? uuidV4()), and upsert returns the id the row
+      // *actually* occupies, which differs when a tombstoned CustomFieldDef
+      // already held this UNIQUE key and was adopted. The returned id is not
+      // used further because _load() re-reads all definitions from the database
+      // immediately below, so local state is refreshed regardless.
+      final _ = await _repos.customFieldDefs.upsert(result);
       // Show the one-time sharing disclosure when the user creates their very
       // first custom field. The latch is set before the dialog is awaited so a
       // crash during the dialog never re-shows it on next launch.

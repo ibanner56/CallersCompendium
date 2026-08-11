@@ -383,6 +383,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     );
     final updated = await ChoreographerDetailsDialog.show(context, existing);
     if (updated == null || !mounted) return;
+    // Safe discard: `updated` carries the id of the already-persisted
+    // `existing` row. No fresh UUID is minted here, so tombstone adoption
+    // cannot redirect the id; the returned id is always identical to updated.id.
+    // ignore: unused_result
     await _repos.choreographers.upsert(updated);
     if (!mounted) return;
     setState(() {
