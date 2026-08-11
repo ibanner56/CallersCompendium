@@ -434,52 +434,49 @@ void main() {
         expect(session.records.single.authorResolutions.single.created, isTrue);
       });
 
-      test(
-        'adopts a tombstoned choreographer rather than wiring dances to a '
-        'phantom id',
-        () async {
-          // Schema v25: `choreographers.name` is UNIQUE and a soft-deleted row
-          // still occupies its name, so importing that name adopts the tombstone
-          // and `upsert` returns the tombstone's id, not the minted one. Using
-          // the minted id would point `dance_authors` at a row that does not
-          // exist; the FK makes that a failed insert rather than silent
-          // corruption, but the import still breaks on an ordinary action.
-          await choreographers.upsert(
-            Choreographer(id: 'ghost', name: 'Baby Caller'),
-          );
-          await choreographers.delete('ghost');
-          expect(await choreographers.listAll(), isEmpty);
+      test('adopts a tombstoned choreographer rather than wiring dances to a '
+          'phantom id', () async {
+        // Schema v25: `choreographers.name` is UNIQUE and a soft-deleted row
+        // still occupies its name, so importing that name adopts the tombstone
+        // and `upsert` returns the tombstone's id, not the minted one. Using
+        // the minted id would point `dance_authors` at a row that does not
+        // exist; the FK makes that a failed insert rather than silent
+        // corruption, but the import still breaks on an ordinary action.
+        await choreographers.upsert(
+          Choreographer(id: 'ghost', name: 'Baby Caller'),
+        );
+        await choreographers.delete('ghost');
+        expect(await choreographers.listAll(), isEmpty);
 
-          final adapter = FakeSourceAdapter([
-            record('fake-1', 'A Dance', authorNames: ['Baby Caller']),
-          ]);
-          final session = await pipeline.commit(
-            await pipeline.plan(adapter, const ImportRequest()),
-            now: now,
-            newId: nextId,
-          );
+        final adapter = FakeSourceAdapter([
+          record('fake-1', 'A Dance', authorNames: ['Baby Caller']),
+        ]);
+        final session = await pipeline.commit(
+          await pipeline.plan(adapter, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
 
-          final danceId = session.insertedDanceIds.single;
-          expect(await authorNamesOf(danceId), ['Baby Caller']);
+        final danceId = session.insertedDanceIds.single;
+        expect(await authorNamesOf(danceId), ['Baby Caller']);
 
-          final resolution = session.records.single.authorResolutions.single;
-          expect(
-            resolution.choreographerId,
-            'ghost',
-            reason: 'the adopted row keeps its id; the minted one is discarded',
-          );
+        final resolution = session.records.single.authorResolutions.single;
+        expect(
+          resolution.choreographerId,
+          'ghost',
+          reason: 'the adopted row keeps its id; the minted one is discarded',
+        );
 
-          // Undo must not offer to hard-delete a record it did not create. The
-          // row predates this import — the user had merely deleted it — so
-          // erasing it on undo would destroy something still restorable.
-          expect(
-            session.createdChoreographerIds,
-            isEmpty,
-            reason: 'adopting an existing tombstone is not a creation',
-          );
-          expect(resolution.created, isFalse);
-        },
-      );
+        // Undo must not offer to hard-delete a record it did not create. The
+        // row predates this import — the user had merely deleted it — so
+        // erasing it on undo would destroy something still restorable.
+        expect(
+          session.createdChoreographerIds,
+          isEmpty,
+          reason: 'adopting an existing tombstone is not a creation',
+        );
+        expect(resolution.created, isFalse);
+      });
 
       test('matches case- and whitespace-insensitively', () async {
         await choreographers.upsert(

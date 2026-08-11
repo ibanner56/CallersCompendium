@@ -367,10 +367,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     // still mounted (the create flow awaits this from the picker).
     if (mounted) {
       _choreographers = [..._choreographers, choreographer];
-      _choreographerNames = {
-        ..._choreographerNames,
-        id: name.trim(),
-      };
+      _choreographerNames = {..._choreographerNames, id: name.trim()};
     }
     return id;
   }

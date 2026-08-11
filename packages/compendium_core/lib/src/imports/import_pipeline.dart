@@ -732,7 +732,11 @@ class ImportPipeline {
       // destroy a record the user had merely deleted and could still restore.
       if (id == mintedId) createdChoreographerIds.add(id);
       resolutions.add(
-        AuthorResolution(name: name, choreographerId: id, created: id == mintedId),
+        AuthorResolution(
+          name: name,
+          choreographerId: id,
+          created: id == mintedId,
+        ),
       );
     }
     return resolutions;
