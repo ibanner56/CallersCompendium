@@ -1099,6 +1099,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get commonCancel => 'Annuler';
 
   @override
+  String get commonContinue => 'Continuer';
+
+  @override
   String get commonUndo => 'Annuler';
 
   @override
@@ -3247,9 +3250,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get exportVenueContactBody =>
       'Ce sont des coordonnées personnelles du lieu. Elles sont exclues de cet export à moins que vous ne choisissiez de les inclure.';
-
-  @override
-  String get exportVenueContactConfirm => 'Continuer';
 
   @override
   String get exportVenueContact1Name => 'Nom du contact 1';

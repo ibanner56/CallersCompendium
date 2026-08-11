@@ -1212,6 +1212,10 @@
   "@commonCancel": {
     "x-sourceSha256": "19766ed6ccb2f4a32778eed80d1928d2c87a18d7c275ccb163ec6709d3eb2e27"
   },
+  "commonContinue": "Continuer",
+  "@commonContinue": {
+    "x-sourceSha256": "31fbef162594de01bab0cd525c51f74de7bcb15063029fa1a54b2cf5944c80d8"
+  },
   "commonUndo": "Annuler",
   "@commonUndo": {
     "x-sourceSha256": "a8283ade31856f71220db0e6f60a257c6889dc4dad0f275f66ad44b9ed9bf8d5"
@@ -3331,10 +3335,6 @@
   "exportVenueContactBody": "Ce sont des coordonnées personnelles du lieu. Elles sont exclues de cet export à moins que vous ne choisissiez de les inclure.",
   "@exportVenueContactBody": {
     "x-sourceSha256": "c5e642561797d2dea88d0359e93645030d13de6b4695d5233e7123f862eca066"
-  },
-  "exportVenueContactConfirm": "Continuer",
-  "@exportVenueContactConfirm": {
-    "x-sourceSha256": "31fbef162594de01bab0cd525c51f74de7bcb15063029fa1a54b2cf5944c80d8"
   },
   "exportVenueContact1Name": "Nom du contact 1",
   "@exportVenueContact1Name": {

@@ -1083,6 +1083,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get commonCancel => 'Annuller';
 
   @override
+  String get commonContinue => 'Fortsæt';
+
+  @override
   String get commonUndo => 'Fortryd';
 
   @override
@@ -3210,9 +3213,6 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get exportVenueContactBody =>
       'Dette er personlige kontaktoplysninger for spillestedet. De udelades fra denne eksport, medmindre du bekræfter nedenfor.';
-
-  @override
-  String get exportVenueContactConfirm => 'Fortsæt';
 
   @override
   String get exportVenueContact1Name => 'Kontaktperson 1 navn';
