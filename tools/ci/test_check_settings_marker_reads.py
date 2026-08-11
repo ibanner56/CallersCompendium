@@ -363,17 +363,16 @@ def test_non_compliant_reads() -> None:
     )
 
     check(
-        "no-trailing-space split passes ratchet (filter present; SQL spacing is caller's concern)",
+        "no-trailing-space split is flagged (?AND has no preceding space — invalid SQL)",
         _violation_count(
             "final r = db.customSelect(\n"
             "  'SELECT 1 FROM settings WHERE key = ?'\n"
             "  'AND deleted_at IS NULL',\n"
             ").get();\n"
-        ) == 0,
-        "joining with empty string produces '?AND deleted_at IS NULL'; "
-        "\\bAND\\b matches after '?' (non-word char) so the filter IS found. "
-        "The SQL is invalid at runtime (missing space) but that is a distinct "
-        "concern from filter presence; the ratchet correctly passes it.",
+        ) == 1,
+        "empty-string join produces '...key = ?AND deleted_at IS NULL'; "
+        "the filter regex requires \\s+AND so ?AND does not match. "
+        "This SQL is also invalid at runtime (SQLite parse error) so flagging is correct.",
     )
 
 

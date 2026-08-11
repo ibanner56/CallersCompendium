@@ -90,7 +90,7 @@ _SELECT_FROM_SETTINGS_RE = re.compile(
 )
 
 _DELETED_AT_FILTER_RE = re.compile(
-    r"\bdeleted_at\s+IS\s+NULL\b",
+    r"\s+AND\s+deleted_at\s+IS\s+NULL\b",
     re.IGNORECASE,
 )
 
