@@ -52,6 +52,7 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _circulate,
     _squareThroughPassList,
     _balanceHandAnnotation,
+    _balancePairHandAnnotation,
     _gateAnnotation,
     _courtesyTurnAnnotation,
     _walkForwardAnnotation,
@@ -70,6 +71,13 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     // Non-decodable places fractions are handled by [_declineSingleFileCircle]
     // BEFORE this recognizer fires, so they never reach _promenadeAnnotation.
     _singleFileCircleRecognizer,
+    // Per-role choreography annotations (#744): synthesise before the general
+    // prose pass so `W roll R, M side-step L` becomes canonical role tokens
+    // rather than verbatim gendered shorthand.
+    _perRoleChoreoAnnotation,
+    // General prose annotations (#744): shape-gated verbatim preserve for any
+    // structured figure with lowercase-containing annotations.
+    _proseAnnotation,
     // LAST, deliberately: the general `;`-run consume (#843) claims whatever
     // the bespoke decoders above left behind, so none of them loses a line.
     _sideRunAnnotation,
@@ -1376,6 +1384,237 @@ int? _parsePlaces(String raw) {
   // rounded or fabricated."
   return const {'½': 2, '¾': 3, '¼': 1, '1½': 6, '1¼': 5, '1¾': 7}[trimmed];
 }
+
+// --- Balance role-hand pair annotation (#744) ---------------------------------
+
+/// Synthesises a note from TCB's paired-hand balance annotation —
+/// `(MRH,WLH)` or `(MLH,WRH)` — recording which set holds which hand in
+/// a balanced wave. [_stripAnnotations] drops the parenthetical for
+/// recognition; this pre-recognizer preserves it as a canonical note so the
+/// handedness survives structuring and renders in the reader's dialect.
+///
+/// **Pattern.** Each cell is `<people-code><hand-letter>H`
+/// (e.g. `MRH` = role1s by the right, `WLH` = role2s by the left). Two cells
+/// joined by a comma, inside one pair of parens. Each cell is decoded through
+/// [tcbPassPeople] (same map the hey and star-promenade decoders use),
+/// producing canonical `role1s`/`role2s` tokens that [renderFreeText] maps to
+/// the reader's active dialect.
+///
+/// **Note template:** `'$who by the $hand'` per cell, joined `', '` —
+/// e.g. `MRH,WLH` → `role1s by the right, role2s by the left`. The
+/// wave formation is deliberately NOT stated: the source annotates handedness
+/// only and asserting a formation would fabricate.
+///
+/// Fires only when (a) the line has a `balance` anchor, (b) it carries a
+/// comma-joined two-cell H-annotation, AND (c) the annotation-stripped text
+/// resolves to the `balance` move.
+FigureMatch? _balancePairHandAnnotation(String scrubbed) {
+  if (!_balanceAnchor.hasMatch(scrubbed)) return null;
+  final pairMatch = _balancePairHandRe.firstMatch(scrubbed);
+  if (pairMatch == null) return null;
+
+  // Each cell: people_code + hand_letter + 'h' (case-folded below).
+  final cell1 = pairMatch.group(1)!.toLowerCase(); // e.g. 'mrh'
+  final cell2 = pairMatch.group(2)!.toLowerCase(); // e.g. 'wlh'
+  if (!cell1.endsWith('h') || !cell2.endsWith('h')) return null;
+
+  // Strip the trailing 'h'; last remaining char is the hand letter (r/l).
+  final ph1 = cell1.substring(0, cell1.length - 1); // e.g. 'mr'
+  final ph2 = cell2.substring(0, cell2.length - 1); // e.g. 'wl'
+  // Require at least two chars so bare 'r'/'l' (single-hand codes already
+  // handled by [_balanceHandAnnotation]) are excluded.
+  if (ph1.length < 2 || ph2.length < 2) return null;
+
+  final handChar1 = ph1[ph1.length - 1];
+  final handChar2 = ph2[ph2.length - 1];
+  if ((handChar1 != 'r' && handChar1 != 'l') ||
+      (handChar2 != 'r' && handChar2 != 'l')) {
+    return null;
+  }
+
+  final who1 = tcbPassPeople[ph1.substring(0, ph1.length - 1)];
+  final who2 = tcbPassPeople[ph2.substring(0, ph2.length - 1)];
+  if (who1 == null || who2 == null) return null;
+
+  final hand1 = handChar1 == 'r' ? 'right' : 'left';
+  final hand2 = handChar2 == 'r' ? 'right' : 'left';
+
+  // Strip the pair annotation and confirm the base resolves to `balance`.
+  final stripped = scrubbed.replaceFirst(pairMatch.group(0)!, ' ').trim();
+  final match = recognizeSharedFigureLine(
+    stripped,
+    recognitionNormalize: _stripAnnotations,
+  );
+  if (match == null || match.moveId != 'balance') return null;
+
+  return _withAnnotationNote(
+    match,
+    '$who1 by the $hand1, $who2 by the $hand2',
+  );
+}
+
+/// Matches a two-cell comma-joined hand annotation: each cell is 1–4
+/// alphanumeric characters ending in `H`. The `{1,4}` bound is an OWASP
+/// import-hygiene cap (a longer cell does not match and the line takes the
+/// normal path). Case-insensitive.
+final RegExp _balancePairHandRe = RegExp(
+  r'\(\s*([A-Za-z0-9]{1,4}h)\s*,\s*([A-Za-z0-9]{1,4}h)\s*\)',
+  caseSensitive: false,
+);
+
+// --- Per-role choreography annotation (#744) ----------------------------------
+
+/// Synthesises a note from TCB's per-role choreography annotation —
+/// `(W roll R, M side-step L)`, `(W roll L, M side-step R)`, etc. — which
+/// records which dancer set performs which action in a roll-away figure.
+/// [_stripAnnotations] drops it for recognition; this pre-recognizer
+/// preserves it as a canonical note with role tokens so it renders in the
+/// reader's dialect rather than freezing as gendered shorthand.
+///
+/// **Pattern.** Two comma-separated clauses, each: an uppercase role letter
+/// (`W` or `M`), an optional digit, a lowercase action phrase (`roll`,
+/// `side-step`, `step aside`), and an optional uppercase direction (`R`/`L`).
+/// The role letter is decoded through [tcbPassPeople] (`w`→`role2s`,
+/// `m`→`role1s`); direction `R`/`L` maps to `right`/`left`; the action
+/// phrase is preserved verbatim.
+///
+/// No move anchor is required — the annotation pattern is specific enough
+/// that false positives are essentially zero, and the 796 corpus instances
+/// span a small number of moves.
+///
+/// Fires when (a) at least one annotation matches the two-clause pattern AND
+/// (b) the annotation-stripped text resolves to any structured move. Prose
+/// annotations on the same line are preserved verbatim alongside the
+/// synthesised note; all-uppercase/code-like annotations are skipped by the
+/// shape rule (see [_proseAnnotation]).
+FigureMatch? _perRoleChoreoAnnotation(String scrubbed) {
+  final annotations = _annotations(scrubbed);
+  if (annotations.isEmpty) return null;
+
+  var hasSynthesized = false;
+  final notes = <String>[];
+
+  for (final body in annotations) {
+    final synthesized = _synthesizePerRoleChoreo(body);
+    if (synthesized != null) {
+      hasSynthesized = true;
+      notes.add(synthesized);
+    } else if (_annotationBodyHasLowercase(body)) {
+      notes.add(body); // prose annotation: preserve verbatim
+    }
+    // All-uppercase / code-like: shape rule skips.
+  }
+
+  if (!hasSynthesized) return null;
+
+  final match = recognizeSharedFigureLine(
+    scrubbed,
+    recognitionNormalize: _stripAnnotations,
+  );
+  if (match == null) return null;
+
+  return _withAnnotationNote(match, _joinAnnotations(notes));
+}
+
+/// Parses a two-clause per-role choreography body and returns the canonical
+/// note, or `null` when the body does not match the pattern.
+String? _synthesizePerRoleChoreo(String body) {
+  final commaIdx = body.indexOf(',');
+  if (commaIdx < 0) return null;
+  final clause1 = _parsePerRoleClause(body.substring(0, commaIdx));
+  final clause2 = _parsePerRoleClause(body.substring(commaIdx + 1));
+  if (clause1 == null || clause2 == null) return null;
+  return '${clause1.render()}, ${clause2.render()}';
+}
+
+/// Parses a single per-role clause: `[WM]\d? <action> [RL]?`.
+_PerRoleClause? _parsePerRoleClause(String clause) {
+  clause = clause.trim();
+  final m = _perRoleClauseRe.firstMatch(clause);
+  if (m == null) return null;
+  final who = tcbPassPeople[(m.group(1)! + (m.group(2) ?? '')).toLowerCase()];
+  if (who == null) return null;
+
+  var rest = m.group(3)!.trim();
+  if (rest.isEmpty) return null;
+
+  // Strip optional uppercase direction from the end.
+  String? dir;
+  if (rest.length >= 3 && rest[rest.length - 2] == ' ') {
+    final last = rest[rest.length - 1];
+    if (last == 'R') {
+      dir = 'right';
+      rest = rest.substring(0, rest.length - 2).trim();
+    } else if (last == 'L') {
+      dir = 'left';
+      rest = rest.substring(0, rest.length - 2).trim();
+    }
+  }
+
+  if (rest.isEmpty) return null;
+  // Action must start with a lowercase letter (excludes all-caps codes).
+  final firstCode = rest.codeUnitAt(0);
+  if (firstCode < 97 || firstCode > 122) return null; // 'a'..'z'
+
+  return _PerRoleClause(who: who, action: rest, dir: dir);
+}
+
+class _PerRoleClause {
+  const _PerRoleClause({required this.who, required this.action, this.dir});
+  final String who;
+  final String action;
+  final String? dir;
+
+  String render() => dir == null ? '$who $action' : '$who $action $dir';
+}
+
+/// Matches `[WM]` (optional digit) followed by the rest of the clause.
+final RegExp _perRoleClauseRe = RegExp(r'^([WM])(\d?)\s+(.+)$');
+
+// --- General prose annotation preservation (#744) ----------------------------
+
+/// Preserves TCB `(prose)` annotations as notes on structured figures
+/// (#744 prose remainder). Fires for any structured figure that carries at
+/// least one annotation whose body contains a lowercase ASCII letter.
+///
+/// **Shape rule.** Shorthand is all-uppercase / code-like (`OR;PL`, `SRNR`);
+/// prose has lowercase words (`in center`, `along the set`). The rule has
+/// been measured over the full #744 corpus (4,318 dropped annotations):
+///   - **0 false-preserves**: no shorthand annotation carries a lowercase
+///     letter, so the rule never preserves code-like annotations as prose.
+///   - **132 false-skips**: annotations in the census catch-all (`free_prose`)
+///     that the rule skips — `2H`, `R`, `L`, `M1+W2 3/4, W1+M2 1 & 1/4` —
+///     are all uppercase/numeric shorthand. The shape rule is MORE accurate
+///     than the census catch-all for these 132 cases: they should be skipped.
+///
+/// Annotations that are handled by more specific pre-recognizers (balance
+/// hand, star-promenade center, per-role choreo) never reach this path
+/// because those pre-recognizers fire first and claim the whole line.
+///
+/// Returns null (→ the normal path) unless (a) at least one annotation passes
+/// the shape rule AND (b) the annotation-stripped text resolves to any
+/// structured move.
+FigureMatch? _proseAnnotation(String scrubbed) {
+  final annotations = _annotations(scrubbed);
+  final prose = annotations.where(_annotationBodyHasLowercase).toList();
+  if (prose.isEmpty) return null;
+
+  final match = recognizeSharedFigureLine(
+    scrubbed,
+    recognitionNormalize: _stripAnnotations,
+  );
+  if (match == null) return null;
+
+  return _withAnnotationNote(match, _joinAnnotations(prose));
+}
+
+/// True iff [body] contains at least one lowercase ASCII letter (`a`–`z`).
+/// Used as the shape-rule discriminant: prose has lowercase words; shorthand
+/// is all-uppercase / code-like.
+bool _annotationBodyHasLowercase(String body) =>
+    body.codeUnits.any((c) => c >= 97 && c <= 122); // 'a'..'z'
+
+// --- `;`-run handedness / dancer consume (#843 Parts B and C) ----------------
 
 /// Consumes TCB's `;`-run shorthand — `(ML)`, `(NR;PL)`, `(WR;PL;MR;N2L~)` —
 /// into the resolved move's OWN slots, instead of letting [_stripAnnotations]
