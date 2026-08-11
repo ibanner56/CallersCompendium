@@ -140,17 +140,26 @@ class ArchiveRestorer {
   /// perform natural-key adoption: if a local tombstone holds the same UNIQUE
   /// name/key as the incoming entity, the upsert revives that tombstone under
   /// its *existing* id and returns that id rather than the archived one. The
-  /// maps built here (`_choreoRemap`, `_tagRemap`, `_fieldRemap`) capture those
+  /// maps built here (`choreoRemap`, `tagRemap`, `fieldRemap`) capture those
   /// remapped ids and [_applyRemap] applies them to each dance before the dance
   /// is inserted, so a dance's `authorIds`, `tagIds`, and `customFieldValue`
   /// field ids all point at the ids that actually exist in the database.
   ///
   /// If an upsert fails (its id never enters the remap map), any dance that
-  /// references the failed entity is allowed to fail its own `_guard` — the
-  /// dance's create call will receive the un-remapped archived id, which either
-  /// causes a foreign-key violation at commit or (for custom fields) a "unknown
-  /// field" error at write time. Either outcome is correct: a partial restore
-  /// is better than silently persisting a dangling reference.
+  /// references the failed entity receives the un-remapped archived id. The
+  /// blast radius differs by reference kind:
+  /// - **`authorIds` / `tagIds`** — `dance_authors` and `dance_tags` carry
+  ///   real foreign keys. With `PRAGMA defer_foreign_keys = ON` those checks
+  ///   are deferred to commit time, so the dance insert succeeds and `_guard`
+  ///   records nothing, but the transaction commit fails and the entire restore
+  ///   is rolled back.
+  /// - **`customFields` field ids** — validated inside `DanceRepository` at
+  ///   write time as "unknown custom field", which surfaces as an Exception,
+  ///   caught by `_guard`. Only that dance is recorded as an error; the rest of
+  ///   the restore continues (in merge mode) or aborts (in replace mode).
+  ///
+  /// Both outcomes are correct: a dangling reference is never silently
+  /// persisted.
   Future<void> _load(
     CompendiumArchive archive,
     List<ArchiveError> errors,
