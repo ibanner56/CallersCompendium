@@ -13,6 +13,26 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Changed
 
+- **Imported figures now keep the hand and dancers The Caller's Box wrote in
+  shorthand.** TCB notes handedness and who you're dancing with in a compact
+  code beside the figure — the `(NR)` in "Pass through along (NR)", or the
+  `(SR;NL)` in "Square through 2 (SR;NL)". That code used to be thrown away on
+  import, and the app filled in a default instead — which was sometimes the
+  opposite of what the dance actually said. 2,504 imported figures now carry
+  what the source stated. 116 of them were previously stored with the wrong
+  hand or shoulder and are now right.
+
+  Where the code names dancers the app can represent, they're kept too, so a
+  square through records which dancers you pass on each hand rather than
+  assuming. Where it names something the app has no way to express — an
+  "opposite", a phantom, or a same-role neighbour — the figure is left alone
+  rather than guessed at.
+
+  One thing to expect: re-importing a dance you imported before this change may
+  now offer it as a variation, because those 116 figures genuinely describe
+  different choreography from what was stored. That's the app noticing a real
+  difference, not a false alarm.
+
 - **Star promenades no longer claim a hand.** A star promenade used to display
   as "Neighbor star promenade right ½" — but that "right" describes the two
   dancers holding hands in the *centre*, not your connection with the neighbour

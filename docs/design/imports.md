@@ -838,6 +838,41 @@ reachable.
   could not while the walk line was custom — 4 dances change which figure that
   balance attaches to (see "Balance-a-wave lines" below). Beat totals are
   unaffected.
+  **The general `;`-run consume (#843 Parts B and C, NO taxonomy change):** TCB
+  writes handedness and dancer identity in a `;`-separated run of
+  `<people-code><R|L>` cells — `(NR)`, `(NR;PL)`, `(SR;NL)`. Four decoders
+  already consumed it for the moves that LOWER it onto a bespoke structure (the
+  hey's pass/ricochet slots, grand-right-and-left's one figure per pass, square
+  through's pass list, the balance-a-wave annotation). Everywhere else
+  `_stripAnnotations` dropped it and the taxonomy filled a default — which on
+  **116** corpus figures was the OPPOSITE of what the source said.
+  `_sideRunAnnotation` closes that, consuming **2,504** previously-dropped runs
+  (`pass_through` 2,136, `square_through` 159, `cross_trails` 98,
+  `pass_through + turn_alone` 88, plus a short tail across seven more keys).
+  It runs LAST, so no existing decoder loses a line.
+  *The slot is found by `ParamKind`, not by name.* Of the twenty moves with a
+  side slot, seven name it `shoulder` and two `centerHand`, so the name check
+  #870 used would miss nine of them.
+  *Values are written even when they equal the default* (owner ruling): the
+  decode either fires or it does not, and storing what the source SAID rather
+  than what we assumed means the value survives a future change of default. This
+  is byte-identical at both identity layers, so the 2,388 same-value cases raise
+  no #686 "Variation?" prompt; the 116 inverse cases do, correctly.
+  *Dancer identity* fills `who`/`who2` where declared — odd 1-based positions
+  name `who`, even name `who2`. `pass_through` declares no `who`, so its dancer
+  code is dropped; preserving it as a note would add one to ~2,048 figures
+  across 1,773 dances, and the owner ruled to drop it.
+  *Declines (→ the ordinary annotation-stripped reading):* any unmapped people
+  code (`O`, `Ph`, `SRN`, `C1`–`C3`, out-of-range neighbours/shadows); a run
+  whose sides do not alternate by position parity; a run stating more passes
+  than the move models — a `square_through` cell count that disagrees with
+  `places` (which is #799's ruling, and this decoder must not undo it by the
+  side door), a `cross_trails` run past two cells, or any multi-cell run on a
+  single-pass move; and a non-periodic `square_through` 4-list. A run
+  CONTRADICTING a prose-stated side falls through with the PROSE value intact
+  rather than declining to custom — forcing custom would regress a line that
+  structures today.
+
   **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
   centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on
   **all 626** of the corpus lines that import as `star_promenade` (measured

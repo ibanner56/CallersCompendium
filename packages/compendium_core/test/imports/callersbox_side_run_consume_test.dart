@@ -51,7 +51,7 @@ Future<List<Figure>> _importTcb(List<String> lines) async {
   );
   final discovered = await adapter.discover(ImportRequest(payload: payload));
   final raw = await adapter.fetch(discovered.single);
-  return (await adapter.parse(raw)).dance.figures;
+  return adapter.parse(raw).dance.figures;
 }
 
 Future<Figure> _importTcbLine(String line) async =>
@@ -283,13 +283,30 @@ void main() {
       expect(f.params['hand'], 'left');
     });
 
-    // Mutation caught: skipping `_boundedPassListCells`. Imported text is
-    // untrusted; the cap must run before the split allocates.
-    test('a hostile over-long run is bounded, not decoded', () async {
-      final hostile = List.filled(400, 'NR').join(';');
-      final f = await _importTcbLine('(2) Pass through along ($hostile)');
-      expect(f.params.containsKey('shoulder'), isFalse);
-    });
+    // **This test pins the OUTCOME, not the bound — stated plainly because the
+    // two look the same and only one of them is actually guarded here.**
+    //
+    // Removing `_boundedPassListCells` was tried as a mutation and this stayed
+    // GREEN. It has to: a hostile run is rejected several layers earlier, by
+    // the alternation check and then by the shape rule (`pass_through` models
+    // one pass, so anything past one cell declines). There is no input that
+    // decodes successfully at 400 cells but not at 12, because every move's
+    // shape rule already caps the accepted count at 10 or fewer.
+    //
+    // What the shared bound actually buys is that the oversized list is never
+    // ALLOCATED — an O(1) length check ahead of `String.split` — and allocation
+    // is not observable from a behavioural test. The bound is kept because
+    // every other pass-list decoder in this file shares it and a new path that
+    // quietly skipped it would be the start of the drift OWASP-wise, not
+    // because this test proves anything about it.
+    test(
+      'a hostile over-long run is rejected (outcome, not the bound)',
+      () async {
+        final hostile = List.filled(400, 'NR').join(';');
+        final f = await _importTcbLine('(2) Pass through along ($hostile)');
+        expect(f.params.containsKey('shoulder'), isFalse);
+      },
+    );
 
     test('a second parenthetical declines rather than guessing', () async {
       final f = await _importTcbLine('(2) Pass through along (NR) (optional)');
