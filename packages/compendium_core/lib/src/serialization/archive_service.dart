@@ -1,3 +1,5 @@
+import '../model/custom_field.dart';
+import '../model/dance.dart';
 import '../model/program.dart';
 import '../storage/repositories/repositories.dart';
 import 'compendium_archive.dart';
@@ -133,52 +135,72 @@ class ArchiveRestorer {
   /// dance references (published sources, choreographers, tags, custom-field
   /// defs) first, then dances, then venues, then programs (whose slots
   /// reference dances and whose `venueId` references a venue).
+  ///
+  /// Choreographers, tags, and custom-field defs are upserted via methods that
+  /// perform natural-key adoption: if a local tombstone holds the same UNIQUE
+  /// name/key as the incoming entity, the upsert revives that tombstone under
+  /// its *existing* id and returns that id rather than the archived one. The
+  /// maps built here (`choreoRemap`, `tagRemap`, `fieldRemap`) capture those
+  /// remapped ids and [_applyRemap] applies them to each dance before the dance
+  /// is inserted, so a dance's `authorIds`, `tagIds`, and `customFieldValue`
+  /// field ids all point at the ids that actually exist in the database.
+  ///
+  /// If an upsert fails (its id never enters the remap map), any dance that
+  /// references the failed entity receives the un-remapped archived id. The
+  /// blast radius differs by reference kind:
+  /// - **`authorIds` / `tagIds`** — `dance_authors` and `dance_tags` carry
+  ///   real foreign keys. With `PRAGMA defer_foreign_keys = ON` those checks
+  ///   are deferred to commit time, so the dance insert succeeds and `_guard`
+  ///   records nothing, but the transaction commit fails and the entire restore
+  ///   is rolled back.
+  /// - **`customFields` field ids** — validated inside `DanceRepository` at
+  ///   write time as "unknown custom field", which surfaces as an Exception,
+  ///   caught by `_guard`. Only that dance is recorded as an error; the rest of
+  ///   the restore continues (in merge mode) or aborts (in replace mode).
+  ///
+  /// Both outcomes are correct: a dangling reference is never silently
+  /// persisted.
   Future<void> _load(
     CompendiumArchive archive,
     List<ArchiveError> errors,
   ) async {
+    // archiveId -> writtenId for the three entity kinds that dance references.
+    // An entry is only added on success; a failed upsert leaves no entry.
+    final choreoRemap = <String, String>{};
+    final tagRemap = <String, String>{};
+    final fieldRemap = <String, String>{};
+
     for (final s in archive.publishedSources) {
       await _guard('publishedSource', s.id, errors, () async {
+        // publishedSources.upsert returns Future<void> — it contains no
+        // adoptTombstonedNaturalKey calls, so its id can never change. No
+        // remap needed; the discard is structural, not an oversight.
         await _repos.publishedSources.upsert(s);
       });
     }
     for (final c in archive.choreographers) {
       await _guard('choreographer', c.id, errors, () async {
-        // Safe discard in replace mode, which is the only mode any caller
-        // reaches with existing data: _clearAll() runs first and hard-deletes
-        // choreographers/tags/customFieldDefs, so no tombstone survives to be
-        // adopted and the returned id always equals c.id.
-        //
-        // Merge mode does NOT clear, so tombstones can survive it. That is
-        // currently unreachable here — the only merge-mode caller (SeedService)
-        // runs on an empty database — but that is a property of that caller,
-        // not of this path. BackupService.restoreFromJson accepts a mode
-        // parameter that would reach here. Tracked as #906, which covers
-        // id-remapping for restore; a merge-mode restore with tombstones
-        // present could adopt ids silently until then.
-        // ignore: unused_result
-        await _repos.choreographers.upsert(c);
+        final writtenId = await _repos.choreographers.upsert(c);
+        choreoRemap[c.id] = writtenId;
       });
     }
     for (final t in archive.tags) {
       await _guard('tag', t.id, errors, () async {
-        // Safe discard: same reasoning as choreographers above — replace mode
-        // guarantees no tombstones; merge mode is latent (see #906).
-        // ignore: unused_result
-        await _repos.tags.upsert(t);
+        final writtenId = await _repos.tags.upsert(t);
+        tagRemap[t.id] = writtenId;
       });
     }
     for (final f in archive.customFields) {
       await _guard('customField', f.id, errors, () async {
-        // Safe discard: same reasoning as choreographers above — replace mode
-        // guarantees no tombstones; merge mode is latent (see #906).
-        // ignore: unused_result
-        await _repos.customFieldDefs.upsert(f);
+        final writtenId = await _repos.customFieldDefs.upsert(f);
+        fieldRemap[f.id] = writtenId;
       });
     }
     for (final d in archive.dances) {
       await _guard('dance', d.id, errors, () async {
-        await _repos.dances.create(d);
+        await _repos.dances.create(
+          _applyRemap(d, choreoRemap, tagRemap, fieldRemap),
+        );
       });
     }
     // Venues before programs: a program's `venueId` soft-references a venue, so
@@ -204,6 +226,41 @@ class ArchiveRestorer {
         );
       });
     }
+  }
+
+  /// Remaps a dance's entity references from archived ids to the ids that were
+  /// actually written by the upserts.
+  ///
+  /// When natural-key adoption occurs (a tombstoned choreographer/tag/field def
+  /// already holds the incoming entity's UNIQUE name/key), the upsert revives
+  /// the tombstoned row under its existing id and returns that id. The archived
+  /// id referenced by the dance would then dangle. This method substitutes the
+  /// written id wherever the archived id appears, for all three reference kinds:
+  /// [Dance.authorIds], [Dance.tagIds], and [Dance.customFields] field ids.
+  ///
+  /// A reference whose archived id is absent from the map (because its upsert
+  /// failed and was recorded by [_guard]) is left as-is; the subsequent
+  /// [DanceRepository.create] call will surface the dangling reference as its
+  /// own [_guard]-caught error.
+  Dance _applyRemap(
+    Dance d,
+    Map<String, String> choreoRemap,
+    Map<String, String> tagRemap,
+    Map<String, String> fieldRemap,
+  ) {
+    if (choreoRemap.isEmpty && tagRemap.isEmpty && fieldRemap.isEmpty) return d;
+    return d.copyWith(
+      authorIds: d.authorIds.map((id) => choreoRemap[id] ?? id).toList(),
+      tagIds: d.tagIds.map((id) => tagRemap[id] ?? id).toList(),
+      customFields: d.customFields
+          .map(
+            (v) => CustomFieldValue(
+              fieldId: fieldRemap[v.fieldId] ?? v.fieldId,
+              value: v.value,
+            ),
+          )
+          .toList(),
+    );
   }
 
   /// Guards against a **dangling** `venueId` from an untrusted bundle: if the
