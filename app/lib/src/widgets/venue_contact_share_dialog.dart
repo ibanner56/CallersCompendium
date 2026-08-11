@@ -108,7 +108,7 @@ class _VenueContactShareDialogState extends State<VenueContactShareDialog> {
         FilledButton(
           key: const ValueKey('venue-contact-share-confirm'),
           onPressed: () => Navigator.of(context).pop({..._checked}),
-          child: Text(l10n.exportVenueContactConfirm),
+          child: Text(l10n.commonContinue),
         ),
       ],
     );

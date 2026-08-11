@@ -1084,6 +1084,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get commonCancel => 'Annuleren';
 
   @override
+  String get commonContinue => 'Doorgaan';
+
+  @override
   String get commonUndo => 'Ongedaan maken';
 
   @override
@@ -3222,9 +3225,6 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get exportVenueContactBody =>
       'Dit zijn persoonlijke contactgegevens van de locatie. Ze worden weggelaten uit deze export tenzij je kiest ze op te nemen.';
-
-  @override
-  String get exportVenueContactConfirm => 'Doorgaan';
 
   @override
   String get exportVenueContact1Name => 'Contactpersoon 1 naam';

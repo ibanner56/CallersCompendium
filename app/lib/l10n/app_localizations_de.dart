@@ -1095,6 +1095,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get commonCancel => 'Abbrechen';
 
   @override
+  String get commonContinue => 'Weiter';
+
+  @override
   String get commonUndo => 'Rückgängig';
 
   @override
@@ -3239,9 +3242,6 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get exportVenueContactBody =>
       'Dies sind persönliche Kontaktdaten des Veranstaltungsortes. Sie werden aus diesem Export ausgelassen, es sei denn, Sie entscheiden sich, sie einzuschließen.';
-
-  @override
-  String get exportVenueContactConfirm => 'Weiter';
 
   @override
   String get exportVenueContact1Name => 'Kontaktperson 1 Name';

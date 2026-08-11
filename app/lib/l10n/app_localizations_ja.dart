@@ -1050,6 +1050,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonCancel => 'キャンセル';
 
   @override
+  String get commonContinue => '続ける';
+
+  @override
   String get commonUndo => '元に戻す';
 
   @override
@@ -3120,9 +3123,6 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get exportVenueContactBody =>
       '会場の個人的な連絡先情報です。含めることを選択しない限り、このエクスポートには含まれません。';
-
-  @override
-  String get exportVenueContactConfirm => '続ける';
 
   @override
   String get exportVenueContact1Name => '連絡先1 名前';

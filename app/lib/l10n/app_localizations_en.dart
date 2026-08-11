@@ -1075,6 +1075,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonCancel => 'Cancel';
 
   @override
+  String get commonContinue => 'Continue';
+
+  @override
   String get commonUndo => 'Undo';
 
   @override
@@ -3204,9 +3207,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exportVenueContactBody =>
       'These are personal contact details for the venue. They\'re left out of this export unless you choose to include them.';
-
-  @override
-  String get exportVenueContactConfirm => 'Continue';
 
   @override
   String get exportVenueContact1Name => 'Contact 1 name';

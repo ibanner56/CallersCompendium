@@ -1928,6 +1928,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get commonCancel;
 
+  /// Generic confirm button that proceeds with the current action. Used wherever a dialog needs a neutral forward-motion label that is not specific to any one workflow.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get commonContinue;
+
   /// Snackbar action that reverses the action just performed (delete, batch tag/level change).
   ///
   /// In en, this message translates to:
@@ -5137,12 +5143,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'These are personal contact details for the venue. They\'re left out of this export unless you choose to include them.'**
   String get exportVenueContactBody;
-
-  /// Confirm button on the venue contact consent dialog; proceeds with the share or PDF export, including only the checked contact fields.
-  ///
-  /// In en, this message translates to:
-  /// **'Continue'**
-  String get exportVenueContactConfirm;
 
   /// Checkbox label for the primary venue contact's name in the export consent dialog.
   ///

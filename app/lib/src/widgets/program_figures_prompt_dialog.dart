@@ -78,7 +78,7 @@ class _ProgramFiguresPromptDialogState
         FilledButton(
           key: const ValueKey('program-figures-prompt-confirm'),
           onPressed: () => Navigator.of(context).pop(_includeFigures),
-          child: Text(l10n.exportVenueContactConfirm),
+          child: Text(l10n.commonContinue),
         ),
       ],
     );
