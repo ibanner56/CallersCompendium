@@ -310,15 +310,24 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     if (mounted && _collectionRefresh == null) _reload();
   }
 
-  /// Opens another dance's detail from an auto cross-reference link in the
-  /// hook / calling notes. Mirrors the `relatedDance` link navigation so the
-  /// two kinds of dance-to-dance links behave identically.
-  void _openDance(String danceId) {
-    Navigator.of(context).push(
+  /// Opens another dance's detail — from an auto cross-reference link in the
+  /// hook / calling notes, or from a `relatedDance` link row. Both route here
+  /// so the two kinds of dance-to-dance link behave identically *and* so the
+  /// await/reload contract exists in one place rather than two copies that can
+  /// drift (issue #768).
+  ///
+  /// Awaited because the pushed screen can edit, duplicate or delete the dance
+  /// it shows, and this screen renders that dance's title in its cross-
+  /// reference and related-link rows. The editor broadcasts on save, so the
+  /// reload normally arrives through this screen's subscription; the direct
+  /// reload is the fallback for focused widget tests that mount no scope.
+  Future<void> _openDance(String danceId) async {
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => DanceDetailScreen(danceId: danceId),
       ),
     );
+    if (mounted && _collectionRefresh == null) _reload();
   }
 
   /// Duplicates the dance, appends " (copy)" to the copy's title (since
@@ -919,16 +928,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                   ? (detail.relatedDanceTitles[link.targetDanceId ?? ''] ??
                         l10n.danceMissingRelated)
                   : null,
+              // Routed through [_openDance] rather than pushing inline: this
+              // was a second, un-awaited copy of the same navigation, so a
+              // dance renamed on the pushed screen left this row showing the
+              // old title (issue #768).
               onTap:
                   link.kind == LinkKind.relatedDance &&
                       link.targetDanceId != null &&
                       detail.relatedDanceTitles.containsKey(link.targetDanceId)
-                  ? () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            DanceDetailScreen(danceId: link.targetDanceId!),
-                      ),
-                    )
+                  ? () => _openDance(link.targetDanceId!)
                   : null,
             ),
         ],

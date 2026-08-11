@@ -258,7 +258,9 @@ each release so store builds and tags can be traced back to an entry.
   and a program arriving through a shared `.ccshare` file did not appear in the
   Programs list at all until the app was relaunched. Every one of those writes
   now tells the views that render the data to refresh, and each view refreshes
-  once per change rather than once per edited dance (#768, #851).
+  once per change rather than once per edited dance. Opening a dance from a
+  **related dance** link and renaming it there also updates the link you came
+  from, instead of leaving the old title behind (#768, #851).
 
 - **Skipping every dance in a shared import no longer disables Import when the
   bundle carries a program.** Previously, if you already owned every dance in a

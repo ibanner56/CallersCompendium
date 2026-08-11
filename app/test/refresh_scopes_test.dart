@@ -91,6 +91,7 @@ void main() {
     Widget child, {
     Size surfaceSize = const Size(1400, 3000),
     bool requirePerformedForHistory = false,
+    bool mountRefreshScopes = true,
   }) async {
     await tester.binding.setSurfaceSize(surfaceSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -122,13 +123,15 @@ void main() {
                 notifier: dialect,
                 child: RequirePerformedForHistoryScope(
                   notifier: requirePerformed,
-                  child: CollectionRefreshScope(
-                    revision: collection,
-                    child: ProgramsRefreshScope(
-                      revision: programs,
-                      child: inner!,
-                    ),
-                  ),
+                  child: mountRefreshScopes
+                      ? CollectionRefreshScope(
+                          revision: collection,
+                          child: ProgramsRefreshScope(
+                            revision: programs,
+                            child: inner!,
+                          ),
+                        )
+                      : inner!,
                 ),
               ),
             ),
@@ -401,6 +404,59 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Imported Programme'), findsOne);
+    },
+  );
+
+  testWidgets(
+    'the un-awaited-push class: returning from a dance opened through a '
+    'related-dance link refreshes the row that opened it',
+    (tester) async {
+      final repos = openTestRepos();
+      await repos.dances.create(dance(id: 'd2', title: 'Bravo'));
+      await repos.dances.create(
+        dance(id: 'd1', title: 'Alpha').copyWith(
+          links: [
+            DanceLink(
+              id: 'l1',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'd2',
+            ),
+          ],
+        ),
+      );
+      // Mounted WITHOUT the refresh scopes on purpose. Scoped, the subscription
+      // would refresh this screen and the test would pass whether or not the
+      // push is awaited — the vacuous case. Unscoped, the only thing that can
+      // refresh the row is the await plus fallback reload, which is the change
+      // under test.
+      await pump(
+        tester,
+        repos,
+        const DanceDetailScreen(danceId: 'd1'),
+        mountRefreshScopes: false,
+      );
+
+      // Fixture check: the link row really resolves and renders d2's title, so
+      // the assertion below is about a refresh rather than a missing row.
+      expect(find.byKey(const ValueKey('link-row-l1')), findsOne);
+      expect(find.text('Bravo'), findsOne);
+
+      await tester.tap(find.byKey(const ValueKey('link-row-l1')));
+      await tester.pumpAndSettle();
+
+      // Renamed while the pushed screen is on top, standing in for an edit made
+      // there (the editor is what a user would use; the write is the same).
+      await repos.dances.update(
+        (await repos.dances.getById('d2'))!.copyWith(
+          title: 'Bravo Renamed',
+          updatedAt: now.add(const Duration(days: 1)),
+        ),
+      );
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bravo Renamed'), findsOne);
+      expect(find.text('Bravo'), findsNothing);
     },
   );
 
