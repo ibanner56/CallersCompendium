@@ -142,6 +142,16 @@ on merge even though the PR was deliberately titled "Part of #716" with no
 `Closes` keyword — mid-way through a four-PR sequence, so the issue had to be
 reopened.
 
+The same trap applies to prose that *denies* a link. `Does not close #887`
+contains `close #887`, and GitHub parses it — the negation is ignored. On #897
+that disclaimer alone produced a closing reference to an issue deliberately
+closed as `NOT_PLANNED`. The author did everything else right: no `issue-887`
+in the branch name, no closing keyword intended, explicit written denial. The
+denial itself created the link, and on merge it would overwrite the
+`NOT_PLANNED` decision. Phrase denials so the verb never sits next to the
+number — "#887 remains open; that issue is about the format-level question" —
+and trust `closingIssuesReferences` rather than the prose either way.
+
 Do not put `issue-<N>` in a branch name, and before merging any partial or
 stacked PR, check what it will actually close:
 
