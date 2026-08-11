@@ -117,10 +117,16 @@ void main() {
   //
   // Example dance IDs: 00071234 (`Neighbor roll away (W roll R, M side-step L)`)
   //
-  // Red-run target: mutate out the guard in `_perRoleChoreoAnnotation` by
-  // removing the `if (!hasSynthesized) return null;` check, so the function
-  // always claims any structured figure. A shorthand annotation like `(OR)`
-  // on a swing would then produce a spurious note `OR` instead of no note.
+  // Red-run target: mutate out the shape guard in `_proseAnnotation` by
+  // removing the `.where(_annotationBodyHasLowercase)` filter. A shorthand
+  // annotation like `(OR)` on a swing would then produce a spurious note `OR`
+  // instead of no note.
+  //
+  // Note: mutating the delegation guard in `_perRoleChoreoAnnotation` (removing
+  // `if (!hasSynthesized) return null;`) does NOT falsify the test for `(OR)` —
+  // no note is added for all-uppercase bodies because `notes` stays empty, so
+  // `_joinAnnotations` returns null regardless. The load-bearing guard for this
+  // specific test is in `_proseAnnotation`, not `_perRoleChoreoAnnotation`.
   //
   // Red result (test "shorthand annotation does NOT become a note"):
   // `f.note` would be `OR` instead of null.
@@ -177,9 +183,14 @@ void main() {
       });
 
       // SHAPE RULE GUARD: shorthand annotation does NOT become a note.
-      // Red-run: mutate out `if (!hasSynthesized) return null;` in
-      // `_perRoleChoreoAnnotation`. Then `(OR)` on a swing would slip through
-      // to `_joinAnnotations` and produce a spurious note `OR`.
+      // Red-run: remove `.where(_annotationBodyHasLowercase)` from
+      // `_proseAnnotation`. Then `(OR)` on a swing would produce a spurious
+      // note `OR` instead of no note.
+      //
+      // Note: mutating `if (!hasSynthesized) return null;` in
+      // `_perRoleChoreoAnnotation` does NOT falsify this test — `notes` stays
+      // empty for all-uppercase bodies, so `_joinAnnotations` returns null
+      // regardless. The load-bearing guard is in `_proseAnnotation`.
       test('shorthand annotation (no lowercase) does NOT become a note', () {
         // `OR` = opposite by the right: all-uppercase, no lowercase → shape rule
         // skips it. The swing still structures; no note.
