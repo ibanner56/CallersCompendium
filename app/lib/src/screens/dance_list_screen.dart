@@ -394,11 +394,21 @@ class _DanceListScreenState extends State<DanceListScreen> {
   ///
   /// Reloading this list is the broadcast's job, not the caller's: a site that
   /// both broadcasts and re-boots would load twice for one mutation (issue
-  /// #340). Returns once the resulting re-boot has been requested; falls back
-  /// to a direct [_boot] in focused tests that mount no scope.
+  /// #340). Falls back to a direct [_boot] in focused tests that mount no
+  /// scope.
+  ///
+  /// The broadcast deliberately does **not** depend on this widget's lifetime:
+  /// it bumps the captured notifier rather than resolving one from `context`,
+  /// so an undo callback — which by design outlives the snackbar's host — still
+  /// refreshes every other view. Only the unscoped fallback needs the widget,
+  /// because it reloads *this* screen.
   Future<void> _broadcastCollectionChange() async {
-    if (!mounted) return;
-    if (!CollectionRefreshScope.bump(context)) await _boot();
+    final revision = _collectionRefresh;
+    if (revision is ValueNotifier<int>) {
+      revision.value++;
+      return;
+    }
+    if (mounted) await _boot();
   }
 
   /// Reacts to an app-level "filter the Collection to this tag" request (issue
@@ -1052,7 +1062,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         dance.copyWith(tagIds: entry.value, updatedAt: DateTime.now().toUtc()),
       );
     }
-    if (mounted) await _broadcastCollectionChange();
+    await _broadcastCollectionChange();
   }
 
   /// Sets the difficulty level on the selected dances. Opens the level picker,
@@ -1141,7 +1151,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
-    if (mounted) await _broadcastCollectionChange();
+    await _broadcastCollectionChange();
   }
 
   /// Shared tail of the batch handlers: announces [message] to AT, exits
@@ -1239,7 +1249,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
-    if (mounted) await _broadcastCollectionChange();
+    await _broadcastCollectionChange();
   }
 
   /// Merges tunes into the selected dances (additive union) via the batched,
@@ -1350,7 +1360,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         dance.copyWith(tunes: entry.value, updatedAt: DateTime.now().toUtc()),
       );
     }
-    if (mounted) await _broadcastCollectionChange();
+    await _broadcastCollectionChange();
   }
 
   /// Sets or clears ONE custom field across the selected dances (upsert
@@ -1430,7 +1440,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
-    if (mounted) await _broadcastCollectionChange();
+    await _broadcastCollectionChange();
   }
 
   @override

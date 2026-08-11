@@ -305,8 +305,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.restore(program.id, at: DateTime.now().toUtc());
-        if (!mounted) return;
-        if (!_broadcastProgramChange()) await _load();
+        // The broadcast must not depend on this screen's lifetime — an undo
+        // snackbar outlives its host by design. Only the unscoped fallback
+        // does, because it reloads *this* screen.
+        if (!_broadcastProgramChange() && mounted) await _load();
       },
     );
   }
