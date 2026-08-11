@@ -1417,8 +1417,35 @@ String? _consistentWho(List<_SideCell> cells, {required bool odd}) {
 ///   code[0]`, `code[3] == code[1]`), matching the renderer's "then repeat"
 ///   model; the parity check upstream forces the SIDES to alternate but would
 ///   let a list whose DANCERS break the period through.
-/// - **A move declaring `who2`** (e.g. `cross_trails`) models two passes, so at
-///   most two cells. `cross_trails` is `?R;?L` in all 85 corpus runs.
+/// - **A move declaring `who2`** models two passes, so AT MOST two cells —
+///   `<= 2`, deliberately, not `== 2`.
+///
+///   The asymmetry with `square_through` above is real and worth stating,
+///   because "at most" otherwise reads as an unconsidered `<=`. The difference
+///   is whether the source CONTRADICTS itself. `Square through 3` states its
+///   pass count in prose, so a two-cell list disagrees with the line's own
+///   arity and the missing pass would have to be invented — decline. A
+///   `cross_trails` line states no count anywhere, so a one-cell run is merely
+///   INCOMPLETE, and consuming what the source did state is strictly better
+///   than discarding it.
+///
+///   Measured, because the reverse is easy to assume. For
+///   `Cross trail through (NR)`:
+///     consumed (`<= 2`): "neighbors cross trails across neighbors"
+///     declined (`== 2`): "partners cross trails across neighbors"
+///   `who2` renders from its `neighbors` default EITHER WAY — declining does
+///   not suppress it, because a bare `Cross trails` renders the same default
+///   already. What declining changes is pass ONE, from the `neighbors` the
+///   source stated to the `partners` default. So `== 2` would introduce a
+///   falsehood about the pass the source DID state, in order to avoid
+///   defaulting the pass it did not. That is a worse trade, not a safer one.
+///
+///   The residual hazard is honest and unfixed here: nothing downstream
+///   distinguishes a source-stated `who2` from a defaulted one. That is a
+///   property of the taxonomy's defaults, not of this decoder, and it predates
+///   it. **Latent in the corpus**: of the cell-shaped annotations on
+///   cross-trail lines, ZERO are single-cell (verified directly against the
+///   mirror), so no imported dance takes this path today.
 /// - **A move with no `who2`** (e.g. `pass_through`, `allemande`) models ONE
 ///   pass. A multi-cell run on such a line describes choreography the move
 ///   cannot express, so it declines rather than collapsing onto its first cell.

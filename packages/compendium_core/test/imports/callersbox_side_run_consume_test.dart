@@ -228,6 +228,32 @@ void main() {
       expect(f.params.containsKey('shoulder'), isFalse);
     });
 
+    // A ONE-cell run on a `who2` move is ACCEPTED (`<= 2`, not `== 2`), and
+    // this pins that choice against the obvious "tighten it for symmetry with
+    // square_through" change.
+    //
+    // The symmetry argument is wrong here, and the reason is measurable rather
+    // than stylistic. `square_through` states its pass count in prose, so a
+    // short list contradicts the line's own arity — decline. `cross_trails`
+    // states no count, so one cell is incomplete rather than contradictory.
+    // `who2` renders from its `neighbors` default either way (a bare
+    // `Cross trails` renders it too), so declining would NOT suppress the
+    // defaulted second pass — it would only replace the FIRST pass's
+    // source-stated `neighbors` with the `partners` default. That trades a
+    // stated fact for an assumed one.
+    //
+    // Mutation caught: changing `<= 2` to `== 2`. Verified red — `who` comes
+    // back `partners`, contradicting the `(NR)` the source wrote.
+    test('a one-cell run on a who2 move is consumed, not declined', () async {
+      final f = await _importTcbLine('(4) Cross trail through (NR)');
+      expect(f.move, 'cross_trails');
+      expect(f.params['shoulder'], 'right');
+      // The stated pass is kept...
+      expect(f.params['who'], 'neighbors');
+      // ...and the unstated one is NOT invented.
+      expect(f.params.containsKey('who2'), isFalse);
+    });
+
     // A cell is a PASS. `pass_through` models one, so a two-cell run describes
     // choreography it cannot express.
     //
