@@ -1619,9 +1619,8 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   `O` is primarily meaningful for non-duple formations (squares), which are
 ///   not a current priority, so no token is added for now. Behaviour is already
 ///   correct without any change — an unmapped code declines the run, per the
-///   rule above — so this is a DOCUMENTATION fix only; the owner (ibanner56)
-///   ruled on 2026-08-06 that addressing non-duple formations is not
-///   immediately pressing.
+///   rule above — so this is a DOCUMENTATION fix only; the owner confirmed the
+///   ruling: non-duple formations (squares, etc.) are not immediately pressing.
 const Map<String, String> tcbPassPeople = {
   'm': 'role1s',
   'w': 'role2s',

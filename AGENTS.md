@@ -190,15 +190,15 @@ design docs, roadmap status, and code comments.
   `packages/compendium_core/lib/src/imports/callersbox_figure_dialect.dart`
   around `:1606`, in the shared people-code map, read (before this was fixed):
   "`P6`+ and every `P-n` are absent from this map and decline to custom."
-  It was true in the first. In the second it was false for any decoder that only
-  adds params — `_sideRunAnnotation` is one — because those decoders fall through
-  to the shared recognizer and the line still structures. The surrounding block
-  opening at `:1575` of the same file already corrected the general claim
-  ("what 'declines' costs depends on the decoder"), making `:1606` a surviving
-  stale instance *within* the corrected block. A sweep that fixed the general
-  statement and left the specific one behind is exactly the failure mode this
-  rule describes. Fixing the false instance would have made the true one wrong if
-  applied uniformly.
+  It is true in the first. In the second it was false (before this PR fixed it)
+  for any decoder that only adds params — `_sideRunAnnotation` is one — because
+  those decoders fall through to the shared recognizer and the line still
+  structures. The surrounding block opening at `:1575` of the same file already
+  corrected the general claim ("what 'declines' costs depends on the decoder"),
+  making `:1606` a surviving stale instance *within* the corrected block. A sweep
+  that fixed the general statement and left the specific one behind is exactly the
+  failure mode this rule describes. Fixing the false instance would have made the
+  true one wrong if applied uniformly.
 - Do not carry a claim forward from adjacent prose just because it was already
   there. Verify it against the code, or delete it. A stale sentence in
   `docs/design/dialect.md` survived a rewrite of the section around it and had
