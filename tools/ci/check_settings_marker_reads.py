@@ -164,13 +164,26 @@ def check_file(path: Path, root: Path) -> list[str]:
 
     violations: list[str] = []
     for idx, m in enumerate(_SELECT_FROM_SETTINGS_RE.finditer(joined)):
-        # Extract from match start to the next ; (statement boundary) or EOF.
-        semi = joined.find(";", m.end())
-        stmt_end = semi + 1 if semi != -1 else len(joined)
-        stmt = joined[m.start():stmt_end]
-        if _DELETED_AT_FILTER_RE.search(stmt):
+        # Restrict the filter check to the string literal that contains the
+        # SELECT. Scanning to the next ; is not safe: the phrase
+        # "deleted_at IS NULL" can appear in a variable name or argument
+        # string in the same Dart statement, causing a false negative (the
+        # ratchet says OK when the SQL itself is missing the filter).
+        #
+        # After join_adjacent_strings the SQL is fully on one logical line
+        # within its enclosing quotes. Find the opening quote before the
+        # match and the closing quote after it.
+        open_q = joined.rfind("'", 0, m.start())
+        close_q = joined.find("'", m.end())
+        if open_q == -1 or close_q == -1:
+            # Cannot determine the string boundary — fail closed so an
+            # unparseable construct gets a human looking at it.
+            sql_literal = None
+        else:
+            sql_literal = joined[open_q + 1 : close_q]
+        if sql_literal is not None and _DELETED_AT_FILTER_RE.search(sql_literal):
             continue
-        # Violation — find the original line number.
+        # Violation (or unparseable boundary) — find the original line number.
         if idx < len(orig_matches):
             orig_m = orig_matches[idx]
             line_no = text[: orig_m.start()].count("\n") + 1

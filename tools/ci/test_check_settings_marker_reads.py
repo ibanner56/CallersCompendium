@@ -9,7 +9,7 @@ Pure-stdlib, assert-based (no pytest / no third-party deps, matching the rest of
 
 ## What is tested and why each case is necessary
 
-The ratchet has three independent failure modes, each caught by a specific
+The ratchet has four independent failure modes, each caught by a specific
 subset of cases:
 
 1. **Missing filter on a single-line read** — the straightforward case the
@@ -33,6 +33,13 @@ subset of cases:
 4. **Widened scope** — a non-compliant read in a file other than
    ``repositories.dart`` must be caught. The scope is all of ``app/lib`` and
    ``packages/*/lib``, not just one file.
+
+5. **Filter in a non-SQL context does not satisfy the check** — if
+   ``deleted_at IS NULL`` appears in a Dart variable or argument string in the
+   same statement but outside the SQL literal, the ratchet must still fire. The
+   check must be restricted to the SQL string itself, not the surrounding Dart
+   statement. (Discovered in review: a probe that passes the phrase as a
+   variable value produced a false negative in the initial implementation.)
 """
 
 from __future__ import annotations
@@ -211,6 +218,20 @@ def test_non_compliant_reads() -> None:
             filename="app/lib/src/some_other_file.dart",
         ) == 1,
         "the ratchet covers app/lib and packages/*/lib, not just repositories.dart",
+    )
+
+    check(
+        "filter in a Dart variable outside the SQL string is not accepted",
+        _violation_count(
+            "Future<void> f(dynamic db) async {\n"
+            "  await db.customSelect(\n"
+            "    'SELECT 1 FROM settings WHERE key = ?',\n"
+            "    variables: ['deleted_at IS NULL'],\n"
+            "  ).get();\n"
+            "}\n"
+        ) == 1,
+        "the phrase appears as a Dart string argument, not in the SQL literal — "
+        "the ratchet must check the SQL string only, not the surrounding statement",
     )
 
 

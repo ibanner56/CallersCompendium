@@ -102,8 +102,7 @@ two lines is also checked. The hard `DELETE` (which has no `deleted_at IS NULL`
 and is intentionally correct) is excluded by name in the script rather than by
 narrowing the detection pattern.
 
-
-Non-trivial, hard-to-reverse choices are recorded as ADRs in
+### Architecture decisions
 [docs/adr/](docs/adr/) using [the template](docs/adr/template.md). Propose one
 by opening a PR adding a `Proposed` ADR.
 
