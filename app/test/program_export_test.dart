@@ -1631,12 +1631,19 @@ void main() {
                   danceFor: _danceFor,
                   shareInvoker: (params) async {},
                   pdfLayouter: ({required name, required onLayout}) async {
-                    // Called twice: first tap → capturedWithFigures,
+                    // Called exactly twice: first tap → capturedWithFigures,
                     // second tap → capturedSetListOnly (order matches taps below).
+                    // Fail loudly on a third call — a silent overwrite would let
+                    // the test pass against the wrong closure, the same defect
+                    // this PR exists to fix one level up.
                     if (capturedWithFigures == null) {
                       capturedWithFigures = onLayout;
-                    } else {
+                    } else if (capturedSetListOnly == null) {
                       capturedSetListOnly = onLayout;
+                    } else {
+                      fail(
+                        'pdfLayouter called more than twice — unexpected invocation',
+                      );
                     }
                   },
                 ),
