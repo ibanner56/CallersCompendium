@@ -1582,7 +1582,7 @@ void main() {
     );
 
     testWidgets(
-      'PDF path: "Set list and figures" → PDF bytes include figure content',
+      'PDF path: "Set list and figures" → appendDances reaches the PDF builder',
       (tester) async {
         // The previous version of this test only checked that the pdfLayouter
         // spy was invoked — which stayed GREEN when appendDances was removed,
@@ -1596,16 +1596,18 @@ void main() {
         // labels), so the comparison is a true differential: any size difference
         // comes from appendDances alone.
         //
-        // Using a bare buildProgramPdf call as the baseline would introduce a
-        // ~528-byte construction difference (formatDate and labels differ), so
-        // that approach was rejected. A direct call without those params
-        // produces 9422 bytes; the same call via _exportPdf produces 8894 bytes
-        // — a stable gap, but one that could hide a short appendix.
+        // A bare buildProgramPdf call was considered as the baseline but
+        // rejected: _exportPdf passes formatDate and programExportLabels, so a
+        // bare call and the export-path call produce different byte counts even
+        // with no appendix — any size delta wouldn't be attributable to
+        // appendDances. Using two closures from the same _exportPdf call
+        // eliminates that ambiguity.
         //
         // Mutation that would catch a regression: remove appendDances from the
-        // buildProgramPdf call in _exportPdf →
-        //   Expected: a value greater than <8894>
-        //   Actual: <8894>   (both paths produce identical bytes)
+        // buildProgramPdf call in _exportPdf. Both closures then call
+        // buildProgramPdf with identical arguments and produce identical bytes:
+        //   Expected: a value greater than <N>   (measured ~8894 at time of writing)
+        //   Actual: <N>   (both paths produce identical bytes)
         assert(
           danceWithFigures.figures.isNotEmpty,
           'guard: fixture must have figures',
