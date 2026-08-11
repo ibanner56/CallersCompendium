@@ -61,6 +61,27 @@ all eight rounds while nineteen findings accumulated. Thread state, unresolved
 count, and comment count are all blind to suppressed findings — the review
 **body** is their only surface.
 
+**The reviewer's login differs by endpoint.** `/pulls/<N>/reviews` records the
+author as `copilot-pull-request-reviewer[bot]`; `/pulls/<N>/comments` records it
+as `Copilot`. Verified against this repository:
+
+```sh
+gh api repos/ibanner56/CallersCompendium/pulls/900/reviews -q '[.[].user.login]|unique'
+# -> ["copilot-pull-request-reviewer[bot]","ibanner56"]
+gh api repos/ibanner56/CallersCompendium/pulls/900/comments -q '[.[].user.login]|unique'
+# -> ["Copilot","ibanner56"]
+```
+
+The document
+already teaches `select(.user.login=="copilot-pull-request-reviewer[bot]")` for
+the `/reviews` endpoint — correct there. If you carry that filter to `/comments`
+without adjusting the login, you get a **silent zero**, which reads as "no inline
+findings" rather than "filter matched nothing". This happened across four PRs on
+this repository in a single day and produced a wrong conclusion — a real inline
+security finding had come through the normal thread channel and the mismatched
+filter made it invisible. A surprising zero is evidence about your query before
+it is evidence about the world.
+
 ## Before merging
 
 - **No unresolved review threads.** Ask for `totalCount` too, so a page-size
@@ -127,6 +148,16 @@ on merge even though the PR was deliberately titled "Part of #716" with no
 `Closes` keyword — mid-way through a four-PR sequence, so the issue had to be
 reopened.
 
+The same trap applies to prose that *denies* a link. `Does not close #887`
+contains `close #887`, and GitHub parses it — the negation is ignored. On #897
+that disclaimer alone produced a closing reference to an issue deliberately
+closed as `NOT_PLANNED`. The author did everything else right: no `issue-887`
+in the branch name, no closing keyword intended, explicit written denial. The
+denial itself created the link, and on merge it would overwrite the
+`NOT_PLANNED` decision. Phrase denials so the verb never sits next to the
+number — "#887 remains open; that issue is about the format-level question" —
+and trust `closingIssuesReferences` rather than the prose either way.
+
 Do not put `issue-<N>` in a branch name, and before merging any partial or
 stacked PR, check what it will actually close:
 
@@ -148,7 +179,26 @@ design docs, roadmap status, and code comments.
 - When a reviewer flags a claim as wrong, **grep for the claim across the repo**
   before fixing the line they cited. False claims are usually copy-pasted: one
   wrong byte-stability claim took three PRs (#718 -> #721 -> #722) because each
-  fix chased the citation instead of the assertion.
+  fix chased the citation instead of the assertion. Grepping finds every instance,
+  but each still has to be judged in its own context — the same sentence can be
+  true in one file and false in another, and a sweep that makes them uniform will
+  make a correct comment wrong. The sentence at
+  `packages/compendium_core/lib/src/imports/figure_parser.dart` around `:483`,
+  in a partner-token map where absent entries genuinely force custom, reads:
+  "and are absent from this map so they decline the whole line to custom."
+  The sentence at
+  `packages/compendium_core/lib/src/imports/callersbox_figure_dialect.dart`
+  around `:1606`, in the shared people-code map, reads:
+  "`P6`+ and every `P-n` are absent from this map and decline to custom."
+  It is true in the first. In the second it is false for any decoder that only
+  adds params — `_sideRunAnnotation` is one — because those decoders fall through
+  to the shared recognizer and the line still structures. The surrounding block
+  opening at `:1575` of the same file already corrected the general claim
+  ("what 'declines' costs depends on the decoder"), making `:1606` a surviving
+  stale instance *within* the corrected block. A sweep that fixed the general
+  statement and left the specific one behind is exactly the failure mode this
+  rule describes. Fixing the false instance would have made the true one wrong if
+  applied uniformly.
 - Do not carry a claim forward from adjacent prose just because it was already
   there. Verify it against the code, or delete it. A stale sentence in
   `docs/design/dialect.md` survived a rewrite of the section around it and had
