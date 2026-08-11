@@ -51,7 +51,7 @@ class VenueRepository {
           );
       await applyUpsertExistence(
         _db,
-        table: 'venues',
+        table: _db.venues,
         keyColumn: 'id',
         key: v.id,
         at: now,
@@ -140,7 +140,7 @@ class VenueRepository {
       }
       await stampExistenceTransition(
         _db,
-        table: 'venues',
+        table: _db.venues,
         keyColumn: 'id',
         key: id,
         at: now,

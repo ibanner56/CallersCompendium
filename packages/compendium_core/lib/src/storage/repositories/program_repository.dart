@@ -135,6 +135,55 @@ class DanceCallCounts {
   String toString() => 'DanceCallCounts(all: $all, performed: $performed)';
 }
 
+/// A dance's calling history together with the half-calling stats derived from
+/// the same rows, delivered as ONE value by
+/// [ProgramRepository.watchCallingHistoryForDance].
+///
+/// The two travel together deliberately. Both are rendered by a single section
+/// of the dance-detail screen, and both derive from the same two tables, so
+/// emitting them separately would rebuild that section twice per write — the
+/// over-firing failure issue #340 records — and could briefly render a history
+/// list and a stats summary that disagree.
+@immutable
+class DanceCallingHistory {
+  const DanceCallingHistory({required this.records, required this.halfStats});
+
+  /// Empty history with empty stats — what a dance that has never been called
+  /// resolves to.
+  static const empty = DanceCallingHistory(
+    records: [],
+    halfStats: HalfCallingStats.empty,
+  );
+
+  /// Programs including the dance, most-recent first. Same value and ordering
+  /// as [ProgramRepository.callingHistoryForDance].
+  final List<DanceCallingRecord> records;
+
+  /// Same value as [ProgramRepository.halfCallingStatsForDance] for the same
+  /// arguments.
+  final HalfCallingStats halfStats;
+}
+
+/// The program-derived per-dance tallies the Collection list renders, delivered
+/// as ONE value by [ProgramRepository.watchProgramDerivedCounts].
+///
+/// [lastCalled] and [callCounts] are paired for the same reason
+/// [DanceCallingHistory] pairs its two members: one write must produce one
+/// rebuild of the list, not two (issue #340).
+@immutable
+class ProgramDerivedCounts {
+  const ProgramDerivedCounts({
+    required this.lastCalled,
+    required this.callCounts,
+  });
+
+  /// Same value as [ProgramRepository.lastCalledByDance].
+  final Map<String, DateTime> lastCalled;
+
+  /// Same value as [ProgramRepository.countByDance].
+  final Map<String, DanceCallCounts> callCounts;
+}
+
 /// CRUD for [Program]s and their [ProgramSlot]s.
 ///
 /// Slots are always replaced wholesale on write (delete-then-reinsert inside
@@ -270,7 +319,7 @@ class ProgramRepository {
         );
     await seedExistenceIfMissing(
       _db,
-      table: 'programs',
+      table: _db.programs,
       keyColumn: 'id',
       key: program.id,
     );
@@ -448,6 +497,31 @@ class ProgramRepository {
     }
   }
 
+  /// The tables every derived calling-history / counts query below reads, and
+  /// therefore the `readsFrom` set their streams declare. Stated once so the
+  /// three queries cannot drift apart, and justified per table:
+  ///
+  /// * `program_slots` — the history rows themselves (`dance_id`,
+  ///   `performed_at`), the `COUNT(*)` / `COUNT(performed_at)` tallies, and the
+  ///   `MAX(performed_at)` last-called timestamp.
+  /// * `programs` — joined by every one of these queries for
+  ///   `deleted_at IS NULL` and the host-caller filter, and read directly by
+  ///   [callingHistoryForDance] for `title` / `event_date` / `venue` /
+  ///   `venue_id`. Renaming a program or soft-deleting one changes rendered
+  ///   output while touching no slot row, so omitting this entry would leave a
+  ///   subscribed view silently stale — see [watchCallingHistoryForDance].
+  ///
+  /// `venues` is deliberately NOT here: none of these queries reads it. The
+  /// venue *label* shown against a history row is resolved app-side from the
+  /// venue catalogue, so a venue rename does not re-emit. That is a known
+  /// boundary rather than an oversight — no venue-editing path refreshes these
+  /// views today either — and it is the reason [watchCallingHistoryForDance]
+  /// spells out which derived values may ride this stream.
+  Set<ResultSetImplementation<dynamic, dynamic>> get _programDerivedTables => {
+    _db.programSlots,
+    _db.programs,
+  };
+
   /// Maps dance id → the most recent `performedAt` timestamp across every
   /// slot of every non-deleted program, for dances that have actually been
   /// called at least once. Feeds Collection's "last-called" sort (see
@@ -456,27 +530,30 @@ class ProgramRepository {
   /// by that host caller (see [callingHistoryForDance]; issue #583).
   Future<Map<String, DateTime>> lastCalledByDance({
     String? callerFilter,
-  }) async {
-    final caller = _normalizedCallerFilter(callerFilter);
-    final rows = await _db
-        .customSelect(
-          'SELECT program_slots.dance_id AS dance_id, '
-          'MAX(program_slots.performed_at) AS last_called '
-          'FROM program_slots '
-          'JOIN programs ON programs.id = program_slots.program_id '
-          'WHERE program_slots.dance_id IS NOT NULL '
-          'AND program_slots.performed_at IS NOT NULL '
-          'AND programs.deleted_at IS NULL '
-          '${_callerClause(caller)}'
-          'GROUP BY program_slots.dance_id',
-          variables: _callerVariables(caller),
-        )
-        .get();
-    return {
-      for (final row in rows)
-        row.read<String>('dance_id'): asUtc(row.read<DateTime>('last_called')),
-    };
-  }
+  }) async => _lastCalledRows(
+    _normalizedCallerFilter(callerFilter),
+  ).get().then(_lastCalledFromRows);
+
+  /// The query behind [lastCalledByDance]. Shared by the one-shot read and the
+  /// stream so the two can never diverge; [caller] is already normalized.
+  Selectable<QueryRow> _lastCalledRows(String? caller) => _db.customSelect(
+    'SELECT program_slots.dance_id AS dance_id, '
+    'MAX(program_slots.performed_at) AS last_called '
+    'FROM program_slots '
+    'JOIN programs ON programs.id = program_slots.program_id '
+    'WHERE program_slots.dance_id IS NOT NULL '
+    'AND program_slots.performed_at IS NOT NULL '
+    'AND programs.deleted_at IS NULL '
+    '${_callerClause(caller)}'
+    'GROUP BY program_slots.dance_id',
+    variables: _callerVariables(caller),
+    readsFrom: _programDerivedTables,
+  );
+
+  Map<String, DateTime> _lastCalledFromRows(List<QueryRow> rows) => {
+    for (final row in rows)
+      row.read<String>('dance_id'): asUtc(row.read<DateTime>('last_called')),
+  };
 
   /// Maps dance id → its [DanceCallCounts] across every slot of every
   /// non-deleted program, for dances that have been called at least once (a
@@ -494,29 +571,53 @@ class ProgramRepository {
   /// [callingHistoryForDance].
   Future<Map<String, DanceCallCounts>> countByDance({
     String? callerFilter,
-  }) async {
+  }) async => _countRows(
+    _normalizedCallerFilter(callerFilter),
+  ).get().then(_countsFromRows);
+
+  /// The query behind [countByDance]. Shared by the one-shot read and the
+  /// stream so the two can never diverge; [caller] is already normalized.
+  Selectable<QueryRow> _countRows(String? caller) => _db.customSelect(
+    'SELECT program_slots.dance_id AS dance_id, '
+    'COUNT(*) AS all_count, '
+    'COUNT(program_slots.performed_at) AS performed_count '
+    'FROM program_slots '
+    'JOIN programs ON programs.id = program_slots.program_id '
+    'WHERE program_slots.dance_id IS NOT NULL '
+    'AND programs.deleted_at IS NULL '
+    '${_callerClause(caller)}'
+    'GROUP BY program_slots.dance_id',
+    variables: _callerVariables(caller),
+    readsFrom: _programDerivedTables,
+  );
+
+  Map<String, DanceCallCounts> _countsFromRows(List<QueryRow> rows) => {
+    for (final row in rows)
+      row.read<String>('dance_id'): DanceCallCounts(
+        all: row.read<int>('all_count'),
+        performed: row.read<int>('performed_count'),
+      ),
+  };
+
+  /// Reactive [countByDance] + [lastCalledByDance]: emits the current tallies
+  /// immediately, then again whenever a write changes them.
+  ///
+  /// The Collection list renders both — the "called ×N" badge and the
+  /// last-called sort/subtitle — so they are emitted as one
+  /// [ProgramDerivedCounts] value from one stream. See
+  /// [watchCallingHistoryForDance] for the pattern this follows, including why
+  /// [lastCalledByDance] is allowed to ride this stream (its read set is
+  /// exactly [_programDerivedTables], the set declared here).
+  Stream<ProgramDerivedCounts> watchProgramDerivedCounts({
+    String? callerFilter,
+  }) {
     final caller = _normalizedCallerFilter(callerFilter);
-    final rows = await _db
-        .customSelect(
-          'SELECT program_slots.dance_id AS dance_id, '
-          'COUNT(*) AS all_count, '
-          'COUNT(program_slots.performed_at) AS performed_count '
-          'FROM program_slots '
-          'JOIN programs ON programs.id = program_slots.program_id '
-          'WHERE program_slots.dance_id IS NOT NULL '
-          'AND programs.deleted_at IS NULL '
-          '${_callerClause(caller)}'
-          'GROUP BY program_slots.dance_id',
-          variables: _callerVariables(caller),
-        )
-        .get();
-    return {
-      for (final row in rows)
-        row.read<String>('dance_id'): DanceCallCounts(
-          all: row.read<int>('all_count'),
-          performed: row.read<int>('performed_count'),
-        ),
-    };
+    return _countRows(caller).watch().asyncMap(
+      (List<QueryRow> rows) async => ProgramDerivedCounts(
+        lastCalled: _lastCalledFromRows(await _lastCalledRows(caller).get()),
+        callCounts: _countsFromRows(rows),
+      ),
+    );
   }
 
   /// The calling history for the dance identified by [danceId]: the programs
@@ -546,41 +647,119 @@ class ProgramRepository {
     String danceId, {
     bool performedOnly = false,
     String? callerFilter,
-  }) async {
+  }) async => _callingHistoryRows(
+    danceId,
+    performedOnly: performedOnly,
+    caller: _normalizedCallerFilter(callerFilter),
+  ).get().then(_callingHistoryFromRows);
+
+  /// The query behind [callingHistoryForDance]. Shared by the one-shot read and
+  /// [watchCallingHistoryForDance] so the two can never diverge; [caller] is
+  /// already normalized.
+  Selectable<QueryRow> _callingHistoryRows(
+    String danceId, {
+    required bool performedOnly,
+    required String? caller,
+  }) => _db.customSelect(
+    'SELECT program_slots.id AS slot_id, programs.id AS program_id, '
+    'programs.title AS program_title, '
+    'programs.event_date AS event_date, programs.venue AS venue, '
+    'programs.venue_id AS venue_id, '
+    'programs.updated_at AS updated_at, '
+    'program_slots.performed_at AS performed_at '
+    'FROM program_slots '
+    'JOIN programs ON programs.id = program_slots.program_id '
+    'WHERE program_slots.dance_id = ? '
+    '${performedOnly ? 'AND program_slots.performed_at IS NOT NULL ' : ''}'
+    '${_callerClause(caller)}'
+    'AND programs.deleted_at IS NULL '
+    'ORDER BY COALESCE('
+    'program_slots.performed_at, programs.event_date, programs.updated_at'
+    ') DESC, programs.id',
+    variables: [Variable<String>(danceId), ..._callerVariables(caller)],
+    readsFrom: _programDerivedTables,
+  );
+
+  List<DanceCallingRecord> _callingHistoryFromRows(List<QueryRow> rows) => [
+    for (final row in rows)
+      DanceCallingRecord(
+        slotId: row.read<String>('slot_id'),
+        programId: row.read<String>('program_id'),
+        programTitle: row.read<String>('program_title'),
+        programUpdatedAt: asUtc(row.read<DateTime>('updated_at')),
+        performedAt: asUtcOrNull(row.read<DateTime?>('performed_at')),
+        eventDate: asUtcOrNull(row.read<DateTime?>('event_date')),
+        venue: row.read<String?>('venue'),
+        venueId: row.read<String?>('venue_id'),
+      ),
+  ];
+
+  /// Reactive [callingHistoryForDance] + [halfCallingStatsForDance]: emits the
+  /// current calling history immediately, then again whenever a write changes
+  /// it. Arguments mean exactly what they do on the one-shot methods.
+  ///
+  /// ---
+  ///
+  /// **This is the reference implementation for issue #768's reactive
+  /// conversion.** Before it the app had no `.watch()` stream and no
+  /// `StreamBuilder` at all: every view took a one-shot snapshot and relied on
+  /// a mutation site remembering to broadcast a refresh, which is the defect
+  /// class #768 catalogues seven instances of. The rules below are what the
+  /// remaining conversions should follow; the app-side half is
+  /// `app/lib/src/screens/dance_detail/calling_history_section.dart`.
+  ///
+  /// 1. **State `readsFrom` explicitly, and justify every table.** A
+  ///    `customSelect` is opaque to drift, so a stream only re-emits for the
+  ///    tables it is *told* the query reads. Omit one and the view looks wired
+  ///    and silently never updates — the same bug as before, harder to spot.
+  ///    This set is [_programDerivedTables], where each entry is justified;
+  ///    `programs` is the load-bearing one, because a program rename or soft
+  ///    delete changes what this history renders without touching a slot row.
+  /// 2. **A derived value may ride an existing stream only when its own read
+  ///    set is a subset of that stream's declared `readsFrom`.**
+  ///    [halfCallingStatsForDance] qualifies: its program-id query reads
+  ///    `{program_slots, programs}` and `_slotsForMany` reads `program_slots`,
+  ///    both within the declared set, so it is folded in here via `asyncMap`
+  ///    instead of being a second stream. The venue *label* rendered beside each
+  ///    row does NOT qualify — it reads the `venues` catalogue, which is outside
+  ///    the set — so it stays a one-shot read on the app side and a venue rename
+  ///    does not refresh it. Stating that boundary is the point: an unstated one
+  ///    is indistinguishable from the bug in rule 1.
+  /// 3. **One stream per rendered section, not one per query.** Emitting the
+  ///    history and its stats separately would rebuild the section twice per
+  ///    write and could render two disagreeing halves. Over-firing is issue
+  ///    #340's failure and pulls opposite to rule 1; both have to hold at once.
+  ///    drift coalesces updates per transaction, and every write here goes
+  ///    through one, so a write yields exactly one emit.
+  /// 4. **Create the stream once, in `State`, never in `build()`.** Rebuilding
+  ///    it per frame re-subscribes and re-queries; recreate it only when an
+  ///    argument here changes (`performedOnly`, `callerFilter`).
+  /// 5. **When a view's data is fully reactive, drop its refresh-scope listener
+  ///    in the same change.** Leaving it attached means one write both re-emits
+  ///    the stream and re-runs the imperative load — reintroducing #340 while
+  ///    fixing staleness. `CollectionRefreshScope` / `ProgramsRefreshScope`
+  ///    themselves come out last, once nothing subscribes; unconverted screens
+  ///    still depend on them.
+  Stream<DanceCallingHistory> watchCallingHistoryForDance(
+    String danceId, {
+    bool performedOnly = false,
+    String? callerFilter,
+  }) {
     final caller = _normalizedCallerFilter(callerFilter);
-    final rows = await _db
-        .customSelect(
-          'SELECT program_slots.id AS slot_id, programs.id AS program_id, '
-          'programs.title AS program_title, '
-          'programs.event_date AS event_date, programs.venue AS venue, '
-          'programs.venue_id AS venue_id, '
-          'programs.updated_at AS updated_at, '
-          'program_slots.performed_at AS performed_at '
-          'FROM program_slots '
-          'JOIN programs ON programs.id = program_slots.program_id '
-          'WHERE program_slots.dance_id = ? '
-          '${performedOnly ? 'AND program_slots.performed_at IS NOT NULL ' : ''}'
-          '${_callerClause(caller)}'
-          'AND programs.deleted_at IS NULL '
-          'ORDER BY COALESCE('
-          'program_slots.performed_at, programs.event_date, programs.updated_at'
-          ') DESC, programs.id',
-          variables: [Variable<String>(danceId), ..._callerVariables(caller)],
-        )
-        .get();
-    return [
-      for (final row in rows)
-        DanceCallingRecord(
-          slotId: row.read<String>('slot_id'),
-          programId: row.read<String>('program_id'),
-          programTitle: row.read<String>('program_title'),
-          programUpdatedAt: asUtc(row.read<DateTime>('updated_at')),
-          performedAt: asUtcOrNull(row.read<DateTime?>('performed_at')),
-          eventDate: asUtcOrNull(row.read<DateTime?>('event_date')),
-          venue: row.read<String?>('venue'),
-          venueId: row.read<String?>('venue_id'),
+    return _callingHistoryRows(
+      danceId,
+      performedOnly: performedOnly,
+      caller: caller,
+    ).watch().asyncMap(
+      (List<QueryRow> rows) async => DanceCallingHistory(
+        records: _callingHistoryFromRows(rows),
+        halfStats: await halfCallingStatsForDance(
+          danceId,
+          performedOnly: performedOnly,
+          callerFilter: caller,
         ),
-    ];
+      ),
+    );
   }
 
   /// First/second-half positional calling stats for the dance identified by
@@ -676,7 +855,7 @@ class ProgramRepository {
     required bool deleted,
   }) => stampExistenceTransition(
     _db,
-    table: 'programs',
+    table: _db.programs,
     keyColumn: 'id',
     key: id,
     at: at,

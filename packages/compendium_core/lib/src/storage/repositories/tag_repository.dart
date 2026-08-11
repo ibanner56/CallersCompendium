@@ -46,12 +46,12 @@ class TagRepository {
       final id =
           await adoptTombstonedNaturalKey(
             _db,
-            table: 'tags',
+            table: _db.tags,
             keyColumn: 'id',
             naturalKeyColumn: 'name',
             naturalKey: tag.name,
             incomingId: tag.id,
-            joinTable: 'dance_tags',
+            joinTable: _db.danceTags,
             joinColumn: 'tag_id',
           ) ??
           tag.id;
@@ -67,7 +67,7 @@ class TagRepository {
           );
       await applyUpsertExistence(
         _db,
-        table: 'tags',
+        table: _db.tags,
         keyColumn: 'id',
         key: id,
         at: now,
@@ -99,7 +99,7 @@ class TagRepository {
   /// it either way.
   Future<void> delete(String id, {DateTime? at}) => stampExistenceTransition(
     _db,
-    table: 'tags',
+    table: _db.tags,
     keyColumn: 'id',
     key: id,
     at: resolveStamp(at),

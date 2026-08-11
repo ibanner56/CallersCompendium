@@ -31,12 +31,12 @@ class CustomFieldDefRepository {
       final id =
           await adoptTombstonedNaturalKey(
             _db,
-            table: 'custom_field_defs',
+            table: _db.customFieldDefs,
             keyColumn: 'id',
             naturalKeyColumn: 'key',
             naturalKey: def.key,
             incomingId: def.id,
-            joinTable: 'custom_field_values',
+            joinTable: _db.customFieldValues,
             joinColumn: 'field_id',
           ) ??
           def.id;
@@ -59,7 +59,7 @@ class CustomFieldDefRepository {
           );
       await applyUpsertExistence(
         _db,
-        table: 'custom_field_defs',
+        table: _db.customFieldDefs,
         keyColumn: 'id',
         key: id,
         at: now,
@@ -140,7 +140,7 @@ class CustomFieldDefRepository {
       }
       await stampExistenceTransition(
         _db,
-        table: 'custom_field_defs',
+        table: _db.customFieldDefs,
         keyColumn: 'id',
         key: id,
         at: now,

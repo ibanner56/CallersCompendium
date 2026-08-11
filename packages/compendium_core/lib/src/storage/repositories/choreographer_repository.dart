@@ -27,12 +27,12 @@ class ChoreographerRepository {
       final id =
           await adoptTombstonedNaturalKey(
             _db,
-            table: 'choreographers',
+            table: _db.choreographers,
             keyColumn: 'id',
             naturalKeyColumn: 'name',
             naturalKey: c.name,
             incomingId: c.id,
-            joinTable: 'dance_authors',
+            joinTable: _db.danceAuthors,
             joinColumn: 'choreographer_id',
           ) ??
           c.id;
@@ -52,7 +52,7 @@ class ChoreographerRepository {
           );
       await applyUpsertExistence(
         _db,
-        table: 'choreographers',
+        table: _db.choreographers,
         keyColumn: 'id',
         key: id,
         at: now,
@@ -116,7 +116,7 @@ class ChoreographerRepository {
       }
       await stampExistenceTransition(
         _db,
-        table: 'choreographers',
+        table: _db.choreographers,
         keyColumn: 'id',
         key: id,
         at: now,
