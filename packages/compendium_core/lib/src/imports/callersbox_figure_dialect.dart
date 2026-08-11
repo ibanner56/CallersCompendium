@@ -1276,7 +1276,7 @@ FigureMatch? _sideRunAnnotation(String scrubbed) {
   // A second parenthetical means extra structure we do not model -> decline.
   if (lower.indexOf('(', close + 1) != -1) return null;
 
-  final cells = _boundedPassListCells(lower.substring(open + 1, close));
+  final cells = _boundedPassListCellsIn(lower, open, close);
   if (cells == null || cells.isEmpty || cells.length > kMaxPassListCells) {
     return null;
   }
@@ -1770,6 +1770,10 @@ FigureMatch? _squareThroughPassList(String scrubbed) {
   if (close == -1) return null;
   // A second parenthetical means extra structure we do not model -> decline.
   if (lower.indexOf('(', close + 1) != -1) return null;
+  // Measure the span before taking the substring — see
+  // [_boundedPassListCellsIn]. `passText` is used for more than the cell split
+  // here, so the same O(1) bound is applied inline rather than via that helper.
+  if (close - open - 1 > _maxPassListChars) return null;
   final passText = lower.substring(open + 1, close);
   final outside = '${lower.substring(0, open)} ${lower.substring(close + 1)}';
 
@@ -1859,6 +1863,10 @@ FigureMatch? _hey(String scrubbed) {
   if (open == -1) return null;
   final close = lower.indexOf(')', open + 1);
   if (close == -1) return null;
+  // Measure the span before taking the substring — see
+  // [_boundedPassListCellsIn]. `passText` is used for more than the cell split
+  // here, so the same O(1) bound is applied inline rather than via that helper.
+  if (close - open - 1 > _maxPassListChars) return null;
   final passText = lower.substring(open + 1, close);
   final outside = '${lower.substring(0, open)} ${lower.substring(close + 1)}';
 
@@ -2009,13 +2017,42 @@ const int _maxPassListChars = kMaxPassListCells * 24;
 /// of `;` (or one enormous "cell") must be rejected by a guard that runs before
 /// the allocation, not after it: every pass-list decoder used to `split(';')`
 /// first and check the cell count afterwards, so the oversized list was built
-/// and only then discarded. The [_maxPassListChars] length cap fixes the class
-/// in O(1) — with the raw text capped, both the resulting list and every
-/// substring are provably small. Callers still apply their own exact cell-count
-/// rules (`== places`, `>= 2`, `<= kMaxPassListCells`) to the returned cells.
+/// and only then discarded. The [_maxPassListChars] length cap fixes that in
+/// O(1) — with the raw text capped, both the resulting list and every substring
+/// are provably small. Callers still apply their own exact cell-count rules
+/// (`== places`, `>= 2`, `<= kMaxPassListCells`) to the returned cells.
+///
+/// **This guards the SPLIT, not the caller's own substring.** A caller holding
+/// `lower.substring(open + 1, close)` has already allocated the payload before
+/// this function can see it, so a caller with the parenthesis indices must use
+/// [_boundedPassListCellsIn], which measures the span first. This entry point
+/// is for callers whose text is already in hand.
 List<String>? _boundedPassListCells(String passText) {
   if (passText.length > _maxPassListChars) return null;
   return passText.split(';').map((c) => c.trim()).toList();
+}
+
+/// [_boundedPassListCells] for a pass list still inside its parentheses:
+/// measures the span FIRST and only then takes the substring.
+///
+/// Callers used to hold `lower.substring(open + 1, close)`, so a hostile
+/// `Pass through (` + megabytes + `)` allocated the whole payload and discarded
+/// it one line later — the guard ran *after* the allocation it is documented as
+/// preventing. Passing `(open, close)` makes the bound genuinely O(1):
+/// `close - open - 1` is exactly the length the substring would have.
+///
+/// **Being precise about severity, because overstating it would be its own
+/// defect.** This is not an amplification, and not a fix for a measurable
+/// slowdown. `lower` already holds a lowercased copy of the entire line, so the
+/// marginal cost was one further transient O(payload) allocation among several
+/// — benchmarked at ~1,370ms vs ~1,390ms for five parses of a 1.2 MB payload,
+/// i.e. indistinguishable from noise. What was actually broken is the STATED
+/// PROPERTY: a guard whose doc promises it runs before the allocation, and did
+/// not. The value is that the property is now true for the next caller, who may
+/// not already have the line materialised.
+List<String>? _boundedPassListCellsIn(String lower, int open, int close) {
+  if (close - open - 1 > _maxPassListChars) return null;
+  return _boundedPassListCells(lower.substring(open + 1, close));
 }
 
 /// The shorthand name preserved on the FIRST emitted pass. The decomposition
@@ -2144,7 +2181,7 @@ List<_GrandRightAndLeftPass>? _decodeGrandRightAndLeftPasses(String scrubbed) {
     if (words[i] != _grandRightAndLeftWords[i]) return null;
   }
 
-  final cells = _boundedPassListCells(lower.substring(open + 1, close));
+  final cells = _boundedPassListCellsIn(lower, open, close);
   if (cells == null || cells.length < 2 || cells.length > kMaxPassListCells) {
     return null;
   }

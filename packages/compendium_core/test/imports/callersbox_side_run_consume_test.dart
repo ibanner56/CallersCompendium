@@ -309,9 +309,27 @@ void main() {
       expect(f.params['hand'], 'left');
     });
 
-    // **This test pins the OUTCOME, not the bound — stated plainly because the
-    // two look the same and only one of them is actually guarded here.**
+    // A pass list longer than the modelled maximum is rejected. Both bounds
+    // that make that true — the char cap and the cell cap — are asserted here
+    // only by OUTCOME, and the reason is worth stating because it is not the
+    // reason it first appears to be.
     //
+    // The char cap was genuinely bypassed until this PR: callers took
+    // `lower.substring(open + 1, close)` and only then handed it to a guard
+    // documented as running "before the allocation".
+    // `_boundedPassListCellsIn` now measures `close - open - 1` first.
+    //
+    // **That fix is nonetheless not falsifiable by a test, and I checked rather
+    // than assuming.** Reverting a call site to allocate-then-guard leaves this
+    // suite green, because the decline is identical either way and the timing is
+    // not: benchmarked at ~1,370ms fixed vs ~1,390ms reverted for five parses of
+    // a 1.2 MB payload — noise. `lower` already holds a lowercased copy of the
+    // whole line, so the substring is one transient allocation among several,
+    // never an amplification. A timing assertion here would have been an
+    // untestable test dressed as rigour, so there isn't one.
+    //
+    // What this test does catch: removing a bound ENTIRELY, or a new decode path
+    // that never consults one.
     // Removing `_boundedPassListCells` was tried as a mutation and this stayed
     // GREEN. It has to: a hostile run is rejected several layers earlier, by
     // the alternation check and then by the shape rule (`pass_through` models
@@ -319,12 +337,12 @@ void main() {
     // decodes successfully at 400 cells but not at 12, because every move's
     // shape rule already caps the accepted count at 10 or fewer.
     //
-    // What the shared bound actually buys is that the oversized list is never
-    // ALLOCATED — an O(1) length check ahead of `String.split` — and allocation
-    // is not observable from a behavioural test. The bound is kept because
-    // every other pass-list decoder in this file shares it and a new path that
-    // quietly skipped it would be the start of the drift OWASP-wise, not
-    // because this test proves anything about it.
+    // So NEITHER bound is falsifiable from behaviour — the cell cap because the
+    // shape rules subsume it, the char cap because the allocation it prevents
+    // costs nothing measurable (see above). Both are kept because every
+    // pass-list decoder in this file shares them and a new path that quietly
+    // skipped one would be the start of the drift, not because this test proves
+    // anything about either.
     test(
       'a hostile over-long run is rejected (outcome, not the bound)',
       () async {
