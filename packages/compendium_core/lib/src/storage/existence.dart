@@ -236,6 +236,21 @@ Future<void> applyUpsertExistence(
 /// still raises `UNIQUE constraint failed` exactly as it did before v25. This
 /// function only restores the pre-v25 outcome for the case v25 introduced.
 ///
+/// ## Adoption applies to creation, never to a rename
+///
+/// [incomingId] must not already exist, and that guard is load-bearing rather
+/// than defensive. A rename is a creation-shaped write carrying an *existing*
+/// id, so without it, renaming a live entity onto a name a tombstone still
+/// holds would adopt the tombstone — writing the new name onto the *other* row
+/// and leaving the row being renamed untouched. The user asks to rename "Hard"
+/// to "Easy" and instead gets two tags, "Easy" resurrected from the dead and
+/// "Hard" unchanged. Silently producing a duplicate is worse than failing.
+///
+/// With the guard, a rename onto a tombstoned name raises `UNIQUE constraint
+/// failed` — loudly, and identically to a rename onto a *live* name, which is
+/// what it has always done. Only the genuinely new case (create an entity whose
+/// natural key a tombstone holds) is reconciled.
+///
 /// **Adoption clears the adopted row's join rows** ([joinTable] /
 /// [joinColumn]), and that is the difference between adoption and revival. A
 /// revival — the same id written again — is "this record is back", and keeps
@@ -266,9 +281,14 @@ Future<String?> adoptTombstonedNaturalKey(
       .customSelect(
         'SELECT $keyColumn AS adopted FROM $table '
         'WHERE $naturalKeyColumn = ? AND $keyColumn != ? '
-        'AND deleted_at IS NOT NULL LIMIT 1',
+        'AND deleted_at IS NOT NULL '
+        // Creation only: bail out if the incoming id already names a row, so a
+        // rename cannot adopt a tombstone and duplicate the entity.
+        'AND NOT EXISTS (SELECT 1 FROM $table WHERE $keyColumn = ?) '
+        'LIMIT 1',
         variables: [
           Variable.withString(naturalKey),
+          Variable.withString(incomingId),
           Variable.withString(incomingId),
         ],
       )

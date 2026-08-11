@@ -514,6 +514,83 @@ void main() {
       },
     );
 
+    test('a RENAME onto a tombstoned name does not adopt it', () async {
+      // A rename is a creation-shaped write carrying an existing id. Adopting
+      // there writes the new name onto the *other* row and leaves the row being
+      // renamed alone, so the user asks to rename "Hard" to "Easy" and gets two
+      // tags instead — with the deleted one resurrected. Silently duplicating
+      // is worse than failing, so this must raise UNIQUE, exactly as renaming
+      // onto a *live* name always has.
+      await repos.tags.upsert(
+        Tag(id: 'T9', name: 'Easy'),
+        at: t0,
+      );
+      await repos.tags.delete('T9', at: t0);
+      await repos.tags.upsert(
+        Tag(id: 'T1', name: 'Hard'),
+        at: t0,
+      );
+
+      await expectLater(
+        repos.tags.upsert(
+          Tag(id: 'T1', name: 'Easy'),
+          at: t0,
+        ),
+        throwsA(anything),
+        reason: 'renaming onto a tombstoned name must fail, not adopt',
+      );
+
+      final live = await repos.tags.listAll();
+      expect(
+        [for (final t in live) '${t.id}/${t.name}'],
+        ['T1/Hard'],
+        reason:
+            'the rename failed, so the collection is unchanged: no duplicate, '
+            'and the tombstoned tag stays dead',
+      );
+    });
+
+    test(
+      'renaming onto a LIVE name fails the same way (unchanged by v25)',
+      () async {
+        // The control: this behaviour predates the migration, and the case above
+        // must match it rather than inventing a third outcome.
+        await repos.tags.upsert(
+          Tag(id: 'T9', name: 'Easy'),
+          at: t0,
+        );
+        await repos.tags.upsert(
+          Tag(id: 'T1', name: 'Hard'),
+          at: t0,
+        );
+        await expectLater(
+          repos.tags.upsert(
+            Tag(id: 'T1', name: 'Easy'),
+            at: t0,
+          ),
+          throwsA(anything),
+        );
+      },
+    );
+
+    test(
+      'creation still adopts, so the two cases stay distinguishable',
+      () async {
+        // Guards against "fixing" the rename case by disabling adoption outright.
+        await repos.tags.upsert(
+          Tag(id: 'T9', name: 'Easy'),
+          at: t0,
+        );
+        await repos.tags.delete('T9', at: t0);
+        final id = await repos.tags.upsert(
+          Tag(id: 'T-new', name: 'Easy'),
+          at: t0,
+        );
+        expect(id, 'T9', reason: 'a genuinely new id must still adopt');
+        expect((await repos.tags.listAll()).single.name, 'Easy');
+      },
+    );
+
     test('a revival advances existence_at past the tombstone', () async {
       await repos.tags.upsert(
         Tag(id: 't1', name: 'Easy'),
