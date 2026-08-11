@@ -328,6 +328,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
+    // Captured before [onDeleted] runs, which unmounts this pane in BOTH
+    // layouts — the wide shell clears the selection and swaps in the empty
+    // pane, the narrow route pops. A `mounted`-guarded bump inside the undo
+    // callback would therefore never fire, restoring the program to the
+    // database while every program view carried on without it. Same reason the
+    // builder and the import screens capture their notifier up-front.
+    final programsRefresh = ProgramsRefreshScope.notifierOf(context);
     showUndoSnackBar(
       ScaffoldMessenger.of(context),
       message: l10n.programsDeletedSnack(source.title),
@@ -335,7 +342,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.restore(source.id, at: DateTime.now().toUtc());
-        if (mounted) _broadcastProgramChange();
+        programsRefresh?.value++;
       },
     );
     _broadcastProgramChange();

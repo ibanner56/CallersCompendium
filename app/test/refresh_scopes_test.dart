@@ -499,6 +499,68 @@ void main() {
   );
 
   testWidgets(
+    'undoing a program delete from the summary refreshes program views, even '
+    'though the undo outlives the pane that offered it',
+    (tester) async {
+      final repos = openTestRepos();
+      await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Friday Night',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      final refresh = ValueNotifier<int>(0);
+      addTearDown(refresh.dispose);
+      var paneVisible = true;
+      late void Function(void Function()) rebuildHost;
+
+      await pump(
+        tester,
+        repos,
+        StatefulBuilder(
+          builder: (context, setHostState) {
+            rebuildHost = setHostState;
+            return panes(
+              const DanceListScreen(),
+              // Unmounted when the program is deleted, mirroring both real
+              // layouts: the wide shell swaps in its empty pane and the narrow
+              // route pops. That unmount is what makes a `mounted`-guarded
+              // broadcast in the undo callback dead code.
+              paneVisible
+                  ? ProgramSummaryPane(
+                      programId: 'p1',
+                      refreshTrigger: refresh,
+                      onOpenBuilder: () {},
+                      onDeleted: () => rebuildHost(() => paneVisible = false),
+                      onNavigateTo: (_) {},
+                    )
+                  // A Scaffold, like the real empty pane: the messenger needs
+                  // one for the undo snackbar to survive the swap.
+                  : const Scaffold(body: SizedBox.shrink()),
+            );
+          },
+        ),
+      );
+
+      // Fixture check: the badge is present before the delete, so its return
+      // after undo is a real change of state.
+      expect(find.byKey(const ValueKey('called-count-d1')), findsOne);
+
+      await tester.tap(find.byKey(const ValueKey('summary-delete')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('called-count-d1')), findsNothing);
+
+      // The pane that armed this undo is gone by now.
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('called-count-d1')), findsOne);
+    },
+  );
+
+  testWidgets(
     'issue #340 guard: a write that broadcasts on both channels reloads a '
     'both-channels subscriber exactly once',
     (tester) async {
