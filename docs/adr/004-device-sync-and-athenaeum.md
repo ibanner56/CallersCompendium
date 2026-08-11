@@ -688,7 +688,9 @@ makes self-hosting materially harder, which constraint 4 forbids.
 
   It is stamped **causally rather than from a bare clock** — every transition
   lands strictly after the value already on the record,
-  `max(now, currentExistenceAt + 1ms)`, in **both** directions. A revival is
+  `max(now, currentExistenceAt + 1 tick)`, in **both** directions, where a tick
+  is the smallest interval the timestamp column can represent (one second, since
+  drift persists these as unix seconds). A revival is
   necessarily *after* the deletion it supersedes, since the device had to receive
   the tombstone to revive from it, but on independent clocks a slow device would
   stamp it earlier and silently revert a deliberate un-delete; the reverse skew

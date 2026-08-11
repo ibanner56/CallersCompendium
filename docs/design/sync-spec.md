@@ -36,6 +36,7 @@ merging, user accounts, and any sharing of fields not classified `shareable`.
 | **epoch** | An opaque 128-bit value identifying one incarnation of a store. |
 | **pass** | One complete sync cycle. |
 | **quarantine** | Local state of a record whose timestamps are implausible. |
+| **tick** | The smallest interval the timestamp storage representation can distinguish. Currently **one second**: `DateTimeColumn` persists as a unix second count, so a sub-second increment does not survive a write. Every `+ 1 tick` in this document means this quantity, not a fixed millisecond. |
 
 ## 3. Data model
 
@@ -60,8 +61,17 @@ Eight tables, twenty columns:
 
 `dances` and `programs` already carry `updated_at` and `deleted_at`.
 
-Six `_db.delete(` call sites across five repositories MUST convert from hard to
-soft delete. The `restore()` paths on every kind MUST stamp `existence_at`.
+Six `_db.delete(` call sites across six repositories MUST convert from hard to
+soft delete: `settings`, `choreographers`, `tags`, `published_sources`,
+`custom_field_defs`, and `VenueRepository.delete`. The `restore()` paths on
+every kind MUST stamp `existence_at`.
+
+`VenueRepository.hardDelete` is **deliberately excluded** and stays a hard
+delete. It exists solely to revert a just-committed import batch, where the
+caller has already removed the referencing programs, and converting it would
+leave an undone import visible as tombstones. `DanceRepository` and
+`ProgramRepository` set the precedent: both keep a hard-delete path on a kind
+that already soft-deletes.
 
 **Backfill.** `updated_at` is stamped at migration time. `existence_at` MUST be
 backfilled as:
@@ -146,7 +156,22 @@ Canonical JSON means:
 - one pinned number form — integers MUST NOT be emitted as `8.0`;
 - envelope fields always present, `null` where empty;
 - body fields: explicit `null` for an empty `shareable` field, omission **only**
-  for a field that is not `shareable`.
+  for a field that is not `shareable`;
+- **timestamps emitted at exactly one-tick precision** (§2), UTC, with the
+  sub-tick component always zero.
+
+**Timestamp canonicalisation is mandatory on ingest.** A receiver MUST truncate
+every inbound timestamp to a tick boundary *before* storing it and before
+computing any hash over it, and MUST NOT assume a sender did so.
+
+This is load-bearing, not tidiness. §4.2 hashes each device's **own**
+re-serialisation, so if a peer emits a sub-tick value that the local
+representation cannot store, the receiver persists the truncated value,
+re-serialises a different byte string, and publishes a hash that disagrees with
+the sender's on every subsequent pass. The record then reads `changed`/`changed`
+forever and never converges. Any peer can trigger that, deliberately or by
+carrying a finer representation, so truncating on ingest is what closes the
+round-trip.
 
 Two devices holding an identical record MUST produce identical bytes. A change
 to canonicalisation is a wire-format break and MUST bump `v`.
@@ -182,7 +207,7 @@ Eight kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
 | `v` | Envelope version. A client MUST refuse an unknown value rather than guess. |
 | `kind` | One of the eight above. |
 | `id` | The record's UUID. |
-| `updatedAt` | Content discriminator. UTC, millisecond precision. Plain local clock. |
+| `updatedAt` | Content discriminator. UTC, one-tick precision (§2). Plain local clock. |
 | `deletedAt` | Non-null means tombstone. Plain local clock; also the retention timestamp. |
 | `existenceAt` | Orders live↔deleted transitions. Causally stamped; see §6.4. |
 | `body` | Archive-codec output, `shareable` fields only. |
@@ -358,7 +383,7 @@ This rule MUST be applied on every path that can decide existence:
 stamp
 
 ```
-existenceAt = max(localNow, currentExistenceAt + 1ms)
+existenceAt = max(localNow, currentExistenceAt + 1 tick)
 ```
 
 **Writers.** Creation (plain clock), every user-initiated deletion including a
@@ -514,8 +539,8 @@ that field** is outside the local window, and take the greatest of what remains:
 
 | Field | Verbatim when | Otherwise |
 | --- | --- | --- |
-| `existenceAt` | peers agree with local live-or-deleted state | `peer + 1ms` |
-| `updatedAt` | local body matches this device's own **baseline body hash** | `peer + 1ms` |
+| `existenceAt` | peers agree with local live-or-deleted state | `peer + 1 tick` |
+| `updatedAt` | local body matches this device's own **baseline body hash** | `peer + 1 tick` |
 
 The adopted timestamp MUST come from the peer whose body matched, not the global
 maximum. Repair MUST NOT leave a record at equal `updatedAt` with content

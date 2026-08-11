@@ -844,7 +844,7 @@ the right measurement for another**, however closely the two are related.
 
 The fifteenth habit, and a failure mode this document only became large enough to
 suffer from recently. A clamp was added so a repair would not fail "on arithmetic
-at the last millisecond". It was unsound, and both halves of the argument against
+at the last tick". It was unsound, and both halves of the argument against
 it were already written down in other sections: that clamping a comparand into a
 comparison manufactures ties, and that a tie in this particular comparison loses
 to the tombstone. Neither had to be discovered. The new rule simply did not
@@ -1000,6 +1000,28 @@ turns the guard into its opposite.
 All payloads are UTF-8 JSON. All requests and responses may use
 `Content-Encoding: gzip`.
 
+**Timestamps are emitted at one-tick precision, and truncated to a tick on
+ingest.** The receiver truncates rather than trusting the sender, and does so
+before storing *and* before hashing.
+
+That asymmetry is deliberate, because the failure it prevents is remotely
+triggerable and permanent. The content hash is computed over each device's
+**own** re-serialisation of a record, not over the bytes it received. So a peer
+emitting a sub-tick value the local column cannot represent gets it stored
+truncated, re-serialised differently, and advertised under a hash that disagrees
+with the sender's — on every subsequent pass. The merge table reads that as
+`changed`/`changed` in perpetuity and the record never converges. One value with
+a stray fractional second is enough, from a buggy peer or a hostile store, and
+nothing downstream would ever repair it because both sides are behaving
+correctly by their own lights.
+
+Truncating on ingest closes the round-trip: every value that reaches storage is
+already at the precision storage keeps, so re-serialisation is a fixed point.
+This is the same class of defect as the `+ 1ms` no-op — an assumption about
+timestamp precision that was never checked against what the database actually
+stores — and it is why the canonicalisation rules now state precision explicitly
+instead of leaving it to whatever `toIso8601String` happens to emit.
+
 ### Record blob
 
 A blob is the record as the existing archive codec emits it, restricted to
@@ -1020,7 +1042,7 @@ A blob is the record as the existing archive codec emits it, restricted to
 - `v` — blob envelope version. Unknown values are refused by the client, not
   guessed at.
 - `kind` — which repository owns the record.
-- `updatedAt` — the conflict discriminator. UTC, millisecond precision.
+- `updatedAt` — the conflict discriminator. UTC, one-tick precision.
 - `deletedAt` — non-null means a **tombstone**: the record is deleted, and this
   blob is how that fact travels.
 - `existenceAt` — orders the record's live↔deleted transitions causally.
@@ -1096,7 +1118,7 @@ because they depend on a server clock never stepping backwards.
 So **every** live↔deleted transition stamps
 
 ```
-existenceAt = max(localNow, currentExistenceAt + 1ms)
+existenceAt = max(localNow, currentExistenceAt + 1 tick)
 ```
 
 reading the value already on the record, which the device has necessarily
@@ -1112,6 +1134,42 @@ One field rather than a pair also removes a failure this mechanism had while it
 was two: with `revivedAt` and `deletedAt` as separate comparands, a device could
 advance one while the other stood still. A single monotone value per record
 cannot disagree with itself.
+
+#### The increment is one *tick*, and that is not a detail
+
+This rule said `+ 1ms` for most of its life, and at this storage precision that
+was a **silent no-op**. Drift persists a `DateTimeColumn` as a unix *second*
+count — there is no `build.yaml` in this repository, so the default applies, and
+the v23 fixture confirms it empirically: `dances.updated_at` for
+2026-01-01T00:00:00Z is the integer `1767225600`, not `1767225600000`. A
+millisecond added to a value that is about to be truncated to a second does not
+survive the write, so `max(localNow, current + 1ms)` returned a value equal to
+the one it was supposed to exceed.
+
+The consequence was not theoretical. Deleting a record and undoing that deletion
+within the same second stamped the revival *equal* to the tombstone, and the
+standing rule resolves a tie to deleted — so the undo silently lost. An Undo
+snackbar is exactly that interaction.
+
+So the increment is defined as **one tick: the smallest interval the storage
+representation can distinguish**, currently one second. Every argument in this
+document that turns on the increment is quantised rather than metric and holds
+unchanged under that definition — the clamp analysis above, for instance,
+concludes that `peer + 1 tick` exceeds the ceiling only at `peer == ceiling`,
+which follows from values being multiples of a tick and is true whatever the
+tick's magnitude. Writing the rule in terms of a fixed millisecond is what tied
+it to a precision the database does not have.
+
+The lesson generalises past this rule: **an arithmetic constant in a stamping
+rule is a claim about the storage representation**, and this one was never
+checked against it. The migration should pin the two together with a comment, so
+that a later reader looking at `+ 1s` beside a millisecond-precision `DateTime`
+API does not "tighten" it back into a no-op.
+
+`updatedAt` and `deletedAt` are at that same one-second precision, and always
+have been — the specification claimed millisecond precision for `updatedAt`,
+which was simply false about the schema it describes. Nothing is being *changed*
+there; it is being *documented*.
 
 **A future-dated `existenceAt` is contained, and hostile values are rejected
 rather than clamped.** Nothing outside the existence decision reads it — not
@@ -1145,15 +1203,15 @@ parseability and calls `.toUtc()`, and the codec's clamping is all string and
 list length, so no date range check exists today.
 
 **An honestly skewed value needs a repair path, because monotonicity makes it
-permanent.** The reasoning above is about a hostile peer; the likelier case is a
-device with a badly wrong clock — a dead RTC defaulting to a future build date, a
-mis-set year — which stamps a transition at, say, 2036. Every honest peer rejects
-that blob on every pass, so the originating device believes the record deleted
-while every peer holds the opposite. And correcting the clock does not fix it:
-`max(2026, 2036 + 1ms)` is still 2036, so every later legitimate transition on
-that record stays above the rejection threshold. Without a repair path the record
-drops out of sync until wall-clock time catches up, which is not a bounded
-divergence in the way the restore case is.
+permanent.** The reasoning above is about a hostile peer; the likelier case is
+a device with a badly wrong clock — a dead RTC defaulting to a future build
+date, a mis-set year — which stamps a transition at, say, 2036. Every honest
+peer rejects that blob on every pass, so the originating device believes the
+record deleted while every peer holds the opposite. And correcting the clock
+does not fix it: `max(2026, 2036 + 1 tick)` is still 2036, so every later
+legitimate transition on that record stays above the rejection threshold.
+Without a repair path the record drops out of sync until wall-clock time
+catches up, which is not a bounded divergence in the way the restore case is.
 
 Three rules close it, and the repair happens **during a sync pass rather than on
 a user gesture** — because that is the only moment the device can see what the
@@ -1196,15 +1254,15 @@ other copies actually hold:
   and honest about having failed.
 
   A draft softened that, clamping a value back to the ceiling when it failed
-  "only because `+ 1ms` crossed the boundary", so as not to fail on arithmetic at
-  the last millisecond. Work out when that can fire: peers are pre-filtered to
-  the window, so `peer ≤ ceiling`, and `peer + 1ms` exceeds the ceiling only when
-  `peer ≥ ceiling`. Both hold only at `peer == ceiling` — so the clamp activates
-  **exclusively** in the case where it sets the rebuilt value equal to the peer's,
-  and can never produce a strictly winning value. On the `existenceAt` branch
-  that ties the peer's tombstone and the standing rule resolves a tie to deleted,
-  so a user's un-delete is silently reverted, unreported, in the one situation
-  the `+ 1ms` exists to prevent.
+  "only because `+ 1 tick` crossed the boundary", so as not to fail on
+  arithmetic at the last tick. Work out when that can fire: peers are
+  pre-filtered to the window, so `peer ≤ ceiling`, and `peer + 1 tick` exceeds
+  the ceiling only when `peer ≥ ceiling`. Both hold only at `peer == ceiling` —
+  so the clamp activates **exclusively** in the case where it sets the rebuilt
+  value equal to the peer's, and can never produce a strictly winning value. On
+  the `existenceAt` branch that ties the peer's tombstone and the standing rule
+  resolves a tie to deleted, so a user's un-delete is silently reverted,
+  unreported, in the one situation the `+ 1 tick` exists to prevent.
 
   This document had already reached both halves of that conclusion, in two
   separate sections: that clamping a comparand into a comparison manufactures
@@ -1213,11 +1271,11 @@ other copies actually hold:
 
   Then, per field:
   - `existenceAt`: adopt the peer value **verbatim** when the peers agree with
-    the local live-or-deleted state; stamp `peer + 1ms` when the local state
+    the local live-or-deleted state; stamp `peer + 1 tick` when the local state
     differs, since only a local transition can have poisoned it, so a difference
     means the user made one and their intent must outrank the peers.
   - `updatedAt`: adopt the peer value **verbatim** when the local content matches
-    **this device's own baseline** for the record; stamp `peer + 1ms` when it
+    **this device's own baseline** for the record; stamp `peer + 1 tick` when it
     does not, since only a local write can have poisoned it, so a difference from
     the baseline means this device edited and that edit must survive.
 
@@ -1519,7 +1577,8 @@ other copies actually hold:
 
   A draft of this rule keyed both fields on live-or-deleted agreement instead,
   which is orthogonal to the question and so resolved it oppositely in each
-  branch. The differs-branch took `max(local, peer + 1ms)`, which *preserves* a
+  branch. The differs-branch took `max(local, peer + 1 tick)`, which
+  *preserves* a
   forward-poisoned `updatedAt` — 2036 dominates the max — while claiming to clean
   it; and because existence is decided first, the record's clean tombstone would
   then win and carry that 2036 fleet-wide, where nothing would ever catch it,
@@ -1559,7 +1618,8 @@ A device whose RTC dies to 2000 finds every healthy record at 2026 above
 `localNow + 24h`, so it quarantines **all** of them; every peer value is likewise
 outside its window, so "no acceptable peer copy exists" fires everywhere and it
 rewrites its whole collection *downward* to 2000. A subsequent deletion stamps
-`max(2000, 2026 + 1ms)`, quarantines again, repairs down again — and the peers'
+`max(2000, 2026 + 1 tick)`, quarantines again, repairs down again — and the
+peers'
 live copies at 2026 outrank it, so the deletion is silently reverted. That is the
 cardinal failure, reached through the one branch that still trusted the clock.
 
@@ -1776,7 +1836,7 @@ standing behaviour for any deletion rather than something repair introduces, but
 it belongs in the statement of what repair guarantees.
 
 A repaired value that ties a peer's loses to a tombstone under the standing tie
-rule, so the `+ 1ms` is load-bearing rather than decorative. Two devices
+rule, so the `+ 1 tick` is load-bearing rather than decorative. Two devices
 repairing the same record concurrently converge **when their content agrees** —
 both adopt the same observed values verbatim, both land bit-identical, and there
 is nothing left to reconcile. When their content differs they do **not**:
@@ -1788,13 +1848,14 @@ bilateral and reported, the same posture as the residual above.
 
 Two repairers that take **different** branches do resolve, and correctly: the one
 whose content diverges from its baseline edited the record and stamps
-`peer + 1ms`, while the one that merely fell behind adopts the peer value
+`peer + 1 tick`, while the one that merely fell behind adopts the peer value
 verbatim and loses to it. That is the intended outcome rather than a tie, and it
 is the classifier doing its job — the ties are confined to the case where both
 devices genuinely edited, which is a real conflict and is reported as one.
 
 The independence from local timestamps is what makes that analysis hold. An
-intermediate draft took `max(local updatedAt, peer + 1ms)` in one branch, which
+intermediate draft took `max(local updatedAt, peer + 1 tick)` in one branch,
+which
 would have made the outcome depend on each device's own value: two concurrent
 repairers would then *not* tie, and whichever held the larger local value would
 win silently rather than surfacing the divergence. An earlier draft still claimed
@@ -1937,7 +1998,8 @@ deleted and both can be deliberately restored, and the rule has to be able to
 tell those apart on every kind rather than most of them.
 
 Every write that deletes or restores a record must stamp it as
-`max(localNow, currentExistenceAt + 1ms)` — **not** from a bare clock, which is
+`max(localNow, currentExistenceAt + 1 tick)` — **not** from a bare clock, which
+is
 the whole point of the column and the easiest part of it to get wrong when
 working from a migration checklist. `updated_at` and `deleted_at` are stamped
 from a plain clock as they are today: the existing `softDelete` writes one shared
@@ -1995,11 +2057,26 @@ with no data subject, which has to travel for the gate to be evaluable by a
 receiver.
 
 Plus **six `_db.delete(` call sites** converted from hard to soft delete across
-five repositories, and the **`restore()` paths on every kind** — the two that
+**six** repositories, and the **`restore()` paths on every kind** — the two that
 exist (`DanceRepository`, `ProgramRepository`) plus the six added by this
 migration — updated to stamp `existence_at`. Restore is the write that *sets* the
 provenance signal, so it is as much a part of this migration's surface as the
 deletes are; listing one without the other would leave the gate with no writer.
+
+**Six across six, and the count took two corrections to get right.** An earlier
+draft said "across five", reaching that number through two errors that happened
+to cancel: it counted `VenueRepository.hardDelete` as a conversion and omitted
+`settings` entirely. Both are wrong. `settings` converts — the wire cannot
+express a removed setting without a tombstone, which this document's own
+settings-record section already said — and `hardDelete` must **not** convert.
+It exists solely to revert a just-committed import batch, and turning it into a
+soft delete would leave an undone import lingering as tombstones.
+`DanceRepository` and `ProgramRepository` both keep exactly such a hard-delete
+path on a kind that already soft-deletes, so the precedent is unambiguous.
+
+Worth stating plainly because the arithmetic hid it: a total that matches by
+coincidence is not evidence, and neither of the two counts that produced "six"
+had the right set behind it.
 
 `Dances` and `Programs` already have `updated_at` and `deleted_at`; they need
 only `existence_at`.
@@ -3399,7 +3476,8 @@ must say this plainly rather than implying sync is opaque to us.
   device and assert the peer's edit survives. The poisoned device never edited,
   so its content still matches its own baseline and the peer value is adopted
   verbatim. Mutation-proved two ways, both of which make the stale copy outrank
-  the peer and lose its edit fleet-wide: restamp `peer + 1ms` unconditionally, or
+  the peer and lose its edit fleet-wide: restamp `peer + 1 tick`
+  unconditionally, or
   classify on local content differing from **the peer's** rather than from the
   baseline — the latter is the subtler mutation, because a poisoned discriminator
   causes exactly the staleness that makes those two comparisons disagree.
@@ -3569,7 +3647,7 @@ must say this plainly rather than implying sync is opaque to us.
   local content, which records every in-flight edit as agreed.
 - **A poisoned `updatedAt` does not travel** — poison both fields on a deleting
   device, repair, and assert the blob peers receive carries neither. Mutation-
-  proved by taking `max(local, peer + 1ms)`: the poisoned value dominates the
+  proved by taking `max(local, peer + 1 tick)`: the poisoned value dominates the
   max, the record's clean tombstone then wins the existence decision, and the
   blob is applied wholesale — carrying the poison fleet-wide, where every
   honestly-stamped later edit loses until wall-clock time catches up.
