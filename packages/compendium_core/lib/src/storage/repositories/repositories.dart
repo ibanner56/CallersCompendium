@@ -100,6 +100,9 @@ class CompendiumRepositories {
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
+      // The last sweep's result is deliberately not assigned: nothing follows
+      // it today. It still REPORTS, so that adding a sweep after it is a
+      // one-line change rather than a change to the contract above.
       await _stripStarPromenadeHandIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
@@ -312,7 +315,13 @@ class CompendiumRepositories {
   /// `hand` is already inert, per the reasoning above. It stops dead data
   /// silently resurrecting if a later taxonomy re-declares `hand` on this move
   /// with a different meaning.
-  Future<void> _stripStarPromenadeHandIfNeeded({
+  ///
+  /// Returns whether a derived rebuild has happened during this call — i.e.
+  /// [alreadyRebuilt] OR this pass ran one — matching the other sweeps, so the
+  /// caller can thread the flag onward. This pass is currently LAST in the
+  /// chain and its caller discards the value; it is returned anyway because the
+  /// point of the contract is the sweep that gets added after it.
+  Future<bool> _stripStarPromenadeHandIfNeeded({
     bool alreadyRebuilt = false,
     DerivedRebuildProgressCallback? onProgress,
   }) async {
@@ -322,7 +331,7 @@ class CompendiumRepositories {
           variables: [Variable.withString(starPromenadeHandRemovalDoneKey)],
         )
         .get();
-    if (done.isNotEmpty) return;
+    if (done.isNotEmpty) return alreadyRebuilt;
 
     final allDances = await dances.listAll(includeDeleted: true);
     for (final dance in allDances) {
@@ -345,5 +354,8 @@ class CompendiumRepositories {
       'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
       [starPromenadeHandRemovalDoneKey, '"done"'],
     );
+    // Reached only by running a rebuild (or having had one run earlier this
+    // call), so a rebuild has always happened by this point.
+    return true;
   }
 }
