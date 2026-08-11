@@ -166,16 +166,22 @@ design docs, roadmap status, and code comments.
   fix chased the citation instead of the assertion. Grepping finds every instance,
   but each still has to be judged in its own context — the same sentence can be
   true in one file and false in another, and a sweep that makes them uniform will
-  make a correct comment wrong. The sentence "absent from this map so they decline
-  the whole line to custom" appears identically in both
-  `packages/compendium_core/lib/src/imports/figure_parser.dart` (around `:483`,
-  in a partner-token map where absent entries genuinely force custom) and
+  make a correct comment wrong. The sentence at
+  `packages/compendium_core/lib/src/imports/figure_parser.dart` around `:483`,
+  in a partner-token map where absent entries genuinely force custom, reads:
+  "and are absent from this map so they decline the whole line to custom."
+  The sentence at
   `packages/compendium_core/lib/src/imports/callersbox_figure_dialect.dart`
-  (around `:1606`, in the shared people-code map). It is true in the first. In the
-  second it is false for any decoder that only adds params — `_sideRunAnnotation`
-  is one — because those decoders fall through to the shared recognizer and the
-  line still structures. The broader comment at `:1575` of the same file says so
-  explicitly. Fixing the false instance would have made the true one wrong if
+  around `:1606`, in the shared people-code map, reads:
+  "`P6`+ and every `P-n` are absent from this map and decline to custom."
+  It is true in the first. In the second it is false for any decoder that only
+  adds params — `_sideRunAnnotation` is one — because those decoders fall through
+  to the shared recognizer and the line still structures. The surrounding block
+  opening at `:1575` of the same file already corrected the general claim
+  ("what 'declines' costs depends on the decoder"), making `:1606` a surviving
+  stale instance *within* the corrected block. A sweep that fixed the general
+  statement and left the specific one behind is exactly the failure mode this
+  rule describes. Fixing the false instance would have made the true one wrong if
   applied uniformly.
 - Do not carry a claim forward from adjacent prose just because it was already
   there. Verify it against the code, or delete it. A stale sentence in
