@@ -12,6 +12,11 @@ final _renderer = FigureRenderer(contraTaxonomy);
 /// 3. **General prose** (`_proseAnnotation`): `(in center)`, `(along the set)`
 ///    → verbatim note, shape-gated by the presence of at least one lowercase
 ///    letter in the annotation body.
+/// 4. **Scope boundary**: `[bracket]` annotations must NOT become notes.
+/// 5. **Digit-bearing per-role codes**: couple-specific shorthand like
+///    `M1 past M3, W1 past W2` must be declined, not verbatim-preserved.
+/// 6. **Round-trip**: synthesised role tokens must reach `renderFreeText` and
+///    render in the active dialect (not freeze as raw shorthand).
 ///
 /// The test file is structured to support red-run verification of each
 /// mechanism. For each guard test:
@@ -339,10 +344,15 @@ void main() {
   // structural pattern and prevents the body from being preserved verbatim as
   // gendered shorthand.  56 such annotations exist in the corpus.
   //
-  // Red-run target: remove `&& !_looksLikePerRoleBody(body)` from
-  // `_perRoleChoreoAnnotation`.  Then `M1 past M3, W1 past W2` would survive
-  // to `_proseAnnotation` and be preserved as the literal string
-  // `M1 past M3, W1 past W2` — freezing gendered shorthand.
+  // Red-run target: remove `&& !_looksLikePerRoleBody(b)` from the
+  // `.where(...)` filter in `_proseAnnotation`.  Then `M1 past M3, W1 past W2`
+  // passes the lowercase gate and is preserved verbatim — freezing couple-
+  // specific gendered shorthand as a note.
+  //
+  // Note: removing the analogous guard in `_perRoleChoreoAnnotation` does NOT
+  // falsify this test — that function returns null when synthesis fails
+  // (`hasSynthesized` stays false), so the digit-bearing body never escapes it
+  // regardless.  The load-bearing guard is in `_proseAnnotation`.
 
   group('#744 — digit-bearing per-role codes: declined not verbatim', () {
     test('M1/W1 couple codes on roll_away: no note (declined)', () {
@@ -369,7 +379,7 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
-  // 4. Round-trip: synthesised role tokens reach renderFreeText
+  // 6. Round-trip: synthesised role tokens reach renderFreeText
   // ---------------------------------------------------------------------------
   //
   // Proves that notes produced by the annotation pre-recognizers carry

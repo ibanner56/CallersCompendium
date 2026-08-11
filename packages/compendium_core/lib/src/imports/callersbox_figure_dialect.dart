@@ -37,15 +37,16 @@ import 'figure_text_scrub.dart';
 /// `()`/`[]` recognition-only annotation strip. Pass this as the `frontEnd` to
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
 ///
-/// **Pre-recognizer ordering.** The first twelve entries (through
-/// `_rightLeftThroughAnnotation`) each require a distinct move anchor and a
+/// **Pre-recognizer ordering.** The first thirteen entries (through
+/// `_singleFileCircleRecognizer`) each require a distinct move anchor and a
 /// successful resolution to their own move, so among themselves order is not
-/// correctness-critical.  The one overlapping anchor pair
-/// (`\bpromenades?\b` can match a `star promenade` line) is resolved by the
-/// second condition: such a line resolves to `star_promenade`, so
-/// `_promenadeAnnotation` (which pins `promenade`) declines it.  They are
-/// listed star-first anyway, so the ordering reads the way the precedence
-/// works.
+/// correctness-critical.  Two overlapping anchor pairs are resolved by the
+/// second condition: `\bpromenades?\b` can match a `star promenade` line (the
+/// star resolves to `star_promenade`, so `_promenadeAnnotation` declines it)
+/// and `promenade` can also match a single-file circle line (the full phrase
+/// including "single file" makes `_promenadeAnnotation` decline those too).
+/// Both pairs are listed specific-first so the ordering reads the way the
+/// precedence works.
 ///
 /// **The last three entries are order-dependent.** `_perRoleChoreoAnnotation`
 /// and `_proseAnnotation` have no move anchor; either can claim any structured
