@@ -645,6 +645,133 @@ void main() {
     });
   });
 
+  group('the Undo-snackbar case: delete and restore in the same second', () {
+    // THE defect the one-second tick exists to fix, and the reason the
+    // specification's literal `+ 1ms` could not be implemented here. Deleting a
+    // dance and hitting Undo is a single wall-clock second's worth of
+    // interaction, so this is an ordinary path rather than an edge case. If the
+    // restore's `existence_at` merely *ties* with the tombstone's, §6.4
+    // resolves the tie in favour of the tombstone and the undo silently loses
+    // once sync exists.
+    //
+    // Both timestamps below are literally the same instant, so nothing about
+    // this test depends on the clock advancing between the two calls.
+    test(
+      'a dance restored in the delete second strictly outranks the tombstone',
+      () async {
+        await repos.dances.create(
+          Dance(
+            id: 'd1',
+            title: 'D',
+            figures: [],
+            createdAt: t0,
+            updatedAt: t0,
+          ),
+        );
+        await repos.dances.softDelete('d1', at: t0);
+        final tombstone = await rawStamp('dances', 'existence_at', 'id', 'd1');
+
+        await repos.dances.restore('d1', at: t0);
+        final restored = await rawStamp('dances', 'existence_at', 'id', 'd1');
+
+        expect(
+          restored,
+          greaterThan(tombstone!),
+          reason:
+              'the restore must strictly outrank the tombstone it supersedes; a '
+              'tie resolves to the tombstone and the undo loses',
+        );
+        expect(await repos.dances.getById('d1'), isNotNull);
+        expect(await rawStamp('dances', 'deleted_at', 'id', 'd1'), isNull);
+      },
+    );
+
+    test(
+      'a program restored in the delete second strictly outranks it too',
+      () async {
+        await repos.programs.create(
+          Program(id: 'p1', title: 'P', createdAt: t0, updatedAt: t0),
+        );
+        await repos.programs.softDelete('p1', at: t0);
+        final tombstone = await rawStamp(
+          'programs',
+          'existence_at',
+          'id',
+          'p1',
+        );
+
+        await repos.programs.restore('p1', at: t0);
+        expect(
+          await rawStamp('programs', 'existence_at', 'id', 'p1'),
+          greaterThan(tombstone!),
+        );
+        expect(await repos.programs.getById('p1'), isNotNull);
+      },
+    );
+
+    test(
+      'and the symmetric case: re-deleting in that second outranks the restore',
+      () async {
+        // The invariant is symmetric — a deletion must outrank the revival it
+        // supersedes just as a revival outranks the deletion. Delete, undo, then
+        // change your mind again, all inside one second.
+        await repos.dances.create(
+          Dance(
+            id: 'd1',
+            title: 'D',
+            figures: [],
+            createdAt: t0,
+            updatedAt: t0,
+          ),
+        );
+        await repos.dances.softDelete('d1', at: t0);
+        await repos.dances.restore('d1', at: t0);
+        final restored = await rawStamp('dances', 'existence_at', 'id', 'd1');
+
+        await repos.dances.softDelete('d1', at: t0);
+        expect(
+          await rawStamp('dances', 'existence_at', 'id', 'd1'),
+          greaterThan(restored!),
+        );
+        expect(await repos.dances.getById('d1'), isNull);
+      },
+    );
+
+    test(
+      'every transition in a same-second burst strictly increases',
+      () async {
+        // Generalises the two above: N transitions inside one wall-clock second
+        // must produce N strictly increasing stamps, because the clock
+        // contributes nothing and only the causal bump orders them.
+        await repos.dances.create(
+          Dance(
+            id: 'd1',
+            title: 'D',
+            figures: [],
+            createdAt: t0,
+            updatedAt: t0,
+          ),
+        );
+        final stamps = <int>[];
+        for (var i = 0; i < 6; i++) {
+          if (i.isEven) {
+            await repos.dances.softDelete('d1', at: t0);
+          } else {
+            await repos.dances.restore('d1', at: t0);
+          }
+          stamps.add((await rawStamp('dances', 'existence_at', 'id', 'd1'))!);
+        }
+        for (var i = 1; i < stamps.length; i++) {
+          expect(
+            stamps[i],
+            greaterThan(stamps[i - 1]),
+            reason: 'transition $i must outrank transition ${i - 1}: $stamps',
+          );
+        }
+      },
+    );
+  });
+
   group('dance and program transitions stamp existence_at', () {
     test('softDelete then restore advances existence_at each time', () async {
       await repos.dances.create(

@@ -35,6 +35,15 @@ void main() {
       // tick is an ordinary user action, and a bare clock read would stamp the
       // revival equal to the tombstone — which §6.4 resolves in favour of the
       // tombstone, so the undo would silently lose.
+      //
+      // NOTE ON WHAT THIS TEST CANNOT CATCH. It asserts the pure function is
+      // self-consistent with whatever [existenceStampTick] says, so shrinking
+      // the tick to a millisecond moves both sides and this stays green — it is
+      // structurally incapable of catching that mutation. Verified, not
+      // assumed: under a `+ 1ms` tick this test passes while ten others fail.
+      // Granularity is pinned by 'the tick is the smallest increment the column
+      // can hold' below, and by the storage-level Undo-snackbar tests in
+      // `soft_delete_test.dart`.
       expect(
         nextExistenceStamp(now: t0, current: t0),
         t0.add(existenceStampTick),

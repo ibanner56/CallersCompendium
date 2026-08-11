@@ -3,24 +3,47 @@ import 'package:drift/drift.dart' show Variable;
 import 'database.dart';
 import 'utc_datetime.dart';
 
-/// The smallest increment `existence_at` can actually represent.
+/// The causal tick: **one second**, pinned to storage granularity.
 ///
-/// The Device Sync specification writes the causal rule as
-/// `max(localNow, currentExistenceAt + 1ms)`. This schema stores every
-/// [DateTime] as unix **seconds** — drift's default mapping, and what
-/// `dances.created_at` has held since v1 (a 2026-01-01 stamp is the integer
-/// `1767225600`, not `1767225600000`). A literal millisecond therefore rounds
-/// away to nothing: `current + 1ms` would read back as `current`, the new stamp
-/// would tie with the transition it supersedes, and §6.4 resolves a tie in
-/// favour of the tombstone — so an undo performed in the same second as the
-/// delete would lose.
+/// ## The invariant this exists to preserve
 ///
-/// One second is the smallest increment that survives the round trip, so it is
-/// the tick used here. What the rule is *for* — a transition that is strictly
-/// later than the one it supersedes, even when the local clock has not
-/// advanced — is preserved exactly; only the granularity differs.
+/// Every existence stamp must be **strictly greater than the value it
+/// supersedes**, so that a revival always outranks the deletion it supersedes
+/// and a deletion always outranks the revival it supersedes, *whatever the
+/// clocks say*. That is the whole job. §6.4 resolves an equal `existenceAt` in
+/// favour of the tombstone, so a stamp that merely ties is not "close enough" —
+/// it silently loses.
+///
+/// ## Why one second, and why not to "tighten" it
+///
+/// The Device Sync specification writes the rule as
+/// `max(localNow, currentExistenceAt + 1ms)`. A reader who meets `+ 1s` next to
+/// Dart's millisecond-precision [DateTime] API will be tempted to tighten it
+/// back to a millisecond. **Do not.** This schema stores every [DateTime] as
+/// unix **seconds** — drift's default mapping, and what `dances.created_at` has
+/// held since v1, where a 2026-01-01 stamp is the integer `1767225600`, not
+/// `1767225600000`. A literal millisecond rounds away to nothing on the way to
+/// disk: `current + 1ms` reads back as `current`, the new stamp ties with the
+/// transition it supersedes, and the invariant above is broken. Delete a record
+/// and hit Undo in the same second — an ordinary snackbar interaction, not an
+/// edge case — and the undo loses.
+///
+/// One second is therefore not an arbitrary choice or a rounding-up of the
+/// spec: it is *the smallest increment this column can represent*, which makes
+/// it the smallest increment that can satisfy the invariant at all. The tick is
+/// pinned to storage granularity, so if the storage precision ever changes,
+/// this constant changes with it — and `existence_test.dart` asserts the
+/// coupling directly (`existenceStampTick` must survive a round trip through
+/// [unixSeconds] as a strict increase), so tightening it is a red test rather
+/// than a silent regression.
+///
+/// Storage precision is a decision of record: seconds, ruled by the maintainer
+/// on the grounds that second- versus millisecond-level granularity is
+/// equivalent for this application's purposes.
 const Duration existenceStampTick = Duration(seconds: _tickSeconds);
 
+/// The tick in whole seconds — the single source for both the Dart reference
+/// implementation above and the SQL below, so the two cannot disagree about it.
 const int _tickSeconds = 1;
 
 /// The causal existence stamp: `max(localNow, currentExistenceAt + 1 tick)`.
@@ -39,7 +62,8 @@ const int _tickSeconds = 1;
 /// stamp a revival at or below the tombstone it is meant to supersede, and the
 /// record would stay deleted. Taking the max against the current value makes
 /// every transition strictly later than the one before it on that device,
-/// independently of the clock.
+/// independently of the clock — see [existenceStampTick] for the invariant in
+/// full, and for why the increment is one second rather than one millisecond.
 ///
 /// [current] is the row's existing `existence_at` (`null` for a record that has
 /// never carried one — a fresh creation, or a row written by something that
