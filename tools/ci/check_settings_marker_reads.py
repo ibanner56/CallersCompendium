@@ -190,15 +190,22 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
             if triple:
                 close_seq = q * 3
                 end = text.find(close_seq, i + 3)
-                i = (end + 3) if end != -1 else n
+                lit_end = (end + 3) if end != -1 else n
+                raw_content = text[i + 3 : end] if end != -1 else text[i + 3 :]
+                i = lit_end
             else:
                 j = i + 1
                 while j < n and text[j] != q:
                     j += 1
+                raw_content = text[i + 1 : j]
                 i = j + 1
             line_no = offset_to_lineno(lit_start)
             src_line = source_line_at(lit_start).strip()
-            result.append(SqlLiteral("", line_no, src_line, parseable=False))
+            # Store raw_content so the fail-closed check in check_file can scan
+            # the full literal text, not just the first source line. A triple-
+            # quoted literal whose 'settings' appears on line 2+ would be
+            # silently skipped if we only checked source_line.
+            result.append(SqlLiteral(raw_content, line_no, src_line, parseable=False))
             continue
 
         # Normal literal.
@@ -299,21 +306,27 @@ def check_file(path: Path, root: Path) -> list[tuple[str, str]]:
 
     Delegates all literal parsing to extract_sql_literals; this function
     contains no quote-scanning logic of its own.
+
+    No fast path on raw text. Any substring check on un-joined text is
+    defeatable by splitting the target word across adjacent literals (e.g.
+    'sett' + 'ings'), which the joiner reconstructs but the raw check misses.
+    Every bypass found in review so far has been in a raw-text heuristic that
+    ran before the joiner. The cost of extract_sql_literals over the full
+    corpus (~340 files) is under one second; correctness outweighs it.
     """
     text = path.read_text(encoding="utf-8", errors="replace")
-    # Fast path: skip files with no mention of 'settings' at all.
-    # 'settings' cannot be split across adjacent literals, so this is safe.
-    if "settings" not in text.lower():
-        return []
-
     rel = str(path.relative_to(root))
     violations: list[tuple[str, str]] = []
 
     for lit in extract_sql_literals(text):
         if not lit.parseable:
-            # Fail closed on unparseable literals that mention settings.
-            # Check source_line since lit.content is empty for these.
-            if "settings" in lit.source_line.lower():
+            # Fail closed on unparseable literals that could contain a
+            # settings SELECT. Check lit.content (the raw literal text,
+            # preserved even for unparseable forms) rather than source_line,
+            # because source_line is only the first line of the literal and
+            # a triple-quoted string whose 'settings' appears on line 2+
+            # would be silently skipped.
+            if "settings" in lit.content.lower() or "settings" in lit.source_line.lower():
                 violations.append((
                     _BOUNDARY_UNKNOWN,
                     f"{rel}:{lit.line_no}: {lit.source_line}",

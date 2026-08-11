@@ -9,9 +9,6 @@ Pure-stdlib, assert-based (no pytest / no third-party deps, matching the rest of
 
 ## What is tested and why each case is necessary
 
-The ratchet has six independent failure modes, each caught by a specific
-subset of cases:
-
 1. **Missing filter on a single-line read** — the straightforward case the
    ratchet exists to catch. Tested for both single-quoted and double-quoted
    SQL strings, since Dart style in this repo uses both.
@@ -55,6 +52,13 @@ subset of cases:
    ``extract_sql_literals`` function preserves the source line of the opening
    literal so every violation has a real file:line location. (Discovered in
    review round 4.)
+
+8. **No fast path on raw text** — the ``settings`` prefilter was removed because
+   any substring check on un-joined text is defeatable by splitting the target
+   word across adjacent literals (e.g. ``'sett' + 'ings'``). The clean-room
+   probe below uses a fixture file that contains no other occurrence of
+   ``settings`` so the test proves the fix rather than passing by coincidence.
+   (Discovered in review round 7.)
 """
 
 from __future__ import annotations
@@ -373,6 +377,28 @@ def test_non_compliant_reads() -> None:
         "empty-string join produces '...key = ?AND deleted_at IS NULL'; "
         "the filter regex requires \\s+AND so ?AND does not match. "
         "This SQL is also invalid at runtime (SQLite parse error) so flagging is correct.",
+    )
+
+    # Clean-room probe: the fixture file contains NO other occurrence of the
+    # word 'settings', so a raw-text prefilter on 'settings' would skip the file
+    # entirely and the test would pass for the wrong reason. The split 'sett'+'ings'
+    # ensures the only occurrence of the word is reconstructed by the joiner.
+    _clean_room_src = (
+        "// This file deliberately contains no standalone occurrence of the\n"
+        "// word 'sett' + 'ings' outside of the literal below, so a raw-text\n"
+        "// prefilter would skip it. The ratchet must still catch the read.\n"
+        "Future<void> f(dynamic db) async {\n"
+        "  await db.customSelect(\n"
+        "    'SELECT 1 FROM sett'\n"
+        "    'ings WHERE key = ?',\n"
+        "  ).get();\n"
+        "}\n"
+    )
+    check(
+        "split-word bypass is caught (clean-room: no other occurrence of 'settings' in file)",
+        _violation_count(_clean_room_src) == 1,
+        "a prefilter on un-joined text would skip this file because 'settings' "
+        "does not appear as a whole word; only the joiner reconstructs it",
     )
 
 
