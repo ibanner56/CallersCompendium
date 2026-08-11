@@ -352,18 +352,27 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   }
 
   Future<String> _createChoreographer(String name) async {
-    final choreographer = Choreographer(id: uuidV4(), name: name.trim());
-    await _repos.choreographers.upsert(choreographer);
+    final minted = Choreographer(id: uuidV4(), name: name.trim());
+    // `upsert` returns the id the row actually occupies, which differs from the
+    // minted one when a tombstone already holds this name (schema v25 natural-key
+    // adoption). Caching the minted id would point the dance at a row that does
+    // not exist, and `dance_authors.choreographer_id` is a real FK, so the save
+    // fails rather than corrupting — but it fails on an ordinary action: delete a
+    // choreographer, then type that name again.
+    final id = await _repos.choreographers.upsert(minted);
+    final choreographer = minted.id == id
+        ? minted
+        : Choreographer(id: id, name: minted.name);
     // The upsert is the durable effect; only touch in-memory caches if we're
     // still mounted (the create flow awaits this from the picker).
     if (mounted) {
       _choreographers = [..._choreographers, choreographer];
       _choreographerNames = {
         ..._choreographerNames,
-        choreographer.id: name.trim(),
+        id: name.trim(),
       };
     }
-    return choreographer.id;
+    return id;
   }
 
   /// Opens the shared-author details dialog for [id] and, on save, upserts the

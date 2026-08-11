@@ -715,12 +715,24 @@ class ImportPipeline {
         );
         continue;
       }
-      final id = newId();
-      await _choreographers.upsert(Choreographer(id: id, name: name));
+      // `upsert` returns the id the row actually occupies. Since v25 that can
+      // differ from the minted one: a tombstone holding this name is adopted
+      // rather than colliding, so the write lands on the tombstone's id. Using
+      // the minted id here would wire every imported dance to a row that does
+      // not exist — `dance_authors.choreographer_id` is a real FK, so the insert
+      // fails — and would put a phantom id into `createdChoreographerIds`, which
+      // drives import undo, leaving the adopted row revived and unowned.
+      final mintedId = newId();
+      final id = await _choreographers.upsert(
+        Choreographer(id: mintedId, name: name),
+      );
       nameToId[norm] = id;
-      createdChoreographerIds.add(id);
+      // Only ids this import genuinely created are undoable. An adopted
+      // tombstone predates the import, so hard-deleting it on undo would
+      // destroy a record the user had merely deleted and could still restore.
+      if (id == mintedId) createdChoreographerIds.add(id);
       resolutions.add(
-        AuthorResolution(name: name, choreographerId: id, created: true),
+        AuthorResolution(name: name, choreographerId: id, created: id == mintedId),
       );
     }
     return resolutions;
