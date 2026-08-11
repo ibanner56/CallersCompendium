@@ -63,10 +63,16 @@ count, and comment count are all blind to suppressed findings — the review
 
 **The reviewer's login differs by endpoint.** `/pulls/<N>/reviews` records the
 author as `copilot-pull-request-reviewer[bot]`; `/pulls/<N>/comments` records it
-as `Copilot`. Verified against this repository: `gh api
-repos/ibanner56/CallersCompendium/pulls/900/reviews -q '[.[].user.login]|unique'`
-returns `["copilot-pull-request-reviewer[bot]","ibanner56"]`; the same query
-against `/pulls/900/comments` returns `["Copilot","ibanner56"]`. The document
+as `Copilot`. Verified against this repository:
+
+```sh
+gh api repos/ibanner56/CallersCompendium/pulls/900/reviews -q '[.[].user.login]|unique'
+# -> ["copilot-pull-request-reviewer[bot]","ibanner56"]
+gh api repos/ibanner56/CallersCompendium/pulls/900/comments -q '[.[].user.login]|unique'
+# -> ["Copilot","ibanner56"]
+```
+
+The document
 already teaches `select(.user.login=="copilot-pull-request-reviewer[bot]")` for
 the `/reviews` endpoint — correct there. If you carry that filter to `/comments`
 without adjusting the login, you get a **silent zero**, which reads as "no inline
