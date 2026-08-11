@@ -1249,10 +1249,19 @@ final RegExp _promenadeAnchor = RegExp(
 ///   * the sides do not alternate by position parity, which is the model both
 ///     two-pass renderers implement;
 ///   * a `square_through` 4-code list is not periodic (`code[2] == code[0]`,
-///     `code[3] == code[1]`), or a `cross_trails` run is not the `?R;?L` shape
-///     — each is a corpus-wide invariant (101/101 and 85/85 as reported on
-///     #843), so a violation is an unmodeled variant rather than something to
-///     structure;
+///     `code[3] == code[1]`), or the run states MORE passes than the move
+///     models — a `square_through` cell count that disagrees with `places`, a
+///     run past two cells on a move declaring `who2`, or any multi-cell run on
+///     a single-pass move. See [_runShapeIsModelled], which is authoritative
+///     for the exact rule.
+///
+///     **A `cross_trails` run of ONE cell is accepted, not declined.** The
+///     corpus shape is `?R;?L`, but the rule implemented is "at most two
+///     cells", deliberately — declining a one-cell run would replace the pass
+///     the source DID state with a taxonomy default, which is strictly worse
+///     than leaving the unstated pass defaulted. The reasoning, with the
+///     measured render comparison, is on [_runShapeIsModelled]; this list
+///     previously described the stricter rule that was considered and rejected;
 ///   * the resolved move declares no side slot at all;
 ///   * the shared recognizer ALREADY resolved the side from prose and the
 ///     annotation CONTRADICTS it — `Neighbor allemande left 1 (NR)`. The line
