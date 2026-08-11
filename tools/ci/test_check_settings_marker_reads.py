@@ -747,6 +747,88 @@ def test_line_number_mapping() -> None:
 
 
 # --------------------------------------------------------------------------
+# Adjacency matrix — every {first form} × {second form} × {quote style}
+# × {separator} combination, enumerated rather than discovered in review.
+# --------------------------------------------------------------------------
+
+
+def test_adjacency_matrix() -> None:
+    """Every combination of adjacent-literal forms, enumerated rather than
+    discovered one review round at a time.
+
+    The contract being pinned, in one sentence: **a run of adjacent string
+    literals is one group, and the group is parseable only if every member is
+    a plain quoted literal.** Dart concatenates adjacent literals at compile
+    time regardless of quote style, so `'a' "b"` is one string; and a raw or
+    triple-quoted member makes the whole group unparseable, because the
+    scanner cannot reliably find its boundaries.
+
+    Five separate bugs in this scanner were violations of that one rule in
+    different places: the separator (space vs empty), the raw/triple prefixes,
+    a raw-text fast path, the quote style of the next literal, and the *order*
+    of a raw/normal pair. Each was found in review, one direction at a time —
+    twice, a round fixed one direction of a two-directional case and shipped
+    the other. Enumerating the space is what stops that.
+
+    Splitting a group is the dangerous failure, not a wrong parseable flag: a
+    settings read split across two groups matches neither the SELECT pattern
+    (one half lacks `WHERE key`) nor the fail-closed branch (the other lacks
+    `SELECT`), so the read disappears silently instead of failing loudly.
+    """
+    print("adjacency matrix:")
+
+    def make(kind: str, quote: str, text: str) -> str:
+        if kind == "normal":
+            return f"{quote}{text}{quote}"
+        if kind == "raw":
+            return f"r{quote}{text}{quote}"
+        return f"{quote * 3}{text}{quote * 3}"
+
+    kinds = ("normal", "raw", "triple")
+    quote_pairs = (("'", "'"), ("'", '"'), ('"', '"'))
+    separators = (" ", "\n    ", "  // interposed comment\n    ")
+
+    for first_kind in kinds:
+        for second_kind in kinds:
+            for q1, q2 in quote_pairs:
+                for sep in separators:
+                    src = (
+                        "var x = "
+                        + make(first_kind, q1, "SELECT 1 FROM settings ")
+                        + sep
+                        + make(second_kind, q2, "WHERE key = ?")
+                        + ";"
+                    )
+                    lits = extract_sql_literals(src)
+                    label = (
+                        f"{first_kind}+{second_kind} q={q1}{q2} "
+                        f"sep={sep.strip() or 'space'!r}"
+                    )
+                    # One group, always: the run concatenates.
+                    check(
+                        f"{label}: one group",
+                        len(lits) == 1,
+                        f"got {len(lits)} groups: {[l.content for l in lits]}",
+                    )
+                    if len(lits) != 1:
+                        continue
+                    # Parseable only when every member is a plain literal.
+                    expected = first_kind == "normal" and second_kind == "normal"
+                    check(
+                        f"{label}: parseable={expected}",
+                        lits[0].parseable == expected,
+                        f"got parseable={lits[0].parseable}",
+                    )
+                    # The concatenation must be recoverable either way, so the
+                    # SELECT pattern can still see the whole read.
+                    check(
+                        f"{label}: content joined",
+                        "SELECT 1 FROM settings WHERE key = ?" in lits[0].content,
+                        f"got {lits[0].content!r}",
+                    )
+
+
+# --------------------------------------------------------------------------
 # Real-tree baseline — the production libraries must be clean.
 # --------------------------------------------------------------------------
 
@@ -790,6 +872,7 @@ def main() -> int:
     test_non_reads()
     test_fail_closed()
     test_line_number_mapping()
+    test_adjacency_matrix()
     test_real_tree_is_clean()
     print()
     if FAILURES:
