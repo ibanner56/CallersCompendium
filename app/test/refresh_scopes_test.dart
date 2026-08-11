@@ -73,7 +73,12 @@ void main() {
   /// [kDefaultDanceDetailRenderingKey] exactly once per load, which makes that
   /// key an exact reload counter for the detail screen.
   ({CompendiumRepositories repos, _CountingSettings settings}) countingRepos() {
-    final db = CompendiumDatabase(NativeDatabase.memory());
+    final db = CompendiumDatabase(
+      NativeDatabase.memory(),
+      // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
+      // under fake_async, which fails on drift's stream-close timer.
+      closeStreamsSynchronously: true,
+    );
     final settings = _CountingSettings(db);
     return (
       repos: CompendiumRepositories(db, contraTaxonomy, settings: settings),
@@ -207,6 +212,45 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('called-count-d1')), findsOne);
+    },
+  );
+
+  testWidgets(
+    "a program-side write with NO refresh scope mounted updates a row's "
+    'called-count badge',
+    (tester) async {
+      final repos = openTestRepos();
+      await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
+      await pump(
+        tester,
+        repos,
+        const DanceListScreen(),
+        mountRefreshScopes: false,
+      );
+      expect(find.byKey(const ValueKey('called-count-d1')), findsNothing);
+
+      // Written from nowhere in particular, with no channel to announce it —
+      // the shape of every gap in issue #768. The badge is derived from
+      // `program_slots`, which this list now watches (issue #768).
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Friday Night',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('called-count-d1')), findsOne);
+
+      // ...and the reverse: a programs-only write (soft delete) takes it away.
+      await repos.programs.softDelete(
+        'p1',
+        at: now.add(const Duration(days: 1)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('called-count-d1')), findsNothing);
     },
   );
 
@@ -619,8 +663,8 @@ void main() {
   );
 
   testWidgets(
-    'issue #340 guard: a write that broadcasts on both channels reloads a '
-    'both-channels subscriber exactly once',
+    'issue #340 guard: a write that broadcasts on both channels reloads the '
+    'detail screen exactly once',
     (tester) async {
       final counted = countingRepos();
       await counted.repos.dances.create(dance(id: 'd1', title: 'Alpha'));
@@ -635,7 +679,10 @@ void main() {
       expect(loadsAfterFirstBuild, 1);
 
       // A shared-bundle commit writes dances and programs, so it bumps both
-      // channels back to back in one synchronous block.
+      // channels back to back in one synchronous block. The detail screen now
+      // subscribes only to the collection channel — its one program-derived
+      // section watches the database itself (issue #768) — so this asserts the
+      // ceiling rather than the coalescing it originally did.
       revisions.collection.value++;
       revisions.programs.value++;
       await tester.pumpAndSettle();
@@ -643,6 +690,41 @@ void main() {
       expect(
         counted.settings.reads(kDefaultDanceDetailRenderingKey),
         loadsAfterFirstBuild + 1,
+      );
+    },
+  );
+
+  testWidgets(
+    'issue #340 guard: a program-side write updates the calling history '
+    'WITHOUT reloading the whole detail screen',
+    (tester) async {
+      final counted = countingRepos();
+      await counted.repos.dances.create(dance(id: 'd1', title: 'Alpha'));
+      await pump(tester, counted.repos, const DanceDetailScreen(danceId: 'd1'));
+      final loadsAfterFirstBuild = counted.settings.reads(
+        kDefaultDanceDetailRenderingKey,
+      );
+      expect(find.byKey(const ValueKey('calling-history-empty')), findsOne);
+
+      // The whole point of converting this section: the write reaches the one
+      // widget that renders it, rather than re-running the ~15 queries behind
+      // every other section to refresh a list the dance itself cannot change.
+      await counted.repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Autumn Ball',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(callingHistoryRows(), findsOne);
+      expect(
+        counted.settings.reads(kDefaultDanceDetailRenderingKey),
+        loadsAfterFirstBuild,
+        reason:
+            'a program write must not reload the detail screen: nothing else '
+            'on it is program-derived',
       );
     },
   );
@@ -696,7 +778,12 @@ void main() {
 
 /// In-memory repositories for these tests.
 CompendiumRepositories openTestRepos() => CompendiumRepositories(
-  CompendiumDatabase(NativeDatabase.memory()),
+  CompendiumDatabase(
+    NativeDatabase.memory(),
+    // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
+    // under fake_async, which fails on drift's stream-close timer.
+    closeStreamsSynchronously: true,
+  ),
   contraTaxonomy,
 );
 

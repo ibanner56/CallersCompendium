@@ -12,12 +12,10 @@ import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/collection_refresh_scope.dart';
 import '../data/formation_colors_scope.dart';
-import '../data/programs_refresh_scope.dart';
 import '../data/refresh_coalescer.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
-import '../data/calling_history_caller_filter.dart';
 import '../export/dance_pdf.dart';
 import '../export/export_labels_l10n.dart';
 import '../search/dance_detail_data.dart';
@@ -35,6 +33,7 @@ import '../widgets/figure_table.dart';
 import '../widgets/formation_color_badge.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/tag_chip.dart';
+import 'dance_detail/calling_history_section.dart';
 import 'dance_editor_screen.dart';
 import 'perform_dance_screen.dart';
 import 'program_summary_screen.dart';
@@ -156,20 +155,23 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
 
   static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
-  /// The app-level refresh notifiers (issue #768), if provided. This screen
-  /// renders two independently-mutable bodies of data: the dance itself, which
-  /// a batch edit in the Collection list can change while the wide layout's
-  /// detail pane is showing it (the pane is keyed on the *selection*, so it
-  /// never rebuilds for an edit); and the **Calling history** section, which is
-  /// derived from `ProgramSlot` data and so goes stale on every program-side
-  /// write — adding this dance to a program, marking a slot performed, deleting
-  /// a program. Before this it subscribed to neither.
+  /// The app-level dance-data refresh notifier (issue #768), if provided. A
+  /// batch edit in the Collection list can change the dance this screen is
+  /// showing while the wide layout's detail pane is showing it — the pane is
+  /// keyed on the *selection*, so it never rebuilds for an edit.
+  ///
+  /// There is deliberately no `ProgramsRefreshScope` subscription here any
+  /// more. The only program-derived thing this screen renders is the
+  /// **Calling history** section, which now watches the database itself
+  /// ([CallingHistorySection]); keeping the listener as well would reload the
+  /// whole screen on top of that section's own emit — one write, two rebuilds,
+  /// which is issue #340's failure. The scope itself stays for the screens not
+  /// yet converted.
   ValueListenable<int>? _collectionRefresh;
-  ValueListenable<int>? _programsRefresh;
 
-  /// Collapses a collection bump and a programs bump from the same write into
-  /// one reload, so this screen — which composes the most queries of any — does
-  /// not load twice per mutation (issue #340).
+  /// Collapses several collection bumps arriving in the same synchronous block
+  /// into one reload, so this screen — which composes the most queries of any —
+  /// does not load twice per mutation (issue #340).
   late final RefreshCoalescer _refreshCoalescer = RefreshCoalescer(() {
     if (mounted) _reload();
   });
@@ -183,36 +185,25 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       _future ??= Future.value(widget.previewData);
       return;
     }
-    // Subscribe to the app-level refresh notifiers. Registers rebuild
-    // dependencies; both notifiers are stable across the app's lifetime, so
-    // these attach once.
+    // Subscribe to the app-level dance-data refresh notifier. Registers a
+    // rebuild dependency; the notifier is stable across the app's lifetime, so
+    // this attaches once.
     final collectionRefresh = CollectionRefreshScope.maybeOf(context);
     if (!identical(collectionRefresh, _collectionRefresh)) {
       _collectionRefresh?.removeListener(_onExternalRefresh);
       _collectionRefresh = collectionRefresh;
       _collectionRefresh?.addListener(_onExternalRefresh);
     }
-    final programsRefresh = ProgramsRefreshScope.maybeOf(context);
-    if (!identical(programsRefresh, _programsRefresh)) {
-      _programsRefresh?.removeListener(_onExternalRefresh);
-      _programsRefresh = programsRefresh;
-      _programsRefresh?.addListener(_onExternalRefresh);
-    }
-    final requirePerformed = RequirePerformedForHistoryScope.of(context);
-    final trackAllCallers = TrackHistoryForAllCallersScope.of(context);
-    // Only load once, but reload if either calling-history setting changed: this
-    // callback also fires for unrelated ancestor changes (Theme/MediaQuery/
-    // Localizations), so guard on a setting actually differing.
+    // The two calling-history settings are passed straight down to
+    // [CallingHistorySection], which rebuilds its query when either changes.
+    // didChangeDependencies is always followed by a build, so keeping the
+    // fields current is all that is needed — toggling a setting no longer
+    // reloads this whole screen to re-run one query (issue #768).
+    _requirePerformedForHistory = RequirePerformedForHistoryScope.of(context);
+    _trackHistoryForAllCallers = TrackHistoryForAllCallersScope.of(context);
     if (_future == null) {
       _repos = RepositoriesScope.of(context);
-      _requirePerformedForHistory = requirePerformed;
-      _trackHistoryForAllCallers = trackAllCallers;
       _future = _load();
-    } else if (requirePerformed != _requirePerformedForHistory ||
-        trackAllCallers != _trackHistoryForAllCallers) {
-      _requirePerformedForHistory = requirePerformed;
-      _trackHistoryForAllCallers = trackAllCallers;
-      _reload();
     }
   }
 
@@ -238,16 +229,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       }
     }
 
-    final callerFilter = await resolveCallingHistoryCallerFilter(
-      _repos.settings,
-      trackAllCallers: _trackHistoryForAllCallers,
-    );
-    return DanceDetailData.load(
-      _repos,
-      widget.danceId!,
-      performedOnly: _requirePerformedForHistory,
-      callerFilter: callerFilter,
-    );
+    return DanceDetailData.load(_repos, widget.danceId!);
   }
 
   void _reload() {
@@ -266,7 +248,6 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   @override
   void dispose() {
     _collectionRefresh?.removeListener(_onExternalRefresh);
-    _programsRefresh?.removeListener(_onExternalRefresh);
     super.dispose();
   }
 
@@ -438,21 +419,18 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// dance can be appended to an existing program or seed a new one. The flow
   /// (and its snackbars) is shared with the Collection list's row action menu.
   ///
-  /// Awaited so the reload below runs after the sheet closes (issue #768,
-  /// gap 1: this was expression-bodied and returned the sheet's future without
-  /// awaiting or reloading, so the **Calling history** section above kept the
-  /// pre-add data). The sheet bumps `ProgramsRefreshScope` after writing, which
-  /// reloads this screen through its subscription; the direct reload is the
-  /// fallback for focused widget tests that mount no scope.
-  Future<void> _addToProgram(String danceTitle) async {
-    await showAddToProgramSheet(
-      context,
-      repositories: _repos,
-      danceId: widget.danceId!,
-      danceTitle: danceTitle,
-    );
-    if (mounted && _programsRefresh == null) _reload();
-  }
+  /// Nothing is reloaded when the sheet closes, and that is now correct rather
+  /// than the gap-1 bug it once was (issue #768: this was expression-bodied and
+  /// returned the sheet's future without awaiting or reloading, so the
+  /// **Calling history** section kept the pre-add data). The section watches
+  /// `program_slots` itself, so the sheet's write reaches it directly — with no
+  /// broadcast to remember, and no dependence on a scope being mounted.
+  Future<void> _addToProgram(String danceTitle) => showAddToProgramSheet(
+    context,
+    repositories: _repos,
+    danceId: widget.danceId!,
+    danceTitle: danceTitle,
+  );
 
   // --- App-bar actions -------------------------------------------------------
   // The dance-detail bar carries seven affordances (dialect switch, Perform,
@@ -985,63 +963,37 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             ),
         ],
         // Calling history is a collection-only concept — hidden for a
-        // not-yet-imported online preview.
-        if (!_isPreview) ...[
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            l10n.danceSectionCallingHistory,
-            style: theme.textTheme.titleMedium,
+        // not-yet-imported online preview. Unlike every other section here it
+        // is NOT read from [detail]: it subscribes to the database directly
+        // (issue #768), so a program-side write reaches it without this screen
+        // reloading. See [CallingHistorySection] for the pattern.
+        if (!_isPreview)
+          CallingHistorySection(
+            repositories: _repos,
+            danceId: widget.danceId!,
+            performedOnly: _requirePerformedForHistory,
+            trackAllCallers: _trackHistoryForAllCallers,
+            onOpenProgram: _openProgram,
           ),
-          const SizedBox(height: AppSpacing.xxs),
-          if (detail.callingHistory.isEmpty)
-            Padding(
-              key: const ValueKey('calling-history-empty'),
-              // intentional: 2px optical inset, below the 4px AppSpacing grid
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Text(
-                l10n.danceCallingHistoryEmpty,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            )
-          else
-            for (final record in detail.callingHistory)
-              _CallingHistoryRow(
-                key: ValueKey('calling-history-${record.slotId}'),
-                record: record,
-                venueLabel: detail.venueLabelsByProgramId[record.programId],
-                onTap: () => _openProgram(record.programId),
-              ),
-          if (detail.halfCallingStats.hasAny) ...[
-            const SizedBox(height: AppSpacing.xs),
-            _HalfStatsSummary(
-              key: const ValueKey('half-calling-stats'),
-              stats: detail.halfCallingStats,
-            ),
-          ],
-        ],
       ],
     );
   }
 
   /// Opens the read-focused [ProgramSummaryScreen] for [programId] — the same
   /// destination tapping a saved program in the programs list reaches, with
-  /// Perform first and the builder a tap away behind "Edit program" — then
-  /// reloads. The reload is load-bearing: the summary can mark slots performed
+  /// Perform first and the builder a tap away behind "Edit program".
+  ///
+  /// No reload on return, deliberately. The summary can mark slots performed
   /// ("Mark all performed", or adjustments made while performing) and can
-  /// delete the program outright, any of which changes the calling history
-  /// rendered above. Those writes bump `ProgramsRefreshScope`, so the reload
-  /// normally arrives through this screen's subscription; the direct call is
-  /// the fallback for focused widget tests that mount no scope.
-  Future<void> _openProgram(String programId) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ProgramSummaryScreen(programId: programId),
-      ),
-    );
-    if (mounted && _programsRefresh == null) _reload();
-  }
+  /// delete the program outright, all of which change the calling history —
+  /// and all of which are writes to `program_slots` / `programs`, so
+  /// [CallingHistorySection] receives them while this route is still on top.
+  /// Nothing else on this screen is program-derived (issue #768).
+  Future<void> _openProgram(String programId) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => ProgramSummaryScreen(programId: programId),
+    ),
+  );
 }
 
 class _DialectToggle extends StatelessWidget {
@@ -1256,148 +1208,6 @@ class _LinkRow extends StatelessWidget {
 /// `eventDate`, else its last-updated time), and the venue if present; tapping
 /// opens the program. Mirrors the row-as-button a11y pattern used by [_LinkRow]
 /// and the set-list rows in `programs_shell.dart`.
-class _CallingHistoryRow extends StatelessWidget {
-  const _CallingHistoryRow({
-    super.key,
-    required this.record,
-    this.venueLabel,
-    this.onTap,
-  });
-
-  final DanceCallingRecord record;
-
-  /// The venue label to display, already resolved by [DanceDetailData.load]
-  /// (linked [Venue] display name when the program's `venueId` resolves,
-  /// otherwise the free-text `venue`). Null falls back to the record's own
-  /// free-text `venue`, so this row still renders correctly without it.
-  final String? venueLabel;
-
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final localizations = MaterialLocalizations.of(context);
-    // Programs appear as soon as they include the dance, so `performedAt` is
-    // often null; `effectiveDate` falls back to the program's event date, then
-    // its last-updated time, so a date always shows. These are stored UTC
-    // values rendered directly (matching the other date labels on this screen).
-    final date = localizations.formatMediumDate(record.effectiveDate);
-    final venue = (venueLabel ?? record.venue)?.trim();
-    final subtitleParts = <String>[
-      date,
-      if (venue != null && venue.isNotEmpty) venue,
-    ];
-    final subtitle = subtitleParts.join(' · ');
-
-    return MergeSemantics(
-      child: Semantics(
-        button: true,
-        label: l10n.danceOpenProgramSemantic(
-          record.programTitle,
-          subtitleParts.join(', '),
-        ),
-        child: InkWell(
-          onTap: onTap,
-          child: ExcludeSemantics(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
-              child: Row(
-                children: [
-                  const Icon(Icons.event_note_outlined, size: 16),
-                  const SizedBox(width: AppSpacing.xs),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          record.programTitle,
-                          style: theme.textTheme.bodyLarge,
-                        ),
-                        if (subtitle.isNotEmpty)
-                          Text(
-                            subtitle,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right, size: 16),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A compact, screen-reader-friendly summary of the dance's first/second-half
-/// calling stats (issue #378), shown under the calling-history list when any
-/// half-attributed occurrence exists. Uses icon + text (never colour or a
-/// glyph alone; matrix WCAG 1.4.1 rule) and a single explicit [Semantics]
-/// label so assistive tech announces the whole breakdown as one phrase.
-class _HalfStatsSummary extends StatelessWidget {
-  const _HalfStatsSummary({super.key, required this.stats});
-
-  final HalfCallingStats stats;
-
-  /// Builds the human phrasing shared by the visible text and the semantics
-  /// label, so they never drift apart.
-  String _describe(AppLocalizations l10n) {
-    final parts = <String>[
-      l10n.danceHalfStatsFirstHalf(stats.firstHalfCount),
-      l10n.danceHalfStatsSecondHalf(stats.secondHalfCount),
-    ];
-    if (stats.openedFirstHalfCount > 0) {
-      parts.add(l10n.danceHalfStatsOpened(stats.openedFirstHalfCount));
-    }
-    if (stats.closedSecondHalfCount > 0) {
-      parts.add(l10n.danceHalfStatsClosed(stats.closedSecondHalfCount));
-    }
-    return '${parts.join('; ')}.';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final description = _describe(l10n);
-    return Semantics(
-      label: l10n.danceHalfStatsSemanticLabel(description),
-      container: true,
-      child: ExcludeSemantics(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                Icons.balance_outlined,
-                size: 16,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Expanded(
-                child: Text(
-                  description,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// A single cited published source: title (+ author/year), the citation's
 /// page/number, and the source's URL if present. Read-only display mirroring
 /// [_LinkRow]. A [Semantics] label collapses the multi-line content into one

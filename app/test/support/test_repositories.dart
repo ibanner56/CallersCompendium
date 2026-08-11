@@ -7,7 +7,12 @@ import 'package:drift/native.dart';
 /// fresh, isolated database (no shared state between tests), mirroring
 /// `packages/compendium_core/test/storage/test_database.dart`.
 CompendiumRepositories openTestRepositories() => CompendiumRepositories(
-  CompendiumDatabase(NativeDatabase.memory()),
+  CompendiumDatabase(
+    NativeDatabase.memory(),
+    // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
+    // under fake_async, which fails on drift's stream-close timer.
+    closeStreamsSynchronously: true,
+  ),
   contraTaxonomy,
 );
 
@@ -45,7 +50,12 @@ class InjectedSettingsFailure implements Exception {
 /// settings-apply step fails.
 ({CompendiumRepositories repos, FailingSettingsRepository settings})
 openTestRepositoriesWithFailingSettings() {
-  final db = CompendiumDatabase(NativeDatabase.memory());
+  final db = CompendiumDatabase(
+    NativeDatabase.memory(),
+    // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
+    // under fake_async, which fails on drift's stream-close timer.
+    closeStreamsSynchronously: true,
+  );
   final settings = FailingSettingsRepository(db);
   final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
   return (repos: repos, settings: settings);
@@ -117,7 +127,12 @@ class DelayedSettingsRepository extends SettingsRepository {
 /// cleanup.
 ({CompendiumRepositories repos, DelayedSettingsRepository settings})
 openTestRepositoriesWithDelayedSettings() {
-  final db = CompendiumDatabase(NativeDatabase.memory());
+  final db = CompendiumDatabase(
+    NativeDatabase.memory(),
+    // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
+    // under fake_async, which fails on drift's stream-close timer.
+    closeStreamsSynchronously: true,
+  );
   final settings = DelayedSettingsRepository(db);
   final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
   return (repos: repos, settings: settings);

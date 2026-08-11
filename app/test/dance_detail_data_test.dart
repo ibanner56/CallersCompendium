@@ -32,11 +32,7 @@ Dance _dance({
 void main() {
   test('load returns null when the dance does not exist', () async {
     final repos = openTestRepositories();
-    final data = await DanceDetailData.load(
-      repos,
-      'missing',
-      performedOnly: false,
-    );
+    final data = await DanceDetailData.load(repos, 'missing');
     expect(data, isNull);
   });
 
@@ -81,11 +77,7 @@ void main() {
         ),
       );
 
-      final data = await DanceDetailData.load(
-        repos,
-        'd1',
-        performedOnly: false,
-      );
+      final data = await DanceDetailData.load(repos, 'd1');
 
       expect(data, isNotNull);
       expect(data!.dance.title, 'Midwest Folklore');
@@ -125,7 +117,7 @@ void main() {
       ),
     );
 
-    final data = await DanceDetailData.load(repos, 'd1', performedOnly: false);
+    final data = await DanceDetailData.load(repos, 'd1');
 
     expect(data!.relatedDanceTitles['target'], 'Target Dance');
     expect(data.sourcesById['s1']?.title, 'Zesty Contras');
@@ -138,11 +130,7 @@ void main() {
       await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
       await repos.dances.create(_dance(id: 'other', title: 'Rory O\'More'));
 
-      final data = await DanceDetailData.load(
-        repos,
-        'd1',
-        performedOnly: false,
-      );
+      final data = await DanceDetailData.load(repos, 'd1');
 
       expect(data!.crossRefLinker.hasTitles, isTrue);
       // The linker matches another dance's title but never self-links.
@@ -159,96 +147,6 @@ void main() {
       // "Petronella" is this dance's own title and must not become a link.
       expect(rendered, contains('Petronella'));
       expect(rendered, isNot(contains('[d1:')));
-    },
-  );
-
-  test('load includes calling history and respects performedOnly', () async {
-    final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
-    // One performed slot and one unperformed slot for the same dance.
-    await repos.programs.create(
-      Program(
-        id: 'p1',
-        title: 'Autumn Ball',
-        slots: [
-          ProgramSlot(
-            id: 's-performed',
-            position: 0,
-            danceId: 'd1',
-            performedAt: DateTime.utc(2026, 10, 3, 20),
-          ),
-        ],
-        createdAt: _now,
-        updatedAt: _now,
-      ),
-    );
-    await repos.programs.create(
-      Program(
-        id: 'p2',
-        title: 'Spring Fling',
-        slots: [ProgramSlot(id: 's-planned', position: 0, danceId: 'd1')],
-        createdAt: _now,
-        updatedAt: _now,
-      ),
-    );
-
-    final all = await DanceDetailData.load(repos, 'd1', performedOnly: false);
-    expect(
-      all!.callingHistory.map((r) => r.slotId),
-      containsAll(['s-performed', 's-planned']),
-    );
-
-    final performedOnly = await DanceDetailData.load(
-      repos,
-      'd1',
-      performedOnly: true,
-    );
-    expect(performedOnly!.callingHistory.map((r) => r.slotId), ['s-performed']);
-  });
-
-  test(
-    'load resolves venue labels per program (linked name, else free text)',
-    () async {
-      final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
-      final grange = Venue(
-        id: 'grange-hall',
-        name: 'Grange Hall',
-        city: 'Nelson',
-      );
-      await repos.venues.upsert(grange);
-
-      // Program linked to a reusable Venue by venueId: resolves to displayName.
-      await repos.programs.create(
-        Program(
-          id: 'p-linked',
-          title: 'Autumn Ball',
-          venueId: 'grange-hall',
-          slots: [ProgramSlot(id: 's-linked', position: 0, danceId: 'd1')],
-          createdAt: _now,
-          updatedAt: _now,
-        ),
-      );
-      // Program with only free-text venue: falls back to the free text.
-      await repos.programs.create(
-        Program(
-          id: 'p-freetext',
-          title: 'Spring Fling',
-          venue: 'Town Hall',
-          slots: [ProgramSlot(id: 's-freetext', position: 0, danceId: 'd1')],
-          createdAt: _now,
-          updatedAt: _now,
-        ),
-      );
-
-      final data = await DanceDetailData.load(
-        repos,
-        'd1',
-        performedOnly: false,
-      );
-
-      expect(data!.venueLabelsByProgramId['p-linked'], grange.displayName);
-      expect(data.venueLabelsByProgramId['p-freetext'], 'Town Hall');
     },
   );
 }

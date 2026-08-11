@@ -1,16 +1,21 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/widgets.dart';
 
-import '../data/venue_label.dart';
-
 /// A resolved custom-field row for display: the definition's [label] paired
 /// with its already-formatted [value].
 typedef CustomFieldDisplay = ({String label, String value});
 
 /// Fully-hydrated data for the dance detail screen (`docs/design/ux.md` §2):
 /// the [dance] plus the resolved author/tag names, formatted custom fields,
-/// related-dance titles, cited sources, calling history, and the cross-
-/// reference [DanceTitleLinker] used to link mentions of other dances.
+/// related-dance titles, cited sources, and the cross-reference
+/// [DanceTitleLinker] used to link mentions of other dances.
+///
+/// Deliberately does NOT carry the calling history or its half-calling stats.
+/// Those are program-derived, so they went stale on every program-side write
+/// while everything here changes only with the dance; the detail screen's
+/// `CallingHistorySection` watches them directly instead (issue #768). Loading
+/// them here as well would re-run those queries on every dance-side reload for
+/// a widget that ignores the result.
 ///
 /// Extracted from `dance_detail_screen.dart`'s inline `_load()` so the load
 /// logic is widget-independent and unit-testable without pumping a widget,
@@ -25,10 +30,7 @@ class DanceDetailData {
     required this.customFields,
     required this.relatedDanceTitles,
     required this.sourcesById,
-    required this.callingHistory,
     required this.crossRefLinker,
-    this.halfCallingStats = HalfCallingStats.empty,
-    this.venueLabelsByProgramId = const {},
   });
 
   final Dance dance;
@@ -53,43 +55,16 @@ class DanceDetailData {
   /// [SourceCitation]s (missing entries indicate a purged source).
   final Map<String, PublishedSource> sourcesById;
 
-  /// Programs that include this dance (derived query over program slots),
-  /// most-recent first. Populated as soon as a program contains the dance;
-  /// `performedAt` may be null until the separate "mark performed" path lands.
-  final List<DanceCallingRecord> callingHistory;
-
   /// Matches other dances' titles inside this dance's free text (hook /
   /// calling notes) so they can render as tappable cross-reference links.
   final DanceTitleLinker crossRefLinker;
 
-  /// First/second-half positional calling stats for this dance (issue #378),
-  /// derived across every program that includes it. Defaults to
-  /// [HalfCallingStats.empty] so the online-preview constructors need no
-  /// changes; only [load] populates it via the repository. Respects
-  /// [performedOnly] the same way [callingHistory] does.
-  final HalfCallingStats halfCallingStats;
-
-  /// Maps programId → the venue label to show for that program's calling-history
-  /// row: the linked [Venue]'s display name when the program's `venueId`
-  /// resolves, otherwise its free-text `venue`. Resolved in the app layer from
-  /// the [DanceCallingRecord]'s `venueId` + `venue` against the venue catalogue
-  /// (no per-program hydration). Defaults to `const {}` so the online-preview
-  /// constructors need no changes; only [load] populates it. Rows fall back to
-  /// the record's free-text `venue` for any program missing here.
-  final Map<String, String?> venueLabelsByProgramId;
-
   /// Hydrates the detail data for the dance identified by [danceId] from
-  /// [repos], returning `null` when no such dance exists. [performedOnly]
-  /// filters the calling history to performed slots (ROADMAP G.2), and
-  /// [callerFilter] (issue #583) additionally scopes it to programs whose host
-  /// caller matches — `null` for "track all callers". Behaviour mirrors the
-  /// previous inline load in `dance_detail_screen.dart`.
+  /// [repos], returning `null` when no such dance exists.
   static Future<DanceDetailData?> load(
     CompendiumRepositories repos,
-    String danceId, {
-    required bool performedOnly,
-    String? callerFilter,
-  }) async {
+    String danceId,
+  ) async {
     final dance = await repos.dances.getById(danceId);
     if (dance == null) return null;
 
@@ -144,34 +119,6 @@ class DanceDetailData {
       excludeId: dance.id,
     );
 
-    final callingHistory = await repos.programs.callingHistoryForDance(
-      danceId,
-      performedOnly: performedOnly,
-      callerFilter: callerFilter,
-    );
-
-    // Resolve each calling-history program's venue label in the app layer.
-    // Each [DanceCallingRecord] now carries both the program's free-text `venue`
-    // and its linked `venueId`, so we only need the venue catalogue (one query)
-    // — no per-program hydration — to apply the same [resolveVenueLabel]
-    // fallback used elsewhere. Keeps venue resolution app-layer only.
-    final venueLabelsByProgramId = <String, String?>{};
-    if (callingHistory.isNotEmpty) {
-      // Only pay for the venue catalogue when a record actually links one;
-      // otherwise every label resolves from free text alone.
-      final hasLinkedVenue = callingHistory.any((r) => r.venueId != null);
-      final venuesById = hasLinkedVenue
-          ? {for (final v in await repos.venues.listAll()) v.id: v}
-          : const <String, Venue>{};
-      for (final record in callingHistory) {
-        venueLabelsByProgramId[record.programId] = resolveVenueLabelParts(
-          record.venueId,
-          record.venue,
-          venuesById,
-        );
-      }
-    }
-
     return DanceDetailData(
       dance: dance,
       authorNames: [
@@ -194,14 +141,7 @@ class DanceDetailData {
       ],
       relatedDanceTitles: relatedDanceTitles,
       sourcesById: sourcesById,
-      callingHistory: callingHistory,
       crossRefLinker: crossRefLinker,
-      halfCallingStats: await repos.programs.halfCallingStatsForDance(
-        danceId,
-        performedOnly: performedOnly,
-        callerFilter: callerFilter,
-      ),
-      venueLabelsByProgramId: venueLabelsByProgramId,
     );
   }
 }

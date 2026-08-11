@@ -2450,7 +2450,10 @@ void main() {
         // `committing` phase long enough to inspect the guarded Close button.
         final gate = _CommitGate();
         final repos = CompendiumRepositories(
-          CompendiumDatabase(NativeDatabase.memory().interceptWith(gate)),
+          CompendiumDatabase(
+            NativeDatabase.memory().interceptWith(gate),
+            closeStreamsSynchronously: true,
+          ),
           contraTaxonomy,
         );
         addTearDown(repos.db.close);

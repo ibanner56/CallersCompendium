@@ -83,7 +83,14 @@ String _validBundleJson() => encodeArchive(
 );
 
 AppData _openAppData() {
-  final appData = AppData(CompendiumDatabase(NativeDatabase.memory()));
+  final appData = AppData(
+    CompendiumDatabase(
+      NativeDatabase.memory(),
+      // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
+      // under fake_async, which fails on drift's stream-close timer.
+      closeStreamsSynchronously: true,
+    ),
+  );
   addTearDown(appData.close);
   return appData;
 }

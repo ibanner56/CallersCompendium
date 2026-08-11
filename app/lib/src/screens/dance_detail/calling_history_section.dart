@@ -1,0 +1,351 @@
+import 'dart:async';
+
+import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/material.dart';
+
+import '../../../l10n/app_localizations.dart';
+import '../../data/calling_history_caller_filter.dart';
+import '../../data/venue_label.dart';
+import '../../theme/app_spacing.dart';
+
+/// The dance-detail screen's **Calling history** section: the programs that
+/// include this dance, its first/second-half calling stats, and the empty state
+/// when it has never been called.
+///
+/// ## This is the app-side reference implementation for issue #768
+///
+/// It is the first `StreamBuilder` in the app. Everything it renders is derived
+/// from `program_slots` + `programs` — data no dance-side write touches and
+/// every program-side write changes — so before this it went stale unless a
+/// mutation site remembered to broadcast `ProgramsRefreshScope`, which is the
+/// defect class #768 catalogues seven instances of. It now reads
+/// [ProgramRepository.watchCallingHistoryForDance], whose doc comment states the
+/// repository-side half of the pattern (in particular why `readsFrom` is the
+/// silent-failure mode to design against). The widget-side rules it
+/// demonstrates, for the screens converted after it:
+///
+/// 1. **The stream is a `State` field, created once** — in
+///    [State.didChangeDependencies], and again only when an argument that
+///    changes the query changes ([State.didUpdateWidget]). Building it inside
+///    `build` would re-subscribe and re-query on every frame.
+/// 2. **The section owns its own subscription**, so a rebuild of the screen
+///    around it — a dance edit, a theme change — neither drops nor duplicates
+///    it, and the screen's own load no longer fetches this data at all.
+/// 3. **One stream, one rebuild.** The half-stats arrive inside
+///    [DanceCallingHistory] rather than from a second stream, so a program write
+///    rebuilds this section once. Over-firing is issue #340's failure and pulls
+///    opposite to staleness; both have to be held at once.
+/// 4. **A read outside the stream's declared tables is stated, not assumed.**
+///    The venue *label* comes from the `venues` catalogue, which is deliberately
+///    outside that set, so it is loaded once here (see `_loadVenueLabels`) and a
+///    venue renamed while this screen is open keeps its old label until the
+///    screen is reopened. That is unchanged from the pre-stream behaviour — no
+///    venue-editing path refreshed this screen either — and it is written down
+///    because an unstated gap is indistinguishable from the bug in rule 1.
+/// 5. **The screen drops its `ProgramsRefreshScope` listener in the same
+///    change.** Keeping it would reload the whole screen on top of this stream's
+///    emit: one write, two rebuilds. The scope itself stays — the screens not
+///    yet converted still depend on it.
+///
+/// Rendered only for a saved dance; calling history is a collection-only
+/// concept, so the online-preview detail view omits this section entirely.
+class CallingHistorySection extends StatefulWidget {
+  const CallingHistorySection({
+    super.key,
+    required this.repositories,
+    required this.danceId,
+    required this.performedOnly,
+    required this.trackAllCallers,
+    required this.onOpenProgram,
+  });
+
+  final CompendiumRepositories repositories;
+  final String danceId;
+
+  /// "Require mark-performed for calling history" (ROADMAP G.2). Changing it
+  /// changes the query, so the stream is rebuilt.
+  final bool performedOnly;
+
+  /// "Track calling history for all callers" (issue #583). Resolves to the
+  /// caller filter passed to the query, so a change rebuilds the stream.
+  final bool trackAllCallers;
+
+  /// Opens the program summary for a tapped history row.
+  final ValueChanged<String> onOpenProgram;
+
+  @override
+  State<CallingHistorySection> createState() => _CallingHistorySectionState();
+}
+
+class _CallingHistorySectionState extends State<CallingHistorySection> {
+  /// The live query. Held in the State — never built in [build] — and replaced
+  /// only when an argument that changes the query changes.
+  Stream<DanceCallingHistory>? _history;
+
+  /// Venue display names by id, resolved once. Outside the stream's declared
+  /// tables by design; see rule 4 on [CallingHistorySection].
+  Map<String, Venue> _venuesById = const {};
+
+  /// Guards against a slow venue load from an earlier configuration landing
+  /// after a newer one has started.
+  int _venueLoadSeq = 0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _history ??= _watch();
+  }
+
+  @override
+  void didUpdateWidget(CallingHistorySection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.danceId != widget.danceId ||
+        oldWidget.performedOnly != widget.performedOnly ||
+        oldWidget.trackAllCallers != widget.trackAllCallers ||
+        oldWidget.repositories != widget.repositories) {
+      setState(() => _history = _watch());
+    }
+  }
+
+  /// Builds the query stream for the current arguments.
+  ///
+  /// The caller filter is a settings read, so the stream is preceded by one
+  /// future; `asyncExpand` keeps that off the widget tree rather than nesting a
+  /// [FutureBuilder] around a [StreamBuilder]. A settings *change* arrives as a
+  /// new [CallingHistorySection.trackAllCallers], which rebuilds this stream —
+  /// settings are not part of the watched table set, and do not need to be.
+  Stream<DanceCallingHistory> _watch() {
+    unawaited(_loadVenueLabels());
+    return Stream.fromFuture(
+      resolveCallingHistoryCallerFilter(
+        widget.repositories.settings,
+        trackAllCallers: widget.trackAllCallers,
+      ),
+    ).asyncExpand(
+      (callerFilter) =>
+          widget.repositories.programs.watchCallingHistoryForDance(
+            widget.danceId,
+            performedOnly: widget.performedOnly,
+            callerFilter: callerFilter,
+          ),
+    );
+  }
+
+  /// Loads the venue catalogue so a history row whose program links a [Venue]
+  /// can show that venue's display name rather than the program's free text.
+  /// A failure here must not take out the whole section: the rows fall back to
+  /// their own free-text venue, which is what they render without a catalogue.
+  Future<void> _loadVenueLabels() async {
+    final seq = ++_venueLoadSeq;
+    try {
+      final venues = await widget.repositories.venues.listAll();
+      if (!mounted || seq != _venueLoadSeq) return;
+      setState(() => _venuesById = {for (final v in venues) v.id: v});
+    } catch (_) {
+      if (!mounted || seq != _venueLoadSeq) return;
+      setState(() => _venuesById = const {});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    return StreamBuilder<DanceCallingHistory>(
+      stream: _history,
+      builder: (context, snapshot) {
+        // Before the first value arrives, render the section's own empty state
+        // rather than a spinner: this section sits inside an already-loaded
+        // screen, and the first emit is one local query away.
+        final history = snapshot.data ?? DanceCallingHistory.empty;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              l10n.danceSectionCallingHistory,
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: AppSpacing.xxs),
+            if (history.records.isEmpty)
+              Padding(
+                key: const ValueKey('calling-history-empty'),
+                // intentional: 2px optical inset, below the 4px AppSpacing grid
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Text(
+                  l10n.danceCallingHistoryEmpty,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              )
+            else
+              for (final record in history.records)
+                CallingHistoryRow(
+                  key: ValueKey('calling-history-${record.slotId}'),
+                  record: record,
+                  venueLabel: resolveVenueLabelParts(
+                    record.venueId,
+                    record.venue,
+                    _venuesById,
+                  ),
+                  onTap: () => widget.onOpenProgram(record.programId),
+                ),
+            if (history.halfStats.hasAny) ...[
+              const SizedBox(height: AppSpacing.xs),
+              HalfStatsSummary(
+                key: const ValueKey('half-calling-stats'),
+                stats: history.halfStats,
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// One program in the dance's calling history: its title, the date it was
+/// called (or scheduled) and its venue, tappable to open the program.
+class CallingHistoryRow extends StatelessWidget {
+  const CallingHistoryRow({
+    super.key,
+    required this.record,
+    this.venueLabel,
+    this.onTap,
+  });
+
+  final DanceCallingRecord record;
+
+  /// The venue label to display: the linked [Venue]'s display name when the
+  /// program's `venueId` resolves, otherwise the free-text `venue`. Null falls
+  /// back to the record's own free-text `venue`, so this row still renders
+  /// correctly before the venue catalogue has loaded.
+  final String? venueLabel;
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final localizations = MaterialLocalizations.of(context);
+    // Programs appear as soon as they include the dance, so `performedAt` is
+    // often null; `effectiveDate` falls back to the program's event date, then
+    // its last-updated time, so a date always shows. These are stored UTC
+    // values rendered directly (matching the other date labels on this screen).
+    final date = localizations.formatMediumDate(record.effectiveDate);
+    final venue = (venueLabel ?? record.venue)?.trim();
+    final subtitleParts = <String>[
+      date,
+      if (venue != null && venue.isNotEmpty) venue,
+    ];
+    final subtitle = subtitleParts.join(' · ');
+
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        label: l10n.danceOpenProgramSemantic(
+          record.programTitle,
+          subtitleParts.join(', '),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          child: ExcludeSemantics(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+              child: Row(
+                children: [
+                  const Icon(Icons.event_note_outlined, size: 16),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          record.programTitle,
+                          style: theme.textTheme.bodyLarge,
+                        ),
+                        if (subtitle.isNotEmpty)
+                          Text(
+                            subtitle,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, size: 16),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A compact, screen-reader-friendly summary of the dance's first/second-half
+/// calling stats (issue #378), shown under the calling-history list when any
+/// half-attributed occurrence exists. Uses icon + text (never colour or a
+/// glyph alone; matrix WCAG 1.4.1 rule) and a single explicit [Semantics]
+/// label so assistive tech announces the whole breakdown as one phrase.
+class HalfStatsSummary extends StatelessWidget {
+  const HalfStatsSummary({super.key, required this.stats});
+
+  final HalfCallingStats stats;
+
+  /// Builds the human phrasing shared by the visible text and the semantics
+  /// label, so they never drift apart.
+  String _describe(AppLocalizations l10n) {
+    final parts = <String>[
+      l10n.danceHalfStatsFirstHalf(stats.firstHalfCount),
+      l10n.danceHalfStatsSecondHalf(stats.secondHalfCount),
+    ];
+    if (stats.openedFirstHalfCount > 0) {
+      parts.add(l10n.danceHalfStatsOpened(stats.openedFirstHalfCount));
+    }
+    if (stats.closedSecondHalfCount > 0) {
+      parts.add(l10n.danceHalfStatsClosed(stats.closedSecondHalfCount));
+    }
+    return '${parts.join('; ')}.';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final description = _describe(l10n);
+    return Semantics(
+      label: l10n.danceHalfStatsSemanticLabel(description),
+      container: true,
+      child: ExcludeSemantics(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.balance_outlined,
+                size: 16,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  description,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

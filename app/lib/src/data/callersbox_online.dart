@@ -290,7 +290,6 @@ class CallersBoxOnline implements OnlineSearchService {
       customFields: const [],
       relatedDanceTitles: const {},
       sourcesById: const {},
-      callingHistory: const [],
       crossRefLinker: DanceTitleLinker.build(const [], excludeId: ''),
     );
   }

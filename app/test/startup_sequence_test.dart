@@ -79,7 +79,14 @@ class _FailOnceMigrationAppData extends AppData {
 }
 
 AppData _openAppData() {
-  final appData = AppData(CompendiumDatabase(NativeDatabase.memory()));
+  final appData = AppData(
+    CompendiumDatabase(
+      NativeDatabase.memory(),
+      // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
+      // under fake_async, which fails on drift's stream-close timer.
+      closeStreamsSynchronously: true,
+    ),
+  );
   // The database is also closed by CompendiumApp.dispose(); sqlite3's close is
   // idempotent, so this teardown just guarantees cleanup even for the last test
   // in the file (whose widget tree is never unmounted).
@@ -192,7 +199,12 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final db = CompendiumDatabase(NativeDatabase.memory());
+      final db = CompendiumDatabase(
+        NativeDatabase.memory(),
+        // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
+        // under fake_async, which fails on drift's stream-close timer.
+        closeStreamsSynchronously: true,
+      );
       final appData = _FailOnceMigrationAppData(db);
       addTearDown(appData.close);
 

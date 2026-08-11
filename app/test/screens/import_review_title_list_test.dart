@@ -88,7 +88,6 @@ DanceDetailData _detail(Dance dance) => DanceDetailData(
   customFields: const [],
   relatedDanceTitles: const {},
   sourcesById: const {},
-  callingHistory: const [],
   crossRefLinker: DanceTitleLinker.build(const [], excludeId: ''),
 );
 
@@ -621,7 +620,12 @@ void main() {
     testWidgets('a paste with nothing importable does not load the '
         'collection\'s titles', (tester) async {
       final repos = _CountingRepositories(
-        CompendiumDatabase(NativeDatabase.memory()),
+        CompendiumDatabase(
+          NativeDatabase.memory(),
+          // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
+          // under fake_async, which fails on drift's stream-close timer.
+          closeStreamsSynchronously: true,
+        ),
       );
       await repos.dances.create(_localDance(id: 'd1', title: 'Fiddleheads'));
       final service = _FakeOnline(rowsByTitle: const {'ghost dance': []});

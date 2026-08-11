@@ -108,7 +108,6 @@ DanceDetailData _detailFor(Dance dance) => DanceDetailData(
   customFields: const [],
   relatedDanceTitles: const {},
   sourcesById: const {},
-  callingHistory: const [],
   crossRefLinker: DanceTitleLinker.build(const [], excludeId: ''),
 );
 
@@ -608,7 +607,12 @@ void main() {
     test('a paste where every title is already owned performs zero '
         'full-collection reads', () async {
       final repos = _CountingRepositories(
-        CompendiumDatabase(NativeDatabase.memory()),
+        CompendiumDatabase(
+          NativeDatabase.memory(),
+          // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
+          // under fake_async, which fails on drift's stream-close timer.
+          closeStreamsSynchronously: true,
+        ),
       );
       await repos.dances.create(_localDance(id: 'd1', title: 'Fiddleheads'));
       await repos.dances.create(_localDance(id: 'd2', title: 'Petronella'));
@@ -635,7 +639,12 @@ void main() {
     test('a paste with something to look up still builds the snapshot exactly '
         'once, however many titles it has', () async {
       final repos = _CountingRepositories(
-        CompendiumDatabase(NativeDatabase.memory()),
+        CompendiumDatabase(
+          NativeDatabase.memory(),
+          // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
+          // under fake_async, which fails on drift's stream-close timer.
+          closeStreamsSynchronously: true,
+        ),
       );
       final service = _CountingOnlineService(
         rowsByTitle: {
@@ -665,7 +674,12 @@ void main() {
       'a paste of only over-long lines reads nothing from the collection',
       () async {
         final repos = _CountingRepositories(
-          CompendiumDatabase(NativeDatabase.memory()),
+          CompendiumDatabase(
+            NativeDatabase.memory(),
+            // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
+            // under fake_async, which fails on drift's stream-close timer.
+            closeStreamsSynchronously: true,
+          ),
         );
         await repos.dances.create(_localDance(id: 'd1', title: 'Fiddleheads'));
         final service = _CountingOnlineService();
@@ -698,7 +712,12 @@ void main() {
 
     test('an over-cap paste is refused before any collection read', () async {
       final repos = _CountingRepositories(
-        CompendiumDatabase(NativeDatabase.memory()),
+        CompendiumDatabase(
+          NativeDatabase.memory(),
+          // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
+          // under fake_async, which fails on drift's stream-close timer.
+          closeStreamsSynchronously: true,
+        ),
       );
       final service = _CountingOnlineService();
 

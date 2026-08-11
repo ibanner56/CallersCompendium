@@ -195,6 +195,47 @@ class CollectionData {
     );
   }
 
+  /// A copy carrying fresh program-derived tallies, leaving everything else —
+  /// the dances, the facet vocabularies, the custom-field defs — untouched.
+  ///
+  /// Deliberately narrow. These two maps are the only part of this snapshot
+  /// that a *program*-side write can change, and they are the only part the
+  /// Collection list refreshes from a stream (issue #768). Re-running the whole
+  /// [load] for them would re-read every dance, choreographer, tag and custom
+  /// field to update a badge, which is the over-firing failure issue #340
+  /// records. Widen this only for another field a stream actually delivers.
+  CollectionData copyWithProgramDerived({
+    required Map<String, DateTime> lastCalled,
+    required Map<String, DanceCallCounts> callCounts,
+  }) => CollectionData(
+    dancesById: dancesById,
+    choreographersById: choreographersById,
+    choreographerNames: choreographerNames,
+    tagNames: tagNames,
+    tagColors: tagColors,
+    customFieldDefs: customFieldDefs,
+    listFieldDefs: listFieldDefs,
+    choiceFields: choiceFields,
+    booleanFields: booleanFields,
+    textFields: textFields,
+    numberFields: numberFields,
+    lastCalled: lastCalled,
+    callCounts: callCounts,
+    authors: authors,
+    tags: tags,
+    citedSources: citedSources,
+    forms: forms,
+    formations: formations,
+    progressions: progressions,
+    statuses: statuses,
+    levels: levels,
+    hasMixedLevel: hasMixedLevel,
+    hasMixer: hasMixer,
+    hasRating: hasRating,
+    taxonomy: taxonomy,
+    sectionLabels: sectionLabels,
+  );
+
   DanceListEntry entryFor(Dance dance) => DanceListEntry(
     dance: dance,
     authorNames: [
