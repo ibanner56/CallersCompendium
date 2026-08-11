@@ -861,7 +861,9 @@ reachable.
   *Dancer identity* fills `who`/`who2` where declared — odd 1-based positions
   name `who`, even name `who2`. `pass_through` declares no `who`, so its dancer
   code is dropped; preserving it as a note would add one to ~2,048 figures
-  across 1,773 dances, and the owner ruled to drop it.
+  across 1,773 dances. Dropping it is the IMPLEMENTING AGENT'S call, not an
+  owner ruling: a note on that many figures is a visible change at corpus
+  scale, so it is recorded here as an open question rather than a settled one.
   *Declines (→ the ordinary annotation-stripped reading):* any unmapped people
   code (`O`, `Ph`, `SRN`, `C1`–`C3`, out-of-range neighbours/shadows); a run
   whose sides do not alternate by position parity; a run stating more passes
