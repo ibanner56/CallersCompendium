@@ -561,6 +561,63 @@ void main() {
   );
 
   testWidgets(
+    'undoing a dance delete refreshes other views, on a route that passes no '
+    'onRestored — which is every route but the Collection row tap',
+    (tester) async {
+      final repos = openTestRepos();
+      await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
+      final listRefresh = ValueNotifier<int>(0);
+      addTearDown(listRefresh.dispose);
+
+      // Models the five live routes: a caller that pushes DanceDetailScreen
+      // with no onRestored, and handles only the popped `deleted` result — the
+      // shape of the search palette, _openDance, the duplicate landing, the
+      // post-import auto-open and the program slot row.
+      await pump(
+        tester,
+        repos,
+        Scaffold(
+          body: Column(
+            children: [
+              Expanded(child: DanceListScreen(refreshTrigger: listRefresh)),
+              Builder(
+                builder: (context) => ElevatedButton(
+                  key: const ValueKey('open-detail'),
+                  onPressed: () async {
+                    final deleted = await Navigator.of(context).push<bool>(
+                      MaterialPageRoute<bool>(
+                        builder: (_) => const DanceDetailScreen(danceId: 'd1'),
+                      ),
+                    );
+                    if (deleted == true) listRefresh.value++;
+                  },
+                  child: const Text('open'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(find.text('Alpha'), findsOne);
+
+      await tester.tap(find.byKey(const ValueKey('open-detail')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('delete-dance')).last);
+      await tester.pumpAndSettle();
+
+      // Fixture check: the delete really did reach the list, so the assertion
+      // below is a restore rather than a row that never left.
+      expect(find.text('Alpha'), findsNothing);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Alpha'), findsOne);
+    },
+  );
+
+  testWidgets(
     'issue #340 guard: a write that broadcasts on both channels reloads a '
     'both-channels subscriber exactly once',
     (tester) async {

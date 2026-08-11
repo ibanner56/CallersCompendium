@@ -13,6 +13,15 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Undoing a dance you just deleted now brings it back everywhere, not just in
+  the database.** If you opened a dance from search, from a link on another
+  dance, from a program's set list, or straight after importing it, then deleted
+  it and tapped **Undo**, the dance was restored but every list still behaved as
+  though it were gone — a related-dance link kept reading "(missing dance)"
+  until the app was restarted. Only one route in, tapping a row in the
+  Collection, was unaffected. Undo now tells the other views to refresh, the way
+  the rest of the app already does (#768).
+
 - **Bare ContraDB box circulates now import correctly (#752).** A ContraDB
   dance written as `larks cross while robins loop` (or any role pair) was not
   recognized as a box circulate. It now imports as `box_circulate`, with the
