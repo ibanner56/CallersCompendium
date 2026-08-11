@@ -762,8 +762,13 @@ Which is which, derived from the code rather than from memory:
   `_rightLeftThroughAnnotation`, `_sideRunAnnotation`. Every one is the
   falls-through kind.
 - `contraDbHtmlFigureFrontEnd` registers its **entire grammar** as
-  pre-recognizers, so a ContraDB recognizer declining still falls through to the
-  shared core; the line only goes custom when that core declines too.
+  pre-recognizers. **This is the exception most likely to be got wrong**, so
+  state it rather than deriving it: for ContraDB there is no such thing as a
+  source-specific whole-line decline. Every ContraDB recognizer is the
+  falls-through kind, and a line reaches `custom` only when the SHARED core
+  declines it too. A sentence like "this ContraDB recognizer declines the line
+  to custom" is therefore wrong about the mechanism even when it happens to be
+  right about the outcome.
 - `canonicalFigureFrontEnd` registers none, so for it every decline is a
   whole-line decline.
 - `FigureFrontEnd.declineToCustom` is the deliberate exception: a front-end
@@ -780,17 +785,18 @@ role terms. `Gentlespoons star promenade right 1` is stored as
 
 So "verbatim" is true only relative to a stated baseline:
 
-- **Correct usage — relative to `recognitionNormalize`.** `figure_parser.dart`
-  scopes it this way twice (the `FigureFrontEnd.recognitionNormalize` doc and
-  `_normalize`'s own): what a *structured* match drops — annotations and the
-  like — survives on the custom reading. That is a real and useful guarantee.
-- **Correct usage — relative to a recognizer's template.** Most of
-  `contradb_figure_dialect.dart`'s many uses are this third sense: text trailing
-  a matched template "survives verbatim as the note". Also true, also
-  baseline-relative, and *not* the same claim as either of the others.
-- **Incorrect usage — relative to the source.** Nothing preserves the source's
-  own wording through the parser, because role canonicalization happens before
-  recognition for every line.
+- **The normalization sense — correct.** Verbatim against whatever
+  `recognitionNormalize` removed. `figure_parser.dart` scopes it this way twice
+  (the `FigureFrontEnd.recognitionNormalize` doc and `_normalize`'s own): what a
+  *structured* match drops — annotations and the like — survives on the custom
+  reading. A real and useful guarantee.
+- **The template sense — correct.** Verbatim against a recognizer's own
+  template: text trailing the part a recognizer matched "survives verbatim as
+  the note". Most of `contradb_figure_dialect.dart`'s many uses are this one.
+  Also true, also baseline-relative, and *not* the same claim as the above.
+- **The source sense — never true.** Nothing preserves the source's own wording
+  through the parser, because role canonicalization happens before recognition
+  for every line.
 
 This ambiguity has already reached users: `app/CHANGELOG.md` promised a declined
 ContraDB figure kept "its own wording exactly as written" when the role names
