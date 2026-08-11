@@ -36,6 +36,7 @@ merging, user accounts, and any sharing of fields not classified `shareable`.
 | **epoch** | An opaque 128-bit value identifying one incarnation of a store. |
 | **pass** | One complete sync cycle. |
 | **quarantine** | Local state of a record whose timestamps are implausible. |
+| **report** | Surface a condition to the user as a non-blocking notice that survives the pass which raised it. Reporting MUST NOT block a write, gate a pass, or require a gesture to clear. Distinct from `review_queue`, which holds candidate *records* awaiting a decision: a report names a condition, not a pending choice. |
 | **tick** | The smallest interval the timestamp storage representation can distinguish. Currently **one second**: `DateTimeColumn` persists as a unix second count, so a sub-second increment does not survive a write. Every `+ 1 tick` in this document means this quantity, not a fixed millisecond. |
 
 ## 3. Data model
@@ -76,6 +77,37 @@ caller has already removed the referencing programs, and converting it would
 leave an undone import visible as tombstones. `DanceRepository` and
 `ProgramRepository` set the precedent: both keep a hard-delete path on a kind
 that already soft-deletes.
+
+**The generic hard-delete hatch.** The shipped migration also added a
+`permanent: true` parameter to `delete()`/`remove()` on five repositories —
+`settings`, `choreographers`, `published_sources`, `custom_field_defs` and
+`venues` — which bypasses the tombstone and removes the row outright. Two of
+those kinds (`venue`, `choreographer`) produce blobs (§4.3).
+
+A hard delete is permitted **only** where the record can never have been
+published to a peer. A tombstone is worth its storage only when there is
+somebody to inform; conversely, a row a peer holds live cannot be removed
+locally without the next pass taking the "absent from baseline, present remotely
+→ download" path (§6.3) and restoring it, reversing the deletion on every pass.
+
+That condition is currently **assumed, not enforced**. Its production callers
+divide in two:
+
+- **Safe by construction** — the editor draft keys (`editor_draft:<id>`,
+  `program_editor_draft:<id>`), which are never published because they carry no
+  `shareable` classification at all (§3.3).
+- **Not enforced** — import undo, on choreographers (`import_pipeline.dart`) and
+  venues (`compendium_archive_import.dart`,
+  `callers_companion_usr_import.dart`). `ImportSession` is in memory, so the
+  undo window lasts as long as the user leaves the screen open, and nothing
+  excludes a sync pass from landing inside it.
+
+A client implementation MUST therefore either suspend sync for the duration of
+an undoable import session, or treat publication as forfeiting the right to hard
+delete — falling back to a tombstone for any record that has appeared in this
+device's published manifest. The sibling case has already shipped as a real
+defect once: an import undo left a *revived* row live (#903), which would have
+outranked that deletion on every peer once a client exists.
 
 **Backfill.** `updated_at` is stamped at migration time. `existence_at` MUST be
 backfilled as:
@@ -138,6 +170,18 @@ The serialiser MUST filter by classification; the archive codec does not do this
 and MUST NOT be relied on for it. The registry uses snake_case `table.column`
 and the codec emits bare camelCase, so a generated mapping is required, and it
 MUST be proven by test rather than hand-maintained.
+
+**Keys with no entry.** A `settings` key may be constructed at runtime
+(`editor_draft:<id>`, `program_editor_draft:<id>`), so a persisted key can carry
+no registry entry at all — the registry is keyed by exact string and has no
+prefix form. The serialiser MUST fail closed: a key with no classification MUST
+NOT be serialised, exactly as if it were `deviceLocal`.
+
+Filtering MUST therefore be expressed as an allow-list of keys classified
+`shareable`, never as a denylist of the other three classes. A denylist admits
+every unclassified key, and these particular keys hold unsaved user-authored
+dance and program content. §7.2's server-side rejection is not a substitute:
+it happens after the bytes have crossed the wire.
 
 ## 4. Wire format
 
@@ -255,9 +299,9 @@ The sync ID travels in the `Authorization` request header using the `Bearer`
 scheme, with the sync ID as the credential. It MUST NOT appear in a URL.
 
 The server MUST derive a storage key as `HMAC-SHA256(pepper, syncID)` and MUST
-NOT persist the plaintext sync ID. The pepper lives in server configuration,
-never in the database. This is server-side only; the client computes no MAC and
-MUST NOT hold the pepper.
+NOT persist the plaintext sync ID. The pepper MUST live in server configuration
+and MUST NOT be stored in the database. This is server-side only; the client
+computes no MAC and MUST NOT hold the pepper.
 
 ### 5.2 Endpoints
 
@@ -353,6 +397,19 @@ Every settings key Device Sync introduces is `deviceScoped` and MUST NOT sync.
    | — | absent from baseline, present remotely | download |
 
    A quarantined record MUST be excluded from this table entirely.
+
+   Both `updatedAt` comparisons are strict, and that is deliberate. Where
+   `updatedAt` is **equal** and the bodies differ, the `changed`/`changed` row
+   does **not** resolve: neither side wins, neither body is applied, and the
+   divergence MUST be reported. The `same`/`changed` row's strict `>` likewise
+   leaves an equal-`updatedAt` difference un-downloaded rather than guessing. An
+   implementation MUST NOT invent a tie-break — silently keeping local and
+   silently taking remote are both non-convergent, and a device choosing either
+   disagrees permanently with a peer that chose the other.
+
+   One tick is one second (§2), so this is reachable in ordinary use: bulk
+   imports, fresh attaches, and concurrent repairs (§6.9) all produce edits that
+   land within the same second. Recorded as a limitation in §10.
 
    With N peers, evaluate against all and take the newest `updatedAt`.
 5. `POST /v1/blobs/missing`; `PUT` only what is missing.
@@ -463,9 +520,29 @@ rule that decides on "local" versus "incoming" does not converge.
 pre-existing local rows and MUST NOT coalesce.
 
 **Custom-field defs** reconcile only when `type` matches. On mismatch both
-survive: the smaller UUID keeps the bare key, the other is renamed with a suffix
-derived from the losing UUID (not a counter). If a derived key collides,
-lengthen the prefix.
+survive: the smaller UUID keeps the bare key, the other is renamed.
+
+The renamed key MUST be `<key>_<suffix>`, where `<suffix>` is the first
+**eight** lowercase hexadecimal digits of the **losing** UUID with hyphens
+removed — losing UUID `7f3a9c2b-…` against key `skill_level` yields
+`skill_level_7f3a9c2b`. The suffix MUST derive from the losing UUID and MUST NOT
+be a counter. Both devices then compute the same key without coordinating, and a
+third device carrying a third type yields a third distinct key rather than
+contending for the same one.
+
+This derivation is normative because `custom_field_defs.key` is `shareable` wire
+content that participates in the record's content hash: two implementations that
+chose different digit counts or separators would produce different keys for the
+identical collision on each device, forking the data permanently while each
+device remained individually correct.
+
+If the derived key is already taken, the suffix MUST become the losing UUID's
+**full 32 hexadecimal digits**, hyphens removed — in a single step, never by
+progressive lengthening, so that every device reaches the same second candidate.
+Distinct losing UUIDs cannot collide at full length. If the full-length key is
+*also* taken — reachable only if a user authored that exact key — the record
+MUST route to the review queue rather than renaming again, so the rule always
+terminates.
 
 **The remap.** Reconciliation produces `losing → surviving`, applied to local
 references **and** to every inbound record in the same batch, and persisted in
@@ -586,7 +663,11 @@ peer value was observed and every value observed in that pass fell outside the
 local window. Zero observed peers is NOT clock-suspect. It gates nothing and
 MUST NOT restrict user writes. A device MUST also report when its own published
 records go unreflected by every observed peer across three consecutive passes
-(session-scoped counter).
+(session-scoped counter), **with at least one peer observed in each of those
+passes**. Zero observed peers is not evidence, for the same reason it is not
+evidence of a slow clock: with no peer observed, "unreflected by every observed
+peer" is vacuously true, and a solo install would otherwise report its uploads
+as unreachable forever.
 
 A solo install has no repair path. A never-corrected clock does not self-heal.
 
@@ -618,8 +699,8 @@ tombstone.
 
 ### 6.12 Failure, offline and triggers
 
-Sync is best-effort and MUST NOT block the UI. Any failure leaves local data
-untouched and retries on the next trigger.
+Sync is best-effort and MUST NOT block the UI. Any failure MUST leave local data
+untouched and MUST retry on the next trigger.
 
 Triggers: app start, a debounced interval after a change, and a manual "Sync
 now" (a delta pass). *Sync only on WiFi* defaults to on; on a metered connection
@@ -769,8 +850,10 @@ behind each, is in [sync.md §Testing](sync.md).
 integer/float form; absent-versus-null; recursive key order.
 
 **Merge.** Every row of the table, both directions. A stale peer does not roll
-back newer data (mutation: remove the `updatedAt` comparison). ≥3-device
-convergence with interleaved edits.
+back newer data (mutation: remove the `updatedAt` comparison). Equal `updatedAt`
+with differing bodies ties and is reported, rather than producing a silent
+winner (mutations: break the tie by keeping local; break it by taking remote).
+≥3-device convergence with interleaved edits.
 
 **Existence.** A bystander does not resurrect a tombstone (mutation: drop the
 existence rule from the `same`/`changed` row). A live record never out-ranks an
@@ -786,8 +869,11 @@ the **wire** spelling. A peer cannot push a `deviceScoped` setting.
 **Reconciliation.** Converges from both sides (mutation: keep the local row).
 Inbound references to the losing UUID are remapped. `deviceLocal` fields
 preserved. Recency respected. Existence respected. Rename into an existing name.
-Custom-field type mismatch does not crash on read. Alias chains resolve
-transitively. Alias retention is content-bounded.
+Two devices derive the **same** renamed custom-field key from the same collision
+(mutations: derive the suffix from a counter; derive it from the surviving UUID
+rather than the losing one). A collided derived key lengthens to the full UUID
+in one step. Custom-field type mismatch does not crash on read. Alias chains
+resolve transitively. Alias retention is content-bounded.
 
 **Quarantine and repair.** Repairs against circulation without a user gesture
 (mutations: keep the `max`; reset from the local clock; require a gesture). A
@@ -818,6 +904,9 @@ the batch or escaping the isolate. Interrupted sync is a no-op.
 The following are recorded as known and are not specified here:
 
 - Dance dedupe runs only at fresh attach, so a dance can fork permanently.
+- Equal `updatedAt` with differing bodies does not converge (§6.3). The
+  divergence is reported bilaterally rather than resolved, because every
+  available tie-break is non-convergent.
 - Pepper rotation is impossible for inactive stores as specified.
 - The `T₀` backfill is per-device and can resurrect some pre-migration
   deletions; accepted for beta.

@@ -48,8 +48,20 @@ enforce and [data-classification.md](../dev/data-classification.md) renders.
 | `deviceScoped` | Never serialised. |
 | `derived` | Never serialised; rebuilt locally on arrival. |
 
-A field with no classification cannot exist — the coverage ratchet fails CI — so
-"unclassified" is not a state the serialiser must handle.
+A *column* with no classification cannot exist: that half of the coverage
+ratchet reflects over the drift schema, so it sees every column and CI fails on
+a gap.
+
+**Settings keys are different, and the serialiser must handle it.** Their half
+of the ratchet walks the source for `const String k…Key = '…';` declarations, so
+it covers only keys that exist as declared constants. The editor drafts do not:
+they are built at runtime from a prefix (`editor_draft:<id>`,
+`program_editor_draft:<id>`) whose constants are named `…KeyPrefix` and are not
+matched by that pattern. Unclassified persisted keys therefore exist today, and
+they hold unsaved user-authored dance and program content. The serialiser MUST
+fail closed on them — `sync-spec.md` §3.3 states the rule, and filtering is
+expressed as an allow-list of `shareable` keys precisely so that an unclassified
+key is excluded by default rather than admitted by default.
 
 **A record whose every field is `deviceLocal` produces no blob at all.** No
 current record is in that position; venues are the closest, and their identity
@@ -367,9 +379,14 @@ by the user, or by an earlier reconciliation — violates the constraint, fails 
 apply transaction, and fails every retry identically. That is precisely the
 deadlock *Renames collide too* exists to prevent, and it would be reintroduced by
 the mechanism meant to avoid a crash. Should a derived key collide even so — two
-distinct losing UUIDs sharing a 32-bit prefix — the derivation lengthens the
-prefix until it is free rather than routing back through reconciliation, which is
-what produced the collision and would simply produce it again.
+distinct losing UUIDs sharing a 32-bit prefix — the suffix becomes the losing
+UUID in full, in a single step, rather than routing back through reconciliation,
+which is what produced the collision and would simply produce it again.
+Progressive lengthening was rejected for the same reason a counter was: each
+intermediate length is a state two devices could disagree about, whereas one
+jump to the full UUID gives every device the same second candidate and cannot
+collide again, since distinct losers differ somewhere in their 32 digits.
+`sync-spec.md` §6.6 states the derivation normatively.
 
 `venues` and `published_sources` have **no** `UNIQUE` natural key, so their UUIDs
 cannot collide destructively. They insert without reconciliation, and the same
