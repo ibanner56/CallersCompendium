@@ -14,7 +14,9 @@ pure-Dart core package (no Flutter imports) per ADR-001.*
    schema surgery.
 4. **Provenance everywhere.** Imported data keeps its raw source payload,
    external ID, permission/license, and import time.
-5. **Soft delete over hard delete** for user-visible entities.
+5. **Soft delete over hard delete** for user-visible entities. As of schema
+   v25 (#898) this holds for all eight syncable kinds, not just dances and
+   programs; see the delete model in [storage.md](storage.md).
 
 ## Entity overview
 

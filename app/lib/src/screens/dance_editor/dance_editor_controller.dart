@@ -364,7 +364,7 @@ class DanceEditorController extends ChangeNotifier {
         draftSnapshot = decodeDraft(raw);
       } catch (_) {
         // Corrupt / unrecognised draft version — silently discard.
-        await _repos.settings.remove(draftKey);
+        await _repos.settings.remove(draftKey, permanent: true);
       }
       if (draftSnapshot != null && !_disposed) {
         _pendingDraft = draftSnapshot;
@@ -406,7 +406,7 @@ class DanceEditorController extends ChangeNotifier {
 
   /// Discards a pending autosave draft from storage.
   Future<void> discardPendingDraft() async {
-    await _repos.settings.remove(draftKey);
+    await _repos.settings.remove(draftKey, permanent: true);
   }
 
   // -------------------------------------------------------------------------
@@ -673,7 +673,7 @@ class DanceEditorController extends ChangeNotifier {
     _undoTimer?.cancel();
     _draftGeneration++;
     await _saveQueueTail;
-    await _repos.settings.remove(draftKey);
+    await _repos.settings.remove(draftKey, permanent: true);
   }
 
   /// Marks the draft as saved (no unsaved changes) after a successful commit.

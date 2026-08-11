@@ -94,6 +94,20 @@ export 'src/storage/database.dart'
         kSectionRuleVersion,
         kCompendiumSchemaVersion,
         kMinSupportedSchemaVersion;
+// Only the pure pieces of `existence.dart` are public: the rule itself, the
+// tick it is pinned to, and the unix-seconds conversion, all of which the tests
+// exercise directly.
+//
+// The SQL writers (`applyUpsertExistence`, `stampExistenceTransition`,
+// `adoptTombstonedNaturalKey`, `seedExistenceIfMissing`) are deliberately NOT
+// exported. They take a [CompendiumDatabase] and mutate rows in place, so
+// exporting them would offer callers a way around the repository layer — and
+// "all access through repositories" is the storage design's central rule
+// (docs/design/storage.md), not a convention. Every existence stamp has to go
+// through the repository that also maintains the row's other invariants, so
+// keep these internal to `lib/src/storage/`.
+export 'src/storage/existence.dart'
+    show existenceStampTick, nextExistenceStamp, unixSeconds;
 export 'src/storage/repositories/choreographer_repository.dart';
 export 'src/storage/repositories/custom_field_repository.dart'
     show

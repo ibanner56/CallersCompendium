@@ -585,7 +585,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 24);
+      expect(db.schemaVersion, 25);
 
       await db.close();
     });
@@ -691,7 +691,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 24);
+      expect(db.schemaVersion, 25);
 
       await db.close();
     });
@@ -813,7 +813,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').get();
       expect(version.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 24);
+      expect(db.schemaVersion, 25);
 
       await db.close();
     });
@@ -1709,7 +1709,11 @@ void main() {
           await repos.ensureMigrated();
 
           final version = await db.customSelect('PRAGMA user_version').get();
-          expect(version.single.data.values.first, 24, reason: 'from v$from');
+          expect(
+            version.single.data.values.first,
+            kCompendiumSchemaVersion,
+            reason: 'from v$from',
+          );
 
           final figures = (await repos.dances.getById('dance-1'))!.figures;
           // Both legacy shapes landed on the merged move, with the TCB subject
@@ -2321,6 +2325,320 @@ void main() {
         hasRebuildMarker,
         isFalse,
         reason: 'v23->v24 migration must not schedule a derived rebuild',
+      );
+    });
+  });
+
+  group('v24 -> v25 upgrade (issue #898 sync timestamps + soft delete)', () {
+    late Directory dir;
+    late String dbPath;
+
+    /// Sampled just before the migration runs, so any stamp the migration
+    /// writes must be at or after it. Used to tell "stamped at migration time"
+    /// from "copied out of the fixture", which is the distinction every
+    /// back-fill assertion below turns on.
+    late int beforeMigration;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v25_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v24 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          await packageRootPath(),
+          'test',
+          'storage',
+          'fixtures',
+          'v24.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+      beforeMigration = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    Future<List<String>> columnsOf(CompendiumDatabase db, String table) async {
+      final rows = await db
+          .customSelect("SELECT name FROM pragma_table_info('$table')")
+          .get();
+      return [for (final r in rows) r.read<String>('name')];
+    }
+
+    /// Reads one integer column as a nullable int, so a NULL back-fill is
+    /// distinguishable from a zero rather than throwing.
+    Future<int?> scalar(CompendiumDatabase db, String sql) async {
+      final rows = await db.customSelect(sql).get();
+      return rows.single.data.values.first as int?;
+    }
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, db.schemaVersion);
+      expect(db.schemaVersion, 25);
+    });
+
+    test('adds all twenty columns across the eight syncable kinds', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      for (final table in const [
+        'settings',
+        'choreographers',
+        'tags',
+        'published_sources',
+        'custom_field_defs',
+        'venues',
+      ]) {
+        expect(
+          await columnsOf(db, table),
+          containsAll(['updated_at', 'deleted_at', 'existence_at']),
+          reason: '$table must gain all three sync stamps',
+        );
+      }
+      for (final table in const ['dances', 'programs']) {
+        expect(
+          await columnsOf(db, table),
+          containsAll(['updated_at', 'deleted_at', 'existence_at']),
+          reason: '$table already had two and must gain existence_at',
+        );
+      }
+    });
+
+    test(
+      'every live row shares ONE T0, across tables as well as rows',
+      () async {
+        // The normative rule is "a single constant T0, identical for every live
+        // row" — not "a plausible timestamp per row". The fixture's two live
+        // dances were written years apart (2020 and 2026), so a back-fill that
+        // copied each row's own `updated_at` would produce two different values
+        // here and fail. That is the mutation this test exists to catch.
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        addTearDown(db.close);
+
+        final rows = await db
+            .customSelect(
+              'SELECT existence_at FROM dances WHERE deleted_at IS NULL '
+              'UNION SELECT existence_at FROM programs WHERE deleted_at IS NULL '
+              'UNION SELECT existence_at FROM tags '
+              'UNION SELECT existence_at FROM choreographers '
+              'UNION SELECT existence_at FROM published_sources '
+              'UNION SELECT existence_at FROM custom_field_defs '
+              'UNION SELECT existence_at FROM venues '
+              'UNION SELECT existence_at FROM settings',
+            )
+            .get();
+        // UNION dedupes, so one row means one distinct value.
+        expect(
+          rows,
+          hasLength(1),
+          reason:
+              'every live row across all eight tables must carry the same T0; '
+              'got ${[for (final r in rows) r.data.values.first]}',
+        );
+        final t0 = rows.single.data.values.first as int?;
+        expect(t0, isNotNull, reason: 'T0 must not be left NULL');
+        expect(
+          t0,
+          greaterThanOrEqualTo(beforeMigration),
+          reason: 'T0 is sampled when the migration runs, not baked in',
+        );
+      },
+    );
+
+    test('an already-tombstoned row keeps its own deleted_at, not T0', () async {
+      // The one case where a pre-existing column carries the right meaning.
+      // Only dances and programs can exercise it: the other six gain
+      // `deleted_at` in this same step, so every row of theirs is live.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+
+      for (final (table, id) in const [
+        ('dances', 'dance-v24-deleted'),
+        ('programs', 'program-v24-deleted'),
+      ]) {
+        final deletedAt = await scalar(
+          db,
+          "SELECT deleted_at FROM $table WHERE id = '$id'",
+        );
+        final existenceAt = await scalar(
+          db,
+          "SELECT existence_at FROM $table WHERE id = '$id'",
+        );
+        expect(deletedAt, isNotNull, reason: '$id must be tombstoned already');
+        expect(
+          existenceAt,
+          deletedAt,
+          reason: '$id must take its own deleted_at, not T0',
+        );
+        expect(
+          existenceAt,
+          lessThan(beforeMigration),
+          reason:
+              'a historical deletion must stay historical — equal to T0 would '
+              'mean the deleted_at branch never ran',
+        );
+      }
+    });
+
+    test(
+      'existence_at is NOT copied from updated_at where those differ',
+      () async {
+        // Copying `updated_at` is the natural thing to reach for and it
+        // reintroduces the coupling the third column exists to break: a device
+        // that edited a live record after another deleted it would outrank the
+        // tombstone and resurrect the record on first sync.
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        addTearDown(db.close);
+
+        for (final id in const ['dance-v24-early', 'dance-v24-late']) {
+          final updatedAt = await scalar(
+            db,
+            "SELECT updated_at FROM dances WHERE id = '$id'",
+          );
+          final existenceAt = await scalar(
+            db,
+            "SELECT existence_at FROM dances WHERE id = '$id'",
+          );
+          expect(
+            existenceAt,
+            isNot(updatedAt),
+            reason: '$id: existence_at must not be back-filled from updated_at',
+          );
+        }
+        // And the fixture really does make them differ, so the assertion above
+        // has something to bite on rather than passing vacuously.
+        final early = await scalar(
+          db,
+          "SELECT updated_at FROM dances WHERE id = 'dance-v24-early'",
+        );
+        final late_ = await scalar(
+          db,
+          "SELECT updated_at FROM dances WHERE id = 'dance-v24-late'",
+        );
+        expect(
+          early,
+          isNot(late_),
+          reason: 'fixture must hold two live dances with different updated_at',
+        );
+      },
+    );
+
+    test('dances and programs keep their own updated_at untouched', () async {
+      // Only the six tables that gained `updated_at` get it stamped. Rewriting
+      // a dance's `updated_at` would tell every peer its content had changed
+      // when nothing did.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      expect(
+        await scalar(
+          db,
+          "SELECT updated_at FROM dances WHERE id = 'dance-v24-early'",
+        ),
+        DateTime.utc(2020, 3, 4, 5, 6, 7).millisecondsSinceEpoch ~/ 1000,
+      );
+      expect(
+        await scalar(
+          db,
+          "SELECT updated_at FROM programs WHERE id = 'program-v24-live'",
+        ),
+        DateTime.utc(2026, 1, 1).millisecondsSinceEpoch ~/ 1000,
+      );
+    });
+
+    test(
+      'the six new tables get updated_at stamped at migration time',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        addTearDown(db.close);
+        for (final (table, keyCol, key) in const [
+          ('tags', 'id', 'tag-v24'),
+          ('choreographers', 'id', 'chor-v24'),
+          ('published_sources', 'id', 'src-v24'),
+          ('custom_field_defs', 'id', 'cfd-v24'),
+          ('venues', 'id', 'venue-v24'),
+          ('settings', 'key', 'migration_setting'),
+        ]) {
+          final updatedAt = await scalar(
+            db,
+            "SELECT updated_at FROM $table WHERE $keyCol = '$key'",
+          );
+          expect(updatedAt, isNotNull, reason: '$table.updated_at must be set');
+          expect(
+            updatedAt,
+            greaterThanOrEqualTo(beforeMigration),
+            reason: '$table.updated_at is stamped when the migration runs',
+          );
+          expect(
+            await scalar(
+              db,
+              "SELECT deleted_at FROM $table WHERE $keyCol = '$key'",
+            ),
+            isNull,
+            reason: '$table row was live before the migration and stays live',
+          );
+        }
+      },
+    );
+
+    test(
+      'pre-existing data survives and still loads through the repositories',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        addTearDown(db.close);
+
+        final dance = await repos.dances.getById('dance-v24-early');
+        expect(dance, isNotNull);
+        expect(dance!.title, 'Early Dance');
+        // The join rows through the newly soft-deletable parents still resolve:
+        // both parents are live, so filtering must not have dropped them.
+        expect(dance.tagIds, ['tag-v24']);
+        expect(dance.authorIds, ['chor-v24']);
+
+        expect((await repos.tags.getById('tag-v24'))!.name, 'Migration Tag');
+        expect(
+          (await repos.choreographers.getById('chor-v24'))!.name,
+          'Migration Author',
+        );
+        expect(
+          (await repos.publishedSources.getById('src-v24'))!.title,
+          'Migration Source',
+        );
+        expect(
+          (await repos.customFieldDefs.getById('cfd-v24'))!.key,
+          'migration_field',
+        );
+        expect(
+          (await repos.venues.getById('venue-v24'))!.name,
+          'Migration Hall',
+        );
+        expect(await repos.settings.get('migration_setting'), 'kept');
+
+        // The tombstoned dance is still tombstoned, and still hidden.
+        expect(await repos.dances.getById('dance-v24-deleted'), isNull);
+        expect(await repos.programs.getById('program-v24-deleted'), isNull);
+      },
+    );
+
+    test('no derived rebuild is scheduled by the v24->v25 migration', () async {
+      // Twenty timestamp columns carry no figure data — the index is untouched.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      final settings = await db
+          .customSelect(
+            "SELECT value_json FROM settings "
+            "WHERE key = '$derivedRebuildRequiredKey'",
+          )
+          .get();
+      final hasRebuildMarker =
+          settings.isNotEmpty &&
+          settings.first.read<String>('value_json') == 'true';
+      expect(
+        hasRebuildMarker,
+        isFalse,
+        reason: 'v24->v25 migration must not schedule a derived rebuild',
       );
     });
   });

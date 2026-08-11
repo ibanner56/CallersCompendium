@@ -5,45 +5,80 @@ import 'package:drift/drift.dart';
 import '../../model/custom_field.dart';
 import '../../model/enums.dart';
 import '../database.dart';
+import '../existence.dart';
 
 /// CRUD for [CustomFieldDef] rows (the user-defined field schema).
 ///
 /// Value storage/reconstruction ([CustomFieldValue]) lives in
 /// [DanceRepository] since values are always read/written as part of a
 /// dance; this repository owns only the field *definitions*.
+///
+/// Definitions are **soft-deleted** as of schema v25 (issue #898).
 class CustomFieldDefRepository {
   CustomFieldDefRepository(this._db);
 
   final CompendiumDatabase _db;
 
-  Future<void> upsert(CustomFieldDef def) => _db
-      .into(_db.customFieldDefs)
-      .insertOnConflictUpdate(
-        CustomFieldDefsCompanion.insert(
-          id: def.id,
-          key: def.key,
-          label: def.label,
-          type: def.type,
-          choicesJson: Value(
-            def.choices == null ? null : jsonEncode(def.choices),
-          ),
-          showInList: Value(def.showInList),
-          searchable: Value(def.searchable),
-          shareable: Value(def.shareable),
-        ),
+  /// Writes [def], reviving it if a tombstone holds its UNIQUE key. See
+  /// `TagRepository.upsert`.
+  /// Returns the id the definition actually occupies — see
+  /// `TagRepository.upsert` on natural-key adoption.
+  Future<String> upsert(CustomFieldDef def, {DateTime? at}) {
+    final now = resolveStamp(at);
+    return _db.transaction(() async {
+      final id =
+          await adoptTombstonedNaturalKey(
+            _db,
+            table: 'custom_field_defs',
+            keyColumn: 'id',
+            naturalKeyColumn: 'key',
+            naturalKey: def.key,
+            incomingId: def.id,
+            joinTable: 'custom_field_values',
+            joinColumn: 'field_id',
+          ) ??
+          def.id;
+      await _db
+          .into(_db.customFieldDefs)
+          .insertOnConflictUpdate(
+            CustomFieldDefsCompanion.insert(
+              id: id,
+              key: def.key,
+              label: def.label,
+              type: def.type,
+              choicesJson: Value(
+                def.choices == null ? null : jsonEncode(def.choices),
+              ),
+              showInList: Value(def.showInList),
+              searchable: Value(def.searchable),
+              shareable: Value(def.shareable),
+              updatedAt: Value(now),
+            ),
+          );
+      await applyUpsertExistence(
+        _db,
+        table: 'custom_field_defs',
+        keyColumn: 'id',
+        key: id,
+        at: now,
       );
+      return id;
+    });
+  }
 
   Future<CustomFieldDef?> getById(String id) async {
     final row = await (_db.select(
       _db.customFieldDefs,
-    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    )..where((t) => t.id.equals(id) & t.deletedAt.isNull())).getSingleOrNull();
     return row == null ? null : toModel(row);
   }
 
   Future<List<CustomFieldDef>> listAll() async {
-    final rows = await (_db.select(
-      _db.customFieldDefs,
-    )..orderBy([(t) => OrderingTerm(expression: t.label)])).get();
+    final rows =
+        await (_db.select(_db.customFieldDefs)
+              ..where((t) => t.deletedAt.isNull())
+              ..orderBy([(t) => OrderingTerm(expression: t.label)]))
+            .get();
     return [for (final row in rows) ?toModel(row)];
   }
 
@@ -80,18 +115,37 @@ class CustomFieldDefRepository {
   /// The "still used?" check and the delete run inside a single transaction
   /// so no dance can acquire a value for [id] between the check and the
   /// delete (no check-then-act race). Mirrors `VenueRepository.delete`.
-  Future<void> delete(String id) => _db.transaction(() async {
-    final stillUsed = await (_db.select(
-      _db.customFieldValues,
-    )..where((t) => t.fieldId.equals(id))).get();
-    if (stillUsed.isNotEmpty) {
-      throw StateError(
-        'cannot delete custom field "$id": still set on '
-        '${stillUsed.length} dance(s)',
+  ///
+  /// Tombstones by default (schema v25, issue #898); the guard is kept. See
+  /// `ChoreographerRepository.delete` for [permanent].
+  Future<void> delete(String id, {DateTime? at, bool permanent = false}) {
+    final now = resolveStamp(at);
+    return _db.transaction(() async {
+      final stillUsed = await (_db.select(
+        _db.customFieldValues,
+      )..where((t) => t.fieldId.equals(id))).get();
+      if (stillUsed.isNotEmpty) {
+        throw StateError(
+          'cannot delete custom field "$id": still set on '
+          '${stillUsed.length} dance(s)',
+        );
+      }
+      if (permanent) {
+        await (_db.delete(
+          _db.customFieldDefs,
+        )..where((t) => t.id.equals(id))).go();
+        return;
+      }
+      await stampExistenceTransition(
+        _db,
+        table: 'custom_field_defs',
+        keyColumn: 'id',
+        key: id,
+        at: now,
+        deleted: true,
       );
-    }
-    await (_db.delete(_db.customFieldDefs)..where((t) => t.id.equals(id))).go();
-  });
+    });
+  }
 
   /// Maps a row to a [CustomFieldDef], returning `null` for a row whose
   /// stored data can't be reconstructed rather than throwing — a malformed or

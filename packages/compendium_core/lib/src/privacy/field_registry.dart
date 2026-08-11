@@ -52,6 +52,49 @@ const _recordStamp = DataClassification(
       'devices.',
 );
 
+/// An existence-transition stamp (`existence_at`), added to every syncable kind
+/// in schema v25 (issue #898).
+///
+/// A bare timestamp with no data subject: it records *when* a record last
+/// crossed between existing and deleted, never who did it, from where, or on
+/// which device. Classified `shareable` because the receiving device cannot
+/// evaluate the existence rule at all without it — withholding it would not
+/// protect anything, it would just make a deletion unresolvable and let deleted
+/// records resurrect.
+///
+/// Deliberately its own entry rather than reusing [_recordStamp]. The two carry
+/// the same three axis values today, but they answer different questions
+/// (`updated_at`: which content is newer; `existence_at`: which existence
+/// transition happened later) and a future change to one should not silently
+/// move the other.
+const _existenceStamp = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.shareable,
+  note:
+      'Existence-transition stamp. A bare timestamp with no data subject; must '
+      'travel or a receiver cannot decide which of two disagreeing copies is '
+      'the later existence decision, and deletions resurrect. Added in #898.',
+);
+
+/// A soft-delete tombstone (`deleted_at`) on a kind that gained one in schema
+/// v25 (issue #898).
+///
+/// Same reasoning as `dances.deleted_at`, which has carried it since long
+/// before Device Sync: absence never means deletion, so the tombstone itself
+/// has to travel or a device that has not synced recently will resurrect
+/// something the user deleted elsewhere. No data subject — it says a record
+/// stopped existing, not anything about a person.
+const _tombstone = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.shareable,
+  note:
+      'Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer '
+      'that has not synced recently resurrects a deleted record. Added to this '
+      'kind in #898.',
+);
+
 /// A freeform note attached to a person, place or source record.
 ///
 /// Still classified as personal data — the field is unbounded and a user may
@@ -124,6 +167,7 @@ final Map<String, DataClassification> fieldClassifications = {
         'Soft-delete tombstone. Must travel, or a device that has not synced '
         'recently will resurrect a dance the user deleted elsewhere.',
   ),
+  'dances.existence_at': _existenceStamp,
 
   // -------------------------------------------------------- choreographers --
   'choreographers.id': _key,
@@ -163,6 +207,9 @@ final Map<String, DataClassification> fieldClassifications = {
     egress: EgressClass.deviceLocal,
     note: 'Personal data about someone who cannot exercise any rights over it.',
   ),
+  'choreographers.updated_at': _recordStamp,
+  'choreographers.deleted_at': _tombstone,
+  'choreographers.existence_at': _existenceStamp,
 
   // ---------------------------------------------------------------- venues --
   // Split deliberately: a hall's identity is public, its address book is not.
@@ -208,6 +255,9 @@ final Map<String, DataClassification> fieldClassifications = {
   'venues.contact2_name': _contactName,
   'venues.contact2_phone': _contactPhone,
   'venues.contact2_email': _contactEmail,
+  'venues.updated_at': _recordStamp,
+  'venues.deleted_at': _tombstone,
+  'venues.existence_at': _existenceStamp,
 
   // -------------------------------------------------------------- programs --
   'programs.id': _key,
@@ -234,6 +284,7 @@ final Map<String, DataClassification> fieldClassifications = {
     egress: EgressClass.shareable,
     note: 'Soft-delete tombstone; see dances.deleted_at.',
   ),
+  'programs.existence_at': _existenceStamp,
 
   // --------------------------------------------------------- program_slots --
   'program_slots.id': _key,
@@ -262,6 +313,9 @@ final Map<String, DataClassification> fieldClassifications = {
     egress: EgressClass.shareable,
   ),
   'published_sources.notes': _freeformNote,
+  'published_sources.updated_at': _recordStamp,
+  'published_sources.deleted_at': _tombstone,
+  'published_sources.existence_at': _existenceStamp,
 
   // ---------------------------------------------------------- joins, tags --
   'dance_authors.dance_id': _key,
@@ -272,6 +326,9 @@ final Map<String, DataClassification> fieldClassifications = {
   'tags.id': _key,
   'tags.name': _choreography,
   'tags.color': _choreography,
+  'tags.updated_at': _recordStamp,
+  'tags.deleted_at': _tombstone,
+  'tags.existence_at': _existenceStamp,
   'dance_sources.dance_id': _key,
   'dance_sources.source_id': _key,
   'dance_sources.page': _choreography,
@@ -311,6 +368,9 @@ final Map<String, DataClassification> fieldClassifications = {
         'directly controls egress of another field '
         '(custom_field_values.value_text). Added in #780.',
   ),
+  'custom_field_defs.updated_at': _recordStamp,
+  'custom_field_defs.deleted_at': _tombstone,
+  'custom_field_defs.existence_at': _existenceStamp,
   'custom_field_values.dance_id': _key,
   'custom_field_values.field_id': _key,
   'custom_field_values.value_text': const DataClassification(
@@ -388,6 +448,21 @@ final Map<String, DataClassification> fieldClassifications = {
         'layer so a blanket sync of the settings table cannot happen by '
         'accident; per-key rules decide what actually travels.',
   ),
+  // The three sync stamps, added in #898. Classified `shareable` even though
+  // `value_json` beside them is `deviceLocal`, and the difference is the point:
+  // `value_json`'s device-local class is what stops the settings *table* being
+  // synced wholesale, while the per-key classification in
+  // `settings_registry.dart` decides which keys travel at all. For a key that
+  // does travel, these three are ordinary record metadata that must accompany
+  // it — a setting blob without its `updated_at` cannot be merged, and one
+  // without `deleted_at`/`existence_at` cannot express that the user cleared
+  // the preference, which is the whole reason `SettingsRepository.remove`
+  // stopped being a hard delete. None of the three carries the value, so
+  // classifying them shareable discloses only that a key changed or went away
+  // at some instant, for a key the per-key gate has already admitted.
+  'settings.updated_at': _recordStamp,
+  'settings.deleted_at': _tombstone,
+  'settings.existence_at': _existenceStamp,
 };
 
 const _contactStreet = DataClassification(

@@ -22,8 +22,9 @@ lives in the core package; all access through repositories.*
 ```sql
 dances(id PK, title, form, formation_base, formation_detail, progression,
        phrase_structure, figures_json, hook, calling_notes, status, tunes_json,
-       created_at, updated_at, deleted_at)
-choreographers(id PK, name UNIQUE, website, notes)
+       created_at, updated_at, deleted_at, existence_at)
+choreographers(id PK, name UNIQUE, website, notes,
+               updated_at, deleted_at, existence_at)
 dance_authors(dance_id, choreographer_id, position,
              PK(dance_id, choreographer_id),
              UNIQUE(dance_id, position))       -- no ambiguous ordering
@@ -36,7 +37,8 @@ CREATE VIRTUAL TABLE dance_fts USING fts5(     -- derived; canonical text only
   title, authors, hook, notes, figures_text, custom_values, content='');
 
 programs(id PK, title, event_date, venue, venue_id NULL, notes, status,
-         created_at, updated_at, deleted_at)   -- venue_id → venues.id (v14)
+         created_at, updated_at, deleted_at,
+         existence_at)                         -- venue_id → venues.id (v14)
 program_slots(id PK, program_id FK, position, dance_id NULL, text,
               is_alt, performed_at)
 
@@ -44,17 +46,24 @@ venues(id PK, name, address1, address2, city, state_prov, country,
        postal_code, plus4, website, sponsor, event_name, time,
        generic_schedule, price, notes,
        contact1_name, contact1_phone, contact1_email,
-       contact2_name, contact2_phone, contact2_email)  -- reusable venue (v14)
+       contact2_name, contact2_phone, contact2_email,
+       updated_at, deleted_at, existence_at)           -- reusable venue (v14)
 
 custom_field_defs(id PK, key UNIQUE, label, type, choices_json,
-                  show_in_list, searchable)
+                  show_in_list, searchable,
+                  updated_at, deleted_at, existence_at)
 custom_field_values(dance_id, field_id, value_text, value_num,
                     PK(dance_id, field_id))
-tags(id PK, name UNIQUE, color); dance_tags(dance_id, tag_id, PK(...))
+tags(id PK, name UNIQUE, color, updated_at, deleted_at, existence_at)
+dance_tags(dance_id, tag_id, PK(...))
 dance_links(id PK, dance_id, kind, url, target_dance_id, label)
 provenance(dance_id PK, source, external_id, imported_at, permission,
            license, source_version)
-settings(key PK, value_json)                   -- dialects, prefs, source URLs
+settings(key PK, value_json,
+         updated_at, deleted_at, existence_at)  -- dialects, prefs, source URLs
+
+-- published_sources also carries (updated_at, deleted_at, existence_at); see
+-- "The delete model" below for what the three mean and why they are separate.
 ```
 
 Two pieces of this sketch were built and later removed, both at schema v21:
@@ -123,11 +132,86 @@ belongs in `app/CHANGELOG.md` in user-facing terms, naming the release whose
 schema version is being adopted. `tools/ci/check_schema_migration.py` fails any
 PR that reintroduces a per-version artefact below the floor.
 
+## The delete model
+
+Every syncable kind — dances, programs, choreographers, tags, published
+sources, custom field definitions, venues and settings keys — carries three
+timestamps as of schema v25 (issue #898). They answer three different questions
+and are deliberately not collapsed into fewer columns:
+
+| Column | Question it answers |
+| --- | --- |
+| `updated_at` | Which copy's **content** is newer. |
+| `deleted_at` | **Retention**: NULL is live, non-NULL is a tombstone and starts the purge / "Recently Deleted" countdown. |
+| `existence_at` | Which **existence transition** — live→deleted or deleted→live — happened later. |
+
+`existence_at` is separate from `updated_at` because an ordinary content edit
+must not read as an existence transition, and separate from `deleted_at`
+because a *revival* has no `deleted_at` to order by: that column is NULL exactly
+when the record is live. It is stamped causally, as
+`max(localNow, currentExistenceAt + 1 tick)`, so a transition is always strictly
+later than the one it supersedes even when the clock has not advanced — delete
+and undo inside one second is an ordinary user action, and a tie resolves in
+favour of the tombstone. One tick is one **second**, because drift stores
+`DateTime` as unix seconds; a smaller increment would round away and the stamp
+would tie. See `lib/src/storage/existence.dart`.
+
+Nothing reads `existence_at` yet. It exists for Device Sync (ADR-004), which is
+not implemented; the migration that adds it is deliberately behaviour-preserving.
+
+**Deletion is a tombstone, with two named exceptions.** Deleting an entity
+writes `deleted_at` and leaves the row on disk, so the deletion is something a
+peer can learn from rather than an absence. The exceptions are both erasures
+rather than deletions:
+
+- The `hardDelete` / `permanent: true` paths, used only to roll back a
+  just-committed import. A rollback treats the import as never having happened,
+  so a tombstone would advertise the removal of a record no other device saw.
+- `DanceRepository`'s orphaned-reference GC (#462), which runs inside the
+  retention purge and collects reusable rows the purge left unreferenced.
+  Nobody deleted those; they went away as a side effect.
+
+**Two consequences follow from soft delete, and both are load-bearing:**
+
+- **Reads that join through a soft-deletable parent must filter
+  `parent.deleted_at IS NULL`.** A tombstone fires no FK cascade, so the
+  `dance_tags`, `custom_field_values`, `dance_sources` and `dance_authors` rows
+  a hard delete used to clear now outlive the delete. They are kept
+  deliberately — clearing them would mean a revived tag came back with no
+  dances — so the reads filter instead. `tags` is the case that bites: it is the
+  only converted kind with no referential guard, so a tombstone with live join
+  rows is reachable by ordinary use rather than only defensively.
+- **The referential guards stay.** Soft delete does not make it safe to remove
+  an entity a live record still references, and a tombstone for a still-cited
+  entity could not be applied by a peer anyway.
+
+**A tombstone still occupies its UNIQUE natural key.** `choreographers.name`,
+`tags.name` and `custom_field_defs.key` are UNIQUE, and drift's upsert targets
+the primary key, so re-creating a deleted entity under the same name would hit
+the constraint on a row every read filters out — the name looks free and the
+insert fails. The upsert therefore *adopts* a tombstoned row holding the
+incoming natural key: it writes onto that row's id and returns it. A **live**
+row holding the key is left alone and still raises the constraint, exactly as
+before. Callers minting a fresh UUID must use the id the upsert returns.
+
+Adoption is **not** revival, and the difference is visible to the user.
+Re-writing an entity under *its own* id is "this record is back", and it keeps
+its join rows — a revived tag returns with its dances. Adoption is a *new*
+entity that happens to want a name a tombstone still holds, so it clears the
+adopted row's join rows: before v25 the hard delete had cascaded them away and
+the user got an empty tag, and keeping them would mean deleting a tag from two
+hundred dances and then re-creating it silently re-tagged all two hundred.
+Reusing the old row's id is an implementation detail forced by the foreign keys
+and does not leak into what the user sees.
+
 ## Durability
 
 - WAL mode; foreign keys ON; nightly-on-launch `PRAGMA quick_check`.
-- All writes in transactions via repository layer; soft deletes purge after a
-  configurable retention (default 30 days) via startup sweep.
+- All writes in transactions via repository layer; dance/program soft deletes
+  purge after a configurable retention (default 30 days) via startup sweep. The
+  six kinds that became soft-deletable in v25 have no retention sweep yet:
+  their tombstones accumulate until Device Sync, which owns retention, adds
+  one.
 
 ### Migration safety (app-layer preflight)
 

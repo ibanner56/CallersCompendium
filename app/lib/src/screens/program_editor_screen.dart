@@ -425,7 +425,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _draftGeneration++;
     await _saveQueueTail;
     try {
-      await _repos.settings.remove(_draftKey);
+      await _repos.settings.remove(_draftKey, permanent: true);
     } catch (_) {
       // Best-effort cleanup; a failure here is non-fatal.
     }

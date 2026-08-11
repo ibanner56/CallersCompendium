@@ -75,13 +75,22 @@ class CompendiumRepositories {
       var rebuiltThisCall = false;
       final marker = await db
           .customSelect(
-            'SELECT value_json FROM settings WHERE key = ?',
+            'SELECT value_json FROM settings WHERE key = ? '
+            'AND deleted_at IS NULL',
             variables: [Variable.withString(derivedRebuildRequiredKey)],
           )
           .get();
       if (marker.isNotEmpty) {
         await runDerivedRebuild(onProgress: onDerivedRebuildProgress);
         rebuiltThisCall = true;
+        // A HARD delete, deliberately, unlike `SettingsRepository.remove`.
+        // This is migration bookkeeping rather than user data: there is nothing
+        // for a peer to learn from a tombstone here, and the marker's whole
+        // contract is "absent means the rebuild is done" — tombstoning it would
+        // leave a row that the raw reads above must then keep filtering out
+        // forever. Every one of those reads does filter `deleted_at IS NULL`
+        // anyway, so a marker can neither be read back as still-set after this
+        // clears it nor be resurrected by a stale row.
         await db.customStatement('DELETE FROM settings WHERE key = ?', [
           derivedRebuildRequiredKey,
         ]);
@@ -141,7 +150,7 @@ class CompendiumRepositories {
   Future<void> _repairPurgeCorruptionIfNeeded() async {
     final done = await db
         .customSelect(
-          'SELECT 1 FROM settings WHERE key = ?',
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
           variables: [Variable.withString(purgeCorruptionRepairDoneKey)],
         )
         .get();
@@ -183,7 +192,8 @@ class CompendiumRepositories {
   }) async {
     final done = await db
         .customSelect(
-          'SELECT 1 FROM settings WHERE key = ? AND value_json = ?',
+          'SELECT 1 FROM settings WHERE key = ? AND value_json = ? '
+          'AND deleted_at IS NULL',
           variables: [
             Variable.withString(sectionRuleVersionKey),
             Variable.withString('"$kSectionRuleVersion"'),
@@ -230,7 +240,7 @@ class CompendiumRepositories {
   }) async {
     final done = await db
         .customSelect(
-          'SELECT 1 FROM settings WHERE key = ?',
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
           variables: [Variable.withString(inversePairNormalisationDoneKey)],
         )
         .get();
@@ -327,7 +337,7 @@ class CompendiumRepositories {
   }) async {
     final done = await db
         .customSelect(
-          'SELECT 1 FROM settings WHERE key = ?',
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
           variables: [Variable.withString(starPromenadeHandRemovalDoneKey)],
         )
         .get();

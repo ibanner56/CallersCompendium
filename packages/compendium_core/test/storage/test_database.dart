@@ -134,9 +134,18 @@ class ChoreographerSelectCounter extends QueryCounter {
   @override
   bool matches(String statement) {
     final s = statement.toLowerCase();
-    return s.startsWith('select') &&
-        s.contains('choreographers') &&
-        !s.contains('where');
+    if (!s.startsWith('select') || !s.contains('choreographers')) return false;
+    // "No WHERE at all" identified a full-collection load until schema v25
+    // (#898), when `listAll` gained a `deleted_at IS NULL` live filter — so
+    // that rule started reading every full load as a targeted one and the
+    // counter silently fell to zero. Strip exactly the live filter (and only
+    // it) before applying the original rule, so a genuinely targeted select
+    // still has a WHERE left over and is still not counted.
+    final withoutLiveFilter = s.replaceFirst(
+      RegExp(r'where\s+"deleted_at"\s+is\s+null'),
+      '',
+    );
+    return !withoutLiveFilter.contains('where');
   }
 }
 

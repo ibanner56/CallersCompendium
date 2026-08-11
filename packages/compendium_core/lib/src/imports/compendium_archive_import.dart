@@ -573,7 +573,9 @@ class CompendiumArchiveImporter {
     }
     for (final id in result.insertedVenueIds) {
       try {
-        await _venues.delete(id);
+        // `permanent` for the same reason the dances/programs above are
+        // hard-deleted: a rollback must leave nothing behind to publish.
+        await _venues.delete(id, permanent: true);
       } on StateError {
         // Still referenced by a surviving program — leave it in place rather
         // than orphan that program's venueId.
