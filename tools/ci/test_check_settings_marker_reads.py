@@ -154,6 +154,23 @@ def test_extract_sql_literals() -> None:
         f"got {[l.content for l in lits]}",
     )
 
+    # Mixed-quote adjacency: Dart allows 'foo' "bar" (= 'foobar').
+    lits = [l for l in extract_sql_literals("'foo ' \"bar\"") if l.parseable]
+    check(
+        "mixed-quote adjacent literals are joined ('…' + \"…\")",
+        len(lits) == 1 and lits[0].content == "foo bar",
+        f"got {[l.content for l in lits]}",
+    )
+
+    # A parseable literal followed by a raw adjacent literal makes the whole
+    # group unparseable (we cannot safely parse the raw fragment).
+    mixed_raw_lits = extract_sql_literals("'SELECT 1 FROM settings '\nr'WHERE key = ?'")
+    check(
+        "parseable literal + adjacent raw literal yields unparseable group",
+        any(not l.parseable for l in mixed_raw_lits),
+        f"got {mixed_raw_lits}",
+    )
+
     # Raw and triple-quoted forms are unparseable.
     raw_lits = extract_sql_literals("r'SELECT 1 FROM settings WHERE key = ?'")
     check(
@@ -286,6 +303,30 @@ def test_compliant_reads() -> None:
         "the phrase is in a Dart argument, not the SQL literal — must still fail",
     )
 
+    check(
+        "mixed-quote split: single-quoted SELECT, double-quoted filter continuation — compliant",
+        _violation_count(
+            "final r = db.customSelect(\n"
+            "  'SELECT 1 FROM settings WHERE key = ? '\n"
+            '  "AND deleted_at IS NULL",\n'
+            "  variables: [v],\n"
+            ").get();\n"
+        ) == 0,
+        "Dart allows 'foo' \"bar\" adjacency; the joiner must cross quote styles",
+    )
+
+    check(
+        "mixed-quote split: double-quoted SELECT, single-quoted filter continuation — compliant",
+        _violation_count(
+            "final r = db.customSelect(\n"
+            '  "SELECT 1 FROM settings WHERE key = ? "\n'
+            "  'AND deleted_at IS NULL',\n"
+            "  variables: [v],\n"
+            ").get();\n"
+        ) == 0,
+        "reverse order: double-quoted opening literal, single-quoted continuation",
+    )
+
 
 # --------------------------------------------------------------------------
 # Non-compliant reads — ratchet must fire.
@@ -399,6 +440,19 @@ def test_non_compliant_reads() -> None:
         _violation_count(_clean_room_src) == 1,
         "a prefilter on un-joined text would skip this file because 'settings' "
         "does not appear as a whole word; only the joiner reconstructs it",
+    )
+
+    check(
+        "mixed-quote bypass: unfiltered read using 'SELECT…' + \"WHERE key…\" is flagged",
+        _violation_count(
+            "final r = db.customSelect(\n"
+            "  'SELECT 1 FROM settings '\n"
+            '  "WHERE key = ?",\n'
+            "  variables: [v],\n"
+            ").get();\n"
+        ) == 1,
+        "an earlier implementation only joined same-quote adjacent literals; "
+        "this cross-quote split was a complete bypass",
     )
 
 

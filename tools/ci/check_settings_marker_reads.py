@@ -139,11 +139,16 @@ class SqlLiteral:
 def extract_sql_literals(text: str) -> list[SqlLiteral]:
     """Parse all Dart string literals from *text* and return them.
 
-    Adjacent literals of the same quote style are joined with the empty
-    string (Dart compile-time concatenation semantics). Triple-quoted and
-    raw literals are returned with parseable=False; their content field
-    holds the raw literal text (between the quotes) so callers can scan it
-    without re-parsing.
+    Adjacent literals are joined with the empty string (Dart compile-time
+    concatenation semantics). This includes mixed-quote adjacency — Dart
+    allows 'foo' "bar" just as freely as 'foo' 'bar'. If the adjacent literal
+    is a raw (r'…') or triple-quoted form, the whole group is marked
+    parseable=False so the caller fails closed rather than silently omitting
+    the un-parsed fragment.
+
+    Triple-quoted and raw literals are returned with parseable=False; their
+    content field holds the raw literal text (between the quotes) so callers
+    can scan it without re-parsing.
 
     This is the single place that decides what constitutes a string literal
     and where its boundaries are. All other logic consumes SqlLiteral objects
@@ -153,7 +158,7 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
     - Skip // line comments.
     - Handle escape sequences inside literals.
     - Detect raw (r'...') and triple-quoted forms and mark unparseable.
-    - Join adjacent same-style literals with empty string.
+    - Join adjacent literals (any quote style) with empty string.
     """
     lines = text.splitlines(keepends=True)
     cum: list[int] = [0]
@@ -239,7 +244,17 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
         src_line = source_line_at(lit_start).strip()
         i = j
 
-        # Look ahead for adjacent same-style literals (Dart concatenation).
+        # Look ahead for adjacent literals (Dart concatenation).
+        #
+        # Dart concatenates adjacent string literals regardless of quote style,
+        # e.g. 'foo' "bar" is identical to 'foobar'. We therefore join across
+        # quote styles, not just same-quote pairs.
+        #
+        # However: if the adjacent literal uses a raw (r'...') or triple-quoted
+        # ('''...''', """...""") form, we cannot safely parse it here, so we mark
+        # the whole group unparseable (parseable=False) so check_file fails
+        # closed on it rather than silently omitting the un-parsed fragment.
+        group_parseable = True
         while i < n:
             k = i
             while k < n and text[k] in (" ", "\t", "\n", "\r"):
@@ -251,9 +266,25 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
                     k += 1
                 i = k  # advance past the comment before the next iteration
                 continue
-            if text[k] != q:
+            # Accept either quote style for the adjacent literal.
+            adj_raw = k > 0 and text[k - 1] in ("r", "R")
+            if text[k] not in ("'", '"'):
                 break
-            if k + 2 < n and text[k + 1] == q and text[k + 2] == q:
+            aq = text[k]
+            # Triple-quote or raw: mark group unparseable and consume the literal
+            # so the outer loop does not re-enter it as a new group.
+            adj_triple = k + 2 < n and text[k + 1] == aq and text[k + 2] == aq
+            if adj_raw or adj_triple:
+                group_parseable = False
+                if adj_triple:
+                    close_seq = aq * 3
+                    end = text.find(close_seq, k + 3)
+                    i = (end + 3) if end != -1 else n
+                else:
+                    j2 = k + 1
+                    while j2 < n and text[j2] != aq:
+                        j2 += 1
+                    i = j2 + 1
                 break
             j2 = k + 1
             adj_chars: list[str] = []
@@ -265,7 +296,7 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
                         adj_chars.append(text[j2])
                     j2 += 1
                     continue
-                if ch == q:
+                if ch == aq:
                     j2 += 1
                     break
                 adj_chars.append(ch)
@@ -273,7 +304,7 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
             lit_content += "".join(adj_chars)
             i = j2
 
-        result.append(SqlLiteral(lit_content, line_no, src_line, parseable=True))
+        result.append(SqlLiteral(lit_content, line_no, src_line, parseable=group_parseable))
 
     return result
 
