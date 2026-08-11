@@ -318,16 +318,24 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   ///
   /// Awaited because the pushed screen can edit, duplicate or delete the dance
   /// it shows, and this screen renders that dance's title in its cross-
-  /// reference and related-link rows. The editor broadcasts on save, so the
-  /// reload normally arrives through this screen's subscription; the direct
-  /// reload is the fallback for focused widget tests that mount no scope.
+  /// reference and related-link rows.
+  ///
+  /// An **edit** arrives through this screen's subscription, because the editor
+  /// broadcasts on save. A **delete** does not: [_delete] soft-deletes and pops
+  /// `true` without broadcasting, relying on the list screen's pop-result
+  /// reload — which does nothing for a sibling detail screen sitting under the
+  /// pushed route. So the popped result is consumed here and drives the reload
+  /// for exactly that case, leaving the edit path to the broadcast rather than
+  /// reloading for both (issue #340). The unscoped branch keeps focused widget
+  /// tests, which mount no scope, behaving as they did.
   Future<void> _openDance(String danceId) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
+    final deleted = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         builder: (_) => DanceDetailScreen(danceId: danceId),
       ),
     );
-    if (mounted && _collectionRefresh == null) _reload();
+    if (!mounted) return;
+    if (deleted == true || _collectionRefresh == null) _reload();
   }
 
   /// Duplicates the dance, appends " (copy)" to the copy's title (since

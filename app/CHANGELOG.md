@@ -260,7 +260,9 @@ each release so store builds and tags can be traced back to an entry.
   now tells the views that render the data to refresh, and each view refreshes
   once per change rather than once per edited dance. Opening a dance from a
   **related dance** link and renaming it there also updates the link you came
-  from, instead of leaving the old title behind (#768, #851).
+  from, instead of leaving the old title behind — and deleting it there marks
+  the link as missing rather than leaving a link to a dance that is gone
+  (#768, #851).
 
 - **Skipping every dance in a shared import no longer disables Import when the
   bundle carries a program.** Previously, if you already owned every dance in a
