@@ -1589,56 +1589,67 @@ void main() {
         // because the spy ignored its onLayout argument entirely. Found by a
         // deliberate mutation audit of merged code.
         //
-        // This version captures onLayout, calls it, and compares the resulting
-        // bytes against a set-list-only PDF. A PDF with a figure appendix
-        // (appendDances non-null) is larger than one without — this proves the
-        // appendix reached buildProgramPdf, but does not verify its contents
-        // (any additional bytes would satisfy it). For the specific regression
-        // guarded here — appendDances being dropped entirely — the size
-        // comparison discriminates correctly.
+        // This version captures the onLayout closure from both the "set list
+        // and figures" path and the "set list only" path, calls each, and
+        // compares their byte sizes. Both closures are built through _exportPdf
+        // with identical parameters (same program, same formatDate, same
+        // labels), so the comparison is a true differential: any size difference
+        // comes from appendDances alone.
+        //
+        // Using a bare buildProgramPdf call as the baseline would introduce a
+        // ~528-byte construction difference (formatDate and labels differ), so
+        // that approach was rejected. A direct call without those params
+        // produces 9422 bytes; the same call via _exportPdf produces 8894 bytes
+        // — a stable gap, but one that could hide a short appendix.
         //
         // Mutation that would catch a regression: remove appendDances from the
         // buildProgramPdf call in _exportPdf →
-        //   Expected: a value greater than <9422>
-        //   Actual: <8894>
+        //   Expected: a value greater than <8894>
+        //   Actual: <8894>   (both paths produce identical bytes)
         assert(
           danceWithFigures.figures.isNotEmpty,
           'guard: fixture must have figures',
         );
-        LayoutCallback? capturedOnLayout;
         final prog = _program(
           slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
         );
-        await tester.pumpWidget(
-          MaterialApp(
-            localizationsDelegates: testLocalizationsDelegates,
-            supportedLocales: testSupportedLocales,
-            home: Scaffold(
-              appBar: AppBar(
-                actions: [
-                  ProgramExportMenu(
-                    program: prog,
-                    titleFor: _titles,
-                    danceFor: _danceFor,
-                    shareInvoker: (params) async {},
-                    pdfLayouter: ({required name, required onLayout}) async {
-                      capturedOnLayout = onLayout;
-                    },
-                  ),
-                ],
-              ),
+
+        LayoutCallback? capturedWithFigures;
+        LayoutCallback? capturedSetListOnly;
+
+        final widget = MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                ProgramExportMenu(
+                  program: prog,
+                  titleFor: _titles,
+                  danceFor: _danceFor,
+                  shareInvoker: (params) async {},
+                  pdfLayouter: ({required name, required onLayout}) async {
+                    // Will be called twice; assignment captures the latest.
+                    if (capturedWithFigures == null) {
+                      capturedWithFigures = onLayout;
+                    } else {
+                      capturedSetListOnly = onLayout;
+                    }
+                  },
+                ),
+              ],
             ),
           ),
         );
+        await tester.pumpWidget(widget);
         await tester.pumpAndSettle();
 
+        // ── First export: "Set list and figures" ──────────────────────────
         await tester.tap(find.byKey(const ValueKey('program-export-menu')));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Export / print PDF'));
         await tester.pumpAndSettle();
 
-        // Venue consent skipped (no venue with contacts).
-        // Figures prompt appears.
         expect(
           find.byKey(const ValueKey('program-figures-prompt-dialog')),
           findsOneWidget,
@@ -1654,23 +1665,42 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // The spy must have been called with a real onLayout closure.
-        expect(capturedOnLayout, isNotNull);
+        // ── Second export: "Set list only" ────────────────────────────────
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Export / print PDF'));
+        await tester.pumpAndSettle();
 
-        // Call onLayout to produce the actual PDF bytes.
-        final withFiguresBytes = await capturedOnLayout!(PdfPageFormat.a4);
+        expect(
+          find.byKey(const ValueKey('program-figures-prompt-dialog')),
+          findsOneWidget,
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-set-list-only')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-confirm')),
+        );
+        await tester.pumpAndSettle();
 
-        // Build a set-list-only baseline for comparison.
-        final baselineBytes = await buildProgramPdf(prog, titleFor: _titles);
+        expect(capturedWithFigures, isNotNull);
+        expect(capturedSetListOnly, isNotNull);
 
-        // A PDF with a figure appendix is larger than the set-list-only
-        // baseline — proves appendDances reached buildProgramPdf, but does not
-        // verify the appendix contents (any extra bytes satisfy it).
+        final withFiguresBytes = await capturedWithFigures!(PdfPageFormat.a4);
+        final setListOnlyBytes = await capturedSetListOnly!(PdfPageFormat.a4);
+
+        // A PDF with a figure appendix is larger than the set-list-only PDF
+        // built through the identical construction path. Proves appendDances
+        // reached buildProgramPdf, but does not verify appendix contents —
+        // any additional bytes satisfy it. For the guarded regression
+        // (appendDances dropped entirely), the comparison discriminates
+        // correctly.
         expect(
           withFiguresBytes.length,
-          greaterThan(baselineBytes.length),
+          greaterThan(setListOnlyBytes.length),
           reason:
-              'PDF with figures must be larger than set-list-only baseline; '
+              'PDF with figures must be larger than set-list-only PDF; '
               'equal length means appendDances was silently dropped',
         );
       },
