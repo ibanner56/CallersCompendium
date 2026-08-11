@@ -41,22 +41,25 @@ void main() {
       // for reasons that have nothing to do with the taxonomy — schema 21
       // dropped unused storage (#781/#782) and schema 22 added the
       // dance_figures.group_idx search-correlation column (#748), and schema
-      // 24 added the dances.mixer flag (#732), each while the taxonomy stood
-      // still. The two constants briefly both read 24 — coincidentally: schema
-      // 24 comes from dances.mixer (#732) and taxonomy 24 from the
-      // partner-series vocabulary tokens (#732); same issue, unrelated
-      // mechanisms. They have since diverged again, and HOW they diverged is
-      // the useful part: taxonomy v25 (#870) and v26 (#843) both changed
-      // canonical keys and neither bumped the schema, because a figures_json
-      // rewrite does not need one — a one-time `settings` marker in
-      // `CompendiumRepositories` does the pass and the derived rebuild (see
-      // `_normaliseInversePairMoveIdsIfNeeded` and
-      // `_stripStarPromenadeHandIfNeeded`). A schema bump is for a change in
-      // STRUCTURE. So a failure here means one of two things, and they are
-      // worth telling apart: either a taxonomy change quietly started owing a
-      // structural migration (the hazard this test exists for), or an
-      // unrelated schema change landed and this number simply needs updating.
-      expect(kCompendiumSchemaVersion, 24);
+      // 24 added the dances.mixer flag (#732), and schema 25 added the Device
+      // Sync timestamp triple (#898), each while the taxonomy stood still. The
+      // two constants briefly both read 24 — coincidentally: schema 24 comes
+      // from dances.mixer (#732) and taxonomy 24 from the partner-series
+      // vocabulary tokens (#732); same issue, unrelated mechanisms. They have
+      // since diverged again, and HOW they diverged is the useful part:
+      // taxonomy v25 (#870) and v26 (#843) both changed canonical keys and
+      // neither bumped the schema, because a figures_json rewrite does not need
+      // one — a one-time `settings` marker in `CompendiumRepositories` does the
+      // pass and the derived rebuild (see `_normaliseInversePairMoveIdsIfNeeded`
+      // and `_stripStarPromenadeHandIfNeeded`). A schema bump is for a change in
+      // STRUCTURE — schema 25 is the contrapositive and shows the rule cutting
+      // the other way: #898 added twenty columns and touched no canonical key,
+      // so it bumped the schema and left the taxonomy alone. So a failure here
+      // means one of two things, and they are worth telling apart: either a
+      // taxonomy change quietly started owing a structural migration (the
+      // hazard this test exists for), or an unrelated schema change landed and
+      // this number simply needs updating.
+      expect(kCompendiumSchemaVersion, 25);
     });
 
     test('registers with the maintainer-ruled param set', () {

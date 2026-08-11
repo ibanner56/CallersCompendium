@@ -94,6 +94,15 @@ export 'src/storage/database.dart'
         kSectionRuleVersion,
         kCompendiumSchemaVersion,
         kMinSupportedSchemaVersion;
+export 'src/storage/existence.dart'
+    show
+        existenceStampTick,
+        nextExistenceStamp,
+        applyUpsertExistence,
+        adoptTombstonedNaturalKey,
+        seedExistenceIfMissing,
+        stampExistenceTransition,
+        unixSeconds;
 export 'src/storage/repositories/choreographer_repository.dart';
 export 'src/storage/repositories/custom_field_repository.dart'
     show

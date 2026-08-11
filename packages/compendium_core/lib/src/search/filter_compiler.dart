@@ -169,9 +169,14 @@ class FilterCompiler {
         );
         return 'id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?)';
       case AuthorFilter(:final choreographerId):
+        // Joined to `choreographers` since schema v25 (#898) so a tombstoned
+        // author matches nothing: soft delete leaves the `dance_authors` rows
+        // in place (no FK cascade fires), so the bare subquery would keep
+        // returning dances for an author the user deleted.
         binds.add(choreographerId);
-        return 'id IN (SELECT dance_id FROM dance_authors '
-            'WHERE choreographer_id = ?)';
+        return 'id IN (SELECT da.dance_id FROM dance_authors da '
+            'JOIN choreographers c ON c.id = da.choreographer_id '
+            'WHERE da.choreographer_id = ? AND c.deleted_at IS NULL)';
       case SourceFilter(:final query):
         // Substring match on the cited source's title OR author. `author` is
         // nullable — a NULL yields NULL (not-true) under LIKE, so the OR still
@@ -182,17 +187,25 @@ class FilterCompiler {
         binds.add(escaped);
         return 'id IN (SELECT ds.dance_id FROM dance_sources ds '
             'JOIN published_sources ps ON ps.id = ds.source_id '
-            "WHERE ps.title LIKE '%' || ? || '%' ESCAPE '\\' "
-            "OR ps.author LIKE '%' || ? || '%' ESCAPE '\\')";
+            'WHERE ps.deleted_at IS NULL AND ('
+            "ps.title LIKE '%' || ? || '%' ESCAPE '\\' "
+            "OR ps.author LIKE '%' || ? || '%' ESCAPE '\\'))";
       case SourceIdFilter(:final sourceId):
         // Identity match on the cited source's id — the exact analog of
-        // AuthorFilter's dance_authors subquery.
+        // AuthorFilter's dance_authors subquery, including its v25 tombstone
+        // join.
         binds.add(sourceId);
-        return 'id IN (SELECT dance_id FROM dance_sources '
-            'WHERE source_id = ?)';
+        return 'id IN (SELECT ds.dance_id FROM dance_sources ds '
+            'JOIN published_sources ps ON ps.id = ds.source_id '
+            'WHERE ds.source_id = ? AND ps.deleted_at IS NULL)';
       case TagFilter(:final tagId):
+        // Joined to `tags` since schema v25 (#898). Tags have no referential
+        // guard, so this is the one of these three where a tombstone with live
+        // join rows is reachable by ordinary use rather than only defensively.
         binds.add(tagId);
-        return 'id IN (SELECT dance_id FROM dance_tags WHERE tag_id = ?)';
+        return 'id IN (SELECT dt.dance_id FROM dance_tags dt '
+            'JOIN tags t ON t.id = dt.tag_id '
+            'WHERE dt.tag_id = ? AND t.deleted_at IS NULL)';
       case FormFilter(:final form):
         binds.add(form.name);
         return 'form = ?';

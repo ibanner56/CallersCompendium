@@ -148,7 +148,7 @@ const String starPromenadeHandRemovalDoneKey =
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 24;
+const int kCompendiumSchemaVersion = 25;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -406,6 +406,27 @@ const int kMinSupportedSchemaVersion = 11;
 ///   get `DEFAULT 0` (mixer = false), preserving today's behaviour exactly
 ///   (nothing was a mixer before because the concept could not be expressed).
 ///   No figure index is touched; no derived rebuild is required.
+///
+/// - v25 (issue #898): the Device Sync schema migration. Adds the sync
+///   timestamp triple — `updated_at`, `deleted_at`, `existence_at` — to every
+///   syncable kind: twenty columns over eight tables. Six tables (`settings`,
+///   `choreographers`, `tags`, `published_sources`, `custom_field_defs`,
+///   `venues`) gain all three; `dances` and `programs` already carried the
+///   first two and gain only `existence_at`. All are nullable, because SQLite
+///   cannot ADD COLUMN a NOT NULL column without a *constant* default and no
+///   constant is a truthful timestamp; the step back-fills every existing row
+///   instead. `updated_at` is stamped at migration time, while `existence_at`
+///   takes a single sampled constant T₀ for live rows and the row's own
+///   `deleted_at` for an already-tombstoned one — and specifically NOT
+///   `updated_at`, which would make an ordinary content edit read as an
+///   existence transition and resurrect records on first sync. The same step
+///   converts the six entity-level hard deletes (`ChoreographerRepository`,
+///   `TagRepository`, `PublishedSourceRepository`, `CustomFieldDefRepository`,
+///   `VenueRepository`, `SettingsRepository`) to tombstones, so a deletion
+///   leaves something a peer can learn from; the `hardDelete` import-undo paths
+///   stay hard, because a rollback must leave nothing to publish. No figure
+///   index is touched; no derived rebuild is required. Behaviour-preserving
+///   from the user's point of view: nothing reads `existence_at` yet.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, (c) ship a test that
@@ -832,6 +853,160 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // (see `callersbox_adapter.dart`). No figure index is touched; no
         // derived rebuild is required.
         await m.addColumn(dances, dances.mixer);
+      }
+
+      if (from < 25) {
+        // Issue #898: the Device Sync schema migration. Adds the sync timestamp
+        // triple to every syncable kind — twenty columns across eight tables —
+        // and converts the entity-level hard deletes to tombstones. See the
+        // note at the top of `tables.dart` for what each of the three columns
+        // means and why none of them can be folded into another.
+        //
+        // Six tables gain all three (`settings`, `choreographers`, `tags`,
+        // `published_sources`, `custom_field_defs`, `venues`); `dances` and
+        // `programs` already carry `updated_at`/`deleted_at` and gain only
+        // `existence_at`.
+        //
+        // Every column is NULLABLE, so there is no DEFAULT to preserve
+        // behaviour with — the back-fill below does that job instead. This is
+        // forced: SQLite's ALTER TABLE ADD COLUMN refuses a NOT NULL column
+        // unless it carries a *constant* default, and no constant is a truthful
+        // timestamp (an epoch-0 sentinel reads as a real 1970 stamp, which is
+        // worse than NULL). A 12-step table rebuild per table would allow NOT
+        // NULL, and was rejected as disproportionate for a migration whose
+        // stated design goal is a reviewable blast radius.
+        //
+        // No figure index is touched; no derived rebuild is required. Nothing
+        // reads `existence_at` yet — there is no sync client — so this step is
+        // behaviour-preserving apart from deletions becoming observable.
+        // ADD COLUMN, GUARDED — and the guard is load-bearing, not defensive
+        // tidiness. `m.createTable` in a historical step builds the table from
+        // *today's* Dart definition, not the definition that was current when
+        // that step was written. `venues` is created by the `from < 14` step
+        // above, so a database arriving from v11..v13 reaches this point with
+        // `venues` already carrying all three v25 columns, and an unguarded
+        // `addColumn` fails with "duplicate column name: updated_at" — taking
+        // down the whole upgrade for exactly the oldest databases the floor
+        // exists to keep supporting. (Every other table here is created in
+        // `onCreate`, or by a step below the floor whose code is gone, so only
+        // `venues` can currently reach that state; the check is written
+        // generically so a future table-creating step cannot reintroduce this.)
+        //
+        // Skipping is correct rather than merely safe: a table created from
+        // today's definition already has the column in its final shape, and
+        // `createTable` leaves it empty, so there is nothing to back-fill
+        // either.
+        Future<void> addColumnIfMissing(
+          TableInfo<Table, dynamic> table,
+          GeneratedColumn<Object> column,
+        ) async {
+          final existing = await customSelect(
+            "SELECT name FROM pragma_table_info('${table.actualTableName}')",
+          ).get();
+          final present = {
+            for (final row in existing) row.read<String>('name'),
+          };
+          if (present.contains(column.name)) return;
+          await m.addColumn(table, column);
+        }
+
+        await addColumnIfMissing(settings, settings.updatedAt);
+        await addColumnIfMissing(settings, settings.deletedAt);
+        await addColumnIfMissing(settings, settings.existenceAt);
+        await addColumnIfMissing(choreographers, choreographers.updatedAt);
+        await addColumnIfMissing(choreographers, choreographers.deletedAt);
+        await addColumnIfMissing(choreographers, choreographers.existenceAt);
+        await addColumnIfMissing(tags, tags.updatedAt);
+        await addColumnIfMissing(tags, tags.deletedAt);
+        await addColumnIfMissing(tags, tags.existenceAt);
+        await addColumnIfMissing(publishedSources, publishedSources.updatedAt);
+        await addColumnIfMissing(publishedSources, publishedSources.deletedAt);
+        await addColumnIfMissing(
+          publishedSources,
+          publishedSources.existenceAt,
+        );
+        await addColumnIfMissing(customFieldDefs, customFieldDefs.updatedAt);
+        await addColumnIfMissing(customFieldDefs, customFieldDefs.deletedAt);
+        await addColumnIfMissing(customFieldDefs, customFieldDefs.existenceAt);
+        await addColumnIfMissing(venues, venues.updatedAt);
+        await addColumnIfMissing(venues, venues.deletedAt);
+        await addColumnIfMissing(venues, venues.existenceAt);
+        await addColumnIfMissing(dances, dances.existenceAt);
+        await addColumnIfMissing(programs, programs.existenceAt);
+
+        // T₀ — one instant sampled here and written to every live row, so that
+        // no live row outranks another and the first real transition on any
+        // device establishes the ordering. `updated_at` on the six tables that
+        // just gained it is stamped from the same sample: same number, two
+        // different meanings ("this row's content was last written at" and
+        // "this row's existence was last decided at"), which happen to coincide
+        // because the migration is the only event either column can point at.
+        // That coincidence is confined to those six tables — `dances` and
+        // `programs` keep their own per-row `updated_at`, so there the two
+        // columns diverge immediately, which is what the migration test
+        // asserts against.
+        //
+        // Stored as unix seconds because that is drift's mapping for
+        // DateTimeColumn (see `existence.dart` for why the tick size follows
+        // from this).
+        final t0 = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+
+        // THE BACK-FILL RULE, AND WHY THE OBVIOUS CHOICE IS WRONG.
+        //
+        // `existence_at` MUST NOT be copied from `updated_at`. That is the
+        // natural thing to reach for and it reintroduces, through the
+        // migration, the exact coupling the third column exists to break: a
+        // device that *edited* a live record after another device *deleted* it
+        // would carry `existence_at = updated_at` greater than the tombstone's,
+        // its live copy would outrank the tombstone, and the record would come
+        // back on first sync. At launch the entire corpus is pre-migration
+        // rows, so that would be the common case rather than an edge case.
+        //
+        // Back-fill from the row's existence history instead:
+        //   * live               -> T₀
+        //   * already tombstoned -> its own `deleted_at`, which is when its
+        //                           existence actually last changed. This is
+        //                           the one case where a pre-existing column
+        //                           carries the right meaning.
+        //
+        // COALESCE expresses exactly that, and is applied uniformly to all
+        // eight tables. On the six that gained `deleted_at` in this same step
+        // it can only ever take the T₀ branch (the column is new, so every row
+        // is live); writing it the same way everywhere states the rule once
+        // rather than encoding "these tables cannot have tombstones yet" as an
+        // invisible assumption that a later change could falsify.
+        //
+        // ACCEPTED CONSEQUENCE (maintainer decision, recorded in
+        // docs/design/sync.md): T₀ is a per-device sampled clock, not a
+        // hardcoded pre-release constant, so it is necessarily later than any
+        // deletion already in the past. A device that deleted record R before
+        // migrating carries `existence_at = deleted_at` for it; a device that
+        // never deleted R and migrates later carries T₀, which is greater — so
+        // on first sync the live copy outranks the tombstone and R comes back.
+        // This is not bounded by the migration window: T₀ remains a record's
+        // operative existence value until that record has another live<->
+        // deleted transition. The alternative (a hardcoded pre-release
+        // constant) was considered and not taken.
+        for (final table in const [
+          'settings',
+          'choreographers',
+          'tags',
+          'published_sources',
+          'custom_field_defs',
+          'venues',
+        ]) {
+          await customStatement(
+            'UPDATE $table SET updated_at = ?, '
+            'existence_at = COALESCE(deleted_at, ?)',
+            [t0, t0],
+          );
+        }
+        for (final table in const ['dances', 'programs']) {
+          await customStatement(
+            'UPDATE $table SET existence_at = COALESCE(deleted_at, ?)',
+            [t0],
+          );
+        }
       }
     },
     beforeOpen: (details) async {

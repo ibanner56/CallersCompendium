@@ -6,6 +6,7 @@ import '../../model/enums.dart';
 import '../../model/program.dart';
 import '../../model/provenance.dart' as model;
 import '../database.dart';
+import '../existence.dart';
 import '../utc_datetime.dart';
 
 /// One entry in a dance's calling history: a program that includes the dance
@@ -213,8 +214,13 @@ class ProgramRepository {
     if (venueId != null) {
       final venueExists = knownVenueIds != null
           ? knownVenueIds.contains(venueId)
+          // `deleted_at IS NULL` since schema v25 (#898): a tombstoned venue
+          // is not one a program may newly link to, and `venue_id` is a soft
+          // reference with no FK, so nothing else would catch it.
           : await (_db.select(_db.venues)
-                      ..where((t) => t.id.equals(venueId))
+                      ..where(
+                        (t) => t.id.equals(venueId) & t.deletedAt.isNull(),
+                      )
                       ..limit(1))
                     .getSingleOrNull() !=
                 null;
@@ -262,6 +268,12 @@ class ProgramRepository {
             deletedAt: Value(program.deletedAt),
           ),
         );
+    await seedExistenceIfMissing(
+      _db,
+      table: 'programs',
+      keyColumn: 'id',
+      key: program.id,
+    );
     await (_db.delete(
       _db.programSlots,
     )..where((t) => t.programId.equals(program.id))).go();
@@ -639,19 +651,37 @@ class ProgramRepository {
     return copy;
   }
 
-  Future<void> softDelete(String id, {required DateTime at}) {
-    assertUtc(at, 'at');
-    return (_db.update(_db.programs)..where((t) => t.id.equals(id))).write(
-      ProgramsCompanion(deletedAt: Value(at), updatedAt: Value(at)),
-    );
-  }
+  /// Tombstones the program, stamping `existence_at` causally (schema v25,
+  /// issue #898). One shared [at] goes into both `deletedAt` and `updatedAt`
+  /// and `body` is untouched, which is unchanged and correct: nothing causal
+  /// flows into either of those two. See `DanceRepository.softDelete`.
+  Future<void> softDelete(String id, {required DateTime at}) =>
+      _stampExistence(id, at: at, deleted: true);
 
-  Future<void> restore(String id, {required DateTime at}) {
-    assertUtc(at, 'at');
-    return (_db.update(_db.programs)..where((t) => t.id.equals(id))).write(
-      ProgramsCompanion(deletedAt: const Value(null), updatedAt: Value(at)),
-    );
-  }
+  /// Revives the program, stamping `existence_at` causally (schema v25, issue
+  /// #898). A revival is an existence transition, so it must advance
+  /// `existence_at` or a peer holding the tombstone would win the comparison
+  /// and delete it straight back.
+  Future<void> restore(String id, {required DateTime at}) =>
+      _stampExistence(id, at: at, deleted: false);
+
+  /// Shared live<->deleted transition: one statement that writes
+  /// `max(at, current + 1 tick)` while reading the pre-update
+  /// `existence_at`, so the stamp cannot be computed from a value another
+  /// writer has already moved. Matching no rows is a no-op, exactly as the
+  /// previous unconditional UPDATE was.
+  Future<void> _stampExistence(
+    String id, {
+    required DateTime at,
+    required bool deleted,
+  }) => stampExistenceTransition(
+    _db,
+    table: 'programs',
+    keyColumn: 'id',
+    key: id,
+    at: at,
+    deleted: deleted,
+  );
 
   /// Hard-deletes the programs identified by [ids] outright (ignoring their
   /// soft-delete state), removing each program's slots via the

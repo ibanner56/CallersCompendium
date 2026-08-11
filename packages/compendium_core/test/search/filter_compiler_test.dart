@@ -70,9 +70,14 @@ void main() {
     });
 
     test('Author', () {
+      // Joined to `choreographers` since schema v25 (#898): soft delete leaves
+      // the `dance_authors` rows behind (no FK cascade fires), so without the
+      // tombstone predicate this would keep matching a deleted author's dances.
       expect(
         pred(const AuthorFilter('c1')),
-        'id IN (SELECT dance_id FROM dance_authors WHERE choreographer_id = ?)',
+        'id IN (SELECT da.dance_id FROM dance_authors da '
+        'JOIN choreographers c ON c.id = da.choreographer_id '
+        'WHERE da.choreographer_id = ? AND c.deleted_at IS NULL)',
       );
       expect(compiler.compile(const AuthorFilter('c1')).binds, ['c1']);
     });
@@ -82,8 +87,9 @@ void main() {
         pred(const SourceFilter('Zesty')),
         'id IN (SELECT ds.dance_id FROM dance_sources ds '
         'JOIN published_sources ps ON ps.id = ds.source_id '
-        "WHERE ps.title LIKE '%' || ? || '%' ESCAPE '\\' "
-        "OR ps.author LIKE '%' || ? || '%' ESCAPE '\\')",
+        'WHERE ps.deleted_at IS NULL AND ('
+        "ps.title LIKE '%' || ? || '%' ESCAPE '\\' "
+        "OR ps.author LIKE '%' || ? || '%' ESCAPE '\\'))",
       );
       // The query is bound once per LIKE clause (title, then author).
       expect(compiler.compile(const SourceFilter('Zesty')).binds, [
@@ -117,7 +123,9 @@ void main() {
     test('SourceId', () {
       expect(
         pred(const SourceIdFilter('s1')),
-        'id IN (SELECT dance_id FROM dance_sources WHERE source_id = ?)',
+        'id IN (SELECT ds.dance_id FROM dance_sources ds '
+        'JOIN published_sources ps ON ps.id = ds.source_id '
+        'WHERE ds.source_id = ? AND ps.deleted_at IS NULL)',
       );
       expect(compiler.compile(const SourceIdFilter('s1')).binds, ['s1']);
     });
@@ -125,7 +133,9 @@ void main() {
     test('Tag', () {
       expect(
         pred(const TagFilter('t1')),
-        'id IN (SELECT dance_id FROM dance_tags WHERE tag_id = ?)',
+        'id IN (SELECT dt.dance_id FROM dance_tags dt '
+        'JOIN tags t ON t.id = dt.tag_id '
+        'WHERE dt.tag_id = ? AND t.deleted_at IS NULL)',
       );
     });
 

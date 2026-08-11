@@ -83,9 +83,13 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final repos = RepositoriesScope.of(context);
-    final tag = Tag(id: uuidV4(), name: name);
+    final minted = Tag(id: uuidV4(), name: name);
+    final Tag tag;
     try {
-      await repos.tags.upsert(tag);
+      // The repository may adopt a soft-deleted tag holding this name and
+      // return its id instead of the minted one (schema v25, #898), so build
+      // the local Tag from what it actually wrote.
+      tag = Tag(id: await repos.tags.upsert(minted), name: name);
     } catch (_) {
       if (!mounted) return;
       setState(() => _creating = false);

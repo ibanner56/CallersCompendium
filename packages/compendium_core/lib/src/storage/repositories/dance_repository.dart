@@ -23,6 +23,7 @@ import '../../search/fts_query.dart';
 import '../../serialization/figure_codec.dart';
 import '../../taxonomy/taxonomy.dart';
 import '../database.dart';
+import '../existence.dart';
 import '../tables.dart';
 import '../utc_datetime.dart';
 import 'custom_field_repository.dart';
@@ -226,6 +227,12 @@ class DanceRepository {
             deletedAt: Value(dance.deletedAt),
           ),
         );
+    await seedExistenceIfMissing(
+      _db,
+      table: 'dances',
+      keyColumn: 'id',
+      key: dance.id,
+    );
 
     await (_db.delete(
       _db.danceAuthors,
@@ -554,12 +561,21 @@ class DanceRepository {
     // Prefetch the shared lookups once so per-dance FTS assembly is O(1) reads
     // instead of an N+1 of single-row author/source selects. These tables are
     // small relative to the dance collection.
+    // Tombstoned rows are excluded (schema v25, issue #898): a soft-deleted
+    // author or source must not contribute searchable text, exactly as it no
+    // longer contributes a displayed credit or citation. Both kinds are
+    // referentially guarded, so a tombstone here can only exist once nothing
+    // cites it — the filter is what keeps that true if a guard is ever relaxed.
     final authorNames = {
-      for (final row in await _db.select(_db.choreographers).get())
+      for (final row in await (_db.select(
+        _db.choreographers,
+      )..where((t) => t.deletedAt.isNull())).get())
         row.id: row.name,
     };
     final sources = {
-      for (final row in await _db.select(_db.publishedSources).get())
+      for (final row in await (_db.select(
+        _db.publishedSources,
+      )..where((t) => t.deletedAt.isNull())).get())
         row.id: row,
     };
 
@@ -711,19 +727,40 @@ class DanceRepository {
     ];
   }
 
-  Future<void> softDelete(String id, {required DateTime at}) {
-    assertUtc(at, 'at');
-    return (_db.update(_db.dances)..where((t) => t.id.equals(id))).write(
-      DancesCompanion(deletedAt: Value(at), updatedAt: Value(at)),
-    );
-  }
+  /// Tombstones the dance, stamping `existence_at` causally (schema v25, issue
+  /// #898). One shared [at] goes into both `deletedAt` and `updatedAt` and
+  /// `body` is untouched — unchanged and correct, because nothing causal flows
+  /// into either of those two: `updated_at` answers "which content is newer"
+  /// and `deleted_at` drives retention, while only `existence_at` orders the
+  /// transition itself.
+  Future<void> softDelete(String id, {required DateTime at}) =>
+      _stampExistence(id, at: at, deleted: true);
 
-  Future<void> restore(String id, {required DateTime at}) {
-    assertUtc(at, 'at');
-    return (_db.update(_db.dances)..where((t) => t.id.equals(id))).write(
-      DancesCompanion(deletedAt: const Value(null), updatedAt: Value(at)),
-    );
-  }
+  /// Revives the dance, stamping `existence_at` causally (schema v25, issue
+  /// #898). A revival is an existence transition, so it must advance
+  /// `existence_at`: leaving it at the tombstone's value would tie, and a tie
+  /// resolves in favour of the tombstone, so a peer would delete the restored
+  /// dance straight back.
+  Future<void> restore(String id, {required DateTime at}) =>
+      _stampExistence(id, at: at, deleted: false);
+
+  /// Shared live<->deleted transition: one statement that writes
+  /// `max(at, current + 1 tick)` while reading the pre-update
+  /// `existence_at`, so the stamp cannot be computed from a value another
+  /// writer has already moved. Matching no rows is a no-op, exactly as the
+  /// previous unconditional UPDATE was.
+  Future<void> _stampExistence(
+    String id, {
+    required DateTime at,
+    required bool deleted,
+  }) => stampExistenceTransition(
+    _db,
+    table: 'dances',
+    keyColumn: 'id',
+    key: id,
+    at: at,
+    deleted: deleted,
+  );
 
   /// Hard-deletes soft-deleted dances whose `deletedAt` is older than
   /// [retention] (default 30 days). Cascades to child rows (authors, tags,
@@ -860,6 +897,17 @@ class DanceRepository {
   /// `ChoreographerRepository` / `PublishedSourceRepository`, which refuse to
   /// remove a still-referenced row; here the last reference is already gone, so
   /// the removal is safe hygiene rather than silent data loss.
+  ///
+  /// **Stays a HARD delete after the schema-v25 soft-delete conversion (#898),
+  /// unlike the guarded deletes it mirrors.** Those now tombstone, so this is a
+  /// deliberate divergence rather than an oversight. Two reasons: this only
+  /// runs inside `purgeDeleted` / `hardDelete`, which are already erasing the
+  /// owning dances outright with no tombstone of their own, so a tombstone here
+  /// would outlive the records that explain it; and nobody *deleted* these rows
+  /// — they were collected as a side effect of a retention purge, so
+  /// advertising a deletion the user never performed would be wrong. Giving the
+  /// six new kinds their own retention/purge policy belongs with the sync
+  /// implementation, which owns retention; this migration ships none.
   Future<void> _garbageCollectOrphanedRefs(
     ({Set<String> choreographerIds, Set<String> sourceIds}) candidates,
   ) async {
@@ -1484,6 +1532,7 @@ class DanceRepository {
             'JOIN choreographers '
             'ON choreographers.id = dance_authors.choreographer_id '
             'WHERE dance_authors.position = 0 '
+            'AND choreographers.deleted_at IS NULL '
             'AND dance_authors.dance_id IN ($placeholders)',
             variables: [for (final id in chunk) Variable(id)],
           )
@@ -1686,16 +1735,25 @@ class DanceRepository {
     if (ids.isEmpty) return const {};
     final byDance = <String, List<String>>{};
     for (final chunk in _chunkIds(ids)) {
+      final query = _db.select(_db.danceAuthors)
+        ..where((t) => t.danceId.isIn(chunk));
       final rows =
-          await (_db.select(_db.danceAuthors)
-                ..where((t) => t.danceId.isIn(chunk))
-                ..orderBy([
-                  (t) => OrderingTerm(expression: t.danceId),
-                  (t) => OrderingTerm(expression: t.position),
-                ]))
+          await (query.join([
+                innerJoin(
+                  _db.choreographers,
+                  _db.choreographers.id.equalsExp(
+                        _db.danceAuthors.choreographerId,
+                      ) &
+                      _db.choreographers.deletedAt.isNull(),
+                ),
+              ])..orderBy([
+                OrderingTerm(expression: _db.danceAuthors.danceId),
+                OrderingTerm(expression: _db.danceAuthors.position),
+              ]))
               .get();
       for (final r in rows) {
-        (byDance[r.danceId] ??= <String>[]).add(r.choreographerId);
+        final row = r.readTable(_db.danceAuthors);
+        (byDance[row.danceId] ??= <String>[]).add(row.choreographerId);
       }
     }
     return byDance;
@@ -1703,20 +1761,35 @@ class DanceRepository {
 
   /// `dance_id → [tagId]` in insertion (row) order, matching the un-ordered
   /// per-dance query the single-row path historically used.
+  ///
+  /// Joined to `tags` and filtered on `tags.deleted_at IS NULL` since schema
+  /// v25 (issue #898). Tags are the one soft-deletable kind with **no**
+  /// referential guard: deleting one used to clear its `dance_tags` rows by FK
+  /// cascade, and a tombstone fires no cascade, so without this filter every
+  /// dance would keep reporting a tag the user deleted. The join rows are
+  /// deliberately left in place rather than cleared, so a revived tag comes
+  /// back with its dances intact.
   Future<Map<String, List<String>>> _tagsForMany(List<String> ids) async {
     if (ids.isEmpty) return const {};
     final byDance = <String, List<String>>{};
     for (final chunk in _chunkIds(ids)) {
+      final query = _db.select(_db.danceTags)
+        ..where((t) => t.danceId.isIn(chunk));
       final rows =
-          await (_db.select(_db.danceTags)
-                ..where((t) => t.danceId.isIn(chunk))
-                ..orderBy([
-                  (t) => OrderingTerm(expression: t.danceId),
-                  (t) => OrderingTerm(expression: t.rowId),
-                ]))
+          await (query.join([
+                innerJoin(
+                  _db.tags,
+                  _db.tags.id.equalsExp(_db.danceTags.tagId) &
+                      _db.tags.deletedAt.isNull(),
+                ),
+              ])..orderBy([
+                OrderingTerm(expression: _db.danceTags.danceId),
+                OrderingTerm(expression: _db.danceTags.rowId),
+              ]))
               .get();
       for (final r in rows) {
-        (byDance[r.danceId] ??= <String>[]).add(r.tagId);
+        final row = r.readTable(_db.danceTags);
+        (byDance[row.danceId] ??= <String>[]).add(row.tagId);
       }
     }
     return byDance;
@@ -1771,17 +1844,28 @@ class DanceRepository {
     if (ids.isEmpty) return const {};
     final byDance = <String, List<SourceCitation>>{};
     for (final chunk in _chunkIds(ids)) {
+      final query = _db.select(_db.danceSources)
+        ..where((t) => t.danceId.isIn(chunk));
       final rows =
-          await (_db.select(_db.danceSources)
-                ..where((t) => t.danceId.isIn(chunk))
-                ..orderBy([
-                  (t) => OrderingTerm(expression: t.danceId),
-                  (t) => OrderingTerm(expression: t.position),
-                ]))
+          await (query.join([
+                innerJoin(
+                  _db.publishedSources,
+                  _db.publishedSources.id.equalsExp(_db.danceSources.sourceId) &
+                      _db.publishedSources.deletedAt.isNull(),
+                ),
+              ])..orderBy([
+                OrderingTerm(expression: _db.danceSources.danceId),
+                OrderingTerm(expression: _db.danceSources.position),
+              ]))
               .get();
       for (final r in rows) {
-        (byDance[r.danceId] ??= <SourceCitation>[]).add(
-          SourceCitation(sourceId: r.sourceId, page: r.page, number: r.number),
+        final row = r.readTable(_db.danceSources);
+        (byDance[row.danceId] ??= <SourceCitation>[]).add(
+          SourceCitation(
+            sourceId: row.sourceId,
+            page: row.page,
+            number: row.number,
+          ),
         );
       }
     }
@@ -1803,7 +1887,8 @@ class DanceRepository {
           query.join([
             innerJoin(
               _db.customFieldDefs,
-              _db.customFieldDefs.id.equalsExp(_db.customFieldValues.fieldId),
+              _db.customFieldDefs.id.equalsExp(_db.customFieldValues.fieldId) &
+                  _db.customFieldDefs.deletedAt.isNull(),
             ),
           ])..orderBy([
             OrderingTerm(expression: _db.customFieldValues.danceId),

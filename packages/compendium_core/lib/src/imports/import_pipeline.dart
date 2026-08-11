@@ -643,6 +643,12 @@ class ImportPipeline {
   /// choreographer this batch created — but only those no surviving dance still
   /// references (respecting the repository's referenced-guard). Pre-existing
   /// choreographers are never touched. Idempotent — a second call is a no-op.
+  ///
+  /// The choreographer removal is a **hard** delete (`permanent: true`), not
+  /// the tombstone `ChoreographerRepository.delete` writes by default since
+  /// schema v25 (#898). A rollback is erasing an import that is being treated
+  /// as never having happened, so leaving a tombstone would advertise the
+  /// deletion of an author no other device ever saw.
   Future<void> undo(ImportSession session) async {
     if (session.isUndone) return;
     // Opt out of hardDelete's orphan-ref GC (#462): undo is a faithful rollback
@@ -659,7 +665,11 @@ class ImportPipeline {
     // a surviving dance still credits (the repo throws in that case).
     for (final id in session.createdChoreographerIds) {
       try {
-        await _choreographers.delete(id);
+        // `permanent`: undo erases an import that is being treated as never
+        // having happened, so a tombstone would advertise the deletion of a
+        // choreographer no other device ever saw. Mirrors the `hardDelete`
+        // used for the dances above.
+        await _choreographers.delete(id, permanent: true);
       } on StateError {
         // Still referenced by a surviving dance — leave it in place.
       }

@@ -23,9 +23,9 @@ class FailingSettingsRepository extends SettingsRepository {
   bool failWrites = true;
 
   @override
-  Future<void> set(String key, Object? value) {
+  Future<void> set(String key, Object? value, {DateTime? at}) {
     if (failWrites) throw const InjectedSettingsFailure();
-    return super.set(key, value);
+    return super.set(key, value, at: at);
   }
 }
 
@@ -97,7 +97,7 @@ class DelayedSettingsRepository extends SettingsRepository {
   }
 
   @override
-  Future<void> set(String key, Object? value) async {
+  Future<void> set(String key, Object? value, {DateTime? at}) async {
     writesStarted++;
     final gate = _armedGate;
     if (gate != null) {
@@ -108,7 +108,7 @@ class DelayedSettingsRepository extends SettingsRepository {
       await gate.future;
       _activeGate = null;
     }
-    await super.set(key, value);
+    await super.set(key, value, at: at);
   }
 }
 

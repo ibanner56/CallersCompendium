@@ -435,8 +435,13 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   }
 
   Future<String> _createTag(String name) async {
-    final tag = Tag(id: uuidV4(), name: name.trim());
-    await _repos.tags.upsert(tag);
+    final minted = Tag(id: uuidV4(), name: name.trim());
+    // Use the id the repository actually wrote, not the one minted here: if a
+    // soft-deleted tag already held this name, the upsert revives that row and
+    // returns its id (schema v25, #898). Adding the minted id to the dance
+    // instead would reference a row that does not exist.
+    final id = await _repos.tags.upsert(minted);
+    final tag = Tag(id: id, name: minted.name, color: minted.color);
     if (mounted) {
       _tags = [..._tags, tag];
       _tagNames = {..._tagNames, tag.id: name.trim()};
