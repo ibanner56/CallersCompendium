@@ -1376,9 +1376,32 @@ class _SideCell {
 ///
 /// Keyed on `ParamKind` rather than the literal name `hand`, because of the
 /// twenty moves with a side slot seven call it `shoulder` and two call it
-/// `centerHand`. More than one is treated as "no slot" rather than picking
-/// arbitrarily: no move declares two today, and a future one should fail
-/// loudly (the line stays custom) instead of having a slot chosen for it.
+/// `centerHand`.
+///
+/// **More than one is treated as "no slot", and the consequence is a SILENT
+/// fall-through — not a loud failure and not a custom figure.** Returning null
+/// here makes [_sideRunAnnotation] decline, so the line is handed to the shared
+/// recognizer and still structures; it simply keeps the taxonomy's default for
+/// the side instead of the value the run stated. Nothing is logged, nothing
+/// throws, and no test fails.
+///
+/// That is deliberate, and it is the same disposition every other decline in
+/// this decoder has: an unmapped people code, a non-alternating run and an
+/// unmodelled cell count all fall through the same way. Consuming a run into an
+/// arbitrarily-chosen one of two side params would assert a fact about the
+/// wrong axis of the figure, which is worse than not consuming it — and a move
+/// with two side slots is a taxonomy shape nothing here can interpret, so
+/// declining is the honest answer rather than a stopgap.
+///
+/// The cost, stated plainly because it is a real one: if such a move is ever
+/// added, every run on it stops being consumed and nobody finds out. If that
+/// becomes undesirable the fix belongs in the taxonomy's own validation, where
+/// a two-side-slot MoveDef could be rejected at the source, not here — this
+/// function sees one move at a time and has no standing to declare a taxonomy
+/// shape illegal.
+///
+/// (An earlier version of this comment claimed the line "stays custom" and that
+/// the failure is "loud". Both were false: it structures, and it is silent.)
 String? _sideSlot(MoveDef def) {
   String? found;
   for (final entry in def.params.entries) {
