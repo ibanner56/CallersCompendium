@@ -476,7 +476,102 @@ void main() {
           reason: 'adopting an existing tombstone is not a creation',
         );
         expect(resolution.created, isFalse);
+        expect(
+          session.revivedChoreographerIds,
+          ['ghost'],
+          reason: 'undo needs to know the import resurrected this row',
+        );
       });
+
+      test('undo re-tombstones a choreographer the import resurrected', () async {
+        // The other half of adoption, and the case that was missed: the upsert
+        // clears `deleted_at`, so importing a name a tombstone still held
+        // brings that author back to life. Undo used to leave it live — the
+        // author reappeared permanently after a rolled-back import — and the
+        // revival had stamped `existence_at` strictly past the user's deletion,
+        // so once a sync client exists the resurrection would outrank that
+        // deletion on every peer.
+        //
+        // Undo must return it to the state it was in (deleted), NOT erase it:
+        // the row predates the import and the user may still restore it.
+        await choreographers.upsert(
+          Choreographer(id: 'ghost', name: 'Baby Caller'),
+        );
+        await choreographers.delete('ghost');
+
+        final adapter = FakeSourceAdapter([
+          record('fake-1', 'A Dance', authorNames: ['Baby Caller']),
+        ]);
+        final session = await pipeline.commit(
+          await pipeline.plan(adapter, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
+        expect(
+          await choreographers.getById('ghost'),
+          isNotNull,
+          reason: 'the import revived it — that is the state undo must revert',
+        );
+
+        await pipeline.undo(session);
+
+        expect(
+          await choreographers.getById('ghost'),
+          isNull,
+          reason: 'a rolled-back import must not leave the author resurrected',
+        );
+        expect(await choreographers.listAll(), isEmpty);
+        // Tombstoned, not erased: the user can still restore what they deleted.
+        final rows = await db
+            .customSelect(
+              "SELECT deleted_at FROM choreographers WHERE id = 'ghost'",
+            )
+            .get();
+        expect(
+          rows,
+          hasLength(1),
+          reason: 'undo must not destroy a record that predates the import',
+        );
+        expect(rows.single.data['deleted_at'], isNotNull);
+      });
+
+      test(
+        'undo leaves a resurrected author live if a surviving dance credits it',
+        () async {
+          // The referential guard still wins: re-tombstoning must not orphan a
+          // credit on a dance this import did not insert.
+          await choreographers.upsert(
+            Choreographer(id: 'ghost', name: 'Baby Caller'),
+          );
+          await choreographers.delete('ghost');
+
+          final adapter = FakeSourceAdapter([
+            record('fake-1', 'A Dance', authorNames: ['Baby Caller']),
+          ]);
+          final session = await pipeline.commit(
+            await pipeline.plan(adapter, const ImportRequest()),
+            now: now,
+            newId: nextId,
+          );
+          await dances.create(
+            Dance(
+              id: 'manual-1',
+              title: 'Manual',
+              authorIds: const ['ghost'],
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+          await pipeline.undo(session);
+
+          expect(
+            await choreographers.getById('ghost'),
+            isNotNull,
+            reason: 'still credited by a surviving dance, so it stays live',
+          );
+        },
+      );
 
       test('matches case- and whitespace-insensitively', () async {
         await choreographers.upsert(
