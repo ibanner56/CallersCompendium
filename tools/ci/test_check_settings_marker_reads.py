@@ -51,9 +51,10 @@ subset of cases:
 7. **Correct line numbers when SELECT and WHERE key span different literals** —
    when ``SELECT … FROM settings`` is in one adjacent literal and ``WHERE key``
    is in the next, the un-joined text has no single-line match. An earlier
-   implementation fell back to ``:0: (unknown)`` in that case. The offset map
-   returned by ``join_adjacent_strings`` must produce a real line number even
-   in this form. (Discovered in review round 4.)
+   implementation fell back to ``:0: (unknown)`` in that case. The
+   ``extract_sql_literals`` function preserves the source line of the opening
+   literal so every violation has a real file:line location. (Discovered in
+   review round 4.)
 """
 
 from __future__ import annotations
@@ -66,11 +67,12 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from check_settings_marker_reads import (  # noqa: E402
+    SqlLiteral,
     _BOUNDARY_UNKNOWN,
     _MISSING_FILTER,
     check_file,
     dart_library_files,
-    join_adjacent_strings,
+    extract_sql_literals,
 )
 
 FAILURES: list[str] = []
@@ -85,61 +87,96 @@ def check(name: str, condition: bool, detail: str = "") -> None:
 
 
 # --------------------------------------------------------------------------
-# join_adjacent_strings
+# extract_sql_literals
 # --------------------------------------------------------------------------
 
 
-def test_join_adjacent_strings() -> None:
-    print("join_adjacent_strings:")
+def test_extract_sql_literals() -> None:
+    print("extract_sql_literals:")
 
-    joined, _ = join_adjacent_strings("'foo' 'bar'")
+    # Adjacent literals are joined with empty string (Dart semantics).
+    lits = [l for l in extract_sql_literals("'foo''bar'") if l.parseable]
     check(
-        "single-line adjacent literals are joined",
-        joined == "'foo bar'",
+        "adjacent literals with no whitespace are joined with empty string (Dart semantics)",
+        len(lits) == 1 and lits[0].content == "foobar",
+        f"got {[l.content for l in lits]}",
     )
 
-    joined, _ = join_adjacent_strings("'foo '\n'bar'")
+    lits = [l for l in extract_sql_literals("'foo '\n'bar'") if l.parseable]
     check(
-        "split across a newline",
-        "\n" not in joined,
-        "the newline is removed so the two halves appear on one logical line",
+        "adjacent literals split across a newline are joined",
+        len(lits) == 1 and lits[0].content == "foo bar",
+        f"got {[l.content for l in lits]}",
     )
 
-    joined, _ = join_adjacent_strings(
+    lits = [l for l in extract_sql_literals("'foo '; 'bar'") if l.parseable]
+    check(
+        "semicolon-separated literals are NOT joined",
+        len(lits) == 2,
+        f"got {[l.content for l in lits]}",
+    )
+
+    lits = [l for l in extract_sql_literals(
         "'SELECT 1 FROM settings WHERE key = ? '\n'AND deleted_at IS NULL'"
-    )
+    ) if l.parseable]
     check(
-        "split SQL literal contains FROM settings after joining",
-        "FROM settings" in joined,
+        "split SQL literal joins to contain FROM settings",
+        len(lits) == 1 and "FROM settings" in lits[0].content,
+        f"got {[l.content for l in lits]}",
     )
 
-    joined, _ = join_adjacent_strings(
-        "'SELECT 1 FROM settings WHERE key = ? '\n"
-        "'AND value_json = ? '\n"
-        "'AND deleted_at IS NULL'"
-    )
+    lits = [l for l in extract_sql_literals(
+        "'SELECT 1 FROM '\n'settings WHERE key = ?'"
+    ) if l.parseable]
     check(
-        "three adjacent literals are fully joined",
-        "SELECT" in joined,
+        "FROM split across adjacent literals is joined to contain FROM settings",
+        len(lits) == 1 and "FROM settings" in lits[0].content,
+        f"got {[l.content for l in lits]}",
     )
 
-    joined, _ = join_adjacent_strings("'a'; 'b'")
+    lits = [l for l in extract_sql_literals(
+        "'SELECT 1 FROM settings WHERE key = ?'\n'AND deleted_at IS NULL'"
+    ) if l.parseable]
     check(
-        "non-adjacent literals are not joined",
-        joined == "'a'; 'b'",
+        "no-trailing-space join produces ?AND (Dart empty-string concatenation semantics)",
+        len(lits) == 1 and "?AND" in lits[0].content,
+        f"got {[l.content for l in lits]}",
     )
 
-    joined, _ = join_adjacent_strings('"foo" "bar"')
+    lits = [l for l in extract_sql_literals('"foo "\n"bar"') if l.parseable]
     check(
         "double-quoted adjacent literals are joined",
-        joined == '"foo bar"',
+        len(lits) == 1 and lits[0].content == "foo bar",
+        f"got {[l.content for l in lits]}",
     )
 
-    joined, _ = join_adjacent_strings('"foo "\n"bar"')
+    # Raw and triple-quoted forms are unparseable.
+    raw_lits = extract_sql_literals("r'SELECT 1 FROM settings WHERE key = ?'")
     check(
-        "double-quoted split across a newline",
-        "\n" not in joined,
-        "double-quoted adjacent literals have their newline boundary collapsed",
+        "raw-string literal is unparseable",
+        any(not l.parseable for l in raw_lits),
+        f"got {raw_lits}",
+    )
+
+    triple_lits = extract_sql_literals(
+        "'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL'"[:0]
+        + "'''" + "SELECT 1 FROM settings WHERE key = ?" + "'''"
+    )
+    check(
+        "triple-quoted literal is unparseable",
+        any(not l.parseable for l in triple_lits),
+        f"got {triple_lits}",
+    )
+
+    # Line number of the opening quote.  The two literals must not be adjacent
+    # (i.e. they must be separated by a non-whitespace token) so the SELECT is
+    # its own literal group with its own line number.
+    src = "String x = 'first';\n'SELECT 1 FROM settings WHERE key = ?'"
+    lits = [l for l in extract_sql_literals(src) if l.parseable and "SELECT" in l.content]
+    check(
+        "line number is 2 for SELECT literal on second source line",
+        len(lits) == 1 and lits[0].line_no == 2,
+        f"got {[(l.line_no, l.content[:40]) for l in lits]}",
     )
 
 
@@ -311,6 +348,32 @@ def test_non_compliant_reads() -> None:
             ').get();\n'
         ) == 1,
         "double-quoted SQL strings must be checked too",
+    )
+
+    check(
+        "FROM split across adjacent literals is flagged (prefilter bypass closed)",
+        _violation_count(
+            "final r = db.customSelect(\n"
+            "  'SELECT 1 FROM '\n"
+            "  'settings WHERE key = ?',\n"
+            ").get();\n"
+        ) == 1,
+        "earlier implementation skipped files where 'FROM' and 'settings' were in "
+        "different adjacent literals — the prefilter must use the joined content",
+    )
+
+    check(
+        "no-trailing-space split passes ratchet (filter present; SQL spacing is caller's concern)",
+        _violation_count(
+            "final r = db.customSelect(\n"
+            "  'SELECT 1 FROM settings WHERE key = ?'\n"
+            "  'AND deleted_at IS NULL',\n"
+            ").get();\n"
+        ) == 0,
+        "joining with empty string produces '?AND deleted_at IS NULL'; "
+        "\\bAND\\b matches after '?' (non-word char) so the filter IS found. "
+        "The SQL is invalid at runtime (missing space) but that is a distinct "
+        "concern from filter presence; the ratchet correctly passes it.",
     )
 
 
@@ -498,7 +561,7 @@ def test_real_tree_is_clean() -> None:
 
 
 def main() -> int:
-    test_join_adjacent_strings()
+    test_extract_sql_literals()
     test_compliant_reads()
     test_non_compliant_reads()
     test_delete_exception()

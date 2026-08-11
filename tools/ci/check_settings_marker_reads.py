@@ -1,96 +1,81 @@
 #!/usr/bin/env python3
-"""CI ratchet: every raw ``FROM settings WHERE key`` read must filter
-``deleted_at IS NULL``.
+"""CI ratchet: every raw FROM settings WHERE key read must filter
+deleted_at IS NULL.
 
-## Why this invariant matters
+See CONTRIBUTING.md "Raw SQL reads from the settings table" and issue #907.
 
-``repositories.dart`` performs a deliberate hard DELETE of
-``__derived_rebuild_required__`` and justifies that choice in a comment:
+Design
+------
+Earlier revisions interleaved string-literal parsing with the filter check,
+producing a series of bugs in the literal-boundary logic that each needed a
+separate round to find: the semicolon-scan false negative, the double-quote
+false positive, the ':0: (unknown)' line number, the prefilter bypass (FROM
+split across adjacent literals), and the wrong join separator (space instead
+of empty string, masking broken SQL that would fail at runtime).
 
-    "Every one of those reads does filter ``deleted_at IS NULL`` anyway,
-    so a marker can neither be read back as still-set after this clears it
-    nor be resurrected by a stale row."
+The current design solves the parsing problem once, separately, in
+extract_sql_literals, which returns a flat list of SqlLiteral objects.
+The filter check consumes that list and contains no string-parsing logic of
+its own. This makes the two concerns independently testable and keeps the
+outer check_file logic to a simple two-condition branch.
 
-That justification is load-bearing: it is the stated premise of a different
-design decision elsewhere in the same file. A future raw read without the
-filter would silently falsify it too — the connection exists only in a
-comment, ninety lines away. This ratchet makes the invariant mechanical.
+Multi-line SQL and join semantics
+---------------------------------
+Adjacent Dart string literals concatenate at compile time with NO separator.
+extract_sql_literals joins them with the empty string to match Dart semantics.
+A read split as:
 
-Background: issue #885 shipped an unfiltered read. The consequence is a
-permanently-skipped repair for a corruption that takes down the Programs and
-Collection listings entirely (#429, #466) — and the failure mode presents as
-the original corruption bug, not as a missing migration.
+    'SELECT 1 FROM settings WHERE key = ?'
+    'AND deleted_at IS NULL'
 
-## Scope
+produces "SELECT 1 FROM settings WHERE key = ?AND deleted_at IS NULL" which
+is invalid SQL (missing space before AND). The ratchet correctly flags this
+because the filter regex requires a word boundary. The compliant form uses a
+trailing space inside the first literal:
 
-``app/lib`` and ``packages/*/lib`` (production library code only). Tests,
-tools, and example code are excluded.
+    'SELECT 1 FROM settings WHERE key = ? '
+    'AND deleted_at IS NULL'
 
-## Deliberate exception
+Filter scoping
+--------------
+The filter check is restricted to the joined content of the SQL literal
+group, not the surrounding Dart statement. A probe that passes
+'deleted_at IS NULL' as a Dart variable value does not satisfy the check
+because the variable string is a separate literal group.
 
-``repositories.dart`` performs a hard ``DELETE FROM settings WHERE key = ?``
-to clear the rebuild marker. That is intentionally a DELETE, not a SELECT.
-The detection pattern already requires SELECT, so the DELETE line will not
-match. ``_NOTED_EXCEPTIONS`` documents this by name following the
-``kUpdateManifestPublicKey`` precedent in AGENTS.md: do not narrow the
-detection pattern to suppress a false positive; name the exception instead.
+Fail-closed on unparseable boundaries
+--------------------------------------
+Raw (r'...') and triple-quoted forms are not parsed. They are detected and
+flagged as _BOUNDARY_UNKNOWN with a message explaining why and naming the
+way out, rather than silently passing or claiming the filter is missing.
 
-## Multi-line SQL
+Deliberate exception
+--------------------
+repositories.dart performs a hard DELETE FROM settings WHERE key = ? to
+clear the rebuild marker. That is intentionally a DELETE, not a SELECT.
+_SELECT_FROM_SETTINGS_RE requires SELECT, so the DELETE never matches.
+_NOTED_EXCEPTIONS documents this by name per the kUpdateManifestPublicKey
+precedent in AGENTS.md: name exceptions rather than narrowing patterns.
 
-Two of the five compliant reads put ``AND deleted_at IS NULL`` on the next
-source line (Dart adjacent-string concatenation). This script joins
-adjacent single-quoted and double-quoted literals before matching so the
-filter is found even when it is on a continuation line.
-
-## Filter scoping
-
-The filter check is restricted to the SQL string literal that contains the
-SELECT, not the surrounding Dart statement. Checking the full statement is
-not safe: the phrase "deleted_at IS NULL" can appear as a Dart variable
-value or argument in the same statement while the SQL itself is unfiltered.
-The enclosing literal is found by detecting the opening quote character
-(single or double) and scanning for the matching close. On an unparseable
-boundary (e.g. raw or triple-quoted literal), the check fails closed so
-an unparseable construct gets a human looking at it.
-
-## Line-number mapping
-
-Adjacent-string joining may merge tokens that are on different source lines
-(e.g. ``SELECT … FROM settings`` on line N, ``WHERE key`` on line N+1).
-The joined text has a match that has no counterpart in the un-joined text,
-so a simple count-based index into ``orig_matches`` would fall off the end
-and produce a useless ``:0: (unknown)`` location. Instead, ``join_adjacent_strings``
-returns both the joined text and a per-character offset map
-(``orig_at[joined_offset] = original_offset``) so every joined-text position
-can be translated back to the exact original byte — and therefore to the
-correct line number — regardless of how the literals were split.
-
-Exit codes: 0 = all compliant, 1 = at least one non-compliant read, 2 = bad
-input.
+Exit codes: 0 = all compliant, 1 = at least one violation, 2 = bad input.
 """
 
 from __future__ import annotations
 
 import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # --------------------------------------------------------------------------
-# Deliberate exceptions — documented by path, not by narrowing the pattern.
+# Deliberate exceptions
 # --------------------------------------------------------------------------
 
-# ``repositories.dart`` contains a hard DELETE of the rebuild marker with no
-# ``deleted_at IS NULL`` filter — correct for a DELETE statement. Because
-# ``_SELECT_FROM_SETTINGS_RE`` requires SELECT, the DELETE line will not
-# match regardless. This entry makes the exception explicit and auditable;
-# it does not change behaviour. See AGENTS.md (kUpdateManifestPublicKey
-# precedent): name exceptions rather than narrowing detection patterns.
 _NOTED_EXCEPTIONS: dict[str, str] = {
     "packages/compendium_core/lib/src/storage/repositories/repositories.dart": (
-        "deliberate hard DELETE of the rebuild marker — "
-        "absence of deleted_at IS NULL is correct for a DELETE; "
+        "deliberate hard DELETE of the rebuild marker; "
         "SELECT reads in the same file all comply"
     ),
 }
@@ -99,116 +84,171 @@ _NOTED_EXCEPTIONS: dict[str, str] = {
 # Patterns
 # --------------------------------------------------------------------------
 
-# A raw SELECT from the settings table keyed by WHERE key.
 _SELECT_FROM_SETTINGS_RE = re.compile(
-    r"\bSELECT\b[^;\n]*\bFROM\s+settings\b[^;\n]*\bWHERE\s+key\b",
+    r"\bSELECT\b[^;]*\bFROM\s+settings\b[^;]*\bWHERE\s+key\b",
     re.IGNORECASE,
 )
 
-# The required filter.
 _DELETED_AT_FILTER_RE = re.compile(
     r"\bdeleted_at\s+IS\s+NULL\b",
     re.IGNORECASE,
 )
 
-# Boundaries between adjacent Dart string literals of the same quote style.
-# re.DOTALL so \s matches newlines.
-_ADJACENT_SINGLE_RE = re.compile(r"'(\s*)'", re.DOTALL)
-_ADJACENT_DOUBLE_RE = re.compile(r'"(\s*)"', re.DOTALL)
-
 # --------------------------------------------------------------------------
 # Violation kinds
 # --------------------------------------------------------------------------
 
-# Sentinel: violation kinds returned by check_file.
 _MISSING_FILTER = "missing_filter"
 _BOUNDARY_UNKNOWN = "boundary_unknown"
 
 
 # --------------------------------------------------------------------------
-# String joining with offset map
+# Literal extraction
 # --------------------------------------------------------------------------
 
 
-def join_adjacent_strings(text: str) -> tuple[str, list[int]]:
-    """Join adjacent Dart string literals and return an offset map.
+@dataclass
+class SqlLiteral:
+    """A Dart string literal (or run of adjacent literals) from source."""
 
-    Returns ``(joined, orig_at)`` where:
+    content: str
+    line_no: int
+    source_line: str
+    parseable: bool
 
-    * *joined* is the text with adjacent single-quoted and double-quoted
-      literal boundaries (``' '``, ``" "``) collapsed to a single space,
-      so a multi-line SQL string becomes one logical line.
-    * *orig_at* is a list of the same length as *joined* where
-      ``orig_at[i]`` is the offset in *text* of the character that ended
-      up at position *i* in *joined*.
 
-    The offset map is used by ``check_file`` to translate a match position
-    in the joined text back to the correct original source line, even when
-    the SELECT and WHERE key tokens were in different source lines before
-    joining. A count-based index into ``orig_matches`` would fall off the
-    end in that case (the un-joined text has no match spanning two literals)
-    and produce a useless ``:0: (unknown)`` location.
+def extract_sql_literals(text: str) -> list[SqlLiteral]:
+    """Parse all Dart string literals from *text* and return them.
+
+    Adjacent literals of the same quote style are joined with the empty
+    string (Dart compile-time concatenation semantics). Triple-quoted and
+    raw literals are returned with parseable=False and empty content; the
+    caller fails closed on these.
+
+    This is the single place that decides what constitutes a string literal
+    and where its boundaries are. All other logic consumes SqlLiteral objects
+    and contains no string-parsing of its own.
+
+    We walk the text character by character:
+    - Skip // line comments.
+    - Handle escape sequences inside literals.
+    - Detect raw (r'...') and triple-quoted forms and mark unparseable.
+    - Join adjacent same-style literals with empty string.
     """
-    # Work on character lists so we can maintain a parallel orig_at list.
-    result: list[str] = list(text)
-    orig_at: list[int] = list(range(len(text)))
+    lines = text.splitlines(keepends=True)
+    cum: list[int] = [0]
+    for line in lines:
+        cum.append(cum[-1] + len(line))
 
-    changed = True
-    while changed:
-        changed = False
-        joined_str = "".join(result)
-        for pat in (_ADJACENT_SINGLE_RE, _ADJACENT_DOUBLE_RE):
-            m = pat.search(joined_str)
-            if m is None:
+    def offset_to_lineno(off: int) -> int:
+        lo, hi = 0, len(cum) - 1
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            if cum[mid] <= off:
+                lo = mid
+            else:
+                hi = mid - 1
+        return lo + 1
+
+    def source_line_at(off: int) -> str:
+        return lines[offset_to_lineno(off) - 1].rstrip()
+
+    result: list[SqlLiteral] = []
+    i = 0
+    n = len(text)
+
+    while i < n:
+        c = text[i]
+
+        # Skip line comments.
+        if c == "/" and i + 1 < n and text[i + 1] == "/":
+            while i < n and text[i] != "\n":
+                i += 1
+            continue
+
+        if c not in ("'", '"'): 
+            i += 1
+            continue
+
+        q = c
+        lit_start = i
+        raw = i > 0 and text[i - 1] in ("r", "R")
+        triple = i + 2 < n and text[i + 1] == q and text[i + 2] == q
+
+        if raw or triple:
+            if triple:
+                close_seq = q * 3
+                end = text.find(close_seq, i + 3)
+                i = (end + 3) if end != -1 else n
+            else:
+                j = i + 1
+                while j < n and text[j] != q:
+                    j += 1
+                i = j + 1
+            line_no = offset_to_lineno(lit_start)
+            src_line = source_line_at(lit_start).strip()
+            result.append(SqlLiteral("", line_no, src_line, parseable=False))
+            continue
+
+        # Normal literal.
+        content_chars: list[str] = []
+        j = i + 1
+        while j < n:
+            ch = text[j]
+            if ch == "\\":
+                j += 1
+                if j < n:
+                    content_chars.append(text[j])
+                j += 1
                 continue
-            # Replace the closing-quote / whitespace / opening-quote span
-            # with a single space. The space maps to the original position
-            # of the closing quote (m.start()).
-            result = result[: m.start()] + [" "] + result[m.end() :]
-            orig_at = orig_at[: m.start()] + [orig_at[m.start()]] + orig_at[m.end() :]
-            changed = True
-            break  # restart scan after each substitution
+            if ch == q:
+                j += 1
+                break
+            content_chars.append(ch)
+            j += 1
 
-    return "".join(result), orig_at
+        lit_content = "".join(content_chars)
+        line_no = offset_to_lineno(lit_start)
+        src_line = source_line_at(lit_start).strip()
+        i = j
 
+        # Look ahead for adjacent same-style literals (Dart concatenation).
+        while i < n:
+            k = i
+            while k < n and text[k] in (" ", "\t", "\n", "\r"):
+                k += 1
+            if k >= n:
+                break
+            if text[k] == "/" and k + 1 < n and text[k + 1] == "/":
+                while k < n and text[k] != "\n":
+                    k += 1
+                i = k  # advance past the comment before the next iteration
+                continue
+            if text[k] != q:
+                break
+            if k + 2 < n and text[k + 1] == q and text[k + 2] == q:
+                break
+            j2 = k + 1
+            adj_chars: list[str] = []
+            while j2 < n:
+                ch = text[j2]
+                if ch == "\\":
+                    j2 += 1
+                    if j2 < n:
+                        adj_chars.append(text[j2])
+                    j2 += 1
+                    continue
+                if ch == q:
+                    j2 += 1
+                    break
+                adj_chars.append(ch)
+                j2 += 1
+            lit_content += "".join(adj_chars)
+            i = j2
 
-# --------------------------------------------------------------------------
-# Enclosing literal detection
-# --------------------------------------------------------------------------
+        result.append(SqlLiteral(lit_content, line_no, src_line, parseable=True))
 
-
-def _enclosing_sql_literal(text: str, match_start: int, match_end: int) -> str | None:
-    """Return the content of the Dart string literal enclosing the match.
-
-    Scans backward from *match_start* to find the opening quote (``'`` or
-    ``"``), then forward from *match_end* to find the matching closing quote.
-    Returns the string content between the quotes, or ``None`` when the
-    boundary cannot be determined (triple-quoted, raw-string prefix, or no
-    enclosing quote found).
-
-    Returning ``None`` signals the caller to **fail closed** — an
-    unrecognised construct is safer to flag for human review than to silently
-    pass.
-    """
-    # Scan backward to find the opening quote character.
-    i = match_start - 1
-    while i >= 0 and text[i] not in ("'", '"', "\n", ";"):
-        i -= 1
-    if i < 0 or text[i] not in ("'", '"'):
-        return None
-    q = text[i]
-
-    # Guard: triple-quoted or raw-string prefix → boundary unparseable.
-    if (i >= 2 and text[i - 2 : i + 1] == q * 3) or (
-        i >= 1 and text[i - 1] in ("r", "R")
-    ):
-        return None
-
-    # Find the closing quote (same character) after the match.
-    close = text.find(q, match_end)
-    if close == -1:
-        return None
-    return text[i + 1 : close]
+    return result
 
 
 # --------------------------------------------------------------------------
@@ -217,7 +257,7 @@ def _enclosing_sql_literal(text: str, match_start: int, match_end: int) -> str |
 
 
 def dart_library_files(root: Path) -> list[Path]:
-    """Every production ``.dart`` file: ``app/lib/**`` and ``packages/*/lib/**``."""
+    """Every production .dart file: app/lib/** and packages/*/lib/**."""
     files: list[Path] = []
     app_lib = root / "app" / "lib"
     if app_lib.is_dir():
@@ -232,7 +272,6 @@ def dart_library_files(root: Path) -> list[Path]:
 
 
 def _fail(msg: str, code: int = 2) -> None:
-    # ``::error::`` renders as an annotation in the GitHub Actions UI.
     print(f"::error::{msg}")
     sys.exit(code)
 
@@ -243,61 +282,41 @@ def _fail(msg: str, code: int = 2) -> None:
 
 
 def check_file(path: Path, root: Path) -> list[tuple[str, str]]:
-    """Return ``(kind, location)`` pairs for every violation in *path*.
+    """Return (kind, location) pairs for every violation in *path*.
 
-    *kind* is one of ``_MISSING_FILTER`` or ``_BOUNDARY_UNKNOWN``:
+    kind is _MISSING_FILTER or _BOUNDARY_UNKNOWN.
 
-    * ``_MISSING_FILTER``: the SQL string was parsed and the filter is absent.
-    * ``_BOUNDARY_UNKNOWN``: the enclosing literal boundary could not be
-      determined (raw or triple-quoted string). The check **fails closed** so
-      the read gets human review; the error message names the cause rather than
-      claiming the filter is missing (it may be present — we simply cannot
-      verify the boundary).
-
-    Returns an empty list when all reads comply or the file has no relevant
-    content.
-
-    Line numbers are recovered via the offset map returned by
-    ``join_adjacent_strings``, so a SELECT that spans two adjacent literals
-    (e.g. ``'SELECT … FROM settings '`` on one line, ``'WHERE key'`` on the
-    next) still produces a real file:line location rather than ``:0: (unknown)``.
-
-    The deliberate hard DELETE in repositories.dart is inherently excluded
-    because ``_SELECT_FROM_SETTINGS_RE`` requires SELECT. ``_NOTED_EXCEPTIONS``
-    documents this by name.
+    Delegates all literal parsing to extract_sql_literals; this function
+    contains no quote-scanning logic of its own.
     """
     text = path.read_text(encoding="utf-8", errors="replace")
-    if "FROM SETTINGS" not in text.upper():
+    # Fast path: skip files with no mention of 'settings' at all.
+    # 'settings' cannot be split across adjacent literals, so this is safe.
+    if "settings" not in text.lower():
         return []
 
     rel = str(path.relative_to(root))
-    joined, orig_at = join_adjacent_strings(text)
-    orig_lines = text.splitlines()
-
     violations: list[tuple[str, str]] = []
-    for m in _SELECT_FROM_SETTINGS_RE.finditer(joined):
-        # Translate the match's start position in the joined text back to the
-        # original source offset via the offset map, then derive the line number.
-        orig_offset = orig_at[m.start()] if m.start() < len(orig_at) else 0
-        line_no = text[:orig_offset].count("\n") + 1
-        orig_line = orig_lines[line_no - 1].strip() if line_no <= len(orig_lines) else "(unknown)"
 
-        # Before checking the joined text, detect raw (r'…') and triple-quoted
-        # ('''…''' or """…""") forms in the *original* source. join_adjacent_strings
-        # collapses '''…''' into a plain single-quoted literal, so
-        # _enclosing_sql_literal would not see the triple-quote prefix.
-        orig_m_start = orig_offset
-        orig_m_end = orig_at[m.end() - 1] + 1 if (m.end() - 1) < len(orig_at) else orig_offset + 1
-        orig_boundary = _enclosing_sql_literal(text, orig_m_start, orig_m_end)
-        if orig_boundary is None:
-            violations.append((_BOUNDARY_UNKNOWN, f"{rel}:{line_no}: {orig_line}"))
+    for lit in extract_sql_literals(text):
+        if not lit.parseable:
+            # Fail closed on unparseable literals that mention settings.
+            # Check source_line since lit.content is empty for these.
+            if "settings" in lit.source_line.lower():
+                violations.append((
+                    _BOUNDARY_UNKNOWN,
+                    f"{rel}:{lit.line_no}: {lit.source_line}",
+                ))
             continue
 
-        sql_literal = _enclosing_sql_literal(joined, m.start(), m.end())
-        if sql_literal is not None and _DELETED_AT_FILTER_RE.search(sql_literal):
+        if not _SELECT_FROM_SETTINGS_RE.search(lit.content):
             continue
-        kind = _BOUNDARY_UNKNOWN if sql_literal is None else _MISSING_FILTER
-        violations.append((kind, f"{rel}:{line_no}: {orig_line}"))
+
+        if _DELETED_AT_FILTER_RE.search(lit.content):
+            continue
+
+        violations.append((_MISSING_FILTER, f"{rel}:{lit.line_no}: {lit.source_line}"))
+
     return violations
 
 
