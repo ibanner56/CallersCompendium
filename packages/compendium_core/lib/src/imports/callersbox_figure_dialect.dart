@@ -37,15 +37,25 @@ import 'figure_text_scrub.dart';
 /// `()`/`[]` recognition-only annotation strip. Pass this as the `frontEnd` to
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
 ///
-/// Pre-recognizer order is not correctness-critical: each requires a distinct
-/// anchor (`hey` / `circulate:` / `square through <n>` / `balance` / `gate` /
-/// `courtesy turn` / `walk forward` / `chain` / `star promenade` / `promenade`
-/// / `right (and) left through`) plus a successful resolution to its own move,
-/// so no two can claim the same line. The one anchor pair that OVERLAPS —
-/// `\bpromenades?\b` matches a `star promenade` line too — is separated by that
+/// **Pre-recognizer ordering.** The first twelve entries (through
+/// `_rightLeftThroughAnnotation`) each require a distinct move anchor and a
+/// successful resolution to their own move, so among themselves order is not
+/// correctness-critical.  The one overlapping anchor pair
+/// (`\bpromenades?\b` can match a `star promenade` line) is resolved by the
 /// second condition: such a line resolves to `star_promenade`, so
-/// `_promenadeAnnotation` (which pins `promenade`) declines it. They are listed
-/// star-first anyway, so the ordering reads the way the precedence works.
+/// `_promenadeAnnotation` (which pins `promenade`) declines it.  They are
+/// listed star-first anyway, so the ordering reads the way the precedence
+/// works.
+///
+/// **The last three entries are order-dependent.** `_perRoleChoreoAnnotation`
+/// and `_proseAnnotation` have no move anchor; either can claim any structured
+/// line that carries the right annotation shape.  `_perRoleChoreoAnnotation`
+/// MUST precede `_proseAnnotation`: it synthesises per-role bodies like
+/// `W roll R, M side-step L` into canonical role tokens; if `_proseAnnotation`
+/// claimed them first they would be frozen verbatim as gendered shorthand
+/// (`scrubFigureText` does not map bare `W`/`M`).  `_sideRunAnnotation` is
+/// kept last deliberately so the general `;`-run consume claims whatever the
+/// bespoke decoders left behind.
 final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
   preRecognizers: [
     _hey,
@@ -1450,12 +1460,14 @@ FigureMatch? _balancePairHandAnnotation(String scrubbed) {
   return _withAnnotationNote(match, '$who1 by the $hand1, $who2 by the $hand2');
 }
 
-/// Matches a two-cell comma-joined hand annotation: each cell is 1–4
-/// alphanumeric characters ending in `H`. The `{1,4}` bound is an OWASP
-/// import-hygiene cap (a longer cell does not match and the line takes the
-/// normal path). Case-insensitive.
+/// Matches a two-cell comma-joined hand annotation: each cell is 2–3
+/// alphanumeric characters total, ending in `H` (`MRH`, `WLH`, `MLH`,
+/// `WRH`). The `{1,2}H` quantifier (before the trailing `H`) is an OWASP
+/// import-hygiene cap — every full-permission corpus cell is exactly 3 chars;
+/// cells outside 2–3 total chars do not match and the line takes the normal
+/// path. Case-insensitive.
 final RegExp _balancePairHandRe = RegExp(
-  r'\(\s*([A-Za-z0-9]{1,4}h)\s*,\s*([A-Za-z0-9]{1,4}h)\s*\)',
+  r'\(\s*([A-Za-z0-9]{1,2}h)\s*,\s*([A-Za-z0-9]{1,2}h)\s*\)',
   caseSensitive: false,
 );
 
