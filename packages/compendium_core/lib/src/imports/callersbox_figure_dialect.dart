@@ -59,11 +59,23 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _starPromenadeAnnotation,
     _promenadeAnnotation,
     _rightLeftThroughAnnotation,
+    // Single-file circle recognition (taxonomy v27, issue #840): "Single file
+    // promenade clockwise/counterclockwise" maps to `circle` with `turn:
+    // left/right` and `singleFile: true`. Listed before `_sideRunAnnotation`
+    // so the general `;`-run consume sees a structured result rather than raw
+    // text when this fires. Listed after `_promenadeAnnotation` — the anchor
+    // overlaps (`promenade`), but this fires on the FULL phrase including
+    // "single file" prefix, so it does not claim plain promenade lines.
+    //
+    // Non-decodable places fractions are handled by [_declineSingleFileCircle]
+    // BEFORE this recognizer fires, so they never reach _promenadeAnnotation.
+    _singleFileCircleRecognizer,
     // LAST, deliberately: the general `;`-run consume (#843) claims whatever
     // the bespoke decoders above left behind, so none of them loses a line.
     _sideRunAnnotation,
   ],
   recognitionNormalize: _stripAnnotations,
+  declineToCustom: _declineSingleFileCircle,
 );
 
 /// Parses a compound figure line, splitting it on TOP-LEVEL `;` separators and
@@ -1197,7 +1209,173 @@ final RegExp _promenadeAnchor = RegExp(
   caseSensitive: false,
 );
 
-// --- `;`-run handedness / dancer consume (#843 Parts B and C) ----------------
+// --- Single-file circle recognition (taxonomy v27, issue #840 / #749) --------
+
+/// TCB writes a single-file circulation around the ring as a promenade with a
+/// rotation direction: `Single file promenade clockwise` (= circle left) and
+/// `Single file promenade counterclockwise` (= circle right).
+///
+/// **Mapping to taxonomy.** These map to `circle` with `turn: 'left'` /
+/// `turn: 'right'` and `singleFile: true`. The choice of `circle` (not
+/// `promenade`) is consistent with the taxonomy's own reasoning for the flag
+/// (`contra_taxonomy.dart`: a single-file circulation around the ring is a
+/// single-file CIRCLE; `turn` already covers left/right).
+///
+/// **Clockwise = left** (counter-intuitive, but correct for contra): a circle
+/// left travels clockwise when viewed from above. This mapping is documented
+/// here explicitly because a future reader will otherwise assume it is inverted.
+///
+/// An optional fractional count or whole-number `N places` after the direction
+/// word is recognised as `places` (tolerant-decode). Supported forms:
+/// - Whole numbers: `4 places`, `3 places`, bare `4`
+/// - Slash fractions (N/4 or N/2 notation): `3/4` → 3, `1/2` → 2, `1/4` → 1
+/// - Glyph fractions: `¾` → 3, `½` → 2, `¼` → 1
+/// - Mixed-number glyphs: `1½` → 6, `1¼` → 5, `1¾` → 7
+/// Anything else the decoder can't resolve is left in the note as source text.
+/// Non-decodable fractions (⅓, 1/3, etc.) decline to custom rather than
+/// landing in the note — see [_declineSingleFileCircle].
+/// The regex places slash/glyph alternatives before the bare-integer
+/// alternative so that `3/4` is never mis-parsed as `3` with `/4` orphaned.
+///
+/// A trailing `(…)` annotation is NOT stripped before this recognizer fires —
+/// pre-recognizers run on the raw scrubbed text, before `_normalize` applies
+/// [_stripAnnotations] (`figure_parser.dart:116`). If the annotation survives
+/// the direction+places parse it lands in the note, which is correct: `(NL)`
+/// in `Single file promenade clockwise (NL)` is a caller's annotation and
+/// belongs in the note field.
+
+/// Vetoes TCB "Single file promenade clockwise/counterclockwise {fraction}"
+/// lines where the places fraction is present but not decodable as a quarter
+/// count, so they reach the custom fallback rather than being structured.
+///
+/// **Why this veto is necessary.** The pre-recognizer list runs in declaration
+/// order and `_promenadeAnnotation` fires before `_singleFileCircleRecognizer`.
+/// Its anchor (`\bpromenades?\b`) matches this phrase, so returning `null` from
+/// the circle recognizer would hand the line to `_promenadeAnnotation` and
+/// structure it as a `promenade` — wrong move, wrong count. The veto runs
+/// BEFORE every pre-recognizer (`figure_parser.dart:241`), so it intercepts
+/// the line first and forces custom. The pattern mirrors
+/// [_declineStarPromenade] in `contradb_figure_dialect.dart`.
+///
+/// Only fires when `_placesRe` matches a token that `_parsePlaces` cannot
+/// decode — i.e. a non-quarter fraction (⅓ ⅔ ⅛ ⅜ ⅝ ⅞) or an unmapped slash
+/// denominator (e.g. 1/3). Decodable fractions (¼ ½ ¾ 1¼ 1½ 1¾, 1/4 3/4
+/// etc.) and plain integers pass through and are structured normally.
+bool _declineSingleFileCircle(String scrubbed) {
+  final lower = scrubbed.toLowerCase().trim();
+  const prefix = 'single file promenade ';
+  if (!lower.startsWith(prefix)) return false;
+  final rest = lower.substring(prefix.length).trimLeft();
+
+  final String tail;
+  if (rest.startsWith('clockwise')) {
+    tail = rest.substring('clockwise'.length).trimLeft();
+  } else if (rest.startsWith('counterclockwise')) {
+    tail = rest.substring('counterclockwise'.length).trimLeft();
+  } else {
+    return false;
+  }
+
+  if (tail.isEmpty) return false;
+  final m = _placesRe.firstMatch(tail);
+  if (m == null) return false;
+  return _parsePlaces(m.group(0)!) == null; // matched but undecodable
+}
+
+FigureMatch? _singleFileCircleRecognizer(String scrubbed) {
+  // `source` and `lower` are always the same length: both trim the same text,
+  // so suffix arithmetic `source.substring(source.length - tail.length)`
+  // recovers source casing without a length-mismatch risk.
+  final source = scrubbed.trim();
+  final lower = source.toLowerCase();
+  const prefix = 'single file promenade ';
+  if (!lower.startsWith(prefix)) return null;
+  final rest = lower.substring(prefix.length).trimLeft();
+
+  String turn;
+  String tail;
+  if (rest.startsWith('clockwise')) {
+    turn = 'left'; // circle left = clockwise
+    tail = rest.substring('clockwise'.length).trimLeft();
+  } else if (rest.startsWith('counterclockwise')) {
+    turn = 'right'; // circle right = counterclockwise
+    tail = rest.substring('counterclockwise'.length).trimLeft();
+  } else {
+    return null;
+  }
+
+  final params = <String, Object?>{'turn': turn, 'singleFile': true};
+
+  // Optionally consume a places count. The regex is ordered so that slash
+  // fractions (3/4) and glyph fractions (¾) match as units before the
+  // bare-integer alternative. Lines with a matched-but-undecodable fraction
+  // are intercepted by [_declineSingleFileCircle] before this recognizer
+  // fires, so the null branch here is unreachable in production — but it is
+  // kept as a defensive guard in case the veto and the recognizer ever drift
+  // (e.g. one is widened without updating the other's prefix/direction logic).
+  final placesMatch = _placesRe.firstMatch(tail);
+  if (placesMatch != null) {
+    final p = _parsePlaces(placesMatch.group(0)!);
+    if (p != null) {
+      params['places'] = p;
+      tail = tail.substring(placesMatch.end).trimLeft();
+    }
+    // p == null: veto should have caught this; fall through with no places
+    // rather than structuring incorrectly.
+  }
+
+  // Recover original source casing: `source` and `lower` are trimmed from the
+  // same string and thus equal in length, so `source.length - tail.length`
+  // gives the correct offset into the untransformed text.
+  final String note;
+  if (tail.isEmpty) {
+    note = '';
+  } else {
+    note = source.substring(source.length - tail.length).trim();
+  }
+
+  return FigureMatch(
+    'circle',
+    params: params,
+    note: note.isEmpty ? null : note,
+  );
+}
+
+// Matches a slash fraction (N/4 notation), a fraction glyph, a mixed-number
+// glyph (e.g. 1½), or a whole-number `N places` at the START of a string.
+// Slash fractions and glyph fractions are placed BEFORE the bare-integer
+// alternative so that `3/4` matches as a unit rather than alt-1 claiming `3`
+// and leaving `/4` as an orphan in the note.
+// The slash arm is general (`N/M`) so any denominator matches as a unit;
+// _parsePlaces decides which fractions it knows.
+// Used by both _declineSingleFileCircle and _singleFileCircleRecognizer.
+final RegExp _placesRe = RegExp(
+  r'^(?:[0-9]+\s*/\s*[0-9]+|[½¾¼⅓⅔⅛⅜⅝⅞]|[0-9]+\s*[½¾¼]|[0-9]+)\s*(?:places?)?',
+  caseSensitive: false,
+);
+
+int? _parsePlaces(String raw) {
+  final trimmed = raw
+      .replaceAll(RegExp(r'\s*places?\s*$', caseSensitive: false), '')
+      .replaceAll(RegExp(r'\s+'), '')
+      .trim();
+  // Slash fractions: N/4 and N/2 only (quarter-place resolution).
+  const slashMap = {'1/4': 1, '2/4': 2, '3/4': 3, '4/4': 4, '1/2': 2};
+  final slash = slashMap[trimmed];
+  if (slash != null) return slash;
+  // Whole integer only. Decimals are not present in the TCB corpus (verified
+  // across 396 "Single file promenade" lines) so the decimal alternative was
+  // dropped from _placesRe; double.tryParse is therefore unreachable here.
+  final n = int.tryParse(trimmed);
+  if (n != null) return n;
+  // Fraction glyphs and mixed-number glyphs — quarters only, per owner ruling
+  // (2026-08-11): non-quarter fractions (⅓ ⅔ ⅛ ⅜ ⅝ ⅞) have no integer place
+  // count and decline to custom, matching figure_parser.dart's _takePlaces rule:
+  // "Only quarter fractions land on a whole place; eighth-turns have no integer
+  // place and are left for the custom fallback — the place count is never
+  // rounded or fabricated."
+  return const {'½': 2, '¾': 3, '¼': 1, '1½': 6, '1¼': 5, '1¾': 7}[trimmed];
+}
 
 /// Consumes TCB's `;`-run shorthand — `(ML)`, `(NR;PL)`, `(WR;PL;MR;N2L~)` —
 /// into the resolved move's OWN slots, instead of letting [_stripAnnotations]

@@ -29,6 +29,37 @@
 
 ### Changed
 
+- **Star grip and single-file flags are now canonical render tokens (taxonomy
+  v27, #749 Gap B + #840).** `star.grip`, `promenade.singleFile`, and
+  `circle.singleFile` are now emitted by `renderCanonical`, so they appear in
+  `dance_fts` and are FTS-searchable. A one-shot derived rebuild fires on first
+  open to backfill existing databases.
+
+  `contraTaxonomyVersion` bumped 26 → 27. No SQL schema change.
+
+  Render form changes:
+  - `star.grip`: `"star right - hands across - 4 places"` /
+    `"star left - wrist grip - 4 places"` (grip clause added to all render
+    paths; `none` still emits no clause).
+  - `promenade.singleFile`: `"single file promenade along"` / `"…across"` — `who`
+    always dropped; `dir` always shown even at the `across` default (v27
+    ruling).
+  - `circle.singleFile`: `"single file circle clockwise N places"` (prefix form
+    replaces the v26 suffix; `turn:'left'` = clockwise per contra convention).
+  - Canonical form for circle: `"single file promenade clockwise N places
+    (circle)"` — parenthetical keeps "circle" in the FTS index.
+
+- **ContraDB importer captures `dir:'along'` for single-file promenade (#749
+  Part A).** The bare direction token immediately after `promenade` in a
+  single-file line is now consumed as `params['dir']`. Previously it was left
+  in the note.
+
+- **TCB "Single file promenade clockwise/counterclockwise" now imports as
+  circle (#749 Part E / #840).** Added `_singleFileCircleRecognizer` to
+  `tcbFigureFrontEnd.preRecognizers`. Clockwise → `turn:'left'`;
+  counterclockwise → `turn:'right'`. Recognizer is placed before
+  `_sideRunAnnotation` so the `;`-run decoder does not claim it first.
+
 - **General `;`-run consume (#843, Parts B and C, NO taxonomy change).** New
   pre-recognizer `_sideRunAnnotation` in `callersbox_figure_dialect.dart`,
   placed LAST in `tcbFigureFrontEnd.preRecognizers` so the four existing

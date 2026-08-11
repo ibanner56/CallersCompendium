@@ -91,6 +91,7 @@ export 'src/storage/database.dart'
         purgeCorruptionRepairDoneKey,
         sectionRuleVersionKey,
         starPromenadeHandRemovalDoneKey,
+        gripSingleFileCanonicalInclusionDoneKey,
         kSectionRuleVersion,
         kCompendiumSchemaVersion,
         kMinSupportedSchemaVersion;

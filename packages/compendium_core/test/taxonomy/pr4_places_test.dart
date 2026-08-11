@@ -83,7 +83,7 @@ void main() {
   group('canonical rendering (golden)', () {
     final cases = <String, Figure>{
       'circle left 4 places': Figure(move: 'circle'),
-      // star grip 'none' is structured, not rendered.
+      // star grip 'none' emits no grip clause in any render path.
       'star right 4 places': Figure(move: 'star'),
       'ones facing star clockwise 3 places': Figure(move: 'facing_star'),
       'partners square through 4 places': Figure(move: 'square_through'),
@@ -95,16 +95,17 @@ void main() {
     });
 
     test(
-      'star renderCanonical omits grip regardless of value (byte-stable)',
+      'star renderCanonical includes grip clause (taxonomy v27, issue #749 Gap B)',
       () {
-        // Canonical text is the dedupe/FTS key — grip must never appear there
-        // (Gap B: adding grip to canonical requires a contraTaxonomyVersion bump
-        // + migration + derived rebuild, handled in a second PR).
+        // Since v27, grip is a canonical render token — it appears in
+        // renderCanonical → dance_fts so "wrist grip" / "hands across" are
+        // free-text searchable. Red-run target: reverting the canonical
+        // renderer for star returns byte-identical output, these tests fail.
         expect(
           renderer.renderCanonical(
             Figure(move: 'star', params: {'hand': 'left', 'grip': 'wristGrip'}),
           ),
-          'star left 4 places',
+          'star left - wrist grip - 4 places',
         );
         expect(
           renderer.renderCanonical(
@@ -113,24 +114,62 @@ void main() {
               params: {'hand': 'right', 'grip': 'handsAcross'},
             ),
           ),
-          'star right 4 places',
+          'star right - hands across - 4 places',
+        );
+        // 'none' grip (default) still omits the clause in canonical.
+        expect(
+          renderer.renderCanonical(
+            Figure(move: 'star', params: {'hand': 'left', 'grip': 'none'}),
+          ),
+          'star left 4 places',
         );
       },
     );
 
-    test('circle renderCanonical unchanged when singleFile is true', () {
-      expect(
-        renderer.renderCanonical(
-          testFigure(move: 'circle', params: {'singleFile': true}),
-        ),
-        'circle left 4 places',
-      );
-    });
+    test(
+      'circle renderCanonical: "single file promenade clockwise N places (circle)" (v27)',
+      () {
+        // Since v27, singleFile is canonical. The parenthetical "(circle)"
+        // retains "circle" in the FTS index.
+        expect(
+          renderer.renderCanonical(
+            testFigure(move: 'circle', params: {'singleFile': true}),
+          ),
+          'single file promenade clockwise 4 places (circle)',
+        );
+        // Default (singleFile=false) is unchanged.
+        expect(
+          renderer.renderCanonical(
+            testFigure(move: 'circle', params: {'singleFile': false}),
+          ),
+          'circle left 4 places',
+        );
+      },
+    );
 
-    test('promenade renderCanonical unchanged when singleFile is true', () {
+    test('promenade renderCanonical: "single file promenade {dir}" (v27)', () {
+      // Since v27, singleFile is canonical. `who` is dropped; `dir` always
+      // present (even the `across` default).
       expect(
         renderer.renderCanonical(
           testFigure(move: 'promenade', params: {'singleFile': true}),
+        ),
+        'single file promenade across',
+      );
+      // Explicit `dir:'along'` (ContraDB import) included in canonical key.
+      expect(
+        renderer.renderCanonical(
+          testFigure(
+            move: 'promenade',
+            params: {'singleFile': true, 'dir': 'along'},
+          ),
+        ),
+        'single file promenade along',
+      );
+      // Default (singleFile=false) is unchanged.
+      expect(
+        renderer.renderCanonical(
+          testFigure(move: 'promenade', params: {'singleFile': false}),
         ),
         'partners promenade across',
       );
@@ -139,7 +178,7 @@ void main() {
 
   // ---------------------------------------------------------------------------
   // Display rendering: grip and singleFile are shown in render / renderVerbose /
-  // renderSummary but NOT in renderCanonical (Gap A of issue #749).
+  // renderSummary and in renderCanonical (taxonomy v27, issue #749).
   // ---------------------------------------------------------------------------
   group('display rendering surfaces grip and singleFile (issue #749)', () {
     final d = Dialect.canonical;
@@ -185,60 +224,90 @@ void main() {
       });
     });
 
-    group(
-      'promenade.singleFile — "single file promenade" (issue #749 / #634)',
-      () {
-        test('singleFile: false — renders normally', () {
-          expect(
-            renderer.render(Figure(move: 'promenade'), d),
-            'partner promenade',
-          );
-        });
+    group('promenade.singleFile — display (issue #749 / #634, updated v27)', () {
+      test('singleFile: false — renders normally', () {
+        expect(
+          renderer.render(Figure(move: 'promenade'), d),
+          'partner promenade',
+        );
+      });
 
-        test('singleFile: true — "single file promenade"', () {
+      test(
+        'singleFile: true — "single file promenade across" (dir always shown)',
+        () {
           final f = testFigure(move: 'promenade', params: {'singleFile': true});
-          expect(renderer.render(f, d), 'single file promenade');
-        });
+          // `who` is dropped (importer artefact); `dir` always present even
+          // at the `across` default (ruling 7, v27).
+          expect(renderer.render(f, d), 'single file promenade across');
+        },
+      );
 
-        test('singleFile: true shows in renderSummary', () {
-          final f = testFigure(move: 'promenade', params: {'singleFile': true});
-          expect(renderer.renderSummary(f, d), 'single file promenade');
-        });
-      },
-    );
-
-    group(
-      'circle.singleFile — "circle … - single file" (issue #749 / #634)',
-      () {
-        test('singleFile: false — renders normally', () {
-          expect(
-            renderer.render(Figure(move: 'circle'), d),
-            'circle left 4 places',
-          );
-        });
-
-        test('singleFile: true — "circle left 4 places - single file"', () {
-          final f = testFigure(move: 'circle', params: {'singleFile': true});
-          expect(renderer.render(f, d), 'circle left 4 places - single file');
-        });
-
-        test('singleFile: true with non-default places', () {
+      test(
+        'singleFile: true with dir:along — "single file promenade along"',
+        () {
           final f = testFigure(
-            move: 'circle',
-            params: {'singleFile': true, 'places': 3},
+            move: 'promenade',
+            params: {'singleFile': true, 'dir': 'along'},
           );
-          expect(renderer.render(f, d), 'circle left 3 places - single file');
-        });
+          expect(renderer.render(f, d), 'single file promenade along');
+        },
+      );
 
-        test('singleFile: true shows in renderSummary', () {
+      test('singleFile: true shows in renderSummary', () {
+        final f = testFigure(move: 'promenade', params: {'singleFile': true});
+        expect(renderer.renderSummary(f, d), 'single file promenade across');
+      });
+    });
+
+    group('circle.singleFile — prefix form (issue #749 / #840, v27)', () {
+      test('singleFile: false — renders normally', () {
+        expect(
+          renderer.render(Figure(move: 'circle'), d),
+          'circle left 4 places',
+        );
+      });
+
+      test(
+        'singleFile: true — "single file circle clockwise 4 places" (prefix form)',
+        () {
           final f = testFigure(move: 'circle', params: {'singleFile': true});
+          // Prefix form replaces the v26 suffix ("circle … - single file").
+          // turn:'left' maps to clockwise (contra convention: circle left
+          // travels clockwise).
           expect(
-            renderer.renderSummary(f, d),
-            'circle left 4 places - single file',
+            renderer.render(f, d),
+            'single file circle clockwise 4 places',
           );
-        });
-      },
-    );
+        },
+      );
+
+      test('singleFile: true with non-default places', () {
+        final f = testFigure(
+          move: 'circle',
+          params: {'singleFile': true, 'places': 3},
+        );
+        expect(renderer.render(f, d), 'single file circle clockwise 3 places');
+      });
+
+      test('singleFile: true, turn:right — counterclockwise', () {
+        final f = testFigure(
+          move: 'circle',
+          params: {'singleFile': true, 'turn': 'right'},
+        );
+        expect(
+          renderer.render(f, d),
+          'single file circle counterclockwise 4 places',
+        );
+      });
+
+      test('singleFile: true shows in renderSummary', () {
+        final f = testFigure(move: 'circle', params: {'singleFile': true});
+        expect(
+          renderer.renderSummary(f, d),
+          'single file circle clockwise 4 places',
+        );
+      });
+    });
   });
 
   group('goodBeats warnings', () {
@@ -304,7 +373,8 @@ void main() {
 
       test('singleFile: true applies Dialect.moves override on move name', () {
         final f = testFigure(move: 'promenade', params: {'singleFile': true});
-        expect(renderer.render(f, d), 'single file walkabout');
+        // `who` is dropped; `dir` always present (v27 ruling).
+        expect(renderer.render(f, d), 'single file walkabout across');
       });
 
       test('singleFile: false applies Dialect.moves override on move name', () {
@@ -313,22 +383,24 @@ void main() {
       });
 
       test(
-        'singleFile: true surfaces explicit non-default who before move',
+        'singleFile: true with explicit non-default who — who is DROPPED (v27)',
         () {
+          // Since v27, `who` is always dropped in the singleFile display path
+          // (importer artefact; not surfaced even for non-default values).
           final f = testFigure(
             move: 'promenade',
             params: {'singleFile': true, 'who': 'neighbors'},
           );
-          expect(renderer.render(f, d), 'neighbor single file walkabout');
+          expect(renderer.render(f, d), 'single file walkabout across');
         },
       );
 
-      test('singleFile: true suppresses default who (partners)', () {
+      test('singleFile: true with default who (partners) — who dropped', () {
         final f = testFigure(
           move: 'promenade',
           params: {'singleFile': true, 'who': 'partners'},
         );
-        expect(renderer.render(f, d), 'single file walkabout');
+        expect(renderer.render(f, d), 'single file walkabout across');
       });
     },
   );

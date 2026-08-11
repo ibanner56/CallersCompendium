@@ -800,7 +800,12 @@ String? _starGrip(_Scan s) {
 /// the verbatim note rather than probed for `dir`: "along major set …" is a
 /// descriptive tail, not the plain `across`/`along` direction token, so
 /// forcing it through `_direction` would silently swallow the "major set to
-/// new neighbors" detail. The ordinary (non-single-file) form is unchanged.
+/// new neighbors" detail. EXCEPTION (issue #749): a bare `along` direction
+/// token immediately after `promenade` IS consumed (matching the ordinary
+/// promenade path), so that the ContraDB source text `single file promenade
+/// along ...` stores `dir: 'along'` explicitly and the canonical key
+/// reflects the stated direction. The rest of the tail remains in the note.
+/// The ordinary (non-single-file) form is unchanged.
 FigureMatch? _promenade(String text) {
   final s = _Scan(text);
   var singleFile = false;
@@ -816,6 +821,14 @@ FigureMatch? _promenade(String text) {
   final params = <String, Object?>{'who': who ?? 'everyone'};
   if (singleFile) {
     params['singleFile'] = true;
+    // Consume a bare direction token (`along` or `across`) immediately after
+    // `promenade` so `dir` is captured from the source text. The descriptive
+    // tail ("major set to new neighbors" etc.) is left as the note.
+    final dir = _direction(s.peek());
+    if (dir != null) {
+      s.take();
+      params['dir'] = dir;
+    }
   } else {
     final dir = _direction(s.peek());
     if (dir != null) {

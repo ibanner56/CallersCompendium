@@ -475,7 +475,73 @@ import 'taxonomy.dart';
 ///     deliberate structure regression, accepted by the owner. ContraDB
 ///     supplies the center role, not the pick-up relationship, and we will not
 ///     guess the relationship.
-const int contraTaxonomyVersion = 26;
+/// v27 (#749): `star.grip`, `promenade.singleFile`, and `circle.singleFile`
+///     are promoted from display-only render tokens to **canonical render
+///     tokens** — they now appear in `renderCanonical` → `dance_fts`, making
+///     them free-text searchable ("hands across", "single file").
+///
+///     **Gap A (display) was delivered in #805.** This bump closes Gap B.
+///
+///     **Canonical forms** (owner-ruled, 2026-08-11):
+///       - `star right - hands across - 4 places` / `star left - wrist grip - 4 places`
+///       - `single file promenade along` (who DROPPED; dir always present — see below)
+///       - `single file promenade clockwise 4 places (circle)` — parenthetical
+///         retained so FTS finds it by "circle"
+///
+///     **Why `who` is dropped from `promenade.singleFile` canonical.** The
+///     `who` field carries `everyone`, an importer artefact that conveys no
+///     choreographic information. Keeping it in canonical would create a false
+///     distinction in the FTS index between figures that are choreographically
+///     identical. Dropping it makes the canonical text stable across importers
+///     that handle the dancer set differently.
+///
+///     **Why `dir` is always included for `promenade.singleFile` canonical.**
+///     The ContraDB importer now captures `dir: 'along'` from the source text
+///     (Part A of this issue). Including `dir` in canonical ensures the FTS
+///     index reflects the stated direction and makes the figure findable by the
+///     direction token.
+///
+///     **Derived rebuild.** The rebuild is owed by the taxonomy change, not by
+///     rewrite count — a rewrite-count gate would leave FTS stale for
+///     databases with no grip or singleFile figures today, while any such
+///     figure added tomorrow would index correctly. So the rebuild is
+///     unconditional. The mechanism:
+///     `CompendiumRepositories._emitGripAndSingleFileIntoCanonicalIfNeeded`
+///     mirrors `_stripStarPromenadeHandIfNeeded` — one-shot settings key
+///     (`gripSingleFileCanonicalInclusionDoneKey`), rebuild regardless of
+///     rewrite count, marker written AFTER success. No `figures_json` rewrite
+///     needed — only the derived index changes.
+///
+///     **No DB schema bump.** Only derived text (canonical / FTS) changes.
+///
+///     **Display changes** (also in this bump):
+///       - `promenade.singleFile=true` display: drops `who`; includes `dir`
+///         even when it equals the taxonomy default (`across`) — matching the
+///         canonical form.
+///       - `circle.singleFile=true` display: rewording from suffix form
+///         (`circle left 4 places - single file`) to prefix form
+///         (`single file circle clockwise 4 places`).
+///
+///     **ContraDB importer change** (also in this bump): `_promenade` now
+///     captures a plain `along` direction token after `promenade` in the
+///     single-file branch, setting `params['dir'] = 'along'`. This is
+///     consistent with the ordinary promenade path and ensures the canonical
+///     key includes the direction stated in source.
+///
+///     **TCB recognizer** (also in this bump): `Single file promenade
+///     clockwise` and `Single file promenade counterclockwise` are now
+///     recognised as `circle` with `turn: 'left'` / `turn: 'right'` and
+///     `singleFile: true`.
+///
+///     **#840 constraint.** The canonical form for `circle.singleFile=true`
+///     is now frozen as `single file promenade clockwise N places (circle)`.
+///     Any future rewording of that canonical form requires a **derived
+///     rebuild** — a new one-shot settings key + sweep (see
+///     `_emitGripAndSingleFileIntoCanonicalIfNeeded` for the pattern). The
+///     `contraTaxonomyVersion` bump is a documentary marker; it does NOT
+///     trigger the rebuild (nothing reads `Taxonomy.version` at runtime —
+///     see v26 note above).
+const int contraTaxonomyVersion = 27;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -986,10 +1052,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         // Issue #634: a true "single file promenade" travels the whole major
         // set (no per-couple dancer relationship), vs. the ordinary partnered
-        // promenade. A display-only render token (issue #749): the display
-        // renders show "single file promenade" when true; canonical text stays
-        // byte-stable even at non-default values (Gap B of #749 tracks
-        // canonical inclusion).
+        // promenade. A canonical render token since taxonomy v27 (issue #749):
+        // the display renders show "single file promenade [dir]" when true;
+        // canonical emits "single file promenade [dir]" with `who` dropped
+        // (an importer artefact carrying no choreographic information).
         'singleFile': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
@@ -1633,10 +1699,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // circle N places" (real render: Travels with Rick and Kim #455) — a
         // single-file circle, not the `promenade` move (no separate
         // `circle_left` id exists in this taxonomy; `turn` already covers
-        // left/right). A display-only render token (issue #749): the display
-        // renders append "- single file" when true; canonical text stays
-        // byte-stable even at non-default values (Gap B of #749 tracks
-        // canonical inclusion).
+        // left/right). A canonical render token since taxonomy v27 (issue
+        // #749 / #840): display renders prefix "single file circle clockwise N
+        // places"; canonical emits "single file promenade clockwise N places
+        // (circle)" — the parenthetical retains "circle" in the FTS index.
         'singleFile': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
@@ -1651,14 +1717,12 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // community default.
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
         'places': ParamSpec(ParamKind.places, defaultValue: 4),
-        // grip is a structured param and a DISPLAY-ONLY render token: it is
-        // emitted in the display renders (render / renderVerbose / renderSummary)
-        // as a " - wrist grip - " / " - hands across - " clause (ContraDB
-        // `starWords` parity, issue #749), but is intentionally absent from
-        // canonical text (the dedupe/FTS key). 'none' is the unspecified value
-        // (no clause in any render path). Canonical-text inclusion is Gap B of
-        // #749 and requires a contraTaxonomyVersion bump + migration + derived
-        // rebuild; it is tracked separately.
+        // grip is a canonical render token since taxonomy v27 (issue #749):
+        // emitted in ALL render paths (render / renderVerbose / renderSummary /
+        // renderCanonical) as a " - wrist grip - " / " - hands across - " clause
+        // (ContraDB `starWords` parity). 'none' is the unspecified value — no
+        // clause in any render path. The FTS inclusion makes stars searchable
+        // by "wrist grip" or "hands across".
         'grip': ParamSpec(
           ParamKind.choice,
           defaultValue: 'none',

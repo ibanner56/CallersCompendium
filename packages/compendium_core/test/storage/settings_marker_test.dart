@@ -180,6 +180,7 @@ void main() {
       await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
       await repos.settings.set(inversePairNormalisationDoneKey, 'done');
       await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
+      await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
 
       await repos.ensureMigrated();
 
