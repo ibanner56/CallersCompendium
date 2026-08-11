@@ -1447,10 +1447,7 @@ FigureMatch? _balancePairHandAnnotation(String scrubbed) {
   );
   if (match == null || match.moveId != 'balance') return null;
 
-  return _withAnnotationNote(
-    match,
-    '$who1 by the $hand1, $who2 by the $hand2',
-  );
+  return _withAnnotationNote(match, '$who1 by the $hand1, $who2 by the $hand2');
 }
 
 /// Matches a two-cell comma-joined hand annotation: each cell is 1–4
@@ -1488,7 +1485,7 @@ final RegExp _balancePairHandRe = RegExp(
 /// synthesised note; all-uppercase/code-like annotations are skipped by the
 /// shape rule (see [_proseAnnotation]).
 FigureMatch? _perRoleChoreoAnnotation(String scrubbed) {
-  final annotations = _annotations(scrubbed);
+  final annotations = _parenAnnotations(scrubbed);
   if (annotations.isEmpty) return null;
 
   var hasSynthesized = false;
@@ -1499,10 +1496,19 @@ FigureMatch? _perRoleChoreoAnnotation(String scrubbed) {
     if (synthesized != null) {
       hasSynthesized = true;
       notes.add(synthesized);
-    } else if (_annotationBodyHasLowercase(body)) {
-      notes.add(body); // prose annotation: preserve verbatim
+    } else if (_annotationBodyHasLowercase(body) &&
+        !_looksLikePerRoleBody(body)) {
+      // Genuine prose (not a per-role body that failed to synthesise): preserve
+      // verbatim alongside any synthesised notes on the same line.
+      //
+      // `_looksLikePerRoleBody` blocks digit-bearing forms like
+      // `M1 past M3, W1 past W2` that match the structural pattern but have
+      // couple-specific people codes with no representable mapping.  Those
+      // decline here rather than freezing gendered shorthand in a note.
+      notes.add(body);
     }
     // All-uppercase / code-like: shape rule skips.
+    // Per-role pattern that failed to synthesise: blocked above — declines.
   }
 
   // Delegation guard: only claim this line if at least one per-role annotation
@@ -1579,11 +1585,30 @@ class _PerRoleClause {
 /// Matches `[WM]` (optional digit) followed by the rest of the clause.
 final RegExp _perRoleClauseRe = RegExp(r'^([WM])(\d?)\s+(.+)$');
 
+/// True iff [body] looks structurally like a two-clause per-role annotation
+/// (e.g. `W roll R, M side-step L`) even when the people codes are unmapped.
+///
+/// Used in [_perRoleChoreoAnnotation] to prevent verbatim preservation of
+/// digit-bearing forms like `M1 past M3, W1 past W2` whose couple-specific
+/// codes (`M1`, `W2`) have no representable mapping in the dancer-set
+/// vocabulary.  Such bodies decline rather than freezing gendered shorthand
+/// in a note.
+bool _looksLikePerRoleBody(String body) {
+  final commaIdx = body.indexOf(',');
+  if (commaIdx < 0) return false;
+  return _perRoleClauseRe.hasMatch(body.substring(0, commaIdx).trim()) &&
+      _perRoleClauseRe.hasMatch(body.substring(commaIdx + 1).trim());
+}
+
 // --- General prose annotation preservation (#744) ----------------------------
 
 /// Preserves TCB `(prose)` annotations as notes on structured figures
 /// (#744 prose remainder). Fires for any structured figure that carries at
 /// least one annotation whose body contains a lowercase ASCII letter.
+///
+/// **Scope: `(…)` only.** Uses [_parenAnnotations] — [_annotationRe] would
+/// also match `[…]` bodies (TCB's formation/who-performs context markers),
+/// which have a different payload and must not become prose notes.
 ///
 /// **Shape rule.** Shorthand is all-uppercase / code-like (`OR;PL`, `SRNR`);
 /// prose has lowercase words (`in center`, `along the set`). The rule has
@@ -1603,8 +1628,14 @@ final RegExp _perRoleClauseRe = RegExp(r'^([WM])(\d?)\s+(.+)$');
 /// the shape rule AND (b) the annotation-stripped text resolves to any
 /// structured move.
 FigureMatch? _proseAnnotation(String scrubbed) {
-  final annotations = _annotations(scrubbed);
-  final prose = annotations.where(_annotationBodyHasLowercase).toList();
+  final annotations = _parenAnnotations(scrubbed);
+  // Shape gate: lowercase-containing bodies are prose.
+  // `_looksLikePerRoleBody` additionally excludes per-role bodies that failed
+  // synthesis (e.g. digit-bearing `M1 past M3, W1 past W2`) so they are never
+  // frozen as gendered shorthand in a verbatim note.
+  final prose = annotations
+      .where((b) => _annotationBodyHasLowercase(b) && !_looksLikePerRoleBody(b))
+      .toList();
   if (prose.isEmpty) return null;
 
   final match = recognizeSharedFigureLine(
@@ -1951,6 +1982,31 @@ String? _joinAnnotations(List<String> kept) {
 /// unbounded capture; a longer parenthetical simply doesn't match and the line
 /// takes the normal (annotation-stripped or custom) path.
 final RegExp _annotationRe = RegExp(r'\(([^()]{0,120})\)|\[([^\[\]]{0,120})\]');
+
+/// Round-paren-only variant of [_annotationRe]: captures `(…)` bodies only.
+///
+/// The three new #744 pre-recognizers ([_balancePairHandAnnotation],
+/// [_perRoleChoreoAnnotation], [_proseAnnotation]) use this instead of
+/// [_annotationRe] so that `[…]` annotations — TCB's "who performs" / formation
+/// context markers, handled separately by [callersbox_adapter.dart] — are never
+/// mistakenly preserved as prose notes.  [_annotationRe] (which matches both
+/// bracket kinds) is retained for [_annotatedMatch], whose existing callers were
+/// designed with both kinds in mind.
+final RegExp _parenAnnotationRe = RegExp(r'\(([^()]{0,120})\)');
+
+/// Like [_annotations] but restricted to round-paren `(…)` bodies only.
+/// Used by the #744 prose-preservation pre-recognizers.
+List<String> _parenAnnotations(String scrubbed) {
+  final out = <String>[];
+  for (final m in _parenAnnotationRe.allMatches(scrubbed)) {
+    if (out.length >= _maxAnnotations) break;
+    final body = m.group(1)!.trim();
+    if (body.isEmpty || _numericOnly.hasMatch(body)) continue;
+    out.add(body);
+  }
+  return out;
+}
+
 final RegExp _numericOnly = RegExp(r'^\d+$');
 const int _maxAnnotations = 8;
 const int _maxAnnotationNote = 200;

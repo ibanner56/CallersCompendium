@@ -76,24 +76,30 @@ void main() {
       expect(f.note, contains('role2s'));
     });
 
-    test('single-hand (RH) on balance is NOT claimed — leaves _balanceHandAnnotation intact', () {
-      // (RH) is handled by the existing _balanceHandAnnotation which consumes
-      // it into the `hand` param. The pair recognizer must not claim it.
-      final f = _single('Neighbor balance (RH)', beats: 4);
-      expect(f.move, 'balance');
-      expect(f.params['hand'], 'right');
-      // No note from the pair handler.
-      expect(f.note, isNull);
-    });
+    test(
+      'single-hand (RH) on balance is NOT claimed — leaves _balanceHandAnnotation intact',
+      () {
+        // (RH) is handled by the existing _balanceHandAnnotation which consumes
+        // it into the `hand` param. The pair recognizer must not claim it.
+        final f = _single('Neighbor balance (RH)', beats: 4);
+        expect(f.move, 'balance');
+        expect(f.params['hand'], 'right');
+        // No note from the pair handler.
+        expect(f.note, isNull);
+      },
+    );
 
-    test('unmapped people code → falls to normal path (annotation dropped by _stripAnnotations)', () {
-      // `O` (opposite) is not in tcbPassPeople; the pair recognizer returns null.
-      // The line takes the annotation-stripped path and structures normally.
-      final f = _single('Neighbor balance (ORH,WLH)', beats: 4);
-      expect(f.move, 'balance');
-      // No synthesised note — unmapped code declines.
-      expect(f.note, isNull);
-    });
+    test(
+      'unmapped people code → falls to normal path (annotation dropped by _stripAnnotations)',
+      () {
+        // `O` (opposite) is not in tcbPassPeople; the pair recognizer returns null.
+        // The line takes the annotation-stripped path and structures normally.
+        final f = _single('Neighbor balance (ORH,WLH)', beats: 4);
+        expect(f.move, 'balance');
+        // No synthesised note — unmapped code declines.
+        expect(f.note, isNull);
+      },
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -114,52 +120,70 @@ void main() {
   // Red result (test "shorthand annotation does NOT become a note"):
   // `f.note` would be `OR` instead of null.
 
-  group('#744 — per-role choreo: synthesised note with canonical role tokens', () {
-    test('W roll R, M side-step L', () {
-      final f = _single('Neighbor roll away (W roll R, M side-step L)', beats: 8);
-      expect(f.move, 'roll_away');
-      expect(f.note, 'role2s roll right, role1s side-step left');
-    });
+  group(
+    '#744 — per-role choreo: synthesised note with canonical role tokens',
+    () {
+      test('W roll R, M side-step L', () {
+        final f = _single(
+          'Neighbor roll away (W roll R, M side-step L)',
+          beats: 8,
+        );
+        expect(f.move, 'roll_away');
+        expect(f.note, 'role2s roll right, role1s side-step left');
+      });
 
-    test('W roll L, M side-step R', () {
-      final f = _single('Neighbor roll away (W roll L, M side-step R)', beats: 8);
-      expect(f.move, 'roll_away');
-      expect(f.note, 'role2s roll left, role1s side-step right');
-    });
+      test('W roll L, M side-step R', () {
+        final f = _single(
+          'Neighbor roll away (W roll L, M side-step R)',
+          beats: 8,
+        );
+        expect(f.move, 'roll_away');
+        expect(f.note, 'role2s roll left, role1s side-step right');
+      });
 
-    test('M roll R, W side-step L', () {
-      final f = _single('Neighbor roll away (M roll R, W side-step L)', beats: 8);
-      expect(f.move, 'roll_away');
-      expect(f.note, 'role1s roll right, role2s side-step left');
-    });
+      test('M roll R, W side-step L', () {
+        final f = _single(
+          'Neighbor roll away (M roll R, W side-step L)',
+          beats: 8,
+        );
+        expect(f.move, 'roll_away');
+        expect(f.note, 'role1s roll right, role2s side-step left');
+      });
 
-    test('W roll R, M step aside (no direction in second clause)', () {
-      final f = _single('Neighbor roll away (W roll R, M step aside)', beats: 8);
-      expect(f.move, 'roll_away');
-      expect(f.note, 'role2s roll right, role1s step aside');
-    });
+      test('W roll R, M step aside (no direction in second clause)', () {
+        final f = _single(
+          'Neighbor roll away (W roll R, M step aside)',
+          beats: 8,
+        );
+        expect(f.move, 'roll_away');
+        expect(f.note, 'role2s roll right, role1s step aside');
+      });
 
-    test('note carries canonical role tokens, not raw W/M', () {
-      // Proves the note is dialect-renderable.
-      final f = _single('Neighbor roll away (W roll R, M side-step L)', beats: 8);
-      expect(f.note, isNot(contains('W roll')));
-      expect(f.note, isNot(contains('M side-step')));
-      expect(f.note, contains('role2s'));
-      expect(f.note, contains('role1s'));
-    });
+      test('note carries canonical role tokens, not raw W/M', () {
+        // Proves the note is dialect-renderable.
+        final f = _single(
+          'Neighbor roll away (W roll R, M side-step L)',
+          beats: 8,
+        );
+        expect(f.note, isNot(contains('W roll')));
+        expect(f.note, isNot(contains('M side-step')));
+        expect(f.note, contains('role2s'));
+        expect(f.note, contains('role1s'));
+      });
 
-    // SHAPE RULE GUARD: shorthand annotation does NOT become a note.
-    // Red-run: mutate out `if (!hasSynthesized) return null;` in
-    // `_perRoleChoreoAnnotation`. Then `(OR)` on a swing would slip through
-    // to `_joinAnnotations` and produce a spurious note `OR`.
-    test('shorthand annotation (no lowercase) does NOT become a note', () {
-      // `OR` = opposite by the right: all-uppercase, no lowercase → shape rule
-      // skips it. The swing still structures; no note.
-      final f = _single('Neighbor swing (OR)', beats: 8);
-      expect(f.move, 'swing');
-      expect(f.note, isNull);
-    });
-  });
+      // SHAPE RULE GUARD: shorthand annotation does NOT become a note.
+      // Red-run: mutate out `if (!hasSynthesized) return null;` in
+      // `_perRoleChoreoAnnotation`. Then `(OR)` on a swing would slip through
+      // to `_joinAnnotations` and produce a spurious note `OR`.
+      test('shorthand annotation (no lowercase) does NOT become a note', () {
+        // `OR` = opposite by the right: all-uppercase, no lowercase → shape rule
+        // skips it. The swing still structures; no note.
+        final f = _single('Neighbor swing (OR)', beats: 8);
+        expect(f.move, 'swing');
+        expect(f.note, isNull);
+      });
+    },
+  );
 
   // ---------------------------------------------------------------------------
   // 3. General prose (`_proseAnnotation`)
@@ -240,6 +264,85 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
+  // 4. Scope boundary: `[…]` annotations are NOT preserved as notes
+  // ---------------------------------------------------------------------------
+  //
+  // TCB uses `[…]` brackets for formation/who-performs context markers
+  // (`[Others]`, `[with N3]`, `[Top two couples]`).  These have a different
+  // payload from `(…)` prose annotations and must not become notes.
+  // Both `_perRoleChoreoAnnotation` and `_proseAnnotation` use
+  // `_parenAnnotations` (round-paren only) so `[…]` bodies never reach them.
+  //
+  // `_balancePairHandAnnotation` was already safe: its regex is `\(…\)`.
+  //
+  // Red-run target (for `[…]` scope): change `_parenAnnotations` to
+  // `_annotations` in `_proseAnnotation`.  Then `[with N3]` on a balance_ring
+  // would produce note `with N3` instead of null.
+
+  group('#744 — scope boundary: [bracket] annotations unchanged', () {
+    test('[bracket] body on a structured figure does NOT become a note', () {
+      // `[with N3]` is TCB formation context, not a prose annotation.
+      // `_proseAnnotation` uses _parenAnnotations (paren-only), so this
+      // bracket body must not reach it and must produce no note.
+      final f = _single('Balance ring [with N3]', beats: 4);
+      expect(f.move, 'balance_the_ring');
+      expect(f.note, isNull);
+    });
+
+    test(
+      '[bracket] body does not interfere with adjacent (paren) prose note',
+      () {
+        // If both a [bracket] and a (paren) annotation are present, only the
+        // paren annotation should produce a note.
+        final f = _single('Neighbor swing [Others] (in center)', beats: 8);
+        expect(f.move, 'swing');
+        expect(f.note, 'in center');
+        expect(f.note, isNot(contains('Others')));
+      },
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // 5. Digit-bearing per-role codes: declined, not verbatim-preserved
+  // ---------------------------------------------------------------------------
+  //
+  // TCB occasionally writes couple-specific per-role codes like
+  // `M1 past M3, W1 past W2` where the digit refers to couple position.
+  // These cannot be mapped to `role1s`/`role2s` (couple-specific, not
+  // gender-role) so synthesis fails.  `_looksLikePerRoleBody` detects the
+  // structural pattern and prevents the body from being preserved verbatim as
+  // gendered shorthand.  56 such annotations exist in the corpus.
+  //
+  // Red-run target: remove `&& !_looksLikePerRoleBody(body)` from
+  // `_perRoleChoreoAnnotation`.  Then `M1 past M3, W1 past W2` would survive
+  // to `_proseAnnotation` and be preserved as the literal string
+  // `M1 past M3, W1 past W2` — freezing gendered shorthand.
+
+  group('#744 — digit-bearing per-role codes: declined not verbatim', () {
+    test('M1/W1 couple codes on roll_away: no note (declined)', () {
+      // `M1 past M3, W1 past W2` — structurally matches per-role pattern but
+      // people codes carry a digit (couple position); not representable as
+      // role1s/role2s.  Must NOT appear verbatim in a note.
+      final f = _single(
+        'Neighbor roll away (M1 past M3, W1 past W2)',
+        beats: 8,
+      );
+      expect(f.move, 'roll_away');
+      expect(f.note, isNull);
+    });
+
+    test('standard W/M without digit: synthesis still works', () {
+      // Sanity check: non-digit forms are unaffected by _looksLikePerRoleBody.
+      final f = _single(
+        'Neighbor roll away (W roll R, M side-step L)',
+        beats: 8,
+      );
+      expect(f.move, 'roll_away');
+      expect(f.note, 'role2s roll right, role1s side-step left');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // 4. Round-trip: synthesised role tokens reach renderFreeText
   // ---------------------------------------------------------------------------
   //
@@ -269,7 +372,10 @@ void main() {
       // `(W roll R, M side-step L)` on a roll away: parser synthesises
       // `role2s roll right, role1s side-step left`.  Leads/follows dialect
       // maps role2s → follows, role1s → leads.
-      final f = _single('Neighbor roll away (W roll R, M side-step L)', beats: 8);
+      final f = _single(
+        'Neighbor roll away (W roll R, M side-step L)',
+        beats: 8,
+      );
       final note = f.note!;
       expect(note, contains('role1s'));
       expect(note, contains('role2s'));
@@ -277,12 +383,15 @@ void main() {
       expect(rendered, 'follows roll right, leads side-step left');
     });
 
-    test('prose note: no role tokens → passes through unchanged in any dialect', () {
-      // `(in center)` carries no role tokens, so renderFreeText is a no-op.
-      final f = _single('Neighbor swing (in center)', beats: 8);
-      final note = f.note!;
-      expect(_renderer.renderFreeText(note, Dialect.larksRobins), note);
-      expect(_renderer.renderFreeText(note, Dialect.leadsFollows), note);
-    });
+    test(
+      'prose note: no role tokens → passes through unchanged in any dialect',
+      () {
+        // `(in center)` carries no role tokens, so renderFreeText is a no-op.
+        final f = _single('Neighbor swing (in center)', beats: 8);
+        final note = f.note!;
+        expect(_renderer.renderFreeText(note, Dialect.larksRobins), note);
+        expect(_renderer.renderFreeText(note, Dialect.leadsFollows), note);
+      },
+    );
   });
 }
