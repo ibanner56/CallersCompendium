@@ -352,7 +352,10 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
                         j2 += 1
                     lit_content += "".join(raw_chars)
                     i = j2 + 1
-                break
+                # Do NOT break here — a raw/triple member in the middle of a run
+                # (e.g. 'SELECT ' r'FROM settings ' 'WHERE key = ?') must not
+                # truncate it. Keep scanning for further adjacent literals.
+                continue
             j2 = k + 1
             adj_chars: list[str] = []
             while j2 < n:

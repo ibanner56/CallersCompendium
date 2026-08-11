@@ -827,6 +827,46 @@ def test_adjacency_matrix() -> None:
                         f"got {lits[0].content!r}",
                     )
 
+    # Three-literal runs: {first} × {middle} × {last}.
+    # The two-literal matrix above does not cover the case where a raw/triple
+    # member is in the *middle* of a run — that is the position that broke here.
+    # A raw middle literal must NOT truncate the run; all three fragments must
+    # end up in one group.
+    print("adjacency matrix (three-literal runs):")
+    thirds = ("normal", "raw", "triple")
+    for first_kind in thirds:
+        for mid_kind in thirds:
+            for last_kind in thirds:
+                src = (
+                    "var x = "
+                    + make(first_kind, "'", "SELECT 1 ")
+                    + " "
+                    + make(mid_kind, "'", "FROM settings ")
+                    + " "
+                    + make(last_kind, "'", "WHERE key = ?")
+                    + ";"
+                )
+                lits = extract_sql_literals(src)
+                label = f"{first_kind}+{mid_kind}+{last_kind}"
+                check(
+                    f"{label}: one group",
+                    len(lits) == 1,
+                    f"got {len(lits)} groups: {[l.content for l in lits]}",
+                )
+                if len(lits) != 1:
+                    continue
+                expected_p = first_kind == "normal" and mid_kind == "normal" and last_kind == "normal"
+                check(
+                    f"{label}: parseable={expected_p}",
+                    lits[0].parseable == expected_p,
+                    f"got parseable={lits[0].parseable}",
+                )
+                check(
+                    f"{label}: content joined",
+                    "SELECT 1 FROM settings WHERE key = ?" in lits[0].content,
+                    f"got {lits[0].content!r}",
+                )
+
 
 # --------------------------------------------------------------------------
 # Real-tree baseline — the production libraries must be clean.
