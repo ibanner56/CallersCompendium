@@ -148,12 +148,11 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   typical-only, not enforced (`goodBeats` omitted where a rule isn't
   list-expressible, cf. poussette). `box_circulate` is intentionally excluded:
   it carries no places param. `star.grip` (`none`/`wristGrip`/`handsAcross`) is
-  a **display-only render token** (issue #749): the display renders (`render` /
+  a **render token on all paths** (issue #749 v27): the display renders (`render` /
   `renderVerbose` / `renderSummary`) emit a " - wrist grip - " / " - hands
   across - " clause mirroring ContraDB `starWords`; `none` emits nothing.
-  `renderCanonical` stays byte-stable (Gap B of #749 — FTS searchability — tracks
-  canonical inclusion and is delivered separately with a `contraTaxonomyVersion`
-  bump + migration + derived rebuild).
+  `renderCanonical` also emits the grip clause (added in taxonomy v27), so
+  "wrist grip" and "hands across" are FTS-searchable.
 - **PR5 (hey/wave family, no new vocab) — completes the 2.4a set:** added
   `pass_by`, `hey`, `dolphin_hey`, `form_long_waves`, `form_a_long_wave`,
   `form_an_ocean_wave` (split at v13, removed at v14; the short-wave half was
@@ -257,11 +256,12 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     real dances render the take-only form in as few as 2 beats.
   - No new `ParamKind` or move id was introduced; there is intentionally no
     `circle_left` move — "left" is the `circle.turn` default. Both flags are
-    now **display-only render tokens** (issue #749): the display renders surface
-    "single file promenade" / "circle … - single file" for the `true` case, while
-    `renderCanonical` stays byte-stable. The precedent `star.grip` previously set
-    for non-rendering was the bug that #749 fixed; canonical-text inclusion for
-    all three params (Gap B) is tracked separately.
+    now **render tokens on all paths** (issue #749 v27): the display renders surface
+    "single file promenade across" / "single file circle clockwise N places" for the
+    `true` case, and `renderCanonical` includes them too (added in taxonomy v27 with
+    a migration + derived rebuild). The precedent `star.grip` previously set
+    for non-rendering was the bug that #749 fixed; all three params are now
+    canonical-text-included.
 - **v19 (`orbit` first-class + fused `allemande_orbit` retired, issue #295):**
   splits the fused `allemande_orbit` (which modeled "X allemande while Y
   orbits" as one combined move: `who`/`hand`/`inner`/`outer`/`beats`) into a

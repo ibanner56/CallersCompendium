@@ -142,6 +142,18 @@ const String inversePairNormalisationDoneKey =
 const String starPromenadeHandRemovalDoneKey =
     '__star_promenade_hand_removal_done__';
 
+/// Settings key for the one-time grip / singleFile canonical-text promotion
+/// (#749 Gap B, taxonomy v27). Written after the derived rebuild that indexes
+/// `star.grip`, `promenade.singleFile`, and `circle.singleFile` into
+/// `dance_fts`, so the rebuild runs exactly once per database.
+///
+/// The rebuild is owed by the TAXONOMY CHANGE, not by rewrite count: adding
+/// these tokens to `renderCanonical` changes the FTS-indexed text for any
+/// figure with a non-default grip or singleFile, regardless of whether
+/// `figures_json` itself changes.
+const String gripSingleFileCanonicalInclusionDoneKey =
+    '__grip_single_file_canonical_inclusion_done__';
+
 /// The current on-disk schema version of [CompendiumDatabase].
 ///
 /// Exposed as a top-level constant (in addition to the [CompendiumDatabase.

@@ -30,6 +30,41 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Changed
 
+- **Star grip and single-file formation now appear in dance text — and in search
+  (#749, #840, taxonomy v27).** Two figure details were imported and stored but
+  never shown:
+
+  - A star with a hands-across or wrist-grip hold now reads **"star right –
+    hands across – 4 places"** in every rendered view, matching the way
+    ContraDB writes it. Stars with no stated grip are unchanged.
+
+  - A single-file promenade now reads **"single file promenade along"** (or
+    "across") in every view. The direction is always included — it was
+    previously hidden even when the source stated it. The dancer group is
+    omitted; it's an importer artefact and doesn't add meaning.
+
+  - A single-file circle now reads **"single file circle clockwise N places"**
+    instead of "circle left N places - single file". Clockwise and
+    counterclockwise use their plain English names rather than "left" and
+    "right".
+
+  All three forms are now searchable: typing "hands across", "single file", or
+  "clockwise" in free-text search will find the relevant figures.
+
+  One thing to expect: re-opening the app after this update will re-index your
+  dances in the background. During that short window the new search terms may
+  not return results yet.
+
+- **The Caller's Box single-file promenade now imports as a single-file circle
+  (#749 Part E).** TCB writes "Single file promenade clockwise" for what the
+  app models as a circle in single-file formation. That phrasing is now
+  recognised on import and stored as a structured circle figure.
+
+- **ContraDB single-file promenade now captures the stated direction (#749 Part
+  A).** A ContraDB dance that says "single file promenade along" now stores
+  `dir: along`, so the direction survives a round-trip through import and
+  export. Previously the direction was parsed but discarded.
+
 - **Imported figures now keep the hand and dancers The Caller's Box wrote in
   shorthand.** TCB notes handedness and who you're dancing with in a compact
   code beside the figure — the `(NR)` in "Pass through along (NR)", or the

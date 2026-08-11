@@ -255,7 +255,8 @@ class FigureRenderer {
     // `words()` sentence structure verbatim (not a suffix), so the whole terse
     // line is rebuilt rather than expanded from `renderTemplate`. Gated behind
     // `!forCanonical` so `renderCanonical` keeps expanding the template and
-    // stays byte-for-byte stable (the dedupe/FTS invariant).
+    // stays byte-for-byte stable — EXCEPT for the three moves below that have
+    // explicit canonical overrides.
     if (!forCanonical) {
       final displayBase = _displayBaseRenderers[def.id];
       if (displayBase != null) {
@@ -268,6 +269,71 @@ class FigureRenderer {
         return figure.assumedSubject
             ? _spliceAssumedSubjectMarker(line)
             : _stripSubjectMark(line);
+      }
+    }
+    // CANONICAL overrides (taxonomy v27, issue #749): three moves that include
+    // grip or singleFile tokens in their FTS-indexed canonical text. These run
+    // only when forCanonical is true; the display path above handles the
+    // non-canonical case via _displayBaseRenderers.
+    //
+    // `star` is safe to use the same renderer as display (no display-only
+    // polish: no _subjectWho, no direction silencing, no assumed marker).
+    //
+    // `promenade` and `circle` are NOT un-gated from the display entry because
+    // the display entry applies direction silencing and subject omission that
+    // would degrade ordinary-promenade FTS (e.g. "partners promenade across"
+    // would lose `who` and `dir` from the search index). The canonical blocks
+    // below use dedicated logic for each move.
+    if (forCanonical) {
+      if (def.id == 'star') {
+        // Canonical mirrors the display entry for star: no display-only polish
+        // exists, so the same word-order applies to both paths.
+        final canonicalLine = _collapseSpaces(
+          _displayBaseRenderers['star']!(
+            this,
+            def,
+            params,
+            Dialect.canonical,
+            false,
+            false,
+          ),
+        );
+        return canonicalLine;
+      }
+      if (def.id == 'promenade' && params['singleFile'] == true) {
+        // Canonical: "single file promenade {dir}" — who DROPPED (importer
+        // artefact, no choreographic content), dir ALWAYS included (even at
+        // the `across` default) so the FTS index reflects the stated direction.
+        final dirRaw = params['dir'];
+        final dir = _displayScalar(dirRaw);
+        return _collapseSpaces(
+          ['single file promenade', dir].where((s) => s.isNotEmpty).join(' '),
+        );
+      }
+      if (def.id == 'circle' && params['singleFile'] == true) {
+        // Canonical: "single file promenade {clockwise|counterclockwise} {places}
+        // (circle)" — phrased as "promenade" to match TCB source text; the
+        // parenthetical "(circle)" retains "circle" in the FTS index so this
+        // figure is findable by "circle" searches. Clockwise = left (contra
+        // convention: circling left travels clockwise).
+        final turnRaw = params['turn'];
+        final spinWord = turnRaw == 'left'
+            ? 'clockwise'
+            : turnRaw == 'right'
+            ? 'counterclockwise'
+            : _displayScalar(turnRaw);
+        final placesRaw = params['places'];
+        final places = placesRaw is int
+            ? _formatPlaces(placesRaw)
+            : _displayScalar(placesRaw);
+        return _collapseSpaces(
+          [
+            'single file promenade',
+            spinWord,
+            places,
+            '(circle)',
+          ].where((s) => s.isNotEmpty).join(' '),
+        );
       }
     }
     // Aliases render under their own name (a "see saw" is not shown as
@@ -1585,8 +1651,8 @@ class FigureRenderer {
     // Marjorie). `none` (the default / unspecified value) emits no clause so
     // a plain star is unchanged. The grip labels are fixed calling vocabulary;
     // an unexpected non-null grip humanizes (surfacing malformed data) rather
-    // than silently vanishing. `renderCanonical` is unaffected — it keeps
-    // expanding `renderTemplate` (`{move} {hand} {places}`) byte-for-byte.
+    // than silently vanishing. Emitted in ALL render paths including
+    // `renderCanonical` since taxonomy v27 (issue #749 Gap B).
     'star': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final hand = _displayScalar(params['hand']);
@@ -1609,28 +1675,37 @@ class FigureRenderer {
         places,
       ].where((s) => s.isNotEmpty).join(' ');
     },
-    // `promenade.singleFile` (taxonomy v18, issue #634): a true single-file
-    // promenade (nose-to-tail around the major set) differs materially from
-    // the ordinary partnered promenade — "single file {move}" mirrors the
-    // ContraDB source text ("single file promenade along major set to new
-    // neighbors"). `dir` is dropped (no direction in source). `who` is
-    // suppressed at the taxonomy default ('partners') to match the import
-    // path; an explicit non-default `who` is surfaced before the move name.
-    // Both cases route through `_renderMoveName` so Dialect.moves overrides
-    // apply uniformly. For the ordinary (singleFile: false) case the base line
-    // reproduces the existing template expansion {who} promenade {dir}
-    // including the direction-silencing rule for the `across` default.
-    // `renderCanonical` keeps expanding `renderTemplate` ({who} {move} {dir})
-    // and is unaffected.
+    // `promenade.singleFile` (taxonomy v18 #634, updated v27 #749): a true
+    // single-file promenade (nose-to-tail around the major set) differs
+    // materially from the ordinary partnered promenade.
+    //
+    // DISPLAY (singleFile=true, since v27): "single file {move} {dir}" with
+    // `who` DROPPED (it carries `everyone`, an importer artefact conveying no
+    // choreographic information) and `dir` ALWAYS included (even when it
+    // equals the `across` default) — matching the canonical form so display
+    // and search stay aligned. "single file {move}" routes through
+    // `_renderMoveName` so Dialect.moves overrides apply uniformly.
+    //
+    // DISPLAY (singleFile=false): the base line reproduces the existing
+    // template expansion `{who} promenade {dir}` including the direction-
+    // silencing rule for the `across` default (ContraDB parity).
+    //
+    // CANONICAL: handled by the `if (forCanonical)` block in `_render` (not
+    // by this `_displayBaseRenderers` entry), which emits "single file
+    // promenade {dir}" — `who` dropped, `dir` always present. The two forms
+    // are asymmetric by design: the display path routes through this entry
+    // (which uses `_renderMoveName` for dialect-aware move names), while the
+    // canonical path uses the move id directly for stability.
     'promenade': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       if (params['singleFile'] == true) {
-        final whoDefault = def.params['who']?.defaultValue;
-        final whoRaw = params['who'];
-        final swho = (whoRaw != null && whoRaw != whoDefault)
-            ? r._subjectWho(params, dialect)
-            : '';
-        return [swho, 'single file $move'].where((s) => s.isNotEmpty).join(' ');
+        // `who` is dropped (importer artefact; `everyone` has no
+        // choreographic significance). `dir` always included (even `across`
+        // default) so display matches what source stated and aligns with
+        // the canonical form.
+        final dirRaw = params['dir'];
+        final dir = _displayScalar(dirRaw);
+        return ['single file $move', dir].where((s) => s.isNotEmpty).join(' ');
       }
       final swho = r._subjectWho(params, dialect);
       // Re-apply the direction-silencing rule that the template-expansion path
@@ -1641,29 +1716,52 @@ class FigureRenderer {
       final dir = (dirRaw == dirDefault) ? '' : _displayScalar(dirRaw);
       return [swho, move, dir].where((s) => s.isNotEmpty).join(' ');
     },
-    // `circle.singleFile` (taxonomy v18, issue #634): a single-file
-    // circulation around the ring (ContraDB source: "promenade single file
-    // around the circle N places"). The move name "circle" is kept so the
-    // figure is unambiguous — echoing "promenade" in a circle figure would
-    // mislabel the move. A trailing "- single file" clarifier distinguishes
-    // the formation (same pattern as other display-only context clauses, e.g.
-    // revolving_door's "drop off on other side"). For the ordinary
-    // (singleFile: false) case the base line reproduces `{move} {turn}
-    // {places}`. `renderCanonical` keeps expanding `renderTemplate`
-    // ({move} {turn} {places}) and is unaffected.
+    // `circle.singleFile` (taxonomy v18 #634, reworded v27 #840): a single-
+    // file circulation around the ring (ContraDB source: "promenade single file
+    // around the circle N places"; TCB: "Single file promenade clockwise").
+    //
+    // DISPLAY (singleFile=true, since v27): prefix form "single file circle
+    // {clockwise|counterclockwise} {places}" — `turn` maps to a spelled-out
+    // spin direction (clockwise = left, counterclockwise = right, per contra
+    // convention: circling left travels clockwise). The prefix reads naturally
+    // as callers say it; the v26 suffix form ("circle … - single file") was a
+    // deliberate minimal change in #805, superseded by this ruling.
+    //
+    // DISPLAY (singleFile=false): reproduces template `{move} {turn} {places}`.
+    //
+    // CANONICAL: handled by the `if (forCanonical)` block in `_render` — not
+    // by this entry. Canonical uses a distinct form to include "circle" as a
+    // searchable token despite phrasing as "promenade".
     'circle': (r, def, params, dialect, verbose, decimals) {
-      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final turnRaw = params['turn'];
-      final turn = _displayScalar(turnRaw);
       final placesRaw = params['places'];
       final places = placesRaw is int
           ? _formatPlaces(placesRaw)
           : _displayScalar(placesRaw);
-      final base = [move, turn, places].where((s) => s.isNotEmpty).join(' ');
       if (params['singleFile'] == true) {
-        return '$base - single file';
+        // `turn` maps to spoken spin-direction words. Contra convention:
+        // "circle left" travels clockwise; "circle right" counterclockwise.
+        final turnRaw = params['turn'];
+        final spinWord = turnRaw == 'left'
+            ? 'clockwise'
+            : turnRaw == 'right'
+            ? 'counterclockwise'
+            : _displayScalar(turnRaw); // tolerant-decode fallback
+        final move = r._renderMoveName(
+          def.id,
+          def.displayName,
+          params,
+          dialect,
+        );
+        return [
+          'single file $move',
+          spinWord,
+          places,
+        ].where((s) => s.isNotEmpty).join(' ');
       }
-      return base;
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final turnRaw = params['turn'];
+      final turn = _displayScalar(turnRaw);
+      return [move, turn, places].where((s) => s.isNotEmpty).join(' ');
     },
     // pass_through (ContraDB `passThroughWords`): renders the shoulder ONLY when
     // it is not the default 'right' (right shoulders are implicit), and silences

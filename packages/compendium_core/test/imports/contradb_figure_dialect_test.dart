@@ -188,11 +188,13 @@ void main() {
       expect(f.params.containsKey('singleFile'), isFalse);
     });
 
-    // Issue #634 — real render: Strange New Worlds #3107, A2 (8 beats). No
-    // dancer subject precedes "single file" — a true single-file promenade
-    // travels the whole major set. Everything after "promenade" (including
-    // ContraDB's own live typo "neightbors") survives verbatim as the note.
-    test('single file promenade → promenade singleFile, everyone', () {
+    // Issue #634 / #749 — real render: Strange New Worlds #3107, A2 (8 beats).
+    // No dancer subject precedes "single file" — a true single-file promenade
+    // travels the whole major set. Since taxonomy v27 (#749 Part A), a bare
+    // `along` direction token immediately after `promenade` is consumed into
+    // `dir:'along'`; the descriptive tail ("major set to new neightbors") is
+    // left as the note.
+    test('single file promenade along → promenade singleFile, dir:along', () {
       final f = _parse(
         'single file promenade along major set to new neightbors',
       );
@@ -200,8 +202,24 @@ void main() {
       expect(f.move, 'promenade');
       expect(f.params['who'], 'everyone');
       expect(f.params['singleFile'], isTrue);
+      // `along` is now captured as `dir` (v27 Part A change).
+      expect(f.params['dir'], 'along');
+      expect(f.note, 'major set to new neightbors');
+    });
+
+    test('single file promenade (no dir token) — no dir param stored', () {
+      final f = _parse('single file promenade');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'promenade');
+      expect(f.params['singleFile'], isTrue);
       expect(f.params.containsKey('dir'), isFalse);
-      expect(f.note, 'along major set to new neightbors');
+      expect(f.note, isNull);
+    });
+
+    test('single file promenade across — dir:across captured', () {
+      final f = _parse('single file promenade across');
+      expect(f.params['singleFile'], isTrue);
+      expect(f.params['dir'], 'across');
     });
 
     test('box the gnat', () {

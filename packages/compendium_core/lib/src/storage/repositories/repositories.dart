@@ -109,10 +109,14 @@ class CompendiumRepositories {
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
+      rebuiltThisCall = await _stripStarPromenadeHandIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
       // The last sweep's result is deliberately not assigned: nothing follows
       // it today. It still REPORTS, so that adding a sweep after it is a
       // one-line change rather than a change to the contract above.
-      await _stripStarPromenadeHandIfNeeded(
+      await _emitGripAndSingleFileIntoCanonicalIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
@@ -363,6 +367,60 @@ class CompendiumRepositories {
     await db.customStatement(
       'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
       [starPromenadeHandRemovalDoneKey, '"done"'],
+    );
+    // Reached only by running a rebuild (or having had one run earlier this
+    // call), so a rebuild has always happened by this point.
+    return true;
+  }
+
+  /// One-time promotion of `star.grip`, `promenade.singleFile`, and
+  /// `circle.singleFile` from display-only to canonical render tokens
+  /// (#749 Gap B, taxonomy v27).
+  ///
+  /// Since taxonomy v27 these three params appear in `renderCanonical` → the
+  /// `dance_fts` index, making stars searchable by "wrist grip" / "hands
+  /// across" and promenade/circle figures by "single file". No `figures_json`
+  /// rewrite is needed — only the derived index (canonical text + FTS row)
+  /// changes. This pass therefore calls [runDerivedRebuild] and then writes
+  /// its marker, with no preceding data sweep.
+  ///
+  /// **The rebuild is owed by the TAXONOMY CHANGE, not by rewrite count.**
+  /// Existing derived rows in `dance_figures`/`dance_fts` were computed with
+  /// the old renderer and their canonical text is stale. Gating on "did any
+  /// `figures_json` row change?" would be zero — no source data changed — and
+  /// the stale derived index would remain. The debt is unconditional; only the
+  /// CALL is skipped when an earlier sweep in the same `ensureMigrated` has
+  /// already rebuilt. (New figures imported after this code ships are not
+  /// affected — `DanceRepository._upsert` calls `_rebuildDerived` at write
+  /// time, so they always get the current renderer output.)
+  ///
+  /// Guarded by [gripSingleFileCanonicalInclusionDoneKey] so it runs at most
+  /// once per database. The marker is written AFTER the rebuild succeeds — an
+  /// interrupted pass retries on the next open (crash-safe).
+  ///
+  /// Returns whether a derived rebuild has happened during this call —
+  /// [alreadyRebuilt] OR this pass ran one — matching the other sweeps.
+  Future<bool> _emitGripAndSingleFileIntoCanonicalIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [
+            Variable.withString(gripSingleFileCanonicalInclusionDoneKey),
+          ],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    if (!alreadyRebuilt) await runDerivedRebuild(onProgress: onProgress);
+
+    // Write the marker AFTER success — if the rebuild throws, the marker is
+    // not written and the next startup retries.
+    await db.customStatement(
+      'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+      [gripSingleFileCanonicalInclusionDoneKey, '"done"'],
     );
     // Reached only by running a rebuild (or having had one run earlier this
     // call), so a rebuild has always happened by this point.
