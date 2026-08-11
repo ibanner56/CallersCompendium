@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_refresh_scope.dart';
+import '../data/programs_refresh_scope.dart';
 import '../data/plaintext_program_import.dart';
 import '../data/program_import_online_resolver.dart';
 import '../data/repositories_scope.dart';
@@ -258,6 +259,11 @@ class _PlaintextProgramImportScreenState
         .where((l) => l.resolution == PlaintextLineResolution.matched)
         .length;
     final notes = lines.length - matched;
+    // The program itself is new, so every program view is stale — including on
+    // a phone, where the Programs list had no refresh channel at all before
+    // issue #768. Undo hard-deletes it again, so that broadcasts too.
+    final programsRefresh = ProgramsRefreshScope.notifierOf(context);
+    programsRefresh?.value++;
     showUndoSnackBar(
       messenger,
       key: const ValueKey('plaintext-import-committed-snackbar'),
@@ -269,7 +275,10 @@ class _PlaintextProgramImportScreenState
       ),
       undoLabel: l10n.commonUndo,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
-      onUndo: () => _repos.programs.hardDelete([id]),
+      onUndo: () async {
+        await _repos.programs.hardDelete([id]);
+        programsRefresh?.value++;
+      },
     );
     navigator.pop(id);
   }

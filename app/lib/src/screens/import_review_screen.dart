@@ -8,6 +8,7 @@ import '../data/callersbox_online.dart';
 import '../data/import_diagnostic_labels.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
+import '../data/programs_refresh_scope.dart';
 import '../data/online_search.dart';
 import '../data/repositories_scope.dart';
 import '../data/active_dialect_scope.dart';
@@ -908,6 +909,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         if (!mounted) return;
         setState(() => _phase = _Phase.review);
         CollectionRefreshScope.bump(context);
+        // A Caller's Companion archive carries programs as well as dances, so
+        // the program views are stale too (issue #768). Refreshing only the
+        // Collection here is the asymmetry that issue documents.
+        ProgramsRefreshScope.bump(context);
         await _showResult(
           session: result.danceSession,
           skipped: skipped,
@@ -1048,8 +1053,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
     if (!mounted) return;
     setState(() => _phase = _Phase.review);
-    // Refresh the live Collection so the imported rows appear immediately.
+    // Refresh the live Collection so the imported rows appear immediately, and
+    // the program views too: this path commits dances **and** programs through
+    // the archive importer, and refreshing one of the two was how a shared
+    // program stayed invisible until relaunch (issue #768).
     CollectionRefreshScope.bump(context);
+    ProgramsRefreshScope.bump(context);
     await _showSharedBundleUndo(result: result, importer: importer);
   }
 
@@ -1069,6 +1078,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // this screen once we pop back to the shell, so the async Undo callback
     // can't read it from this (by then defunct) context.
     final refresh = CollectionRefreshScope.maybeOf(context);
+    final programsRefresh = ProgramsRefreshScope.maybeOf(context);
     final importedDances = result.danceSession.records
         .where((r) => r.succeeded && r.action != CommitAction.skip)
         .length;
@@ -1085,6 +1095,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         if (result.isUndone) return;
         await importer.undo(result);
         refresh?.value++;
+        // The bundle's programs were undone too (issue #768).
+        programsRefresh?.value++;
       },
     );
 
@@ -1262,8 +1274,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
     if (!mounted) return;
     if (undone) {
-      // Undo reverted the DB; refresh again and stay for another attempt.
+      // Undo reverted the DB; refresh again and stay for another attempt. An
+      // archive undo removes imported programs as well as dances, so both
+      // channels fire (they coalesce to one reload per subscriber).
       CollectionRefreshScope.bump(context);
+      ProgramsRefreshScope.bump(context);
       setState(() => _phase = _Phase.review);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

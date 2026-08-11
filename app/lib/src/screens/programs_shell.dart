@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/programs_refresh_scope.dart';
 import 'program_editor_screen.dart';
 import 'program_summary_screen.dart';
 import 'programs_list_screen.dart';
@@ -40,6 +41,16 @@ class _ProgramsShellState extends State<ProgramsShell> {
     setState(() => _selectedProgramId = id);
   }
 
+  /// Requests a reload of the two browse panes.
+  ///
+  /// Every screen that writes a program now broadcasts via
+  /// [ProgramsRefreshScope], which both panes subscribe to directly, so this
+  /// local trigger fires only when no scope is mounted (focused widget tests).
+  /// Doing both would reload each pane twice per mutation (issue #340).
+  void _refreshBrowsePanes() {
+    if (ProgramsRefreshScope.notifierOf(context) == null) _listRefresh.value++;
+  }
+
   /// Opens the full-screen builder route and refreshes the browse panes on
   /// return.
   Future<void> _openBuilder(BuildContext context, {String? programId}) async {
@@ -50,10 +61,10 @@ class _ProgramsShellState extends State<ProgramsShell> {
     );
     if (!mounted) return;
     if (result == 'deleted') {
-      _listRefresh.value++;
+      _refreshBrowsePanes();
       setState(() => _selectedProgramId = null);
     } else if (result != null) {
-      _listRefresh.value++;
+      _refreshBrowsePanes();
       setState(() => _selectedProgramId = result);
     }
   }
@@ -67,8 +78,11 @@ class _ProgramsShellState extends State<ProgramsShell> {
         }
         // Narrow: single-pane list. Tapping a program pushes the read-focused
         // [ProgramSummaryScreen] (not the edit builder), mirroring the dance
-        // side's narrow list → [DanceDetailScreen] flow.
-        return const ProgramsListScreen();
+        // side's narrow list → [DanceDetailScreen] flow. The refresh trigger is
+        // passed here too (issue #768): without it a phone had no refresh
+        // channel at all — not even this shell's — so a program created by an
+        // import never appeared until the app restarted.
+        return ProgramsListScreen(refreshTrigger: _listRefresh);
       },
     );
   }
@@ -100,14 +114,14 @@ class _ProgramsShellState extends State<ProgramsShell> {
                     onOpenBuilder: () =>
                         _openBuilder(context, programId: selectedId),
                     onDeleted: () {
-                      _listRefresh.value++;
+                      _refreshBrowsePanes();
                       setState(() => _selectedProgramId = null);
                     },
                     onNavigateTo: (id) {
-                      _listRefresh.value++;
+                      _refreshBrowsePanes();
                       setState(() => _selectedProgramId = id);
                     },
-                    onProgramMutated: () => _listRefresh.value++,
+                    onProgramMutated: _refreshBrowsePanes,
                   )
                 : const _EmptyEditorPane(),
           ),

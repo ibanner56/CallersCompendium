@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/date_format_scope.dart';
+import '../data/programs_refresh_scope.dart';
 import '../data/regional_formats.dart';
 import '../utils/undo_snack_bar.dart';
 
@@ -31,6 +32,10 @@ Future<void> showAddToProgramSheet(
   final l10n = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
   final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+  // Captured up-front, like the messenger above: this sheet pops before its
+  // undo callback runs, so the broadcast cannot be resolved from a context by
+  // then (issue #768).
+  final programsRefresh = ProgramsRefreshScope.notifierOf(context);
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -61,6 +66,7 @@ Future<void> showAddToProgramSheet(
                         danceId: danceId,
                         danceTitle: danceTitle,
                         messenger: messenger,
+                        programsRefresh: programsRefresh,
                         l10n: l10n,
                       )
                     : ListView.builder(
@@ -74,6 +80,7 @@ Future<void> showAddToProgramSheet(
                           danceTitle: danceTitle,
                           messenger: messenger,
                           accessibleNavigation: accessibleNavigation,
+                          programsRefresh: programsRefresh,
                           l10n: l10n,
                         ),
                       ),
@@ -97,6 +104,7 @@ Widget _buildProgramPickRow(
   required String danceTitle,
   required ScaffoldMessengerState messenger,
   required bool accessibleNavigation,
+  required ValueNotifier<int>? programsRefresh,
   required AppLocalizations l10n,
 }) {
   final slotCount = program.slots.length;
@@ -130,6 +138,7 @@ Widget _buildProgramPickRow(
           danceTitle: danceTitle,
           messenger: messenger,
           accessibleNavigation: accessibleNavigation,
+          programsRefresh: programsRefresh,
           l10n: l10n,
         ),
       ),
@@ -146,6 +155,7 @@ Widget _buildEmptyPrograms(
   required String danceId,
   required String danceTitle,
   required ScaffoldMessengerState messenger,
+  required ValueNotifier<int>? programsRefresh,
   required AppLocalizations l10n,
 }) {
   final theme = Theme.of(context);
@@ -175,6 +185,7 @@ Widget _buildEmptyPrograms(
             danceId: danceId,
             danceTitle: danceTitle,
             messenger: messenger,
+            programsRefresh: programsRefresh,
             l10n: l10n,
           ),
           icon: const Icon(Icons.add),
@@ -196,6 +207,7 @@ Future<void> _selectProgram(
   required String danceTitle,
   required ScaffoldMessengerState messenger,
   required bool accessibleNavigation,
+  required ValueNotifier<int>? programsRefresh,
   required AppLocalizations l10n,
 }) async {
   // Re-load fresh so we append onto the latest persisted slot list.
@@ -214,6 +226,10 @@ Future<void> _selectProgram(
   await repositories.programs.update(
     fresh.copyWith(slots: [...fresh.slots, newSlot], updatedAt: now),
   );
+  // The dance's calling history and its "called N times" badge are both derived
+  // from program slots, so the views showing them are now stale (issue #768,
+  // gaps 1 and 2). Undo puts them back, so it broadcasts too.
+  programsRefresh?.value++;
   if (sheetContext.mounted) Navigator.of(sheetContext).pop();
   showUndoSnackBar(
     messenger,
@@ -230,6 +246,7 @@ Future<void> _selectProgram(
           updatedAt: DateTime.now().toUtc(),
         ),
       );
+      programsRefresh?.value++;
     },
   );
 }
@@ -243,6 +260,7 @@ Future<void> _createProgramWith(
   required String danceId,
   required String danceTitle,
   required ScaffoldMessengerState messenger,
+  required ValueNotifier<int>? programsRefresh,
   required AppLocalizations l10n,
 }) async {
   final now = DateTime.now().toUtc();
@@ -254,6 +272,7 @@ Future<void> _createProgramWith(
     updatedAt: now,
   );
   await repositories.programs.create(program);
+  programsRefresh?.value++;
   if (sheetContext.mounted) Navigator.of(sheetContext).pop();
   messenger.showSnackBar(
     SnackBar(
