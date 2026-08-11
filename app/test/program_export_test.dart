@@ -1629,7 +1629,8 @@ void main() {
                   danceFor: _danceFor,
                   shareInvoker: (params) async {},
                   pdfLayouter: ({required name, required onLayout}) async {
-                    // Will be called twice; assignment captures the latest.
+                    // Called twice: first tap → capturedWithFigures,
+                    // second tap → capturedSetListOnly (order matches taps below).
                     if (capturedWithFigures == null) {
                       capturedWithFigures = onLayout;
                     } else {
