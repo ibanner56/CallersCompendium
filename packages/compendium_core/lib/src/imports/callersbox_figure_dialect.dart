@@ -1603,7 +1603,9 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 /// - `P0`, `P2`–`P5` — a mixer's previous/future partners (taxonomy v24,
 ///   issue #732). These map to `prevPartners`, `nextPartners`, `thirdPartners`,
 ///   `fourthPartners`, `fifthPartners` respectively (see entries below).
-///   `P6`+ and every `P-n` are absent from this map and decline to custom.
+///   `P6`+ and every `P-n` are absent from this map; the decoder that reads
+///   them declines the run (see the bucket list above for what declining costs
+///   per decoder — it is not always custom).
 /// - `N5`+, `N-1`, `N-2`, `S3`+, `S-n` — beyond the modelled neighbor/shadow
 ///   depth.
 /// - `Ph*` (phantoms), `TB*` (trail buddy), `SR*` (same-role), and bare `R`/`L`
@@ -1613,13 +1615,13 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   `SRN` 17). It is listed here because its absence was previously
 ///   undocumented, which read as an oversight rather than a decision: the code
 ///   is real, and a reader checking the glossary against this map would find it
-///   missing with no reason given. The taxonomy has no `opposites` token — in a
-///   duple-minor improper set the dancer "across" is your neighbor or your
-///   partner depending on where you are, so `O` is not a fixed relationship the
-///   dancer-set vocabulary can name. Behaviour is already correct without any
-///   change — an unmapped code declines the run, per the rule above — so this
-///   is a DOCUMENTATION fix only; the owner ruled on 2026-08-06 that no new
-///   token should be added.
+///   missing with no reason given. The taxonomy has no `opposites` token —
+///   `O` is primarily meaningful for non-duple formations (squares), which are
+///   not a current priority, so no token is added for now. Behaviour is already
+///   correct without any change — an unmapped code declines the run, per the
+///   rule above — so this is a DOCUMENTATION fix only; the owner (ibanner56)
+///   ruled on 2026-08-06 that addressing non-duple formations is not
+///   immediately pressing.
 const Map<String, String> tcbPassPeople = {
   'm': 'role1s',
   'w': 'role2s',
