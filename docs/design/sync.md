@@ -986,7 +986,8 @@ for the answer that was already given.
 > narrowing against the thing it claims to narrow, and a justification against
 > the code it claims to describe.
 
-The twentieth habit, and the last one this design produced. Two defects survived
+The twentieth habit, and the last one produced before this document was split.
+Two defects survived
 into a closure audit, in one paragraph, both of this shape. The fixpoint rule was
 right; the clause scoping it to FKs "with cascade or restrict semantics" named a
 semantic this schema does not contain and excluded both edges the fixpoint
@@ -1014,6 +1015,36 @@ running slow, which the same paragraph's own motivating hardware ("a dead RTC, a
 mis-set year") does about as often. When a bound guards against a value being
 wrong, ask which *direction* of wrong it catches, and whether the other direction
 turns the guard into its opposite.
+
+##### Moving a rule is a revision
+
+> **When rules are extracted, split, or restated into another document, run the
+> propagation checks over every rule that moved — not only the ones reworded.**
+> A rule that arrives without its convergent formulation, its limitation entry
+> or its test has been dropped, even though the text it came from is unchanged.
+
+The twenty-first habit, and the first produced after this document was split.
+Extracting `sync-spec.md` relocated the whole rule set, and four rules did not
+survive the move intact. The custom-field rename kept the *argument* for its
+suffix — "derived from the losing UUID, not a counter" — and lost the derivation
+itself, leaving a convergence rule that two conforming implementations could
+implement incompatibly. The equal-`updatedAt` tie lost the merge-table row, the
+limitations entry and the conformance test, all three, while the existence
+section went on citing it. The unreflected-uploads report lost its "at least one
+peer observed" guard while the sibling diagnostic one sentence earlier kept the
+identical clause.
+
+None of those was a changed ruling, which is why the propagation habit above did
+not fire: that one is worded for a ruling that changes, and here nothing
+changed. The text moved. That is precisely when a rule can arrive stripped of
+the parts that made it work, because attention goes to whether the sentence
+survived rather than to whether the *rule* did.
+
+The check that catches it is to read each relocated rule against the new
+document's purpose rather than against its source. Not "does this match what
+`sync.md` said" — the rename suffix matched its source sentence exactly and was
+still unimplementable — but "could someone build this from here, with the source
+unavailable". A document meant to stand alone has to be checked alone.
 
 ## Wire format
 
