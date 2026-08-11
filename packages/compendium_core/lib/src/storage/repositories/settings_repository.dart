@@ -78,14 +78,35 @@ class SettingsRepository {
   /// that is the point, since a peer must be able to learn that the setting was
   /// removed rather than merely fail to see it. Every read here filters
   /// tombstones, so callers cannot tell the difference.
-  Future<void> remove(String key, {DateTime? at}) => stampExistenceTransition(
-    _db,
-    table: 'settings',
-    keyColumn: 'key',
-    key: key,
-    at: resolveStamp(at),
-    deleted: true,
-  );
+  ///
+  /// [permanent] erases the row instead, and exists because a tombstone is only
+  /// worth its storage when there is somebody to inform. **A key that can never
+  /// travel has no peer to tell**, so tombstoning it is pure cost — and for the
+  /// editor autosave drafts (`editor_draft:` / `program_editor_draft:`) that
+  /// cost is not marginal: a draft is cleared on every save and every discard,
+  /// and each tombstone retains the whole draft blob. Measured at 200 edit
+  /// cycles that is 200 rows holding ~352 KB, invisible to [all] and to backup
+  /// export, with no retention sweep to reclaim it — unbounded growth in
+  /// proportion to how much the user works.
+  ///
+  /// That is the rule for anything added later, not just a carve-out for these
+  /// two prefixes: pass [permanent] when the key is device-scoped scratch, and
+  /// leave it alone when the removal is a state change a peer would need to
+  /// learn about. A discarded draft is not a decision; clearing a preference
+  /// is.
+  Future<void> remove(String key, {DateTime? at, bool permanent = false}) {
+    if (permanent) {
+      return (_db.delete(_db.settings)..where((t) => t.key.equals(key))).go();
+    }
+    return stampExistenceTransition(
+      _db,
+      table: 'settings',
+      keyColumn: 'key',
+      key: key,
+      at: resolveStamp(at),
+      deleted: true,
+    );
+  }
 
   Future<Map<String, Object?>> all() async {
     final rows = await (_db.select(

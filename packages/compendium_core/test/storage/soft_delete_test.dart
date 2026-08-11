@@ -158,6 +158,49 @@ void main() {
       },
     );
 
+    test('a permanently removed setting leaves no row at all', () async {
+      // Device-scoped scratch has no peer to inform, so a tombstone is pure
+      // cost. The editor autosave drafts are the reachable case: cleared on
+      // every save and every discard, each tombstone retaining the whole draft
+      // blob, with no retention sweep to reclaim it.
+      await repos.settings.set('editor_draft:d1', 'a big draft blob', at: t0);
+      await repos.settings.remove('editor_draft:d1', permanent: true);
+
+      expect(
+        await rawCount('settings', 'key', 'editor_draft:d1'),
+        0,
+        reason: 'a discarded draft must not be retained as a tombstone',
+      );
+    });
+
+    test('repeated draft cycles do not accumulate rows', () async {
+      // The growth is proportional to how much the user works, so assert the
+      // shape rather than a single case: fifty edit/clear cycles must leave the
+      // table exactly as empty as one.
+      for (var i = 0; i < 50; i++) {
+        await repos.settings.set('editor_draft:d$i', 'draft $i', at: t0);
+        await repos.settings.remove('editor_draft:d$i', permanent: true);
+      }
+      final rows = await db
+          .customSelect(
+            "SELECT COUNT(*) AS n FROM settings WHERE key LIKE 'editor_draft:%'",
+          )
+          .get();
+      expect(rows.single.read<int>('n'), 0);
+    });
+
+    test('an ordinary preference removal still tombstones', () async {
+      // The other half: `permanent` must stay opt-in, so a preference the user
+      // actually cleared is still something a peer can learn about.
+      await repos.settings.set('theme_mode', 'dark', at: t0);
+      await repos.settings.remove('theme_mode', at: t0);
+      expect(await rawCount('settings', 'key', 'theme_mode'), 1);
+      expect(
+        await rawStamp('settings', 'deleted_at', 'key', 'theme_mode'),
+        isNotNull,
+      );
+    });
+
     test('deleting an unknown id is a no-op, as it was before', () async {
       await repos.tags.delete('nope', at: t0);
       await repos.settings.remove('nope', at: t0);
