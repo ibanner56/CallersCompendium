@@ -2006,11 +2006,22 @@ final RegExp _annotationRe = RegExp(r'\(([^()]{0,120})\)|\[([^\[\]]{0,120})\]');
 /// designed with both kinds in mind.
 final RegExp _parenAnnotationRe = RegExp(r'\(([^()]{0,120})\)');
 
+/// Matches a `[…]` square-bracket span (non-nested), used to strip `[…]`
+/// content before extracting `(…)` bodies — otherwise a `(…)` nested inside
+/// a `[…]` (e.g. `[Heads (ones+fours)]`) would be wrongly extracted as prose.
+final RegExp _squareBracketRe = RegExp(r'\[[^\[\]]*\]');
+
 /// Like [_annotations] but restricted to round-paren `(…)` bodies only.
 /// Used by the #744 prose-preservation pre-recognizers.
+///
+/// `[…]` spans are stripped first so that `(…)` bodies nested inside a `[…]`
+/// (e.g. `[Heads (ones+fours)]`, `[Groups of three (twos+M1, threes+W1)]`) are
+/// not mistakenly extracted as prose annotations. Measured: 89 such occurrences
+/// in the Permission:full corpus.
 List<String> _parenAnnotations(String scrubbed) {
+  final noSquare = scrubbed.replaceAll(_squareBracketRe, ' ');
   final out = <String>[];
-  for (final m in _parenAnnotationRe.allMatches(scrubbed)) {
+  for (final m in _parenAnnotationRe.allMatches(noSquare)) {
     if (out.length >= _maxAnnotations) break;
     final body = m.group(1)!.trim();
     if (body.isEmpty || _numericOnly.hasMatch(body)) continue;

@@ -300,6 +300,32 @@ void main() {
         expect(f.note, isNot(contains('Others')));
       },
     );
+
+    // Nested (…) inside [bracket]: must NOT become a note.
+    // TCB writes e.g. `[Heads (ones+fours)]` where `(ones+fours)` is a
+    // role-set descriptor attached to the bracket annotation, not a free
+    // prose annotation.  _parenAnnotations strips [bracket] spans first so
+    // nested (…) bodies are never extracted.
+    //
+    // Red-run: remove `final noSquare = scrubbed.replaceAll(…)` stripping
+    // from `_parenAnnotations`.  Then `(ones+fours)` would be extracted from
+    // `[Heads (ones+fours)] Pass through across (NR)` and produce a spurious
+    // note `ones+fours` — exactly the regression caught by the failing
+    // callersbox_walk_forward_test.dart (dance #733).
+    test('(paren) nested inside [bracket] does NOT become a note', () {
+      // `[Heads (ones+fours)]` is a bracketed context marker; the inner
+      // `(ones+fours)` must not be extracted as a prose annotation.
+      // The line parses as pass_through (structured); no prose note.
+      final figures = _parse(
+        '[Heads (ones+fours)] Pass through across (NR)',
+        beats: 8,
+      );
+      final structured = figures.where((f) => !f.isCustom).toList();
+      expect(structured, isNotEmpty);
+      for (final f in structured) {
+        expect(f.note, isNot(contains('ones+fours')));
+      }
+    });
   });
 
   // ---------------------------------------------------------------------------
