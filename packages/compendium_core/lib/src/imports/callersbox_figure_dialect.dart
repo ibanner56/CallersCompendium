@@ -1615,12 +1615,16 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   `SRN` 17). It is listed here because its absence was previously
 ///   undocumented, which read as an oversight rather than a decision: the code
 ///   is real, and a reader checking the glossary against this map would find it
-///   missing with no reason given. The taxonomy has no `opposites` token —
-///   `O` is primarily meaningful for non-duple formations (squares), which are
-///   not a current priority, so no token is added for now. Behaviour is already
-///   correct without any change — an unmapped code declines the run, per the
-///   rule above — so this is a DOCUMENTATION fix only; the owner confirmed the
-///   ruling: non-duple formations (squares, etc.) are not immediately pressing.
+///   missing with no reason given.
+///
+///   Two separate things, and only one of them is a ruling:
+///   - **No `opposites` token — ruling by @ibanner56, confirmed 2026-08-11.**
+///     `O` is primarily meaningful for non-duple formations (squares), which
+///     are not a current priority; addressing them is not immediately pressing.
+///   - **No token added *for now* — derived, not chosen.** Given the ruling,
+///     the correct behaviour requires no code change: an unmapped code declines
+///     the run per the bucket list above, which is already what happens. This
+///     is a DOCUMENTATION fix only.
 const Map<String, String> tcbPassPeople = {
   'm': 'role1s',
   'w': 'role2s',
