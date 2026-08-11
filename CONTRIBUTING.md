@@ -84,7 +84,25 @@ Categories use the [W3C Data Privacy Vocabulary](https://w3c-cg.github.io/dpv/2.
 v2.3, pinned. It is freely readable, so you can check your own classification
 against the source.
 
-### Architecture decisions
+### Raw SQL reads from the settings table
+
+Every raw `SELECT … FROM settings WHERE key` read must include
+`AND deleted_at IS NULL`. This is enforced by
+`tools/ci/check_settings_marker_reads.py` and its test
+`test_check_settings_marker_reads.py`, wired into `_checks.yml`.
+
+The invariant is load-bearing: `repositories.dart` performs a deliberate hard
+`DELETE` to clear the rebuild marker and justifies that design choice in a
+comment by asserting that every raw read already filters deleted rows. A future
+unfiltered read would silently falsify that justification too — the dependency
+exists only in a comment, and the two locations are ninety lines apart.
+
+The ratchet handles Dart adjacent-string concatenation, so a read split across
+two lines is also checked. The hard `DELETE` (which has no `deleted_at IS NULL`
+and is intentionally correct) is excluded by name in the script rather than by
+narrowing the detection pattern.
+
+
 Non-trivial, hard-to-reverse choices are recorded as ADRs in
 [docs/adr/](docs/adr/) using [the template](docs/adr/template.md). Propose one
 by opening a PR adding a `Proposed` ADR.

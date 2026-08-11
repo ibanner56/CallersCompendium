@@ -44,6 +44,15 @@ jobs:
         run: python3 tools/ci/test_check_debug_print.py
       - name: Guard debugPrint call sites (must be kDebugMode-guarded)
         run: python3 tools/ci/check_debug_print.py
+      # Every raw SELECT from settings WHERE key must filter deleted_at IS NULL.
+      # The invariant is load-bearing: repositories.dart performs a deliberate
+      # hard DELETE and justifies it in prose by asserting that every raw read
+      # filters deleted rows. A future unfiltered read would silently falsify
+      # that justification. Issue #885 shipped exactly this bug; issue #907.
+      - name: Test the settings-marker deleted_at ratchet
+        run: python3 tools/ci/test_check_settings_marker_reads.py
+      - name: Guard raw settings reads (must filter deleted_at IS NULL)
+        run: python3 tools/ci/check_settings_marker_reads.py
       # The schema-bump gate itself is PR-only (it needs the pull_request base
       # ref) and so lives in ci.yml, but its test suite is pure-stdlib and
       # trigger-agnostic, so it runs here — otherwise the gate's own logic would
