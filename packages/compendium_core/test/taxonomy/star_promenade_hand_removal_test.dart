@@ -135,6 +135,10 @@ void main() {
     // asserted rather than assumed.
     test('a stored hand is ignored by rendering and by the canonical key', () {
       final bare = Figure(move: 'star_promenade', params: {'who': 'partners'});
+      // invalid-fixture: pre-v26 stored data — `star_promenade` carried `hand`
+      // until #843 removed it. This figure is the shape an existing database
+      // holds, and the test exists to prove such a value is inert; a fixture
+      // valid under the current taxonomy could not exercise that at all.
       final stale = Figure(
         move: 'star_promenade',
         params: {'who': 'partners', 'hand': 'left'},
