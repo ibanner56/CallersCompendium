@@ -1333,7 +1333,9 @@ FigureMatch? _sideRunAnnotation(String scrubbed) {
   }
 
   // Never silently overwrite a side the grammar itself resolved from prose. If
-  // they agree, keep it; if they contradict, decline the whole line.
+  // they agree, keep it; if they contradict, decline the RUN — the line then
+  // falls through to the ordinary reading and keeps its prose-stated side. It
+  // does NOT become custom.
   final stated = match.params[slot];
   if (stated is String && stated != sideBase) return null;
 
@@ -1510,8 +1512,28 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 /// reads the SAME codes out of a `(NR,WL)` wave annotation — so there is
 /// exactly one map. Public for that cross-file reuse; treat it as read-only.
 ///
-/// A code with no entry here is NOT approximated: the decoder that reads it
-/// declines the whole line to custom (prefer-custom / never fabricate).
+/// A code with no entry here is NOT approximated — every decoder that reads
+/// this map declines the run rather than guessing a token (prefer-custom /
+/// never fabricate). **What "declines" then costs depends on the decoder**, and
+/// the distinction is worth stating because it used to be described here as
+/// always meaning "custom", which was never quite true and is now broadly
+/// untrue:
+///
+/// - **The run IS the figure's structure** — [_hey], and
+///   [grandRightAndLeftFromPassList]. Without the pass list there is nothing to
+///   build, so the line goes to the custom fallback. `Hey 1/2 (P6R;P7L)` is
+///   custom.
+/// - **The run only ADDS params** — [_squareThroughPassList] (#799) and the
+///   general [_sideRunAnnotation] (#843). The line still structures through the
+///   shared recognizer; it simply keeps the taxonomy's defaults instead of the
+///   values the run states. `Square through 2 (C1R;C2L)` stays a
+///   `square_through`, and `Pass through along (OR)` stays a `pass_through`.
+///
+/// Either way no token is invented, which is the property that matters. The
+/// second bullet already applied to `square_through` before #843; that issue's
+/// general decoder widened the population it covers to every move with a side
+/// slot.
+///
 /// Notable mappings and the deliberate omissions, per `Glossary.htm`:
 /// - `C1`/`C2`/`C3` — the glossary's *"Corners (square)"* are a DIFFERENT
 ///   concept from its separate *"First/second corners"* entry ("First corners
@@ -1536,9 +1558,9 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   duple-minor improper set the dancer "across" is your neighbor or your
 ///   partner depending on where you are, so `O` is not a fixed relationship the
 ///   dancer-set vocabulary can name. Behaviour is already correct without any
-///   change (an unmapped code declines the whole line to custom), so this is a
-///   DOCUMENTATION fix only; the owner ruled on 2026-08-06 that no new token
-///   should be added.
+///   change — an unmapped code declines the run, per the rule above — so this
+///   is a DOCUMENTATION fix only; the owner ruled on 2026-08-06 that no new
+///   token should be added.
 const Map<String, String> tcbPassPeople = {
   'm': 'role1s',
   'w': 'role2s',
@@ -1551,7 +1573,8 @@ const Map<String, String> tcbPassPeople = {
   // Glossary (Partners (mixers)): "The next partner in your direction of
   // progression is P2, then P3, and so forth." Taxonomy v24 (issue #732) adds
   // tokens for P0 and P2–P5. P6+ and every P-n have no token and are absent
-  // from this map so they decline the whole line to custom.
+  // from this map, so the decoder that reads them declines the run (see the
+  // doc above for what declining costs per decoder — it is not always custom).
   'p2': 'nextPartners',
   'p3': 'thirdPartners',
   'p4': 'fourthPartners',

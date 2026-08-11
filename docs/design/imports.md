@@ -444,8 +444,11 @@ lowers the line onto one `pull_by_dancers` per stated pass, carrying that pass's
   `P0`→`prevPartners`, `P2`→`nextPartners`, `P3`→`thirdPartners`,
   `P4`→`fourthPartners`, `P5`→`fifthPartners`,
   `S`/`S1`→`shadows`, `S2`→`secondShadows`, `M`/`W`→`role1s`/`role2s`.
-- **Codes we deliberately do NOT map** (the line stays custom rather than being
-  approximated): `C1`–`C3` — TCB's *"Corners (square)"* ("the non-partner next
+- **Codes we deliberately do NOT map** (the run is declined rather than
+  approximated — what that costs depends on the decoder: the line goes custom
+  where the run IS its structure, as in a hey or a grand right and left, but
+  merely keeps the taxonomy's defaults where the run only ADDS params, as in
+  `square_through` since #799 and every side-slot move since #843): `C1`–`C3` — TCB's *"Corners (square)"* ("the non-partner next
   to you… the person across from you… the remaining person") are a **different
   concept** from its separate *"First/second corners"* entry, which is what
   `firstCorners`/`secondCorners` model; `P6`+/`P-n` (mixer partners beyond the
