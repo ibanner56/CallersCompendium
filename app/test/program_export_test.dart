@@ -8,6 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/program_pdf.dart';
+import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart';
 import 'package:compendium_app/src/widgets/program_export_menu.dart';
 
 import 'support/l10n_harness.dart';
@@ -1579,16 +1581,150 @@ void main() {
       },
     );
 
-    testWidgets('PDF path: "Set list and figures" → pdf layouter is invoked', (
+    testWidgets(
+      'PDF path: "Set list and figures" → appendDances reaches the PDF builder',
+      (tester) async {
+        // The previous version of this test only checked that the pdfLayouter
+        // spy was invoked — which stayed GREEN when appendDances was removed,
+        // because the spy ignored its onLayout argument entirely. Found by a
+        // deliberate mutation audit of merged code.
+        //
+        // This version captures the onLayout closure from both the "set list
+        // and figures" path and the "set list only" path, calls each, and
+        // compares their byte sizes. Both closures are built through _exportPdf
+        // with identical parameters (same program, same formatDate, same
+        // labels), so the comparison is a true differential: any size difference
+        // comes from appendDances alone.
+        //
+        // A bare buildProgramPdf call was considered as the baseline but
+        // rejected: _exportPdf passes formatDate and programExportLabels, so a
+        // bare call and the export-path call produce different byte counts even
+        // with no appendix — any size delta wouldn't be attributable to
+        // appendDances. Using two closures from the same _exportPdf call
+        // eliminates that ambiguity.
+        //
+        // Mutation that would catch a regression: remove appendDances from the
+        // buildProgramPdf call in _exportPdf. Both closures then call
+        // buildProgramPdf with identical arguments and produce identical bytes:
+        //   Expected: a value greater than <N>   (measured ~8894 at time of writing)
+        //   Actual: <N>   (both paths produce identical bytes)
+        assert(
+          danceWithFigures.figures.isNotEmpty,
+          'guard: fixture must have figures',
+        );
+        final prog = _program(
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        );
+
+        LayoutCallback? capturedWithFigures;
+        LayoutCallback? capturedSetListOnly;
+
+        final widget = MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                ProgramExportMenu(
+                  program: prog,
+                  titleFor: _titles,
+                  danceFor: _danceFor,
+                  shareInvoker: (params) async {},
+                  pdfLayouter: ({required name, required onLayout}) async {
+                    // Called exactly twice: first tap → capturedWithFigures,
+                    // second tap → capturedSetListOnly (order matches taps below).
+                    // Fail loudly on a third call — a silent overwrite would let
+                    // the test pass against the wrong closure, the same defect
+                    // this PR exists to fix one level up.
+                    if (capturedWithFigures == null) {
+                      capturedWithFigures = onLayout;
+                    } else if (capturedSetListOnly == null) {
+                      capturedSetListOnly = onLayout;
+                    } else {
+                      fail(
+                        'pdfLayouter called more than twice — unexpected invocation',
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpWidget(widget);
+        await tester.pumpAndSettle();
+
+        // ── First export: "Set list and figures" ──────────────────────────
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Export / print PDF'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('program-figures-prompt-dialog')),
+          findsOneWidget,
+        );
+        await tester.tap(
+          find.byKey(
+            const ValueKey('program-figures-prompt-set-list-and-figures'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-confirm')),
+        );
+        await tester.pumpAndSettle();
+
+        // ── Second export: "Set list only" ────────────────────────────────
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Export / print PDF'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('program-figures-prompt-dialog')),
+          findsOneWidget,
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-set-list-only')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-confirm')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(capturedWithFigures, isNotNull);
+        expect(capturedSetListOnly, isNotNull);
+
+        final withFiguresBytes = await capturedWithFigures!(PdfPageFormat.a4);
+        final setListOnlyBytes = await capturedSetListOnly!(PdfPageFormat.a4);
+
+        // A PDF with a figure appendix is larger than the set-list-only PDF
+        // built through the identical construction path. Proves appendDances
+        // reached buildProgramPdf, but does not verify appendix contents —
+        // any additional bytes satisfy it. For the guarded regression
+        // (appendDances dropped entirely), the comparison discriminates
+        // correctly.
+        expect(
+          withFiguresBytes.length,
+          greaterThan(setListOnlyBytes.length),
+          reason:
+              'PDF with figures must be larger than set-list-only PDF; '
+              'equal length means appendDances was silently dropped',
+        );
+      },
+    );
+
+    testWidgets('PDF path: Cancel on figures prompt → pdf layouter NOT invoked', (
       tester,
     ) async {
-      // Mutation: remove the appendDances argument from buildProgramPdf call →
-      // the onPdf spy still fires (invocation is checked), but this validates
-      // that the export proceeds after choosing figures and is not aborted.
-      assert(
-        danceWithFigures.figures.isNotEmpty,
-        'guard: fixture must have figures',
-      );
+      // Mutation: remove null-check on _figuresConsent → PDF is invoked after
+      // cancel → pdfInvoked flips to true → assertion fails.
+      // Note: this test asserts on invocation, not content — that's correct
+      // here because the question is "did cancel abort the export", not "what
+      // did the PDF contain". Checked by mutation audit: goes RED when the
+      // null-guard is removed. The content question is covered by the test above.
       var pdfInvoked = false;
       await tester.pumpWidget(
         figuresMenu(
@@ -1606,53 +1742,10 @@ void main() {
       await tester.tap(find.text('Export / print PDF'));
       await tester.pumpAndSettle();
 
-      // Venue consent skipped (no venue with contacts).
-      // Figures prompt appears.
-      expect(
-        find.byKey(const ValueKey('program-figures-prompt-dialog')),
-        findsOneWidget,
-      );
-      await tester.tap(
-        find.byKey(
-          const ValueKey('program-figures-prompt-set-list-and-figures'),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('program-figures-prompt-confirm')),
-      );
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
-      expect(pdfInvoked, isTrue);
+      expect(pdfInvoked, isFalse);
     });
-
-    testWidgets(
-      'PDF path: Cancel on figures prompt → pdf layouter NOT invoked',
-      (tester) async {
-        // Mutation: remove null-check on _figuresConsent → PDF is invoked after
-        // cancel → pdfInvoked flips to true → assertion fails.
-        var pdfInvoked = false;
-        await tester.pumpWidget(
-          figuresMenu(
-            program: _program(
-              slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
-            ),
-            onShare: (_) {},
-            onPdf: () => pdfInvoked = true,
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Export / print PDF'));
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.text('Cancel'));
-        await tester.pumpAndSettle();
-
-        expect(pdfInvoked, isFalse);
-      },
-    );
   });
 }
