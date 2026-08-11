@@ -37,9 +37,24 @@ import 'utc_datetime.dart';
 /// [unixSeconds] as a strict increase), so tightening it is a red test rather
 /// than a silent regression.
 ///
-/// Storage precision is a decision of record: seconds, ruled by the maintainer
-/// on the grounds that second- versus millisecond-level granularity is
-/// equivalent for this application's purposes.
+/// ## Who decided what, so the reasoning is auditable
+///
+/// Two separate things, and only one of them is a ruling:
+///
+/// * **Storage precision stays at seconds** — decided by **@ibanner56**, on the
+///   grounds that second- versus millisecond-level granularity is equivalent
+///   for the work this application does. Not an assumption, and not a
+///   conclusion reached here.
+/// * **One second follows from that** — derived, not chosen. Given seconds on
+///   disk, one second is the only increment that can satisfy the invariant, so
+///   this constant is a consequence of the ruling above rather than a second
+///   decision layered on it.
+///
+/// The specification now defines a **tick** as the smallest interval the
+/// timestamp storage representation can distinguish, and states the rule as
+/// `+ 1 tick` — pinned to storage rather than to a magnitude. This constant is
+/// that tick for this schema, so the two agree by construction rather than by
+/// coincidence.
 const Duration existenceStampTick = Duration(seconds: _tickSeconds);
 
 /// The tick in whole seconds — the single source for both the Dart reference
