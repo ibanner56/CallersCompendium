@@ -366,6 +366,23 @@ When two copies disagree about whether a record exists, **the greater
 resolve to the tombstone. `updatedAt` MUST NOT participate in this decision, on
 any path.
 
+An implementation MUST NOT assume `existenceAt == deletedAt` on a tombstone.
+The two are related only in that a tombstone carries both: a deletion stamps
+`existenceAt` causally, so it lands ahead of `deletedAt` whenever the record
+transitioned within the preceding tick, while migration-backfilled tombstones
+copy `deletedAt` verbatim and are exactly equal. Both shapes are valid and a
+receiver MUST treat `deletedAt` only as the state indicator this paragraph
+describes, never as a second comparand.
+
+**Equal `existenceAt` is resolved silently, and that is the one place this
+design chooses a winner without reporting it.** A conflicting `updatedAt` is
+reported as bilateral divergence; existence is not, because a tie here has to
+resolve somewhere and deletions are sticky. The exposure is narrowed by the
+causal stamp — a device reviving a record it received as a tombstone stamps
+above that tombstone by construction, so it cannot tie with it — leaving only
+genuinely concurrent transitions on two devices that have not yet seen each
+other's, within one tick of each other.
+
 This rule MUST be applied on every path that can decide existence:
 
 | Path | Requirement |
