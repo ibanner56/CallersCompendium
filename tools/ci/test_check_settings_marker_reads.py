@@ -778,13 +778,26 @@ def test_adjacency_matrix() -> None:
     print("adjacency matrix:")
 
     def make(kind: str, quote: str, text: str) -> str:
+        # For triple-quoted and raw-triple kinds, embed a same-style quote character
+        # inside the content so that a buggy parser (one that misidentifies the form
+        # as single-quoted) would terminate early and produce wrong output. Without
+        # an internal quote the accidental re-parse produces identical content to
+        # the correct parse, making the rows structurally incapable of failing.
+        #
+        # raw-single (r'...') cannot contain its delimiter quote at all, so no inner
+        # quote is embedded there — the termination bug does not apply to raw-single.
+        # normal literals also use no inner quote; their parsing is unaffected.
         if kind == "normal":
             return f"{quote}{text}{quote}"
         if kind == "raw":
             return f"r{quote}{text}{quote}"
+        # triple and raw-triple: embed a same-style quote in the content. Under the
+        # bug (treated as single-quoted), the parser would stop at this quote and
+        # produce truncated content; under the fix, the triple-close is found correctly.
+        inner = f"{text}{quote}x{quote} "
         if kind == "raw-triple":
-            return f"r{quote * 3}{text}{quote * 3}"
-        return f"{quote * 3}{text}{quote * 3}"
+            return f"r{quote * 3}{inner}{quote * 3}"
+        return f"{quote * 3}{inner}{quote * 3}"
 
     kinds = ("normal", "raw", "triple", "raw-triple")
     quote_pairs = (("'", "'"), ("'", '"'), ('"', '"'))
@@ -822,10 +835,14 @@ def test_adjacency_matrix() -> None:
                         f"got parseable={lits[0].parseable}",
                     )
                     # The concatenation must be recoverable either way, so the
-                    # SELECT pattern can still see the whole read.
+                    # SELECT pattern can still see the whole read. We check for
+                    # the key fragment words rather than the exact string because
+                    # triple/raw-triple literals carry an embedded quote character
+                    # (needed to exercise the early-termination bug) which lands
+                    # between the two payload fragments.
                     check(
                         f"{label}: content joined",
-                        "SELECT 1 FROM settings WHERE key = ?" in lits[0].content,
+                        "SELECT 1 FROM settings" in lits[0].content and "WHERE key = ?" in lits[0].content,
                         f"got {lits[0].content!r}",
                     )
 
@@ -865,7 +882,7 @@ def test_adjacency_matrix() -> None:
                 )
                 check(
                     f"{label}: content joined",
-                    "SELECT 1 FROM settings WHERE key = ?" in lits[0].content,
+                    "SELECT 1" in lits[0].content and "FROM settings" in lits[0].content and "WHERE key = ?" in lits[0].content,
                     f"got {lits[0].content!r}",
                 )
 
