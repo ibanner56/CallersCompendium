@@ -39,6 +39,7 @@ Future<void> main() async {
   final repos = CompendiumRepositories(db, contraTaxonomy);
 
   // Seed one custom field so we can assert the default after migration.
+  // ignore: unused_result
   await repos.customFieldDefs.upsert(
     CustomFieldDef(
       id: 'cf-notes',

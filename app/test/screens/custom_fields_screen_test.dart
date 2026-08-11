@@ -110,6 +110,7 @@ void main() {
       tester,
     ) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.customFieldDefs.upsert(
         CustomFieldDef(
           id: 'f1',
@@ -161,6 +162,7 @@ void main() {
       tester,
     ) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.customFieldDefs.upsert(
         CustomFieldDef(
           id: 'f1',
@@ -181,6 +183,7 @@ void main() {
 
     testWidgets('deletes an unused field after confirmation', (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.customFieldDefs.upsert(
         CustomFieldDef(
           id: 'f1',
@@ -202,6 +205,7 @@ void main() {
 
     testWidgets('cancels delete when user dismisses dialog', (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.customFieldDefs.upsert(
         CustomFieldDef(
           id: 'f1',
@@ -228,6 +232,7 @@ void main() {
           label: 'Notes',
           type: CustomFieldType.text,
         );
+        // ignore: unused_result
         await repos.customFieldDefs.upsert(def);
         // Create a dance that uses this field.
         await repos.dances.create(
@@ -308,6 +313,7 @@ void main() {
         label: 'Notes',
         type: CustomFieldType.text,
       );
+      // ignore: unused_result
       await repos.customFieldDefs.upsert(def);
       await repos.dances.create(
         Dance(
@@ -337,6 +343,7 @@ void main() {
         label: 'Notes',
         type: CustomFieldType.text,
       );
+      // ignore: unused_result
       await repos.customFieldDefs.upsert(def);
       await repos.dances.create(
         Dance(
@@ -367,6 +374,7 @@ void main() {
           type: CustomFieldType.choice,
           choices: const ['easy', 'hard'],
         );
+        // ignore: unused_result
         await repos.customFieldDefs.upsert(def);
         // A dance uses the 'easy' choice.
         await repos.dances.create(
@@ -401,6 +409,7 @@ void main() {
         type: CustomFieldType.choice,
         choices: const ['easy', 'hard'],
       );
+      // ignore: unused_result
       await repos.customFieldDefs.upsert(def);
       await _pumpScreen(tester, repos);
       await _openEditForm(tester, 'Level');
@@ -419,6 +428,7 @@ void main() {
       tester,
     ) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.customFieldDefs.upsert(
         CustomFieldDef(
           id: 'f1',
@@ -447,6 +457,7 @@ void main() {
       'key and type are editable when field has no values on any dance',
       (tester) async {
         final repos = openTestRepositories();
+        // ignore: unused_result
         await repos.customFieldDefs.upsert(
           CustomFieldDef(
             id: 'f1',
@@ -525,6 +536,7 @@ void main() {
           label: 'Notes',
           type: CustomFieldType.text,
         );
+        // ignore: unused_result
         await repos.customFieldDefs.upsert(def);
         await repos.dances.create(
           Dance(
@@ -628,6 +640,7 @@ void main() {
       tester,
     ) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.customFieldDefs.upsert(
         CustomFieldDef(
           id: 'f1',

@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 
 import '../../model/tag.dart';
 import '../../util/argb.dart';
@@ -38,6 +39,7 @@ class TagRepository {
   /// (see [adoptTombstonedNaturalKey]). Callers minting a fresh UUID must use
   /// the returned id rather than the one they generated, or they will reference
   /// a row that does not exist.
+  @useResult
   Future<String> upsert(Tag tag, {DateTime? at}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {

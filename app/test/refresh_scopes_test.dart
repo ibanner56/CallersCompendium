@@ -292,6 +292,7 @@ void main() {
     (tester) async {
       final repos = openTestRepos();
       await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'Gentle'));
       // CollectionShell splits at 900 and AppShell puts an 80 px rail beside
       // it, so a real split needs >= 980; 1400 is comfortably past that. No
@@ -657,6 +658,7 @@ void main() {
       // Batch tagging writes one row at a time in a loop, unlike batch level
       // (a single `setLevelForMany`), so it is the case where a broadcast could
       // plausibly be written per item.
+      // ignore: unused_result
       await counted.repos.tags.upsert(Tag(id: 't1', name: 'Gentle'));
       await pump(
         tester,

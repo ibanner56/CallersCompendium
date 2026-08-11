@@ -1002,6 +1002,10 @@ class DanceEditorController extends ChangeNotifier {
       showInList: def.showInList,
       searchable: def.searchable,
     );
+    // Safe discard: `updated` is built from `def.id` (an already-persisted row),
+    // not a fresh UUID. Tombstone adoption requires a minting caller; it cannot
+    // fire here, so the returned id is always identical to updated.id.
+    // ignore: unused_result
     await _repos.customFieldDefs.upsert(updated);
     if (_disposed) return AddChoiceResult.added;
 

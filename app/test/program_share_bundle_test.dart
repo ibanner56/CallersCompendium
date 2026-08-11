@@ -601,6 +601,7 @@ void main() {
       final repos = openTestRepositories();
       addTearDown(repos.db.close);
       // The receiver already knows this author under a DIFFERENT id.
+      // ignore: unused_result
       await repos.choreographers.upsert(
         Choreographer(id: 'local-cary', name: 'Cary Ravitz'),
       );

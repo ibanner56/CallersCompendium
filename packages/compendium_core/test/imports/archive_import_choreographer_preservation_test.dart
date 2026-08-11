@@ -109,6 +109,7 @@ void main() {
   test("importing a bundle does not clear an existing choreographer's deceased "
       'flag', () async {
     // The receiver knows this person has died and has recorded it.
+    // ignore: unused_result
     await choreographers.upsert(
       Choreographer(id: 'local-c1', name: 'Ada Caller', deceased: true),
     );
@@ -140,6 +141,7 @@ void main() {
       'contact fields', () async {
     // Same hazard, other fields: email/location are redacted on export, so an
     // import that applied incoming values would blank the local ones.
+    // ignore: unused_result
     await choreographers.upsert(
       Choreographer(
         id: 'local-c1',

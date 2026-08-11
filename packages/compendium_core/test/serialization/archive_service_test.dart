@@ -15,13 +15,17 @@ Future<void> _seed(CompendiumRepositories repos) async {
       year: 1983,
     ),
   );
+  // ignore: unused_result
   await repos.choreographers.upsert(
     Choreographer(id: 'c1', name: 'Alice', email: 'alice@example.com'),
   );
+  // ignore: unused_result
   await repos.choreographers.upsert(
     Choreographer(id: 'c2', name: 'Traditional'),
   );
+  // ignore: unused_result
   await repos.tags.upsert(Tag(id: 't1', name: 'chestnut', color: 0xFF112233));
+  // ignore: unused_result
   await repos.customFieldDefs.upsert(
     CustomFieldDef(
       id: 'f1',
@@ -30,6 +34,7 @@ Future<void> _seed(CompendiumRepositories repos) async {
       type: CustomFieldType.text,
     ),
   );
+  // ignore: unused_result
   await repos.customFieldDefs.upsert(
     CustomFieldDef(
       id: 'f2',
@@ -221,6 +226,7 @@ void main() {
         await _seed(repos);
 
         // A stale row that is NOT in the archive must be gone after a replace.
+        // ignore: unused_result
         await repos.tags.upsert(Tag(id: 'stale', name: 'stale-tag'));
         final archive = await ArchiveExporter(repos).export();
         // The exported archive predates the stale tag only if we re-read; instead
@@ -278,7 +284,9 @@ void main() {
       final repos = CompendiumRepositories(db, contraTaxonomy);
 
       // Pre-existing row that must survive a merge.
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 'keep', name: 'keep-me'));
+      // ignore: unused_result
       await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Alice'));
       final archive = CompendiumArchive(
         exportedAt: DateTime.utc(2026, 7, 15),
@@ -302,6 +310,7 @@ void main() {
         final repos = CompendiumRepositories(db, contraTaxonomy);
 
         // Live data that must survive a failed replace restore.
+        // ignore: unused_result
         await repos.tags.upsert(Tag(id: 'live-tag', name: 'Live'));
         await repos.dances.create(
           Dance(
@@ -390,6 +399,7 @@ void main() {
         addTearDown(db.close);
         final repos = CompendiumRepositories(db, contraTaxonomy);
 
+        // ignore: unused_result
         await repos.tags.upsert(Tag(id: 'keep', name: 'keep-me'));
 
         // A dance with duplicate authorIds fails to write, but a good tag in the

@@ -400,6 +400,7 @@ void main() {
       }
 
       test('matches an existing choreographer (no new row created)', () async {
+        // ignore: unused_result
         await choreographers.upsert(
           Choreographer(id: 'gene', name: 'Gene Hubert'),
         );
@@ -455,6 +456,7 @@ void main() {
         // the minted id would point `dance_authors` at a row that does not
         // exist; the FK makes that a failed insert rather than silent
         // corruption, but the import still breaks on an ordinary action.
+        // ignore: unused_result
         await choreographers.upsert(
           Choreographer(id: 'ghost', name: 'Baby Caller'),
         );
@@ -507,6 +509,7 @@ void main() {
         //
         // Undo must return it to the state it was in (deleted), NOT erase it:
         // the row predates the import and the user may still restore it.
+        // ignore: unused_result
         await choreographers.upsert(
           Choreographer(id: 'ghost', name: 'Baby Caller'),
         );
@@ -567,6 +570,7 @@ void main() {
         () async {
           // The referential guard still wins: re-tombstoning must not orphan a
           // credit on a dance this import did not insert.
+          // ignore: unused_result
           await choreographers.upsert(
             Choreographer(id: 'ghost', name: 'Baby Caller'),
           );
@@ -601,6 +605,7 @@ void main() {
       );
 
       test('matches case- and whitespace-insensitively', () async {
+        // ignore: unused_result
         await choreographers.upsert(
           Choreographer(id: 'bob', name: 'Bob Isaacs'),
         );
@@ -673,6 +678,7 @@ void main() {
       });
 
       test('reuses the seeded Traditional row by name', () async {
+        // ignore: unused_result
         await choreographers.upsert(
           Choreographer(id: 'traditional', name: 'Traditional'),
         );
@@ -696,6 +702,7 @@ void main() {
         () async {
           // The generic archive/JSON adapter ships canonical authorIds in the
           // draft and sets no authorNames; commit must NOT clear them.
+          // ignore: unused_result
           await choreographers.upsert(
             Choreographer(id: 'canon', name: 'Canonical Author'),
           );
@@ -754,6 +761,7 @@ void main() {
       });
 
       test('undo keeps a pre-existing matched choreographer', () async {
+        // ignore: unused_result
         await choreographers.upsert(
           Choreographer(id: 'gene', name: 'Gene Hubert'),
         );
@@ -816,6 +824,7 @@ void main() {
         countingDances,
         countingChoreographers,
       );
+      // ignore: unused_result
       await countingChoreographers.upsert(
         Choreographer(id: 'gene', name: 'Gene Hubert'),
       );

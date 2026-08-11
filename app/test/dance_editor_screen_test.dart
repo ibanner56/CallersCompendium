@@ -609,6 +609,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.choreographers.upsert(
       Choreographer(id: 'c1', name: 'Gene Hubert'),
     );
@@ -648,6 +649,7 @@ void main() {
 
   testWidgets('tag chips are not editable (no details dialog)', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
     await _pumpEditor(tester, repos);
 
@@ -670,7 +672,9 @@ void main() {
     'committing a tag clears the input, keeps focus, and supports back-to-back adds',
     (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't2', name: 'smooth'));
       await _pumpEditor(tester, repos);
 
@@ -725,6 +729,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
     await _pumpEditor(tester, repos);
 
@@ -798,6 +803,7 @@ void main() {
     'committing an author clears the shared picker input and keeps focus',
     (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.choreographers.upsert(
         Choreographer(id: 'c1', name: 'Gene Hubert'),
       );
@@ -840,6 +846,7 @@ void main() {
 
   testWidgets('custom text field value round-trips', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(
       CustomFieldDef(
         id: 'f1',
@@ -869,6 +876,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(
       CustomFieldDef(
         id: 'adj',
@@ -911,6 +919,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(
       CustomFieldDef(
         id: 'adj',
@@ -947,6 +956,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(
       CustomFieldDef(
         id: 'b1',
@@ -968,6 +978,7 @@ void main() {
 
   testWidgets('toggled boolean custom field round-trips', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(
       CustomFieldDef(
         id: 'b1',
@@ -1037,6 +1048,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Chris'));
     await _pumpEditor(tester, repos);
 

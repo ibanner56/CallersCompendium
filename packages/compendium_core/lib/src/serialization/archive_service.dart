@@ -144,16 +144,35 @@ class ArchiveRestorer {
     }
     for (final c in archive.choreographers) {
       await _guard('choreographer', c.id, errors, () async {
+        // Safe discard in replace mode, which is the only mode any caller
+        // reaches with existing data: _clearAll() runs first and hard-deletes
+        // choreographers/tags/customFieldDefs, so no tombstone survives to be
+        // adopted and the returned id always equals c.id.
+        //
+        // Merge mode does NOT clear, so tombstones can survive it. That is
+        // currently unreachable here — the only merge-mode caller (SeedService)
+        // runs on an empty database — but that is a property of that caller,
+        // not of this path. BackupService.restoreFromJson accepts a mode
+        // parameter that would reach here. Tracked as #906, which covers
+        // id-remapping for restore; a merge-mode restore with tombstones
+        // present could adopt ids silently until then.
+        // ignore: unused_result
         await _repos.choreographers.upsert(c);
       });
     }
     for (final t in archive.tags) {
       await _guard('tag', t.id, errors, () async {
+        // Safe discard: same reasoning as choreographers above — replace mode
+        // guarantees no tombstones; merge mode is latent (see #906).
+        // ignore: unused_result
         await _repos.tags.upsert(t);
       });
     }
     for (final f in archive.customFields) {
       await _guard('customField', f.id, errors, () async {
+        // Safe discard: same reasoning as choreographers above — replace mode
+        // guarantees no tombstones; merge mode is latent (see #906).
+        // ignore: unused_result
         await _repos.customFieldDefs.upsert(f);
       });
     }

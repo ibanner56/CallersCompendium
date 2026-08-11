@@ -173,9 +173,11 @@ void main() {
     'renders title, authors, formation chip, and tags, with a live count',
     (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.choreographers.upsert(
         Choreographer(id: 'c1', name: 'Folk Process'),
       );
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'Beginner-friendly'));
       await repos.dances.create(
         _dance(
@@ -301,6 +303,7 @@ void main() {
     'a manual reload',
     (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.choreographers.upsert(
         Choreographer(id: 'c1', name: 'Folk Process'),
       );
@@ -338,6 +341,7 @@ void main() {
 
       // Simulate an import: a new dance by a brand-new author lands in the
       // collection out-of-band, then the app-level signal fires.
+      // ignore: unused_result
       await repos.choreographers.upsert(
         Choreographer(id: 'c2', name: 'Grace Hopper'),
       );
@@ -478,6 +482,7 @@ void main() {
 
   testWidgets('a facet chip filters the list', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'Classic'));
     await repos.dances.create(
       _dance(id: 'd1', title: 'Chase the Squirrel', tagIds: const ['t1']),
@@ -497,6 +502,7 @@ void main() {
 
   testWidgets('different facets AND together', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'Classic'));
     // contra + t1  → matches; square + t1 → no; contra + no tag → no.
     await repos.dances.create(
@@ -524,8 +530,11 @@ void main() {
 
   testWidgets('multiple tags OR within the tag facet', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'Alpha'));
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't2', name: 'Beta'));
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't3', name: 'Gamma'));
     await repos.dances.create(
       _dance(id: 'a', title: 'Has Alpha', tagIds: const ['t1']),
@@ -550,6 +559,7 @@ void main() {
 
   testWidgets('a choice custom-field facet filters the list', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(
       CustomFieldDef(
         id: 'diff',
@@ -1182,6 +1192,7 @@ void main() {
       tester,
     ) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'Bouncy'));
       await repos.dances.create(
         _dance(id: 'a', title: 'Apple', tagIds: const ['t1']),
@@ -1210,6 +1221,7 @@ void main() {
       tester,
     ) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'Bouncy'));
       await repos.dances.create(
         _dance(id: 'a', title: 'Apple', tagIds: const ['t1']),
@@ -1229,6 +1241,7 @@ void main() {
 
     testWidgets('No grouping returns to the flat list', (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'Bouncy'));
       await repos.dances.create(
         _dance(id: 'a', title: 'Apple', tagIds: const ['t1']),
@@ -1254,6 +1267,7 @@ void main() {
       tester,
     ) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'Bouncy'));
       await repos.dances.create(
         _dance(id: 'a', title: 'Apple', tagIds: const ['t1']),

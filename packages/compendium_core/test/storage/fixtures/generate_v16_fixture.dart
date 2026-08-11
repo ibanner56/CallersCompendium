@@ -44,6 +44,7 @@ Future<void> main() async {
   final repos = CompendiumRepositories(db, contraTaxonomy);
 
   final now = DateTime.utc(2026, 1, 1);
+  // ignore: unused_result
   await repos.choreographers.upsert(
     Choreographer(id: 'chor-1', name: 'Cary Ravitz'),
   );

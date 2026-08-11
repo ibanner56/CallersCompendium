@@ -23,6 +23,7 @@ void main() {
       website: 'https://example.com',
       notes: 'prolific',
     );
+    // ignore: unused_result
     await repo.upsert(c);
     expect(await repo.getById('c1'), c);
   });
@@ -35,6 +36,7 @@ void main() {
       location: 'Lexington, KY',
       deceased: true,
     );
+    // ignore: unused_result
     await repo.upsert(c);
     final read = await repo.getById('c1');
     expect(read!.email, 'cary@example.com');
@@ -43,6 +45,7 @@ void main() {
   });
 
   test('contact fields default to null/false when unset', () async {
+    // ignore: unused_result
     await repo.upsert(Choreographer(id: 'c1', name: 'Minimal'));
     final read = await repo.getById('c1');
     expect(read!.email, isNull);
@@ -51,6 +54,7 @@ void main() {
   });
 
   test('normalizes empty/whitespace email & location to null', () async {
+    // ignore: unused_result
     await repo.upsert(
       Choreographer(id: 'c1', name: 'Blank', email: '   ', location: ''),
     );
@@ -60,6 +64,7 @@ void main() {
   });
 
   test('trims surrounding whitespace on email & location', () async {
+    // ignore: unused_result
     await repo.upsert(
       Choreographer(
         id: 'c1',
@@ -91,7 +96,9 @@ void main() {
   });
 
   test('upsert updates in place (same id)', () async {
+    // ignore: unused_result
     await repo.upsert(Choreographer(id: 'c1', name: 'Old Name'));
+    // ignore: unused_result
     await repo.upsert(Choreographer(id: 'c1', name: 'New Name'));
     final all = await repo.listAll();
     expect(all, hasLength(1));
@@ -99,7 +106,9 @@ void main() {
   });
 
   test('listAll orders by name', () async {
+    // ignore: unused_result
     await repo.upsert(Choreographer(id: 'c1', name: 'Zeke'));
+    // ignore: unused_result
     await repo.upsert(Choreographer(id: 'c2', name: 'Amy'));
     expect((await repo.listAll()).map((c) => c.name), ['Amy', 'Zeke']);
   });
@@ -109,12 +118,14 @@ void main() {
   });
 
   test('delete removes an unreferenced choreographer', () async {
+    // ignore: unused_result
     await repo.upsert(Choreographer(id: 'c1', name: 'Solo'));
     await repo.delete('c1');
     expect(await repo.getById('c1'), isNull);
   });
 
   test('delete throws if the choreographer is still credited', () async {
+    // ignore: unused_result
     await repo.upsert(Choreographer(id: 'c1', name: 'Credited'));
     await dances.create(
       Dance(
@@ -131,6 +142,7 @@ void main() {
   });
 
   test('delete succeeds once the crediting dance is unlinked', () async {
+    // ignore: unused_result
     await repo.upsert(Choreographer(id: 'c1', name: 'Credited'));
     final dance = Dance(
       id: 'd1',

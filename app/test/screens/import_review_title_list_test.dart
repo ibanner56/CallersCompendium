@@ -296,6 +296,7 @@ void main() {
         'group rather than vanishing', (tester) async {
       final repos = openTestRepositories();
       final author = Choreographer(id: 'a1', name: 'Ted Sannella');
+      // ignore: unused_result
       await repos.choreographers.upsert(author);
       await repos.dances.create(
         _localDance(id: 'd1', title: 'Fiddleheads', authorIds: const ['a1']),

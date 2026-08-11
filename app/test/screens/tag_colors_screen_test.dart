@@ -34,7 +34,9 @@ void main() {
   tearDown(() => repos.db.close());
 
   testWidgets('lists every tag, colourless ones included', (tester) async {
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'chestnut'));
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't2', name: 'becket', color: 0xFF2196F3));
 
     await _pump(tester, repos);
@@ -46,7 +48,9 @@ void main() {
   testWidgets('offers a reset only for a tag that has a colour', (
     tester,
   ) async {
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'chestnut'));
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't2', name: 'becket', color: 0xFF2196F3));
 
     await _pump(tester, repos);
@@ -56,6 +60,7 @@ void main() {
   });
 
   testWidgets('picking a colour persists it, fully opaque', (tester) async {
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'chestnut'));
     await _pump(tester, repos);
 
@@ -77,6 +82,7 @@ void main() {
   ) async {
     // The trap: `copyWith(color: null)` cannot clear a colour, so a naive
     // reset would leave 0xFF2196F3 on disk while the row claimed no colour.
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'chestnut', color: 0xFF2196F3));
     await _pump(tester, repos);
 
@@ -91,6 +97,7 @@ void main() {
   testWidgets('cancelling the picker leaves the colour untouched', (
     tester,
   ) async {
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'chestnut', color: 0xFF2196F3));
     await _pump(tester, repos);
 

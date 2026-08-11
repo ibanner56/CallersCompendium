@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 
 import '../../model/custom_field.dart';
 import '../../model/enums.dart';
@@ -23,6 +24,7 @@ class CustomFieldDefRepository {
   /// `TagRepository.upsert`.
   /// Returns the id the definition actually occupies — see
   /// `TagRepository.upsert` on natural-key adoption.
+  @useResult
   Future<String> upsert(CustomFieldDef def, {DateTime? at}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {

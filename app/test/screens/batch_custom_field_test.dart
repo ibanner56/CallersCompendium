@@ -96,6 +96,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(_textDef);
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
     await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
@@ -126,7 +127,9 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(_textDef);
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(
       CustomFieldDef(
         id: 'f-num',
@@ -176,6 +179,7 @@ void main() {
 
   testWidgets('clearing a field removes only that key', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(_textDef);
     await repos.dances.create(
       _dance(
@@ -202,6 +206,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(_textDef);
     await repos.dances.create(
       _dance(

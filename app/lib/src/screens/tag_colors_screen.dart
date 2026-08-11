@@ -68,6 +68,10 @@ class _TagColorsScreenState extends State<TagColorsScreen> {
     final l10n = AppLocalizations.of(context);
     final updated = tag.withColor(color);
     try {
+      // Safe discard: tag.withColor preserves the existing id; no fresh UUID is
+      // minted here. Tombstone adoption cannot fire, so the returned id is
+      // always identical to updated.id.
+      // ignore: unused_result
       await _repos.tags.upsert(updated);
     } catch (_) {
       if (!mounted) return;

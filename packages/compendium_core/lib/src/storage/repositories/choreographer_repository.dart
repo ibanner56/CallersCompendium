@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 
 import '../../model/choreographer.dart';
 import '../database.dart';
@@ -19,6 +20,7 @@ class ChoreographerRepository {
   /// re-creating a deleted entity work at all.
   /// Returns the id the choreographer actually occupies — see
   /// `TagRepository.upsert` on natural-key adoption.
+  @useResult
   Future<String> upsert(Choreographer c, {DateTime? at}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {

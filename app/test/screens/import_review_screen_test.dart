@@ -636,6 +636,7 @@ void main() {
       'confident match with differing figures shows the Variation? block',
       (tester) async {
         final repos = openTestRepositories();
+        // ignore: unused_result
         await repos.choreographers.upsert(
           Choreographer(id: 'local-author', name: 'Bob Smith'),
         );
@@ -691,6 +692,7 @@ void main() {
       'confident match with identical figures keeps the plain (#685) UI',
       (tester) async {
         final repos = openTestRepositories();
+        // ignore: unused_result
         await repos.choreographers.upsert(
           Choreographer(id: 'local-author', name: 'Bob Smith'),
         );
@@ -741,6 +743,7 @@ void main() {
       'choosing "Import as a variation" imports a new dance and links back',
       (tester) async {
         final repos = openTestRepositories();
+        // ignore: unused_result
         await repos.choreographers.upsert(
           Choreographer(id: 'local-author', name: 'Bob Smith'),
         );
@@ -815,6 +818,7 @@ void main() {
       'link',
       (tester) async {
         final repos = openTestRepositories();
+        // ignore: unused_result
         await repos.choreographers.upsert(
           Choreographer(id: 'local-author', name: 'Bob Smith'),
         );
@@ -871,6 +875,7 @@ void main() {
       'option',
       (tester) async {
         final repos = openTestRepositories();
+        // ignore: unused_result
         await repos.choreographers.upsert(
           Choreographer(id: 'local-author', name: 'Bob Smith'),
         );

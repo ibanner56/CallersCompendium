@@ -147,7 +147,9 @@ void main() {
     });
 
     test('round-trips authors in position order', () async {
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'c1', name: 'Alice'));
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'c2', name: 'Bob'));
       final dance = sampleDance(authorIds: ['c2', 'c1']);
       await dances.create(dance);
@@ -156,6 +158,7 @@ void main() {
     });
 
     test('round-trips tags', () async {
+      // ignore: unused_result
       await tags.upsert(Tag(id: 't1', name: 'chestnut'));
       final dance = sampleDance(tagIds: ['t1']);
       await dances.create(dance);
@@ -244,6 +247,7 @@ void main() {
     });
 
     test('round-trips text/number/boolean/choice custom fields', () async {
+      // ignore: unused_result
       await customFieldDefs.upsert(
         CustomFieldDef(
           id: 'f-text',
@@ -252,6 +256,7 @@ void main() {
           type: CustomFieldType.text,
         ),
       );
+      // ignore: unused_result
       await customFieldDefs.upsert(
         CustomFieldDef(
           id: 'f-num',
@@ -260,6 +265,7 @@ void main() {
           type: CustomFieldType.number,
         ),
       );
+      // ignore: unused_result
       await customFieldDefs.upsert(
         CustomFieldDef(
           id: 'f-bool',
@@ -268,6 +274,7 @@ void main() {
           type: CustomFieldType.boolean,
         ),
       );
+      // ignore: unused_result
       await customFieldDefs.upsert(
         CustomFieldDef(
           id: 'f-choice',
@@ -317,7 +324,9 @@ void main() {
 
   group('update', () {
     test('replaces figures, tags, and links wholesale', () async {
+      // ignore: unused_result
       await tags.upsert(Tag(id: 't1', name: 'chestnut'));
+      // ignore: unused_result
       await tags.upsert(Tag(id: 't2', name: 'workshop'));
       final dance = sampleDance(tagIds: ['t1']);
       await dances.create(dance);
@@ -358,13 +367,18 @@ void main() {
         // Two authors, tags, a published source, custom-field defs, and a
         // related dance so the batched child loaders exercise authors, tags,
         // links, sources, custom fields, and provenance at once.
+        // ignore: unused_result
         await choreographers.upsert(Choreographer(id: 'c1', name: 'Alice'));
+        // ignore: unused_result
         await choreographers.upsert(Choreographer(id: 'c2', name: 'Bob'));
+        // ignore: unused_result
         await tags.upsert(Tag(id: 't1', name: 'chestnut'));
+        // ignore: unused_result
         await tags.upsert(Tag(id: 't2', name: 'smooth'));
         await PublishedSourceRepository(
           db,
         ).upsert(PublishedSource(id: 's1', title: 'Zesty Contras'));
+        // ignore: unused_result
         await customFieldDefs.upsert(
           CustomFieldDef(
             id: 'f-text',
@@ -419,7 +433,9 @@ void main() {
     test('batched load spans an id chunk boundary', () async {
       // More than one _idChunkSize (500) worth of dances, each with an author
       // and a tag, so the batched loaders must stitch results across chunks.
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'c1', name: 'Alice'));
+      // ignore: unused_result
       await tags.upsert(Tag(id: 't1', name: 'chestnut'));
       const total = 1050;
       for (var i = 0; i < total; i++) {
@@ -815,6 +831,7 @@ void main() {
 
     test('purging the only dance crediting a choreographer / citing a source '
         'GCs those now-orphaned rows', () async {
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'c1', name: 'Solo Author'));
       await sources.upsert(PublishedSource(id: 's1', title: 'Solo Source'));
       await dances.create(
@@ -835,6 +852,7 @@ void main() {
 
     test('a choreographer / source still referenced by a surviving dance is '
         'retained', () async {
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'c1', name: 'Shared'));
       await sources.upsert(PublishedSource(id: 's1', title: 'Shared Source'));
       await dances.create(
@@ -863,6 +881,7 @@ void main() {
 
     test('a choreographer / source referenced only by a soft-deleted-but-'
         'retained dance is NOT GCd', () async {
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'c1', name: 'Held'));
       await sources.upsert(PublishedSource(id: 's1', title: 'Held Source'));
       await dances.create(
@@ -897,12 +916,14 @@ void main() {
       () async {
         // A reusable choreographer/source that no purged dance referenced must
         // not be swept just because it happens to be unreferenced.
+        // ignore: unused_result
         await choreographers.upsert(
           Choreographer(id: 'keep', name: 'Traditional'),
         );
         await sources.upsert(
           PublishedSource(id: 'keep-src', title: 'Reusable'),
         );
+        // ignore: unused_result
         await choreographers.upsert(Choreographer(id: 'c1', name: 'Purged'));
         await dances.create(
           sampleDance(
@@ -923,8 +944,10 @@ void main() {
     );
 
     test('hardDelete also GCs now-orphaned reference rows', () async {
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'c1', name: 'Solo Author'));
       await sources.upsert(PublishedSource(id: 's1', title: 'Solo Source'));
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'c2', name: 'Shared'));
       await dances.create(
         sampleDance(
@@ -946,6 +969,7 @@ void main() {
 
     test('hardDelete with gcOrphanedRefs: false leaves now-orphaned rows '
         '(import-undo rollback contract)', () async {
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'c1', name: 'Solo Author'));
       await sources.upsert(PublishedSource(id: 's1', title: 'Solo Source'));
       await dances.create(
