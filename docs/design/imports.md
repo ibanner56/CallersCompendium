@@ -730,19 +730,27 @@ Both terms below name more than one thing, with **different user-visible
 outcomes**. Three of the four false claims corrected across #885 and #900 trace
 to the first term alone, so they are defined here rather than left to context.
 
-**"Decline" — say which kind.** A recognizer returning `null` does not have one
-meaning; it has two, decided by where the recognizer sits.
+**"Decline" — say which kind.** "Declining" names three different things, and
+which one applies is decided by where in the pipeline the decision is made, not
+by the word.
 
-| kind | who | what a `null` costs |
+| kind | who | what it costs |
 |---|---|---|
-| **whole-line decline** | the shared recognizers in `figure_parser.dart` (`_recognizers`), reached after `_normalize` | the line becomes a **`custom` figure** — there is nothing else to try |
-| **pre-recognizer decline** | anything in `FigureFrontEnd.preRecognizers` | the line **falls through** to the shared recognizers and usually still **structures**, minus whatever that pre-recognizer would have added |
+| **front-end veto** | `FigureFrontEnd.declineToCustom` | the line goes **straight to `custom`**, skipping both layers below |
+| **pre-recognizer decline** | anything in `FigureFrontEnd.preRecognizers` returning `null` | the line **falls through** to the shared recognizers and usually still **structures**, minus whatever that pre-recognizer would have added |
+| **whole-line decline** | the shared recognizers in `figure_parser.dart` (`_recognizers`) returning `null`, reached after `_normalize` | the line becomes a **`custom` figure** — there is nothing else to try |
 
-`_recognize` (`figure_parser.dart`) is the whole mechanism: it walks
+The rows are in **execution order**, which is the thing to hold on to: the veto
+runs first and short-circuits everything, then the pre-recognizers, then the
+shared core. `parseFigureLine` calls `frontEnd.declineToCustom` *before*
+`_recognize`, so a vetoed line never reaches either recognizer layer.
+
+`_recognize` (`figure_parser.dart`) implements the lower two rows: it walks
 `frontEnd.preRecognizers` and returns the first non-null; only when all of them
 decline does it normalize and walk the shared `_recognizers`. So a
 pre-recognizer's `null` is "not mine", while a shared recognizer's `null` is
-"not structurable".
+"not structurable". The veto is deliberately NOT part of it — `parseFigureLine`
+applies that before calling in, so a vetoed line is never offered to either.
 
 The practical consequence, and the reason this matters more than tidiness: a
 comment saying an unmapped people code "declines the whole line to custom" is
@@ -762,19 +770,29 @@ Which is which, derived from the code rather than from memory:
   `_rightLeftThroughAnnotation`, `_sideRunAnnotation`. Every one is the
   falls-through kind.
 - `contraDbHtmlFigureFrontEnd` registers its **entire grammar** as
-  pre-recognizers. **This is the exception most likely to be got wrong**, so
-  state it rather than deriving it: for ContraDB there is no such thing as a
-  source-specific whole-line decline. Every ContraDB recognizer is the
-  falls-through kind, and a line reaches `custom` only when the SHARED core
-  declines it too. A sentence like "this ContraDB recognizer declines the line
-  to custom" is therefore wrong about the mechanism even when it happens to be
-  right about the outcome.
+  pre-recognizers, **and** supplies a veto. Both halves matter, and they pull in
+  opposite directions, which is why this front end is the one most likely to be
+  described wrongly:
+  - All **48** of its *recognizers* are the falls-through kind. None of them can send
+    a line to `custom` on its own; that happens only when the shared core
+    declines it too. So "this ContraDB recognizer declines the line to custom"
+    is wrong about the mechanism even when it is right about the outcome.
+  - Its *veto* (`_declineStarPromenade`) is the opposite: it does send a line
+    straight to `custom`, ahead of both layers. Verified — `gentlespoons star
+    promenade right 1` imports as `custom` under this front end while the
+    canonical front end structures the identical line as `star_promenade`, so
+    the veto alone is what changes the outcome.
+
+  A claim about ContraDB declines must therefore say *which* of the two it
+  means. An unqualified "ContraDB has no whole-line decline" is false; it has
+  exactly one, and it is not a recognizer.
 - `canonicalFigureFrontEnd` registers none, so for it every decline is a
   whole-line decline.
-- `FigureFrontEnd.declineToCustom` is the deliberate exception: a front-end
-  vetoing a line there **does** send it straight to `custom`, skipping both
-  layers. It exists because deleting a source's own recognizer is not enough —
-  the shared ones are source-neutral and will claim the line anyway.
+- `FigureFrontEnd.declineToCustom` is the veto row of the table above, and the
+  only way a *source* can force `custom` by itself: it short-circuits ahead of
+  both recognizer layers. It exists because deleting a source's own recognizer
+  is not enough — the shared ones are source-neutral and will claim the line
+  anyway. Only `contraDbHtmlFigureFrontEnd` supplies one today.
 
 **"Verbatim" — say verbatim *against what*.** The word carries at least three
 senses here, and only one of them is ever wrong. The custom fallback stores the
