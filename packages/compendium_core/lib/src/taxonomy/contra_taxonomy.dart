@@ -398,8 +398,16 @@ import 'taxonomy.dart';
 ///     (`unspecified`) from `effectiveParams` — so NO DB schema migration is
 ///     needed. The derived rebuild that re-indexes FTS and canonical keys comes
 ///     from `CompendiumRepositories._normaliseInversePairMoveIdsIfNeeded`,
-///     which runs the rebuild unconditionally on its first pass and then writes
-///     its `settings` marker.
+///     which rebuilds if a rebuild has NOT already happened during this
+///     `ensureMigrated` call, or if its own scan rewrote any `figures_json`,
+///     and then writes its `settings` marker.
+///
+///     It does NOT rebuild unconditionally, and the difference is reachable
+///     rather than theoretical: `alreadyRebuilt: rebuiltThisCall` is threaded
+///     in from the caller, so when an earlier sweep already rebuilt and this
+///     pass rewrites nothing, it correctly skips. Measured on a database with
+///     every one-time marker cleared and `derivedRebuildRequired` set: **1**
+///     rebuild across the four sweeps that could each have run one.
 ///
 ///     (Corrected while writing v26, #843: this paragraph previously said "the
 ///     taxonomy version bump triggers a derived rebuild". It does not, and
@@ -442,13 +450,20 @@ import 'taxonomy.dart';
 ///     from every DECLARED param (`figure_diff.dart`), so removing `hand`
 ///     changes the key of EVERY `star_promenade` figure — not only those that
 ///     stored one, because `effectiveParams` used to fill the `right` default
-///     for the rest. A derived rebuild is therefore owed unconditionally, and
-///     it is NOT triggered by this version number: nothing reads
-///     `Taxonomy.version` at runtime. `CompendiumRepositories.
-///     _stripStarPromenadeHandIfNeeded` does the work, mirroring #870 — strip
-///     the now-undeclared `hand` from stored `figures_json`, rebuild, then
-///     write the `settings` marker, in that order, so an interrupted pass
-///     retries on the next open.
+///     for the rest. A derived rebuild is therefore OWED unconditionally —
+///     unlike the schema-v18/v19 precedents, which schedule one only when a
+///     figure actually changed — and it is NOT triggered by this version
+///     number: nothing reads `Taxonomy.version` at runtime.
+///     `CompendiumRepositories._stripStarPromenadeHandIfNeeded` does the work,
+///     mirroring #870 — strip the now-undeclared `hand` from stored
+///     `figures_json`, rebuild, then write the `settings` marker, in that
+///     order, so an interrupted pass retries on the next open.
+///
+///     "Owed unconditionally" is about the DEBT, not the call: the pass still
+///     skips its own `runDerivedRebuild` when an earlier sweep already
+///     rebuilt during the same `ensureMigrated`, because that rebuild already
+///     paid the debt. Conflating the two is exactly how the v25 paragraph
+///     above came to claim a rebuild that does not happen.
 ///
 ///     No DB SCHEMA bump: nothing structural changes, and a leftover `hand` is
 ///     already inert for rendering and keying the moment the param leaves the

@@ -34,9 +34,13 @@
   **Canonical-key change:** removing a declared param changes
   `figureCanonicalKey` for EVERY `star_promenade` figure, not only those that
   stored a `hand` — `effectiveParams` used to fill the `right` default for the
-  rest. The derived rebuild is therefore owed unconditionally, and is run by
-  `_stripStarPromenadeHandIfNeeded` (marker
+  rest. The derived rebuild is therefore OWED unconditionally — unlike the
+  schema-v18/v19 precedents, which schedule one only when a figure actually
+  changed — and is discharged by `_stripStarPromenadeHandIfNeeded` (marker
   `starPromenadeHandRemovalDoneKey`, written after success), mirroring #870.
+  Owed is not the same as always-called: the pass skips its own rebuild when an
+  earlier sweep already rebuilt during the same `ensureMigrated`, since that
+  rebuild already paid the debt.
   **No DB schema bump:** nothing structural changes, and a leftover stored
   `hand` is already inert because `effectiveParams` iterates the MoveDef's
   declared params only. The strip is hygiene — it stops dead data resurrecting

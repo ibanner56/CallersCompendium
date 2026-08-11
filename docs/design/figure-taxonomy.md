@@ -653,8 +653,11 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   Removing a declared param changes `figureCanonicalKey` for *every*
   `star_promenade` figure, not only those that stored a hand, because
   `effectiveParams` used to fill the default for the rest. A derived rebuild is
-  therefore owed unconditionally and runs from the one-time
-  `starPromenadeHandRemovalDoneKey` pass. No DB schema bump: nothing structural
+  therefore *owed* unconditionally — unlike the v18/v19 precedents, which
+  schedule one only when a figure actually changed — and is discharged by the
+  one-time `starPromenadeHandRemovalDoneKey` pass. Owed is not the same as
+  always-called: that pass skips its own rebuild when an earlier sweep already
+  rebuilt during the same `ensureMigrated`. No DB schema bump: nothing structural
   changes, and a stored `hand` is inert the moment the MoveDef stops declaring
   it.
 
