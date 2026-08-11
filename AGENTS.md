@@ -61,6 +61,21 @@ all eight rounds while nineteen findings accumulated. Thread state, unresolved
 count, and comment count are all blind to suppressed findings — the review
 **body** is their only surface.
 
+**The reviewer's login differs by endpoint.** `/pulls/<N>/reviews` records the
+author as `copilot-pull-request-reviewer[bot]`; `/pulls/<N>/comments` records it
+as `Copilot`. Verified against this repository: `gh api
+repos/ibanner56/CallersCompendium/pulls/900/reviews -q '[.[].user.login]|unique'`
+returns `["copilot-pull-request-reviewer[bot]","ibanner56"]`; the same query
+against `/pulls/900/comments` returns `["Copilot","ibanner56"]`. The document
+already teaches `select(.user.login=="copilot-pull-request-reviewer[bot]")` for
+the `/reviews` endpoint — correct there. If you carry that filter to `/comments`
+without adjusting the login, you get a **silent zero**, which reads as "no inline
+findings" rather than "filter matched nothing". This happened across four PRs on
+this repository in a single day and produced a wrong conclusion — a real inline
+security finding had come through the normal thread channel and the mismatched
+filter made it invisible. A surprising zero is evidence about your query before
+it is evidence about the world.
+
 ## Before merging
 
 - **No unresolved review threads.** Ask for `totalCount` too, so a page-size
@@ -148,7 +163,20 @@ design docs, roadmap status, and code comments.
 - When a reviewer flags a claim as wrong, **grep for the claim across the repo**
   before fixing the line they cited. False claims are usually copy-pasted: one
   wrong byte-stability claim took three PRs (#718 -> #721 -> #722) because each
-  fix chased the citation instead of the assertion.
+  fix chased the citation instead of the assertion. Grepping finds every instance,
+  but each still has to be judged in its own context — the same sentence can be
+  true in one file and false in another, and a sweep that makes them uniform will
+  make a correct comment wrong. The sentence "absent from this map so they decline
+  the whole line to custom" appears identically in both
+  `packages/compendium_core/lib/src/imports/figure_parser.dart` (around `:483`,
+  in a partner-token map where absent entries genuinely force custom) and
+  `packages/compendium_core/lib/src/imports/callersbox_figure_dialect.dart`
+  (around `:1606`, in the shared people-code map). It is true in the first. In the
+  second it is false for any decoder that only adds params — `_sideRunAnnotation`
+  is one — because those decoders fall through to the shared recognizer and the
+  line still structures. The broader comment at `:1575` of the same file says so
+  explicitly. Fixing the false instance would have made the true one wrong if
+  applied uniformly.
 - Do not carry a claim forward from adjacent prose just because it was already
   there. Verify it against the code, or delete it. A stale sentence in
   `docs/design/dialect.md` survived a rewrite of the section around it and had
