@@ -1,5 +1,7 @@
 import '../model/figure.dart';
 import '../taxonomy/contra_taxonomy.dart';
+import '../taxonomy/move_def.dart';
+import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
 import 'figure_parser.dart';
@@ -57,6 +59,9 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _starPromenadeAnnotation,
     _promenadeAnnotation,
     _rightLeftThroughAnnotation,
+    // LAST, deliberately: the general `;`-run consume (#843) claims whatever
+    // the bespoke decoders above left behind, so none of them loses a line.
+    _sideRunAnnotation,
   ],
   recognitionNormalize: _stripAnnotations,
 );
@@ -1192,6 +1197,307 @@ final RegExp _promenadeAnchor = RegExp(
   caseSensitive: false,
 );
 
+// --- `;`-run handedness / dancer consume (#843 Parts B and C) ----------------
+
+/// Consumes TCB's `;`-run shorthand — `(ML)`, `(NR;PL)`, `(WR;PL;MR;N2L~)` —
+/// into the resolved move's OWN slots, instead of letting [_stripAnnotations]
+/// drop it and the taxonomy fill a default that may contradict the source.
+///
+/// **Why a general decoder rather than another per-move pre-recognizer.** Four
+/// consume paths already exist ([_hey], [grandRightAndLeftFromPassList],
+/// [_squareThroughPassList], and the adapter's balance-a-wave decoder), each
+/// tied to one move because each LOWERS the run onto a bespoke structure — a
+/// hey's ricochet slots, one `pull_by_dancers` per pass. This one does not
+/// lower anything: it reads the same notation and fills whatever slots the
+/// move it landed on happens to declare. Writing eleven more pre-recognizers
+/// for the eleven remaining move keys would duplicate one cell walk eleven
+/// times and still miss the twelfth move somebody adds later.
+///
+/// **The slot lookup asks the TAXONOMY, keyed on `ParamKind`.** #870 introduced
+/// the pattern (query the resolved `MoveDef` rather than maintain a hardcoded
+/// move list that drifts whenever a move gains or loses a slot) but keyed on the
+/// literal param NAME `hand`. That is not portable here: of the twenty moves
+/// with a side slot, seven name it `shoulder` and two name it `centerHand`, so
+/// a name check would silently miss nine of them. [_sideSlot] therefore looks
+/// for the single param whose kind is `handedness` or `shoulder`.
+///
+/// **Values are written even when they equal the taxonomy default** (owner
+/// ruling). The decode either fires on a run or it does not; `if (decoded !=
+/// default) apply` is a strange thing to write, and storing what the source
+/// SAID rather than what we assumed means the value survives a future change of
+/// default. This is byte-identical at both identity layers — `renderCanonical`
+/// and `figureCanonicalKey` both build from `Taxonomy.effectiveParams`, which
+/// fills defaults — so it raises no spurious #686 "Variation?" prompt. The
+/// INVERSE value does change the key, but it should: the stored choreography
+/// contradicted its source.
+///
+/// **Dancer identity (Part C).** The same cells name dancers, so `who`/`who2`
+/// are filled too, on the moves that declare them. Two-pass moves alternate:
+/// odd 1-based positions name `who`, even positions name `who2`. `pass_through`
+/// declares NO `who`, so its dancer code has nowhere to go and is dropped —
+/// which is the status quo for that half of the annotation, minus the wrong
+/// shoulder. (Preserving it as a note instead would add one to ~2,048 figures
+/// across 1,773 dances; that is a visible change at corpus scale and is the
+/// owner's call, not this decoder's.)
+///
+/// **Declines (returns `null` → the ordinary annotation-stripped path) when:**
+///   * the line has no `(...)` annotation, or more than one;
+///   * the annotation is not entirely `<people-code><R|L>` cells, or any
+///     people code is absent from [tcbPassPeople] (`O`, `Ph`, `SRN`, `C1`–`C3`,
+///     out-of-range neighbors/shadows) — never approximated onto a token that
+///     means something else;
+///   * the sides do not alternate by position parity, which is the model both
+///     two-pass renderers implement;
+///   * a `square_through` 4-code list is not periodic (`code[2] == code[0]`,
+///     `code[3] == code[1]`), or the run states MORE passes than the move
+///     models — a `square_through` cell count that disagrees with `places`, a
+///     run past two cells on a move declaring `who2`, or any multi-cell run on
+///     a single-pass move. See [_runShapeIsModelled], which is authoritative
+///     for the exact rule.
+///
+///     **A `cross_trails` run of ONE cell is accepted, not declined.** The
+///     corpus shape is `?R;?L`, but the rule implemented is "at most two
+///     cells", deliberately — declining a one-cell run would replace the pass
+///     the source DID state with a taxonomy default, which is strictly worse
+///     than leaving the unstated pass defaulted. The reasoning, with the
+///     measured render comparison, is on [_runShapeIsModelled]; this list
+///     previously described the stricter rule that was considered and rejected;
+///   * the resolved move declares no side slot at all;
+///   * the shared recognizer ALREADY resolved the side from prose and the
+///     annotation CONTRADICTS it — `Neighbor allemande left 1 (NR)`. The line
+///     then keeps today's reading: the PROSE value stands and the annotation is
+///     dropped, because prose is the authoritative statement and the fall-
+///     through is exactly what happens now. Note this is a fall-through, NOT a
+///     decline to custom: forcing custom here would regress a line that
+///     structures today, which is a bigger loss than not consuming one
+///     contradictory annotation.
+///
+/// Runs LAST among the pre-recognizers, so every bespoke decoder above keeps
+/// the lines it already claims. Bounding is [_boundedPassListCells]'s, shared
+/// with every other pass-list path (OWASP: imported text is untrusted, and the
+/// cap runs before the split allocates).
+FigureMatch? _sideRunAnnotation(String scrubbed) {
+  final lower = scrubbed.toLowerCase();
+  final open = lower.indexOf('(');
+  if (open == -1) return null;
+  final close = lower.indexOf(')', open + 1);
+  if (close == -1) return null;
+  // A second parenthetical means extra structure we do not model -> decline.
+  if (lower.indexOf('(', close + 1) != -1) return null;
+
+  final cells = _boundedPassListCellsIn(lower, open, close);
+  if (cells == null || cells.isEmpty || cells.length > kMaxPassListCells) {
+    return null;
+  }
+
+  // Decode every cell before consulting the taxonomy: a run we cannot fully
+  // account for declines outright, so no line is ever partially structured.
+  final decoded = <_SideCell>[];
+  String? sideBase;
+  for (var i = 0; i < cells.length; i++) {
+    // The `~` partial-last-pass marker is informational only (ratified) and is
+    // dropped here exactly as the hey decoder drops it.
+    final cell = cells[i].endsWith('~')
+        ? cells[i].substring(0, cells[i].length - 1)
+        : cells[i];
+    if (cell.length < 2) return null;
+    final sideChar = cell[cell.length - 1];
+    final side = sideChar == 'r'
+        ? 'right'
+        : sideChar == 'l'
+        ? 'left'
+        : null;
+    if (side == null) return null;
+    final who = tcbPassPeople[cell.substring(0, cell.length - 1)];
+    if (who == null) return null;
+
+    // Sides alternate by parity; derive the base (position-1) side and require
+    // every later cell to agree — a run that does not alternate is malformed.
+    final position = i + 1;
+    final impliedBase = position.isOdd ? side : _otherShoulder(side);
+    if (sideBase == null) {
+      sideBase = impliedBase;
+    } else if (sideBase != impliedBase) {
+      return null;
+    }
+    decoded.add(_SideCell(who, side));
+  }
+  if (sideBase == null) return null;
+
+  final match = recognizeSharedFigureLine(
+    scrubbed,
+    recognitionNormalize: _stripAnnotations,
+  );
+  if (match == null) return null;
+  final def = contraTaxonomy.resolve(match.moveId);
+  if (def == null) return null;
+
+  final slot = _sideSlot(def);
+  if (slot == null) return null;
+
+  // Structural invariants (Part C). A violation is an unmodeled variant:
+  // decline rather than structure something the renderer cannot say.
+  if (!_runShapeIsModelled(match.moveId, def, match.params, decoded)) {
+    return null;
+  }
+
+  // Never silently overwrite a side the grammar itself resolved from prose. If
+  // they agree, keep it; if they contradict, decline the RUN — the line then
+  // falls through to the ordinary reading and keeps its prose-stated side. It
+  // does NOT become custom.
+  final stated = match.params[slot];
+  if (stated is String && stated != sideBase) return null;
+
+  final params = <String, Object?>{...match.params, slot: sideBase};
+
+  // Dancer identity (Part C), only into slots the move actually declares.
+  // Odd 1-based positions name `who`, even positions `who2` — the alternation
+  // both two-pass renderers implement.
+  final who1 = _consistentWho(decoded, odd: true);
+  final who2 = _consistentWho(decoded, odd: false);
+  if (who1 == null) return null; // positions disagree -> ambiguous -> decline.
+  if (def.params.containsKey('who') && !match.params.containsKey('who')) {
+    params['who'] = who1;
+  }
+  if (who2 != null &&
+      def.params.containsKey('who2') &&
+      !match.params.containsKey('who2')) {
+    params['who2'] = who2;
+  }
+
+  return FigureMatch(
+    match.moveId,
+    params: params,
+    note: match.note,
+    assumedSubject: match.assumedSubject,
+  );
+}
+
+/// One decoded `<people-code><R|L>` cell: the dancer it names and the side.
+class _SideCell {
+  const _SideCell(this.who, this.side);
+  final String who;
+  final String side;
+}
+
+/// The name of [def]'s single side param — the one whose kind is
+/// `handedness` or `shoulder` — or `null` when it has none, or more than one.
+///
+/// Keyed on `ParamKind` rather than the literal name `hand`, because of the
+/// twenty moves with a side slot seven call it `shoulder` and two call it
+/// `centerHand`.
+///
+/// **More than one is treated as "no slot", and the consequence is a SILENT
+/// fall-through — not a loud failure and not a custom figure.** Returning null
+/// here makes [_sideRunAnnotation] decline, so the line is handed to the shared
+/// recognizer and still structures; it simply keeps the taxonomy's default for
+/// the side instead of the value the run stated. Nothing is logged, nothing
+/// throws, and no test fails.
+///
+/// That is deliberate, and it is the same disposition every other decline in
+/// this decoder has: an unmapped people code, a non-alternating run and an
+/// unmodelled cell count all fall through the same way. Consuming a run into an
+/// arbitrarily-chosen one of two side params would assert a fact about the
+/// wrong axis of the figure, which is worse than not consuming it — and a move
+/// with two side slots is a taxonomy shape nothing here can interpret, so
+/// declining is the honest answer rather than a stopgap.
+///
+/// The cost, stated plainly because it is a real one: if such a move is ever
+/// added, every run on it stops being consumed and nobody finds out. If that
+/// becomes undesirable the fix belongs in the taxonomy's own validation, where
+/// a two-side-slot MoveDef could be rejected at the source, not here — this
+/// function sees one move at a time and has no standing to declare a taxonomy
+/// shape illegal.
+///
+/// (An earlier version of this comment claimed the line "stays custom" and that
+/// the failure is "loud". Both were false: it structures, and it is silent.)
+String? _sideSlot(MoveDef def) {
+  String? found;
+  for (final entry in def.params.entries) {
+    final kind = entry.value.kind;
+    if (kind != ParamKind.handedness && kind != ParamKind.shoulder) continue;
+    if (found != null) return null;
+    found = entry.key;
+  }
+  return found;
+}
+
+/// The dancer named at every odd (or even) 1-based position, or `null` when
+/// those positions disagree — or, for the even case, when there are none.
+String? _consistentWho(List<_SideCell> cells, {required bool odd}) {
+  String? who;
+  for (var i = 0; i < cells.length; i++) {
+    if ((i + 1).isOdd != odd) continue;
+    if (who == null) {
+      who = cells[i].who;
+    } else if (who != cells[i].who) {
+      return null;
+    }
+  }
+  return who;
+}
+
+/// Whether a decoded run matches the structural model the resolved move's
+/// renderer implements. A cell is a PASS, so a run states as many passes as it
+/// has cells, and a move that models fewer cannot carry it.
+///
+/// - **`square_through`**: the cell count must equal `places`. `Square through
+///   3 (N2R;SL)` names two passes for a three-pass figure, so the third pass's
+///   dancer would have to be inferred — which is precisely what #799 declined
+///   to guess, and this decoder must not undo that ruling by the side door.
+///   The 4-code lists are additionally required to be periodic (`code[2] ==
+///   code[0]`, `code[3] == code[1]`), matching the renderer's "then repeat"
+///   model; the parity check upstream forces the SIDES to alternate but would
+///   let a list whose DANCERS break the period through.
+/// - **A move declaring `who2`** models two passes, so AT MOST two cells —
+///   `<= 2`, deliberately, not `== 2`.
+///
+///   The asymmetry with `square_through` above is real and worth stating,
+///   because "at most" otherwise reads as an unconsidered `<=`. The difference
+///   is whether the source CONTRADICTS itself. `Square through 3` states its
+///   pass count in prose, so a two-cell list disagrees with the line's own
+///   arity and the missing pass would have to be invented — decline. A
+///   `cross_trails` line states no count anywhere, so a one-cell run is merely
+///   INCOMPLETE, and consuming what the source did state is strictly better
+///   than discarding it.
+///
+///   Measured, because the reverse is easy to assume. For
+///   `Cross trail through (NR)`:
+///     consumed (`<= 2`): "neighbors cross trails across neighbors"
+///     declined (`== 2`): "partners cross trails across neighbors"
+///   `who2` renders from its `neighbors` default EITHER WAY — declining does
+///   not suppress it, because a bare `Cross trails` renders the same default
+///   already. What declining changes is pass ONE, from the `neighbors` the
+///   source stated to the `partners` default. So `== 2` would introduce a
+///   falsehood about the pass the source DID state, in order to avoid
+///   defaulting the pass it did not. That is a worse trade, not a safer one.
+///
+///   The residual hazard is honest and unfixed here: nothing downstream
+///   distinguishes a source-stated `who2` from a defaulted one. That is a
+///   property of the taxonomy's defaults, not of this decoder, and it predates
+///   it. **Latent in the corpus**: of the cell-shaped annotations on
+///   cross-trail lines, ZERO are single-cell (verified directly against the
+///   mirror), so no imported dance takes this path today.
+/// - **A move with no `who2`** (e.g. `pass_through`, `allemande`) models ONE
+///   pass. A multi-cell run on such a line describes choreography the move
+///   cannot express, so it declines rather than collapsing onto its first cell.
+bool _runShapeIsModelled(
+  String moveId,
+  MoveDef def,
+  Map<String, Object?> params,
+  List<_SideCell> cells,
+) {
+  if (moveId == 'square_through') {
+    final places = params['places'] ?? def.params['places']?.defaultValue;
+    if (places is! int || cells.length != places) return false;
+    for (var i = 2; i < cells.length; i++) {
+      if (cells[i].who != cells[i - 2].who) return false;
+    }
+    return true;
+  }
+  return def.params.containsKey('who2') ? cells.length <= 2 : cells.length == 1;
+}
+
 /// Bounded extractor for `()`/`[]` annotation contents, in source order.
 ///
 /// Import text is untrusted (OWASP): the match count is capped, each captured
@@ -1265,8 +1571,28 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 /// reads the SAME codes out of a `(NR,WL)` wave annotation — so there is
 /// exactly one map. Public for that cross-file reuse; treat it as read-only.
 ///
-/// A code with no entry here is NOT approximated: the decoder that reads it
-/// declines the whole line to custom (prefer-custom / never fabricate).
+/// A code with no entry here is NOT approximated — every decoder that reads
+/// this map declines the run rather than guessing a token (prefer-custom /
+/// never fabricate). **What "declines" then costs depends on the decoder**, and
+/// the distinction is worth stating because it used to be described here as
+/// always meaning "custom", which was never quite true and is now broadly
+/// untrue:
+///
+/// - **The run IS the figure's structure** — [_hey], and
+///   [grandRightAndLeftFromPassList]. Without the pass list there is nothing to
+///   build, so the line goes to the custom fallback. `Hey 1/2 (P6R;P7L)` is
+///   custom.
+/// - **The run only ADDS params** — [_squareThroughPassList] (#799) and the
+///   general [_sideRunAnnotation] (#843). The line still structures through the
+///   shared recognizer; it simply keeps the taxonomy's defaults instead of the
+///   values the run states. `Square through 2 (C1R;C2L)` stays a
+///   `square_through`, and `Pass through along (OR)` stays a `pass_through`.
+///
+/// Either way no token is invented, which is the property that matters. The
+/// second bullet already applied to `square_through` before #843; that issue's
+/// general decoder widened the population it covers to every move with a side
+/// slot.
+///
 /// Notable mappings and the deliberate omissions, per `Glossary.htm`:
 /// - `C1`/`C2`/`C3` — the glossary's *"Corners (square)"* are a DIFFERENT
 ///   concept from its separate *"First/second corners"* entry ("First corners
@@ -1282,6 +1608,18 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   depth.
 /// - `Ph*` (phantoms), `TB*` (trail buddy), `SR*` (same-role), and bare `R`/`L`
 ///   (states a hand but no dancer at all).
+/// - `O` — the glossary's *"opposite"* (`docs/research/callersbox.md`), the
+///   most common unmapped prefix in the corpus (72 cells, ahead of `Ph` 21 and
+///   `SRN` 17). It is listed here because its absence was previously
+///   undocumented, which read as an oversight rather than a decision: the code
+///   is real, and a reader checking the glossary against this map would find it
+///   missing with no reason given. The taxonomy has no `opposites` token — in a
+///   duple-minor improper set the dancer "across" is your neighbor or your
+///   partner depending on where you are, so `O` is not a fixed relationship the
+///   dancer-set vocabulary can name. Behaviour is already correct without any
+///   change — an unmapped code declines the run, per the rule above — so this
+///   is a DOCUMENTATION fix only; the owner ruled on 2026-08-06 that no new
+///   token should be added.
 const Map<String, String> tcbPassPeople = {
   'm': 'role1s',
   'w': 'role2s',
@@ -1294,7 +1632,8 @@ const Map<String, String> tcbPassPeople = {
   // Glossary (Partners (mixers)): "The next partner in your direction of
   // progression is P2, then P3, and so forth." Taxonomy v24 (issue #732) adds
   // tokens for P0 and P2–P5. P6+ and every P-n have no token and are absent
-  // from this map so they decline the whole line to custom.
+  // from this map, so the decoder that reads them declines the run (see the
+  // doc above for what declining costs per decoder — it is not always custom).
   'p2': 'nextPartners',
   'p3': 'thirdPartners',
   'p4': 'fourthPartners',
@@ -1440,6 +1779,10 @@ FigureMatch? _squareThroughPassList(String scrubbed) {
   if (close == -1) return null;
   // A second parenthetical means extra structure we do not model -> decline.
   if (lower.indexOf('(', close + 1) != -1) return null;
+  // Measure the span before taking the substring — see
+  // [_boundedPassListCellsIn]. `passText` is used for more than the cell split
+  // here, so the same O(1) bound is applied inline rather than via that helper.
+  if (close - open - 1 > _maxPassListChars) return null;
   final passText = lower.substring(open + 1, close);
   final outside = '${lower.substring(0, open)} ${lower.substring(close + 1)}';
 
@@ -1529,6 +1872,10 @@ FigureMatch? _hey(String scrubbed) {
   if (open == -1) return null;
   final close = lower.indexOf(')', open + 1);
   if (close == -1) return null;
+  // Measure the span before taking the substring — see
+  // [_boundedPassListCellsIn]. `passText` is used for more than the cell split
+  // here, so the same O(1) bound is applied inline rather than via that helper.
+  if (close - open - 1 > _maxPassListChars) return null;
   final passText = lower.substring(open + 1, close);
   final outside = '${lower.substring(0, open)} ${lower.substring(close + 1)}';
 
@@ -1679,13 +2026,42 @@ const int _maxPassListChars = kMaxPassListCells * 24;
 /// of `;` (or one enormous "cell") must be rejected by a guard that runs before
 /// the allocation, not after it: every pass-list decoder used to `split(';')`
 /// first and check the cell count afterwards, so the oversized list was built
-/// and only then discarded. The [_maxPassListChars] length cap fixes the class
-/// in O(1) — with the raw text capped, both the resulting list and every
-/// substring are provably small. Callers still apply their own exact cell-count
-/// rules (`== places`, `>= 2`, `<= kMaxPassListCells`) to the returned cells.
+/// and only then discarded. The [_maxPassListChars] length cap fixes that in
+/// O(1) — with the raw text capped, both the resulting list and every substring
+/// are provably small. Callers still apply their own exact cell-count rules
+/// (`== places`, `>= 2`, `<= kMaxPassListCells`) to the returned cells.
+///
+/// **This guards the SPLIT, not the caller's own substring.** A caller holding
+/// `lower.substring(open + 1, close)` has already allocated the payload before
+/// this function can see it, so a caller with the parenthesis indices must use
+/// [_boundedPassListCellsIn], which measures the span first. This entry point
+/// is for callers whose text is already in hand.
 List<String>? _boundedPassListCells(String passText) {
   if (passText.length > _maxPassListChars) return null;
   return passText.split(';').map((c) => c.trim()).toList();
+}
+
+/// [_boundedPassListCells] for a pass list still inside its parentheses:
+/// measures the span FIRST and only then takes the substring.
+///
+/// Callers used to hold `lower.substring(open + 1, close)`, so a hostile
+/// `Pass through (` + megabytes + `)` allocated the whole payload and discarded
+/// it one line later — the guard ran *after* the allocation it is documented as
+/// preventing. Passing `(open, close)` makes the bound genuinely O(1):
+/// `close - open - 1` is exactly the length the substring would have.
+///
+/// **Being precise about severity, because overstating it would be its own
+/// defect.** This is not an amplification, and not a fix for a measurable
+/// slowdown. `lower` already holds a lowercased copy of the entire line, so the
+/// marginal cost was one further transient O(payload) allocation among several
+/// — benchmarked at ~1,370ms vs ~1,390ms for five parses of a 1.2 MB payload,
+/// i.e. indistinguishable from noise. What was actually broken is the STATED
+/// PROPERTY: a guard whose doc promises it runs before the allocation, and did
+/// not. The value is that the property is now true for the next caller, who may
+/// not already have the line materialised.
+List<String>? _boundedPassListCellsIn(String lower, int open, int close) {
+  if (close - open - 1 > _maxPassListChars) return null;
+  return _boundedPassListCells(lower.substring(open + 1, close));
 }
 
 /// The shorthand name preserved on the FIRST emitted pass. The decomposition
@@ -1814,7 +2190,7 @@ List<_GrandRightAndLeftPass>? _decodeGrandRightAndLeftPasses(String scrubbed) {
     if (words[i] != _grandRightAndLeftWords[i]) return null;
   }
 
-  final cells = _boundedPassListCells(lower.substring(open + 1, close));
+  final cells = _boundedPassListCellsIn(lower, open, close);
   if (cells == null || cells.length < 2 || cells.length > kMaxPassListCells) {
     return null;
   }

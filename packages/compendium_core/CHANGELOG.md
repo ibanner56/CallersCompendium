@@ -18,6 +18,55 @@
 
 ### Changed
 
+- **General `;`-run consume (#843, Parts B and C, NO taxonomy change).** New
+  pre-recognizer `_sideRunAnnotation` in `callersbox_figure_dialect.dart`,
+  placed LAST in `tcbFigureFrontEnd.preRecognizers` so the four existing
+  bespoke decoders (`_hey`, `grandRightAndLeftFromPassList`,
+  `_squareThroughPassList`, the balance-a-wave decoder) keep every line they
+  already claim.
+
+  Unlike those four it lowers nothing onto a bespoke structure: it reads the
+  same `<people-code><R|L>` notation and fills whatever slots the move it landed
+  on declares. **The slot lookup is keyed on `ParamKind`, not on the param
+  name.** #870 established the query-the-taxonomy pattern but keyed on the
+  literal name `hand`; of the twenty moves with a side slot, seven call it
+  `shoulder` and two call it `centerHand`, so a name check silently misses nine.
+
+  **Values are written even when they equal the taxonomy default** (owner
+  ruling). Byte-identical at both identity layers — `renderCanonical` and
+  `figureCanonicalKey` both build from `effectiveParams`, which fills defaults —
+  so the 2,388 same-value cases raise no #686 "Variation?" prompt. The 116
+  inverse-value cases DO change the key, and should: the stored choreography
+  contradicted its source.
+
+  Dancer identity (Part C) fills `who`/`who2` where the move declares them, odd
+  1-based positions naming `who` and even `who2`. `pass_through` declares no
+  `who`, so its dancer code is dropped rather than forced into a slot the move
+  does not have — writing it unconditionally makes `validateFigure` reject the
+  figure and sends 2,136 corpus lines to the custom fallback.
+
+  **A cell is a PASS**, so a move modelling fewer passes than the run states
+  declines. In particular `square_through`'s cell count must equal `places`:
+  #799 deliberately refused to guess the unstated third pass of `Square through
+  3 (N2R;SL)`, and this decoder must not undo that ruling by the side door. A
+  run contradicting a prose-stated side falls THROUGH to today's reading (prose
+  wins, annotation dropped) rather than declining to custom — forcing custom
+  would regress a line that structures today.
+
+  Corpus (pristine `f3030cbc`): 2,504 dropped runs consumed — `pass_through`
+  2,136, `square_through` 159, `cross_trails` 98, `pass_through + turn_alone`
+  88, plus a short tail. Zero move-id deltas, zero beat deltas, zero
+  custom/structured flips.
+
+- **`O` documented in `tcbPassPeople`'s deliberate omissions (#843).** The most
+  common unmapped prefix in the corpus (72 cells, ahead of `Ph` 21 and `SRN`
+  17) was absent from both the map and its documented omissions list, which read
+  as an oversight rather than a decision. The taxonomy has no `opposites` token
+  — in a duple-minor improper set the dancer across is your neighbour or your
+  partner depending on where you stand, so `O` names no fixed relationship the
+  dancer-set vocabulary can express. Documentation only; behaviour was already
+  correct (an unmapped code declines the line). Owner ruled 2026-08-06.
+
 - **`contraTaxonomyVersion` 26 (#843, Part A).** `star_promenade` LOSES its
   `hand` param and `{hand}` leaves its `renderTemplate` — the first param
   removal in this taxonomy (v19 retired a whole move; v21 renamed one).
