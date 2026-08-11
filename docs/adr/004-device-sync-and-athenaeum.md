@@ -12,6 +12,64 @@
 - **Design rationale**: [docs/design/sync.md](../design/sync.md) — why each rule
   is the way it is, the alternatives rejected, and the threat model.
 
+## Implementation status
+
+**The schema migration shipped before this ADR was accepted. That was
+deliberate, and it is the only part that has shipped.**
+
+Schema **v25** is on `main` — the sync timestamp triple across eight tables,
+twenty columns, six entity-level hard deletes converted to tombstones, and every
+new column classified. Delivered by [#901] and [#903], closing [#898]. No sync
+client, no server, no network code exists; nothing reads `existence_at` yet.
+
+**Why it went first, ahead of acceptance.** Several kinds had to move from hard
+delete to soft delete, and that change needs a **hydration buffer**: time for
+the new columns to be populated and exercised across every test device before
+any sync code depends on them. Waiting for acceptance would have pushed that
+buffer into the sync work itself, where a migration defect and a protocol
+defect would be indistinguishable. Landing it early separates the two.
+
+**The judgement, stated as a judgement** (@ibanner56's call): the migration was
+taken as high-confidence on the estimate that **any further schema change this
+design needs will not depend on the same buffer** — later changes are expected
+to be additive columns read only by code shipping alongside them, not a
+semantic change to how existing rows are deleted. If that estimate turns out
+wrong, the cost is a second migration with its own hydration wait, not a
+correctness problem.
+
+If this ADR were rejected or substantially changed, v25 would stand on its own
+terms regardless: deletions became observable, which is defensible without sync.
+
+### What implementing it found
+
+Two defects surfaced during the migration that the design had not considered.
+Both are fixed; both are recorded because they are evidence about the design,
+not merely about the code.
+
+- **Import undo left an adopted record resurrected.** Importing an author name
+  that a tombstone still held revived that row; undo correctly declined to
+  hard-delete it (the row predates the import and the user may still restore
+  it) and nothing put it back. Worse, the revival had stamped `existence_at`
+  *strictly past* the user's deletion — the value existence is ordered by — so
+  a rolled-back import would have published a **durable resurrection outranking
+  that deletion on every peer** once a client exists. Fixed in [#903] by
+  tracking revived ids separately from created ones and re-tombstoning them on
+  undo, with a fresh causal stamp that outranks the revival. This is the
+  causal-stamping rule working exactly as intended, on a path nothing in this
+  ADR anticipated: the resurrection would have been *correct* under the merge
+  rules and wrong for the user. - **Soft-deleting settings made editor autosave
+  drafts accumulate without bound.** Drafts are cleared on every save and every
+  discard, and their value is the whole draft blob; tombstoning them left ~352
+  KB after 200 edit cycles, invisible to `all()` and to backup export with no
+  sweep to reclaim it. Fixed by a `permanent` flag on removal. The rule adopted
+  — *a tombstone is only worth its storage when there is somebody to inform* —
+  is the general form, and it applies to any future device-scoped scratch value
+  this design adds.
+
+[#898]: https://github.com/ibanner56/CallersCompendium/issues/898
+[#901]: https://github.com/ibanner56/CallersCompendium/pull/901
+[#903]: https://github.com/ibanner56/CallersCompendium/pull/903
+
 ## Context
 
 Caller's Compendium is built on a promise: **the app collects nothing about
@@ -458,6 +516,63 @@ camelCase (`contact1Email`), so the two key spaces did not intersect at all and 
 full address book would have been accepted. An allow-list makes a mapping error a
 loud rejection instead of a silent pass. It remains a backstop; the client's
 classification-filtered serialiser is the primary control.
+
+### TLS and deployment
+
+**TLS terminates at a reverse proxy; Athenaeum binds loopback only and never
+holds a certificate.**
+
+```
+internet ──https──> :443 proxy ──http──> 127.0.0.1:33333 Athenaeum
+```
+
+The reference deployment is **Apache** on the maintainer's existing VM, which
+already serves other sites and already owns `:80` and `:443`. Athenaeum is
+proxied at `/v1/` and is unreachable except through that proxy.
+
+**Why terminate at the proxy rather than in the service.** The alternative —
+Athenaeum binding `:443` itself — fails at *renewal*, not at issuance. ACME
+challenges bind ports: HTTP-01 needs 80, TLS-ALPN-01 needs 443. A certificate
+obtained while nothing else is listening keeps renewing only while that stays
+true, so the first deployment silently breaks renewal roughly sixty days later,
+in a timer, with no user-visible symptom until the certificate expires. A proxy
+that owns those ports permanently has no such window. It also means the service
+runs unprivileged, never restarts for a renewal, and needs no certificate paths
+in its configuration.
+
+**Four requirements on whatever proxy is used.** These are conformance
+requirements, not deployment taste, and each has a concrete failure mode:
+
+- **`Authorization` must reach the backend unmodified.** The sync ID is a
+  bearer credential in that header (spec §5.1). A proxy that consumes or strips
+  it makes every request `401` with no obvious cause. Apache's `mod_proxy_http`
+  forwards it; the hazard is adding an auth directive to that vhost later, or
+  fronting the service with CGI/FPM, which needs `CGIPassAuth On`. - **Request
+  bodies must be allowed to at least 16 MB.** Manifests reach that size (spec
+  §5.4). Defaults differ in *opposite* directions and both are wrong here:
+  nginx's `client_max_body_size` is 1 MB and would reject valid manifests,
+  while Apache's `LimitRequestBody` is unlimited and would enforce nothing. Set
+  it explicitly either way. - **The proxy must not decompress request bodies.**
+  The decompression-bomb limit — 10× compressed, 32 MB cap, enforced
+  streaming-abort style — lives on the receiver by design. Inflating at the
+  proxy moves a security control to a component that does not implement it. -
+  **The credential must never be logged.** Common log formats record the
+  request line and status, not headers, so this holds by default; the risk is
+  someone adding `%{Authorization}i` (or nginx's `$http_authorization`) to a
+  debug format and writing live credentials to disk. The vhost should carry a
+  comment saying so, because the omission is invisible.
+
+**On the backend port.** `127.0.0.1:33333` sits inside Linux's default ephemeral
+range (`32768–60999`), so the kernel may transiently assign it as an outbound
+source port while the service is stopped and block it from rebinding —
+intermittent, self-clearing, and painful to diagnose. Reserve it
+(`net.ipv4.ip_local_reserved_ports`) or choose a port below the range.
+
+**Self-hosters are not held to the Apache specifics**, only to the four
+requirements above. The client waives TLS for `localhost`/`127.0.0.1` (spec §8)
+precisely so a self-hoster can run without a certificate; a non-default port is
+permitted on a configured endpoint, though the redirect rules only follow
+default-port hops, which is harmless for an API that never redirects.
 
 ## Rationale
 

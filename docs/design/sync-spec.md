@@ -42,9 +42,13 @@ merging, user accounts, and any sharing of fields not classified `shareable`.
 
 ### 3.1 Schema migration
 
-The migration MUST land before any other Device Sync work, on its own. Its
-version is `kCompendiumSchemaVersion + 1` at the time it lands; this document
-does not name a number.
+**This section is implemented.** It landed as schema **v25** (PR #901, with a
+follow-up in #903), before any other Device Sync work and on its own, as
+required below. It is recorded here in the imperative because it states the
+contract the shipped migration must continue to satisfy, not because it is
+outstanding.
+
+The migration MUST land before any other Device Sync work, on its own.
 
 Eight tables, twenty columns:
 

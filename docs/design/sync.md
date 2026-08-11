@@ -12,7 +12,10 @@
 > If the ADR and this document disagree, the ADR wins. If the specification and
 > this document disagree, that is a defect in one of them.
 
-**Status: design rationale. Nothing here is built.**
+**Status: design rationale. Only the schema migration is built** — v25, shipped
+early so its soft-delete columns hydrate across devices before sync code depends
+on them (see ADR-004, *Implementation status*). Everything else here is unbuilt:
+no client, no server, no network code.
 
 ## Vocabulary
 

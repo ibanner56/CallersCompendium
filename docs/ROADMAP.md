@@ -26,7 +26,10 @@ separately; planned for a later milestone), authoring/publishing back to online 
 
 Cloud sync was a v1 non-goal and is now **designed** — see
 [ADR-004](adr/004-device-sync-and-athenaeum.md), which specifies **Device Sync** and the
-**Athenaeum** sync store. It remains unbuilt, and it keeps the properties the
+**Athenaeum** sync store. Only its schema migration has shipped (v25, #901 and
+#903) — deliberately early, so soft-delete columns have time to hydrate across
+devices before any sync code depends on them. No client, server or network code
+exists. It keeps the properties the
 original non-goal was protecting: no user accounts, no sign-in, nothing we host
 surviving 30 days of disuse, and no venue address or contact data ever reaching
 our infrastructure.
