@@ -470,6 +470,15 @@ def test_non_reads() -> None:
         _violation_count("void f() => 42;\n") == 0,
     )
 
+    check(
+        "raw-string UI prose containing 'settings' is not flagged",
+        _violation_count(
+            "const helpText = r'Open settings to change your preferences.';\n"
+        ) == 0,
+        "a raw string that mentions settings but is not a SQL read must not "
+        "trigger the fail-closed path — ~85 such strings exist in the corpus today",
+    )
+
 
 # --------------------------------------------------------------------------
 # Fail-closed path — raw and triple-quoted literals.
@@ -575,6 +584,18 @@ def test_real_tree_is_clean() -> None:
     """
     print("real tree:")
     root = HERE.parents[1]
+
+    # _NOTED_EXCEPTIONS must all exist on disk. If a file is renamed/deleted,
+    # main() fails at startup — verify that here too so the test suite catches
+    # a stale exception before CI does.
+    from check_settings_marker_reads import _NOTED_EXCEPTIONS
+    for exc_path in _NOTED_EXCEPTIONS:
+        check(
+            f"noted exception exists: {exc_path}",
+            (root / exc_path).exists(),
+            "update _NOTED_EXCEPTIONS if the file was renamed or deleted",
+        )
+
     files = dart_library_files(root)
     check("finds library files", len(files) > 0, f"found {len(files)}")
 

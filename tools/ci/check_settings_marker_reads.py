@@ -73,9 +73,17 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Deliberate exceptions
 # --------------------------------------------------------------------------
 
+# repositories.dart contains a hard DELETE of the rebuild marker with no
+# deleted_at IS NULL filter — correct for a DELETE statement. Because
+# _SELECT_FROM_SETTINGS_RE requires SELECT, the DELETE never matches.
+# This dict names the exception explicitly (per the kUpdateManifestPublicKey
+# precedent in AGENTS.md: name exceptions rather than narrowing patterns)
+# and is validated at startup: if the file no longer exists, main() fails
+# loudly so a rename cannot silently orphan this documentation.
 _NOTED_EXCEPTIONS: dict[str, str] = {
     "packages/compendium_core/lib/src/storage/repositories/repositories.dart": (
-        "deliberate hard DELETE of the rebuild marker; "
+        "deliberate hard DELETE of the rebuild marker — "
+        "absence of deleted_at IS NULL is correct for a DELETE; "
         "SELECT reads in the same file all comply"
     ),
 }
@@ -133,8 +141,9 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
 
     Adjacent literals of the same quote style are joined with the empty
     string (Dart compile-time concatenation semantics). Triple-quoted and
-    raw literals are returned with parseable=False and empty content; the
-    caller fails closed on these.
+    raw literals are returned with parseable=False; their content field
+    holds the raw literal text (between the quotes) so callers can scan it
+    without re-parsing.
 
     This is the single place that decides what constitutes a string literal
     and where its boundaries are. All other logic consumes SqlLiteral objects
@@ -320,13 +329,13 @@ def check_file(path: Path, root: Path) -> list[tuple[str, str]]:
 
     for lit in extract_sql_literals(text):
         if not lit.parseable:
-            # Fail closed on unparseable literals that could contain a
-            # settings SELECT. Check lit.content (the raw literal text,
-            # preserved even for unparseable forms) rather than source_line,
-            # because source_line is only the first line of the literal and
-            # a triple-quoted string whose 'settings' appears on line 2+
-            # would be silently skipped.
-            if "settings" in lit.content.lower() or "settings" in lit.source_line.lower():
+            # Fail closed only on unparseable literals that look like a settings
+            # SELECT — i.e. the SELECT pattern matches the raw content. This avoids
+            # false positives on raw strings used for UI prose that happen to contain
+            # the word "settings" (e.g. r'Open settings to change your preferences.')
+            # There are ~85 such strings in the corpus today; flagging them would
+            # block correct work and teach contributors to delete the ratchet.
+            if _SELECT_FROM_SETTINGS_RE.search(lit.content):
                 violations.append((
                     _BOUNDARY_UNKNOWN,
                     f"{rel}:{lit.line_no}: {lit.source_line}",
@@ -351,6 +360,15 @@ def check_file(path: Path, root: Path) -> list[tuple[str, str]]:
 
 def main() -> int:
     root = REPO_ROOT
+    # Validate that every noted exception still exists on disk. If a file is
+    # renamed or deleted, this fails loudly rather than leaving stale documentation.
+    for exc_path, reason in _NOTED_EXCEPTIONS.items():
+        if not (root / exc_path).exists():
+            _fail(
+                f"noted exception no longer exists: {exc_path} ({reason}). "
+                "Update _NOTED_EXCEPTIONS in check_settings_marker_reads.py."
+            )
+
     files = dart_library_files(root)
     if not files:
         _fail(f"no Dart library files found under {root}")
