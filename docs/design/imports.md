@@ -723,6 +723,113 @@ reachable.
   used to upgrade old customs when recognizer coverage improves.
 
 ### Shared free-text figure parser (cross-cutting)
+
+#### Vocabulary: two overloaded words
+
+Both terms below name more than one thing, with **different user-visible
+outcomes**. Three of the four false claims corrected across #885 and #900 trace
+to the first term alone, so they are defined here rather than left to context.
+
+**"Decline" — say which kind.** "Declining" names three different things, and
+which one applies is decided by where in the pipeline the decision is made, not
+by the word.
+
+| kind | who | what it costs |
+|---|---|---|
+| **front-end veto** | `FigureFrontEnd.declineToCustom` | the line goes **straight to `custom`**, skipping both layers below |
+| **pre-recognizer decline** | anything in `FigureFrontEnd.preRecognizers` returning `null` | the line **falls through** to the shared recognizers and usually still **structures**, minus whatever that pre-recognizer would have added |
+| **whole-line decline** | the shared recognizers in `figure_parser.dart` (`_recognizers`) returning `null`, reached after `_normalize` | the line becomes a **`custom` figure** — there is nothing else to try |
+
+The rows are in **execution order**, which is the thing to hold on to: the veto
+runs first and short-circuits everything, then the pre-recognizers, then the
+shared core. `parseFigureLine` calls `frontEnd.declineToCustom` *before*
+`_recognize`, so a vetoed line never reaches either recognizer layer.
+
+`_recognize` (`figure_parser.dart`) implements the lower two rows: it walks
+`frontEnd.preRecognizers` and returns the first non-null; only when all of them
+decline does it normalize and walk the shared `_recognizers`. So a
+pre-recognizer's `null` is "not mine", while a shared recognizer's `null` is
+"not structurable". The veto is deliberately NOT part of it — `parseFigureLine`
+applies that before calling in, so a vetoed line is never offered to either.
+
+The practical consequence, and the reason this matters more than tidiness: a
+comment saying an unmapped people code "declines the whole line to custom" is
+**true** of the hey decoder — whose pass list *is* the figure's structure, so
+without it there is nothing to build — and **false** of
+`_squareThroughPassList` or `_sideRunAnnotation`, whose runs only *add* params.
+`Square through 2 (C1R;C2L)` still imports as a `square_through`; only the
+unmapped detail is dropped. Prefer naming the outcome ("falls through to the
+shared reading", "becomes a custom figure") over the bare verb.
+
+Which is which, derived from the code rather than from memory:
+
+- `tcbFigureFrontEnd` registers **twelve** pre-recognizers: `_hey`,
+  `_circulate`, `_squareThroughPassList`, `_balanceHandAnnotation`,
+  `_gateAnnotation`, `_courtesyTurnAnnotation`, `_walkForwardAnnotation`,
+  `_chainAnnotation`, `_starPromenadeAnnotation`, `_promenadeAnnotation`,
+  `_rightLeftThroughAnnotation`, `_sideRunAnnotation`. Every one is the
+  falls-through kind.
+- `contraDbHtmlFigureFrontEnd` registers its **entire grammar** as
+  pre-recognizers, **and** supplies a veto. Both halves matter, and they pull in
+  opposite directions, which is why this front end is the one most likely to be
+  described wrongly:
+  - All **48** of its *recognizers* are the falls-through kind. None of them can send
+    a line to `custom` on its own; that happens only when the shared core
+    declines it too. So "this ContraDB recognizer declines the line to custom"
+    is wrong about the mechanism even when it is right about the outcome.
+  - Its *veto* (`_declineStarPromenade`) is the opposite: it does send a line
+    straight to `custom`, ahead of both layers. Verified — `gentlespoons star
+    promenade right 1` imports as `custom` under this front end while the
+    canonical front end structures the identical line as `star_promenade`, so
+    the veto alone is what changes the outcome.
+
+  A claim about ContraDB declines must therefore say *which* of the two it
+  means. An unqualified "ContraDB has no whole-line decline" is false; it has
+  exactly one, and it is not a recognizer.
+- `canonicalFigureFrontEnd` registers none, so for it every decline is a
+  whole-line decline.
+- `FigureFrontEnd.declineToCustom` is the veto row of the table above, and the
+  only way a *source* can force `custom` by itself: it short-circuits ahead of
+  both recognizer layers. It exists because deleting a source's own recognizer
+  is not enough — the shared ones are source-neutral and will claim the line
+  anyway. Only `contraDbHtmlFigureFrontEnd` supplies one today.
+
+**"Verbatim" — say verbatim *against what*.** The word carries at least three
+senses here, and only one of them is ever wrong. The custom fallback stores the
+**scrubbed** text, never the raw source: `parseFigureLine` computes
+`scrubFn(rawText)` and hands that to `customFigure`, and scrubbing canonicalizes
+role terms. `Gentlespoons star promenade right 1` is stored as
+`role1s star promenade right 1`.
+
+So "verbatim" is true only relative to a stated baseline:
+
+- **The normalization sense — correct.** Verbatim against whatever
+  `recognitionNormalize` removed. `figure_parser.dart` scopes it this way twice
+  (the `FigureFrontEnd.recognitionNormalize` doc and `_normalize`'s own): what a
+  *structured* match drops — annotations and the like — survives on the custom
+  reading. A real and useful guarantee.
+- **The template sense — correct.** Verbatim against a recognizer's own
+  template: text trailing the part a recognizer matched "survives verbatim as
+  the note". Most of `contradb_figure_dialect.dart`'s many uses are this one.
+  Also true, also baseline-relative, and *not* the same claim as the above.
+- **The source sense — never true.** Nothing preserves the source's own wording
+  through the parser, because role canonicalization happens before recognition
+  for every line.
+
+This ambiguity has already reached users: `app/CHANGELOG.md` promised a declined
+ContraDB figure kept "its own wording exactly as written" when the role names
+are in fact dialect-mapped. That instance is fixed, but the word is still doing
+several jobs across the repo, so state the baseline whenever using it.
+
+**Neither term has been swept.** Roughly 28 `verbatim` uses survive, most of them
+correct, and a uniformity pass over them would be a mistake: a byte-identical
+sentence can be true in one file and false in another. `figure_parser.dart`'s
+"P6+ and P-n … decline the whole line to custom" is **true** — that map holds
+prose dancer tokens, and an unmapped one really does force custom — while the
+same sentence about annotation cells in `callersbox_figure_dialect.dart` was
+false and had to be corrected. Grepping a claim finds its instances; each still
+has to be judged in its own context.
+
 - All four free-text adapters (CallersBox, ContraDB-HTML, CC-text, CC-`.USR`)
   route their `(beats) text` figure lines through one pure-Dart core parser,
   `parseFigureLine` (`imports/figure_parser.dart`), instead of each emitting
