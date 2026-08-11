@@ -72,11 +72,11 @@
 - **`O` documented in `tcbPassPeople`'s deliberate omissions (#843).** The most
   common unmapped prefix in the corpus (72 cells, ahead of `Ph` 21 and `SRN`
   17) was absent from both the map and its documented omissions list, which read
-  as an oversight rather than a decision. The taxonomy has no `opposites` token
-  — in a duple-minor improper set the dancer across is your neighbour or your
-  partner depending on where you stand, so `O` names no fixed relationship the
-  dancer-set vocabulary can express. Documentation only; behaviour was already
-  correct (an unmapped code declines the line). Owner ruled 2026-08-06.
+  as an oversight rather than a decision. No `opposites` token is added —
+  `O` is primarily meaningful for non-duple formations (squares), which are
+  not a current priority; behaviour was already correct (an unmapped code
+  declines the run). Ruling by @ibanner56, confirmed 2026-08-11: non-duple
+  formations are not immediately pressing.
 
 - **`contraTaxonomyVersion` 26 (#843, Part A).** `star_promenade` LOSES its
   `hand` param and `{hand}` leaves its `renderTemplate` — the first param
