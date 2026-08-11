@@ -90,6 +90,17 @@ _SELECT_FROM_SETTINGS_RE = re.compile(
 )
 
 _DELETED_AT_FILTER_RE = re.compile(
+    # The leading \s+AND is required, not cosmetic. Dart adjacent string literals
+    # concatenate with nothing (empty string), so a read split as:
+    #   'SELECT … WHERE key = ?'
+    #   'AND deleted_at IS NULL'
+    # joins to '…WHERE key = ?AND deleted_at IS NULL' — invalid SQL that SQLite
+    # rejects at runtime. \bdeleted_at or \bAND both match after '?' (non-word
+    # char → word boundary before A), so only requiring actual whitespace before
+    # AND correctly rejects that form. Widening this pattern reopens that bypass.
+    #
+    # A parenthesised form 'AND (deleted_at IS NULL)' is not matched and fails
+    # closed; no read in the tree uses that form today.
     r"\s+AND\s+deleted_at\s+IS\s+NULL\b",
     re.IGNORECASE,
 )
