@@ -413,6 +413,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           widget.danceId!,
           at: DateTime.now().toUtc(),
         );
+        // Broadcast rather than relying on [onRestored]. By the time undo runs
+        // this screen has usually been popped or unmounted — that is what an
+        // undo snackbar is for — and five of the routes that push it pass no
+        // [onRestored] at all, so the callback reaches nothing. The notifier is
+        // resolved in `didChangeDependencies`, long before any of that, so the
+        // broadcast does not depend on this widget still being alive; that
+        // ordering is the whole defect.
+        final revision = _collectionRefresh;
+        if (revision is ValueNotifier<int>) revision.value++;
         widget.onRestored?.call();
       },
     );
