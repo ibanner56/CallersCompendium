@@ -98,9 +98,11 @@ void main() {
 
   testWidgets('renders header: title, authors, hook, tags', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.choreographers.upsert(
       Choreographer(id: 'c1', name: 'Gene Hubert'),
     );
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
     await repos.dances.create(
       _dance(

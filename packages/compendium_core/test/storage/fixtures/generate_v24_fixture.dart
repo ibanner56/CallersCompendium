@@ -136,13 +136,16 @@ Future<void> main() async {
 
   // One row in each of the six tables that gain all three columns, plus the
   // `dance_tags` join row that must survive the tag becoming soft-deletable.
+  // ignore: unused_result
   await repos.choreographers.upsert(
     Choreographer(id: 'chor-v24', name: 'Migration Author'),
   );
+  // ignore: unused_result
   await repos.tags.upsert(Tag(id: 'tag-v24', name: 'Migration Tag'));
   await repos.publishedSources.upsert(
     PublishedSource(id: 'src-v24', title: 'Migration Source'),
   );
+  // ignore: unused_result
   await repos.customFieldDefs.upsert(
     CustomFieldDef(
       id: 'cfd-v24',

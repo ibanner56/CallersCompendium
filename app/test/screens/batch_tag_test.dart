@@ -124,6 +124,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'Beginner'));
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
     await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
@@ -152,7 +153,9 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'Beginner'));
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't2', name: 'Smooth'));
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha', tagIds: ['t1']));
     await _pumpScreen(tester, repos);
@@ -175,7 +178,9 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'Beginner'));
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't2', name: 'Smooth'));
     await repos.dances.create(
       _dance(id: 'd1', title: 'Alpha', tagIds: ['t1', 't2']),
@@ -201,7 +206,9 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'Beginner'));
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't2', name: 'Smooth'));
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha', tagIds: ['t1']));
     await _pumpScreen(tester, repos);
@@ -244,6 +251,7 @@ void main() {
 
   testWidgets('undo restores the prior tag sets', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'Beginner'));
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha', tagIds: ['t1']));
     await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));

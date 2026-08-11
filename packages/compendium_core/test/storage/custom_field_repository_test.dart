@@ -25,6 +25,7 @@ void main() {
       label: 'Origin',
       type: CustomFieldType.text,
     );
+    // ignore: unused_result
     await repo.upsert(def);
     final loaded = await repo.getById('f1');
     expect(loaded!.id, 'f1');
@@ -43,6 +44,7 @@ void main() {
       showInList: true,
       searchable: false,
     );
+    // ignore: unused_result
     await repo.upsert(def);
     final loaded = await repo.getById('f1');
     expect(loaded!.choices, ['easy', 'medium', 'hard']);
@@ -51,6 +53,7 @@ void main() {
   });
 
   test('listAll orders by label', () async {
+    // ignore: unused_result
     await repo.upsert(
       CustomFieldDef(
         id: 'f1',
@@ -59,6 +62,7 @@ void main() {
         type: CustomFieldType.text,
       ),
     );
+    // ignore: unused_result
     await repo.upsert(
       CustomFieldDef(
         id: 'f2',
@@ -71,6 +75,7 @@ void main() {
   });
 
   test('delete throws if any dance still has a value set', () async {
+    // ignore: unused_result
     await repo.upsert(
       CustomFieldDef(
         id: 'f1',
@@ -92,6 +97,7 @@ void main() {
   });
 
   test('delete succeeds once the referencing dance clears the value', () async {
+    // ignore: unused_result
     await repo.upsert(
       CustomFieldDef(
         id: 'f1',
@@ -115,6 +121,7 @@ void main() {
   });
 
   test('delete succeeds once no dance references the field', () async {
+    // ignore: unused_result
     await repo.upsert(
       CustomFieldDef(
         id: 'f1',
@@ -129,6 +136,7 @@ void main() {
 
   group('isInUse', () {
     test('returns false when no dance has a value for the field', () async {
+      // ignore: unused_result
       await repo.upsert(
         CustomFieldDef(
           id: 'f1',
@@ -141,6 +149,7 @@ void main() {
     });
 
     test('returns true when at least one dance has a value', () async {
+      // ignore: unused_result
       await repo.upsert(
         CustomFieldDef(
           id: 'f1',
@@ -168,6 +177,7 @@ void main() {
 
   group('listUsedChoiceValues', () {
     test('returns empty set when field has no values on any dance', () async {
+      // ignore: unused_result
       await repo.upsert(
         CustomFieldDef(
           id: 'f1',
@@ -183,6 +193,7 @@ void main() {
     test(
       'returns the set of distinct choice strings stored on dances',
       () async {
+        // ignore: unused_result
         await repo.upsert(
           CustomFieldDef(
             id: 'f1',
@@ -277,6 +288,7 @@ void main() {
           type: 'choice',
           choicesJson: 'not json',
         );
+        // ignore: unused_result
         await repo.upsert(
           CustomFieldDef(
             id: 'f2',

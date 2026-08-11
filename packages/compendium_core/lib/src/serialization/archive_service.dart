@@ -144,16 +144,27 @@ class ArchiveRestorer {
     }
     for (final c in archive.choreographers) {
       await _guard('choreographer', c.id, errors, () async {
+        // Safe discard: RestoreMode.replace calls _clearAll() before reaching
+        // here, which hard-deletes all choreographers/tags/customFieldDefs, so
+        // no tombstone survives to trigger adoption. The only merge-mode caller
+        // (SeedService) runs on an empty database, so no tombstones exist there
+        // either. In both paths the returned id equals c.id.
+        // ignore: unused_result
         await _repos.choreographers.upsert(c);
       });
     }
     for (final t in archive.tags) {
       await _guard('tag', t.id, errors, () async {
+        // Safe discard: same reasoning as choreographers above — no tombstone
+        // survives to alter the id in either restore mode.
+        // ignore: unused_result
         await _repos.tags.upsert(t);
       });
     }
     for (final f in archive.customFields) {
       await _guard('customField', f.id, errors, () async {
+        // Safe discard: same reasoning as choreographers above.
+        // ignore: unused_result
         await _repos.customFieldDefs.upsert(f);
       });
     }

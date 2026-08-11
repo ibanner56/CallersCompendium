@@ -111,6 +111,7 @@ void main() {
 
     for (final (label, seededAt, transitionAt) in cases) {
       test('$label: a delete stamps what nextExistenceStamp says', () async {
+        // ignore: unused_result
         await repos.tags.upsert(
           Tag(id: 't1', name: 'Easy'),
           at: seededAt,
@@ -134,6 +135,7 @@ void main() {
       });
 
       test('$label: a revival stamps what nextExistenceStamp says', () async {
+        // ignore: unused_result
         await repos.tags.upsert(
           Tag(id: 't1', name: 'Easy'),
           at: seededAt,
@@ -141,6 +143,7 @@ void main() {
         await repos.tags.delete('t1', at: seededAt);
         final tombstone = await existenceOf('t1');
 
+        // ignore: unused_result
         await repos.tags.upsert(
           Tag(id: 't1', name: 'Easy'),
           at: transitionAt,
@@ -173,6 +176,7 @@ void main() {
         // bypassed the repositories — the settings markers written with
         // INSERT OR REPLACE are exactly that. `0 + 1` is 1970, so the MAX yields
         // the clock, which is right when there is nothing to supersede.
+        // ignore: unused_result
         await repos.tags.upsert(
           Tag(id: 't1', name: 'Easy'),
           at: t0,

@@ -887,6 +887,7 @@ void main() {
       CompendiumRepositories repos,
       CustomFieldDef def,
     ) async {
+      // ignore: unused_result
       await repos.customFieldDefs.upsert(def);
       final controller = DanceEditorController(
         repositories: repos,

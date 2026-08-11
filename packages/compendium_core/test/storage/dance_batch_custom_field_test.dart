@@ -35,8 +35,11 @@ void main() {
     db = openTestDatabase();
     dances = DanceRepository(db, contraTaxonomy);
     defs = CustomFieldDefRepository(db);
+    // ignore: unused_result
     await defs.upsert(textDef);
+    // ignore: unused_result
     await defs.upsert(numberDef);
+    // ignore: unused_result
     await defs.upsert(choiceDef);
   });
 

@@ -55,6 +55,7 @@ void main() {
     test(
       'a deleted tag is still on disk, and invisible to every read',
       () async {
+        // ignore: unused_result
         await repos.tags.upsert(
           Tag(id: 't1', name: 'Easy'),
           at: t0,
@@ -92,6 +93,7 @@ void main() {
     test(
       'choreographer, source, custom field and venue all tombstone',
       () async {
+        // ignore: unused_result
         await repos.choreographers.upsert(
           Choreographer(id: 'c1', name: 'Author'),
           at: t0,
@@ -100,6 +102,7 @@ void main() {
           PublishedSource(id: 's1', title: 'Book'),
           at: t0,
         );
+        // ignore: unused_result
         await repos.customFieldDefs.upsert(
           CustomFieldDef(
             id: 'f1',
@@ -144,6 +147,7 @@ void main() {
     test(
       'a tombstoning delete stamps existence_at, deleted_at and updated_at',
       () async {
+        // ignore: unused_result
         await repos.tags.upsert(
           Tag(id: 't1', name: 'Easy'),
           at: t0,
@@ -210,6 +214,7 @@ void main() {
 
   group('the referential guards are kept', () {
     test('a credited choreographer still cannot be deleted', () async {
+      // ignore: unused_result
       await repos.choreographers.upsert(
         Choreographer(id: 'c1', name: 'Author'),
         at: t0,
@@ -262,6 +267,7 @@ void main() {
     test(
       'permanent: true removes the row entirely, leaving no tombstone',
       () async {
+        // ignore: unused_result
         await repos.choreographers.upsert(
           Choreographer(id: 'c1', name: 'Author'),
           at: t0,
@@ -310,10 +316,12 @@ void main() {
     /// Builds a dance carrying a tag, an author, a citation and a custom value,
     /// so each join can be checked independently.
     Future<void> seedDanceWithEverything() async {
+      // ignore: unused_result
       await repos.tags.upsert(
         Tag(id: 't1', name: 'Easy'),
         at: t0,
       );
+      // ignore: unused_result
       await repos.choreographers.upsert(
         Choreographer(id: 'c1', name: 'Author'),
         at: t0,
@@ -322,6 +330,7 @@ void main() {
         PublishedSource(id: 's1', title: 'Book'),
         at: t0,
       );
+      // ignore: unused_result
       await repos.customFieldDefs.upsert(
         CustomFieldDef(
           id: 'f1',
@@ -389,6 +398,7 @@ void main() {
     test('reviving the tag under its OWN id brings its dances back', () async {
       await seedDanceWithEverything();
       await repos.tags.delete('t1', at: t0.add(const Duration(minutes: 1)));
+      // ignore: unused_result
       await repos.tags.upsert(
         Tag(id: 't1', name: 'Easy'),
         at: t0.add(const Duration(minutes: 2)),
@@ -467,6 +477,7 @@ void main() {
       // cascaded the join rows away and they got an empty tag. Keeping the old
       // associations would mean deleting a tag from every dance and then
       // re-creating it silently re-tagged all of them.
+      // ignore: unused_result
       await repos.tags.upsert(
         Tag(id: 't1', name: 'Easy'),
         at: t0,
@@ -498,12 +509,14 @@ void main() {
         // Without the tombstone clear this silently fails: drift emits an
         // untargeted ON CONFLICT DO UPDATE, so the new tag lands on the
         // tombstoned row, keeps its deleted_at, and never appears.
+        // ignore: unused_result
         await repos.tags.upsert(
           Tag(id: 't1', name: 'Easy'),
           at: t0,
         );
         await repos.tags.delete('t1', at: t0.add(const Duration(minutes: 1)));
 
+        // ignore: unused_result
         await repos.tags.upsert(
           Tag(id: 't2', name: 'Easy'),
           at: t0.add(const Duration(minutes: 2)),
@@ -521,11 +534,13 @@ void main() {
       // tags instead — with the deleted one resurrected. Silently duplicating
       // is worse than failing, so this must raise UNIQUE, exactly as renaming
       // onto a *live* name always has.
+      // ignore: unused_result
       await repos.tags.upsert(
         Tag(id: 'T9', name: 'Easy'),
         at: t0,
       );
       await repos.tags.delete('T9', at: t0);
+      // ignore: unused_result
       await repos.tags.upsert(
         Tag(id: 'T1', name: 'Hard'),
         at: t0,
@@ -555,10 +570,12 @@ void main() {
       () async {
         // The control: this behaviour predates the migration, and the case above
         // must match it rather than inventing a third outcome.
+        // ignore: unused_result
         await repos.tags.upsert(
           Tag(id: 'T9', name: 'Easy'),
           at: t0,
         );
+        // ignore: unused_result
         await repos.tags.upsert(
           Tag(id: 'T1', name: 'Hard'),
           at: t0,
@@ -577,6 +594,7 @@ void main() {
       'creation still adopts, so the two cases stay distinguishable',
       () async {
         // Guards against "fixing" the rename case by disabling adoption outright.
+        // ignore: unused_result
         await repos.tags.upsert(
           Tag(id: 'T9', name: 'Easy'),
           at: t0,
@@ -592,6 +610,7 @@ void main() {
     );
 
     test('a revival advances existence_at past the tombstone', () async {
+      // ignore: unused_result
       await repos.tags.upsert(
         Tag(id: 't1', name: 'Easy'),
         at: t0,
@@ -600,6 +619,7 @@ void main() {
       await repos.tags.delete('t1', at: deletedAt);
       final tombstone = await rawStamp('tags', 'existence_at', 'id', 't1');
 
+      // ignore: unused_result
       await repos.tags.upsert(
         Tag(id: 't1', name: 'Easy'),
         at: t0.add(const Duration(minutes: 2)),
@@ -619,6 +639,7 @@ void main() {
       // The causal `+ 1 tick` is the whole point: delete and undo inside one
       // second is an ordinary user action, and a bare clock read would stamp
       // the revival equal to the tombstone.
+      // ignore: unused_result
       await repos.tags.upsert(
         Tag(id: 't1', name: 'Easy'),
         at: t0,
@@ -626,6 +647,7 @@ void main() {
       await repos.tags.delete('t1', at: t0);
       final tombstone = await rawStamp('tags', 'existence_at', 'id', 't1');
 
+      // ignore: unused_result
       await repos.tags.upsert(
         Tag(id: 't1', name: 'Easy'),
         at: t0,
@@ -640,12 +662,14 @@ void main() {
       // Invariant: only an existence transition may move it. Advancing it on
       // every save would make each edit read as a deletion-or-revival to a
       // peer — the exact conflation the third column exists to prevent.
+      // ignore: unused_result
       await repos.tags.upsert(
         Tag(id: 't1', name: 'Easy'),
         at: t0,
       );
       final created = await rawStamp('tags', 'existence_at', 'id', 't1');
 
+      // ignore: unused_result
       await repos.tags.upsert(
         Tag(id: 't1', name: 'Renamed'),
         at: t0.add(const Duration(hours: 1)),
@@ -659,6 +683,7 @@ void main() {
     });
 
     test('creation seeds existence_at from the plain clock', () async {
+      // ignore: unused_result
       await repos.tags.upsert(
         Tag(id: 't1', name: 'Easy'),
         at: t0,

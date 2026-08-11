@@ -522,6 +522,7 @@ void main() {
     test(
       'links on matching normalized title + author-set even when content differs',
       () async {
+        // ignore: unused_result
         await choreographers.upsert(Choreographer(id: 'alice', name: 'Alice'));
         await dances.create(
           _danceWith(
@@ -574,8 +575,10 @@ void main() {
       'a same-title dance with a DIFFERENT author and content is duplicated, '
       'not mis-linked',
       () async {
+        // ignore: unused_result
         await choreographers.upsert(Choreographer(id: 'alice', name: 'Alice'));
         // 'bob' exists on the receiver so the new duplicate\'s author FK holds.
+        // ignore: unused_result
         await choreographers.upsert(Choreographer(id: 'bob', name: 'Bob'));
         await dances.create(
           _danceWith(

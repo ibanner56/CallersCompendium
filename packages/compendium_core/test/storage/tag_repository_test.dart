@@ -18,12 +18,14 @@ void main() {
 
   test('round-trips a tag with a color', () async {
     final tag = Tag(id: 't1', name: 'chestnut', color: 0xFF00FF00);
+    // ignore: unused_result
     await repo.upsert(tag);
     expect(await repo.getById('t1'), tag);
   });
 
   test('round-trips a tag without a color', () async {
     final tag = Tag(id: 't1', name: 'workshop');
+    // ignore: unused_result
     await repo.upsert(tag);
     expect(await repo.getById('t1'), tag);
   });
@@ -33,20 +35,25 @@ void main() {
     // obvious `copyWith(color: null)` cannot express this — its `?? this.color`
     // fallback keeps the old value — so a naive implementation would leave the
     // colour on disk while the UI claimed it was cleared.
+    // ignore: unused_result
     await repo.upsert(Tag(id: 't1', name: 'chestnut', color: 0xFF2196F3));
     expect((await repo.getById('t1'))!.color, 0xFF2196F3);
 
+    // ignore: unused_result
     await repo.upsert((await repo.getById('t1'))!.withColor(null));
     expect((await repo.getById('t1'))!.color, isNull);
   });
 
   test('listAll orders by name', () async {
+    // ignore: unused_result
     await repo.upsert(Tag(id: 't1', name: 'Zesty'));
+    // ignore: unused_result
     await repo.upsert(Tag(id: 't2', name: 'Alpha'));
     expect((await repo.listAll()).map((t) => t.name), ['Alpha', 'Zesty']);
   });
 
   test('deleting a tag cascades to dance_tags', () async {
+    // ignore: unused_result
     await repo.upsert(Tag(id: 't1', name: 'chestnut'));
     await dances.create(
       Dance(

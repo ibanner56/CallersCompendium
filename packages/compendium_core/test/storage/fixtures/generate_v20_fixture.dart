@@ -69,11 +69,13 @@ Future<void> main() async {
 
   final now = DateTime.utc(2026, 1, 1);
 
+  // ignore: unused_result
   await repos.choreographers.upsert(
     Choreographer(id: 'chor-1', name: 'Cary Ravitz'),
   );
 
   // A tag WITH a colour — the control that must survive v21 untouched.
+  // ignore: unused_result
   await repos.tags.upsert(Tag(id: 'tag-1', name: 'Easy', color: 0xFF2196F3));
 
   // A dance carrying full provenance, including the payload being dropped.

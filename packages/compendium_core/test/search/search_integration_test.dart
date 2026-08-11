@@ -105,6 +105,7 @@ void main() {
     });
 
     test('Author', () async {
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'c1', name: 'Alice'));
       await dances.create(_dance(id: 'a', title: 'A', authorIds: ['c1']));
       await dances.create(_dance(id: 'b', title: 'B'));
@@ -112,6 +113,7 @@ void main() {
     });
 
     test('Tag', () async {
+      // ignore: unused_result
       await tags.upsert(Tag(id: 't1', name: 'chestnut'));
       await dances.create(_dance(id: 'a', title: 'A', tagIds: ['t1']));
       await dances.create(_dance(id: 'b', title: 'B'));
@@ -469,6 +471,7 @@ void main() {
     });
 
     test('And of two facets', () async {
+      // ignore: unused_result
       await tags.upsert(Tag(id: 't1', name: 'chestnut'));
       await dances.create(
         _dance(id: 'a', title: 'A', form: DanceForm.contra, tagIds: ['t1']),
@@ -902,6 +905,7 @@ void main() {
       Object value, {
       String id = 'a',
     }) async {
+      // ignore: unused_result
       await customFieldDefs.upsert(def);
       await dances.create(
         _dance(
@@ -1262,7 +1266,9 @@ void main() {
     });
 
     test('author by first author name', () async {
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'z', name: 'Zoe'));
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'am', name: 'Amy'));
       await dances.create(_dance(id: 'z', title: 'Z dance', authorIds: ['z']));
       await dances.create(_dance(id: 'a', title: 'A dance', authorIds: ['am']));
@@ -1273,6 +1279,7 @@ void main() {
     });
 
     test('author sort breaks ties by title (stable)', () async {
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'amy', name: 'Amy'));
       await dances.create(_dance(id: 'b', title: 'Banana', authorIds: ['amy']));
       await dances.create(_dance(id: 'a', title: 'Apple', authorIds: ['amy']));
@@ -1442,7 +1449,9 @@ void main() {
     });
 
     test('author descending reverses name order (no-author last)', () async {
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'z', name: 'Zoe'));
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'am', name: 'Amy'));
       await dances.create(_dance(id: 'z', title: 'Z dance', authorIds: ['z']));
       await dances.create(_dance(id: 'a', title: 'A dance', authorIds: ['am']));
@@ -1547,9 +1556,13 @@ void main() {
     test(
       'author: narrowed order == whole-collection order for same ids',
       () async {
+        // ignore: unused_result
         await choreographers.upsert(Choreographer(id: 'bob', name: 'Bob'));
+        // ignore: unused_result
         await choreographers.upsert(Choreographer(id: 'ann', name: 'Ann'));
+        // ignore: unused_result
         await choreographers.upsert(Choreographer(id: 'zed', name: 'Zed'));
+        // ignore: unused_result
         await choreographers.upsert(Choreographer(id: 'amy', name: 'Amy'));
         // Subset = ECD; decoys = contra. Two subset dances share an author (Ann)
         // to exercise the title tiebreak, and one subset dance has no author.
@@ -1711,11 +1724,13 @@ void main() {
       // whose name is the reverse of its title index, so the correct author
       // order is the reverse of the title (base) order — a merge bug that drops
       // the trailing chunk's names would mis-sort those ids to the front.
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'noop', name: 'noop'));
       const total = 501;
       for (var i = 0; i < total; i++) {
         final idx = i.toString().padLeft(3, '0');
         final rev = (total - 1 - i).toString().padLeft(3, '0');
+        // ignore: unused_result
         await choreographers.upsert(Choreographer(id: 'a$idx', name: 'A$rev'));
         await dances.create(
           _dance(id: 'd$idx', title: 'D $idx', authorIds: ['a$idx']),
@@ -1779,6 +1794,7 @@ void main() {
         final countingDances = DanceRepository(countingDb, contraTaxonomy);
         final countingChoreographers = ChoreographerRepository(countingDb);
 
+        // ignore: unused_result
         await countingChoreographers.upsert(
           Choreographer(id: 'k', name: 'Kay'),
         );

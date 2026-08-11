@@ -180,8 +180,11 @@ void main() {
     });
 
     test('preserves ALL dance metadata across the upgrade', () async {
+      // ignore: unused_result
       await choreographers.upsert(Choreographer(id: 'c1', name: 'Ada'));
+      // ignore: unused_result
       await tags.upsert(Tag(id: 't1', name: 'chestnut'));
+      // ignore: unused_result
       await customFieldDefs.upsert(
         CustomFieldDef(
           id: 'f1',
