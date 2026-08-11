@@ -2979,6 +2979,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportSetListError => 'このセットリストをエクスポートできませんでした';
 
   @override
+  String get exportIncludeFiguresTitle => 'フィギュアを含めますか？';
+
+  @override
+  String get exportIncludeFiguresSetListOnly => 'セットリストのみ';
+
+  @override
+  String get exportIncludeFiguresSetListAndFigures => 'セットリストとフィギュア';
+
+  @override
+  String get exportIncludeFiguresAlternate => '代替';
+
+  @override
   String get exportMatrixPdfTooltip => 'マトリックスをPDFにエクスポートまたは印刷';
 
   @override

@@ -9,11 +9,14 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/active_dialect_scope.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_pdf.dart';
 import '../export/program_share_bundle.dart';
 import '../export/share_sanitization.dart';
+import '../search/facet_labels.dart';
 import '../utils/safe_name.dart';
+import 'program_figures_prompt_dialog.dart';
 import 'venue_contact_share_dialog.dart';
 
 /// Actions offered by the [ProgramExportMenu].
@@ -162,11 +165,116 @@ class ProgramExportMenu extends StatelessWidget {
     labels: programExportLabels(AppLocalizations.of(context)),
   );
 
+  /// Walks [program.outputGrouped] and yields every primary and alternate dance
+  /// that can be resolved via [danceFor], in slot order, deduped by dance id.
+  /// Alternates are tagged `isAlternate: true` so callers can label them.
+  ///
+  /// Mirrors the approach validated in PR #896 (`_orderedExportDances`), which
+  /// reuses the grouped output rather than walking raw slots.
+  List<({Dance dance, bool isAlternate})> _orderedExportDances() {
+    final resolveDance = danceFor;
+    if (resolveDance == null) return const [];
+    final seen = <String>{};
+    final result = <({Dance dance, bool isAlternate})>[];
+    for (final group in program.outputGrouped) {
+      final primaryId = group.primary.danceId;
+      if (primaryId != null && seen.add(primaryId)) {
+        final dance = resolveDance(primaryId);
+        if (dance != null) result.add((dance: dance, isAlternate: false));
+      }
+      for (final alt in group.alternates) {
+        final altId = alt.danceId;
+        if (altId != null && seen.add(altId)) {
+          final dance = resolveDance(altId);
+          if (dance != null) result.add((dance: dance, isAlternate: true));
+        }
+      }
+    }
+    return result;
+  }
+
+  /// Returns `true` if any dance reachable via [danceFor] in this program has
+  /// at least one figure. When `false` the "Include figures?" prompt is skipped
+  /// and all text/PDF paths proceed as set-list-only.
+  bool _hasFigures() =>
+      _orderedExportDances().any((e) => e.dance.figures.isNotEmpty);
+
+  /// Asks whether to include figures in the current export.
+  ///
+  /// Returns `null` when the user cancels/dismisses (the caller MUST abort),
+  /// `false` for "Set list only", `true` for "Set list and figures". When no
+  /// figures are available the prompt is skipped and `false` is returned
+  /// immediately.
+  Future<bool?> _figuresConsent(BuildContext context) async {
+    if (!_hasFigures()) return false;
+    return ProgramFiguresPromptDialog.show(context);
+  }
+
+  /// The set-list text with full dance cards appended — one [danceToPlainText]
+  /// card per dance (primary then alternates, deduped), each preceded by a
+  /// separator line and (for alternates) the "Alternate" label.
+  ///
+  /// Uses [ActiveDialectScope] for dialect-aware rendering, falling back to
+  /// [Dialect.larksRobins] when no scope is mounted (the fallback is reachable
+  /// only in tests; in the running app the scope is always provided — ruling 9).
+  String _plainTextWithFigures(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final setList = _plainText(context);
+    final danceLabels = danceExportLabels(l10n);
+    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final renderer = FigureRenderer(contraTaxonomy);
+    final buf = StringBuffer(setList);
+    final alternate = l10n.exportIncludeFiguresAlternate;
+    for (final entry in _orderedExportDances()) {
+      final dance = entry.dance;
+      if (dance.figures.isEmpty) continue;
+      buf.writeln();
+      // Mark alternates on the separator line so the title from
+      // danceToPlainText appears exactly once (ruling 8: mark, not duplicate).
+      buf.writeln(entry.isAlternate ? '--- $alternate' : '---');
+      // Resolve metadata for the full dance card (ruling 6).
+      // authorNames: names only via choreographerFor — no deviceLocal fields
+      // (email/location/deceased) enter because the API accepts List<String>.
+      final authorNames = [
+        for (final id in dance.authorIds)
+          if (choreographerFor?.call(id)?.name case final String name
+              when name.isNotEmpty)
+            name,
+      ];
+      // Level label mirrors the dance_detail_screen pattern.
+      final String? levelLabel;
+      if (dance.level != null) {
+        final base = danceLevelLabel(l10n, dance.level!);
+        levelLabel = dance.mixedLevel ? l10n.exportLevelWithMixed(base) : base;
+      } else {
+        levelLabel = dance.mixedLevel ? l10n.exportLevelMixedOnly : null;
+      }
+      buf.writeln(
+        danceToPlainText(
+          dance,
+          authorNames: authorNames,
+          formationLabel: formationLabel(l10n, dance.formation),
+          levelLabel: levelLabel,
+          statusLabel: danceStatusLabel(l10n, dance.status),
+          dialect: dialect,
+          renderer: renderer,
+          labels: danceLabels,
+        ),
+      );
+    }
+    return buf.toString();
+  }
+
   Future<void> _shareText(BuildContext context, Rect? origin) async {
+    final includeFigures = await _figuresConsent(context);
+    if (includeFigures == null) return;
+    if (!context.mounted) return;
     final share = shareInvoker ?? SharePlus.instance.share;
     await share(
       ShareParams(
-        text: _plainText(context),
+        text: includeFigures
+            ? _plainTextWithFigures(context)
+            : _plainText(context),
         subject: program.title,
         sharePositionOrigin: origin,
       ),
@@ -249,21 +357,36 @@ class ProgramExportMenu extends StatelessWidget {
   }
 
   Future<void> _copyText(BuildContext context) async {
+    final includeFigures = await _figuresConsent(context);
+    if (includeFigures == null) return;
+    if (!context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
-    await Clipboard.setData(ClipboardData(text: _plainText(context)));
+    await Clipboard.setData(
+      ClipboardData(
+        text: includeFigures
+            ? _plainTextWithFigures(context)
+            : _plainText(context),
+      ),
+    );
     messenger.showSnackBar(SnackBar(content: Text(l10n.exportSetListCopied)));
   }
 
   Future<void> _exportPdf(BuildContext context) async {
     final localizations = MaterialLocalizations.of(context);
-    final labels = programExportLabels(AppLocalizations.of(context));
+    final l10n = AppLocalizations.of(context);
+    final labels = programExportLabels(l10n);
 
     // Gate the venue's contact PII behind the same consent dialog the share
     // path uses. Contact fields are omit-by-default; a cancelled/dismissed
     // dialog aborts the export (no PDF is generated).
     final includeVenueContact = await _venueContactConsent(context);
     if (includeVenueContact == null) return;
+    if (!context.mounted) return;
+
+    // Ask whether to include figures. Skipped silently when no dance has any.
+    final includeFigures = await _figuresConsent(context);
+    if (includeFigures == null) return;
     if (!context.mounted) return;
 
     // Feed the PDF builder a venue already run through the single
@@ -275,6 +398,16 @@ class ProgramExportMenu extends StatelessWidget {
       include: includeVenueContact,
     );
 
+    final List<({Dance dance, bool isAlternate})>? appendDances;
+    final Dialect? dialect;
+    if (includeFigures) {
+      appendDances = _orderedExportDances();
+      dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    } else {
+      appendDances = null;
+      dialect = null;
+    }
+
     final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
     await layoutPdf(
       name: sanitizeExportName(program.title, fallback: 'program'),
@@ -284,6 +417,9 @@ class ProgramExportMenu extends StatelessWidget {
         venuesById: venuesForPdf,
         formatDate: localizations.formatMediumDate,
         labels: labels,
+        appendDances: appendDances,
+        danceLabels: includeFigures ? danceExportLabels(l10n) : null,
+        dialect: dialect,
       ),
     );
   }

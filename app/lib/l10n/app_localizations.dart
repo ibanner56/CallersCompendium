@@ -4892,6 +4892,30 @@ abstract class AppLocalizations {
   /// **'Couldn\'t export this set list'**
   String get exportSetListError;
 
+  /// Title of the dialog that asks whether to include full dance-card figures in a set-list text share, copy, or PDF export (issue #853).
+  ///
+  /// In en, this message translates to:
+  /// **'Include figures?'**
+  String get exportIncludeFiguresTitle;
+
+  /// Radio-row label in the figures-inclusion dialog: export titles and metadata, no figure cards.
+  ///
+  /// In en, this message translates to:
+  /// **'Set list only'**
+  String get exportIncludeFiguresSetListOnly;
+
+  /// Radio-row label in the figures-inclusion dialog: export set list plus a full figure card for each dance, appended after the set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Set list and figures'**
+  String get exportIncludeFiguresSetListAndFigures;
+
+  /// Label prepended to a dance's figure card in a set-list-and-figures export when that dance is an alternate (not the primary slot). Used in plain-text and PDF outputs.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternate'**
+  String get exportIncludeFiguresAlternate;
+
   /// Tooltip on the button that exports/prints the program matrix as a PDF.
   ///
   /// In en, this message translates to:

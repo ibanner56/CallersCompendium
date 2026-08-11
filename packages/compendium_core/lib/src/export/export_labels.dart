@@ -78,6 +78,8 @@ class ProgramExportLabels {
     this.schedule = 'Schedule',
     this.price = 'Price',
     this.sponsor = 'Sponsor',
+    this.figures = 'Figures',
+    this.alternate = 'Alternate',
   });
 
   final String band;
@@ -94,6 +96,14 @@ class ProgramExportLabels {
   final String schedule;
   final String price;
   final String sponsor;
+
+  /// Header label for the figures appendix section in a set-list-and-figures
+  /// export (issue #853).
+  final String figures;
+
+  /// Prefix for a dance card in the figures appendix when the dance is an
+  /// alternate slot rather than a primary (issue #853).
+  final String alternate;
 }
 
 /// Labels and fixed captions for the Programming Matrix PDF
