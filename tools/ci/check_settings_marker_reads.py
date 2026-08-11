@@ -205,21 +205,68 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
                 close_seq = q * 3
                 end = text.find(close_seq, i + 3)
                 lit_end = (end + 3) if end != -1 else n
-                raw_content = text[i + 3 : end] if end != -1 else text[i + 3 :]
+                group_content = text[i + 3 : end] if end != -1 else text[i + 3 :]
                 i = lit_end
             else:
                 j = i + 1
                 while j < n and text[j] != q:
                     j += 1
-                raw_content = text[i + 1 : j]
+                group_content = text[i + 1 : j]
                 i = j + 1
             line_no = offset_to_lineno(lit_start)
             src_line = source_line_at(lit_start).strip()
-            # Store raw_content so the fail-closed check in check_file can scan
-            # the full literal text, not just the first source line. A triple-
-            # quoted literal whose 'settings' appears on line 2+ would be
-            # silently skipped if we only checked source_line.
-            result.append(SqlLiteral(raw_content, line_no, src_line, parseable=False))
+
+            # Look ahead for adjacent literals: r'foo' 'bar' and r'foo' r'bar'
+            # are all one group. The group is already unparseable (parseable=False);
+            # we still accumulate content so check_file can see the whole SQL string.
+            while i < n:
+                k = i
+                while k < n and text[k] in (" ", "\t", "\n", "\r"):
+                    k += 1
+                if k >= n:
+                    break
+                if text[k] == "/" and k + 1 < n and text[k + 1] == "/":
+                    while k < n and text[k] != "\n":
+                        k += 1
+                    i = k
+                    continue
+                adj_raw2 = text[k] in ("r", "R") and k + 1 < n and text[k + 1] in ("'", '"')
+                if adj_raw2:
+                    aq2 = text[k + 1]
+                    qstart2 = k + 2  # content start: skip 'r' + quote
+                    j2 = qstart2
+                    while j2 < n and text[j2] != aq2:
+                        j2 += 1
+                    group_content += text[qstart2:j2]
+                    i = j2 + 1
+                elif text[k] in ("'", '"'):
+                    aq2 = text[k]
+                    adj_triple2 = k + 2 < n and text[k + 1] == aq2 and text[k + 2] == aq2
+                    if adj_triple2:
+                        close2 = aq2 * 3
+                        end2 = text.find(close2, k + 3)
+                        group_content += text[k + 3 : end2] if end2 != -1 else text[k + 3 :]
+                        i = (end2 + 3) if end2 != -1 else n
+                    else:
+                        j2 = k + 1
+                        while j2 < n:
+                            ch2 = text[j2]
+                            if ch2 == "\\":
+                                j2 += 1
+                                if j2 < n:
+                                    group_content += text[j2]
+                                j2 += 1
+                                continue
+                            if ch2 == aq2:
+                                j2 += 1
+                                break
+                            group_content += ch2
+                            j2 += 1
+                        i = j2
+                else:
+                    break
+
+            result.append(SqlLiteral(group_content, line_no, src_line, parseable=False))
             continue
 
         # Normal literal.
