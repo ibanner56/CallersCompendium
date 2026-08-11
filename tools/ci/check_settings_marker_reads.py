@@ -159,6 +159,29 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
     - Handle escape sequences inside literals.
     - Detect raw (r'...') and triple-quoted forms and mark unparseable.
     - Join adjacent literals (any quote style) with empty string.
+
+    Recognised adjacency forms (one group, one SqlLiteral):
+
+        Form                        parseable   Notes
+        --------------------------  ---------   ---------------------------------
+        'A' 'B'                     True        same quote, normal literals
+        'A' "B"                     True        mixed quote, normal literals
+        "A" 'B'                     True        mixed quote, reverse order
+        'A' r'B'                    False       normal then raw
+        r'A' 'B'                    False       raw then normal
+        'A' '''B'''                 False       normal then triple
+        '''A''' 'B'                 False       triple then normal
+        r'A' r'B'                   False       raw then raw
+        'A' r'''B'''                False       normal then raw-triple
+        r'''A''' 'B'                False       raw-triple then normal
+        'A' 'B' 'C'                 True        three normal
+        'A' r'B' 'C'                False       raw in middle position
+        r'A' 'B' r'C'               False       raw in first and last
+        (any run with raw/triple)   False       one unparseable group
+
+    Literal forms NOT recognised as adjacent (start a new group):
+        Anything not immediately preceded (after whitespace/comments) by
+        a quote or r/R prefix adjacent to a quote.
     """
     lines = text.splitlines(keepends=True)
     cum: list[int] = [0]

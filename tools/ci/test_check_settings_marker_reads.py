@@ -381,17 +381,6 @@ def test_compliant_reads() -> None:
     )
 
     check(
-        "double-quoted filter in variable does not satisfy check",
-        _violation_count(
-            'final r = db.customSelect(\n'
-            '  "SELECT 1 FROM settings WHERE key = ?",\n'
-            '  variables: ["deleted_at IS NULL"],\n'
-            ').get();\n'
-        ) == 1,
-        "the phrase is in a Dart argument, not the SQL literal — must still fail",
-    )
-
-    check(
         "mixed-quote split: single-quoted SELECT, double-quoted filter continuation — compliant",
         _violation_count(
             "final r = db.customSelect(\n"
@@ -423,6 +412,17 @@ def test_compliant_reads() -> None:
 
 def test_non_compliant_reads() -> None:
     print("non-compliant reads are caught:")
+
+    check(
+        "double-quoted filter in variable does not satisfy check",
+        _violation_count(
+            'final r = db.customSelect(\n'
+            '  "SELECT 1 FROM settings WHERE key = ?",\n'
+            '  variables: ["deleted_at IS NULL"],\n'
+            ').get();\n'
+        ) == 1,
+        "the phrase is in a Dart argument, not the SQL literal — must still fail",
+    )
 
     check(
         "SELECT without any filter is flagged",
