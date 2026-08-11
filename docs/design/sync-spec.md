@@ -703,6 +703,34 @@ Separate so that reaping a store cannot destroy evidence of access to it. Its
 retention is therefore not the 30-day disuse TTL and MUST be stated in the
 privacy policy.
 
+### 7.5 Deployment
+
+The server MAY terminate TLS itself, but the reference deployment does not: TLS
+terminates at a reverse proxy and the server binds a loopback address only. See
+ADR-004, *TLS and deployment*, for why — the reason is certificate renewal, not
+issuance.
+
+Where a proxy is used, it is part of the conforming implementation and MUST
+satisfy all four of the following. Each has been chosen because the default
+behaviour of at least one common proxy violates it.
+
+| # | Requirement | Why it is not automatic |
+| --- | --- | --- |
+| 1 | The `Authorization` request header MUST reach the server unmodified. | It carries the sync ID (§5.1). A proxy that consumes it makes every request `401`. Apache needs `CGIPassAuth On` if the server is ever fronted by CGI/FPM. |
+| 2 | Request bodies MUST be permitted to at least the manifest limit in §5.4 (16 MB). | Defaults are wrong in opposite directions: nginx's `client_max_body_size` is 1 MB and rejects valid manifests; Apache's `LimitRequestBody` is unlimited and enforces nothing. Set it explicitly. |
+| 3 | The proxy MUST NOT decompress request bodies. | §4 puts the decompression limit on the receiver, enforced streaming-abort style. Inflating at the proxy moves a security control to a component that does not implement it. |
+| 4 | The sync ID MUST NOT be written to any log. | Common log formats omit headers, so this holds by default and is lost the moment someone adds `%{Authorization}i` or `$http_authorization` to a debug format. §5.1 keeps the ID out of URLs for the same reason. |
+
+A server behind a proxy that violates (1) or (2) is **not conforming**: it will
+reject valid requests. Violations of (3) or (4) are not visible in behaviour at
+all, which is why they are stated rather than left to deployment taste.
+
+Beyond these, deployment is unconstrained. `localhost`/`127.0.0.1` waives TLS
+(§8) so a self-hoster needs no certificate, and a non-default port is permitted
+on a user-configured endpoint — though redirects are followed only to the
+default port, so a server behind a non-default port MUST NOT rely on
+redirects.
+
 ## 8. Security
 
 **Sync ID.** Format is four hyphen-separated words, enforced. A generated ID
