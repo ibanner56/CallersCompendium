@@ -182,8 +182,25 @@ def _fail(msg: str, code: int = 2) -> None:
     sys.exit(code)
 
 
-def check_file(path: Path, root: Path) -> list[str]:
-    """Return violation strings for *path* (empty when all reads are compliant).
+# Sentinel: violation kinds returned by check_file.
+_MISSING_FILTER = "missing_filter"
+_BOUNDARY_UNKNOWN = "boundary_unknown"
+
+
+def check_file(path: Path, root: Path) -> list[tuple[str, str]]:
+    """Return ``(kind, location)`` pairs for every violation in *path*.
+
+    *kind* is one of ``_MISSING_FILTER`` or ``_BOUNDARY_UNKNOWN``:
+
+    * ``_MISSING_FILTER``: the SQL string was parsed and the filter is absent.
+    * ``_BOUNDARY_UNKNOWN``: the enclosing literal boundary could not be
+      determined (raw or triple-quoted string).  The check **fails closed** so
+      the read gets human review; the error message names the cause rather than
+      claiming the filter is missing (it may be present — we simply cannot see
+      the boundary to confirm).
+
+    Returns an empty list when all reads comply or the file has no relevant
+    content.
 
     Strategy: join adjacent string literals to handle multi-line SQL, then
     search the joined text for SELECT-FROM-settings-WHERE-key matches. For
@@ -191,14 +208,6 @@ def check_file(path: Path, root: Path) -> list[str]:
     and check whether ``AND deleted_at IS NULL`` is present within it. Line
     numbers are recovered from the original text by finding the corresponding
     SELECT occurrence there.
-
-    The filter check is scoped to the SQL literal, not the surrounding Dart
-    statement, so a phrase like ``'deleted_at IS NULL'`` passed as a variable
-    argument does not satisfy the check.
-
-    When the enclosing literal boundary cannot be determined (raw or
-    triple-quoted strings), the check **fails closed** — a violation is
-    reported so a human can inspect it.
 
     The deliberate hard DELETE in repositories.dart is inherently excluded
     because ``_SELECT_FROM_SETTINGS_RE`` requires SELECT. ``_NOTED_EXCEPTIONS``
@@ -218,20 +227,29 @@ def check_file(path: Path, root: Path) -> list[str]:
     orig_matches = list(_SELECT_FROM_SETTINGS_RE.finditer(text))
     orig_lines = text.splitlines()
 
-    violations: list[str] = []
+    violations: list[tuple[str, str]] = []
     for idx, m in enumerate(_SELECT_FROM_SETTINGS_RE.finditer(joined)):
+        # Resolve the original match first so we can inspect the raw source.
+        orig_m = orig_matches[idx] if idx < len(orig_matches) else None
+        line_no = text[: orig_m.start()].count("\n") + 1 if orig_m else 0
+        orig_line = orig_lines[line_no - 1].strip() if line_no else "(unknown)"
+
+        # Before checking the joined text, detect raw (r'...') and triple-
+        # quoted ('''...'''  or """...""") forms in the *original* source.
+        # join_adjacent_strings collapses '''...''' into a plain single-quoted
+        # literal, so _enclosing_sql_literal would not detect the triple-quote
+        # form from the joined text alone.
+        if orig_m is not None:
+            orig_boundary = _enclosing_sql_literal(text, orig_m.start(), orig_m.end())
+            if orig_boundary is None:
+                violations.append((_BOUNDARY_UNKNOWN, f"{rel}:{line_no}: {orig_line}"))
+                continue
+
         sql_literal = _enclosing_sql_literal(joined, m.start(), m.end())
         if sql_literal is not None and _DELETED_AT_FILTER_RE.search(sql_literal):
             continue
-        # Violation or unparseable boundary — find the original line number.
-        if idx < len(orig_matches):
-            orig_m = orig_matches[idx]
-            line_no = text[: orig_m.start()].count("\n") + 1
-            orig_line = orig_lines[line_no - 1].strip()
-        else:
-            line_no = 0
-            orig_line = "(unknown)"
-        violations.append(f"{rel}:{line_no}: {orig_line}")
+        kind = _BOUNDARY_UNKNOWN if sql_literal is None else _MISSING_FILTER
+        violations.append((kind, f"{rel}:{line_no}: {orig_line}"))
     return violations
 
 
@@ -241,18 +259,27 @@ def main() -> int:
     if not files:
         _fail(f"no Dart library files found under {root}")
 
-    offenders: list[str] = []
+    offenders: list[tuple[str, str]] = []
     for path in files:
         offenders.extend(check_file(path, root))
 
     if offenders:
-        for o in offenders:
-            print(f"::error::missing deleted_at IS NULL filter: {o}")
+        for kind, loc in offenders:
+            if kind == _BOUNDARY_UNKNOWN:
+                print(
+                    f"::error::cannot verify deleted_at IS NULL filter — "
+                    f"string-literal boundary is unparseable (raw or "
+                    f"triple-quoted literal). Rewrite as a plain quoted "
+                    f"literal, or extend the ratchet to handle this form. "
+                    f"{loc}"
+                )
+            else:
+                print(f"::error::missing deleted_at IS NULL filter: {loc}")
         print(
-            f"::error::{len(offenders)} raw settings read(s) missing "
-            "`AND deleted_at IS NULL`. Every SELECT from settings WHERE key "
-            "must filter deleted rows — the hard-delete in repositories.dart "
-            "is justified in prose by this invariant (issue #907).",
+            f"::error::{len(offenders)} raw settings read(s) require attention. "
+            "Every SELECT from settings WHERE key must filter deleted rows — "
+            "the hard-delete in repositories.dart is justified in prose by "
+            "this invariant (issue #907).",
         )
         return 1
 

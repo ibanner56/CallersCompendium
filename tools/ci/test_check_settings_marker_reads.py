@@ -59,6 +59,8 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from check_settings_marker_reads import (  # noqa: E402
+    _BOUNDARY_UNKNOWN,
+    _MISSING_FILTER,
     check_file,
     dart_library_files,
     join_adjacent_strings,
@@ -128,7 +130,9 @@ def test_join_adjacent_strings() -> None:
 # --------------------------------------------------------------------------
 
 
-def _check(src: str, filename: str = "packages/fake_pkg/lib/src/fake.dart") -> list[str]:
+def _check(
+    src: str, filename: str = "packages/fake_pkg/lib/src/fake.dart"
+) -> list[tuple[str, str]]:
     """Write *src* to a temp file and run check_file against it."""
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
@@ -141,6 +145,12 @@ def _check(src: str, filename: str = "packages/fake_pkg/lib/src/fake.dart") -> l
 
 def _violation_count(src: str, filename: str = "packages/fake_pkg/lib/src/fake.dart") -> int:
     return len(_check(src, filename))
+
+
+def _kinds(src: str, filename: str = "packages/fake_pkg/lib/src/fake.dart") -> list[str]:
+    """Return the violation kind strings for *src* (``_MISSING_FILTER`` or
+    ``_BOUNDARY_UNKNOWN``), without the location detail."""
+    return [kind for kind, _loc in _check(src, filename)]
 
 
 # --------------------------------------------------------------------------
@@ -356,6 +366,46 @@ def test_non_reads() -> None:
 
 
 # --------------------------------------------------------------------------
+# Fail-closed path — raw and triple-quoted literals.
+# --------------------------------------------------------------------------
+
+
+def test_fail_closed() -> None:
+    """Unparseable literal boundaries fail closed with a distinct message.
+
+    There are no raw or triple-quoted SQL strings in the real tree today, so
+    this branch is unreachable in the baseline scan. That makes it the easiest
+    to break silently — a branch that the corpus never exercises and that has
+    no test is indistinguishable from one that is broken. These cases pin both
+    the exit behaviour (violation reported) and the violation kind
+    (``_BOUNDARY_UNKNOWN``, not ``_MISSING_FILTER``), so a later change that
+    collapses the two paths goes red here.
+    """
+    print("fail-closed path (unparseable boundaries):")
+
+    check(
+        "raw-string read fails closed with BOUNDARY_UNKNOWN, not MISSING_FILTER",
+        _kinds(
+            "final r = db.customSelect(\n"
+            "  r'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',\n"
+            ").get();\n"
+        ) == [_BOUNDARY_UNKNOWN],
+        "the filter is present but the raw-string boundary cannot be parsed — "
+        "the error message must say so, not claim the filter is missing",
+    )
+
+    check(
+        "triple-quoted read fails closed with BOUNDARY_UNKNOWN",
+        _kinds(
+            "final r = db.customSelect(\n"
+            "  '''SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL''',\n"
+            ").get();\n"
+        ) == [_BOUNDARY_UNKNOWN],
+        "triple-quoted boundary cannot be determined — must not silently pass",
+    )
+
+
+# --------------------------------------------------------------------------
 # Real-tree baseline — the production libraries must be clean.
 # --------------------------------------------------------------------------
 
@@ -372,11 +422,11 @@ def test_real_tree_is_clean() -> None:
     files = dart_library_files(root)
     check("finds library files", len(files) > 0, f"found {len(files)}")
 
-    offenders: list[str] = []
+    offenders: list[tuple[str, str]] = []
     for path in files:
         offenders.extend(check_file(path, root))
 
-    check("baseline is clean", not offenders, "; ".join(offenders))
+    check("baseline is clean", not offenders, "; ".join(loc for _k, loc in offenders))
 
 
 def main() -> int:
@@ -385,6 +435,7 @@ def main() -> int:
     test_non_compliant_reads()
     test_delete_exception()
     test_non_reads()
+    test_fail_closed()
     test_real_tree_is_clean()
     print()
     if FAILURES:
