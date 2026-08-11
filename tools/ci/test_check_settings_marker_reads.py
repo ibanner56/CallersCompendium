@@ -9,11 +9,12 @@ Pure-stdlib, assert-based (no pytest / no third-party deps, matching the rest of
 
 ## What is tested and why each case is necessary
 
-The ratchet has four independent failure modes, each caught by a specific
+The ratchet has five independent failure modes, each caught by a specific
 subset of cases:
 
 1. **Missing filter on a single-line read** — the straightforward case the
-   ratchet exists to catch.
+   ratchet exists to catch. Tested for both single-quoted and double-quoted
+   SQL strings, since Dart style in this repo uses both.
 
 2. **Missing filter on a split-across-lines read** — two of the five compliant
    reads in the real codebase put ``AND deleted_at IS NULL`` on the *next*
@@ -39,7 +40,13 @@ subset of cases:
    same statement but outside the SQL literal, the ratchet must still fire. The
    check must be restricted to the SQL string itself, not the surrounding Dart
    statement. (Discovered in review: a probe that passes the phrase as a
-   variable value produced a false negative in the initial implementation.)
+   variable value produced a false negative in an earlier implementation.)
+
+6. **Double-quoted SQL strings are handled correctly in both directions** —
+   both compliant and non-compliant double-quoted reads must be detected and
+   reported (or passed) correctly. (Discovered in review: the literal-scoping
+   fix for finding 5 introduced a regression where double-quoted compliant reads
+   failed to find the closing quote and were incorrectly flagged.)
 """
 
 from __future__ import annotations
@@ -102,6 +109,17 @@ def test_join_adjacent_strings() -> None:
     check(
         "non-adjacent literals are not joined",
         join_adjacent_strings("'a'; 'b'") == "'a'; 'b'",
+    )
+
+    check(
+        "double-quoted adjacent literals are joined",
+        join_adjacent_strings('"foo" "bar"') == '"foo bar"',
+    )
+
+    check(
+        "double-quoted split across a newline",
+        "\n" not in join_adjacent_strings('"foo "\n"bar"'),
+        "double-quoted adjacent literals have their newline boundary collapsed",
     )
 
 
@@ -177,6 +195,28 @@ def test_compliant_reads() -> None:
         ) == 0,
     )
 
+    check(
+        "double-quoted single-line SELECT with deleted_at IS NULL",
+        _violation_count(
+            'final r = db.customSelect(\n'
+            '  "SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL",\n'
+            '  variables: [v],\n'
+            ').get();\n'
+        ) == 0,
+        "double-quoted SQL strings are used in this repo and must not be falsely flagged",
+    )
+
+    check(
+        "double-quoted filter in variable does not satisfy check",
+        _violation_count(
+            'final r = db.customSelect(\n'
+            '  "SELECT 1 FROM settings WHERE key = ?",\n'
+            '  variables: ["deleted_at IS NULL"],\n'
+            ').get();\n'
+        ) == 1,
+        "the phrase is in a Dart argument, not the SQL literal — must still fail",
+    )
+
 
 # --------------------------------------------------------------------------
 # Non-compliant reads — ratchet must fire.
@@ -232,6 +272,17 @@ def test_non_compliant_reads() -> None:
         ) == 1,
         "the phrase appears as a Dart string argument, not in the SQL literal — "
         "the ratchet must check the SQL string only, not the surrounding statement",
+    )
+
+    check(
+        "double-quoted SELECT without filter is flagged",
+        _violation_count(
+            'final r = db.customSelect(\n'
+            '  "SELECT 1 FROM settings WHERE key = ?",\n'
+            '  variables: [v],\n'
+            ').get();\n'
+        ) == 1,
+        "double-quoted SQL strings must be checked too",
     )
 
 

@@ -40,7 +40,19 @@ detection pattern to suppress a false positive; name the exception instead.
 Two of the five compliant reads put ``AND deleted_at IS NULL`` on the next
 source line (Dart adjacent-string concatenation). This script joins
 adjacent single-quoted literals before matching so the filter is found
-even when it is on a continuation line.
+even when it is on a continuation line. Adjacent double-quoted literals
+are joined the same way.
+
+## Filter scoping
+
+The filter check is restricted to the SQL string literal that contains the
+SELECT, not the surrounding Dart statement. Checking the full statement is
+not safe: the phrase "deleted_at IS NULL" can appear as a Dart variable
+value or argument in the same statement while the SQL itself is unfiltered.
+The enclosing literal is found by detecting the opening quote character
+(single or double) and scanning for the matching close. On an unparseable
+boundary (e.g. raw or triple-quoted literal), the check fails closed so
+an unparseable construct gets a human looking at it.
 
 Exit codes: 0 = all compliant, 1 = at least one non-compliant read, 2 = bad
 input.
@@ -77,8 +89,6 @@ _NOTED_EXCEPTIONS: dict[str, str] = {
 # --------------------------------------------------------------------------
 
 # A raw SELECT from the settings table keyed by WHERE key.
-# Used against the joined text (which has no newlines within SQL strings)
-# so re.DOTALL is not needed and would cause cross-line false positives.
 _SELECT_FROM_SETTINGS_RE = re.compile(
     r"\bSELECT\b[^;\n]*\bFROM\s+settings\b[^;\n]*\bWHERE\s+key\b",
     re.IGNORECASE,
@@ -90,28 +100,65 @@ _DELETED_AT_FILTER_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Boundary between adjacent Dart single-quoted string literals:
-# closing quote, optional whitespace (including newlines), opening quote.
-# re.DOTALL so \s matches newlines.
-_ADJACENT_STRINGS_RE = re.compile(r"'(\s*)'", re.DOTALL)
+# Boundary between adjacent Dart string literals of the same quote style.
+# Two separate patterns — one for each quote character — so each is joined
+# independently.  re.DOTALL so \s matches newlines.
+_ADJACENT_SINGLE_RE = re.compile(r"'(\s*)'", re.DOTALL)
+_ADJACENT_DOUBLE_RE = re.compile(r'"(\s*)"', re.DOTALL)
 
 
 def join_adjacent_strings(text: str) -> str:
-    """Join adjacent Dart single-quoted string literals into one logical unit.
+    """Join adjacent Dart string literals of the same quote style.
 
-    Replaces each ``'<whitespace>'`` boundary (including newlines) with
-    ``' '`` so a multi-line SQL string becomes one logical line. Iterates
-    until stable to handle three or more consecutive literals.
+    Handles both single-quoted and double-quoted adjacent literals.
+    Replaces each closing-quote / whitespace / opening-quote boundary
+    (including any newline) with a space so a multi-line SQL string becomes
+    one logical line. Iterates until stable so three or more consecutive
+    literals are fully joined.
 
-    The result may have fewer lines than the input (newlines between
-    adjacent literals are collapsed). The caller should not assume
-    line-count parity with the original text.
+    The result may have fewer lines than the input — intentional: the caller
+    checks the whole logical SQL string for ``AND deleted_at IS NULL``.
     """
     prev = None
     while prev != text:
         prev = text
-        text = _ADJACENT_STRINGS_RE.sub(" ", text)
+        text = _ADJACENT_SINGLE_RE.sub(" ", text)
+        text = _ADJACENT_DOUBLE_RE.sub(" ", text)
     return text
+
+
+def _enclosing_sql_literal(text: str, match_start: int, match_end: int) -> str | None:
+    """Return the content of the Dart string literal enclosing the match.
+
+    Scans backward from *match_start* to find the opening quote (``'`` or
+    ``"``), then forward from *match_end* to find the matching closing quote.
+    Returns the string content between the quotes, or ``None`` when the
+    boundary cannot be determined (triple-quoted, raw-string prefix, or no
+    enclosing quote found).
+
+    Returning ``None`` signals the caller to **fail closed** — an unrecognised
+    construct is safer to flag for human review than to silently pass.
+    """
+    # Scan backward to find the opening quote character.
+    i = match_start - 1
+    while i >= 0 and text[i] not in ("'", '"', "\n", ";"):
+        i -= 1
+    if i < 0 or text[i] not in ("'", '"'):
+        return None
+    q = text[i]
+
+    # Guard: if the opening quote is actually part of a triple-quoted or raw
+    # literal we cannot determine the boundary reliably — fail closed.
+    if (i >= 2 and text[i - 2 : i + 1] == q * 3) or (
+        i >= 1 and text[i - 1] in ("r", "R")
+    ):
+        return None
+
+    # Find the closing quote (same character) after the match.
+    close = text.find(q, match_end)
+    if close == -1:
+        return None
+    return text[i + 1 : close]
 
 
 def dart_library_files(root: Path) -> list[Path]:
@@ -140,9 +187,18 @@ def check_file(path: Path, root: Path) -> list[str]:
 
     Strategy: join adjacent string literals to handle multi-line SQL, then
     search the joined text for SELECT-FROM-settings-WHERE-key matches. For
-    each match, check whether ``AND deleted_at IS NULL`` appears in the same
-    SQL statement (before the next ``;``). Line numbers are recovered from the
-    original text by finding the matching SELECT occurrence there.
+    each match, extract the enclosing SQL string literal (by quote character)
+    and check whether ``AND deleted_at IS NULL`` is present within it. Line
+    numbers are recovered from the original text by finding the corresponding
+    SELECT occurrence there.
+
+    The filter check is scoped to the SQL literal, not the surrounding Dart
+    statement, so a phrase like ``'deleted_at IS NULL'`` passed as a variable
+    argument does not satisfy the check.
+
+    When the enclosing literal boundary cannot be determined (raw or
+    triple-quoted strings), the check **fails closed** — a violation is
+    reported so a human can inspect it.
 
     The deliberate hard DELETE in repositories.dart is inherently excluded
     because ``_SELECT_FROM_SETTINGS_RE`` requires SELECT. ``_NOTED_EXCEPTIONS``
@@ -164,26 +220,10 @@ def check_file(path: Path, root: Path) -> list[str]:
 
     violations: list[str] = []
     for idx, m in enumerate(_SELECT_FROM_SETTINGS_RE.finditer(joined)):
-        # Restrict the filter check to the string literal that contains the
-        # SELECT. Scanning to the next ; is not safe: the phrase
-        # "deleted_at IS NULL" can appear in a variable name or argument
-        # string in the same Dart statement, causing a false negative (the
-        # ratchet says OK when the SQL itself is missing the filter).
-        #
-        # After join_adjacent_strings the SQL is fully on one logical line
-        # within its enclosing quotes. Find the opening quote before the
-        # match and the closing quote after it.
-        open_q = joined.rfind("'", 0, m.start())
-        close_q = joined.find("'", m.end())
-        if open_q == -1 or close_q == -1:
-            # Cannot determine the string boundary — fail closed so an
-            # unparseable construct gets a human looking at it.
-            sql_literal = None
-        else:
-            sql_literal = joined[open_q + 1 : close_q]
+        sql_literal = _enclosing_sql_literal(joined, m.start(), m.end())
         if sql_literal is not None and _DELETED_AT_FILTER_RE.search(sql_literal):
             continue
-        # Violation (or unparseable boundary) — find the original line number.
+        # Violation or unparseable boundary — find the original line number.
         if idx < len(orig_matches):
             orig_m = orig_matches[idx]
             line_no = text[: orig_m.start()].count("\n") + 1
