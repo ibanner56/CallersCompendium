@@ -3094,6 +3094,18 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Setliste konnte nicht exportiert werden';
 
   @override
+  String get exportIncludeFiguresTitle => 'Figuren einschließen?';
+
+  @override
+  String get exportIncludeFiguresSetListOnly => 'Nur Setliste';
+
+  @override
+  String get exportIncludeFiguresSetListAndFigures => 'Setliste und Figuren';
+
+  @override
+  String get exportIncludeFiguresAlternate => 'Alternativ';
+
+  @override
   String get exportMatrixPdfTooltip =>
       'Matrix als PDF exportieren oder drucken';
 

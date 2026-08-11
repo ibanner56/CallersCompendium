@@ -3077,6 +3077,18 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportSetListError => 'Deze setlijst kon niet worden geëxporteerd';
 
   @override
+  String get exportIncludeFiguresTitle => 'Figuren opnemen?';
+
+  @override
+  String get exportIncludeFiguresSetListOnly => 'Alleen setlijst';
+
+  @override
+  String get exportIncludeFiguresSetListAndFigures => 'Setlijst en figuren';
+
+  @override
+  String get exportIncludeFiguresAlternate => 'Alternatief';
+
+  @override
   String get exportMatrixPdfTooltip => 'Matrix exporteren of afdrukken als PDF';
 
   @override

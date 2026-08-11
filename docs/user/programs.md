@@ -236,12 +236,15 @@ menu:
   `.json` so a device without the app can still open it.
 - **Export / print PDF** — builds a PDF and opens your system's print dialog.
 
-A set list is titles, event details, and slot notes — deliberately not a
-figure-by-figure breakdown of every dance. If your program is linked to a
-[venue](./glossary.md#venue) with contact people recorded, the PDF and the two
-file exports ask before including any of those personal details, and leave them
-out unless you say otherwise. A venue's street address is never included in any
-export, with or without a prompt.
+A set list is titles, event details, and slot notes by default. When you share,
+copy, or export as PDF the app asks **"Include figures?"** — choose **Set list
+only** to keep titles and notes, or **Set list and figures** to append a full
+figure card for each dance after the set list. If none of the program's dances
+have structured figures the question is skipped automatically. If your program is
+linked to a [venue](./glossary.md#venue) with contact people recorded, the PDF
+and the two file exports ask before including any of those personal details, and
+leave them out unless you say otherwise. A venue's street address is never
+included in any export, with or without a prompt.
 
 [Share, print & export](./sharing.md#share-a-program) covers all of this in
 detail, including what a shared bundle contains and what never leaves your

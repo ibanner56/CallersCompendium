@@ -38,6 +38,8 @@ ProgramExportLabels programExportLabels(AppLocalizations l10n) =>
       schedule: l10n.exportLabelSchedule,
       price: l10n.exportLabelPrice,
       sponsor: l10n.exportLabelSponsor,
+      figures: l10n.exportLabelFigures,
+      alternate: l10n.exportIncludeFiguresAlternate,
     );
 
 ProgramMatrixExportLabels programMatrixExportLabels(AppLocalizations l10n) =>

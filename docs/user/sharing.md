@@ -55,11 +55,20 @@ Open a program and choose **Export**. Five actions:
 | **Export as JSON file** | The same package, named `.json` instead — for a recipient who doesn't have the app, or when you want to read the file yourself |
 | **Export / print PDF** | Builds a PDF set list and opens your system's print dialog |
 
-The set list — text and PDF alike — is titles, event details, and slot notes. It
-is deliberately *not* a full figure-by-figure breakdown of each dance; that is
-what a dance card or [Perform mode](./perform.md) is for. Because a set list
-carries no figures, your dialect does not come into it; the labels follow your
-app language, as with dance exports.
+The set list — text and PDF alike — is titles, event details, and slot notes by
+default. When you tap **Share set list (text)**, **Copy set list**, or **Export /
+print PDF**, the app asks **"Include figures?"** with two choices:
+
+- **Set list only** — just titles, event details, and slot notes (the default).
+- **Set list and figures** — appends a full figure card for each dance after the
+  set list. The cards use your app language for field labels; the figure text
+  uses your active dialect. Alternate dances are marked "Alternate".
+
+If none of the program's dances have any structured figures, the question is
+skipped and the export proceeds as set-list-only automatically.
+
+Cancelling the dialog (or tapping outside it) aborts the export — nothing is
+shared or copied.
 
 If something goes wrong the app says so plainly — "Couldn't share this set list",
 "Couldn't export this set list" — and nothing is sent.

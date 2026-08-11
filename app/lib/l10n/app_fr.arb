@@ -3168,6 +3168,22 @@
   "@exportSetListError": {
     "x-sourceSha256": "a777a06ed5294337e13c13d50ca5b60d1020c5a91205311231ac5fc1d9dff519"
   },
+  "exportIncludeFiguresTitle": "Inclure les figures ?",
+  "@exportIncludeFiguresTitle": {
+    "x-sourceSha256": "122e34070252ce0b47c14511e2c4c94d7c21d1121afa166278ed68bb6396e33d"
+  },
+  "exportIncludeFiguresSetListOnly": "Liste de sets uniquement",
+  "@exportIncludeFiguresSetListOnly": {
+    "x-sourceSha256": "5878794b3a332468e6dee2379c4d3d7cc9d213fe91422e41fb7d00a0dcfcb2e2"
+  },
+  "exportIncludeFiguresSetListAndFigures": "Liste de sets et figures",
+  "@exportIncludeFiguresSetListAndFigures": {
+    "x-sourceSha256": "b4ea0147102d7e5d27401158954b78accde499cf73d23accb0c02fcd5328f0e6"
+  },
+  "exportIncludeFiguresAlternate": "Alternatif",
+  "@exportIncludeFiguresAlternate": {
+    "x-sourceSha256": "1b99710fd13e12caf702cb99b9c9528ae453f8d2399fb62c834ac3d99edb6410"
+  },
   "exportMatrixPdfTooltip": "Exporter ou imprimer la matrice en PDF",
   "@exportMatrixPdfTooltip": {
     "x-sourceSha256": "945cfc41432eaba703e2dde5a5c3a624ce2001a7a555090928245537c5d580e0"
@@ -4853,11 +4869,11 @@
     "x-sourceSha256": "509fe3661d05c24d66b935dcab410804443c03952d32273ea7dc217e1512a02d"
   },
   "danceEditorChoreographerDetailsTitle": "Détails du chorégraphe",
-"@danceEditorChoreographerDetailsTitle": {
+  "@danceEditorChoreographerDetailsTitle": {
     "x-sourceSha256": "bb906d790d274120a78975f5f9ffe20350d35f33d56fd55c7bd7c579bedb6df1"
   },
   "danceEditorChoreographerDetailsIntro": "Ces détails sont partagés entre toutes les danses créditées à cet auteur. L’e-mail, le lieu et la mention « décédé(e) » sont privés — stockés uniquement sur cet appareil, jamais partagés ni exportés.",
-"@danceEditorChoreographerDetailsIntro": {
+  "@danceEditorChoreographerDetailsIntro": {
     "x-sourceSha256": "2f019ad38a0c76ed265a40383c91046bfac31624abeaa26d381d7c6617613e69"
   },
   "danceEditorNameRequiredLabel": "Nom *",

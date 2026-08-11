@@ -3058,6 +3058,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportSetListError => 'Couldn\'t export this set list';
 
   @override
+  String get exportIncludeFiguresTitle => 'Include figures?';
+
+  @override
+  String get exportIncludeFiguresSetListOnly => 'Set list only';
+
+  @override
+  String get exportIncludeFiguresSetListAndFigures => 'Set list and figures';
+
+  @override
+  String get exportIncludeFiguresAlternate => 'Alternate';
+
+  @override
   String get exportMatrixPdfTooltip => 'Export or print matrix as PDF';
 
   @override

@@ -3066,6 +3066,18 @@ class AppLocalizationsDa extends AppLocalizations {
   String get exportSetListError => 'Kunne ikke eksportere denne sætliste';
 
   @override
+  String get exportIncludeFiguresTitle => 'Inkluder figurer?';
+
+  @override
+  String get exportIncludeFiguresSetListOnly => 'Kun sætliste';
+
+  @override
+  String get exportIncludeFiguresSetListAndFigures => 'Sætliste og figurer';
+
+  @override
+  String get exportIncludeFiguresAlternate => 'Alternativ';
+
+  @override
   String get exportMatrixPdfTooltip => 'Eksportér eller udskriv matrix som PDF';
 
   @override
