@@ -86,7 +86,8 @@
   `contradb_adapter.dart` is removed, and `contraDbHtmlFigureFrontEnd` carries
   the `declineToCustom` veto (its own recognizer is deleted, which alone was not
   enough). A deliberate, owner-accepted structure regression; the custom
-  fallback keeps ContraDB's wording verbatim. **The count of affected ContraDB
+  fallback keeps ContraDB's wording (scrubbed — role terms are canonicalized on
+  every custom figure, so it is not byte-verbatim). **The count of affected ContraDB
   dances is NOT measured** — no ContraDB corpus or dump exists locally or is
   documented in `docs/research/contradb.md`.
 

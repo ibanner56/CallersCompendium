@@ -156,9 +156,17 @@ class FigureFrontEnd {
   /// dancers, so it must not structure AT ALL for this source.
   ///
   /// Use sparingly, and only where a source's wording means something
-  /// materially different from the shared reading. Nothing is lost when it
-  /// fires: the custom fallback keeps the source's own text verbatim, with
-  /// `CustomOrigin.importGap` — the same outcome as any unrecognised line.
+  /// materially different from the shared reading. When it fires the line takes
+  /// the custom fallback with `CustomOrigin.importGap` — the same outcome as
+  /// any unrecognised line — carrying the SCRUBBED text.
+  ///
+  /// Scrubbed, not verbatim: [scrubFigureText] has already canonicalized role
+  /// terms by then, so `Gentlespoons star promenade right 1` is stored as
+  /// `role1s star promenade right 1`. That is a user-visible difference, and it
+  /// applies to every custom figure, not just this path. What IS preserved
+  /// against the structured reading is everything `recognitionNormalize`
+  /// removes — annotations and the like — which is the precise sense in which
+  /// [recognitionNormalize] and [parseFigureLine] use the word "verbatim".
   final bool Function(String scrubbed)? declineToCustom;
 }
 

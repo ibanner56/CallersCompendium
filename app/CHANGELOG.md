@@ -31,7 +31,8 @@ each release so store builds and tags can be traced back to an entry.
   used to be dropped on import and is now kept. And star promenades imported
   from ContraDB now come in as plain text figures instead: ContraDB records who
   is in the centre rather than whom you pick up, and rather than guess the
-  difference we keep its own wording exactly as written.
+  difference we keep its own wording, with only the role names put into your
+  chosen dialect.
 
 ### Added
 

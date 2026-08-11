@@ -392,7 +392,8 @@ declines the collapse.
   names the dancer you PICK UP on the side (owner ruling, 2026-08-06), and the
   pick-up relationship is not recoverable from the centre role, so structuring
   the line would assert the wrong dancers. These lines therefore reach the custom
-  fallback, which keeps ContraDB's own wording verbatim — a deliberate,
+  fallback, which keeps ContraDB's own wording (scrubbed, so role terms are
+  canonicalized — see `figure_parser.dart`'s `declineToCustom`) — a deliberate,
   owner-accepted structure regression.
 
   **Deleting the recognizer was not sufficient, and this is the general lesson.**
