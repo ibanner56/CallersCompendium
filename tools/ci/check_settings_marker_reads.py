@@ -39,9 +39,8 @@ detection pattern to suppress a false positive; name the exception instead.
 
 Two of the five compliant reads put ``AND deleted_at IS NULL`` on the next
 source line (Dart adjacent-string concatenation). This script joins
-adjacent single-quoted literals before matching so the filter is found
-even when it is on a continuation line. Adjacent double-quoted literals
-are joined the same way.
+adjacent single-quoted and double-quoted literals before matching so the
+filter is found even when it is on a continuation line.
 
 ## Filter scoping
 
@@ -53,6 +52,18 @@ The enclosing literal is found by detecting the opening quote character
 (single or double) and scanning for the matching close. On an unparseable
 boundary (e.g. raw or triple-quoted literal), the check fails closed so
 an unparseable construct gets a human looking at it.
+
+## Line-number mapping
+
+Adjacent-string joining may merge tokens that are on different source lines
+(e.g. ``SELECT … FROM settings`` on line N, ``WHERE key`` on line N+1).
+The joined text has a match that has no counterpart in the un-joined text,
+so a simple count-based index into ``orig_matches`` would fall off the end
+and produce a useless ``:0: (unknown)`` location. Instead, ``join_adjacent_strings``
+returns both the joined text and a per-character offset map
+(``orig_at[joined_offset] = original_offset``) so every joined-text position
+can be translated back to the exact original byte — and therefore to the
+correct line number — regardless of how the literals were split.
 
 Exit codes: 0 = all compliant, 1 = at least one non-compliant read, 2 = bad
 input.
@@ -100,31 +111,70 @@ _DELETED_AT_FILTER_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Boundary between adjacent Dart string literals of the same quote style.
-# Two separate patterns — one for each quote character — so each is joined
-# independently.  re.DOTALL so \s matches newlines.
+# Boundaries between adjacent Dart string literals of the same quote style.
+# re.DOTALL so \s matches newlines.
 _ADJACENT_SINGLE_RE = re.compile(r"'(\s*)'", re.DOTALL)
 _ADJACENT_DOUBLE_RE = re.compile(r'"(\s*)"', re.DOTALL)
 
+# --------------------------------------------------------------------------
+# Violation kinds
+# --------------------------------------------------------------------------
 
-def join_adjacent_strings(text: str) -> str:
-    """Join adjacent Dart string literals of the same quote style.
+# Sentinel: violation kinds returned by check_file.
+_MISSING_FILTER = "missing_filter"
+_BOUNDARY_UNKNOWN = "boundary_unknown"
 
-    Handles both single-quoted and double-quoted adjacent literals.
-    Replaces each closing-quote / whitespace / opening-quote boundary
-    (including any newline) with a space so a multi-line SQL string becomes
-    one logical line. Iterates until stable so three or more consecutive
-    literals are fully joined.
 
-    The result may have fewer lines than the input — intentional: the caller
-    checks the whole logical SQL string for ``AND deleted_at IS NULL``.
+# --------------------------------------------------------------------------
+# String joining with offset map
+# --------------------------------------------------------------------------
+
+
+def join_adjacent_strings(text: str) -> tuple[str, list[int]]:
+    """Join adjacent Dart string literals and return an offset map.
+
+    Returns ``(joined, orig_at)`` where:
+
+    * *joined* is the text with adjacent single-quoted and double-quoted
+      literal boundaries (``' '``, ``" "``) collapsed to a single space,
+      so a multi-line SQL string becomes one logical line.
+    * *orig_at* is a list of the same length as *joined* where
+      ``orig_at[i]`` is the offset in *text* of the character that ended
+      up at position *i* in *joined*.
+
+    The offset map is used by ``check_file`` to translate a match position
+    in the joined text back to the correct original source line, even when
+    the SELECT and WHERE key tokens were in different source lines before
+    joining. A count-based index into ``orig_matches`` would fall off the
+    end in that case (the un-joined text has no match spanning two literals)
+    and produce a useless ``:0: (unknown)`` location.
     """
-    prev = None
-    while prev != text:
-        prev = text
-        text = _ADJACENT_SINGLE_RE.sub(" ", text)
-        text = _ADJACENT_DOUBLE_RE.sub(" ", text)
-    return text
+    # Work on character lists so we can maintain a parallel orig_at list.
+    result: list[str] = list(text)
+    orig_at: list[int] = list(range(len(text)))
+
+    changed = True
+    while changed:
+        changed = False
+        joined_str = "".join(result)
+        for pat in (_ADJACENT_SINGLE_RE, _ADJACENT_DOUBLE_RE):
+            m = pat.search(joined_str)
+            if m is None:
+                continue
+            # Replace the closing-quote / whitespace / opening-quote span
+            # with a single space. The space maps to the original position
+            # of the closing quote (m.start()).
+            result = result[: m.start()] + [" "] + result[m.end() :]
+            orig_at = orig_at[: m.start()] + [orig_at[m.start()]] + orig_at[m.end() :]
+            changed = True
+            break  # restart scan after each substitution
+
+    return "".join(result), orig_at
+
+
+# --------------------------------------------------------------------------
+# Enclosing literal detection
+# --------------------------------------------------------------------------
 
 
 def _enclosing_sql_literal(text: str, match_start: int, match_end: int) -> str | None:
@@ -136,8 +186,9 @@ def _enclosing_sql_literal(text: str, match_start: int, match_end: int) -> str |
     boundary cannot be determined (triple-quoted, raw-string prefix, or no
     enclosing quote found).
 
-    Returning ``None`` signals the caller to **fail closed** — an unrecognised
-    construct is safer to flag for human review than to silently pass.
+    Returning ``None`` signals the caller to **fail closed** — an
+    unrecognised construct is safer to flag for human review than to silently
+    pass.
     """
     # Scan backward to find the opening quote character.
     i = match_start - 1
@@ -147,8 +198,7 @@ def _enclosing_sql_literal(text: str, match_start: int, match_end: int) -> str |
         return None
     q = text[i]
 
-    # Guard: if the opening quote is actually part of a triple-quoted or raw
-    # literal we cannot determine the boundary reliably — fail closed.
+    # Guard: triple-quoted or raw-string prefix → boundary unparseable.
     if (i >= 2 and text[i - 2 : i + 1] == q * 3) or (
         i >= 1 and text[i - 1] in ("r", "R")
     ):
@@ -159,6 +209,11 @@ def _enclosing_sql_literal(text: str, match_start: int, match_end: int) -> str |
     if close == -1:
         return None
     return text[i + 1 : close]
+
+
+# --------------------------------------------------------------------------
+# File discovery
+# --------------------------------------------------------------------------
 
 
 def dart_library_files(root: Path) -> list[Path]:
@@ -182,9 +237,9 @@ def _fail(msg: str, code: int = 2) -> None:
     sys.exit(code)
 
 
-# Sentinel: violation kinds returned by check_file.
-_MISSING_FILTER = "missing_filter"
-_BOUNDARY_UNKNOWN = "boundary_unknown"
+# --------------------------------------------------------------------------
+# Per-file check
+# --------------------------------------------------------------------------
 
 
 def check_file(path: Path, root: Path) -> list[tuple[str, str]]:
@@ -194,20 +249,18 @@ def check_file(path: Path, root: Path) -> list[tuple[str, str]]:
 
     * ``_MISSING_FILTER``: the SQL string was parsed and the filter is absent.
     * ``_BOUNDARY_UNKNOWN``: the enclosing literal boundary could not be
-      determined (raw or triple-quoted string).  The check **fails closed** so
+      determined (raw or triple-quoted string). The check **fails closed** so
       the read gets human review; the error message names the cause rather than
-      claiming the filter is missing (it may be present — we simply cannot see
-      the boundary to confirm).
+      claiming the filter is missing (it may be present — we simply cannot
+      verify the boundary).
 
     Returns an empty list when all reads comply or the file has no relevant
     content.
 
-    Strategy: join adjacent string literals to handle multi-line SQL, then
-    search the joined text for SELECT-FROM-settings-WHERE-key matches. For
-    each match, extract the enclosing SQL string literal (by quote character)
-    and check whether ``AND deleted_at IS NULL`` is present within it. Line
-    numbers are recovered from the original text by finding the corresponding
-    SELECT occurrence there.
+    Line numbers are recovered via the offset map returned by
+    ``join_adjacent_strings``, so a SELECT that spans two adjacent literals
+    (e.g. ``'SELECT … FROM settings '`` on one line, ``'WHERE key'`` on the
+    next) still produces a real file:line location rather than ``:0: (unknown)``.
 
     The deliberate hard DELETE in repositories.dart is inherently excluded
     because ``_SELECT_FROM_SETTINGS_RE`` requires SELECT. ``_NOTED_EXCEPTIONS``
@@ -218,32 +271,27 @@ def check_file(path: Path, root: Path) -> list[tuple[str, str]]:
         return []
 
     rel = str(path.relative_to(root))
-    joined = join_adjacent_strings(text)
-
-    # Pre-compute all SELECT positions in the ORIGINAL text so violations can
-    # be mapped back to source line numbers. The Nth match in joined corresponds
-    # to the Nth match in the original (joining does not reorder or create
-    # SELECT tokens).
-    orig_matches = list(_SELECT_FROM_SETTINGS_RE.finditer(text))
+    joined, orig_at = join_adjacent_strings(text)
     orig_lines = text.splitlines()
 
     violations: list[tuple[str, str]] = []
-    for idx, m in enumerate(_SELECT_FROM_SETTINGS_RE.finditer(joined)):
-        # Resolve the original match first so we can inspect the raw source.
-        orig_m = orig_matches[idx] if idx < len(orig_matches) else None
-        line_no = text[: orig_m.start()].count("\n") + 1 if orig_m else 0
-        orig_line = orig_lines[line_no - 1].strip() if line_no else "(unknown)"
+    for m in _SELECT_FROM_SETTINGS_RE.finditer(joined):
+        # Translate the match's start position in the joined text back to the
+        # original source offset via the offset map, then derive the line number.
+        orig_offset = orig_at[m.start()] if m.start() < len(orig_at) else 0
+        line_no = text[:orig_offset].count("\n") + 1
+        orig_line = orig_lines[line_no - 1].strip() if line_no <= len(orig_lines) else "(unknown)"
 
-        # Before checking the joined text, detect raw (r'...') and triple-
-        # quoted ('''...'''  or """...""") forms in the *original* source.
-        # join_adjacent_strings collapses '''...''' into a plain single-quoted
-        # literal, so _enclosing_sql_literal would not detect the triple-quote
-        # form from the joined text alone.
-        if orig_m is not None:
-            orig_boundary = _enclosing_sql_literal(text, orig_m.start(), orig_m.end())
-            if orig_boundary is None:
-                violations.append((_BOUNDARY_UNKNOWN, f"{rel}:{line_no}: {orig_line}"))
-                continue
+        # Before checking the joined text, detect raw (r'…') and triple-quoted
+        # ('''…''' or """…""") forms in the *original* source. join_adjacent_strings
+        # collapses '''…''' into a plain single-quoted literal, so
+        # _enclosing_sql_literal would not see the triple-quote prefix.
+        orig_m_start = orig_offset
+        orig_m_end = orig_at[m.end() - 1] + 1 if (m.end() - 1) < len(orig_at) else orig_offset + 1
+        orig_boundary = _enclosing_sql_literal(text, orig_m_start, orig_m_end)
+        if orig_boundary is None:
+            violations.append((_BOUNDARY_UNKNOWN, f"{rel}:{line_no}: {orig_line}"))
+            continue
 
         sql_literal = _enclosing_sql_literal(joined, m.start(), m.end())
         if sql_literal is not None and _DELETED_AT_FILTER_RE.search(sql_literal):
@@ -251,6 +299,11 @@ def check_file(path: Path, root: Path) -> list[tuple[str, str]]:
         kind = _BOUNDARY_UNKNOWN if sql_literal is None else _MISSING_FILTER
         violations.append((kind, f"{rel}:{line_no}: {orig_line}"))
     return violations
+
+
+# --------------------------------------------------------------------------
+# Entry point
+# --------------------------------------------------------------------------
 
 
 def main() -> int:

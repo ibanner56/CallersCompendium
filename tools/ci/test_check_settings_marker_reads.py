@@ -9,7 +9,7 @@ Pure-stdlib, assert-based (no pytest / no third-party deps, matching the rest of
 
 ## What is tested and why each case is necessary
 
-The ratchet has five independent failure modes, each caught by a specific
+The ratchet has six independent failure modes, each caught by a specific
 subset of cases:
 
 1. **Missing filter on a single-line read** — the straightforward case the
@@ -47,6 +47,13 @@ subset of cases:
    reported (or passed) correctly. (Discovered in review: the literal-scoping
    fix for finding 5 introduced a regression where double-quoted compliant reads
    failed to find the closing quote and were incorrectly flagged.)
+
+7. **Correct line numbers when SELECT and WHERE key span different literals** —
+   when ``SELECT … FROM settings`` is in one adjacent literal and ``WHERE key``
+   is in the next, the un-joined text has no single-line match. An earlier
+   implementation fell back to ``:0: (unknown)`` in that case. The offset map
+   returned by ``join_adjacent_strings`` must produce a real line number even
+   in this form. (Discovered in review round 4.)
 """
 
 from __future__ import annotations
@@ -85,42 +92,53 @@ def check(name: str, condition: bool, detail: str = "") -> None:
 def test_join_adjacent_strings() -> None:
     print("join_adjacent_strings:")
 
+    joined, _ = join_adjacent_strings("'foo' 'bar'")
     check(
         "single-line adjacent literals are joined",
-        join_adjacent_strings("'foo' 'bar'") == "'foo bar'",
+        joined == "'foo bar'",
     )
 
+    joined, _ = join_adjacent_strings("'foo '\n'bar'")
     check(
         "split across a newline",
-        "\n" not in join_adjacent_strings("'foo '\n'bar'")
-        and "FROM settings" in join_adjacent_strings(
-            "'SELECT 1 FROM settings WHERE key = ? '\n'AND deleted_at IS NULL'"
-        ),
+        "\n" not in joined,
         "the newline is removed so the two halves appear on one logical line",
     )
 
+    joined, _ = join_adjacent_strings(
+        "'SELECT 1 FROM settings WHERE key = ? '\n'AND deleted_at IS NULL'"
+    )
+    check(
+        "split SQL literal contains FROM settings after joining",
+        "FROM settings" in joined,
+    )
+
+    joined, _ = join_adjacent_strings(
+        "'SELECT 1 FROM settings WHERE key = ? '\n"
+        "'AND value_json = ? '\n"
+        "'AND deleted_at IS NULL'"
+    )
     check(
         "three adjacent literals are fully joined",
-        "SELECT" in join_adjacent_strings(
-            "'SELECT 1 FROM settings WHERE key = ? '\n"
-            "'AND value_json = ? '\n"
-            "'AND deleted_at IS NULL'"
-        ),
+        "SELECT" in joined,
     )
 
+    joined, _ = join_adjacent_strings("'a'; 'b'")
     check(
         "non-adjacent literals are not joined",
-        join_adjacent_strings("'a'; 'b'") == "'a'; 'b'",
+        joined == "'a'; 'b'",
     )
 
+    joined, _ = join_adjacent_strings('"foo" "bar"')
     check(
         "double-quoted adjacent literals are joined",
-        join_adjacent_strings('"foo" "bar"') == '"foo bar"',
+        joined == '"foo bar"',
     )
 
+    joined, _ = join_adjacent_strings('"foo "\n"bar"')
     check(
         "double-quoted split across a newline",
-        "\n" not in join_adjacent_strings('"foo "\n"bar"'),
+        "\n" not in joined,
         "double-quoted adjacent literals have their newline boundary collapsed",
     )
 
@@ -406,6 +424,56 @@ def test_fail_closed() -> None:
 
 
 # --------------------------------------------------------------------------
+# Line-number mapping — SELECT and WHERE key in different adjacent literals.
+# --------------------------------------------------------------------------
+
+
+def test_line_number_mapping() -> None:
+    """Violations in split-literal form report a real line number.
+
+    When ``SELECT … FROM settings`` and ``WHERE key`` are in different
+    adjacent Dart string literals, the un-joined original text has no
+    single-line pattern match. An earlier implementation indexed into
+    ``orig_matches`` (computed on the un-joined text) and fell off the end,
+    producing ``:0: (unknown)`` — correct detection but useless location.
+
+    The offset map returned by ``join_adjacent_strings`` must translate the
+    match position back to the original source line so CI annotations point
+    at the actual code.
+    """
+    print("line-number mapping for split-literal violations:")
+
+    src = (
+        "// line 1\n"
+        "await db.customSelect(\n"         # line 2
+        "  'SELECT 1 FROM settings '\n"    # line 3  ← expected reported line
+        "  'WHERE key = ?',\n"             # line 4
+        ").get();\n"                        # line 5
+    )
+    violations = _check(src)
+    check(
+        "split-literal violation is caught",
+        len(violations) == 1,
+        f"expected 1 violation, got {len(violations)}",
+    )
+    if violations:
+        _kind, loc = violations[0]
+        # Location must be "…:3: …" (the line with SELECT), not "…:0: …"
+        parts = loc.split(":")
+        reported_line = int(parts[1]) if len(parts) >= 2 and parts[1].isdigit() else 0
+        check(
+            "split-literal violation reports a real line number (not 0)",
+            reported_line != 0,
+            f"location was: {loc}",
+        )
+        check(
+            "split-literal violation reports the SELECT line (line 3)",
+            reported_line == 3,
+            f"expected line 3, got line {reported_line}; location was: {loc}",
+        )
+
+
+# --------------------------------------------------------------------------
 # Real-tree baseline — the production libraries must be clean.
 # --------------------------------------------------------------------------
 
@@ -436,6 +504,7 @@ def main() -> int:
     test_delete_exception()
     test_non_reads()
     test_fail_closed()
+    test_line_number_mapping()
     test_real_tree_is_clean()
     print()
     if FAILURES:

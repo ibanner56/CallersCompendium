@@ -103,6 +103,7 @@ and is intentionally correct) is excluded by name in the script rather than by
 narrowing the detection pattern.
 
 ### Architecture decisions
+Non-trivial, hard-to-reverse choices are recorded as ADRs in
 [docs/adr/](docs/adr/) using [the template](docs/adr/template.md). Propose one
 by opening a PR adding a `Proposed` ADR.
 
