@@ -188,7 +188,7 @@ design docs, roadmap status, and code comments.
   "and are absent from this map so they decline the whole line to custom."
   The sentence at
   `packages/compendium_core/lib/src/imports/callersbox_figure_dialect.dart`
-  around `:1606`, in the shared people-code map, read (before this was fixed):
+  around `:1606`, in the shared people-code map, used to read:
   "`P6`+ and every `P-n` are absent from this map and decline to custom."
   It is true in the first. In the second it was false (before this PR fixed it)
   for any decoder that only adds params — `_sideRunAnnotation` is one — because

@@ -1605,7 +1605,7 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   `fourthPartners`, `fifthPartners` respectively (see entries below).
 ///   `P6`+ and every `P-n` are absent from this map; the decoder that reads
 ///   them declines the run (see the bucket list above for what declining costs
-///   per decoder — it is not always custom).
+///   per decoder — custom for some, still-structures for others).
 /// - `N5`+, `N-1`, `N-2`, `S3`+, `S-n` — beyond the modelled neighbor/shadow
 ///   depth.
 /// - `Ph*` (phantoms), `TB*` (trail buddy), `SR*` (same-role), and bare `R`/`L`
