@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
@@ -9,7 +10,10 @@ import '../data/active_dialect_scope.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/collection_refresh_scope.dart';
 import '../data/formation_colors_scope.dart';
+import '../data/programs_refresh_scope.dart';
+import '../data/refresh_coalescer.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
@@ -152,6 +156,24 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
 
   static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
+  /// The app-level refresh notifiers (issue #768), if provided. This screen
+  /// renders two independently-mutable bodies of data: the dance itself, which
+  /// a batch edit in the Collection list can change while the wide layout's
+  /// detail pane is showing it (the pane is keyed on the *selection*, so it
+  /// never rebuilds for an edit); and the **Calling history** section, which is
+  /// derived from `ProgramSlot` data and so goes stale on every program-side
+  /// write — adding this dance to a program, marking a slot performed, deleting
+  /// a program. Before this it subscribed to neither.
+  ValueListenable<int>? _collectionRefresh;
+  ValueListenable<int>? _programsRefresh;
+
+  /// Collapses a collection bump and a programs bump from the same write into
+  /// one reload, so this screen — which composes the most queries of any — does
+  /// not load twice per mutation (issue #340).
+  late final RefreshCoalescer _refreshCoalescer = RefreshCoalescer(() {
+    if (mounted) _reload();
+  });
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -160,6 +182,21 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     if (_isPreview) {
       _future ??= Future.value(widget.previewData);
       return;
+    }
+    // Subscribe to the app-level refresh notifiers. Registers rebuild
+    // dependencies; both notifiers are stable across the app's lifetime, so
+    // these attach once.
+    final collectionRefresh = CollectionRefreshScope.maybeOf(context);
+    if (!identical(collectionRefresh, _collectionRefresh)) {
+      _collectionRefresh?.removeListener(_onExternalRefresh);
+      _collectionRefresh = collectionRefresh;
+      _collectionRefresh?.addListener(_onExternalRefresh);
+    }
+    final programsRefresh = ProgramsRefreshScope.maybeOf(context);
+    if (!identical(programsRefresh, _programsRefresh)) {
+      _programsRefresh?.removeListener(_onExternalRefresh);
+      _programsRefresh = programsRefresh;
+      _programsRefresh?.addListener(_onExternalRefresh);
     }
     final requirePerformed = RequirePerformedForHistoryScope.of(context);
     final trackAllCallers = TrackHistoryForAllCallersScope.of(context);
@@ -219,6 +256,20 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     });
   }
 
+  /// Reloads after a refresh broadcast. Ignored before the first load has been
+  /// scheduled: [_future] is `null` only until [didChangeDependencies] runs, and
+  /// reloading ahead of it would read `_repos` before it is assigned.
+  void _onExternalRefresh() {
+    if (mounted && _future != null) _refreshCoalescer.request();
+  }
+
+  @override
+  void dispose() {
+    _collectionRefresh?.removeListener(_onExternalRefresh);
+    _programsRefresh?.removeListener(_onExternalRefresh);
+    super.dispose();
+  }
+
   /// Human-readable difficulty label for the export card, combining the
   /// ordered [Dance.level] with the [Dance.mixedLevel] flag. Returns `null`
   /// when neither is set so the export omits the Level line.
@@ -252,7 +303,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         builder: (_) => DanceEditorScreen(danceId: widget.danceId!),
       ),
     );
-    if (mounted) _reload();
+    // The editor bumps CollectionRefreshScope on save, which reloads this
+    // screen through its subscription; reloading here as well would load twice
+    // for one edit (issue #340). Only reload directly when no scope is mounted
+    // (focused widget tests).
+    if (mounted && _collectionRefresh == null) _reload();
   }
 
   /// Opens another dance's detail from an auto cross-reference link in the
@@ -356,12 +411,22 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// Opens the shared "Add to program" sheet (`showAddToProgramSheet`) so this
   /// dance can be appended to an existing program or seed a new one. The flow
   /// (and its snackbars) is shared with the Collection list's row action menu.
-  Future<void> _addToProgram(String danceTitle) => showAddToProgramSheet(
-    context,
-    repositories: _repos,
-    danceId: widget.danceId!,
-    danceTitle: danceTitle,
-  );
+  ///
+  /// Awaited so the reload below runs after the sheet closes (issue #768,
+  /// gap 1: this was expression-bodied and returned the sheet's future without
+  /// awaiting or reloading, so the **Calling history** section above kept the
+  /// pre-add data). The sheet bumps `ProgramsRefreshScope` after writing, which
+  /// reloads this screen through its subscription; the direct reload is the
+  /// fallback for focused widget tests that mount no scope.
+  Future<void> _addToProgram(String danceTitle) async {
+    await showAddToProgramSheet(
+      context,
+      repositories: _repos,
+      danceId: widget.danceId!,
+      danceTitle: danceTitle,
+    );
+    if (mounted && _programsRefresh == null) _reload();
+  }
 
   // --- App-bar actions -------------------------------------------------------
   // The dance-detail bar carries seven affordances (dialect switch, Perform,
@@ -941,14 +1006,16 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// reloads. The reload is load-bearing: the summary can mark slots performed
   /// ("Mark all performed", or adjustments made while performing) and can
   /// delete the program outright, any of which changes the calling history
-  /// rendered above.
+  /// rendered above. Those writes bump `ProgramsRefreshScope`, so the reload
+  /// normally arrives through this screen's subscription; the direct call is
+  /// the fallback for focused widget tests that mount no scope.
   Future<void> _openProgram(String programId) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ProgramSummaryScreen(programId: programId),
       ),
     );
-    if (mounted) _reload();
+    if (mounted && _programsRefresh == null) _reload();
   }
 }
 

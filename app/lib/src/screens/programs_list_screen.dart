@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/programs_refresh_scope.dart';
 import '../data/repositories_scope.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
@@ -89,6 +90,21 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   ProgramSort _sort = ProgramSort.title;
   SortDirection _sortDir = ProgramSort.title.defaultDirection;
 
+  /// The app-level programs-refresh notifier (issue #768), if provided. Program
+  /// data is written from outside the Programs tab — the "add to program" sheet
+  /// on a Collection row, an archive or program import, a share-target bundle —
+  /// and this list is kept alive in an `IndexedStack`, so without this those
+  /// writes were invisible until the app restarted. Tracked so the listener is
+  /// swapped correctly.
+  ValueListenable<int>? _programsRefresh;
+
+  /// The revision this list published itself. A broadcast notifies every
+  /// subscriber including this one; where the list has already applied the
+  /// change locally (the optimistic row removal on delete, which deliberately
+  /// avoids a full reload) the echo is skipped so the mutation still costs one
+  /// render, not two (issue #340).
+  int? _selfBroadcastRevision;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -97,6 +113,12 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       _repos = RepositoriesScope.of(context);
       widget.refreshTrigger?.addListener(_onRefreshTriggered);
       _load();
+    }
+    final programsRefresh = ProgramsRefreshScope.maybeOf(context);
+    if (!identical(programsRefresh, _programsRefresh)) {
+      _programsRefresh?.removeListener(_onRefreshTriggered);
+      _programsRefresh = programsRefresh;
+      _programsRefresh?.addListener(_onRefreshTriggered);
     }
   }
 
@@ -110,12 +132,33 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   }
 
   void _onRefreshTriggered() {
+    final revision = _programsRefresh?.value;
+    if (revision != null && revision == _selfBroadcastRevision) return;
     if (mounted) _load();
+  }
+
+  /// Broadcasts "program data changed" so the views rendering program-derived
+  /// data elsewhere — the Collection's "called N times" badge, a dance detail
+  /// screen's calling history, a summary pane beside this list — reload.
+  ///
+  /// Reloading this list is the broadcast's job, not the caller's; a site that
+  /// does both loads twice for one mutation (issue #340). Pass
+  /// [alreadyApplied] when the list has updated itself optimistically, to skip
+  /// its own echo. Returns `false` when no scope is mounted (focused widget
+  /// tests), so the caller can fall back to reloading directly.
+  bool _broadcastProgramChange({bool alreadyApplied = false}) {
+    final revision = _programsRefresh;
+    if (revision is! ValueNotifier<int>) return false;
+    // Set before incrementing: listeners fire synchronously inside the setter.
+    if (alreadyApplied) _selfBroadcastRevision = revision.value + 1;
+    revision.value++;
+    return true;
   }
 
   @override
   void dispose() {
     widget.refreshTrigger?.removeListener(_onRefreshTriggered);
+    _programsRefresh?.removeListener(_onRefreshTriggered);
     super.dispose();
   }
 
@@ -184,7 +227,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     final result = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const ProgramEditorScreen()),
     );
-    if (mounted && result != null) await _load();
+    // The builder broadcasts its own save, which already reloaded this list
+    // (issue #768); reloading again here would load twice (issue #340).
+    if (mounted && result != null && _programsRefresh == null) await _load();
   }
 
   Future<void> _openProgram(String id) async {
@@ -195,14 +240,16 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     // Narrow (single-pane) mode: open the read-focused, Perform-first summary
     // rather than dropping the caller straight into the edit builder. Mirrors
     // the dance side's narrow list → [DanceDetailScreen] flow; Edit lives
-    // behind the summary. Always reload on return since the summary can mutate
-    // the program (edit / duplicate / delete / mark performed).
+    // behind the summary. Every way the summary can mutate the program (edit /
+    // duplicate / delete / mark performed) now broadcasts, so this list has
+    // already reloaded by the time the route pops; the direct reload is the
+    // fallback for focused tests that mount no scope (issue #768).
     await Navigator.of(context).push<String>(
       MaterialPageRoute<String>(
         builder: (_) => ProgramSummaryScreen(programId: id),
       ),
     );
-    if (mounted) await _load();
+    if (mounted && _programsRefresh == null) await _load();
   }
 
   Future<void> _openRecentlyDeleted() async {
@@ -220,7 +267,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     );
     if (!mounted) return;
     if (result != null) {
-      await _load();
+      // The import broadcasts its own commit, which already reloaded this list
+      // (issue #768); the direct reload is the unscoped fallback.
+      if (_programsRefresh == null) await _load();
       if (mounted) widget.onSelectProgram?.call(result);
     }
   }
@@ -233,7 +282,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     );
     if (!mounted) return;
     if (result != null) {
-      await _load();
+      // The import broadcasts its own commit, which already reloaded this list
+      // (issue #768); the direct reload is the unscoped fallback.
+      if (_programsRefresh == null) await _load();
       if (mounted) widget.onSelectProgram?.call(result);
     }
   }
@@ -243,6 +294,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     setState(() => _programs?.removeWhere((p) => p.id == program.id));
+    // The row is already gone from this list; the broadcast is for everything
+    // else that renders this program's slots (issue #768, gap 4).
+    _broadcastProgramChange(alreadyApplied: true);
     showUndoSnackBar(
       ScaffoldMessenger.of(context),
       key: const ValueKey('program-deleted-snackbar'),
@@ -251,7 +305,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.restore(program.id, at: DateTime.now().toUtc());
-        if (mounted) await _load();
+        if (!mounted) return;
+        if (!_broadcastProgramChange()) await _load();
       },
     );
   }
@@ -267,7 +322,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       newTitle: l10n.commonDuplicateTitleSuffix(program.title),
     );
     if (!mounted) return;
-    await _load();
+    if (!_broadcastProgramChange()) await _load();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

@@ -19,6 +19,8 @@ import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/online_search_labels.dart';
+import '../data/programs_refresh_scope.dart';
+import '../data/refresh_coalescer.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
@@ -216,6 +218,20 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// from Settings) bumps it. Tracked so listeners are swapped correctly.
   ValueListenable<int>? _collectionRefresh;
 
+  /// The app-level programs-refresh notifier (issue #768), if provided. The
+  /// rows' "called N times" badge is derived from `ProgramSlot` data, so a
+  /// program-side write — adding this dance to a program, marking a slot
+  /// performed, importing a program — leaves the badge stale unless this list
+  /// re-boots. Tracked so listeners are swapped correctly.
+  ValueListenable<int>? _programsRefresh;
+
+  /// Collapses a collection bump and a programs bump from the same write (a
+  /// shared-bundle import commits both) into one re-boot, so the fix for
+  /// issue #768 does not become the thrash issue #340 warns about.
+  late final RefreshCoalescer _refreshCoalescer = RefreshCoalescer(() {
+    if (mounted) _boot();
+  });
+
   /// The app-level tag-filter coordinator (issue #414). When a tag chip is
   /// tapped (here, on a dance detail, or on a list row), this list applies a
   /// single-tag filter. Tracked so the listener is swapped correctly.
@@ -323,6 +339,17 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _collectionRefresh?.addListener(_onRefreshTriggered);
     }
 
+    // Subscribe to the app-level programs-refresh notifier (issue #768). The
+    // "called N times" badge is program-derived, so a program-side write leaves
+    // it stale unless this list re-boots. Registers a rebuild dependency; the
+    // notifier is stable across the app's lifetime, so this attaches once.
+    final programsRefresh = ProgramsRefreshScope.maybeOf(context);
+    if (!identical(programsRefresh, _programsRefresh)) {
+      _programsRefresh?.removeListener(_onRefreshTriggered);
+      _programsRefresh = programsRefresh;
+      _programsRefresh?.addListener(_onRefreshTriggered);
+    }
+
     // Subscribe to the app-level tag-filter coordinator (issue #414). A tag tap
     // anywhere publishes a request; this list reacts by applying a single-tag
     // filter. Registers a rebuild dependency; the controller is stable across
@@ -357,7 +384,21 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   void _onRefreshTriggered() {
-    if (mounted) _boot();
+    if (mounted) _refreshCoalescer.request();
+  }
+
+  /// Broadcasts "dance data changed" after a mutation made from this list, so
+  /// the views rendering that dance elsewhere — notably the wide layout's
+  /// detail pane, which is keyed on the *selection* and so never rebuilds for
+  /// an edit (issue #768, gap 5) — reload too.
+  ///
+  /// Reloading this list is the broadcast's job, not the caller's: a site that
+  /// both broadcasts and re-boots would load twice for one mutation (issue
+  /// #340). Returns once the resulting re-boot has been requested; falls back
+  /// to a direct [_boot] in focused tests that mount no scope.
+  Future<void> _broadcastCollectionChange() async {
+    if (!mounted) return;
+    if (!CollectionRefreshScope.bump(context)) await _boot();
   }
 
   /// Reacts to an app-level "filter the Collection to this tag" request (issue
@@ -402,6 +443,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   void dispose() {
     widget.refreshTrigger?.removeListener(_onRefreshTriggered);
     _collectionRefresh?.removeListener(_onRefreshTriggered);
+    _programsRefresh?.removeListener(_onRefreshTriggered);
     _filterController?.removeListener(_onTagFilterRequested);
     _debounceTimer?.cancel();
     _ftsController.dispose();
@@ -976,7 +1018,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
 
     _exitSelectionMode();
-    await _boot();
+    await _broadcastCollectionChange();
     if (!mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
@@ -1010,7 +1052,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         dance.copyWith(tagIds: entry.value, updatedAt: DateTime.now().toUtc()),
       );
     }
-    if (mounted) await _boot();
+    if (mounted) await _broadcastCollectionChange();
   }
 
   /// Sets the difficulty level on the selected dances. Opens the level picker,
@@ -1061,7 +1103,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
 
     _exitSelectionMode();
-    await _boot();
+    await _broadcastCollectionChange();
     if (!mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
@@ -1099,7 +1141,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
-    if (mounted) await _boot();
+    if (mounted) await _broadcastCollectionChange();
   }
 
   /// Shared tail of the batch handlers: announces [message] to AT, exits
@@ -1121,7 +1163,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
 
     _exitSelectionMode();
-    await _boot();
+    await _broadcastCollectionChange();
     if (!mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
@@ -1197,7 +1239,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
-    if (mounted) await _boot();
+    if (mounted) await _broadcastCollectionChange();
   }
 
   /// Merges tunes into the selected dances (additive union) via the batched,
@@ -1308,7 +1350,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         dance.copyWith(tunes: entry.value, updatedAt: DateTime.now().toUtc()),
       );
     }
-    if (mounted) await _boot();
+    if (mounted) await _broadcastCollectionChange();
   }
 
   /// Sets or clears ONE custom field across the selected dances (upsert
@@ -1388,7 +1430,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
-    if (mounted) await _boot();
+    if (mounted) await _broadcastCollectionChange();
   }
 
   @override
@@ -2267,12 +2309,19 @@ class _DanceListScreenState extends State<DanceListScreen> {
       },
       onDuplicate: () => _duplicateFromList(entry.dance.id),
       onTagTap: _applyExternalTagFilter,
-      onAddToProgram: () => showAddToProgramSheet(
-        context,
-        repositories: _repos,
-        danceId: entry.dance.id,
-        danceTitle: entry.dance.title,
-      ),
+      // Awaited so the fallback reload below runs after the sheet closes. The
+      // sheet broadcasts the write, which re-boots this list (and refreshes the
+      // "called N times" badge) through the programs subscription; the direct
+      // re-boot is the unscoped-test fallback (issue #768, gap 2).
+      onAddToProgram: () async {
+        await showAddToProgramSheet(
+          context,
+          repositories: _repos,
+          danceId: entry.dance.id,
+          danceTitle: entry.dance.title,
+        );
+        if (mounted && _programsRefresh == null) await _boot();
+      },
       selectionMode: _selectionMode,
       selectedForBatch: _selectedIds.contains(entry.dance.id),
       onLongPress: _selectionMode

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_refresh_scope.dart';
+import '../data/programs_refresh_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/contradb_program_import.dart';
 import '../data/contradb_program_search.dart';
@@ -415,6 +416,11 @@ class _ContraDbProgramImportScreenState
     // Any linked activity imported its ContraDB dance (and author) into the
     // collection, so tell the live Collection view to reload (issue #340).
     if (linked > 0) CollectionRefreshScope.bump(context);
+    // The program itself is new, so every program view is stale — including on
+    // a phone, where the Programs list had no refresh channel at all before
+    // issue #768. Undo hard-deletes it again, so that broadcasts too.
+    final programsRefresh = ProgramsRefreshScope.notifierOf(context);
+    programsRefresh?.value++;
     showUndoSnackBar(
       messenger,
       key: const ValueKey('contradb-program-committed-snackbar'),
@@ -426,7 +432,10 @@ class _ContraDbProgramImportScreenState
       ),
       undoLabel: l10n.commonUndo,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
-      onUndo: () => _repos.programs.hardDelete([id]),
+      onUndo: () async {
+        await _repos.programs.hardDelete([id]);
+        programsRefresh?.value++;
+      },
     );
     navigator.pop(id);
   }

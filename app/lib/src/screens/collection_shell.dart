@@ -473,6 +473,10 @@ class _CollectionShellState extends State<CollectionShell> {
       return DanceDetailScreen(
         // Keyed on the dance id so the screen fully resets when the
         // selection changes (fresh FutureBuilder, clean _canonicalView).
+        // Note the key changes only with the *selection*: an edit to the dance
+        // already shown does not re-create this pane, which is why the pane
+        // subscribes to `CollectionRefreshScope` itself and the list's batch
+        // handlers broadcast rather than reloading only themselves (#768).
         key: ValueKey('detail-$selectedId'),
         danceId: selectedId,
         onDeleted: _onDetailDeleted,

@@ -3,7 +3,10 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/collection_refresh_scope.dart';
 import '../data/date_format_scope.dart';
+import '../data/programs_refresh_scope.dart';
+import '../data/refresh_coalescer.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/app_theme_scope.dart';
@@ -164,6 +167,18 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// [ProgramEditorScreen]'s `_performRenderer`).
   static final FigureRenderer _performRenderer = FigureRenderer(contraTaxonomy);
 
+  /// The app-level refresh notifiers (issue #768), if provided. Tracked so the
+  /// listeners are swapped correctly.
+  ValueListenable<int>? _collectionRefresh;
+  ValueListenable<int>? _programsRefresh;
+
+  /// Collapses the two bumps a dance+program write emits into one reload; this
+  /// pane's [_load] pulls the whole collection, so loading twice is expensive
+  /// as well as wrong (issue #340).
+  late final RefreshCoalescer _refreshCoalescer = RefreshCoalescer(() {
+    if (mounted) _load();
+  });
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -178,15 +193,40 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       widget.refreshTrigger.addListener(_onRefresh);
       _load();
     }
+    // Subscribe to both app-level refresh channels (issue #768). This pane
+    // renders program data *and* dance fields — `dance?.level`, the slot titles
+    // — so it goes stale from either side: a dance edited from the row this
+    // pane pushed (gap 7), or a program written anywhere else (gap 6). Both
+    // notifiers are stable across the app's lifetime, so these attach once.
+    final collectionRefresh = CollectionRefreshScope.maybeOf(context);
+    if (!identical(collectionRefresh, _collectionRefresh)) {
+      _collectionRefresh?.removeListener(_onRefresh);
+      _collectionRefresh = collectionRefresh;
+      _collectionRefresh?.addListener(_onRefresh);
+    }
+    final programsRefresh = ProgramsRefreshScope.maybeOf(context);
+    if (!identical(programsRefresh, _programsRefresh)) {
+      _programsRefresh?.removeListener(_onRefresh);
+      _programsRefresh = programsRefresh;
+      _programsRefresh?.addListener(_onRefresh);
+    }
   }
 
   void _onRefresh() {
-    if (mounted) _load();
+    if (mounted) _refreshCoalescer.request();
   }
+
+  /// Broadcasts "program data changed" so every view rendering this program's
+  /// slots reloads — this pane among them, which is why the caller must not
+  /// also call [_load] (issue #340). Returns `false` when no scope is mounted,
+  /// so the caller can fall back to its own reload plus [onProgramMutated].
+  bool _broadcastProgramChange() => ProgramsRefreshScope.bump(context);
 
   @override
   void dispose() {
     widget.refreshTrigger.removeListener(_onRefresh);
+    _collectionRefresh?.removeListener(_onRefresh);
+    _programsRefresh?.removeListener(_onRefresh);
     super.dispose();
   }
 
@@ -274,6 +314,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(l10n.programsDuplicatedSnack(copy.title))),
     );
+    // The copy carries the same dance slots, so every derived count moved.
+    _broadcastProgramChange();
     widget.onNavigateTo(copy.id);
   }
 
@@ -291,9 +333,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       message: l10n.programsDeletedSnack(source.title),
       undoLabel: l10n.commonUndo,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
-      onUndo: () =>
-          _repos.programs.restore(source.id, at: DateTime.now().toUtc()),
+      onUndo: () async {
+        await _repos.programs.restore(source.id, at: DateTime.now().toUtc());
+        if (mounted) _broadcastProgramChange();
+      },
     );
+    _broadcastProgramChange();
     widget.onDeleted();
   }
 
@@ -325,8 +370,15 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           onProgramChanged: (updated) async {
             await _repos.programs.update(updated);
             if (!mounted) return;
-            _load();
-            widget.onProgramMutated?.call();
+            // The broadcast reloads this pane and every other view of these
+            // slots — the coexisting program list, the Collection's "called N
+            // times" badge, a mounted dance detail's calling history. Doing it
+            // *and* the two local refreshes below would load this pane twice
+            // (issue #340), so the local path is the unscoped fallback only.
+            if (!_broadcastProgramChange()) {
+              _load();
+              widget.onProgramMutated?.call();
+            }
           },
         ),
       ),
@@ -532,10 +584,16 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         content: Text(AppLocalizations.of(context).programsMarkedAllPerformed),
       ),
     );
-    _load();
-    // On the wide split-pane, refresh the coexisting list too (this bumps
-    // `updatedAt`, affecting the "recently updated" sort order).
-    widget.onProgramMutated?.call();
+    // Mark-all-performed is exactly the write that made the Collection's
+    // "called N times" badge stale (issue #768, gap 3), so this broadcasts
+    // rather than refreshing only the Programs side. The local refreshes are
+    // the unscoped fallback; running both would load this pane twice.
+    if (!_broadcastProgramChange()) {
+      _load();
+      // On the wide split-pane, refresh the coexisting list too (this bumps
+      // `updatedAt`, affecting the "recently updated" sort order).
+      widget.onProgramMutated?.call();
+    }
   }
 
   /// Builds the read-only, ordered set list. Primaries are numbered 1..n and

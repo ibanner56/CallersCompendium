@@ -248,6 +248,18 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Changes you make in one place now show up everywhere, without restarting the
+  app.** Editing a dance, adding it to a program, marking slots performed,
+  creating or deleting a program, or importing one all used to leave every
+  *other* open view showing the data as it was before. So a dance's **called N
+  times** badge stayed put after you added it to a program; its **Calling
+  history** ignored the program you had just added it to; a program you were
+  looking at kept showing a dance's old difficulty level after you edited it;
+  and a program arriving through a shared `.ccshare` file did not appear in the
+  Programs list at all until the app was relaunched. Every one of those writes
+  now tells the views that render the data to refresh, and each view refreshes
+  once per change rather than once per edited dance (#768, #851).
+
 - **Skipping every dance in a shared import no longer disables Import when the
   bundle carries a program.** Previously, if you already owned every dance in a
   shared bundle and set them all to Skip, the Import button went grey — making
