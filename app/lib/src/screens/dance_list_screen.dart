@@ -244,6 +244,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
   String? _countsCallerFilter;
   bool _countsSubscribed = false;
 
+  /// The most recent tallies that arrived while [_data] was still null, held so
+  /// [_boot] can apply them once the snapshot exists.
+  ///
+  /// Dropping them instead would leave a real gap: [CollectionData.load] reads
+  /// the tallies partway through its own sequence, so a program-side write that
+  /// lands after that read but before `_data` is assigned is in neither the
+  /// snapshot nor any emit this screen kept — and since the stream only speaks
+  /// again on the *next* write, the badge would stay stale until one happened.
+  ProgramDerivedCounts? _countsPendingFirstLoad;
+
   /// The app-level tag-filter coordinator (issue #414). When a tag chip is
   /// tapped (here, on a dance detail, or on a list row), this list applies a
   /// single-tag filter. Tracked so the listener is swapped correctly.
@@ -467,19 +477,34 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _repos.settings,
         trackAllCallers: _trackHistoryForAllCallers,
       );
-      // Subscribe BEFORE the load, so a write landing between the two is not
-      // missed: the load then reads a database at least as new as anything the
-      // stream emitted while `_data` was still null.
-      _watchProgramDerivedCounts(callerFilter);
       final data = await CollectionData.load(
         _repos,
         callerFilter: callerFilter,
       );
       if (!mounted) return;
+      // Anything the stream delivered while `_data` was null is newer than this
+      // snapshot, so it wins. That can only happen on a retry (which clears
+      // `_data` under a live subscription), and only for a post-write emit —
+      // never for an out-of-date first value, because the subscription is
+      // opened *after* the snapshot below.
+      final pending = _countsPendingFirstLoad;
+      _countsPendingFirstLoad = null;
       setState(() {
-        _data = data;
+        _data = pending == null
+            ? data
+            : data.copyWithProgramDerived(
+                lastCalled: pending.lastCalled,
+                callCounts: pending.callCounts,
+              );
         _loadError = null;
       });
+      // Subscribe AFTER the snapshot, so the stream's first emit reads a
+      // database at least as new as the one just loaded and therefore
+      // supersedes it. Subscribing first would invert that: the first emit is
+      // read *before* the load's own tallies query, so applying it afterwards
+      // would put back values the snapshot had already moved past.
+      _watchProgramDerivedCounts(callerFilter);
+
       await _seedDefaultSort();
       await _runSearch();
     } catch (error) {
@@ -516,9 +541,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// values can actually change.
   void _onProgramDerivedCounts(ProgramDerivedCounts counts) {
     final data = _data;
-    // Before the first load completes there is nothing to update; `_boot`'s own
-    // read covers that window (see the subscribe-before-load note there).
-    if (data == null) return;
+    // Before the first load completes there is no snapshot to update yet, so
+    // hold the value for `_boot` to apply rather than discarding it.
+    if (data == null) {
+      _countsPendingFirstLoad = counts;
+      return;
+    }
     if (mapEquals(data.callCounts, counts.callCounts) &&
         mapEquals(data.lastCalled, counts.lastCalled)) {
       return;

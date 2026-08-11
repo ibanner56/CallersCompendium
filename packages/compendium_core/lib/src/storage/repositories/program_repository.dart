@@ -499,7 +499,7 @@ class ProgramRepository {
 
   /// The tables every derived calling-history / counts query below reads, and
   /// therefore the `readsFrom` set their streams declare. Stated once so the
-  /// three queries cannot drift apart, and justified per table:
+  /// queries cannot drift apart, and justified per table:
   ///
   /// * `program_slots` — the history rows themselves (`dance_id`,
   ///   `performed_at`), the `COUNT(*)` / `COUNT(performed_at)` tallies, and the
@@ -530,30 +530,9 @@ class ProgramRepository {
   /// by that host caller (see [callingHistoryForDance]; issue #583).
   Future<Map<String, DateTime>> lastCalledByDance({
     String? callerFilter,
-  }) async => _lastCalledRows(
+  }) async => _programDerivedRows(
     _normalizedCallerFilter(callerFilter),
   ).get().then(_lastCalledFromRows);
-
-  /// The query behind [lastCalledByDance]. Shared by the one-shot read and the
-  /// stream so the two can never diverge; [caller] is already normalized.
-  Selectable<QueryRow> _lastCalledRows(String? caller) => _db.customSelect(
-    'SELECT program_slots.dance_id AS dance_id, '
-    'MAX(program_slots.performed_at) AS last_called '
-    'FROM program_slots '
-    'JOIN programs ON programs.id = program_slots.program_id '
-    'WHERE program_slots.dance_id IS NOT NULL '
-    'AND program_slots.performed_at IS NOT NULL '
-    'AND programs.deleted_at IS NULL '
-    '${_callerClause(caller)}'
-    'GROUP BY program_slots.dance_id',
-    variables: _callerVariables(caller),
-    readsFrom: _programDerivedTables,
-  );
-
-  Map<String, DateTime> _lastCalledFromRows(List<QueryRow> rows) => {
-    for (final row in rows)
-      row.read<String>('dance_id'): asUtc(row.read<DateTime>('last_called')),
-  };
 
   /// Maps dance id → its [DanceCallCounts] across every slot of every
   /// non-deleted program, for dances that have been called at least once (a
@@ -571,16 +550,31 @@ class ProgramRepository {
   /// [callingHistoryForDance].
   Future<Map<String, DanceCallCounts>> countByDance({
     String? callerFilter,
-  }) async => _countRows(
+  }) async => _programDerivedRows(
     _normalizedCallerFilter(callerFilter),
   ).get().then(_countsFromRows);
 
-  /// The query behind [countByDance]. Shared by the one-shot read and the
-  /// stream so the two can never diverge; [caller] is already normalized.
-  Selectable<QueryRow> _countRows(String? caller) => _db.customSelect(
+  /// The ONE query behind [lastCalledByDance], [countByDance] and
+  /// [watchProgramDerivedCounts]. [caller] is already normalized.
+  ///
+  /// The two tallies and the last-called timestamp are aggregated together
+  /// rather than by two queries, for two reasons. Sharing the query is what
+  /// stops the one-shot reads and the stream from ever disagreeing about which
+  /// slots count. And computing them in one statement is what makes each emit
+  /// of [watchProgramDerivedCounts] an internally consistent snapshot: taking
+  /// `MAX(performed_at)` in a second read could observe a write that landed
+  /// after the counts were read, so one emit would carry tallies from one
+  /// revision and a last-called stamp from the next.
+  ///
+  /// `MAX(performed_at)` ignores NULLs, so no `performed_at IS NOT NULL` filter
+  /// is needed to reproduce [lastCalledByDance]'s result: a dance whose slots
+  /// were all unperformed aggregates to NULL and [_lastCalledFromRows] simply
+  /// omits it, which is what the narrower query did by excluding the rows.
+  Selectable<QueryRow> _programDerivedRows(String? caller) => _db.customSelect(
     'SELECT program_slots.dance_id AS dance_id, '
     'COUNT(*) AS all_count, '
-    'COUNT(program_slots.performed_at) AS performed_count '
+    'COUNT(program_slots.performed_at) AS performed_count, '
+    'MAX(program_slots.performed_at) AS last_called '
     'FROM program_slots '
     'JOIN programs ON programs.id = program_slots.program_id '
     'WHERE program_slots.dance_id IS NOT NULL '
@@ -591,6 +585,15 @@ class ProgramRepository {
     readsFrom: _programDerivedTables,
   );
 
+  /// Dances with at least one performed slot, mapped to their most recent one.
+  /// A NULL `last_called` means every slot for that dance is unperformed, so
+  /// the dance is absent from the map rather than present with a null value.
+  Map<String, DateTime> _lastCalledFromRows(List<QueryRow> rows) => {
+    for (final row in rows)
+      if (row.read<DateTime?>('last_called') case final lastCalled?)
+        row.read<String>('dance_id'): asUtc(lastCalled),
+  };
+
   Map<String, DanceCallCounts> _countsFromRows(List<QueryRow> rows) => {
     for (final row in rows)
       row.read<String>('dance_id'): DanceCallCounts(
@@ -599,26 +602,43 @@ class ProgramRepository {
       ),
   };
 
+  /// [countByDance] and [lastCalledByDance] in one read — the one-shot sibling
+  /// of [watchProgramDerivedCounts], and what a caller that needs both should
+  /// use.
+  ///
+  /// The two share a query (see [_programDerivedRows]), so asking for them
+  /// separately runs it twice and, between the two runs, a write can land: the
+  /// snapshot then pairs tallies from one revision with a last-called stamp
+  /// from the next.
+  Future<ProgramDerivedCounts> programDerivedCounts({
+    String? callerFilter,
+  }) async {
+    final rows = await _programDerivedRows(
+      _normalizedCallerFilter(callerFilter),
+    ).get();
+    return ProgramDerivedCounts(
+      lastCalled: _lastCalledFromRows(rows),
+      callCounts: _countsFromRows(rows),
+    );
+  }
+
   /// Reactive [countByDance] + [lastCalledByDance]: emits the current tallies
   /// immediately, then again whenever a write changes them.
   ///
   /// The Collection list renders both — the "called ×N" badge and the
   /// last-called sort/subtitle — so they are emitted as one
-  /// [ProgramDerivedCounts] value from one stream. See
-  /// [watchCallingHistoryForDance] for the pattern this follows, including why
-  /// [lastCalledByDance] is allowed to ride this stream (its read set is
-  /// exactly [_programDerivedTables], the set declared here).
+  /// [ProgramDerivedCounts] value, read from one query, so an emit can never
+  /// pair tallies from one revision with a last-called stamp from another (see
+  /// [_programDerivedRows]). [watchCallingHistoryForDance] states the pattern
+  /// both streams follow.
   Stream<ProgramDerivedCounts> watchProgramDerivedCounts({
     String? callerFilter,
-  }) {
-    final caller = _normalizedCallerFilter(callerFilter);
-    return _countRows(caller).watch().asyncMap(
-      (List<QueryRow> rows) async => ProgramDerivedCounts(
-        lastCalled: _lastCalledFromRows(await _lastCalledRows(caller).get()),
-        callCounts: _countsFromRows(rows),
-      ),
-    );
-  }
+  }) => _programDerivedRows(_normalizedCallerFilter(callerFilter)).watch().map(
+    (rows) => ProgramDerivedCounts(
+      lastCalled: _lastCalledFromRows(rows),
+      callCounts: _countsFromRows(rows),
+    ),
+  );
 
   /// The calling history for the dance identified by [danceId]: the programs
   /// that include the dance (a slot referencing it) on a non-deleted program,

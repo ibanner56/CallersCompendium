@@ -334,6 +334,93 @@ void main() {
       },
     );
 
+    test('each emit is one consistent snapshot: tallies and last-called move '
+        'together', () async {
+      await programs.create(
+        program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      final probe = _Probe(programs.watchProgramDerivedCounts());
+      addTearDown(probe.cancel);
+      final first = await probe.next();
+      expect(first.callCounts['d1']?.performed, 0);
+      expect(first.lastCalled, isNot(contains('d1')));
+
+      // Marking the slot performed changes BOTH halves of the value. They
+      // come from one query, so no emit can carry the new tally beside the
+      // old timestamp (or the reverse) — which a second, separately-timed
+      // read could produce.
+      await programs.update(
+        program(
+          id: 'p1',
+          updatedAt: DateTime.utc(2026, 2),
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 2),
+            ),
+          ],
+        ),
+      );
+
+      final after = await probe.next();
+      expect(after.callCounts['d1']?.performed, 1);
+      expect(after.lastCalled['d1'], DateTime.utc(2026, 2));
+    });
+
+    test('agrees with the one-shot reads it shares a query with', () async {
+      await programs.create(
+        program(
+          id: 'p1',
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 2),
+            ),
+            ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+          ],
+        ),
+      );
+      final probe = _Probe(programs.watchProgramDerivedCounts());
+      addTearDown(probe.cancel);
+
+      final emitted = await probe.next();
+      expect(emitted.callCounts, await programs.countByDance());
+      expect(emitted.lastCalled, await programs.lastCalledByDance());
+      // d2 has been called but never performed, so it carries a tally and no
+      // last-called stamp — the case the shared query has to get right, since
+      // `MAX(performed_at)` returns NULL rather than dropping the row.
+      expect(emitted.callCounts['d2']?.all, 1);
+      expect(emitted.lastCalled, isNot(contains('d2')));
+    });
+
+    test('the one-shot sibling reads the same query, once', () async {
+      await programs.create(
+        program(
+          id: 'p1',
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 2),
+            ),
+            ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+          ],
+        ),
+      );
+
+      final both = await programs.programDerivedCounts();
+      expect(both.callCounts, await programs.countByDance());
+      expect(both.lastCalled, await programs.lastCalledByDance());
+    });
+
     test('issue #340: one write produces exactly one emit', () async {
       await programs.create(
         program(

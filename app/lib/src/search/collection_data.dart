@@ -104,12 +104,13 @@ class CollectionData {
     final tags = await repos.tags.listAll();
     final defs = await repos.customFieldDefs.listAll();
     final publishedSources = await repos.publishedSources.listAll();
-    final lastCalled = await repos.programs.lastCalledByDance(
+    // One read for both: they come from the same query, so asking separately
+    // would run it twice and could straddle a write (issue #768).
+    final programCounts = await repos.programs.programDerivedCounts(
       callerFilter: callerFilter,
     );
-    final callCounts = await repos.programs.countByDance(
-      callerFilter: callerFilter,
-    );
+    final lastCalled = programCounts.lastCalled;
+    final callCounts = programCounts.callCounts;
 
     final dancesById = {for (final d in dances) d.id: d};
     final choreographersById = {for (final c in choreographers) c.id: c};

@@ -1,5 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -34,7 +34,7 @@ import 'support/test_repositories.dart';
 /// alive at once, one of them mutating data the other renders — exactly the
 /// `IndexedStack`-kept-alive tab and the split pane the issue describes.
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  drift.driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   final now = DateTime.utc(2026, 1, 1);
 
