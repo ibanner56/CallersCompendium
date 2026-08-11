@@ -11,10 +11,10 @@ import 'package:compendium_app/src/screens/contradb_program_import_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
+import 'support/test_repositories.dart';
 
 /// A [WindowService] whose restore does nothing (no real window under test).
 class _NoopWindowService extends WindowService {
@@ -83,14 +83,7 @@ String _validBundleJson() => encodeArchive(
 );
 
 AppData _openAppData() {
-  final appData = AppData(
-    CompendiumDatabase(
-      NativeDatabase.memory(),
-      // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
-      // under fake_async, which fails on drift's stream-close timer.
-      closeStreamsSynchronously: true,
-    ),
-  );
+  final appData = AppData(openWidgetTestDatabase());
   addTearDown(appData.close);
   return appData;
 }

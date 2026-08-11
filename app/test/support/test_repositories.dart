@@ -1,20 +1,33 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show QueryExecutor;
 import 'package:drift/native.dart';
+
+/// An in-memory [CompendiumDatabase] for widget tests.
+///
+/// Always use this rather than constructing one inline: it sets
+/// [CompendiumDatabase.closeStreamsSynchronously], without which any test that
+/// unmounts a screen holding a reactive read (issue #768) fails with "Pending
+/// timers" — `flutter_test` runs under `fake_async` and drift schedules a
+/// zero-duration timer to hold a query stream's cache for one event loop after
+/// its last listener detaches. That failure surfaces in tests which never
+/// mention streams themselves, because they merely mount a shell containing a
+/// converted screen, so the fix belongs here once rather than in each of them.
+///
+/// Pass [executor] to wrap a non-default one (e.g. `NativeDatabase.memory()`
+/// with an interceptor).
+CompendiumDatabase openWidgetTestDatabase([QueryExecutor? executor]) =>
+    CompendiumDatabase(
+      executor ?? NativeDatabase.memory(),
+      closeStreamsSynchronously: true,
+    );
 
 /// An in-memory [CompendiumRepositories] for widget tests. Each call opens a
 /// fresh, isolated database (no shared state between tests), mirroring
 /// `packages/compendium_core/test/storage/test_database.dart`.
-CompendiumRepositories openTestRepositories() => CompendiumRepositories(
-  CompendiumDatabase(
-    NativeDatabase.memory(),
-    // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
-    // under fake_async, which fails on drift's stream-close timer.
-    closeStreamsSynchronously: true,
-  ),
-  contraTaxonomy,
-);
+CompendiumRepositories openTestRepositories() =>
+    CompendiumRepositories(openWidgetTestDatabase(), contraTaxonomy);
 
 /// A [SettingsRepository] that can be forced to fail its writes, used to
 /// simulate the settings store throwing / being unavailable during a backup
@@ -50,12 +63,7 @@ class InjectedSettingsFailure implements Exception {
 /// settings-apply step fails.
 ({CompendiumRepositories repos, FailingSettingsRepository settings})
 openTestRepositoriesWithFailingSettings() {
-  final db = CompendiumDatabase(
-    NativeDatabase.memory(),
-    // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
-    // under fake_async, which fails on drift's stream-close timer.
-    closeStreamsSynchronously: true,
-  );
+  final db = openWidgetTestDatabase();
   final settings = FailingSettingsRepository(db);
   final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
   return (repos: repos, settings: settings);
@@ -127,12 +135,7 @@ class DelayedSettingsRepository extends SettingsRepository {
 /// cleanup.
 ({CompendiumRepositories repos, DelayedSettingsRepository settings})
 openTestRepositoriesWithDelayedSettings() {
-  final db = CompendiumDatabase(
-    NativeDatabase.memory(),
-    // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
-    // under fake_async, which fails on drift's stream-close timer.
-    closeStreamsSynchronously: true,
-  );
+  final db = openWidgetTestDatabase();
   final settings = DelayedSettingsRepository(db);
   final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
   return (repos: repos, settings: settings);

@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
@@ -14,6 +13,8 @@ import 'package:compendium_app/src/data/window_service.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart'
     show kAppThemeKey;
+
+import 'support/test_repositories.dart';
 
 /// A [WindowService] whose restore does nothing — the plugin glue is untestable
 /// under `flutter test` (no real window), and these tests only care about the
@@ -79,14 +80,7 @@ class _FailOnceMigrationAppData extends AppData {
 }
 
 AppData _openAppData() {
-  final appData = AppData(
-    CompendiumDatabase(
-      NativeDatabase.memory(),
-      // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
-      // under fake_async, which fails on drift's stream-close timer.
-      closeStreamsSynchronously: true,
-    ),
-  );
+  final appData = AppData(openWidgetTestDatabase());
   // The database is also closed by CompendiumApp.dispose(); sqlite3's close is
   // idempotent, so this teardown just guarantees cleanup even for the last test
   // in the file (whose widget tree is never unmounted).
@@ -199,12 +193,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final db = CompendiumDatabase(
-        NativeDatabase.memory(),
-        // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
-        // under fake_async, which fails on drift's stream-close timer.
-        closeStreamsSynchronously: true,
-      );
+      final db = openWidgetTestDatabase();
       final appData = _FailOnceMigrationAppData(db);
       addTearDown(appData.close);
 

@@ -7,7 +7,6 @@ import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -619,14 +618,7 @@ void main() {
   group('no title lookup for a review with no rows (review of #842)', () {
     testWidgets('a paste with nothing importable does not load the '
         'collection\'s titles', (tester) async {
-      final repos = _CountingRepositories(
-        CompendiumDatabase(
-          NativeDatabase.memory(),
-          // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
-          // under fake_async, which fails on drift's stream-close timer.
-          closeStreamsSynchronously: true,
-        ),
-      );
+      final repos = _CountingRepositories(openWidgetTestDatabase());
       await repos.dances.create(_localDance(id: 'd1', title: 'Fiddleheads'));
       final service = _FakeOnline(rowsByTitle: const {'ghost dance': []});
       await _pump(tester, repos, service: service);

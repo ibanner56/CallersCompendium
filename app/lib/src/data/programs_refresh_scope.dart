@@ -6,10 +6,14 @@ import 'package:flutter/widgets.dart';
 /// The Programs counterpart to `CollectionRefreshScope`. The two are separate
 /// channels on purpose: a view subscribes to the data it actually renders, so a
 /// dance edit does not re-boot the Programs list and a slot change does not
-/// re-boot views that show no program-derived data. Program-derived data does
-/// reach the Collection — the "called N times" badge and the dance detail
-/// screen's calling history are both computed from `ProgramSlot` — so those two
-/// views subscribe here as well as to the collection channel.
+/// re-boot views that show no program-derived data.
+///
+/// The two Collection-side views that render program-derived data — the
+/// "called ×N" badge and the dance detail screen's calling history — used to
+/// subscribe here as well, and no longer do: both now watch `program_slots` /
+/// `programs` through drift streams instead (issue #768), which is why their
+/// mutation sites no longer have to remember this channel. This scope stays for
+/// the Programs-side views that are not yet converted.
 ///
 /// Bumped by every screen that writes a program or its slots: the builder's
 /// explicit save/duplicate/delete, the summary's mark-all-performed and

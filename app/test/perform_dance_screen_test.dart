@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -730,76 +729,72 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets('a toggle before the persisted load resolves wins (no clobber)', (
-      tester,
-    ) async {
-      final handle = tester.ensureSemantics();
-      // Dispose inside the body (not addTearDown): flutter_test's
-      // end-of-test semantics-handle check runs *before* tearDown callbacks,
-      // so a deferred dispose would trip "SemanticsHandle was active". The
-      // try/finally still releases it if an expect() throws early.
-      try {
-        await tester.binding.setSurfaceSize(const Size(1400, 2400));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
+    testWidgets(
+      'a toggle before the persisted load resolves wins (no clobber)',
+      (tester) async {
+        final handle = tester.ensureSemantics();
+        // Dispose inside the body (not addTearDown): flutter_test's
+        // end-of-test semantics-handle check runs *before* tearDown callbacks,
+        // so a deferred dispose would trip "SemanticsHandle was active". The
+        // try/finally still releases it if an expect() throws early.
+        try {
+          await tester.binding.setSurfaceSize(const Size(1400, 2400));
+          addTearDown(() => tester.binding.setSurfaceSize(null));
 
-        // Persisted value is ON, but the read is gated so it stays in-flight
-        // while the user acts.
-        final gate = Completer<void>();
-        final db = CompendiumDatabase(
-          NativeDatabase.memory(),
-          // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
-          // under fake_async, which fails on drift's stream-close timer.
-          closeStreamsSynchronously: true,
-        );
-        addTearDown(db.close);
-        final repos = CompendiumRepositories(
-          db,
-          contraTaxonomy,
-          settings: _GatedSettings(db, gate: gate, persistedValue: true),
-        );
-        final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
-        addTearDown(notifier.dispose);
+          // Persisted value is ON, but the read is gated so it stays in-flight
+          // while the user acts.
+          final gate = Completer<void>();
+          final db = openWidgetTestDatabase();
+          addTearDown(db.close);
+          final repos = CompendiumRepositories(
+            db,
+            contraTaxonomy,
+            settings: _GatedSettings(db, gate: gate, persistedValue: true),
+          );
+          final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+          addTearDown(notifier.dispose);
 
-        await tester.pumpWidget(
-          MaterialApp(
-            localizationsDelegates: testLocalizationsDelegates,
-            supportedLocales: testSupportedLocales,
-            builder: (context, child) => RepositoriesScope(
-              repositories: repos,
-              child: ActiveDialectScope(notifier: notifier, child: child!),
+          await tester.pumpWidget(
+            MaterialApp(
+              localizationsDelegates: testLocalizationsDelegates,
+              supportedLocales: testSupportedLocales,
+              builder: (context, child) => RepositoriesScope(
+                repositories: repos,
+                child: ActiveDialectScope(notifier: notifier, child: child!),
+              ),
+              home: PerformDanceScreen(
+                dance: _dance(figures: [_chain()]),
+                renderer: _renderer,
+              ),
             ),
-            home: PerformDanceScreen(
-              dance: _dance(figures: [_chain()]),
-              renderer: _renderer,
-            ),
-          ),
-        );
-        // One frame: the screen is up and its settings read is pending on the
-        // gate; auto-size shows its on-by-default state.
-        await tester.pump();
+          );
+          // One frame: the screen is up and its settings read is pending on the
+          // gate; auto-size shows its on-by-default state.
+          await tester.pump();
 
-        final toggle = find.byKey(const ValueKey('perform-autosize-toggle'));
-        await tester.tap(toggle);
-        await tester.pump();
-        expect(
-          tester.getSemantics(toggle),
-          isSemantics(isToggled: false),
-          reason: 'user turned auto-size off before the load resolved',
-        );
+          final toggle = find.byKey(const ValueKey('perform-autosize-toggle'));
+          await tester.tap(toggle);
+          await tester.pump();
+          expect(
+            tester.getSemantics(toggle),
+            isSemantics(isToggled: false),
+            reason: 'user turned auto-size off before the load resolved',
+          );
 
-        // Now let the persisted (on) value arrive late. The guard must keep
-        // the user's off choice rather than clobbering it back on.
-        gate.complete();
-        await tester.pumpAndSettle();
-        expect(
-          tester.getSemantics(toggle),
-          isSemantics(isToggled: false),
-          reason: 'a late persisted load must not override an in-view action',
-        );
-      } finally {
-        handle.dispose();
-      }
-    });
+          // Now let the persisted (on) value arrive late. The guard must keep
+          // the user's off choice rather than clobbering it back on.
+          gate.complete();
+          await tester.pumpAndSettle();
+          expect(
+            tester.getSemantics(toggle),
+            isSemantics(isToggled: false),
+            reason: 'a late persisted load must not override an in-view action',
+          );
+        } finally {
+          handle.dispose();
+        }
+      },
+    );
 
     testWidgets('the tap-tempo button opens the metronome sheet', (
       tester,

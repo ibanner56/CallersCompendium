@@ -1,6 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -20,6 +19,7 @@ import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
 
 import 'support/l10n_harness.dart';
+import 'support/test_repositories.dart';
 
 /// Regression tests for issue #768: a write made *elsewhere* left every other
 /// live view showing pre-write data until the app restarted.
@@ -73,12 +73,7 @@ void main() {
   /// [kDefaultDanceDetailRenderingKey] exactly once per load, which makes that
   /// key an exact reload counter for the detail screen.
   ({CompendiumRepositories repos, _CountingSettings settings}) countingRepos() {
-    final db = CompendiumDatabase(
-      NativeDatabase.memory(),
-      // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
-      // under fake_async, which fails on drift's stream-close timer.
-      closeStreamsSynchronously: true,
-    );
+    final db = openWidgetTestDatabase();
     final settings = _CountingSettings(db);
     return (
       repos: CompendiumRepositories(db, contraTaxonomy, settings: settings),
@@ -777,15 +772,8 @@ void main() {
 }
 
 /// In-memory repositories for these tests.
-CompendiumRepositories openTestRepos() => CompendiumRepositories(
-  CompendiumDatabase(
-    NativeDatabase.memory(),
-    // See [CompendiumDatabase.closeStreamsSynchronously]: widget tests run
-    // under fake_async, which fails on drift's stream-close timer.
-    closeStreamsSynchronously: true,
-  ),
-  contraTaxonomy,
-);
+CompendiumRepositories openTestRepos() =>
+    CompendiumRepositories(openWidgetTestDatabase(), contraTaxonomy);
 
 /// Counts settings reads by key, so a test can count screen reloads without
 /// reaching inside the widget under test.
