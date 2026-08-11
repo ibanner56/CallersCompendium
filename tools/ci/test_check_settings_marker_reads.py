@@ -171,6 +171,92 @@ def test_extract_sql_literals() -> None:
         f"got {mixed_raw_lits}",
     )
 
+    # --- Table-driven adjacency contract ------------------------------------------
+    # These cases enumerate the full space of adjacent-literal combinations that
+    # the look-ahead handles, so that a change to extract_sql_literals can be
+    # audited against this table rather than discovered by adversarial probing.
+    #
+    # Axes:
+    #   First literal form:  normal (N) | raw (R) | triple (T)
+    #   Second literal form: normal (N) | raw (R) | triple (T)
+    #   Quote style:         same (=)   | different (≠)           [only for N]
+    #   Separator:           whitespace | // comment
+    #
+    # Contract:
+    #   N+N(=)  → 1 parseable group  (existing same-quote join)
+    #   N+N(≠)  → 1 parseable group  (cross-quote join, round 9)
+    #   N+R     → 1 unparseable group, content = both fragments concatenated
+    #   N+T     → 1 unparseable group, content = both fragments concatenated
+    #   R+N     → 2 groups: raw emitted by outer loop (unparseable), normal is new group
+    #   T+N     → 2 groups: triple emitted by outer loop (unparseable), normal is new group
+    #   N+N+R   → 1 unparseable group (raw terminates the run, content = all three)
+    #   comment between N+N → still 1 parseable group (comment consumed by look-ahead)
+    #
+    # The "R+N" and "T+N" rows are NOT in the look-ahead; the outer loop emits the
+    # raw/triple literal immediately without entering the look-ahead, so the normal
+    # literal that follows starts a new group. This is correct: 'r"foo" "bar"' is
+    # a raw string concatenated with a normal string and must not be silently joined.
+    # --------------------------------------------------------------------------
+
+    # N+N same quote
+    g = extract_sql_literals("'ab' 'cd'")
+    check("N+N(=): one parseable group", len(g) == 1 and g[0].parseable and g[0].content == "abcd",
+          f"got {g}")
+
+    # N+N different quote
+    g = extract_sql_literals("'ab' \"cd\"")
+    check("N+N(≠): one parseable group", len(g) == 1 and g[0].parseable and g[0].content == "abcd",
+          f"got {g}")
+
+    # N+R: whole group becomes unparseable; content includes both fragments
+    g = extract_sql_literals("'SELECT ' r'WHERE key = ?'")
+    check(
+        "N+R: one unparseable group with both fragments in content",
+        len(g) == 1 and not g[0].parseable and "SELECT" in g[0].content and "WHERE key" in g[0].content,
+        f"got {g}",
+    )
+
+    # N+T: same contract as N+R
+    g = extract_sql_literals("'SELECT ' '''WHERE key = ?'''")
+    check(
+        "N+T: one unparseable group with both fragments in content",
+        len(g) == 1 and not g[0].parseable and "SELECT" in g[0].content and "WHERE key" in g[0].content,
+        f"got {g}",
+    )
+
+    # R+N: raw emitted as its own group; normal is a separate new group
+    g = extract_sql_literals("r'raw' 'normal'")
+    check(
+        "R+N: two separate groups (raw emitted by outer loop, not joined with what follows)",
+        len(g) == 2 and not g[0].parseable and g[1].parseable and g[1].content == "normal",
+        f"got {g}",
+    )
+
+    # T+N: same contract as R+N
+    g = extract_sql_literals("'''triple''' 'normal'")
+    check(
+        "T+N: two separate groups (triple emitted by outer loop, not joined with what follows)",
+        len(g) == 2 and not g[0].parseable and g[1].parseable and g[1].content == "normal",
+        f"got {g}",
+    )
+
+    # N+N+R: three-part run, raw terminates it; content = all three concatenated
+    g = extract_sql_literals("'SELECT ' 'FROM settings ' r'WHERE key = ?'")
+    check(
+        "N+N+R: one unparseable group with all three fragments in content",
+        len(g) == 1 and not g[0].parseable
+        and "SELECT" in g[0].content and "FROM settings" in g[0].content and "WHERE key" in g[0].content,
+        f"got {g}",
+    )
+
+    # N // comment N: comment between adjacent literals is consumed; still one group
+    g = extract_sql_literals("'ab' // comment\n'cd'")
+    check(
+        "N // comment N: comment between literals is consumed, still one parseable group",
+        len(g) == 1 and g[0].parseable and g[0].content == "abcd",
+        f"got {g}",
+    )
+
     # Raw and triple-quoted forms are unparseable.
     raw_lits = extract_sql_literals("r'SELECT 1 FROM settings WHERE key = ?'")
     check(
@@ -571,6 +657,29 @@ def test_fail_closed() -> None:
             ").get();\n"
         ) == [_BOUNDARY_UNKNOWN],
         "triple-quoted boundary cannot be determined — must not silently pass",
+    )
+
+    check(
+        "normal+raw split: unfiltered read is flagged (not silently dropped)",
+        _kinds(
+            "final r = db.customSelect(\n"
+            "  'SELECT 1 FROM settings '\n"
+            "  r'WHERE key = ?',\n"
+            ").get();\n"
+        ) == [_BOUNDARY_UNKNOWN],
+        "without content accumulation the parseable half has no WHERE key and both "
+        "branches miss it — the read disappears entirely instead of failing closed",
+    )
+
+    check(
+        "normal+raw split: even with filter present, fails closed (boundary unknown)",
+        _kinds(
+            "final r = db.customSelect(\n"
+            "  'SELECT 1 FROM settings WHERE key = ? '\n"
+            "  r'AND deleted_at IS NULL',\n"
+            ").get();\n"
+        ) == [_BOUNDARY_UNKNOWN],
+        "filter is in the raw fragment; the whole group is unparseable so we fail closed",
     )
 
 

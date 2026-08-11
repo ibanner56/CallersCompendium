@@ -267,23 +267,43 @@ def extract_sql_literals(text: str) -> list[SqlLiteral]:
                 i = k  # advance past the comment before the next iteration
                 continue
             # Accept either quote style for the adjacent literal.
-            adj_raw = k > 0 and text[k - 1] in ("r", "R")
-            if text[k] not in ("'", '"'):
+            # Check for a raw prefix (r or R immediately before the quote) before
+            # testing whether k is a quote character: if k is 'r' and k+1 is a
+            # quote, we have a raw literal starting at k.
+            adj_raw = text[k] in ("r", "R") and k + 1 < n and text[k + 1] in ("'", '"')
+            if adj_raw:
+                aq = text[k + 1]
+                adj_triple = False  # r'...' can't be triple-quoted in Dart
+            elif text[k] in ("'", '"'):
+                aq = text[k]
+                adj_triple = k + 2 < n and text[k + 1] == aq and text[k + 2] == aq
+            else:
                 break
-            aq = text[k]
-            # Triple-quote or raw: mark group unparseable and consume the literal
-            # so the outer loop does not re-enter it as a new group.
-            adj_triple = k + 2 < n and text[k + 1] == aq and text[k + 2] == aq
+            # IMPORTANT: when the adjacent literal is raw or triple-quoted, still
+            # accumulate its content into lit_content so that the fail-closed
+            # SELECT-gate in check_file can see the whole SQL string. Without
+            # accumulation, a read split as:
+            #   'SELECT 1 FROM settings ' r'WHERE key = ?'
+            # emits a parseable=False literal with only 'SELECT 1 FROM settings '
+            # — no WHERE key, so the SELECT pattern does not match and the read
+            # disappears entirely (neither branch fires). Worse than fail-closed.
             if adj_raw or adj_triple:
                 group_parseable = False
                 if adj_triple:
                     close_seq = aq * 3
                     end = text.find(close_seq, k + 3)
+                    raw_frag = text[k + 3 : end] if end != -1 else text[k + 3 :]
+                    lit_content += raw_frag
                     i = (end + 3) if end != -1 else n
                 else:
-                    j2 = k + 1
+                    # raw: literal starts at k+1 (after the 'r' prefix) + 1 (after quote)
+                    quote_start = k + 1 if adj_raw else k
+                    j2 = quote_start + 1
+                    raw_chars: list[str] = []
                     while j2 < n and text[j2] != aq:
+                        raw_chars.append(text[j2])
                         j2 += 1
+                    lit_content += "".join(raw_chars)
                     i = j2 + 1
                 break
             j2 = k + 1
