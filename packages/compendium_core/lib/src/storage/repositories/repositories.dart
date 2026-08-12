@@ -79,22 +79,36 @@ class CompendiumRepositories {
   ///
   /// `venues` is absent because `CollectionData` reads no venue data.
   ///
-  /// ## One dependency on ordering that this signal does NOT cover
+  /// ## The raw writes this signal does NOT cover, and why each is out of scope
   ///
-  /// The migration/repair sweeps in this file write `dances`, `program_slots`
-  /// and `dance_links` through raw `customStatement` (`:219`, `:222`, `:318`,
-  /// `:413`), which drift cannot attribute to a table — so those writes reach
-  /// no subscriber, exactly as the purge-path writes did before #932 fixed
-  /// them.
+  /// Auditing every raw SQL write in this package by target table — a script
+  /// rather than a line-grep, since these statements wrap across lines and
+  /// interpolate their table names — leaves three groups that still use
+  /// `customStatement` and therefore reach no subscriber. They divide by the
+  /// *strength* of what makes them safe, and the difference is the point:
   ///
-  /// They are safe today for a reason outside this class: [ensureMigrated] is
-  /// awaited inside the app's startup sequence **before** any screen mounts, so
-  /// no stream can be listening when they run. That is ordering, not mechanism
-  /// — the same shape as the incidental co-location documented on
-  /// `DanceRepository._cleanupDanglingReferences`. If a repair sweep is ever
-  /// made re-runnable from a settings screen, or moved after the first frame,
-  /// it must switch to `customUpdate` with an explicit `updates:` set first, or
-  /// a live Collection will silently keep pre-repair data.
+  /// 1. **Structurally unreachable** — every raw write in `database.dart`
+  ///    (eleven of them, touching `dances`, `settings` and the six v25 kinds)
+  ///    sits inside `MigrationStrategy`, so it runs during `openConnection`,
+  ///    before the database can serve a query at all, let alone hold a
+  ///    watcher. Nothing can observe them by construction.
+  /// 2. **Safe by ordering** — the repair/normalisation sweeps *in this file*
+  ///    write `program_slots`, `dance_links` and `dances` raw. They are
+  ///    reached only through [ensureMigrated], which the app awaits in its
+  ///    startup sequence before any screen mounts. That is a weaker guarantee
+  ///    than (1): it is app-level sequencing, not a property of the code, and
+  ///    it is the same shape as the incidental co-location documented on
+  ///    `DanceRepository._cleanupDanglingReferences`. **If a sweep is ever made
+  ///    re-runnable from a settings screen, or moved after the first frame, it
+  ///    must move to `customUpdate` with an explicit `updates:` set first**, or
+  ///    a live Collection will silently keep pre-repair data.
+  /// 3. **Unwatchable** — the `dance_fts` writes in `DanceRepository`. It is an
+  ///    FTS index rebuilt from derived rows; nothing streams it and nothing
+  ///    should.
+  ///
+  /// Only group 2 is a live thread to pull, and deliberately not pulled here:
+  /// it belongs in its own change with its own reproduction, not folded into
+  /// the conversion that happens to make `dances` watched.
   Stream<void> watchCollectionSources() => db
       .customSelect(
         'SELECT 1',
