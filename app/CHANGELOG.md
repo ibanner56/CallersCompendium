@@ -11,6 +11,15 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-08-11
+
+Flutter build: `0.1.0+1`.
+
+### Data / Migrations
+
+- Schema migration: kCompendiumSchemaVersion 20 → 25. This release includes the migrations described in the Data / Migrations section and upgrades user databases from the previous schema (bridge release v0.1.0-beta.6 stamped schema 20) to the current schema 25. See the release notes for migration details.
+
+
 ### Fixed
 
 - **Undoing a dance you just deleted now brings it back everywhere, not just in
