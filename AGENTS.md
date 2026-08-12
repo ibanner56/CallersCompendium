@@ -329,3 +329,97 @@ When correcting a derived figure, **re-derive it from source rather than patchin
 one term**. A count of "three of five" was corrected to "three of four" by
 checking only the denominator; the truth was two of four. The wrong number then
 carried the credibility of a correction.
+
+## Triaging an issue
+
+A report is a hypothesis. The job is to establish what is true, not to restate
+the report in more words.
+
+- **Verify the report's own evidence before scoping the work.** A cited example
+  frequently disproves the claim it was offered for, or turns out to be a
+  different defect than the one described. Check it first; a fix scoped around a
+  wrong example fixes nothing.
+- **Check whether it is already fixed but unreleased.** Compare the fix's merge
+  date against the newest release tag. A user on the last build reports things
+  `main` resolved weeks ago, and that reads as a live defect until someone looks.
+- **Say whether it is live or latent, and why.** "Reachable today by ordinary
+  use" and "unreachable because an unrelated guard happens to hold" are different
+  issues with different priorities. When a hazard is closed only incidentally,
+  say which incidental fact closes it — that is the thing that will change.
+- **Check the defaults before blaming configuration.** A setting only explains a
+  report if the reporter plausibly had it set. Read the shipped default rather
+  than assuming the one that fits the theory.
+- **Name the in-repo precedent.** Most gaps here have a sibling that already
+  does the thing correctly. Pointing at it is worth more than a design
+  description: it fixes the shape, and it stops the second implementation
+  diverging from the first.
+- **Ask whether it is one site or a class.** Grep for siblings before writing the
+  acceptance criteria. Shared widgets and duplicated walks mean a report about
+  one screen is often a defect in three.
+- **Separate display from canonical.** A rendering change is cheap. Putting the
+  same value into canonical text changes FTS, dedupe and the derived projection,
+  and therefore means a taxonomy bump, a migration and a derived rebuild. Decide
+  which is being asked for before estimating anything.
+- **Structured and free-text search are different capabilities.** A structured
+  param is filterable the moment it exists; it is findable by typing its words
+  into search only if it reaches canonical text. An issue asking for "searchable"
+  needs to say which.
+- **Re-check the issue's own cross-references.** Bodies cite sibling issues as
+  open, closed or blocking, and those claims age badly — including within a
+  single working session. Verify before relying on one, and correct it in place
+  when it has moved.
+- **Do not fold a report into a root cause that only explains part of it.** When
+  a single mechanism accounts for two of three symptoms, say so and leave the
+  third open. A tidy story that covers most of the evidence is how the remaining
+  defect gets closed unfixed.
+- **Retitle when the title misroutes.** A title describing a feature that
+  already ships, or a symptom whose cause turned out to be elsewhere, will be
+  triaged on its title by whoever reads it next.
+- **Enrich in place; do not append corrections.** A ticket is read top to bottom
+  as a spec. A superseded ruling sitting above the current one is how an
+  implementer picks up the wrong decision — edit the comment and leave a visible
+  note that it changed.
+- **Record the rejected alternative and why it was rejected.** The decision is
+  the cheap half; the reasoning is what stops it being relitigated, or silently
+  reintroduced by a later change that looks unrelated.
+
+## Cutting a release
+
+The step-by-step lives in [docs/dev/releasing.md](docs/dev/releasing.md). These
+are the failure modes that step-by-step does not prevent on its own.
+
+- **Promoting `## [Unreleased]` into the version section is a manual step, and
+  it is the release's highest-risk moment.** Contributors write under
+  `## [Unreleased]`; nothing promotes it for them. The notes generator resolves
+  the section by SemVer *core*, so every prerelease in a line renders the same
+  heading — which means a section left over from the previous release is found,
+  is valid, and renders happily under the new version's banner.
+- **A passing check is not evidence the notes are current.** The gate tests that
+  a section *exists*; what matters is that it is *fresh*, and no exit code
+  distinguishes those. Render the notes, read them, and confirm they describe
+  this release — then read the rendered draft on the release page before
+  publishing. (A CI gate now covers the common case; the read is still the
+  backstop.)
+- **Re-derive the schema and taxonomy versions from source at tag time.** They
+  move while a release is being prepared, so a number quoted in a status report
+  an hour old may already be wrong. The Data/Migrations section is where users
+  learn what is about to happen to their data; a stale range misinforms them.
+- **Derive the next tag from the existing tags.** Do not assume the increment.
+- **Publish only after the provenance gate is green**, and confirm afterwards
+  that the channel manifest *and* its detached signature are both live and that
+  the signature verifies. A manifest without its signature makes the in-app
+  updater fail closed and stop offering updates silently.
+- **Guard concurrency mechanically, not by agreement.** Two agents able to tag
+  is a real hazard, but deference between them fails silently the moment one
+  stops existing. Compare the candidate commit against the newest release tag,
+  check for an in-progress release run, and let the remote reject a duplicate
+  tag. Those hold with no cooperating party at all.
+- **A conversational session cannot hold a multi-hour watch.** It ends when the
+  conversation does. Work that must outlive it belongs in a scheduled workflow
+  whose prompt is self-contained, because each run starts with no memory of the
+  one before. When two agents could act, authority belongs to the **durable**
+  one — not to whichever engaged first.
+
+For guard tests and CI ratchets added along the way, see
+[Tests](#tests): a gate that has never been shown to go red is
+indistinguishable from one that does nothing.
