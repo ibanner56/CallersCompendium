@@ -85,9 +85,28 @@ void main() {
     });
 
     test(
-      'clearing the rebuild-required marker notifies a settings watcher',
+      'clearing the rebuild-required marker notifies a settings watcher '
+      '(isolated: the DELETE is the only settings write in the window)',
       () async {
-        // The one settings write that is a DELETE rather than the shared helper.
+        // ## Why the isolation, and why it is done this way
+        //
+        // `ensureMigrated` writes five sweep markers as well as this DELETE. On
+        // a fresh database all six land in one call, so a watcher fires whether
+        // or not the DELETE notifies — and this test passed while unable to
+        // catch a regression isolated to it. Round 1 of #940 caught that.
+        //
+        // The precondition is therefore established by RUNNING the sweeps
+        // rather than by hand-seeding the five markers: seeding would duplicate
+        // each guard's expected key AND its expected value (`'true'`,
+        // `'"done"'`, `'"$kSectionRuleVersion"'`), and a copy that drifts from
+        // the guard it mirrors would silently stop suppressing the sweep — the
+        // test would go quiet rather than red.
+        //
+        // A second `ensureMigrated` on the same repositories object is a no-op
+        // (`_migration ??=` memoises the future), so isolating the DELETE needs
+        // a fresh repositories object over the same database.
+        await repos.ensureMigrated();
+
         await db.customUpdate(
           'INSERT OR REPLACE INTO ${db.settings.actualTableName} '
           '(key, value_json) VALUES (?, ?)',
@@ -99,19 +118,34 @@ void main() {
         );
         final probe = await watchCount(db.settings);
         addTearDown(probe.sub.cancel);
+        final before = probe.seen.single;
 
-        await repos.ensureMigrated();
+        await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
         await pumpEventQueue();
 
         // The marker is hard-deleted once the rebuild it demands has run.
         final rows = await db
             .customSelect(
-              'SELECT 1 FROM settings WHERE key = ?',
+              'SELECT 1 FROM ${db.settings.actualTableName} WHERE key = ?',
               variables: [Variable<String>(derivedRebuildRequiredKey)],
             )
             .get();
         expect(rows, isEmpty, reason: 'the sweep should have cleared it');
-        expect(probe.seen.length, greaterThan(1));
+
+        // Exactly one further emit, and it must carry the post-DELETE count.
+        // `greaterThan(1)` would be satisfied by any unrelated settings write
+        // that happened to slip into the window, which is the hole this test
+        // had; pinning both the emit count and the value closes it.
+        expect(
+          probe.seen.length,
+          2,
+          reason: 'one initial value, then exactly one notification',
+        );
+        expect(
+          probe.seen.last,
+          before - 1,
+          reason: 'and the notification carries the row the DELETE removed',
+        );
       },
     );
 

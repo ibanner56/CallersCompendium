@@ -26,13 +26,18 @@ import '../existence.dart';
 ///
 /// Nothing streams this table today. When something does, the obvious shape —
 /// one stream over `settings`, feeding a screen that re-reads its preferences —
-/// **self-triggers**, and the app already contains the writer that does it:
-/// `ProgramEditorScreen` autosaves its draft to `settings` on a 500 ms debounce
-/// while the user types (`_autosaveTimer`, `_saveDraft`). A watcher on the whole
-/// table therefore wakes twice a second during editing, and every wake reloads
-/// whatever that screen derives from settings — the over-firing failure of
-/// issue #340, arrived at from the opposite direction to the staleness #768 is
-/// about.
+/// **self-triggers**, and the app already contains the writer that does it: the
+/// program editor autosaves its in-progress draft into this table on a **500 ms
+/// debounce while the user types**. A watcher on the whole table therefore wakes
+/// twice a second during editing, and every wake reloads whatever that screen
+/// derives from settings — the over-firing failure of issue #340, arrived at
+/// from the opposite direction to the staleness #768 is about.
+///
+/// Deliberately described by behaviour rather than by the symbols that
+/// implement it. This package does not depend on the app, so any private
+/// identifier named here is one nothing in this repository can check: it would
+/// not break a build when renamed, and a stale symbol makes a warning read as
+/// out of date even while the hazard it describes is still live.
 ///
 /// The two failures share one cause: a watched set chosen by *table* rather
 /// than by what the consumer actually reads. So the fix is not to debounce the
