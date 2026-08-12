@@ -408,9 +408,11 @@ ever sees an error. To make the manifest live, a maintainer enables Pages once:
 2. In the repo: **Settings → Pages**.
 3. Under **Build and deployment → Source**, choose **Deploy from a branch**.
 4. Set **Branch** to `gh-pages` and the folder to **`/ (root)`**, then **Save**.
-5. After the first deploy, confirm
-   `https://ibanner56.github.io/CallersCompendium/stable.json` (and, once a beta
-   has shipped, `…/beta.json`) resolves.
+5. After the first deploy, confirm the manifest for whichever channel you cut
+   in step 1 resolves — only that one file exists until the *other* channel
+   also ships at least once (a fresh repo has published only betas, so
+   `stable.json` will 404 until a stable release is cut; that's expected, not
+   an error).
 
    > **Fetch it with `curl -fsSL`, and check the body — not the exit code.**
    > That host **301s** to the custom Pages domain, and `-f` only fails on
@@ -422,12 +424,16 @@ ever sees an error. To make the manifest live, a maintainer enables Pages once:
    > missing `-L`.
    >
    > ```sh
-   > curl -fsSL https://ibanner56.github.io/CallersCompendium/beta.json | head
+   > curl -fsSL https://ibanner56.github.io/CallersCompendium/beta.json -o /tmp/manifest.json
+   > head -c 200 /tmp/manifest.json
    > ```
    >
-   > Expect JSON beginning `{ "manifestSchemaVersion": 1, …`. The redirect itself
-   > is expected and correct — installed clients follow it too (`kAllowedArtifactHosts`
-   > covers both hosts; see the redirect test in `app/test/update/update_service_test.dart`).
+   > Expect JSON starting with `{` and, a couple of lines in, a
+   > `"manifestSchemaVersion": 1` field — `gen_release_metadata.py` writes it
+   > pretty-printed (`json.dumps(..., indent=2)`), one field per line, not as a
+   > single inline object. The redirect itself is expected and correct —
+   > installed clients follow it too (`kAllowedArtifactHosts` covers both
+   > hosts; see the redirect test in `app/test/update/update_service_test.dart`).
 
 Do **not** select "GitHub Actions" as the Pages source — this pipeline publishes
 via the `gh-pages` **branch**, not the Actions Pages deployment flow.
@@ -551,8 +557,9 @@ provision — or later re-provision — the key:
    can verify — so the pinned key must reach users **before** the first signed
    manifest is the only one they can use.
 
-4. **Verify end-to-end** after the next release: confirm
-   `https://ibanner56.github.io/CallersCompendium/stable.json.sig` resolves
+4. **Verify end-to-end** after the next release: confirm the `.sig` for
+   whichever channel you just cut (e.g.
+   `https://ibanner56.github.io/CallersCompendium/beta.json.sig`) resolves
    (`curl -fsSL`, and check the body — see the redirect note under
    [One-time maintainer step: enable GitHub Pages](#one-time-maintainer-step-enable-github-pages)) and a
    client build with the pinned key offers the update.
