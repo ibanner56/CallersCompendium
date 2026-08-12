@@ -100,6 +100,19 @@ class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
 /// Read-only summary of the selected program shown in the wide detail pane. The
 /// heavy building work happens in the full-screen [ProgramEditorScreen] route
 /// launched by [onOpenBuilder]; this pane keeps quick duplicate/delete actions.
+/// Raised into a pending first-value future when its subscription is replaced
+/// or disposed (issue #768).
+///
+/// Deliberately not an error the user ever sees: being superseded is not a
+/// failure. `_load` returns on it without touching `_error` or `_loading`,
+/// because the load that replaced it owns those now — surfacing it would flash
+/// an error banner in the middle of a successful refresh.
+class _SupersededLoad implements Exception {
+  const _SupersededLoad();
+  @override
+  String toString() => 'load superseded before its first snapshot';
+}
+
 class ProgramSummaryPane extends StatefulWidget {
   const ProgramSummaryPane({
     super.key,
@@ -234,6 +247,48 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   CollectionData? _latestData;
   String? _subCallerFilter;
 
+  /// The first-value future of the LIVE subscription, while it is still
+  /// pending.
+  ///
+  /// Held as a field so that whoever abandons the subscription can settle it.
+  /// See [_replaceSubscription] for why that is necessary rather than tidy.
+  Completer<CollectionData>? _pendingFirst;
+
+  /// Cancels the live subscription, settling its first-value future first.
+  ///
+  /// ## The invariant, and the full set of exits (issue #768)
+  ///
+  /// `_load` awaits the stream's FIRST value, so **every path that abandons a
+  /// pending first-value future must complete it** — otherwise that `await`
+  /// never returns. There are five ways out, and three were already handled by
+  /// the listener callbacks:
+  ///
+  /// 1. a value arrives — `onData` completes it;
+  /// 2. the source errors — `onError` completes it;
+  /// 3. the source ends unemitted — `onDone` completes it;
+  /// 4. **the subscription is replaced** by a re-entrant `_load`;
+  /// 5. **the subscription is cancelled** in [dispose].
+  ///
+  /// 4 and 5 are the ones a listener cannot see: **cancelling a
+  /// `StreamSubscription` invokes none of its callbacks**, by design. So they
+  /// have to be handled at the point of abandonment, which is here — and this
+  /// method exists so that cancelling without settling is not expressible.
+  ///
+  /// Earlier fixes closed exits one at a time (3 in round 9, 4 reported in
+  /// round 11). The exits were enumerated this time instead.
+  void _replaceSubscription() {
+    final pending = _pendingFirst;
+    _pendingFirst = null;
+    if (pending != null && !pending.isCompleted) {
+      // A sentinel rather than a real error: the caller has been superseded,
+      // which is not a failure to report to the user. `_load` returns quietly
+      // on it, leaving the newer load to own the screen's state.
+      pending.completeError(const _SupersededLoad());
+    }
+    unawaited(_dataSub?.cancel());
+    _dataSub = null;
+  }
+
   /// Opens the subscription and resolves with its FIRST value, so [_load]'s
   /// existing sequence is untouched while later emits drive a refresh.
   ///
@@ -249,12 +304,14 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       return Future<CollectionData>.value(cached);
     }
     final first = Completer<CollectionData>();
-    unawaited(_dataSub?.cancel());
+    _replaceSubscription();
+    _pendingFirst = first;
     _subCallerFilter = callerFilter;
     _dataSub = CollectionData.watch(_repos, callerFilter: callerFilter).listen(
       (data) {
         _latestData = data;
         if (!first.isCompleted) {
+          _pendingFirst = null;
           first.complete(data);
           return;
         }
@@ -262,6 +319,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       },
       onError: (Object error) {
         if (!first.isCompleted) {
+          _pendingFirst = null;
           first.completeError(error);
           return;
         }
@@ -275,6 +333,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         // this pane was opening. Completing the future is what stops `_load`
         // awaiting forever; the error routes to its existing catch.
         if (!first.isCompleted) {
+          _pendingFirst = null;
           first.completeError(
             StateError('collection stream closed before its first value'),
           );
@@ -297,7 +356,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   @override
   void dispose() {
     widget.refreshTrigger.removeListener(_onRefresh);
-    unawaited(_dataSub?.cancel());
+    _replaceSubscription();
     super.dispose();
   }
 
@@ -356,6 +415,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         _loading = false;
         _error = null;
       });
+    } on _SupersededLoad {
+      // A newer `_load` replaced this one's subscription before it produced a
+      // snapshot. It owns `_loading`/`_error` now, so this call must leave both
+      // alone and return — clearing `_loading` here would unblank the pane
+      // while the newer load is still running.
+      return;
     } catch (error) {
       if (mounted) {
         setState(() {

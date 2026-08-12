@@ -72,28 +72,44 @@ class CompendiumRepositories {
   /// `custom_field_values`) are deliberately absent, and the reason is worth
   /// stating precisely, because the obvious version of it is false.
   ///
-  /// It is NOT that only `DanceRepository`'s upsert writes them —
-  /// `ArchiveService._clearAll` deletes all four directly
-  /// (`archive_service.dart:289-293`), and a restore is not a dance edit. What
-  /// holds is weaker and sufficient: every path that writes a join table also
-  /// writes `dances` in the same transaction. The upsert rewrites the owning
-  /// row; `_clearAll` deletes `dances` later in the same sweep
-  /// (`archive_service.dart`, `_clearAll`); a purge cascades from a `dances`
-  /// delete. Since drift dispatches a transaction's updates as one set on
-  /// commit, `dances` is always notified alongside, so naming the join tables
-  /// here would add emits without adding coverage.
+  /// The claim has now been falsified twice, so it is stated here on the
+  /// quantity that actually governs `readsFrom` rather than weakened a third
+  /// time. The history is short and worth keeping, because each version was
+  /// derived from whichever writers had been looked at:
   ///
-  /// Deliberately no statement count: an earlier draft said "four statements
-  /// later", which is anchor-dependent (three after the last join-table delete,
-  /// four after `dance_sources`) and would rot the moment a delete is added.
-  /// The load-bearing property is *same transaction*, not distance.
+  /// 1. *"only `DanceRepository`'s upsert writes them"* — false;
+  ///    `ArchiveService._clearAll` deletes all four directly.
+  /// 2. *"every path that writes a join table also writes `dances` in the same
+  ///    transaction"* — also false; `adoptTombstonedNaturalKey`
+  ///    (`existence.dart`) deletes join rows and writes only the **adopted**
+  ///    table, never `dances`.
   ///
-  /// The condition that would break it is therefore narrower than "a new
-  /// join-table write": it is a write that touches a join table **and leaves
-  /// `dances` untouched in that transaction**. Such a writer would **silently
-  /// under-notify** — no error, no dropped stream, just a Collection view whose
-  /// tags or authors are wrong until some unrelated write happens to arrive.
-  /// If one is ever added, this set must grow.
+  /// Enumerating every writer of the four join tables gives the invariant:
+  ///
+  /// | writer | join-table write | also writes, same transaction |
+  /// |---|---|---|
+  /// | `DanceRepository` upsert | `into(danceAuthors/Tags/Sources/customFieldValues)` | `dances` |
+  /// | `ArchiveService._clearAll` | `delete(...)` on all four | `dances` |
+  /// | `adoptTombstonedNaturalKey` | `DELETE FROM <joinTable>` | `tags` / `choreographers` / `custom_field_defs` |
+  ///
+  /// **Every path that writes a join table also writes, in the same
+  /// transaction, at least one table in the set watched above.** For two of
+  /// them that table is `dances`; for natural-key adoption it is the adopted
+  /// table, which is itself watched. Since drift dispatches a transaction's
+  /// updates as one set on commit, a watcher is notified either way — so
+  /// naming the join tables here would add emits without adding coverage.
+  ///
+  /// That is the right shape as well as the true one: `readsFrom` is a
+  /// statement about the **watched set**, so the invariant belongs on the
+  /// watched set. Both earlier versions named a single table and were falsified
+  /// by the first writer that used a different one.
+  ///
+  /// The condition that breaks it is correspondingly narrow: a write that
+  /// touches a join table and leaves **every** watched table untouched in that
+  /// transaction. Such a writer would silently under-notify — no error, no
+  /// dropped stream, just a Collection view whose tags or authors are wrong
+  /// until some unrelated write arrives. If one is ever added, this set must
+  /// grow.
   ///
   /// `venues` is absent because `CollectionData` reads no venue data.
   ///

@@ -57,6 +57,15 @@ import '../widgets/program_status_chip.dart';
 enum _ProgramLoadError { missing }
 
 /// [programId] null ⇒ create a new program; otherwise edit that program.
+/// Raised into a pending first-value future when its subscription is replaced
+/// or disposed (issue #768). Being superseded is not a user-visible failure,
+/// so [_ProgramEditorScreenState._load] returns on it without setting state.
+class _SupersededLoad implements Exception {
+  const _SupersededLoad();
+  @override
+  String toString() => 'load superseded before its first snapshot';
+}
+
 class ProgramEditorScreen extends StatefulWidget {
   const ProgramEditorScreen({
     super.key,
@@ -255,13 +264,43 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// One subscription serves both, rather than a `load()` for the initial
   /// render plus a `watch()` for updates — that would run the whole snapshot
   /// load twice on open.
+  /// The live subscription's first-value future, while still pending.
+  ///
+  /// Held so that whoever abandons the subscription can settle it — see
+  /// [_replaceSubscription].
+  Completer<CollectionData>? _pendingFirst;
+
+  /// Cancels the live subscription, settling its first-value future first.
+  ///
+  /// [_load] awaits the stream's FIRST value, so **every path that abandons a
+  /// pending first-value future must complete it**. Three exits are handled by
+  /// the listener (a value, an error, the source ending); the other two are
+  /// invisible to it, because **cancelling a `StreamSubscription` invokes none
+  /// of its callbacks**: replacing the subscription, and [dispose].
+  ///
+  /// This screen's `_load` runs once (guarded by `!_loaded`), so the replace
+  /// path is not currently reachable here — but the dispose path is, and the
+  /// guard is written for the class rather than for the reachable half. See
+  /// `program_summary_screen`, where round 11 found the replace path live.
+  void _replaceSubscription() {
+    final pending = _pendingFirst;
+    _pendingFirst = null;
+    if (pending != null && !pending.isCompleted) {
+      pending.completeError(const _SupersededLoad());
+    }
+    unawaited(_dataSub?.cancel());
+    _dataSub = null;
+  }
+
   Future<CollectionData> _watchCollectionData(String? callerFilter) {
     final first = Completer<CollectionData>();
-    unawaited(_dataSub?.cancel());
+    _replaceSubscription();
+    _pendingFirst = first;
     _dataSub = CollectionData.watch(_repos, callerFilter: callerFilter).listen(
       (data) {
         _latestData = data;
         if (!first.isCompleted) {
+          _pendingFirst = null;
           first.complete(data);
           return;
         }
@@ -269,6 +308,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       },
       onError: (Object error) {
         if (!first.isCompleted) {
+          _pendingFirst = null;
           first.completeError(error);
           return;
         }
@@ -284,6 +324,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         // future is what stops `_load` awaiting forever; the error routes to
         // the screen's existing load-failure branch.
         if (!first.isCompleted) {
+          _pendingFirst = null;
           first.completeError(
             StateError('collection stream closed before its first value'),
           );
@@ -349,6 +390,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // restore/discard prompt (issue #436). Runs after the loaded-state
       // setState so the editor is fully built before any dialog appears.
       await _maybeStageDraft();
+    } on _SupersededLoad {
+      // Superseded before a snapshot arrived; the load that replaced this one
+      // owns `_loaded`/`_loadError`. Returning leaves the editor on its
+      // loading state for that load to clear.
+      return;
     } catch (error) {
       if (mounted) {
         setState(() {
@@ -392,7 +438,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   @override
   void dispose() {
     _autosaveTimer?.cancel();
-    unawaited(_dataSub?.cancel());
+    _replaceSubscription();
     _pickerCounts.dispose();
     _tabController.dispose();
     _titleController.dispose();

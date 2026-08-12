@@ -258,6 +258,68 @@ void main() {
     },
   );
 
+  test(
+    'a first-value future is settled when its subscription is REPLACED — the '
+    'exit no listener callback can see',
+    () async {
+      // Round 11's finding, reduced to the mechanism. `_load` awaits the
+      // stream's first value; if a re-entrant `_load` cancels that
+      // subscription before it emits, none of onData/onError/onDone runs —
+      // cancelling a StreamSubscription invokes no callbacks — so the first
+      // await never returns.
+      //
+      // This asserts the property the screens now rely on: the abandoning
+      // party settles the future. It is the shape both screens implement in
+      // `_replaceSubscription`, and it is deliberately tested here rather than
+      // through a screen, because it is a Dart-level fact about cancellation
+      // rather than anything about widgets.
+      final parker = _ParkFirstWatchQuery();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(NativeDatabase.memory().interceptWith(parker)),
+        contraTaxonomy,
+      );
+      addTearDown(repos.db.close);
+      parker.arm();
+
+      final first = Completer<CollectionData>();
+      final sub = CollectionData.watch(repos).listen(
+        (d) {
+          if (!first.isCompleted) first.complete(d);
+        },
+        onError: (Object e) {
+          if (!first.isCompleted) first.completeError(e);
+        },
+        onDone: () {
+          if (!first.isCompleted) {
+            first.completeError(StateError('closed before first value'));
+          }
+        },
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 40));
+      expect(parker.didPark, isTrue);
+      expect(first.isCompleted, isFalse, reason: 'no value has arrived');
+
+      // The abandonment: cancel without settling, as the old code did.
+      await sub.cancel();
+      await Future<void>.delayed(const Duration(milliseconds: 40));
+
+      expect(
+        first.isCompleted,
+        isFalse,
+        reason:
+            'cancelling fires NO callback, so nothing completed the future — '
+            'this is why the abandoning party must settle it itself',
+      );
+
+      // What the screens now do at the point of abandonment.
+      if (!first.isCompleted) {
+        first.completeError(StateError('subscription replaced'));
+      }
+      await expectLater(first.future, throwsStateError);
+      parker.release();
+    },
+  );
+
   test('a program-side write refreshes the per-dance call tallies', () async {
     final repos = openRepos();
     await repos.dances.create(dance('d1', 'Petronella'));
