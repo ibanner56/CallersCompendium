@@ -144,6 +144,54 @@ jobs:
           echo "$version_banner"
           python3 tools/ci/check_flutter_version.py "$version_banner"
       - run: flutter pub get --enforce-lockfile
+      # package:sqlite3's build hook downloads a pre-compiled SQLite library
+      # from a GitHub release during native-asset resolution, so every job that
+      # runs a test has that network fetch on its critical path — and it fails
+      # BEFORE any test executes (the hook runs during build-asset resolution),
+      # on THIS gating check, so a transient CDN blip reds the merge path rather
+      # than a single platform build. Issue #939: seven such failures in ~7h,
+      # every one cleared by a bare re-run. subosito's `cache: true` above does
+      # NOT cover this: it caches the Flutter SDK and the pub cache, but the .so
+      # is fetched by the build hook and written OUTSIDE the pub cache, under
+      # .dart_tool/hooks_runner/shared/sqlite3/. The hook reuses that artifact
+      # in place when it is present (it re-verifies the file's SHA-256 and only
+      # re-downloads on a mismatch), so caching that directory turns the fetch
+      # into an at-most-once-per-version event and lets a cache hit satisfy the
+      # build even when the CDN is down. Remove this and the flake in #939
+      # returns. The version is resolved into the key below rather than hashing
+      # the whole lockfile so an unrelated dependency bump does not needlessly
+      # evict the artifact.
+      - name: Resolve the pinned sqlite3 version (cache key input)
+        id: sqlite3
+        # The prebuilt is per-version, so the cache MUST invalidate on a bump.
+        # The root pubspec.lock is the only real lockfile (pub workspace; see
+        # .gitignore) and `flutter pub get --enforce-lockfile` above pins it, so
+        # read the version from there. The `^  sqlite3:` anchor (2-space indent,
+        # trailing colon) deliberately does not match `sqlite3_flutter_libs:`.
+        # Fail loudly rather than silently cache under an empty, colliding key.
+        run: |
+          version="$(awk '/^  sqlite3:/{f=1} f&&/^    version:/{gsub(/[" ]/,"",$2); print $2; exit}' pubspec.lock)"
+          if [ -z "$version" ]; then
+            echo "::error::could not resolve the sqlite3 version from pubspec.lock"
+            exit 1
+          fi
+          echo "Resolved sqlite3 version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Cache the sqlite3 prebuilt native library
+        id: sqlite3_cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .dart_tool/hooks_runner/shared/sqlite3
+          # Keyed on the sqlite3 version (a bump must re-fetch the new binary)
+          # plus runner.os/arch: the artifact is platform-specific, and this
+          # reusable workflow is written to be reused on other runners (see the
+          # header and ADR-002), so a Linux .so must never be restored onto a
+          # macOS/Windows runner. This job runs only on ubuntu-latest today, so
+          # os/arch are constant here — they are insurance against that reuse,
+          # and cost nothing. No restore-keys: a prefix match would restore a
+          # different version's binary, which the hook would reject on its hash
+          # check and re-download anyway, so only an exact match is worth having.
+          key: sqlite3-prebuilt-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
       - run: dart format --output=none --set-exit-if-changed .
       # --fatal-infos: the analysis_options here are deliberately strict
       # (strict-casts/strict-inference/strict-raw-types + error escalations), but
@@ -295,3 +343,18 @@ jobs:
       - name: Test app
         working-directory: app
         run: flutter test
+      # Save the prebuilt only on a miss, and only once the build hook has
+      # actually produced the library. The guard matters: a fetch failure — the
+      # very flake #939 is about — leaves an empty download directory behind, and
+      # without the hashFiles() check the post step would cache that emptiness
+      # under this key. A later run would then get a cache HIT on nothing,
+      # re-download, and (being a hit) never re-save, so one unlucky first fetch
+      # would silently disable this cache until the pinned version next changes.
+      # !cancelled() (not success()) so a good download is still cached even if
+      # an unrelated later step failed, letting the re-run drop the fetch.
+      - name: Save the sqlite3 prebuilt native library
+        if: ${{ !cancelled() && steps.sqlite3_cache.outputs.cache-hit != 'true' && hashFiles('.dart_tool/hooks_runner/shared/sqlite3/build/**/libsqlite3*') != '' }}
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .dart_tool/hooks_runner/shared/sqlite3
+          key: sqlite3-prebuilt-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
