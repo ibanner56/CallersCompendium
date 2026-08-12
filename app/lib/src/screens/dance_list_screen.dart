@@ -213,9 +213,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// from Settings) bumps it. Tracked so listeners are swapped correctly.
   ValueListenable<int>? _collectionRefresh;
 
-  /// Collapses several collection bumps arriving in the same synchronous block
-  /// into one re-boot, so the fix for issue #768 does not become the thrash
-  /// issue #340 warns about.
   /// The live Collection snapshot (issue #768).
   ///
   /// Supersedes both the imperative `_boot()` reload and the narrower
@@ -332,9 +329,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _runSearch();
     }
 
-    // Subscribe to the app-level collection-refresh notifier (registers a
-    // rebuild dependency; the notifier instance is stable across the app's
-    // lifetime, so this attaches once).
     // Resolved to BUMP (see [_broadcastCollectionChange]), not to subscribe:
     // this list reads its data from a stream now, so listening here as well
     // would reload it twice per write (issue #340).

@@ -69,13 +69,23 @@ class CompendiumRepositories {
   ///   read set, which is folded into the same snapshot.
   ///
   /// The **join** tables (`dance_authors`, `dance_tags`, `dance_sources`,
-  /// `custom_field_values`) are deliberately absent, and that is safe for a
-  /// non-obvious reason worth stating: every write that changes them goes
-  /// through `DanceRepository`'s upsert, which rewrites the owning `dances`
-  /// row in the same transaction — so `dances` is always notified alongside
-  /// them. Adding them would cost extra emits for no additional coverage. If a
-  /// path is ever added that edits a join table *without* touching its dance,
-  /// this set must grow.
+  /// `custom_field_values`) are deliberately absent, and the reason is worth
+  /// stating precisely, because the obvious version of it is false.
+  ///
+  /// It is NOT that only `DanceRepository`'s upsert writes them —
+  /// `ArchiveService._clearAll` deletes all four directly
+  /// (`archive_service.dart:289-293`), and a restore is not a dance edit. What
+  /// holds is weaker and sufficient: every path that writes a join table also
+  /// writes `dances` in the same transaction. The upsert rewrites the owning
+  /// row; `_clearAll` deletes `dances` four statements later (`:296`); a purge
+  /// cascades from a `dances` delete. Since drift dispatches a transaction's
+  /// updates as one set on commit, `dances` is always notified alongside, so
+  /// naming the join tables here would add emits without adding coverage.
+  ///
+  /// The condition that would break it is therefore narrower than "a new
+  /// join-table write": it is a write that touches a join table **and leaves
+  /// `dances` untouched in that transaction**. If one is ever added, this set
+  /// must grow.
   ///
   /// `venues` is absent because `CollectionData` reads no venue data.
   ///
