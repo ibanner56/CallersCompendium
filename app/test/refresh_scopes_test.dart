@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
@@ -411,6 +413,118 @@ void main() {
             'the pane must reuse the snapshot the stream just delivered; '
             're-subscribing re-runs the whole snapshot load for a value it '
             'already has',
+      );
+    },
+  );
+
+  testWidgets(
+    'issue #768: a re-entrant load during a caller-filter change never '
+    'presents the previous filter\'s snapshot (asserted as "does not settle", '
+    'not as a rendered tally — see comment)',
+    (tester) async {
+      // The window: `_watchCollectionData` records the NEW caller filter and
+      // opens a new subscription, but `_latestData` still holds the snapshot
+      // the OLD filter produced. Until that subscription's first emit, the two
+      // disagree. A `_load` re-entering there used to satisfy every condition
+      // of the reuse gate — live subscription, matching filter, non-null cache
+      // — and be handed the superseded snapshot.
+      //
+      // ## Why this asserts "the pane does not settle" rather than a tally
+      //
+      // The caller filter changes only the call counts, last-called and
+      // calling-history fields of `CollectionData`. This pane renders none of
+      // them directly — it reads `choreographersById` and gates `canPerform`,
+      // both filter-independent — and surfaces the filtered fields only by
+      // handing the snapshot to `PerformProgramScreen`. So there is no tally on
+      // screen to assert against, and inventing one by driving into the perform
+      // screen would test that screen's rendering rather than this gate.
+      //
+      // What IS observable, and is exactly the property, is that the pane must
+      // not COMPLETE a load using the superseded snapshot: with the defect,
+      // `_load` returns the cached value immediately and the pane settles with
+      // it; with the gate, it waits for the new subscription. The parked query
+      // holds that state open so the difference is deterministic rather than a
+      // race.
+      final parker = _ParkWatchSentinels();
+      final db = openWidgetTestDatabase(
+        NativeDatabase.memory().interceptWith(parker),
+      );
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+
+      await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Friday Night',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      final refresh = ValueNotifier<int>(0);
+      addTearDown(refresh.dispose);
+      await pump(
+        tester,
+        repos,
+        ProgramSummaryPane(
+          programId: 'p1',
+          refreshTrigger: refresh,
+          onOpenBuilder: () {},
+          onDeleted: () {},
+          onNavigateTo: (_) {},
+        ),
+      );
+      expect(
+        find.text('Friday Night'),
+        findsWidgets,
+        reason: 'the pane loaded under the initial (track-all) filter',
+      );
+
+      // Change the filter out from under the live subscription. With no
+      // default caller the resolver returns null ("track all"); setting one
+      // makes it return 'Ann'. `settings` is not in the watched source set, so
+      // this write emits nothing — the reload is driven explicitly below,
+      // which is what keeps the ordering deterministic.
+      await repos.settings.set(kDefaultProgramCallerKey, 'Ann');
+      parker.arm();
+
+      // Leading edge: `_load` #2 sees the new filter, replaces the
+      // subscription, and parks awaiting its first value.
+      refresh.value++;
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 5));
+      expect(
+        parker.parked,
+        greaterThan(0),
+        reason: 'the replacement subscription is held before its first emit',
+      );
+
+      // Trailing edge: `_load` #3 re-enters INSIDE that window. This is the
+      // load that used to be handed the previous filter's snapshot.
+      refresh.value++;
+      await tester.pump(const Duration(milliseconds: 40));
+      await tester.pump();
+
+      expect(
+        find.byType(CircularProgressIndicator),
+        findsWidgets,
+        reason:
+            'the re-entrant load must wait for the new filter\'s snapshot; '
+            'settling here means it accepted the superseded one',
+      );
+
+      // Released INSIDE the test body, not in teardown. `testWidgets` runs the
+      // body against a fake async clock, so a future parked on a real database
+      // query only resumes while the test is pumping — awaiting it from
+      // teardown hangs the suite rather than failing it. (Observed: this test
+      // hung until the release moved here.) Its sibling in
+      // `collection_data_watch_test.dart` awaits its close in teardown safely
+      // because it is a plain `test`, with no fake clock.
+      parker.release();
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Friday Night'),
+        findsWidgets,
+        reason: 'and it does settle once the new snapshot arrives',
       );
     },
   );
@@ -957,14 +1071,47 @@ class _CountingSettings extends SettingsRepository {
   }
 }
 
-/// Counts executions of the Collection's compiled filter query.
+/// Holds EVERY `CollectionData.watch` sentinel query while armed, releasing
+/// them all together.
 ///
-/// `FilterCompiler` emits `SELECT id FROM dances …` (`filter_compiler.dart:92`),
-/// which nothing else in this screen's load issues — the snapshot reads dances
-/// through drift's own builder — so it is a precise marker for "the search ran".
+/// Deliberately not "park the first one": the behaviour under test opens a
+/// second subscription in response to the first being parked, so a
+/// park-once gate would let that one through and erase the difference between
+/// the defect and the fix. The count is exposed so a test can assert it
+/// actually parked rather than assuming it did.
+class _ParkWatchSentinels extends drift.QueryInterceptor {
+  final _gate = Completer<void>();
+  bool _armed = false;
+  int parked = 0;
+
+  void arm() => _armed = true;
+  void release() {
+    if (!_gate.isCompleted) _gate.complete();
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) async {
+    if (_armed && statement.trim() == 'SELECT 1') {
+      parked++;
+      await _gate.future;
+    }
+    return executor.runSelect(statement, args);
+  }
+}
+
 /// Counts reads of `custom_field_defs`, which only [CollectionData.load]
 /// issues in the program-summary flow — so the count is "how many times the
 /// whole snapshot was loaded".
+///
+/// **This counter does not observe the search.** It is a marker for the
+/// snapshot load, and the substring it matches (`custom_field_defs`) is what
+/// makes it one: any query touching that table would be counted, so adding an
+/// unrelated read of it to this flow would silently inflate every ceiling
+/// asserted against this counter.
 class _SnapshotLoadCounter extends drift.QueryInterceptor {
   int count = 0;
 
@@ -979,6 +1126,20 @@ class _SnapshotLoadCounter extends drift.QueryInterceptor {
   }
 }
 
+/// Counts executions of the Collection's compiled filter query.
+///
+/// `FilterCompiler` emits `SELECT id FROM dances …` (`filter_compiler.dart:92`),
+/// which nothing else in this screen's load issues — the snapshot reads dances
+/// through drift's own builder — so it is a precise marker for "the search ran".
+///
+/// **That precision rests on a SQL substring, which no compiler checks.** If
+/// `FilterCompiler` is refactored to emit a different prefix — aliasing the
+/// table, selecting another column, or adding a `DISTINCT` — this counter
+/// silently drops to zero and every `expect(counter.count, …)` below it
+/// becomes an assertion about nothing rather than a failure. A ceiling of the
+/// form "the search ran at most N times" is satisfied trivially by a search
+/// that is no longer observed. If you change that query, change this string
+/// and confirm the counts move.
 class _SearchCounter extends drift.QueryInterceptor {
   int count = 0;
 

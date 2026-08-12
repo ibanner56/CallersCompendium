@@ -237,7 +237,14 @@ void main() {
       // close outlive the test and turn any failure inside it into a late,
       // unattributed error: a false green in the file whose whole purpose is
       // proving a stream terminates.
-      late final Future<void> closing;
+      //
+      // Seeded with an already-complete future rather than declared `late`,
+      // because the assignment below sits AFTER two `expect`s. A `late` here
+      // would mean any failure in those two lines threw
+      // `LateInitializationError` out of teardown, and that error REPLACES the
+      // one the test actually found — hiding the real reason in the same file
+      // whose subject is tests that mislead about why they passed.
+      Future<void> closing = Future<void>.value();
       addTearDown(() async {
         parker.release();
         await closing;

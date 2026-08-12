@@ -296,9 +296,33 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// re-entry from an emit already has a newer snapshot in hand than a fresh
   /// subscription would produce, so re-subscribing would buy nothing and pay
   /// a second full load for it.
+  ///
+  /// ## Why the gate tests [_pendingFirst], and not just the filter
+  ///
+  /// The question the reuse branch must answer is **"has THIS subscription
+  /// produced the snapshot I am about to hand back?"** — not the narrower
+  /// "is the live subscription for this filter?". The two come apart in one
+  /// window: between opening a subscription for a NEW filter and its first
+  /// emit, [_subCallerFilter] already names the new filter while [_latestData]
+  /// still holds the OLD filter's snapshot. A re-entrant [_load] landing in
+  /// that window satisfied all three of the earlier conditions and was handed
+  /// the previous filter's data — wrong call tallies, wrong last-called.
+  ///
+  /// `_pendingFirst == null` states the missing precondition directly: it is
+  /// non-null exactly while a subscription has yet to deliver its first value,
+  /// so requiring it to be null is requiring [_latestData] to have come from
+  /// the live subscription. Clearing [_latestData] in [_replaceSubscription]
+  /// would also have hidden the symptom, but would have left the gate asking
+  /// the question that was wrong — the same shape as the author-sort miss,
+  /// where a skip condition was narrower than the cases it had to cover.
+  ///
+  /// This does not weaken the issue #340 protection above: on the reuse path
+  /// the subscription has emitted by definition, so `_pendingFirst` is null
+  /// there and the branch still fires.
   Future<CollectionData> _watchCollectionData(String? callerFilter) {
     final cached = _latestData;
     if (_dataSub != null &&
+        _pendingFirst == null &&
         _subCallerFilter == callerFilter &&
         cached != null) {
       return Future<CollectionData>.value(cached);
