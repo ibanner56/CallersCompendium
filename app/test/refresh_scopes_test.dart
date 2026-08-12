@@ -298,6 +298,56 @@ void main() {
   );
 
   testWidgets(
+    'renaming a choreographer re-sorts the list when sorted by author',
+    (tester) async {
+      // The author sort orders by choreographer NAME, not by the ids stored on
+      // the dance — so a rename reorders the results while every dance row is
+      // byte-identical. The in-memory re-derivation this screen does for
+      // cheap updates would otherwise refresh the visible author labels and
+      // leave the ORDER stale, which looks like a sorting bug rather than a
+      // refresh one.
+      final repos = openTestRepos();
+      // ignore: unused_result
+      await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Adams'));
+      // ignore: unused_result
+      await repos.choreographers.upsert(Choreographer(id: 'c2', name: 'Baker'));
+      await repos.dances.create(
+        dance(id: 'd1', title: 'Alpha').copyWith(authorIds: const ['c1']),
+      );
+      await repos.dances.create(
+        dance(id: 'd2', title: 'Beta').copyWith(authorIds: const ['c2']),
+      );
+      await pump(tester, repos, const DanceListScreen());
+
+      // Switch to the author sort: Adams (Alpha) before Baker (Beta).
+      await tester.tap(find.byIcon(Icons.sort));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Author').last);
+      await tester.pumpAndSettle();
+
+      List<String> order() => tester
+          .widgetList<Text>(find.byType(Text))
+          .map((t) => t.data ?? '')
+          .where((t) => t == 'Alpha' || t == 'Beta')
+          .toList();
+      expect(order(), ['Alpha', 'Beta'], reason: 'Adams sorts before Baker');
+
+      // Rename Adams so it now sorts AFTER Baker. No dance row changes.
+      // ignore: unused_result
+      await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Zulu'));
+      await tester.pumpAndSettle();
+
+      expect(
+        order(),
+        ['Beta', 'Alpha'],
+        reason:
+            'the rename reorders the author sort; a labels-only refresh '
+            'would leave the old order',
+      );
+    },
+  );
+
+  testWidgets(
     'gap 3: mark-all-performed in a program summary updates a live Collection '
     "row's called-count badge",
     (tester) async {

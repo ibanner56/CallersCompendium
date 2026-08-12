@@ -478,7 +478,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final searchAffected =
         previous == null ||
         !mapEquals(previous.dancesById, data.dancesById) ||
-        !listEquals(previous.customFieldDefs, data.customFieldDefs);
+        !listEquals(previous.customFieldDefs, data.customFieldDefs) ||
+        // The author sort orders by choreographer NAME (`_sortByAuthor`), not
+        // by the ids stored on the dance — so a rename reorders the results
+        // while every dance row is byte-identical. Without this the labels
+        // would update from the new snapshot and the ORDER would not, leaving
+        // a list that is visibly sorted wrongly until some unrelated write
+        // happened to force a re-search. Checked only under that sort, so a
+        // rename costs no query in the sorts it cannot reorder.
+        (_sort == CollectionSort.author &&
+            !mapEquals(previous.choreographerNames, data.choreographerNames));
     setState(() {
       _data = data;
       _loadError = null;
