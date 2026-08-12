@@ -412,6 +412,23 @@ ever sees an error. To make the manifest live, a maintainer enables Pages once:
    `https://ibanner56.github.io/CallersCompendium/stable.json` (and, once a beta
    has shipped, `…/beta.json`) resolves.
 
+   > **Fetch it with `curl -fsSL`, and check the body — not the exit code.**
+   > That host **301s** to the custom Pages domain, and `-f` only fails on
+   > 4xx/5xx, so a redirect is not an error: without `-L`, curl exits **0** and
+   > writes nginx's 162-byte `301 Moved Permanently` HTML page. A size check
+   > passes too, because the file is not empty. You find out one step later, when
+   > the JSON fails to parse or a signature check fails against HTML bytes — both
+   > of which read as a corrupt manifest or a bad signing key rather than a
+   > missing `-L`.
+   >
+   > ```sh
+   > curl -fsSL https://ibanner56.github.io/CallersCompendium/beta.json | head
+   > ```
+   >
+   > Expect JSON beginning `{ "manifestSchemaVersion": 1, …`. The redirect itself
+   > is expected and correct — installed clients follow it too (`kAllowedArtifactHosts`
+   > covers both hosts; see the redirect test in `app/test/update/update_service_test.dart`).
+
 Do **not** select "GitHub Actions" as the Pages source — this pipeline publishes
 via the `gh-pages` **branch**, not the Actions Pages deployment flow.
 
@@ -535,7 +552,9 @@ provision — or later re-provision — the key:
    manifest is the only one they can use.
 
 4. **Verify end-to-end** after the next release: confirm
-   `https://ibanner56.github.io/CallersCompendium/stable.json.sig` resolves and a
+   `https://ibanner56.github.io/CallersCompendium/stable.json.sig` resolves
+   (`curl -fsSL`, and check the body — see the redirect note under
+   [One-time maintainer step: enable GitHub Pages](#one-time-maintainer-step-enable-github-pages)) and a
    client build with the pinned key offers the update.
 
 ### Key rotation
