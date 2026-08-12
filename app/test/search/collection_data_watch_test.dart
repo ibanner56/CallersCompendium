@@ -231,8 +231,16 @@ void main() {
         openWidgetTestDatabase(NativeDatabase.memory().interceptWith(parker)),
         contraTaxonomy,
       );
+      // The close below cannot complete while the query is parked, so it is
+      // started un-awaited — but the future is TRACKED and awaited in
+      // teardown, after releasing the gate. Dropping it would let an in-flight
+      // close outlive the test and turn any failure inside it into a late,
+      // unattributed error: a false green in the file whose whole purpose is
+      // proving a stream terminates.
+      late final Future<void> closing;
       addTearDown(() async {
         parker.release();
+        await closing;
       });
       parker.arm();
 
@@ -249,7 +257,7 @@ void main() {
       expect(parker.didPark, isTrue, reason: 'the watched query was parked');
       expect(emitted, 0, reason: 'nothing can have been delivered');
 
-      unawaited(repos.db.close());
+      closing = repos.db.close();
       await Future<void>.delayed(const Duration(milliseconds: 60));
 
       expect(done, 1, reason: 'the source ended');
