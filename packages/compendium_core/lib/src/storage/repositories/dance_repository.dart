@@ -829,23 +829,73 @@ class DanceRepository {
   ///   which the [DanceLink] constructor rejects, corrupting the *owner*
   ///   dance's load. The link no longer refers to anything, so we delete it.
   ///   (Owner-side links are cascade-deleted with their dance separately.)
+  ///
+  /// ## Both writes announce themselves to drift, and must keep doing so
+  ///
+  /// These are raw SQL, which drift cannot attribute to a table on its own, so
+  /// each passes `updates:` explicitly. Without that a `.watch()` stream over
+  /// `program_slots` or `dance_links` never re-runs for a purge — the silent
+  /// staleness issue #768 exists to remove, arriving from the write side.
+  ///
+  /// **Today these two writes would survive the omission by accident, and that
+  /// is the reason to state this rather than rely on it.** drift generates
+  /// `WritePropagation` rules from the schema's foreign keys
+  /// (`database.g.dart`, `streamUpdateRules`), and two of them are:
+  ///
+  /// ```
+  /// on: dances   (delete) -> result: program_slots (update)
+  /// on: dances   (delete) -> result: dance_links   (delete)
+  /// ```
+  ///
+  /// Both callers run these raw writes in the same transaction as a
+  /// drift-native `delete(_db.dances)`, and drift dispatches a transaction's
+  /// updates as one set on commit — so the native delete notifies both tables
+  /// on this method's behalf. That protection is **incidental co-location**,
+  /// not a property of this code: it disappears if the native delete is
+  /// reordered out of the transaction, or if a purge path is added that only
+  /// does raw writes. Nothing would fail; a subscribed view would simply stop
+  /// updating.
+  ///
+  /// The propagation rules are also **kind-limited** — only `delete` on
+  /// `dances` propagates, so a `dances` *update* notifies neither table.
+  ///
+  /// Established by experiment rather than from the API docs (drift 2.34.2),
+  /// because the difference is invisible in behaviour until something watches
+  /// the table:
+  ///
+  /// | probe | result |
+  /// |---|---|
+  /// | bare `customStatement` on `program_slots` | no notification |
+  /// | same, alone inside a `transaction` | no notification |
+  /// | native `delete(dances)` on an *unrelated* row | notifies `program_slots` |
+  /// | native `delete(dances)` on the referenced row | notifies, correct value |
+  ///
+  /// See [_garbageCollectOrphanedRefs], where the same raw-write hazard exists
+  /// with **no** incidental cover at all.
   Future<void> _cleanupDanglingReferences(
     List<({String id, String title})> toPurge,
   ) async {
     if (toPurge.isEmpty) return;
     for (final d in toPurge) {
-      await _db.customStatement(
+      await _db.customUpdate(
         'UPDATE program_slots SET text = ? WHERE dance_id = ? AND text IS NULL',
-        [d.title, d.id],
+        variables: [Variable<String>(d.title), Variable<String>(d.id)],
+        updates: {_db.programSlots},
+        updateKind: UpdateKind.update,
       );
     }
     final ids = [for (final d in toPurge) d.id];
     for (final chunk in _chunkIds(ids)) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
-      await _db.customStatement(
+      await _db.customUpdate(
         'DELETE FROM dance_links WHERE kind = ? AND target_dance_id IN '
         '($placeholders)',
-        [LinkKind.relatedDance.name, ...chunk],
+        variables: [
+          Variable<String>(LinkKind.relatedDance.name),
+          for (final id in chunk) Variable<String>(id),
+        ],
+        updates: {_db.danceLinks},
+        updateKind: UpdateKind.delete,
       );
     }
   }
@@ -908,23 +958,55 @@ class DanceRepository {
   /// advertising a deletion the user never performed would be wrong. Giving the
   /// six new kinds their own retention/purge policy belongs with the sync
   /// implementation, which owns retention; this migration ships none.
+  /// ## Both deletes announce themselves to drift, and here nothing else would
+  ///
+  /// Raw SQL is opaque to drift, so each delete names the table it writes via
+  /// `updates:`. [_cleanupDanglingReferences] explains the mechanism and why
+  /// omitting it is silent; this site is the **worse** half of that pair and is
+  /// worth separating rather than covering with one shared sentence.
+  ///
+  /// There, an omission would be masked by a `WritePropagation` rule that fires
+  /// on the native `delete(_db.dances)` sharing the transaction. **No such rule
+  /// exists for these two tables.** Every generated rule targeting
+  /// `choreographers` or `published_sources` runs in the opposite direction —
+  /// `choreographers (delete) -> dance_authors`, `published_sources (delete) ->
+  /// dance_sources` — i.e. they are *sources* of propagation, never results of
+  /// it. Nothing in the schema notifies them.
+  ///
+  /// So a `.watch()` over either table would simply never see a row this method
+  /// removes. Demonstrated before the fix, by attaching a watcher to
+  /// `choreographers` and purging a dance whose sole author was thereby
+  /// orphaned:
+  ///
+  /// ```text
+  /// initial count seen by watcher: [1]
+  /// after purge -> watcher saw: [1]   | truth in db: 0
+  /// ```
+  ///
+  /// Nothing watches these tables **yet**, so that was unobservable rather than
+  /// harmless — the first reactive read over either would have shipped it. See
+  /// `dance_hard_delete_test.dart`, which now holds that scenario as a guard.
   Future<void> _garbageCollectOrphanedRefs(
     ({Set<String> choreographerIds, Set<String> sourceIds}) candidates,
   ) async {
     for (final chunk in _chunkIds(candidates.choreographerIds.toList())) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
-      await _db.customStatement(
+      await _db.customUpdate(
         'DELETE FROM choreographers WHERE id IN ($placeholders) AND id NOT IN '
         '(SELECT choreographer_id FROM dance_authors)',
-        [...chunk],
+        variables: [for (final id in chunk) Variable<String>(id)],
+        updates: {_db.choreographers},
+        updateKind: UpdateKind.delete,
       );
     }
     for (final chunk in _chunkIds(candidates.sourceIds.toList())) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
-      await _db.customStatement(
+      await _db.customUpdate(
         'DELETE FROM published_sources WHERE id IN ($placeholders) AND id NOT '
         'IN (SELECT source_id FROM dance_sources)',
-        [...chunk],
+        variables: [for (final id in chunk) Variable<String>(id)],
+        updates: {_db.publishedSources},
+        updateKind: UpdateKind.delete,
       );
     }
   }

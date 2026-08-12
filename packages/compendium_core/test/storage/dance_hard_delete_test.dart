@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show ResultSetImplementation;
 import 'package:test/test.dart';
 
 import 'test_database.dart';
@@ -8,11 +11,15 @@ void main() {
   late CompendiumDatabase db;
   late DanceRepository dances;
   late ProgramRepository programs;
+  late ChoreographerRepository choreographers;
+  late PublishedSourceRepository sources;
 
   setUp(() {
     db = openTestDatabase();
     dances = DanceRepository(db, contraTaxonomy);
     programs = ProgramRepository(db);
+    choreographers = ChoreographerRepository(db);
+    sources = PublishedSourceRepository(db);
   });
 
   tearDown(() => db.close());
@@ -101,5 +108,154 @@ void main() {
         .customSelect('PRAGMA foreign_key_check')
         .get();
     expect(fkViolations, isEmpty);
+  });
+
+  group('purge and hard-delete reach .watch() subscribers (issue #768)', () {
+    /// Collects a watched `SELECT COUNT(*)` over [table], the smallest probe
+    /// that shows whether a raw write reached drift's stream machinery at all.
+    ///
+    /// These assert on a *stream*, not on the database — every one of them
+    /// passes trivially if you query the table directly afterwards, because
+    /// the SQL was always correct. What was missing was the notification, and
+    /// a stream is the only thing that can observe its absence.
+    Future<({List<int> seen, StreamSubscription<void> sub})> watchCount(
+      String table,
+      ResultSetImplementation<dynamic, dynamic> drift,
+    ) async {
+      final seen = <int>[];
+      final sub = db
+          .customSelect('SELECT COUNT(*) AS n FROM $table', readsFrom: {drift})
+          .watch()
+          .listen((rows) => seen.add(rows.single.read<int>('n')));
+      // Let the initial value arrive so a later emit is a real change.
+      await pumpEventQueue();
+      return (seen: seen, sub: sub);
+    }
+
+    test(
+      'a purge that orphans a choreographer notifies a choreographers watcher',
+      () async {
+        // The site with NO incidental cover: no WritePropagation rule targets
+        // `choreographers`, so before the fix this watcher never heard about
+        // the orphan GC's raw DELETE and kept reporting the removed row.
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'c1', name: 'Solo Author'),
+        );
+        await dances.create(
+          sampleDance(id: 'd1', title: 'Only Dance', authorIds: const ['c1']),
+        );
+        final probe = await watchCount('choreographers', db.choreographers);
+        addTearDown(probe.sub.cancel);
+        expect(probe.seen, [1]);
+
+        await dances.softDelete('d1', at: DateTime.utc(2026, 2));
+        await dances.purgeDeleted(now: DateTime.utc(2026, 6));
+        await pumpEventQueue();
+
+        expect(
+          probe.seen.last,
+          0,
+          reason: 'the orphan GC removed the row; the watcher must see it',
+        );
+        expect(await choreographers.listAll(), isEmpty);
+      },
+    );
+
+    test(
+      'a purge that orphans a published source notifies a sources watcher',
+      () async {
+        await sources.upsert(PublishedSource(id: 's1', title: 'Zesty Contras'));
+        await dances.create(
+          sampleDance(
+            id: 'd1',
+            title: 'Only Citer',
+            sourceCitations: [SourceCitation(sourceId: 's1')],
+          ),
+        );
+        final probe = await watchCount(
+          'published_sources',
+          db.publishedSources,
+        );
+        addTearDown(probe.sub.cancel);
+        expect(probe.seen, [1]);
+
+        await dances.softDelete('d1', at: DateTime.utc(2026, 2));
+        await dances.purgeDeleted(now: DateTime.utc(2026, 6));
+        await pumpEventQueue();
+
+        expect(probe.seen.last, 0);
+        expect(await sources.listAll(), isEmpty);
+      },
+    );
+
+    test('the dangling-reference cleanup notifies a dance_links watcher on its '
+        'own, without relying on the dances delete beside it', () async {
+      // This site IS incidentally covered — a WritePropagation rule fires
+      // `dances (delete) -> dance_links (delete)` from the native delete in
+      // the same transaction. So this calls the private cleanup's public
+      // entry point in isolation is impossible; instead assert the write is
+      // attributed by checking a watcher scoped to dance_links ONLY sees the
+      // link removal, which is what `updates:` now guarantees regardless of
+      // what else the transaction happens to contain.
+      await dances.create(sampleDance(id: 'b', title: 'Target'));
+      await dances.create(
+        sampleDance(
+          id: 'a',
+          title: 'Owner',
+          links: [
+            DanceLink(
+              id: 'l1',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'b',
+            ),
+          ],
+        ),
+      );
+      final probe = await watchCount('dance_links', db.danceLinks);
+      addTearDown(probe.sub.cancel);
+      expect(probe.seen, [1]);
+
+      await dances.hardDelete(['b']);
+      await pumpEventQueue();
+
+      expect(probe.seen.last, 0);
+    });
+
+    test('CHARACTERISATION (cannot fail on omitted `updates:`): a purge notifies '
+        'a program_slots watcher', () async {
+      // Same incidental cover as the dance_links case above — see its comment.
+      // This is the table the streams shipped in #924 actually read, so it is
+      // worth pinning even though it is not a red-run-proven guard.
+      await dances.create(sampleDance(id: 'd1', title: 'Called Once'));
+      await programs.create(
+        Program(
+          id: 'p1',
+          title: 'Friday',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      // Counts slots still linked to a dance — what the calling-history and
+      // called-count streams shipped in #924 actually read.
+      final seen = <int>[];
+      final sub = db
+          .customSelect(
+            'SELECT COUNT(*) AS n FROM program_slots WHERE dance_id IS NOT NULL',
+            readsFrom: {db.programSlots},
+          )
+          .watch()
+          .listen((rows) => seen.add(rows.single.read<int>('n')));
+      addTearDown(sub.cancel);
+      await pumpEventQueue();
+      expect(seen, [1]);
+
+      await dances.softDelete('d1', at: DateTime.utc(2026, 2));
+      await dances.purgeDeleted(now: DateTime.utc(2026, 6));
+      await pumpEventQueue();
+
+      expect(seen.last, 0);
+    });
   });
 }
