@@ -253,8 +253,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// load sequence is unchanged while later emits flow into [_data].
   ///
   /// One subscription serves both, rather than a `load()` for the initial
-  /// render plus a `watch()` for updates — that would run the seven-query load
-  /// twice on open.
+  /// render plus a `watch()` for updates — that would run the whole snapshot
+  /// load twice on open.
   Future<CollectionData> _watchCollectionData(String? callerFilter) {
     final first = Completer<CollectionData>();
     unawaited(_dataSub?.cancel());

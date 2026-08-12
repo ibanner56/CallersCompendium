@@ -218,7 +218,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// the program, its dances and its venue all have to be re-fetched. Without
   /// these two fields it would also re-enter [_watchCollectionData], which
   /// cancels and re-opens the subscription and therefore re-runs the whole
-  /// seven-query [CollectionData.load]. One write would cost two full
+  /// whole [CollectionData.load]. One write would cost two full
   /// snapshot loads and a fresh coalescer, which is the issue #340 thrash this
   /// conversion is supposed to avoid rather than introduce.
   CollectionData? _latestData;
@@ -230,7 +230,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// Reuses the live subscription when the caller filter is unchanged: a
   /// re-entry from an emit already has a newer snapshot in hand than a fresh
   /// subscription would produce, so re-subscribing would buy nothing and pay
-  /// seven queries for it.
+  /// a second full load for it.
   Future<CollectionData> _watchCollectionData(String? callerFilter) {
     final cached = _latestData;
     if (_dataSub != null &&

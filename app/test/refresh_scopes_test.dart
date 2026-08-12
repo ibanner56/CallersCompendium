@@ -409,7 +409,7 @@ void main() {
         lessThanOrEqualTo(3),
         reason:
             'the pane must reuse the snapshot the stream just delivered; '
-            're-subscribing re-runs the seven-query load for a value it '
+            're-subscribing re-runs the whole snapshot load for a value it '
             'already has',
       );
     },
@@ -964,7 +964,7 @@ class _CountingSettings extends SettingsRepository {
 /// through drift's own builder — so it is a precise marker for "the search ran".
 /// Counts reads of `custom_field_defs`, which only [CollectionData.load]
 /// issues in the program-summary flow — so the count is "how many times the
-/// seven-query snapshot was loaded".
+/// whole snapshot was loaded".
 class _SnapshotLoadCounter extends drift.QueryInterceptor {
   int count = 0;
 

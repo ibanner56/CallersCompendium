@@ -46,7 +46,7 @@ class CompendiumRepositories {
   /// snapshot (issue #768).
   ///
   /// A **change signal**, not the data: it carries no payload, because the
-  /// snapshot is assembled app-side from seven queries across five
+  /// snapshot is assembled app-side from a fan-out of queries across six
   /// repositories and there is no single row set to hand back. Callers pair it
   /// with their own loader (see `CollectionData.watch`).
   ///

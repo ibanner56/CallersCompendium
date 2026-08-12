@@ -129,10 +129,20 @@ class CollectionData {
   ///
   /// ## Why this reloads the snapshot rather than streaming its parts
   ///
-  /// [load] composes seven queries across five repositories into one immutable
-  /// value that three screens share. Streaming each part and recombining would
-  /// emit up to seven times per write and could render a half-updated
-  /// snapshot; re-running the load on a single change signal keeps the
+  /// [load] composes a fan-out of queries across six repositories into one
+  /// immutable value that three screens share.
+  ///
+  /// Deliberately no query count. An earlier draft said "seven queries across
+  /// five repositories" and both numbers were wrong — but the query count is
+  /// worse than wrong, it is **not a constant**: `dances.listAll` eagerly
+  /// loads its join tables with `IN (?)` reads that are skipped when there are
+  /// no dances, so a measured load runs **6** statements on an empty
+  /// collection and **12** with any dances in it. A number here cannot be
+  /// correct for both, so the shape is described instead. The repository count
+  /// is fixed in code and safe to state; the statement count is a property of
+  /// the data. Streaming each part and
+  /// recombining would emit once per part per write and could render a
+  /// half-updated snapshot; re-running the load on a single change signal keeps the
   /// existing value atomic and leaves [load] the only place the composition is
   /// expressed.
   ///
@@ -142,7 +152,7 @@ class CollectionData {
   /// Collection updates **one dance per transaction in a loop**
   /// (`dance_list_screen.dart`, `_applyBatchTags`), so tagging 50 dances is 50
   /// commits, and drift notifies per commit. Without a window, one user action
-  /// would re-run this seven-query load 50 times and re-run the FTS search
+  /// would re-run this whole-snapshot load 50 times and re-run the FTS search
   /// after each — precisely the thrashing issue #340 records, arriving as a
   /// side effect of fixing staleness.
   ///
