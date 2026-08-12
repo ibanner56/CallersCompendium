@@ -195,6 +195,7 @@ void main() {
     test('a figures_json rewrite notifies a dances watcher', () async {
       // `star_promenade.hand` was retired in taxonomy v26 (#843); the sweep
       // rewrites figures_json in place for every dance still carrying it.
+      // invalid-fixture: the retired param is the point — this is pre-v26 data on disk, which is exactly what the sweep exists to clean up, so a fixture valid under the current taxonomy could not exercise it
       await repos.dances.create(
         sampleDance(
           id: 'd1',
