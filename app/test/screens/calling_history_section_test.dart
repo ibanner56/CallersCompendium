@@ -406,6 +406,37 @@ void main() {
     );
   });
 
+  testWidgets('says so when the query fails, rather than "never called"', (
+    tester,
+  ) async {
+    // A failed read used to render the empty state, which is a claim about the
+    // data: it tells the caller this dance has never been called.
+    final failing = _FailingSelects();
+    final db = openWidgetTestDatabase(
+      NativeDatabase.memory().interceptWith(failing),
+    );
+    addTearDown(db.close);
+    final repos = CompendiumRepositories(db, contraTaxonomy);
+    await repos.dances.create(dance('d1', 'Petronella'));
+    await repos.programs.create(
+      program(
+        id: 'p1',
+        title: 'Autumn Ball',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      ),
+    );
+    failing.failCallingHistory = true;
+
+    await pumpSection(tester, repos);
+
+    expect(find.byKey(const ValueKey('calling-history-error')), findsOne);
+    expect(
+      find.byKey(const ValueKey('calling-history-empty')),
+      findsNothing,
+      reason: 'the dance HAS been called; the read is what failed',
+    );
+  });
+
   testWidgets('half-calling stats appear with the history, not a beat later', (
     tester,
   ) async {
@@ -454,6 +485,24 @@ class _VenueSelectCounter extends drift.QueryInterceptor {
     List<Object?> args,
   ) {
     if (statement.contains('FROM "venues"')) count++;
+    return executor.runSelect(statement, args);
+  }
+}
+
+/// Fails the calling-history query on demand, so the section can be observed
+/// with a broken read rather than an empty one.
+class _FailingSelects extends drift.QueryInterceptor {
+  bool failCallingHistory = false;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (failCallingHistory && statement.contains('AS slot_id')) {
+      return Future.error(StateError('injected calling-history read failure'));
+    }
     return executor.runSelect(statement, args);
   }
 }

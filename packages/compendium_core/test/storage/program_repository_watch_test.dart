@@ -170,6 +170,62 @@ void main() {
       );
     });
 
+    test(
+      'half-stats derived from the emitted rows equal the one-shot read, under '
+      'both performedOnly settings',
+      () async {
+        // The case where the two program-id sets could diverge: `p2` contains
+        // the dance but never performed it, so it is in
+        // `halfCallingStatsForDance`'s id query yet absent from a
+        // performed-only history. It must not change the answer.
+        await programs.create(
+          program(
+            id: 'p1',
+            slots: [
+              ProgramSlot(
+                id: 's1',
+                position: 0,
+                danceId: 'd1',
+                performedAt: DateTime.utc(2026, 2),
+              ),
+              ProgramSlot(id: 'b1', position: 1, text: Program.breakSlotText),
+              ProgramSlot(id: 's2', position: 2, danceId: 'd2'),
+            ],
+          ),
+        );
+        await programs.create(
+          program(
+            id: 'p2',
+            title: 'Never performed',
+            slots: [
+              ProgramSlot(id: 's3', position: 0, danceId: 'd1'),
+              ProgramSlot(id: 'b2', position: 1, text: Program.breakSlotText),
+              ProgramSlot(id: 's4', position: 2, danceId: 'd2'),
+            ],
+          ),
+        );
+
+        for (final performedOnly in [false, true]) {
+          final probe = _Probe(
+            programs.watchCallingHistoryForDance(
+              'd1',
+              performedOnly: performedOnly,
+            ),
+          );
+          addTearDown(probe.cancel);
+
+          expect(
+            (await probe.next()).halfStats,
+            await programs.halfCallingStatsForDance(
+              'd1',
+              performedOnly: performedOnly,
+            ),
+            reason: 'performedOnly: $performedOnly',
+          );
+        }
+      },
+    );
+
     test('agrees with the one-shot read under performedOnly', () async {
       await programs.create(
         program(

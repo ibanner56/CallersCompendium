@@ -174,6 +174,12 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
     return StreamBuilder<DanceCallingHistory>(
       stream: _history,
       builder: (context, snapshot) {
+        // A failed query must not render the empty state: "not yet included in
+        // any program" is a claim about the data, and saying it when the read
+        // failed tells the user this dance has never been called. Only when
+        // there is no value to fall back on — a later failure keeps showing the
+        // last good history, which is still true of the database.
+        final failed = snapshot.hasError && !snapshot.hasData;
         // Before the first value arrives, render the section's own empty state
         // rather than a spinner: this section sits inside an already-loaded
         // screen, and the first emit is one local query away.
@@ -187,7 +193,19 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
               style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: AppSpacing.xxs),
-            if (history.records.isEmpty)
+            if (failed)
+              Padding(
+                key: const ValueKey('calling-history-error'),
+                // intentional: 2px optical inset, below the 4px AppSpacing grid
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Text(
+                  l10n.danceCallingHistoryError,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              )
+            else if (history.records.isEmpty)
               Padding(
                 key: const ValueKey('calling-history-empty'),
                 // intentional: 2px optical inset, below the 4px AppSpacing grid

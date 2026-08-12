@@ -1869,6 +1869,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceCallingHistoryEmpty => 'まだプログラムに含まれていません。';
 
   @override
+  String get danceCallingHistoryError => 'Could not load the calling history.';
+
+  @override
   String get danceShowCanonicalTerms => '正式な用語で表示';
 
   @override

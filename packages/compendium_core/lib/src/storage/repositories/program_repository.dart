@@ -770,16 +770,31 @@ class ProgramRepository {
       danceId,
       performedOnly: performedOnly,
       caller: caller,
-    ).watch().asyncMap(
-      (List<QueryRow> rows) async => DanceCallingHistory(
-        records: _callingHistoryFromRows(rows),
-        halfStats: await halfCallingStatsForDance(
-          danceId,
+    ).watch().asyncMap((List<QueryRow> rows) async {
+      final records = _callingHistoryFromRows(rows);
+      // The programs to compute stats over are already in these rows, so the
+      // `DISTINCT program_id` query [halfCallingStatsForDance] would run is
+      // skipped: one fewer read per emit, and — more to the point — the stats
+      // are derived from the same revision of `program_slots` the records came
+      // from rather than from a re-query that a write could land in front of.
+      //
+      // The two id sets agree. With `performedOnly` false the history holds
+      // every program containing the dance, which is exactly what that query
+      // returns. With it true the history is narrowed to programs where the
+      // dance was performed — and a program containing it but never performed
+      // contributes no counted occurrence anyway, so dropping it cannot change
+      // the result. `program_repository_watch_test.dart` asserts the equality
+      // against [halfCallingStatsForDance] under both flags, with such a
+      // program present.
+      return DanceCallingHistory(
+        records: records,
+        halfStats: await _halfStatsForPrograms(
+          danceId: danceId,
+          programIds: {for (final r in records) r.programId}.toList(),
           performedOnly: performedOnly,
-          callerFilter: caller,
         ),
-      ),
-    );
+      );
+    });
   }
 
   /// First/second-half positional calling stats for the dance identified by
@@ -815,8 +830,26 @@ class ProgramRepository {
         )
         .get();
     final programIds = [for (final r in idRows) r.read<String>('program_id')];
-    if (programIds.isEmpty) return HalfCallingStats.empty;
+    return _halfStatsForPrograms(
+      danceId: danceId,
+      programIds: programIds,
+      performedOnly: performedOnly,
+    );
+  }
 
+  /// [halfCallingStatsForDance] once the programs containing [danceId] are
+  /// known, so a caller already holding that set does not re-derive it.
+  ///
+  /// Program structure is read in full for each id regardless of
+  /// [performedOnly] — the halves and the first/last-in-half positions come
+  /// from the whole slot list, and only which *occurrences* are counted depends
+  /// on the flag.
+  Future<HalfCallingStats> _halfStatsForPrograms({
+    required String danceId,
+    required List<String> programIds,
+    required bool performedOnly,
+  }) async {
+    if (programIds.isEmpty) return HalfCallingStats.empty;
     final byProgram = await _slotsForMany(programIds);
     return computeHalfCallingStats(
       danceId: danceId,

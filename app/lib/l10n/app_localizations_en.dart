@@ -1918,6 +1918,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceCallingHistoryEmpty => 'Not yet included in any program.';
 
   @override
+  String get danceCallingHistoryError => 'Could not load the calling history.';
+
+  @override
   String get danceShowCanonicalTerms => 'Show canonical terms';
 
   @override
