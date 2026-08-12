@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -246,6 +247,53 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('called-count-d1')), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'issue #340: a program-side write updates the badge WITHOUT re-running the '
+    'search query',
+    (tester) async {
+      // The Collection list re-derives its rows from the loaded snapshot, so a
+      // write that can only move the per-dance tallies must not re-run the
+      // (expensive) filter/FTS query behind `search()`. Converting the screen
+      // to a stream makes that easy to lose: every emit is a fresh snapshot,
+      // and the naive response is to re-search on each one.
+      final counter = _SearchCounter();
+      final db = openWidgetTestDatabase(
+        NativeDatabase.memory().interceptWith(counter),
+      );
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
+      await pump(tester, repos, const DanceListScreen());
+      final searchesAfterOpen = counter.count;
+      expect(searchesAfterOpen, greaterThan(0), reason: 'the list did search');
+      expect(find.byKey(const ValueKey('called-count-d1')), findsNothing);
+
+      // Program-side write: changes the tallies, cannot change which dances
+      // match the query or their order under the default (title) sort.
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Friday Night',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('called-count-d1')),
+        findsOne,
+        reason: 'the badge must still update',
+      );
+      expect(
+        counter.count,
+        searchesAfterOpen,
+        reason:
+            'a tallies-only change must not re-run the search query; '
+            'the rows are re-derived from the snapshot instead',
+      );
     },
   );
 
@@ -788,5 +836,24 @@ class _CountingSettings extends SettingsRepository {
   Future<Object?> get(String key) {
     _reads.update(key, (v) => v + 1, ifAbsent: () => 1);
     return super.get(key);
+  }
+}
+
+/// Counts executions of the Collection's compiled filter query.
+///
+/// `FilterCompiler` emits `SELECT id FROM dances …` (`filter_compiler.dart:92`),
+/// which nothing else in this screen's load issues — the snapshot reads dances
+/// through drift's own builder — so it is a precise marker for "the search ran".
+class _SearchCounter extends drift.QueryInterceptor {
+  int count = 0;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (statement.contains('SELECT id FROM dances')) count++;
+    return executor.runSelect(statement, args);
   }
 }
