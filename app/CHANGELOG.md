@@ -529,11 +529,6 @@ install notes follow.
 
 ### Known issues
 
-- **On beta.4 or beta.5, your in-app update check can't see this release.** The
-  update site lost its manifest signature on 29 July, and the updater is
-  fail-closed, so checks have been reporting "no update available". Download this
-  build from the Releases page once; publishing it restores the signature and
-  in-app checks work normally from then on.
 - **Coming from beta.1? A one-time Android reinstall is still required.** beta.2
   unified the Android application identifier with Apple
   (`org.callerscompendium.compendiumApp`), so a beta.1 sideload cannot upgrade in
@@ -541,8 +536,8 @@ install notes follow.
   app, install this build, then restore.**
 - **Have an older `.ccbackup` file?** The encrypted-backup format from beta.4 can no
   longer be opened. Restore it with the beta.4 build and export a fresh `.json` backup.
-- **Check your gates.** Gates no longer invent an ending facing the source never
-  stated (see Changed). If you had gates before this build, some may have been
+- **Check your gates.** Since beta.6, gates no longer invent an ending facing the
+  source never stated. If you recorded gates before beta.6, some may still be
   showing a facing that was wrong — worth a look.
 - **In-app update checks remain opt-in.** Automatic checks and the beta channel are off
   by default and enabled in Settings; when on, updates are signature-verified. Either
