@@ -316,8 +316,15 @@ class CollectionData {
   );
 }
 
-/// Collapses events arriving within [window] of each other into one, emitting
-/// the **first** immediately and then at most one more per quiet period.
+/// Collapses events arriving within [window] of each other, emitting the
+/// **first** immediately and then at most one per window for as long as the
+/// burst continues.
+///
+/// Not "one leading plus one trailing": the window is deliberately re-armed
+/// after each trailing emit, so a burst longer than [window] keeps reporting
+/// progress at that rate instead of going silent until it ends. A 200-dance
+/// batch should move the UI while it runs. The bound this guarantees is
+/// therefore a *rate* — one emit per window — not a total.
 ///
 /// Leading-edge rather than a plain trailing debounce, so the first change a
 /// user makes is reflected without waiting out the window; the trailing emit

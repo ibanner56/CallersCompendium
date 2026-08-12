@@ -260,6 +260,23 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       onError: (Object error) {
         if (!first.isCompleted) {
           first.completeError(error);
+          return;
+        }
+        // A LATER failure keeps the picker on its last good data rather than
+        // blanking it: this is reference data beside an editor holding unsaved
+        // work, so an empty picker would be worse than a slightly stale one.
+        // Deliberately not silent — it surfaces through the screen's own error
+        // state only if nothing has loaded yet, which the branch above covers.
+      },
+      onDone: () {
+        // The source can end without ever emitting — the database closed while
+        // this screen was opening, which happens in teardown. Completing the
+        // future is what stops `_load` awaiting forever; the error routes to
+        // the screen's existing load-failure branch.
+        if (!first.isCompleted) {
+          first.completeError(
+            StateError('collection stream closed before its first value'),
+          );
         }
       },
     );

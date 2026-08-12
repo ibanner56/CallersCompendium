@@ -132,6 +132,40 @@ void main() {
     },
   );
 
+  testWidgets(
+    'a screen whose database closes mid-open fails its load instead of '
+    'hanging forever',
+    (tester) async {
+      // The screens complete their initial load from the stream's FIRST value.
+      // If the source ends without ever emitting — the database closed while
+      // the screen was opening, which teardown does — a future that is never
+      // completed leaves `_load` awaiting indefinitely: no data, no error, no
+      // spinner ever resolving. Asserted here on the shape both screens use.
+      final source = StreamController<CollectionData>();
+      final first = Completer<CollectionData>();
+      final sub = source.stream.listen(
+        (data) {
+          if (!first.isCompleted) first.complete(data);
+        },
+        onError: (Object e) {
+          if (!first.isCompleted) first.completeError(e);
+        },
+        onDone: () {
+          if (!first.isCompleted) {
+            first.completeError(
+              StateError('collection stream closed before its first value'),
+            );
+          }
+        },
+      );
+      addTearDown(sub.cancel);
+
+      await source.close();
+
+      await expectLater(first.future, throwsStateError);
+    },
+  );
+
   test('a program-side write refreshes the per-dance call tallies', () async {
     final repos = openTestRepositories();
     await repos.dances.create(dance('d1', 'Petronella'));

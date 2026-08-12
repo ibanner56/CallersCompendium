@@ -225,7 +225,24 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         if (mounted) _refreshCoalescer.request();
       },
       onError: (Object error) {
-        if (!first.isCompleted) first.completeError(error);
+        if (!first.isCompleted) {
+          first.completeError(error);
+          return;
+        }
+        // Unlike the program EDITOR, this pane can show an error and holds no
+        // unsaved work, so a failed refresh is surfaced rather than left to
+        // render stale data indefinitely.
+        if (mounted) setState(() => _error = error);
+      },
+      onDone: () {
+        // The source can end without ever emitting — the database closed while
+        // this pane was opening. Completing the future is what stops `_load`
+        // awaiting forever; the error routes to its existing catch.
+        if (!first.isCompleted) {
+          first.completeError(
+            StateError('collection stream closed before its first value'),
+          );
+        }
       },
     );
     return first.future;
