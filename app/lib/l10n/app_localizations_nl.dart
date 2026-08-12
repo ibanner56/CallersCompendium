@@ -1931,7 +1931,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceCallingHistoryEmpty => 'Nog niet opgenomen in een programma.';
 
   @override
-  String get danceCallingHistoryError => 'Could not load the calling history.';
+  String get danceCallingHistoryError => 'Kan de callgeschiedenis niet laden.';
 
   @override
   String get danceShowCanonicalTerms => 'Canonieke termen tonen';

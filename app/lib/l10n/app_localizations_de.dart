@@ -1944,7 +1944,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceCallingHistoryEmpty => 'Noch in keinem Programm enthalten.';
 
   @override
-  String get danceCallingHistoryError => 'Could not load the calling history.';
+  String get danceCallingHistoryError =>
+      'Der Ansageverlauf konnte nicht geladen werden.';
 
   @override
   String get danceShowCanonicalTerms => 'Kanonische Begriffe anzeigen';
