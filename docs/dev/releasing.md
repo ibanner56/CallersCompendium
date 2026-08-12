@@ -148,6 +148,16 @@ and produces no Android artifact.
      stale. State old → new and what the migration does: these notes are where a
      user learns what is about to happen to their data.
 
+     The range starts at the value **the previous tag shipped**, not at whatever
+     it was when you last looked. Derive it:
+
+     ```sh
+     git show v0.1.0-beta.6:packages/compendium_core/lib/src/storage/database.dart \
+       | grep -o 'kCompendiumSchemaVersion = [0-9]*'
+     ```
+
+     A release that spans several bumps covers all of them in one range.
+
    **Then verify the notes are the ones you just wrote.** `--check` tests that a
    section *exists*, not that it is *fresh*, so it returns 0 against a section
    left over from the previous release — and the draft would then carry the
@@ -164,6 +174,14 @@ and produces no Android artifact.
    version, the right migration range, the actual new work. `tools/ci/check_changelog_promoted.py`
    gates both conditions on tag push, but read the rendered notes anyway; the
    gate cannot judge whether the prose is true.
+
+   > **`--version` takes the bare version; only `--tag` carries the `v`.** Both
+   > tools resolve the CHANGELOG heading by splitting the version on `-`/`+` —
+   > they do **not** strip a leading `v`. Passing `--version v0.1.0-beta.7`
+   > therefore looks for a `## [v0.1.0]` section, which cannot exist, and the
+   > error names a heading one character off from the real one. It fails
+   > plausibly rather than obviously, so check the prefix before believing the
+   > message.
 2. Ensure `app/pubspec.yaml` `version:` (and the guarded `kAppVersion`) carry the
    **core** `x.y.z` you intend to ship. The workflow **fails** if the tag's
    `x.y.z` core doesn't match the pubspec semver.
