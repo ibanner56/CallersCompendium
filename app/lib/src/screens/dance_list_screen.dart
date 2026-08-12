@@ -462,6 +462,28 @@ class _DanceListScreenState extends State<DanceListScreen> {
       onError: (Object error) {
         if (mounted) setState(() => _loadError = error);
       },
+      onDone: () {
+        // The source can end without ever emitting — the database closed while
+        // this screen was opening. Nothing else moves the screen off its
+        // loading state: [_buildBody] renders the skeleton whenever `_data` and
+        // `_loadError` are both null, so without this the list spins forever
+        // with no throw, no log and no error surface.
+        //
+        // This screen has no first-value Completer, unlike the two program
+        // panes, so there is no future to complete with an error — the guard
+        // has to be on the loading STATE rather than on a future. That is
+        // precisely why an audit that searched for `Completer` did not find
+        // this site: the hazard is "a loading state with no terminal
+        // transition when the stream ends", and the Completer is only one way
+        // to express it.
+        if (mounted && _data == null && _loadError == null) {
+          setState(
+            () => _loadError = StateError(
+              'collection stream closed before its first value',
+            ),
+          );
+        }
+      },
     );
   }
 

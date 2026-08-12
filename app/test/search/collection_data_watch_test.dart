@@ -181,6 +181,26 @@ void main() {
       // the screen was opening, which teardown does — a future that is never
       // completed leaves `_load` awaiting indefinitely: no data, no error, no
       // spinner ever resolving. Asserted here on the shape both screens use.
+      //
+      // ## What this test CANNOT tell you, learned the hard way
+      //
+      // It asserts on a hand-rolled REPLICA of the listen/onDone shape, not on
+      // any screen. So it passes whether or not a given screen implements it —
+      // and one did not: `dance_list_screen` was exposed for nine review
+      // rounds while this test sat green, because that screen has no
+      // first-value Completer at all. It renders its skeleton whenever `_data`
+      // and `_loadError` are both null, so the same hazard reaches it through
+      // its loading STATE rather than through a future.
+      //
+      // Driving the real screen instead was attempted and does not work with a
+      // real database: settling lets the first snapshot arrive (so a later
+      // close is a no-op), a single `pump` is *also* enough for in-memory
+      // sqlite to deliver it, and closing before mount throws in setup before
+      // any subscription exists. The window needs a database slow or broken
+      // enough to be racing, which a test fixture is not.
+      //
+      // So treat this as a specification of the shape, and check new
+      // subscribers against it by reading them — it will not fail for you.
       final source = StreamController<CollectionData>();
       final first = Completer<CollectionData>();
       final sub = source.stream.listen(
