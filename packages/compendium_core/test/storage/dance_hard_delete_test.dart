@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show Table, TableInfo;
+import 'package:drift/drift.dart' show QueryRow, Table, TableInfo;
 import 'package:test/test.dart';
 
 import 'test_database.dart';
@@ -122,9 +122,8 @@ void main() {
     /// the query cannot end up counting one table while listening to another —
     /// a mismatch that would make these tests pass or fail for the wrong
     /// reason. Same single-source rule the repository writes now follow.
-    Future<({List<int> seen, StreamSubscription<void> sub})> watchCount(
-      TableInfo<Table, dynamic> table,
-    ) async {
+    Future<({List<int> seen, StreamSubscription<List<QueryRow>> sub})>
+    watchCount(TableInfo<Table, dynamic> table) async {
       final seen = <int>[];
       final sub = db
           .customSelect(
