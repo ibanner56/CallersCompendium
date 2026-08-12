@@ -78,6 +78,23 @@ class CompendiumRepositories {
   /// this set must grow.
   ///
   /// `venues` is absent because `CollectionData` reads no venue data.
+  ///
+  /// ## One dependency on ordering that this signal does NOT cover
+  ///
+  /// The migration/repair sweeps in this file write `dances`, `program_slots`
+  /// and `dance_links` through raw `customStatement` (`:219`, `:222`, `:318`,
+  /// `:413`), which drift cannot attribute to a table — so those writes reach
+  /// no subscriber, exactly as the purge-path writes did before #932 fixed
+  /// them.
+  ///
+  /// They are safe today for a reason outside this class: [ensureMigrated] is
+  /// awaited inside the app's startup sequence **before** any screen mounts, so
+  /// no stream can be listening when they run. That is ordering, not mechanism
+  /// — the same shape as the incidental co-location documented on
+  /// `DanceRepository._cleanupDanglingReferences`. If a repair sweep is ever
+  /// made re-runnable from a settings screen, or moved after the first frame,
+  /// it must switch to `customUpdate` with an explicit `updates:` set first, or
+  /// a live Collection will silently keep pre-repair data.
   Stream<void> watchCollectionSources() => db
       .customSelect(
         'SELECT 1',
