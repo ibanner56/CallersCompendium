@@ -193,7 +193,22 @@ and produces no Android artifact.
      So `0.1.0-beta.7+1` is compared as `0.1.0` vs `0.1.0-beta.7` and fails the
      `meta` gate. Bump the pubspec only when the core version itself changes.
    - **Never bump `schemaVersion` in a PATCH release** (ADR-002 §7).
-3. Tag and push (a plain `x.y.z` tag → **stable**; a prerelease tag like
+3. **Land the promotion on `main` first, then tag the merge commit.** Steps 1–2
+   edit tracked files, so they go through a PR like any other change — the
+   release is tagged from `main`, never from the release branch. After the PR
+   merges, re-fetch and tag the **merge commit**, not the `origin/main` you
+   fetched before opening the PR:
+
+   ```sh
+   git fetch origin main
+   git rev-parse origin/main        # the merge commit — tag this
+   ```
+
+   Tagging a pre-merge SHA points the release at a tree whose `## [Unreleased]`
+   is still full, so the `meta` gate fails on a CHANGELOG that looks correct in
+   your working copy. If the tag is already pushed, delete and re-push it at the
+   right commit before the draft is published.
+4. Tag and push (a plain `x.y.z` tag → **stable**; a prerelease tag like
    `v0.2.0-beta.1` → **beta** channel + GitHub prerelease):
 
    ```sh
@@ -201,23 +216,23 @@ and produces no Android artifact.
    git push origin v0.2.0
    ```
 
-4. Watch the run under **Actions → Release**. It resolves + validates metadata
+5. Watch the run under **Actions → Release**. It resolves + validates metadata
    (an unpromoted CHANGELOG fails here, fast; schema changes also require a
    current Data / Migrations range), gates on the reusable checks, builds +
    packages on all three OSes, creates the **draft** release (`publish`), then
    **verifies each artifact's SLSA provenance and SBOM attestation** (`verify`).
-5. Review the draft under **Releases**: confirm the six binaries, `SHA256SUMS`,
+6. Review the draft under **Releases**: confirm the six binaries, `SHA256SUMS`,
    and the channel manifest are present and named correctly, **and that the
    notes body matches the CHANGELOG section**. For a prerelease, a
    ``⚠️ No `## [x.y.z]` entry`` banner means you skipped step 1 — add the section
    and re-push the tag, or edit the draft by hand, before publishing.
-6. **Confirm the `verify` job is green.** This is the provenance gate (#300): it
+7. **Confirm the `verify` job is green.** This is the provenance gate (#300): it
    re-downloads every `CallersCompendium-*` binary and runs `gh attestation
    verify` for both the build provenance and the SBOM attestation. **Do not
    publish a draft whose `verify` job failed or was skipped** — a red `verify`
    means the attestations don't check out. See
    [Verifying attestations](#verifying-attestations).
-7. **Publish** the draft manually once the `verify` job is green and the draft
+8. **Publish** the draft manually once the `verify` job is green and the draft
    looks right.
 
 ## CHANGELOG-driven release notes
@@ -322,7 +337,7 @@ runs in two places (#300):
   release is a human-published **draft**, this runs immediately after the
   attestations are minted rather than on a true post-publish trigger — treat a
   green `verify` job as a **mandatory precondition for clicking Publish** (see
-  [Cutting a release](#cutting-a-release) step 6).
+  [Cutting a release](#cutting-a-release) step 7).
 - **Out of band, by testers and downloaders.** Anyone who downloads a release
   asset can independently verify it with the GitHub CLI (no extra tooling). Note
   the in-app assisted-download flow can't shell out to `gh` — it already enforces
