@@ -240,6 +240,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// while the program is the user's own document.
   StreamSubscription<CollectionData>? _dataSub;
 
+  /// The most recent snapshot the stream has delivered.
+  ///
+  /// [_load] captures the stream's FIRST value and then awaits more work — the
+  /// program fetch, the venue lookup, the default prefill — before assigning
+  /// `_data`. A write landing in that gap would otherwise be overwritten by
+  /// the older captured value, leaving the picker stale until the *next*
+  /// write; this is read at assignment time instead, so the newest value wins.
+  CollectionData? _latestData;
+
   /// Opens the subscription and resolves with its FIRST value, so the existing
   /// load sequence is unchanged while later emits flow into [_data].
   ///
@@ -251,6 +260,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     unawaited(_dataSub?.cancel());
     _dataSub = CollectionData.watch(_repos, callerFilter: callerFilter).listen(
       (data) {
+        _latestData = data;
         if (!first.isCompleted) {
           first.complete(data);
           return;
@@ -296,7 +306,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         if (program == null) {
           if (!mounted) return;
           setState(() {
-            _data = data;
+            _data = _latestData ?? data;
             _loadError = _ProgramLoadError.missing;
             _loaded = true;
           });
@@ -326,7 +336,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // widget may have been disposed while they were in-flight.
       if (!mounted) return;
       setState(() {
-        _data = data;
+        _data = _latestData ?? data;
         _existing = program;
         _eventDate = program?.eventDate;
         _venueId = program?.venueId;

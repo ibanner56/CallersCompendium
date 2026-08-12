@@ -18,11 +18,24 @@ void main() {
 
   final now = DateTime.utc(2026);
 
+  /// Opens in-memory repositories and closes them at teardown.
+  ///
+  /// Every test here opens a database; without the close they accumulate for
+  /// the life of the suite. `dontWarnAboutMultipleDatabases` is set above (the
+  /// tests deliberately open several), which silences the very warning that
+  /// would otherwise surface a leak — so the teardown has to be systematic
+  /// rather than remembered per test.
+  CompendiumRepositories openRepos() {
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+    return repos;
+  }
+
   Dance dance(String id, String title) =>
       Dance(id: id, title: title, createdAt: now, updatedAt: now);
 
   test('emits an initial snapshot without waiting for a write', () async {
-    final repos = openTestRepositories();
+    final repos = openRepos();
     await repos.dances.create(dance('d1', 'Petronella'));
 
     final first = await CollectionData.watch(repos).first;
@@ -31,7 +44,7 @@ void main() {
   });
 
   test('re-emits when a dance is written elsewhere', () async {
-    final repos = openTestRepositories();
+    final repos = openRepos();
     await repos.dances.create(dance('d1', 'Petronella'));
     final seen = <int>[];
     final sub = CollectionData.watch(
@@ -48,7 +61,7 @@ void main() {
   });
 
   test('issue #340: a batch of N writes reloads ONCE, not N times', () async {
-    final repos = openTestRepositories();
+    final repos = openRepos();
     for (var i = 0; i < 10; i++) {
       await repos.dances.create(dance('d$i', 'Dance $i'));
     }
@@ -80,7 +93,7 @@ void main() {
   });
 
   test('the last emit of a burst carries the final state', () async {
-    final repos = openTestRepositories();
+    final repos = openRepos();
     for (var i = 0; i < 5; i++) {
       await repos.dances.create(dance('d$i', 'Dance $i'));
     }
@@ -167,7 +180,7 @@ void main() {
   );
 
   test('a program-side write refreshes the per-dance call tallies', () async {
-    final repos = openTestRepositories();
+    final repos = openRepos();
     await repos.dances.create(dance('d1', 'Petronella'));
     CollectionData? latest;
     final sub = CollectionData.watch(repos).listen((d) => latest = d);
