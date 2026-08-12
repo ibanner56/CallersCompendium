@@ -1,9 +1,10 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../data/collection_refresh_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/programs_refresh_scope.dart';
 import '../data/refresh_coalescer.dart';
@@ -167,11 +168,6 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// [ProgramEditorScreen]'s `_performRenderer`).
   static final FigureRenderer _performRenderer = FigureRenderer(contraTaxonomy);
 
-  /// The app-level refresh notifiers (issue #768), if provided. Tracked so the
-  /// listeners are swapped correctly.
-  ValueListenable<int>? _collectionRefresh;
-  ValueListenable<int>? _programsRefresh;
-
   /// Collapses the two bumps a dance+program write emits into one reload; this
   /// pane's [_load] pulls the whole collection, so loading twice is expensive
   /// as well as wrong (issue #340).
@@ -193,23 +189,46 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       widget.refreshTrigger.addListener(_onRefresh);
       _load();
     }
-    // Subscribe to both app-level refresh channels (issue #768). This pane
-    // renders program data *and* dance fields — `dance?.level`, the slot titles
-    // — so it goes stale from either side: a dance edited from the row this
-    // pane pushed (gap 7), or a program written anywhere else (gap 6). Both
-    // notifiers are stable across the app's lifetime, so these attach once.
-    final collectionRefresh = CollectionRefreshScope.maybeOf(context);
-    if (!identical(collectionRefresh, _collectionRefresh)) {
-      _collectionRefresh?.removeListener(_onRefresh);
-      _collectionRefresh = collectionRefresh;
-      _collectionRefresh?.addListener(_onRefresh);
-    }
-    final programsRefresh = ProgramsRefreshScope.maybeOf(context);
-    if (!identical(programsRefresh, _programsRefresh)) {
-      _programsRefresh?.removeListener(_onRefresh);
-      _programsRefresh = programsRefresh;
-      _programsRefresh?.addListener(_onRefresh);
-    }
+    // This pane was the app's only BOTH-channels subscriber — it renders
+    // program data *and* dance fields (`dance?.level`, the slot titles), so it
+    // went stale from either side. Both subscriptions are gone: the watched
+    // source set behind [CollectionData.watch] spans the dance tables *and*
+    // `programs`/`program_slots`, so one stream covers what two channels did.
+    // Writes made *here* still bump `ProgramsRefreshScope` (see
+    // [_broadcastProgramChange]) for the views not yet converted.
+  }
+
+  /// The live Collection reference data for this pane (issue #768).
+  ///
+  /// Later emits re-run [_load] in full rather than only replacing
+  /// `_collectionData`, because this pane renders the *program* too and the
+  /// watched source set includes `programs` / `program_slots` — so a slot being
+  /// marked performed, or the program renamed elsewhere, arrives on this same
+  /// stream. Re-reading the program on emit is what let both refresh-scope
+  /// subscriptions come out.
+  ///
+  /// Safe to reload wholesale here, unlike the program *editor*: this pane is
+  /// read-focused and holds no unsaved working copy.
+  StreamSubscription<CollectionData>? _dataSub;
+
+  /// Opens the subscription and resolves with its FIRST value, so [_load]'s
+  /// existing sequence is untouched while later emits drive a refresh.
+  Future<CollectionData> _watchCollectionData(String? callerFilter) {
+    final first = Completer<CollectionData>();
+    unawaited(_dataSub?.cancel());
+    _dataSub = CollectionData.watch(_repos, callerFilter: callerFilter).listen(
+      (data) {
+        if (!first.isCompleted) {
+          first.complete(data);
+          return;
+        }
+        if (mounted) _refreshCoalescer.request();
+      },
+      onError: (Object error) {
+        if (!first.isCompleted) first.completeError(error);
+      },
+    );
+    return first.future;
   }
 
   void _onRefresh() {
@@ -225,8 +244,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   @override
   void dispose() {
     widget.refreshTrigger.removeListener(_onRefresh);
-    _collectionRefresh?.removeListener(_onRefresh);
-    _programsRefresh?.removeListener(_onRefresh);
+    unawaited(_dataSub?.cancel());
     super.dispose();
   }
 
@@ -251,10 +269,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         _repos.settings,
         trackAllCallers: _trackHistoryForAllCallers,
       );
-      final data = await CollectionData.load(
-        _repos,
-        callerFilter: callerFilter,
-      );
+      final data = await _watchCollectionData(callerFilter);
       final titles = <String, String>{};
       final dances = <String, Dance>{};
       final ids = {

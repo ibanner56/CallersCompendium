@@ -230,16 +230,49 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
   }
 
+  /// The live Collection reference data backing the dance picker (issue #768).
+  ///
+  /// Only the *picker's* data is reactive. The program being edited is
+  /// deliberately NOT re-read from the database: this screen holds a working
+  /// copy with debounced autosave, so refreshing it from underneath the user
+  /// would discard in-flight edits. The split matters — the dances, tags and
+  /// authors the picker offers are reference data that should stay current,
+  /// while the program is the user's own document.
+  StreamSubscription<CollectionData>? _dataSub;
+
+  /// Opens the subscription and resolves with its FIRST value, so the existing
+  /// load sequence is unchanged while later emits flow into [_data].
+  ///
+  /// One subscription serves both, rather than a `load()` for the initial
+  /// render plus a `watch()` for updates — that would run the seven-query load
+  /// twice on open.
+  Future<CollectionData> _watchCollectionData(String? callerFilter) {
+    final first = Completer<CollectionData>();
+    unawaited(_dataSub?.cancel());
+    _dataSub = CollectionData.watch(_repos, callerFilter: callerFilter).listen(
+      (data) {
+        if (!first.isCompleted) {
+          first.complete(data);
+          return;
+        }
+        if (mounted) setState(() => _data = data);
+      },
+      onError: (Object error) {
+        if (!first.isCompleted) {
+          first.completeError(error);
+        }
+      },
+    );
+    return first.future;
+  }
+
   Future<void> _load() async {
     try {
       final callerFilter = await resolveCallingHistoryCallerFilter(
         _repos.settings,
         trackAllCallers: _trackHistoryForAllCallers,
       );
-      final data = await CollectionData.load(
-        _repos,
-        callerFilter: callerFilter,
-      );
+      final data = await _watchCollectionData(callerFilter);
       Program? program;
       if (!widget.isNew) {
         program = await _repos.programs.getById(widget.programId!);
@@ -332,6 +365,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   @override
   void dispose() {
     _autosaveTimer?.cancel();
+    unawaited(_dataSub?.cancel());
     _pickerCounts.dispose();
     _tabController.dispose();
     _titleController.dispose();
