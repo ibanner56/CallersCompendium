@@ -84,8 +84,10 @@ class CompendiumRepositories {
   ///
   /// The condition that would break it is therefore narrower than "a new
   /// join-table write": it is a write that touches a join table **and leaves
-  /// `dances` untouched in that transaction**. If one is ever added, this set
-  /// must grow.
+  /// `dances` untouched in that transaction**. Such a writer would **silently
+  /// under-notify** — no error, no dropped stream, just a Collection view whose
+  /// tags or authors are wrong until some unrelated write happens to arrive.
+  /// If one is ever added, this set must grow.
   ///
   /// `venues` is absent because `CollectionData` reads no venue data.
   ///

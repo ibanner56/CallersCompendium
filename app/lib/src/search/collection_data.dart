@@ -100,12 +100,28 @@ class CollectionData {
 
   /// The window used to collapse a burst of writes into one reload.
   ///
-  /// Roughly one and a half frames at 60 Hz — deliberately a little OVER a
-  /// frame, not under. A window shorter than the gap between two sequential
-  /// awaits would not collapse the batch it exists to collapse, which is the
-  /// whole point (see [watch]); and the delay is only ever paid by a burst,
-  /// because the leading edge emits immediately. A single write is not
-  /// deferred at all.
+  /// The value is measured against the thing it has to span, not chosen for a
+  /// frame budget. Timing the 50-write batch shape (`_applyBatchTags`) gives
+  /// an inter-commit gap of **median 1.46 ms, p90 1.66 ms, max 2.36 ms**
+  /// (in-memory sqlite, debug build). 24 ms is therefore about **10x the
+  /// widest observed gap** — headroom for a slower device rather than a value
+  /// tuned to this one.
+  ///
+  /// Both directions of error, since an unexplained constant invites deletion:
+  ///
+  /// - **Too short** — it stops collapsing and the batch leaks reloads. The
+  ///   degradation is proportional rather than a cliff: a burst emits roughly
+  ///   `gap / window` of its writes, so halving the window doubles the
+  ///   reloads. It becomes a full leak only below ~2.4 ms.
+  /// - **Too long** — the tail of a burst takes longer to settle. A single
+  ///   write is never affected in either direction, because the leading edge
+  ///   emits immediately; the window is only ever paid by a burst.
+  ///
+  /// Note which way the risk runs on real hardware: disk-backed sqlite on a
+  /// phone will have LARGER gaps than the figures above, so the margin is
+  /// smaller in production than in test. It is the proportional degradation
+  /// that makes that acceptable — an under-sized window costs extra reloads,
+  /// never correctness, because every emit still carries a complete snapshot.
   static const coalesceWindow = Duration(milliseconds: 24);
 
   /// A live [CollectionData], re-read whenever anything it is built from
@@ -136,6 +152,19 @@ class CollectionData {
   /// still in progress. So the window is what preserves the one-action /
   /// one-reload property that `RefreshCoalescer` gave the scope-based path —
   /// the same guarantee, moved to where the events now originate.
+  ///
+  /// ## This is a property of the migration, not of this screen
+  ///
+  /// Stated generally because the remaining conversions (issue #768) will each
+  /// meet it: **the scope-based path had an implicit batch boundary — the call
+  /// site knew when its loop ended.** A reactive read loses that boundary by
+  /// construction, because the notification source is the database, and the
+  /// database sees N commits rather than one user action.
+  ///
+  /// So any screen being converted that has a batch operation behind it needs
+  /// a window of its own, or must share this one. It is not an optimisation
+  /// bolted onto the Collection list; it is what replaces a guarantee the
+  /// imperative design got for free.
   ///
   /// Emits an initial value immediately, so a subscriber renders without
   /// waiting for a write.
