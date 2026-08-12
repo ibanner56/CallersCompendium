@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' show Variable;
+import 'package:drift/drift.dart' show Table, TableInfo, UpdateKind, Variable;
 
 import 'database.dart';
 import 'utc_datetime.dart';
@@ -141,12 +141,33 @@ DateTime resolveStamp(DateTime? at) {
 /// drives retention, while only `existence_at` orders the transition itself, so
 /// nothing causal flows into either of the other two.
 ///
-/// [table] and [keyColumn] are interpolated rather than bound because SQLite
-/// cannot parameterise an identifier. Every call site passes a literal constant
-/// naming a table in this schema; nothing user-supplied reaches them.
+/// ## Why this is a `customUpdate` and not a `customStatement`
+///
+/// Both run the same SQL, but only `customUpdate` tells drift which table it
+/// wrote, and drift cannot infer that from raw SQL. A `customStatement` is
+/// therefore invisible to every `.watch()` stream — and a transition is the one
+/// existence write whose *only* statement is this one, so nothing else in the
+/// transaction would notify on its behalf (an upsert's
+/// [applyUpsertExistence] rides the drift-native insert that precedes it in the
+/// same transaction).
+///
+/// That was a live silent-staleness defect the moment the first reactive read
+/// landed (issue #768): a subscribed view kept rendering a program that had been
+/// soft-deleted, with the correct `readsFrom` set and no error anywhere —
+/// verified by watching a dance's calling history across a
+/// `ProgramRepository.softDelete`, which left the stream reporting the deleted
+/// program indefinitely. Deletes and undeletes are exactly the transitions a
+/// list must not miss, so the fix belongs here rather than in each reader.
+///
+/// [table] is the drift table to update; its `actualTableName` supplies the SQL
+/// identifier and the table object itself is what drift needs to notify
+/// watchers, so the two can never disagree. [keyColumn] is interpolated rather
+/// than bound because SQLite cannot parameterise an identifier; every call site
+/// passes a literal constant naming a column in this schema, and nothing
+/// user-supplied reaches it.
 Future<void> stampExistenceTransition(
   CompendiumDatabase db, {
-  required String table,
+  required TableInfo<Table, dynamic> table,
   required String keyColumn,
   required String key,
   required DateTime at,
@@ -154,11 +175,19 @@ Future<void> stampExistenceTransition(
 }) {
   assertUtc(at, 'at');
   final stamp = unixSeconds(at);
-  return db.customStatement(
-    'UPDATE $table SET deleted_at = ${deleted ? '?' : 'NULL'}, '
+  return db.customUpdate(
+    'UPDATE ${table.actualTableName} '
+    'SET deleted_at = ${deleted ? '?' : 'NULL'}, '
     'updated_at = ?, existence_at = $_causalExistenceSql '
     'WHERE $keyColumn = ?',
-    [if (deleted) stamp, stamp, stamp, key],
+    variables: [
+      if (deleted) Variable<int>(stamp),
+      Variable<int>(stamp),
+      Variable<int>(stamp),
+      Variable<String>(key),
+    ],
+    updates: {table},
+    updateKind: UpdateKind.update,
   );
 }
 
@@ -185,24 +214,34 @@ Future<void> stampExistenceTransition(
 ///   which is precisely the `updated_at`/`existence_at` conflation the third
 ///   column exists to prevent.
 ///
-/// See [stampExistenceTransition] on the interpolated identifiers.
+/// See [stampExistenceTransition] on the typed [table], the interpolated
+/// [keyColumn], and why these raw writes announce themselves to drift. This one
+/// always follows a drift-native upsert on the same table inside the same
+/// transaction, so its notification is a belt-and-braces duplicate today — but
+/// it costs nothing and it stops the guarantee depending on the caller.
 Future<void> applyUpsertExistence(
   CompendiumDatabase db, {
-  required String table,
+  required TableInfo<Table, dynamic> table,
   required String keyColumn,
   required String key,
   required DateTime at,
 }) {
   assertUtc(at, 'at');
   final stamp = unixSeconds(at);
-  return db.customStatement(
-    'UPDATE $table SET existence_at = CASE '
+  return db.customUpdate(
+    'UPDATE ${table.actualTableName} SET existence_at = CASE '
     'WHEN deleted_at IS NOT NULL THEN $_causalExistenceSql '
     'WHEN existence_at IS NULL THEN ? '
     'ELSE existence_at END, '
     'deleted_at = NULL '
     'WHERE $keyColumn = ?',
-    [stamp, stamp, key],
+    variables: [
+      Variable<int>(stamp),
+      Variable<int>(stamp),
+      Variable<String>(key),
+    ],
+    updates: {table},
+    updateKind: UpdateKind.update,
   );
 }
 
@@ -269,22 +308,23 @@ Future<void> applyUpsertExistence(
 /// that relaxing a guard cannot quietly reintroduce the surprise.
 Future<String?> adoptTombstonedNaturalKey(
   CompendiumDatabase db, {
-  required String table,
+  required TableInfo<Table, dynamic> table,
   required String keyColumn,
   required String naturalKeyColumn,
   required String naturalKey,
   required String incomingId,
-  required String joinTable,
+  required TableInfo<Table, dynamic> joinTable,
   required String joinColumn,
 }) async {
+  final tableName = table.actualTableName;
   final rows = await db
       .customSelect(
-        'SELECT $keyColumn AS adopted FROM $table '
+        'SELECT $keyColumn AS adopted FROM $tableName '
         'WHERE $naturalKeyColumn = ? AND $keyColumn != ? '
         'AND deleted_at IS NOT NULL '
         // Creation only: bail out if the incoming id already names a row, so a
         // rename cannot adopt a tombstone and duplicate the entity.
-        'AND NOT EXISTS (SELECT 1 FROM $table WHERE $keyColumn = ?) '
+        'AND NOT EXISTS (SELECT 1 FROM $tableName WHERE $keyColumn = ?) '
         'LIMIT 1',
         variables: [
           Variable.withString(naturalKey),
@@ -295,9 +335,12 @@ Future<String?> adoptTombstonedNaturalKey(
       .get();
   if (rows.isEmpty) return null;
   final adopted = rows.single.read<String>('adopted');
-  await db.customStatement('DELETE FROM $joinTable WHERE $joinColumn = ?', [
-    adopted,
-  ]);
+  await db.customUpdate(
+    'DELETE FROM ${joinTable.actualTableName} WHERE $joinColumn = ?',
+    variables: [Variable<String>(adopted)],
+    updates: {joinTable},
+    updateKind: UpdateKind.delete,
+  );
   return adopted;
 }
 
@@ -325,11 +368,14 @@ Future<String?> adoptTombstonedNaturalKey(
 /// back-fill exists to avoid.
 Future<void> seedExistenceIfMissing(
   CompendiumDatabase db, {
-  required String table,
+  required TableInfo<Table, dynamic> table,
   required String keyColumn,
   required String key,
-}) => db.customStatement(
-  'UPDATE $table SET existence_at = COALESCE(deleted_at, created_at) '
+}) => db.customUpdate(
+  'UPDATE ${table.actualTableName} '
+  'SET existence_at = COALESCE(deleted_at, created_at) '
   'WHERE $keyColumn = ? AND existence_at IS NULL',
-  [key],
+  variables: [Variable<String>(key)],
+  updates: {table},
+  updateKind: UpdateKind.update,
 );

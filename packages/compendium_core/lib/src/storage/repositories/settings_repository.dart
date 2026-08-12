@@ -47,7 +47,7 @@ class SettingsRepository {
           );
       await applyUpsertExistence(
         _db,
-        table: 'settings',
+        table: _db.settings,
         keyColumn: 'key',
         key: key,
         at: now,
@@ -100,7 +100,7 @@ class SettingsRepository {
     }
     return stampExistenceTransition(
       _db,
-      table: 'settings',
+      table: _db.settings,
       keyColumn: 'key',
       key: key,
       at: resolveStamp(at),

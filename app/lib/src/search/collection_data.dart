@@ -104,12 +104,13 @@ class CollectionData {
     final tags = await repos.tags.listAll();
     final defs = await repos.customFieldDefs.listAll();
     final publishedSources = await repos.publishedSources.listAll();
-    final lastCalled = await repos.programs.lastCalledByDance(
+    // One read for both: they come from the same query, so asking separately
+    // would run it twice and could straddle a write (issue #768).
+    final programCounts = await repos.programs.programDerivedCounts(
       callerFilter: callerFilter,
     );
-    final callCounts = await repos.programs.countByDance(
-      callerFilter: callerFilter,
-    );
+    final lastCalled = programCounts.lastCalled;
+    final callCounts = programCounts.callCounts;
 
     final dancesById = {for (final d in dances) d.id: d};
     final choreographersById = {for (final c in choreographers) c.id: c};
@@ -194,6 +195,47 @@ class CollectionData {
       sectionLabels: PhraseStructure.standard.labels,
     );
   }
+
+  /// A copy carrying fresh program-derived tallies, leaving everything else —
+  /// the dances, the facet vocabularies, the custom-field defs — untouched.
+  ///
+  /// Deliberately narrow. These two maps are the only part of this snapshot
+  /// that a *program*-side write can change, and they are the only part the
+  /// Collection list refreshes from a stream (issue #768). Re-running the whole
+  /// [load] for them would re-read every dance, choreographer, tag and custom
+  /// field to update a badge, which is the over-firing failure issue #340
+  /// records. Widen this only for another field a stream actually delivers.
+  CollectionData copyWithProgramDerived({
+    required Map<String, DateTime> lastCalled,
+    required Map<String, DanceCallCounts> callCounts,
+  }) => CollectionData(
+    dancesById: dancesById,
+    choreographersById: choreographersById,
+    choreographerNames: choreographerNames,
+    tagNames: tagNames,
+    tagColors: tagColors,
+    customFieldDefs: customFieldDefs,
+    listFieldDefs: listFieldDefs,
+    choiceFields: choiceFields,
+    booleanFields: booleanFields,
+    textFields: textFields,
+    numberFields: numberFields,
+    lastCalled: lastCalled,
+    callCounts: callCounts,
+    authors: authors,
+    tags: tags,
+    citedSources: citedSources,
+    forms: forms,
+    formations: formations,
+    progressions: progressions,
+    statuses: statuses,
+    levels: levels,
+    hasMixedLevel: hasMixedLevel,
+    hasMixer: hasMixer,
+    hasRating: hasRating,
+    taxonomy: taxonomy,
+    sectionLabels: sectionLabels,
+  );
 
   DanceListEntry entryFor(Dance dance) => DanceListEntry(
     dance: dance,

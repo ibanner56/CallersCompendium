@@ -229,7 +229,7 @@ class DanceRepository {
         );
     await seedExistenceIfMissing(
       _db,
-      table: 'dances',
+      table: _db.dances,
       keyColumn: 'id',
       key: dance.id,
     );
@@ -755,7 +755,7 @@ class DanceRepository {
     required bool deleted,
   }) => stampExistenceTransition(
     _db,
-    table: 'dances',
+    table: _db.dances,
     keyColumn: 'id',
     key: id,
     at: at,

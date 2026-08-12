@@ -1950,6 +1950,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceCallingHistoryEmpty => 'Pas encore inclus dans un programme.';
 
   @override
+  String get danceCallingHistoryError => 'Could not load the calling history.';
+
+  @override
   String get danceShowCanonicalTerms => 'Afficher les termes canoniques';
 
   @override

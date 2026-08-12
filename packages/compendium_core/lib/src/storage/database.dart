@@ -480,7 +480,31 @@ const int kMinSupportedSchemaVersion = 11;
   ],
 )
 class CompendiumDatabase extends _$CompendiumDatabase {
-  CompendiumDatabase(super.executor);
+  /// Opens the database over [executor].
+  ///
+  /// Pass [closeStreamsSynchronously] `true` in **widget tests**, and only
+  /// there. When the last listener of a `.watch()` stream detaches, drift by
+  /// default keeps that stream's cache for one event-loop iteration — via a
+  /// zero-duration `Timer` — so a `StreamBuilder` that re-subscribes during a
+  /// rebuild does not re-run the query. That is the right behaviour in the app.
+  ///
+  /// `flutter_test` runs inside `fake_async`, which fails any test that ends
+  /// with a timer outstanding. So a widget test that unmounts a screen holding
+  /// a reactive read (issue #768) fails with "Pending timers" pointing into
+  /// `StreamQueryStore.markAsClosed` — a harness artefact, not a leak, and one
+  /// that appears in tests which never mention streams themselves because they
+  /// merely mount a shell containing a converted screen. Drift exposes this
+  /// flag for exactly that case (see `DatabaseConnection`), and the app's test
+  /// helpers set it; production keeps the cache.
+  CompendiumDatabase(
+    QueryExecutor executor, {
+    bool closeStreamsSynchronously = false,
+  }) : super(
+         DatabaseConnection(
+           executor,
+           closeStreamsSynchronously: closeStreamsSynchronously,
+         ),
+       );
 
   @override
   int get schemaVersion => kCompendiumSchemaVersion;

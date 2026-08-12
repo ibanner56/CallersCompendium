@@ -3248,6 +3248,12 @@ abstract class AppLocalizations {
   /// **'Not yet included in any program.'**
   String get danceCallingHistoryEmpty;
 
+  /// Shown in the calling-history section when its query fails, instead of the empty state — which would otherwise claim the dance has never been called.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the calling history.'**
+  String get danceCallingHistoryError;
+
   /// Accessible label for the toggle that shows canonical (undialected) figure terms.
   ///
   /// In en, this message translates to:

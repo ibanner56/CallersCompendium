@@ -7,10 +7,18 @@ import 'package:flutter/foundation.dart';
 ///
 /// A write that touches both dances and programs — a shared-bundle import, for
 /// instance — bumps `CollectionRefreshScope` and `ProgramsRefreshScope` one
-/// after the other. Both notifiers fire synchronously, so a view subscribed to
-/// both would reload twice for one user action. Routing both listeners through
-/// a coalescer keeps that at one reload per mutation, which is the constraint
+/// after the other, and both notifiers fire synchronously. Any view listening
+/// to more than one bump in a single block would otherwise reload once per
+/// bump; this keeps it at one reload per user action, which is the constraint
 /// issue #340 records: fixing a stale view must not produce a thrashing one.
+///
+/// `ProgramSummaryScreen` is the remaining both-channels subscriber: it renders
+/// program data and the dances inside it, so it listens to each. The two
+/// Collection-side views that used to — the "called ×N" badge and the dance
+/// detail's calling history — no longer do, because they read their
+/// program-derived data from a stream now (issue #768). They still route their
+/// one remaining channel through here, for the case where a single mutation
+/// site bumps the same notifier more than once in a block.
 ///
 /// Deferral is a microtask, not a frame, so a reload still starts before the
 /// next build and `pumpAndSettle` observes it without extra pumps.

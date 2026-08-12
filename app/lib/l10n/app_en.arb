@@ -2503,6 +2503,10 @@
   "@danceCallingHistoryEmpty": {
     "description": "Empty state for the calling-history section when the dance is in no program."
   },
+  "danceCallingHistoryError": "Could not load the calling history.",
+  "@danceCallingHistoryError": {
+    "description": "Shown in the calling-history section when its query fails, instead of the empty state \u2014 which would otherwise claim the dance has never been called."
+  },
   "danceShowCanonicalTerms": "Show canonical terms",
   "@danceShowCanonicalTerms": {
     "description": "Accessible label for the toggle that shows canonical (undialected) figure terms."

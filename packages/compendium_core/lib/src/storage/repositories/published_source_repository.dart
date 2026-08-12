@@ -35,7 +35,7 @@ class PublishedSourceRepository {
           );
       await applyUpsertExistence(
         _db,
-        table: 'published_sources',
+        table: _db.publishedSources,
         keyColumn: 'id',
         key: s.id,
         at: now,
@@ -92,7 +92,7 @@ class PublishedSourceRepository {
       }
       await stampExistenceTransition(
         _db,
-        table: 'published_sources',
+        table: _db.publishedSources,
         keyColumn: 'id',
         key: id,
         at: now,

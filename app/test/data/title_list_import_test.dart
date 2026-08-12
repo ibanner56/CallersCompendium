@@ -3,7 +3,6 @@ import 'package:compendium_app/src/data/title_list_import.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
-import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
@@ -108,7 +107,6 @@ DanceDetailData _detailFor(Dance dance) => DanceDetailData(
   customFields: const [],
   relatedDanceTitles: const {},
   sourcesById: const {},
-  callingHistory: const [],
   crossRefLinker: DanceTitleLinker.build(const [], excludeId: ''),
 );
 
@@ -607,9 +605,7 @@ void main() {
 
     test('a paste where every title is already owned performs zero '
         'full-collection reads', () async {
-      final repos = _CountingRepositories(
-        CompendiumDatabase(NativeDatabase.memory()),
-      );
+      final repos = _CountingRepositories(openWidgetTestDatabase());
       await repos.dances.create(_localDance(id: 'd1', title: 'Fiddleheads'));
       await repos.dances.create(_localDance(id: 'd2', title: 'Petronella'));
       final service = _CountingOnlineService();
@@ -634,9 +630,7 @@ void main() {
 
     test('a paste with something to look up still builds the snapshot exactly '
         'once, however many titles it has', () async {
-      final repos = _CountingRepositories(
-        CompendiumDatabase(NativeDatabase.memory()),
-      );
+      final repos = _CountingRepositories(openWidgetTestDatabase());
       final service = _CountingOnlineService(
         rowsByTitle: {
           'one': [_row('One', id: '1')],
@@ -664,9 +658,7 @@ void main() {
     test(
       'a paste of only over-long lines reads nothing from the collection',
       () async {
-        final repos = _CountingRepositories(
-          CompendiumDatabase(NativeDatabase.memory()),
-        );
+        final repos = _CountingRepositories(openWidgetTestDatabase());
         await repos.dances.create(_localDance(id: 'd1', title: 'Fiddleheads'));
         final service = _CountingOnlineService();
         final long = 'x' * (kMaxTitleLength + 1);
@@ -697,9 +689,7 @@ void main() {
     );
 
     test('an over-cap paste is refused before any collection read', () async {
-      final repos = _CountingRepositories(
-        CompendiumDatabase(NativeDatabase.memory()),
-      );
+      final repos = _CountingRepositories(openWidgetTestDatabase());
       final service = _CountingOnlineService();
 
       await expectLater(

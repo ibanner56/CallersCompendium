@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart' show ValueListenable, listEquals;
+import 'package:flutter/foundation.dart'
+    show ValueListenable, listEquals, mapEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -19,7 +20,6 @@ import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/online_search_labels.dart';
-import '../data/programs_refresh_scope.dart';
 import '../data/refresh_coalescer.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
@@ -218,19 +218,41 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// from Settings) bumps it. Tracked so listeners are swapped correctly.
   ValueListenable<int>? _collectionRefresh;
 
-  /// The app-level programs-refresh notifier (issue #768), if provided. The
-  /// rows' "called N times" badge is derived from `ProgramSlot` data, so a
-  /// program-side write — adding this dance to a program, marking a slot
-  /// performed, importing a program — leaves the badge stale unless this list
-  /// re-boots. Tracked so listeners are swapped correctly.
-  ValueListenable<int>? _programsRefresh;
-
-  /// Collapses a collection bump and a programs bump from the same write (a
-  /// shared-bundle import commits both) into one re-boot, so the fix for
-  /// issue #768 does not become the thrash issue #340 warns about.
+  /// Collapses several collection bumps arriving in the same synchronous block
+  /// into one re-boot, so the fix for issue #768 does not become the thrash
+  /// issue #340 warns about.
   late final RefreshCoalescer _refreshCoalescer = RefreshCoalescer(() {
     if (mounted) _boot();
   });
+
+  /// The live per-dance calling tallies (issue #768). The rows' "called ×N"
+  /// badge and the last-called sort are derived from `program_slots` +
+  /// `programs`, which no dance-side write touches and every program-side write
+  /// changes — so this list used to re-boot on a `ProgramsRefreshScope` bump,
+  /// and went stale wherever a mutation site forgot to send one. It now watches
+  /// those tables directly.
+  ///
+  /// There is deliberately no `ProgramsRefreshScope` subscription any more:
+  /// keeping it would re-run the entire [_boot] — every dance, choreographer,
+  /// tag and custom-field def — on top of this stream's emit, for a badge.
+  /// The scope stays for the screens not yet converted.
+  StreamSubscription<ProgramDerivedCounts>? _countsSub;
+
+  /// The caller filter [_countsSub] was opened with, so a re-[_boot] does not
+  /// pointlessly re-subscribe while a change to the "track all callers" setting
+  /// (issue #583) — which changes the query — does.
+  String? _countsCallerFilter;
+  bool _countsSubscribed = false;
+
+  /// The most recent tallies that arrived while [_data] was still null, held so
+  /// [_boot] can apply them once the snapshot exists.
+  ///
+  /// Dropping them instead would leave a real gap: [CollectionData.load] reads
+  /// the tallies partway through its own sequence, so a program-side write that
+  /// lands after that read but before `_data` is assigned is in neither the
+  /// snapshot nor any emit this screen kept — and since the stream only speaks
+  /// again on the *next* write, the badge would stay stale until one happened.
+  ProgramDerivedCounts? _countsPendingFirstLoad;
 
   /// The app-level tag-filter coordinator (issue #414). When a tag chip is
   /// tapped (here, on a dance detail, or on a list row), this list applies a
@@ -339,17 +361,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _collectionRefresh?.addListener(_onRefreshTriggered);
     }
 
-    // Subscribe to the app-level programs-refresh notifier (issue #768). The
-    // "called N times" badge is program-derived, so a program-side write leaves
-    // it stale unless this list re-boots. Registers a rebuild dependency; the
-    // notifier is stable across the app's lifetime, so this attaches once.
-    final programsRefresh = ProgramsRefreshScope.maybeOf(context);
-    if (!identical(programsRefresh, _programsRefresh)) {
-      _programsRefresh?.removeListener(_onRefreshTriggered);
-      _programsRefresh = programsRefresh;
-      _programsRefresh?.addListener(_onRefreshTriggered);
-    }
-
     // Subscribe to the app-level tag-filter coordinator (issue #414). A tag tap
     // anywhere publishes a request; this list reacts by applying a single-tag
     // filter. Registers a rebuild dependency; the controller is stable across
@@ -453,7 +464,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   void dispose() {
     widget.refreshTrigger?.removeListener(_onRefreshTriggered);
     _collectionRefresh?.removeListener(_onRefreshTriggered);
-    _programsRefresh?.removeListener(_onRefreshTriggered);
+    unawaited(_countsSub?.cancel());
     _filterController?.removeListener(_onTagFilterRequested);
     _debounceTimer?.cancel();
     _ftsController.dispose();
@@ -471,15 +482,84 @@ class _DanceListScreenState extends State<DanceListScreen> {
         callerFilter: callerFilter,
       );
       if (!mounted) return;
+      // Anything the stream delivered while `_data` was null is newer than this
+      // snapshot, so it wins. That can only happen on a retry (which clears
+      // `_data` under a live subscription), and only for a post-write emit —
+      // never for an out-of-date first value, because the subscription is
+      // opened *after* the snapshot below.
+      final pending = _countsPendingFirstLoad;
+      _countsPendingFirstLoad = null;
       setState(() {
-        _data = data;
+        _data = pending == null
+            ? data
+            : data.copyWithProgramDerived(
+                lastCalled: pending.lastCalled,
+                callCounts: pending.callCounts,
+              );
         _loadError = null;
       });
+      // Subscribe AFTER the snapshot, so the stream's first emit reads a
+      // database at least as new as the one just loaded and therefore
+      // supersedes it. Subscribing first would invert that: the first emit is
+      // read *before* the load's own tallies query, so applying it afterwards
+      // would put back values the snapshot had already moved past.
+      _watchProgramDerivedCounts(callerFilter);
+
       await _seedDefaultSort();
       await _runSearch();
     } catch (error) {
       if (mounted) setState(() => _loadError = error);
     }
+  }
+
+  /// Opens (or reopens) the live tallies subscription for [callerFilter].
+  ///
+  /// A no-op when one is already open for the same filter, so an ordinary
+  /// re-[_boot] does not tear down and rebuild the stream — that would cost an
+  /// extra query and an extra rebuild per refresh.
+  void _watchProgramDerivedCounts(String? callerFilter) {
+    if (_countsSubscribed && callerFilter == _countsCallerFilter) return;
+    _countsSubscribed = true;
+    _countsCallerFilter = callerFilter;
+    unawaited(_countsSub?.cancel());
+    _countsSub = _repos.programs
+        .watchProgramDerivedCounts(callerFilter: callerFilter)
+        .listen(
+          _onProgramDerivedCounts,
+          // A failed tally query must not blank the Collection: the list keeps
+          // the tallies it has, exactly as it did when a refresh failed.
+          onError: (Object _) {},
+        );
+  }
+
+  /// Applies fresh tallies to the loaded snapshot and the rendered rows.
+  ///
+  /// Three things keep this from becoming the over-firing failure (issue #340):
+  /// an emit equal to what is already displayed is dropped; the rows are
+  /// re-derived in memory from the already-loaded dances rather than re-read;
+  /// and the search is re-run only under the one sort whose ORDER BY these
+  /// values can actually change.
+  void _onProgramDerivedCounts(ProgramDerivedCounts counts) {
+    final data = _data;
+    // Before the first load completes there is no snapshot to update yet, so
+    // hold the value for `_boot` to apply rather than discarding it.
+    if (data == null) {
+      _countsPendingFirstLoad = counts;
+      return;
+    }
+    if (mapEquals(data.callCounts, counts.callCounts) &&
+        mapEquals(data.lastCalled, counts.lastCalled)) {
+      return;
+    }
+    final updated = data.copyWithProgramDerived(
+      lastCalled: counts.lastCalled,
+      callCounts: counts.callCounts,
+    );
+    setState(() {
+      _data = updated;
+      _results = [for (final entry in _results) updated.entryFor(entry.dance)];
+    });
+    if (_sort == CollectionSort.lastCalled) unawaited(_runSearch());
   }
 
   /// Seeds `_sort` from the saved default Collection sort order (ROADMAP G.6a),
@@ -2319,19 +2399,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
       },
       onDuplicate: () => _duplicateFromList(entry.dance.id),
       onTagTap: _applyExternalTagFilter,
-      // Awaited so the fallback reload below runs after the sheet closes. The
-      // sheet broadcasts the write, which re-boots this list (and refreshes the
-      // "called N times" badge) through the programs subscription; the direct
-      // re-boot is the unscoped-test fallback (issue #768, gap 2).
-      onAddToProgram: () async {
-        await showAddToProgramSheet(
-          context,
-          repositories: _repos,
-          danceId: entry.dance.id,
-          danceTitle: entry.dance.title,
-        );
-        if (mounted && _programsRefresh == null) await _boot();
-      },
+      // No reload when the sheet closes: the sheet's write goes to
+      // `program_slots`, which the live tallies subscription watches, so the
+      // "called ×N" badge updates itself (issue #768, gap 2 — this used to
+      // depend on a broadcast reaching a mounted scope).
+      onAddToProgram: () => showAddToProgramSheet(
+        context,
+        repositories: _repos,
+        danceId: entry.dance.id,
+        danceTitle: entry.dance.title,
+      ),
       selectionMode: _selectionMode,
       selectedForBatch: _selectedIds.contains(entry.dance.id),
       onLongPress: _selectionMode
