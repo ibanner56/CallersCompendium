@@ -1,9 +1,10 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../data/collection_refresh_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/programs_refresh_scope.dart';
 import '../data/refresh_coalescer.dart';
@@ -99,6 +100,19 @@ class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
 /// Read-only summary of the selected program shown in the wide detail pane. The
 /// heavy building work happens in the full-screen [ProgramEditorScreen] route
 /// launched by [onOpenBuilder]; this pane keeps quick duplicate/delete actions.
+/// Raised into a pending first-value future when its subscription is replaced
+/// or disposed (issue #768).
+///
+/// Deliberately not an error the user ever sees: being superseded is not a
+/// failure. `_load` returns on it without touching `_error` or `_loading`,
+/// because the load that replaced it owns those now — surfacing it would flash
+/// an error banner in the middle of a successful refresh.
+class _SupersededLoad implements Exception {
+  const _SupersededLoad();
+  @override
+  String toString() => 'load superseded before its first snapshot';
+}
+
 class ProgramSummaryPane extends StatefulWidget {
   const ProgramSummaryPane({
     super.key,
@@ -167,14 +181,19 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// [ProgramEditorScreen]'s `_performRenderer`).
   static final FigureRenderer _performRenderer = FigureRenderer(contraTaxonomy);
 
-  /// The app-level refresh notifiers (issue #768), if provided. Tracked so the
-  /// listeners are swapped correctly.
-  ValueListenable<int>? _collectionRefresh;
-  ValueListenable<int>? _programsRefresh;
-
-  /// Collapses the two bumps a dance+program write emits into one reload; this
-  /// pane's [_load] pulls the whole collection, so loading twice is expensive
-  /// as well as wrong (issue #340).
+  /// Collapses a burst of refresh requests into a single [_load].
+  ///
+  /// It no longer collapses "the two bumps a dance+program write emits" — this
+  /// pane stopped subscribing to `CollectionRefreshScope` and
+  /// `ProgramsRefreshScope` when it moved to the stream (issue #768), so that
+  /// pair no longer reaches it. What it collapses now is the two sources that
+  /// remain: [CollectionData.watch] emits, and the parent shell's
+  /// [ProgramSummaryPane.refreshTrigger].
+  ///
+  /// Still load-bearing for the same reason, which is why it survives the
+  /// conversion rather than retiring with the subscriptions: [_load] pulls the
+  /// whole collection, so loading twice is expensive as well as wrong
+  /// (issue #340).
   late final RefreshCoalescer _refreshCoalescer = RefreshCoalescer(() {
     if (mounted) _load();
   });
@@ -193,23 +212,159 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       widget.refreshTrigger.addListener(_onRefresh);
       _load();
     }
-    // Subscribe to both app-level refresh channels (issue #768). This pane
-    // renders program data *and* dance fields — `dance?.level`, the slot titles
-    // — so it goes stale from either side: a dance edited from the row this
-    // pane pushed (gap 7), or a program written anywhere else (gap 6). Both
-    // notifiers are stable across the app's lifetime, so these attach once.
-    final collectionRefresh = CollectionRefreshScope.maybeOf(context);
-    if (!identical(collectionRefresh, _collectionRefresh)) {
-      _collectionRefresh?.removeListener(_onRefresh);
-      _collectionRefresh = collectionRefresh;
-      _collectionRefresh?.addListener(_onRefresh);
+    // This pane was the app's only BOTH-channels subscriber — it renders
+    // program data *and* dance fields (`dance?.level`, the slot titles), so it
+    // went stale from either side. Both subscriptions are gone: the watched
+    // source set behind [CollectionData.watch] spans the dance tables *and*
+    // `programs`/`program_slots`, so one stream covers what two channels did.
+    // Writes made *here* still bump `ProgramsRefreshScope` (see
+    // [_broadcastProgramChange]) for the views not yet converted.
+  }
+
+  /// The live Collection reference data for this pane (issue #768).
+  ///
+  /// Later emits re-run [_load] in full rather than only replacing
+  /// `_collectionData`, because this pane renders the *program* too and the
+  /// watched source set includes `programs` / `program_slots` — so a slot being
+  /// marked performed, or the program renamed elsewhere, arrives on this same
+  /// stream. Re-reading the program on emit is what let both refresh-scope
+  /// subscriptions come out.
+  ///
+  /// Safe to reload wholesale here, unlike the program *editor*: this pane is
+  /// read-focused and holds no unsaved working copy.
+  StreamSubscription<CollectionData>? _dataSub;
+
+  /// The most recent snapshot the stream has delivered, and the filter the
+  /// live subscription was opened with.
+  ///
+  /// [_load] runs again on every emit, because this pane reloads wholesale —
+  /// the program, its dances and its venue all have to be re-fetched. Without
+  /// these two fields it would also re-enter [_watchCollectionData], which
+  /// cancels and re-opens the subscription and therefore re-runs the whole
+  /// [CollectionData.load]. One write would cost two full
+  /// snapshot loads and a fresh coalescer, which is the issue #340 thrash this
+  /// conversion is supposed to avoid rather than introduce.
+  CollectionData? _latestData;
+  String? _subCallerFilter;
+
+  /// The first-value future of the LIVE subscription, while it is still
+  /// pending.
+  ///
+  /// Held as a field so that whoever abandons the subscription can settle it.
+  /// See [_replaceSubscription] for why that is necessary rather than tidy.
+  Completer<CollectionData>? _pendingFirst;
+
+  /// Cancels the live subscription, settling its first-value future first.
+  ///
+  /// ## The invariant, and the full set of exits (issue #768)
+  ///
+  /// `_load` awaits the stream's FIRST value, so **every path that abandons a
+  /// pending first-value future must complete it** — otherwise that `await`
+  /// never returns. There are five ways out, and three were already handled by
+  /// the listener callbacks:
+  ///
+  /// 1. a value arrives — `onData` completes it;
+  /// 2. the source errors — `onError` completes it;
+  /// 3. the source ends unemitted — `onDone` completes it;
+  /// 4. **the subscription is replaced** by a re-entrant `_load`;
+  /// 5. **the subscription is cancelled** in [dispose].
+  ///
+  /// 4 and 5 are the ones a listener cannot see: **cancelling a
+  /// `StreamSubscription` invokes none of its callbacks**, by design. So they
+  /// have to be handled at the point of abandonment, which is here — and this
+  /// method exists so that cancelling without settling is not expressible.
+  ///
+  /// Earlier fixes closed exits one at a time (3 in round 9, 4 reported in
+  /// round 11). The exits were enumerated this time instead.
+  void _replaceSubscription() {
+    final pending = _pendingFirst;
+    _pendingFirst = null;
+    if (pending != null && !pending.isCompleted) {
+      // A sentinel rather than a real error: the caller has been superseded,
+      // which is not a failure to report to the user. `_load` returns quietly
+      // on it, leaving the newer load to own the screen's state.
+      pending.completeError(const _SupersededLoad());
     }
-    final programsRefresh = ProgramsRefreshScope.maybeOf(context);
-    if (!identical(programsRefresh, _programsRefresh)) {
-      _programsRefresh?.removeListener(_onRefresh);
-      _programsRefresh = programsRefresh;
-      _programsRefresh?.addListener(_onRefresh);
+    unawaited(_dataSub?.cancel());
+    _dataSub = null;
+  }
+
+  /// Opens the subscription and resolves with its FIRST value, so [_load]'s
+  /// existing sequence is untouched while later emits drive a refresh.
+  ///
+  /// Reuses the live subscription when the caller filter is unchanged: a
+  /// re-entry from an emit already has a newer snapshot in hand than a fresh
+  /// subscription would produce, so re-subscribing would buy nothing and pay
+  /// a second full load for it.
+  ///
+  /// ## Why the gate tests [_pendingFirst], and not just the filter
+  ///
+  /// The question the reuse branch must answer is **"has THIS subscription
+  /// produced the snapshot I am about to hand back?"** — not the narrower
+  /// "is the live subscription for this filter?". The two come apart in one
+  /// window: between opening a subscription for a NEW filter and its first
+  /// emit, [_subCallerFilter] already names the new filter while [_latestData]
+  /// still holds the OLD filter's snapshot. A re-entrant [_load] landing in
+  /// that window satisfied all three of the earlier conditions and was handed
+  /// the previous filter's data — wrong call tallies, wrong last-called.
+  ///
+  /// `_pendingFirst == null` states the missing precondition directly: it is
+  /// non-null exactly while a subscription has yet to deliver its first value,
+  /// so requiring it to be null is requiring [_latestData] to have come from
+  /// the live subscription. Clearing [_latestData] in [_replaceSubscription]
+  /// would also have hidden the symptom, but would have left the gate asking
+  /// the question that was wrong — the same shape as the author-sort miss,
+  /// where a skip condition was narrower than the cases it had to cover.
+  ///
+  /// This does not weaken the issue #340 protection above: on the reuse path
+  /// the subscription has emitted by definition, so `_pendingFirst` is null
+  /// there and the branch still fires.
+  Future<CollectionData> _watchCollectionData(String? callerFilter) {
+    final cached = _latestData;
+    if (_dataSub != null &&
+        _pendingFirst == null &&
+        _subCallerFilter == callerFilter &&
+        cached != null) {
+      return Future<CollectionData>.value(cached);
     }
+    final first = Completer<CollectionData>();
+    _replaceSubscription();
+    _pendingFirst = first;
+    _subCallerFilter = callerFilter;
+    _dataSub = CollectionData.watch(_repos, callerFilter: callerFilter).listen(
+      (data) {
+        _latestData = data;
+        if (!first.isCompleted) {
+          _pendingFirst = null;
+          first.complete(data);
+          return;
+        }
+        if (mounted) _refreshCoalescer.request();
+      },
+      onError: (Object error) {
+        if (!first.isCompleted) {
+          _pendingFirst = null;
+          first.completeError(error);
+          return;
+        }
+        // Unlike the program EDITOR, this pane can show an error and holds no
+        // unsaved work, so a failed refresh is surfaced rather than left to
+        // render stale data indefinitely.
+        if (mounted) setState(() => _error = error);
+      },
+      onDone: () {
+        // The source can end without ever emitting — the database closed while
+        // this pane was opening. Completing the future is what stops `_load`
+        // awaiting forever; the error routes to its existing catch.
+        if (!first.isCompleted) {
+          _pendingFirst = null;
+          first.completeError(
+            StateError('collection stream closed before its first value'),
+          );
+        }
+      },
+    );
+    return first.future;
   }
 
   void _onRefresh() {
@@ -225,8 +380,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   @override
   void dispose() {
     widget.refreshTrigger.removeListener(_onRefresh);
-    _collectionRefresh?.removeListener(_onRefresh);
-    _programsRefresh?.removeListener(_onRefresh);
+    _replaceSubscription();
     super.dispose();
   }
 
@@ -251,10 +405,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         _repos.settings,
         trackAllCallers: _trackHistoryForAllCallers,
       );
-      final data = await CollectionData.load(
-        _repos,
-        callerFilter: callerFilter,
-      );
+      final data = await _watchCollectionData(callerFilter);
       final titles = <String, String>{};
       final dances = <String, Dance>{};
       final ids = {
@@ -288,6 +439,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         _loading = false;
         _error = null;
       });
+    } on _SupersededLoad {
+      // A newer `_load` replaced this one's subscription before it produced a
+      // snapshot. It owns `_loading`/`_error` now, so this call must leave both
+      // alone and return — clearing `_loading` here would unblank the pane
+      // while the newer load is still running.
+      return;
     } catch (error) {
       if (mounted) {
         setState(() {

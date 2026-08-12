@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -17,6 +20,7 @@ import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
+import 'package:compendium_app/src/search/collection_data.dart';
 
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
@@ -246,6 +250,282 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('called-count-d1')), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'issue #340: a program-side write updates the badge WITHOUT re-running the '
+    'search query',
+    (tester) async {
+      // The Collection list re-derives its rows from the loaded snapshot, so a
+      // write that can only move the per-dance tallies must not re-run the
+      // (expensive) filter/FTS query behind `search()`. Converting the screen
+      // to a stream makes that easy to lose: every emit is a fresh snapshot,
+      // and the naive response is to re-search on each one.
+      final counter = _SearchCounter();
+      final db = openWidgetTestDatabase(
+        NativeDatabase.memory().interceptWith(counter),
+      );
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
+      await pump(tester, repos, const DanceListScreen());
+      final searchesAfterOpen = counter.count;
+      expect(searchesAfterOpen, greaterThan(0), reason: 'the list did search');
+      expect(find.byKey(const ValueKey('called-count-d1')), findsNothing);
+
+      // Program-side write: changes the tallies, cannot change which dances
+      // match the query or their order under the default (title) sort.
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Friday Night',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('called-count-d1')),
+        findsOne,
+        reason: 'the badge must still update',
+      );
+      expect(
+        counter.count,
+        searchesAfterOpen,
+        reason:
+            'a tallies-only change must not re-run the search query; '
+            'the rows are re-derived from the snapshot instead',
+      );
+    },
+  );
+
+  testWidgets(
+    'renaming a choreographer re-sorts the list when sorted by author',
+    (tester) async {
+      // The author sort orders by choreographer NAME, not by the ids stored on
+      // the dance — so a rename reorders the results while every dance row is
+      // byte-identical. The in-memory re-derivation this screen does for
+      // cheap updates would otherwise refresh the visible author labels and
+      // leave the ORDER stale, which looks like a sorting bug rather than a
+      // refresh one.
+      final repos = openTestRepos();
+      // ignore: unused_result
+      await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Adams'));
+      // ignore: unused_result
+      await repos.choreographers.upsert(Choreographer(id: 'c2', name: 'Baker'));
+      await repos.dances.create(
+        dance(id: 'd1', title: 'Alpha').copyWith(authorIds: const ['c1']),
+      );
+      await repos.dances.create(
+        dance(id: 'd2', title: 'Beta').copyWith(authorIds: const ['c2']),
+      );
+      await pump(tester, repos, const DanceListScreen());
+
+      // Switch to the author sort: Adams (Alpha) before Baker (Beta).
+      await tester.tap(find.byIcon(Icons.sort));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Author').last);
+      await tester.pumpAndSettle();
+
+      List<String> order() => tester
+          .widgetList<Text>(find.byType(Text))
+          .map((t) => t.data ?? '')
+          .where((t) => t == 'Alpha' || t == 'Beta')
+          .toList();
+      expect(order(), ['Alpha', 'Beta'], reason: 'Adams sorts before Baker');
+
+      // Rename Adams so it now sorts AFTER Baker. No dance row changes.
+      // ignore: unused_result
+      await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Zulu'));
+      await tester.pumpAndSettle();
+
+      expect(
+        order(),
+        ['Beta', 'Alpha'],
+        reason:
+            'the rename reorders the author sort; a labels-only refresh '
+            'would leave the old order',
+      );
+    },
+  );
+
+  testWidgets(
+    'issue #340: a write does not make the program summary re-subscribe and '
+    'reload the snapshot twice',
+    (tester) async {
+      // This pane reloads wholesale on every emit — the program, its dances
+      // and its venue all have to be re-fetched. The trap is that the reload
+      // re-enters the subscription helper: cancelling and re-opening the
+      // stream re-runs `CollectionData.load`, so one write costs an EXTRA
+      // full snapshot load on top of the one the stream already did, and
+      // hands back a freshly-armed coalescer each time.
+      //
+      // `custom_field_defs` is read by `CollectionData.load` and by nothing
+      // else in this flow, so counting it counts snapshot loads.
+      //
+      // On the bound: `CollectionData.watch` legitimately loads once per
+      // emit, and one `create` produces more than one emit here (the write
+      // touches several tables and the coalescer emits on both edges). The
+      // ceiling below is therefore calibrated to this fixture rather than
+      // derived, and its MEANING is "at most one load per emit" — the
+      // re-subscribing version costs 5 against the same fixture, so the
+      // assertion discriminates the defect rather than the emit count. If
+      // drift's notification behaviour changes, re-measure rather than
+      // widen: a number that only ever goes up stops testing anything.
+      final counter = _SnapshotLoadCounter();
+      final db = openWidgetTestDatabase(
+        NativeDatabase.memory().interceptWith(counter),
+      );
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Friday Night',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      final refresh = ValueNotifier<int>(0);
+      addTearDown(refresh.dispose);
+      await pump(
+        tester,
+        repos,
+        ProgramSummaryPane(
+          programId: 'p1',
+          refreshTrigger: refresh,
+          onOpenBuilder: () {},
+          onDeleted: () {},
+          onNavigateTo: (_) {},
+        ),
+      );
+      final loadsAfterOpen = counter.count;
+      expect(loadsAfterOpen, greaterThan(0), reason: 'the pane did load');
+
+      await repos.dances.create(dance(id: 'd2', title: 'Beta'));
+      await tester.pumpAndSettle();
+
+      expect(
+        counter.count - loadsAfterOpen,
+        lessThanOrEqualTo(3),
+        reason:
+            'the pane must reuse the snapshot the stream just delivered; '
+            're-subscribing re-runs the whole snapshot load for a value it '
+            'already has',
+      );
+    },
+  );
+
+  testWidgets(
+    'issue #768: a re-entrant load during a caller-filter change never '
+    'presents the previous filter\'s snapshot (asserted as "does not settle", '
+    'not as a rendered tally — see comment)',
+    (tester) async {
+      // The window: `_watchCollectionData` records the NEW caller filter and
+      // opens a new subscription, but `_latestData` still holds the snapshot
+      // the OLD filter produced. Until that subscription's first emit, the two
+      // disagree. A `_load` re-entering there used to satisfy every condition
+      // of the reuse gate — live subscription, matching filter, non-null cache
+      // — and be handed the superseded snapshot.
+      //
+      // ## Why this asserts "the pane does not settle" rather than a tally
+      //
+      // The caller filter changes only the call counts, last-called and
+      // calling-history fields of `CollectionData`. This pane renders none of
+      // them directly — it reads `choreographersById` and gates `canPerform`,
+      // both filter-independent — and surfaces the filtered fields only by
+      // handing the snapshot to `PerformProgramScreen`. So there is no tally on
+      // screen to assert against, and inventing one by driving into the perform
+      // screen would test that screen's rendering rather than this gate.
+      //
+      // What IS observable, and is exactly the property, is that the pane must
+      // not COMPLETE a load using the superseded snapshot: with the defect,
+      // `_load` returns the cached value immediately and the pane settles with
+      // it; with the gate, it waits for the new subscription. The parked query
+      // holds that state open so the difference is deterministic rather than a
+      // race.
+      final parker = _ParkWatchSentinels();
+      final db = openWidgetTestDatabase(
+        NativeDatabase.memory().interceptWith(parker),
+      );
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+
+      await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Friday Night',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      final refresh = ValueNotifier<int>(0);
+      addTearDown(refresh.dispose);
+      await pump(
+        tester,
+        repos,
+        ProgramSummaryPane(
+          programId: 'p1',
+          refreshTrigger: refresh,
+          onOpenBuilder: () {},
+          onDeleted: () {},
+          onNavigateTo: (_) {},
+        ),
+      );
+      expect(
+        find.text('Friday Night'),
+        findsWidgets,
+        reason: 'the pane loaded under the initial (track-all) filter',
+      );
+
+      // Change the filter out from under the live subscription. With no
+      // default caller the resolver returns null ("track all"); setting one
+      // makes it return 'Ann'. `settings` is not in the watched source set, so
+      // this write emits nothing — the reload is driven explicitly below,
+      // which is what keeps the ordering deterministic.
+      await repos.settings.set(kDefaultProgramCallerKey, 'Ann');
+      parker.arm();
+
+      // Leading edge: `_load` #2 sees the new filter, replaces the
+      // subscription, and parks awaiting its first value.
+      refresh.value++;
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 5));
+      expect(
+        parker.parked,
+        greaterThan(0),
+        reason: 'the replacement subscription is held before its first emit',
+      );
+
+      // Trailing edge: `_load` #3 re-enters INSIDE that window. This is the
+      // load that used to be handed the previous filter's snapshot.
+      refresh.value++;
+      await tester.pump(const Duration(milliseconds: 40));
+      await tester.pump();
+
+      expect(
+        find.byType(CircularProgressIndicator),
+        findsWidgets,
+        reason:
+            'the re-entrant load must wait for the new filter\'s snapshot; '
+            'settling here means it accepted the superseded one',
+      );
+
+      // Released INSIDE the test body, not in teardown. `testWidgets` runs the
+      // body against a fake async clock, so a future parked on a real database
+      // query only resumes while the test is pumping — awaiting it from
+      // teardown hangs the suite rather than failing it. (Observed: this test
+      // hung until the release moved here.) Its sibling in
+      // `collection_data_watch_test.dart` awaits its close in teardown safely
+      // because it is a plain `test`, with no fake clock.
+      parker.release();
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Friday Night'),
+        findsWidgets,
+        reason: 'and it does settle once the new snapshot arrives',
+      );
     },
   );
 
@@ -619,7 +899,7 @@ void main() {
         Scaffold(
           body: Column(
             children: [
-              Expanded(child: DanceListScreen(refreshTrigger: listRefresh)),
+              const Expanded(child: DanceListScreen()),
               Builder(
                 builder: (context) => ElevatedButton(
                   key: const ValueKey('open-detail'),
@@ -788,5 +1068,88 @@ class _CountingSettings extends SettingsRepository {
   Future<Object?> get(String key) {
     _reads.update(key, (v) => v + 1, ifAbsent: () => 1);
     return super.get(key);
+  }
+}
+
+/// Holds EVERY `CollectionData.watch` sentinel query while armed, releasing
+/// them all together.
+///
+/// Deliberately not "park the first one": the behaviour under test opens a
+/// second subscription in response to the first being parked, so a
+/// park-once gate would let that one through and erase the difference between
+/// the defect and the fix. The count is exposed so a test can assert it
+/// actually parked rather than assuming it did.
+class _ParkWatchSentinels extends drift.QueryInterceptor {
+  final _gate = Completer<void>();
+  bool _armed = false;
+  int parked = 0;
+
+  void arm() => _armed = true;
+  void release() {
+    if (!_gate.isCompleted) _gate.complete();
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) async {
+    if (_armed && statement.trim() == 'SELECT 1') {
+      parked++;
+      await _gate.future;
+    }
+    return executor.runSelect(statement, args);
+  }
+}
+
+/// Counts reads of `custom_field_defs`, which only [CollectionData.load]
+/// issues in the program-summary flow — so the count is "how many times the
+/// whole snapshot was loaded".
+///
+/// **This counter does not observe the search.** It is a marker for the
+/// snapshot load, and the substring it matches (`custom_field_defs`) is what
+/// makes it one: any query touching that table would be counted, so adding an
+/// unrelated read of it to this flow would silently inflate every ceiling
+/// asserted against this counter.
+class _SnapshotLoadCounter extends drift.QueryInterceptor {
+  int count = 0;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (statement.contains('custom_field_defs')) count++;
+    return executor.runSelect(statement, args);
+  }
+}
+
+/// Counts executions of the Collection's compiled filter query.
+///
+/// `FilterCompiler` emits `SELECT id FROM dances …` (`filter_compiler.dart:92`),
+/// which nothing else in this screen's load issues — the snapshot reads dances
+/// through drift's own builder — so it is a precise marker for "the search ran".
+///
+/// **That precision rests on a SQL substring, which no compiler checks.** If
+/// `FilterCompiler` is refactored to emit a different prefix — aliasing the
+/// table, selecting another column, or adding a `DISTINCT` — this counter
+/// silently drops to zero and every `expect(counter.count, …)` below it
+/// becomes an assertion about nothing rather than a failure. A ceiling of the
+/// form "the search ran at most N times" is satisfied trivially by a search
+/// that is no longer observed. If you change that query, change this string
+/// and confirm the counts move.
+class _SearchCounter extends drift.QueryInterceptor {
+  int count = 0;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (statement.contains('SELECT id FROM dances')) count++;
+    return executor.runSelect(statement, args);
   }
 }

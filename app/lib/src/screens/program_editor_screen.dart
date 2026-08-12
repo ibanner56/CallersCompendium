@@ -57,6 +57,15 @@ import '../widgets/program_status_chip.dart';
 enum _ProgramLoadError { missing }
 
 /// [programId] null ⇒ create a new program; otherwise edit that program.
+/// Raised into a pending first-value future when its subscription is replaced
+/// or disposed (issue #768). Being superseded is not a user-visible failure,
+/// so [_ProgramEditorScreenState._load] returns on it without setting state.
+class _SupersededLoad implements Exception {
+  const _SupersededLoad();
+  @override
+  String toString() => 'load superseded before its first snapshot';
+}
+
 class ProgramEditorScreen extends StatefulWidget {
   const ProgramEditorScreen({
     super.key,
@@ -230,23 +239,115 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
   }
 
+  /// The live Collection reference data backing the dance picker (issue #768).
+  ///
+  /// Only the *picker's* data is reactive. The program being edited is
+  /// deliberately NOT re-read from the database: this screen holds a working
+  /// copy with debounced autosave, so refreshing it from underneath the user
+  /// would discard in-flight edits. The split matters — the dances, tags and
+  /// authors the picker offers are reference data that should stay current,
+  /// while the program is the user's own document.
+  StreamSubscription<CollectionData>? _dataSub;
+
+  /// The most recent snapshot the stream has delivered.
+  ///
+  /// [_load] captures the stream's FIRST value and then awaits more work — the
+  /// program fetch, the venue lookup, the default prefill — before assigning
+  /// `_data`. A write landing in that gap would otherwise be overwritten by
+  /// the older captured value, leaving the picker stale until the *next*
+  /// write; this is read at assignment time instead, so the newest value wins.
+  CollectionData? _latestData;
+
+  /// Opens the subscription and resolves with its FIRST value, so the existing
+  /// load sequence is unchanged while later emits flow into [_data].
+  ///
+  /// One subscription serves both, rather than a `load()` for the initial
+  /// render plus a `watch()` for updates — that would run the whole snapshot
+  /// load twice on open.
+  /// The live subscription's first-value future, while still pending.
+  ///
+  /// Held so that whoever abandons the subscription can settle it — see
+  /// [_replaceSubscription].
+  Completer<CollectionData>? _pendingFirst;
+
+  /// Cancels the live subscription, settling its first-value future first.
+  ///
+  /// [_load] awaits the stream's FIRST value, so **every path that abandons a
+  /// pending first-value future must complete it**. Three exits are handled by
+  /// the listener (a value, an error, the source ending); the other two are
+  /// invisible to it, because **cancelling a `StreamSubscription` invokes none
+  /// of its callbacks**: replacing the subscription, and [dispose].
+  ///
+  /// This screen's `_load` runs once (guarded by `!_loaded`), so the replace
+  /// path is not currently reachable here — but the dispose path is, and the
+  /// guard is written for the class rather than for the reachable half. See
+  /// `program_summary_screen`, where round 11 found the replace path live.
+  void _replaceSubscription() {
+    final pending = _pendingFirst;
+    _pendingFirst = null;
+    if (pending != null && !pending.isCompleted) {
+      pending.completeError(const _SupersededLoad());
+    }
+    unawaited(_dataSub?.cancel());
+    _dataSub = null;
+  }
+
+  Future<CollectionData> _watchCollectionData(String? callerFilter) {
+    final first = Completer<CollectionData>();
+    _replaceSubscription();
+    _pendingFirst = first;
+    _dataSub = CollectionData.watch(_repos, callerFilter: callerFilter).listen(
+      (data) {
+        _latestData = data;
+        if (!first.isCompleted) {
+          _pendingFirst = null;
+          first.complete(data);
+          return;
+        }
+        if (mounted) setState(() => _data = data);
+      },
+      onError: (Object error) {
+        if (!first.isCompleted) {
+          _pendingFirst = null;
+          first.completeError(error);
+          return;
+        }
+        // A LATER failure keeps the picker on its last good data rather than
+        // blanking it: this is reference data beside an editor holding unsaved
+        // work, so an empty picker would be worse than a slightly stale one.
+        // Deliberately not silent — it surfaces through the screen's own error
+        // state only if nothing has loaded yet, which the branch above covers.
+      },
+      onDone: () {
+        // The source can end without ever emitting — the database closed while
+        // this screen was opening, which happens in teardown. Completing the
+        // future is what stops `_load` awaiting forever; the error routes to
+        // the screen's existing load-failure branch.
+        if (!first.isCompleted) {
+          _pendingFirst = null;
+          first.completeError(
+            StateError('collection stream closed before its first value'),
+          );
+        }
+      },
+    );
+    return first.future;
+  }
+
   Future<void> _load() async {
     try {
       final callerFilter = await resolveCallingHistoryCallerFilter(
         _repos.settings,
         trackAllCallers: _trackHistoryForAllCallers,
       );
-      final data = await CollectionData.load(
-        _repos,
-        callerFilter: callerFilter,
-      );
+      final data = await _watchCollectionData(callerFilter);
       Program? program;
       if (!widget.isNew) {
         program = await _repos.programs.getById(widget.programId!);
         if (program == null) {
           if (!mounted) return;
           setState(() {
-            _data = data;
+            _data = _latestData ?? data;
             _loadError = _ProgramLoadError.missing;
             _loaded = true;
           });
@@ -276,7 +377,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // widget may have been disposed while they were in-flight.
       if (!mounted) return;
       setState(() {
-        _data = data;
+        _data = _latestData ?? data;
         _existing = program;
         _eventDate = program?.eventDate;
         _venueId = program?.venueId;
@@ -289,6 +390,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // restore/discard prompt (issue #436). Runs after the loaded-state
       // setState so the editor is fully built before any dialog appears.
       await _maybeStageDraft();
+    } on _SupersededLoad {
+      // Superseded before a snapshot arrived; the load that replaced this one
+      // owns `_loaded`/`_loadError`. Returning leaves the editor on its
+      // loading state for that load to clear.
+      return;
     } catch (error) {
       if (mounted) {
         setState(() {
@@ -332,6 +438,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   @override
   void dispose() {
     _autosaveTimer?.cancel();
+    _replaceSubscription();
     _pickerCounts.dispose();
     _tabController.dispose();
     _titleController.dispose();

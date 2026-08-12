@@ -41,6 +41,165 @@ class CompendiumRepositories {
   final VenueRepository venues;
   final SettingsRepository settings;
 
+  /// Emits once whenever anything the Collection's reference/vocabulary data is
+  /// built from changes — the trigger for re-reading a `CollectionData`
+  /// snapshot (issue #768).
+  ///
+  /// A **change signal**, not the data: it carries no payload, because the
+  /// snapshot is assembled app-side from a fan-out of queries across six
+  /// repositories and there is no single row set to hand back. Callers pair it
+  /// with their own loader (see `CollectionData.watch`).
+  ///
+  /// ## The declared table set, justified per entry
+  ///
+  /// The same rule [ProgramRepository.watchCallingHistoryForDance] states:
+  /// `customSelect` is opaque to drift, so every table the *composed read*
+  /// touches must be named here or a subscriber silently stops updating. This
+  /// set is the union of what `CollectionData.load` reads:
+  ///
+  /// * `dances` — the collection itself, and every facet vocabulary derived
+  ///   from it (forms, formations, progressions, statuses, levels, and the
+  ///   mixed-level / mixer / rating flags).
+  /// * `choreographers` — author names, and the author facet.
+  /// * `tags` — tag names and colours, and the tag facet.
+  /// * `custom_field_defs` — the list/searchable field definitions.
+  /// * `published_sources` — the cited-source facet.
+  /// * `program_slots` and `programs` — the per-dance call tallies and
+  ///   last-called stamps, exactly [ProgramRepository.programDerivedCounts]'s
+  ///   read set, which is folded into the same snapshot.
+  ///
+  /// The **join** tables (`dance_authors`, `dance_tags`, `dance_sources`,
+  /// `custom_field_values`) are deliberately absent, and the reason is worth
+  /// stating precisely, because the obvious version of it is false.
+  ///
+  /// The claim has now been falsified twice, so it is stated here on the
+  /// quantity that actually governs `readsFrom` rather than weakened a third
+  /// time. The history is short and worth keeping, because each version was
+  /// derived from whichever writers had been looked at:
+  ///
+  /// 1. *"only `DanceRepository`'s upsert writes them"* — false;
+  ///    `ArchiveService._clearAll` deletes all four directly.
+  /// 2. *"every path that writes a join table also writes `dances` in the same
+  ///    transaction"* — also false; `adoptTombstonedNaturalKey`
+  ///    (`existence.dart`) deletes join rows and writes only the **adopted**
+  ///    table, never `dances`.
+  ///
+  /// Enumerating every writer of the four join tables gives the invariant:
+  ///
+  /// | writer | join-table write | also writes, same transaction |
+  /// |---|---|---|
+  /// | `DanceRepository` upsert | `into(danceAuthors/Tags/Sources/customFieldValues)` | `dances` |
+  /// | `ArchiveService._clearAll` | `delete(...)` on all four | `dances` |
+  /// | `adoptTombstonedNaturalKey` | `DELETE FROM <joinTable>` | `tags` / `choreographers` / `custom_field_defs` |
+  ///
+  /// **Every path that writes a join table also writes, in the same
+  /// transaction, at least one table in the set watched above.** For two of
+  /// them that table is `dances`; for natural-key adoption it is the adopted
+  /// table, which is itself watched. Since drift dispatches a transaction's
+  /// updates as one set on commit, a watcher is notified either way — so
+  /// naming the join tables here would add emits without adding coverage.
+  ///
+  /// That is the right shape as well as the true one: `readsFrom` is a
+  /// statement about the **watched set**, so the invariant belongs on the
+  /// watched set. Both earlier versions named a single table and were falsified
+  /// by the first writer that used a different one.
+  ///
+  /// The condition that breaks it is correspondingly narrow: a write that
+  /// touches a join table and leaves **every** watched table untouched in that
+  /// transaction. Such a writer would silently under-notify — no error, no
+  /// dropped stream, just a Collection view whose tags or authors are wrong
+  /// until some unrelated write arrives. If one is ever added, this set must
+  /// grow.
+  ///
+  /// ### How to check a new writer
+  ///
+  /// The rule is decidable, so it is written as a procedure rather than as a
+  /// list of blessed paths — a list goes stale the moment someone adds a path:
+  ///
+  /// 1. find the enclosing `transaction` of the join-table write;
+  /// 2. list every table that transaction writes;
+  /// 3. it is safe **iff** that list intersects the `readsFrom` set above.
+  ///
+  /// **The search in step 1 is where both falsifications came from, so do it
+  /// by parameter as well as by name.** A grep for `danceTags` finds the
+  /// upsert and `ArchiveService._clearAll`, because those name the table
+  /// directly. It does **not** find `adoptTombstonedNaturalKey`, which takes
+  /// the table as an argument:
+  ///
+  /// ```dart
+  /// // existence.dart — the table is a parameter, so the identifier
+  /// // `dance_tags` appears nowhere in this file.
+  /// 'DELETE FROM ${joinTable.actualTableName} WHERE $joinColumn = ?'
+  /// ```
+  ///
+  /// Both earlier versions of this claim were derived from a name-based search
+  /// and were falsified by a writer that search could not see. So:
+  ///
+  /// ```sh
+  /// # names the table directly
+  /// git grep -nE '(into|delete)\(_?db\.(danceAuthors|danceTags|danceSources|customFieldValues)\)'
+  /// # takes it as a parameter
+  /// git grep -n 'joinTable'
+  /// ```
+  ///
+  /// `venues` is absent because `CollectionData` reads no venue data.
+  ///
+  /// ## The raw writes this signal does NOT cover, and why each is out of scope
+  ///
+  /// Auditing every raw SQL write in this package by target table — a script
+  /// rather than a line-grep, since these statements wrap across lines and
+  /// interpolate their table names — leaves three groups that still use
+  /// `customStatement` and therefore reach no subscriber. They divide by the
+  /// *strength* of what makes them safe, and the difference is the point:
+  ///
+  /// 1. **Structurally unreachable** — every raw write in `database.dart`
+  ///    (eleven of them, touching `dances`, `settings` and the six v25 kinds)
+  ///    sits inside `MigrationStrategy`, so it runs during `openConnection`,
+  ///    before the database can serve a query at all, let alone hold a
+  ///    watcher. Nothing can observe them by construction.
+  /// 2. **Safe by ordering** — the repair/normalisation sweeps *in this file*
+  ///    write four tables raw: `program_slots` and `dance_links` (the
+  ///    dangling-reference cleanup), `dances` (the `figures_json`-only
+  ///    rewrites), and `settings` (the marker reads/writes that decide whether
+  ///    each sweep is owed). The first three are watched by the signal above;
+  ///    `settings` is not watched by anything **yet**, which is why it belongs
+  ///    in this group rather than group 3 — it becomes exposed the moment any
+  ///    screen reads a preference reactively.
+  ///
+  ///    They are reached only through [ensureMigrated], which the app awaits in
+  ///    its startup sequence before any screen mounts. That is a weaker
+  ///    guarantee than (1): it is app-level sequencing, not a property of the
+  ///    code, and it is the same shape as the incidental co-location documented
+  ///    on `DanceRepository._cleanupDanglingReferences`. **If a sweep is ever
+  ///    made re-runnable from a settings screen, or moved after the first
+  ///    frame, it must move to `customUpdate` with an explicit `updates:` set
+  ///    first**, or a live Collection will silently keep pre-repair data.
+  /// 3. **Unwatchable** — the `dance_fts` writes in `DanceRepository`. It is an
+  ///    FTS index rebuilt from derived rows; nothing streams it and nothing
+  ///    should.
+  ///
+  /// Only group 2 is a live thread to pull, and deliberately not pulled here:
+  /// it belongs in its own change with its own reproduction, not folded into
+  /// the conversion that happens to make `dances` watched.
+  Stream<void> watchCollectionSources() => db
+      .customSelect(
+        'SELECT 1',
+        readsFrom: {
+          db.dances,
+          db.choreographers,
+          db.tags,
+          db.customFieldDefs,
+          db.publishedSources,
+          db.programSlots,
+          db.programs,
+        },
+      )
+      .watch()
+      // Discard the sentinel rows: the payload is meaningless and mapping here
+      // makes the runtime type genuinely `Stream<void>`, so a caller can
+      // transform it without tripping over `Stream<List<QueryRow>>`.
+      .map((_) {});
+
   /// Opens the database (running any pending schema migration) and, if a
   /// migration owes a derived-index rebuild, back-fills it.
   ///

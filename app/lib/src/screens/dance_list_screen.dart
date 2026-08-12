@@ -20,7 +20,6 @@ import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/online_search_labels.dart';
-import '../data/refresh_coalescer.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
@@ -68,8 +67,11 @@ import 'online_import_variation_dialog.dart';
 ///
 /// [selectedDanceId] highlights the currently selected row in split-pane mode.
 ///
-/// [refreshTrigger] allows a parent widget to request a full list reload by
-/// incrementing the notifier value (e.g. after a detail-pane delete/restore).
+/// The list keeps itself current from the database (issue #768), so it takes
+/// no `refreshTrigger`: a parent has nothing to request that the stream does
+/// not already deliver. The parameter was removed rather than left in place,
+/// because `_boot` is now idempotent — it would have accepted a parent's
+/// reload request and silently done nothing.
 ///
 /// **Caller's Box online search** (`docs/design/callersbox.md`): when the user
 /// turns on the "Online search" switch inside the Advanced panel, the search
@@ -86,7 +88,6 @@ class DanceListScreen extends StatefulWidget {
     this.onSelectDance,
     this.onNewDance,
     this.selectedDanceId,
-    this.refreshTrigger,
     this.onImport,
     this.onSelectOnlineDance,
     this.selectedOnlineId,
@@ -105,11 +106,6 @@ class DanceListScreen extends StatefulWidget {
   /// Id of the currently selected dance for row highlighting in split-pane
   /// mode. Has no effect when [onSelectDance] is null.
   final String? selectedDanceId;
-
-  /// When non-null, the list calls [_boot] whenever this notifier's value
-  /// changes — allowing the [CollectionShell] to trigger a refresh after a
-  /// delete or restore in the detail pane.
-  final ValueListenable<int>? refreshTrigger;
 
   /// Called when the user taps the app-bar Import action. Null ⇒ the action is
   /// hidden (the list has no way to open import on its own). The owning shell
@@ -187,8 +183,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   /// Whether the user has explicitly chosen a sort this session. Once set, the
   /// saved default (ROADMAP G.6a) no longer seeds `_sort` — protecting an
-  /// in-session choice from a late async read and from a [refreshTrigger]
-  /// reload (which re-runs [_boot]).
+  /// in-session choice from a late async read.
   bool _sortUserSet = false;
 
   /// Whether the saved-default sort seed has run (it runs at most once, on the
@@ -214,45 +209,37 @@ class _DanceListScreenState extends State<DanceListScreen> {
   bool _started = false;
 
   /// The app-level collection-refresh notifier (ROADMAP 6.3), if provided.
-  /// Re-boots the list when an out-of-tab mutation (e.g. an import commit/undo
-  /// from Settings) bumps it. Tracked so listeners are swapped correctly.
+  ///
+  /// This screen no longer LISTENS to it — the stream supersedes that (see
+  /// [_dataSub]). It is still read for two things, and the distinction matters
+  /// because the old description ("re-boots the list when it is bumped") is now
+  /// false in both:
+  ///
+  /// - [_broadcastCollectionChange] bumps it so the screens that have NOT been
+  ///   converted still reload after a mutation made from here;
+  /// - its presence is the test for whether such a broadcast is possible at
+  ///   all, so an unscoped host falls back to reloading itself.
   ValueListenable<int>? _collectionRefresh;
 
-  /// Collapses several collection bumps arriving in the same synchronous block
-  /// into one re-boot, so the fix for issue #768 does not become the thrash
-  /// issue #340 warns about.
-  late final RefreshCoalescer _refreshCoalescer = RefreshCoalescer(() {
-    if (mounted) _boot();
-  });
-
-  /// The live per-dance calling tallies (issue #768). The rows' "called ×N"
-  /// badge and the last-called sort are derived from `program_slots` +
-  /// `programs`, which no dance-side write touches and every program-side write
-  /// changes — so this list used to re-boot on a `ProgramsRefreshScope` bump,
-  /// and went stale wherever a mutation site forgot to send one. It now watches
-  /// those tables directly.
+  /// The live Collection snapshot (issue #768).
   ///
-  /// There is deliberately no `ProgramsRefreshScope` subscription any more:
-  /// keeping it would re-run the entire [_boot] — every dance, choreographer,
-  /// tag and custom-field def — on top of this stream's emit, for a badge.
-  /// The scope stays for the screens not yet converted.
-  StreamSubscription<ProgramDerivedCounts>? _countsSub;
-
-  /// The caller filter [_countsSub] was opened with, so a re-[_boot] does not
-  /// pointlessly re-subscribe while a change to the "track all callers" setting
-  /// (issue #583) — which changes the query — does.
-  String? _countsCallerFilter;
-  bool _countsSubscribed = false;
-
-  /// The most recent tallies that arrived while [_data] was still null, held so
-  /// [_boot] can apply them once the snapshot exists.
+  /// Supersedes both the imperative `_boot()` reload and the narrower
+  /// per-dance-tallies subscription this screen carried before: everything
+  /// [CollectionData] is built from is now watched, so a dance, tag,
+  /// choreographer, custom-field or program-side write reaches this list
+  /// without any mutation site remembering to broadcast.
   ///
-  /// Dropping them instead would leave a real gap: [CollectionData.load] reads
-  /// the tallies partway through its own sequence, so a program-side write that
-  /// lands after that read but before `_data` is assigned is in neither the
-  /// snapshot nor any emit this screen kept — and since the stream only speaks
-  /// again on the *next* write, the badge would stay stale until one happened.
-  ProgramDerivedCounts? _countsPendingFirstLoad;
+  /// There is deliberately no `ProgramsRefreshScope` subscription, and the
+  /// `CollectionRefreshScope` one is gone with this change too — either would
+  /// re-run the load on top of the stream's own emit, costing two reloads per
+  /// write (issue #340). Both scopes remain for the screens not yet converted.
+  StreamSubscription<CollectionData>? _dataSub;
+
+  /// The caller filter [_dataSub] was opened with. A change to the "track all
+  /// callers" setting (issue #583) changes the query, so it reopens the stream;
+  /// anything else must not, or an ordinary rebuild would re-subscribe.
+  String? _dataCallerFilter;
+  bool _dataSubscribed = false;
 
   /// The app-level tag-filter coordinator (issue #414). When a tag chip is
   /// tapped (here, on a dance detail, or on a list row), this list applies a
@@ -343,7 +330,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _repos = RepositoriesScope.of(context);
       _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
       _contraDb = widget.contraDbOnline ?? ContraDbOnline();
-      widget.refreshTrigger?.addListener(_onRefreshTriggered);
       _boot();
     } else if (trackAllCallersChanged) {
       _boot();
@@ -351,15 +337,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _runSearch();
     }
 
-    // Subscribe to the app-level collection-refresh notifier (registers a
-    // rebuild dependency; the notifier instance is stable across the app's
-    // lifetime, so this attaches once).
-    final refresh = CollectionRefreshScope.maybeOf(context);
-    if (!identical(refresh, _collectionRefresh)) {
-      _collectionRefresh?.removeListener(_onRefreshTriggered);
-      _collectionRefresh = refresh;
-      _collectionRefresh?.addListener(_onRefreshTriggered);
-    }
+    // Resolved to BUMP (see [_broadcastCollectionChange]), not to subscribe:
+    // this list reads its data from a stream now, so listening here as well
+    // would reload it twice per write (issue #340).
+    _collectionRefresh = CollectionRefreshScope.maybeOf(context);
 
     // Subscribe to the app-level tag-filter coordinator (issue #414). A tag tap
     // anywhere publishes a request; this list reacts by applying a single-tag
@@ -379,10 +360,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
   @override
   void didUpdateWidget(DanceListScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.refreshTrigger != widget.refreshTrigger) {
-      oldWidget.refreshTrigger?.removeListener(_onRefreshTriggered);
-      widget.refreshTrigger?.addListener(_onRefreshTriggered);
-    }
     if (!identical(widget.callersBoxOnline, oldWidget.callersBoxOnline)) {
       // Sync when the injected service changes, including when it is removed
       // (non-null -> null) so we revert to the default network-backed instance
@@ -392,10 +369,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (!identical(widget.contraDbOnline, oldWidget.contraDbOnline)) {
       _contraDb = widget.contraDbOnline ?? ContraDbOnline();
     }
-  }
-
-  void _onRefreshTriggered() {
-    if (mounted) _refreshCoalescer.request();
   }
 
   /// Broadcasts "dance data changed" after a mutation made from this list, so
@@ -462,9 +435,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   @override
   void dispose() {
-    widget.refreshTrigger?.removeListener(_onRefreshTriggered);
-    _collectionRefresh?.removeListener(_onRefreshTriggered);
-    unawaited(_countsSub?.cancel());
+    unawaited(_dataSub?.cancel());
     _filterController?.removeListener(_onTagFilterRequested);
     _debounceTimer?.cancel();
     _ftsController.dispose();
@@ -477,89 +448,124 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _repos.settings,
         trackAllCallers: _trackHistoryForAllCallers,
       );
-      final data = await CollectionData.load(
-        _repos,
-        callerFilter: callerFilter,
-      );
       if (!mounted) return;
-      // Anything the stream delivered while `_data` was null is newer than this
-      // snapshot, so it wins. That can only happen on a retry (which clears
-      // `_data` under a live subscription), and only for a post-write emit —
-      // never for an out-of-date first value, because the subscription is
-      // opened *after* the snapshot below.
-      final pending = _countsPendingFirstLoad;
-      _countsPendingFirstLoad = null;
-      setState(() {
-        _data = pending == null
-            ? data
-            : data.copyWithProgramDerived(
-                lastCalled: pending.lastCalled,
-                callCounts: pending.callCounts,
-              );
-        _loadError = null;
-      });
-      // Subscribe AFTER the snapshot, so the stream's first emit reads a
-      // database at least as new as the one just loaded and therefore
-      // supersedes it. Subscribing first would invert that: the first emit is
-      // read *before* the load's own tallies query, so applying it afterwards
-      // would put back values the snapshot had already moved past.
-      _watchProgramDerivedCounts(callerFilter);
-
-      await _seedDefaultSort();
-      await _runSearch();
+      _watchCollectionData(callerFilter);
     } catch (error) {
       if (mounted) setState(() => _loadError = error);
     }
   }
 
-  /// Opens (or reopens) the live tallies subscription for [callerFilter].
+  /// Opens (or reopens) the live Collection subscription for [callerFilter].
   ///
   /// A no-op when one is already open for the same filter, so an ordinary
-  /// re-[_boot] does not tear down and rebuild the stream — that would cost an
-  /// extra query and an extra rebuild per refresh.
-  void _watchProgramDerivedCounts(String? callerFilter) {
-    if (_countsSubscribed && callerFilter == _countsCallerFilter) return;
-    _countsSubscribed = true;
-    _countsCallerFilter = callerFilter;
-    unawaited(_countsSub?.cancel());
-    _countsSub = _repos.programs
-        .watchProgramDerivedCounts(callerFilter: callerFilter)
-        .listen(
-          _onProgramDerivedCounts,
-          // A failed tally query must not blank the Collection: the list keeps
-          // the tallies it has, exactly as it did when a refresh failed.
-          onError: (Object _) {},
-        );
+  /// rebuild does not tear down and re-establish the stream — that would cost a
+  /// full reload per rebuild.
+  void _watchCollectionData(String? callerFilter) {
+    if (_dataSubscribed && callerFilter == _dataCallerFilter) return;
+    _dataSubscribed = true;
+    _dataCallerFilter = callerFilter;
+    unawaited(_dataSub?.cancel());
+    _dataSub = CollectionData.watch(_repos, callerFilter: callerFilter).listen(
+      _onCollectionData,
+      onError: (Object error) {
+        if (mounted) setState(() => _loadError = error);
+      },
+      onDone: () {
+        // The source can end without ever emitting — the database closed while
+        // this screen was opening. Nothing else moves the screen off its
+        // loading state: [_buildBody] renders the skeleton whenever `_data` and
+        // `_loadError` are both null, so without this the list spins forever
+        // with no throw, no log and no error surface.
+        //
+        // This screen has no first-value Completer, unlike the two program
+        // panes, so there is no future to complete with an error — the guard
+        // has to be on the loading STATE rather than on a future. That is
+        // precisely why an audit that searched for `Completer` did not find
+        // this site: the hazard is "a loading state with no terminal
+        // transition when the stream ends", and the Completer is only one way
+        // to express it.
+        if (mounted && _data == null && _loadError == null) {
+          setState(
+            () => _loadError = StateError(
+              'collection stream closed before its first value',
+            ),
+          );
+        }
+      },
+    );
   }
 
-  /// Applies fresh tallies to the loaded snapshot and the rendered rows.
+  /// Applies a snapshot from [_dataSub].
   ///
-  /// Three things keep this from becoming the over-firing failure (issue #340):
-  /// an emit equal to what is already displayed is dropped; the rows are
-  /// re-derived in memory from the already-loaded dances rather than re-read;
-  /// and the search is re-run only under the one sort whose ORDER BY these
-  /// values can actually change.
-  void _onProgramDerivedCounts(ProgramDerivedCounts counts) {
-    final data = _data;
-    // Before the first load completes there is no snapshot to update yet, so
-    // hold the value for `_boot` to apply rather than discarding it.
-    if (data == null) {
-      _countsPendingFirstLoad = counts;
-      return;
-    }
-    if (mapEquals(data.callCounts, counts.callCounts) &&
-        mapEquals(data.lastCalled, counts.lastCalled)) {
-      return;
-    }
-    final updated = data.copyWithProgramDerived(
-      lastCalled: counts.lastCalled,
-      callCounts: counts.callCounts,
-    );
+  /// The search is re-run only when the incoming snapshot could actually change
+  /// its result set or its order. A program-side write — marking a slot
+  /// performed, say — changes only the per-dance tallies, and re-running the
+  /// FTS query for a badge is the thrash issue #340 records; the rows are
+  /// re-derived in memory from the dances already loaded instead. The one
+  /// exception is the last-called sort, whose ORDER BY those very tallies feed.
+  ///
+  /// ## What this skip list must be complete with respect to (issue #768)
+  ///
+  /// Write the **completeness claim**, not just the exceptions — because the
+  /// claim is what a later change invalidates, and the code that depends on it
+  /// will not look any different afterwards.
+  ///
+  /// On `main` this optimisation lived on the per-dance-tallies subscription,
+  /// where the exception list was *provably* complete: that channel could
+  /// deliver only `callCounts` and `lastCalled`, and the one sort those feed
+  /// was the one exception listed. Converting to [CollectionData.watch] merged
+  /// six channels into one — dances, choreographers, tags, field defs, sources
+  /// and tallies — and the optimisation was carried across **with its exception
+  /// list intact**. The implementation travelled; the proof did not. A snapshot
+  /// can now differ in ways that never previously arrived alone, and the author
+  /// rename below is the case that found it.
+  ///
+  /// So: this list is complete with respect to the **seven tables**
+  /// `watchCollectionSources` reads. Widen that set and every exception here
+  /// must be re-derived, not merely reviewed.
+  ///
+  /// ## Why a half-refreshed view is worse than a stale one
+  ///
+  /// The failure mode to weigh is not "the list goes stale". A stale list looks
+  /// *unchanged*, so nothing invites the user to trust it. Getting this wrong
+  /// produces a list that **visibly updates while being wrongly ordered** — and
+  /// the freshly-correct labels are precisely what make the wrong order
+  /// credible. Partial freshness beats uniform staleness at doing damage.
+  ///
+  /// Hence the test to apply when converting the next screen: when a snapshot
+  /// updates one thing derived from a source, does it update **everything**
+  /// derived from that same source?
+  void _onCollectionData(CollectionData data) {
+    final previous = _data;
+    final searchAffected =
+        previous == null ||
+        !mapEquals(previous.dancesById, data.dancesById) ||
+        !listEquals(previous.customFieldDefs, data.customFieldDefs) ||
+        // The author sort orders by choreographer NAME (`_sortByAuthor`), not
+        // by the ids stored on the dance — so a rename reorders the results
+        // while every dance row is byte-identical. Without this the labels
+        // would update from the new snapshot and the ORDER would not, leaving
+        // a list that is visibly sorted wrongly until some unrelated write
+        // happened to force a re-search. Checked only under that sort, so a
+        // rename costs no query in the sorts it cannot reorder.
+        (_sort == CollectionSort.author &&
+            !mapEquals(previous.choreographerNames, data.choreographerNames));
     setState(() {
-      _data = updated;
-      _results = [for (final entry in _results) updated.entryFor(entry.dance)];
+      _data = data;
+      _loadError = null;
+      if (!searchAffected) {
+        _results = [for (final e in _results) data.entryFor(e.dance)];
+      }
     });
-    if (_sort == CollectionSort.lastCalled) unawaited(_runSearch());
+    if (searchAffected || _sort == CollectionSort.lastCalled) {
+      unawaited(_afterFirstData());
+    }
+  }
+
+  /// Seeds the default sort once, then runs the search.
+  Future<void> _afterFirstData() async {
+    await _seedDefaultSort();
+    if (mounted) await _runSearch();
   }
 
   /// Seeds `_sort` from the saved default Collection sort order (ROADMAP G.6a),
@@ -593,6 +599,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _data = null;
       _loadError = null;
     });
+    // Force a fresh subscription: the previous one may have errored, and a
+    // no-op reopen would leave the list on its failure state.
+    _dataSubscribed = false;
     _boot();
   }
 

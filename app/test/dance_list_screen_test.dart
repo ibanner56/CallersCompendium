@@ -1,6 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
-import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -53,7 +52,6 @@ Future<void> _pumpScreen(
   WidgetTester tester,
   CompendiumRepositories repos, {
   Dialect? activeDialect,
-  ValueListenable<int>? refreshTrigger,
   ValueNotifier<int>? collectionRefresh,
   bool sortIgnoreArticles = true,
 }) async {
@@ -97,7 +95,7 @@ Future<void> _pumpScreen(
           ),
         ),
       ),
-      home: DanceListScreen(refreshTrigger: refreshTrigger),
+      home: const DanceListScreen(),
     ),
   );
 }
@@ -274,9 +272,7 @@ void main() {
         _dance(id: 'd2', title: 'Zephyr', createdAt: DateTime.utc(2026)),
       );
 
-      final refreshTrigger = ValueNotifier<int>(0);
-      addTearDown(refreshTrigger.dispose);
-      await _pumpScreen(tester, repos, refreshTrigger: refreshTrigger);
+      await _pumpScreen(tester, repos);
       await tester.pumpAndSettle();
 
       // Opens in the seeded default (recently-added ⇒ newest first).
@@ -289,9 +285,26 @@ void main() {
       await tester.pumpAndSettle();
       expect(_titles(tester), ['Aardvark', 'Zephyr']);
 
-      // A refresh re-runs _boot; the user's in-session sort must survive (the
-      // saved default must not re-seed over it).
-      refreshTrigger.value = 1;
+      // A refresh must not re-seed the saved default over the user's
+      // in-session choice.
+      //
+      // The refresh is driven by a WRITE, not by a notifier. This screen no
+      // longer takes a `refreshTrigger` (issue #768 moved it to
+      // `CollectionData.watch`), so bumping a notifier here would reach
+      // nothing and the assertion would hold for the trivial reason that
+      // nothing happened — a false green, which is what this test had become.
+      //
+      // The write has to reach the seeding path, which is narrower than "the
+      // stream emitted": `_afterFirstData` (and so `_seedDefaultSort`) runs
+      // only when the incoming snapshot could change the result set or its
+      // order. A first attempt at this test wrote a `tags` row — that emits,
+      // but leaves `dancesById` equal, so the seeding path never ran and the
+      // test was inert. The mutation run below is what exposed that.
+      //
+      // Editing an existing dance's non-title field does reach it, and cannot
+      // reorder a title sort, so the sort's survival is the only variable.
+      final edited = (await repos.dances.getById('d1'))!;
+      await repos.dances.update(edited.copyWith(callingNotes: 'edited'));
       await tester.pumpAndSettle();
       expect(_titles(tester), ['Aardvark', 'Zephyr']);
     },
