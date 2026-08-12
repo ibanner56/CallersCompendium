@@ -111,6 +111,37 @@ class CompendiumRepositories {
   /// until some unrelated write arrives. If one is ever added, this set must
   /// grow.
   ///
+  /// ### How to check a new writer
+  ///
+  /// The rule is decidable, so it is written as a procedure rather than as a
+  /// list of blessed paths — a list goes stale the moment someone adds a path:
+  ///
+  /// 1. find the enclosing `transaction` of the join-table write;
+  /// 2. list every table that transaction writes;
+  /// 3. it is safe **iff** that list intersects the `readsFrom` set above.
+  ///
+  /// **The search in step 1 is where both falsifications came from, so do it
+  /// by parameter as well as by name.** A grep for `danceTags` finds the
+  /// upsert and `ArchiveService._clearAll`, because those name the table
+  /// directly. It does **not** find `adoptTombstonedNaturalKey`, which takes
+  /// the table as an argument:
+  ///
+  /// ```dart
+  /// // existence.dart — the table is a parameter, so the identifier
+  /// // `dance_tags` appears nowhere in this file.
+  /// 'DELETE FROM ${joinTable.actualTableName} WHERE $joinColumn = ?'
+  /// ```
+  ///
+  /// Both earlier versions of this claim were derived from a name-based search
+  /// and were falsified by a writer that search could not see. So:
+  ///
+  /// ```sh
+  /// # names the table directly
+  /// git grep -nE '(into|delete)\(_?db\.(danceAuthors|danceTags|danceSources|customFieldValues)\)'
+  /// # takes it as a parameter
+  /// git grep -n 'joinTable'
+  /// ```
+  ///
   /// `venues` is absent because `CollectionData` reads no venue data.
   ///
   /// ## The raw writes this signal does NOT cover, and why each is out of scope
