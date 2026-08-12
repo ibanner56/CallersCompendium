@@ -152,7 +152,7 @@ def validate(
 
 def _taxonomy_errors(
     *, changelog_text: str, core: str, taxonomy: Path | None,
-    previous_ref: str | None,
+    previous_ref: str,
 ) -> list[str]:
     """Taxonomy moves are user-visible even though nothing migrates.
 
