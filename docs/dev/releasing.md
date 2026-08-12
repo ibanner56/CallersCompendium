@@ -187,9 +187,11 @@ and produces no Android artifact.
    `x.y.z` core doesn't match the pubspec semver.
    - **Do not add a prerelease suffix to the pubspec version.** A beta ships with
      the pubspec at its plain core (`0.1.0+1` for every `v0.1.0-beta.N`); the
-     channel comes from the tag, not the pubspec. Writing `0.1.0-beta.7+1` makes
-     the cores differ and fails the `meta` gate. Bump the pubspec only when the
-     core version itself changes.
+     channel comes from the tag, not the pubspec. The gate compares the **tag's
+     core** (prerelease stripped) against the **pubspec version with only
+     `+build` stripped** — the prerelease suffix is *kept* on the pubspec side.
+     So `0.1.0-beta.7+1` is compared as `0.1.0` vs `0.1.0-beta.7` and fails the
+     `meta` gate. Bump the pubspec only when the core version itself changes.
    - **Never bump `schemaVersion` in a PATCH release** (ADR-002 §7).
 3. Tag and push (a plain `x.y.z` tag → **stable**; a prerelease tag like
    `v0.2.0-beta.1` → **beta** channel + GitHub prerelease):

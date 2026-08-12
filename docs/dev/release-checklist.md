@@ -20,8 +20,10 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 ## 1. Version & metadata (Gate)
 - [ ] `app/pubspec.yaml` `version:` carries the **core** `x.y.z` being shipped,
  with **no prerelease suffix** — a beta ships with the plain core (`0.1.0+1` for
- every `v0.1.0-beta.N`), and the channel comes from the tag. Writing
- `0.1.0-beta.7+1` makes the tag core and the pubspec core differ and **fails the
+ every `v0.1.0-beta.N`), and the channel comes from the tag. The gate compares
+ the tag's core (prerelease stripped) against the pubspec version with only
+ `+build` stripped — the prerelease is *kept* on the pubspec side — so
+ `0.1.0-beta.7+1` is compared as `0.1.0` vs `0.1.0-beta.7` and **fails the
  `meta` gate**. Bump it only when the core version itself changes. (The repo-root
  `pubspec.yaml` is the workspace file and has **no** `version:`; the releasable
  version lives in `app/pubspec.yaml`.)
