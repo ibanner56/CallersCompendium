@@ -77,10 +77,16 @@ class CompendiumRepositories {
   /// (`archive_service.dart:289-293`), and a restore is not a dance edit. What
   /// holds is weaker and sufficient: every path that writes a join table also
   /// writes `dances` in the same transaction. The upsert rewrites the owning
-  /// row; `_clearAll` deletes `dances` four statements later (`:296`); a purge
-  /// cascades from a `dances` delete. Since drift dispatches a transaction's
-  /// updates as one set on commit, `dances` is always notified alongside, so
-  /// naming the join tables here would add emits without adding coverage.
+  /// row; `_clearAll` deletes `dances` later in the same sweep
+  /// (`archive_service.dart`, `_clearAll`); a purge cascades from a `dances`
+  /// delete. Since drift dispatches a transaction's updates as one set on
+  /// commit, `dances` is always notified alongside, so naming the join tables
+  /// here would add emits without adding coverage.
+  ///
+  /// Deliberately no statement count: an earlier draft said "four statements
+  /// later", which is anchor-dependent (three after the last join-table delete,
+  /// four after `dance_sources`) and would rot the moment a delete is added.
+  /// The load-bearing property is *same transaction*, not distance.
   ///
   /// The condition that would break it is therefore narrower than "a new
   /// join-table write": it is a write that touches a join table **and leaves

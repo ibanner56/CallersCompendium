@@ -18,6 +18,7 @@ import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
+import 'package:compendium_app/src/search/collection_data.dart';
 
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
@@ -343,6 +344,73 @@ void main() {
         reason:
             'the rename reorders the author sort; a labels-only refresh '
             'would leave the old order',
+      );
+    },
+  );
+
+  testWidgets(
+    'issue #340: a write does not make the program summary re-subscribe and '
+    'reload the snapshot twice',
+    (tester) async {
+      // This pane reloads wholesale on every emit — the program, its dances
+      // and its venue all have to be re-fetched. The trap is that the reload
+      // re-enters the subscription helper: cancelling and re-opening the
+      // stream re-runs `CollectionData.load`, so one write costs an EXTRA
+      // full snapshot load on top of the one the stream already did, and
+      // hands back a freshly-armed coalescer each time.
+      //
+      // `custom_field_defs` is read by `CollectionData.load` and by nothing
+      // else in this flow, so counting it counts snapshot loads.
+      //
+      // On the bound: `CollectionData.watch` legitimately loads once per
+      // emit, and one `create` produces more than one emit here (the write
+      // touches several tables and the coalescer emits on both edges). The
+      // ceiling below is therefore calibrated to this fixture rather than
+      // derived, and its MEANING is "at most one load per emit" — the
+      // re-subscribing version costs 5 against the same fixture, so the
+      // assertion discriminates the defect rather than the emit count. If
+      // drift's notification behaviour changes, re-measure rather than
+      // widen: a number that only ever goes up stops testing anything.
+      final counter = _SnapshotLoadCounter();
+      final db = openWidgetTestDatabase(
+        NativeDatabase.memory().interceptWith(counter),
+      );
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Friday Night',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      final refresh = ValueNotifier<int>(0);
+      addTearDown(refresh.dispose);
+      await pump(
+        tester,
+        repos,
+        ProgramSummaryPane(
+          programId: 'p1',
+          refreshTrigger: refresh,
+          onOpenBuilder: () {},
+          onDeleted: () {},
+          onNavigateTo: (_) {},
+        ),
+      );
+      final loadsAfterOpen = counter.count;
+      expect(loadsAfterOpen, greaterThan(0), reason: 'the pane did load');
+
+      await repos.dances.create(dance(id: 'd2', title: 'Beta'));
+      await tester.pumpAndSettle();
+
+      expect(
+        counter.count - loadsAfterOpen,
+        lessThanOrEqualTo(3),
+        reason:
+            'the pane must reuse the snapshot the stream just delivered; '
+            're-subscribing re-runs the seven-query load for a value it '
+            'already has',
       );
     },
   );
@@ -894,6 +962,23 @@ class _CountingSettings extends SettingsRepository {
 /// `FilterCompiler` emits `SELECT id FROM dances …` (`filter_compiler.dart:92`),
 /// which nothing else in this screen's load issues — the snapshot reads dances
 /// through drift's own builder — so it is a precise marker for "the search ran".
+/// Counts reads of `custom_field_defs`, which only [CollectionData.load]
+/// issues in the program-summary flow — so the count is "how many times the
+/// seven-query snapshot was loaded".
+class _SnapshotLoadCounter extends drift.QueryInterceptor {
+  int count = 0;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (statement.contains('custom_field_defs')) count++;
+    return executor.runSelect(statement, args);
+  }
+}
+
 class _SearchCounter extends drift.QueryInterceptor {
   int count = 0;
 

@@ -211,13 +211,39 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// read-focused and holds no unsaved working copy.
   StreamSubscription<CollectionData>? _dataSub;
 
+  /// The most recent snapshot the stream has delivered, and the filter the
+  /// live subscription was opened with.
+  ///
+  /// [_load] runs again on every emit, because this pane reloads wholesale —
+  /// the program, its dances and its venue all have to be re-fetched. Without
+  /// these two fields it would also re-enter [_watchCollectionData], which
+  /// cancels and re-opens the subscription and therefore re-runs the whole
+  /// seven-query [CollectionData.load]. One write would cost two full
+  /// snapshot loads and a fresh coalescer, which is the issue #340 thrash this
+  /// conversion is supposed to avoid rather than introduce.
+  CollectionData? _latestData;
+  String? _subCallerFilter;
+
   /// Opens the subscription and resolves with its FIRST value, so [_load]'s
   /// existing sequence is untouched while later emits drive a refresh.
+  ///
+  /// Reuses the live subscription when the caller filter is unchanged: a
+  /// re-entry from an emit already has a newer snapshot in hand than a fresh
+  /// subscription would produce, so re-subscribing would buy nothing and pay
+  /// seven queries for it.
   Future<CollectionData> _watchCollectionData(String? callerFilter) {
+    final cached = _latestData;
+    if (_dataSub != null &&
+        _subCallerFilter == callerFilter &&
+        cached != null) {
+      return Future<CollectionData>.value(cached);
+    }
     final first = Completer<CollectionData>();
     unawaited(_dataSub?.cancel());
+    _subCallerFilter = callerFilter;
     _dataSub = CollectionData.watch(_repos, callerFilter: callerFilter).listen(
       (data) {
+        _latestData = data;
         if (!first.isCompleted) {
           first.complete(data);
           return;
