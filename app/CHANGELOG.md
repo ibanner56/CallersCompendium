@@ -507,7 +507,7 @@ including reliable undo refreshes, bare ContraDB box-circulate imports, and sear
   *different* figures, you still see the three-option variation prompt introduced
   earlier. Program import is not affected.
 
-### Beta.6 history
+### Beta.6 history — 2026-08-01
 
 Flutter build: `0.1.0+1`.
 
