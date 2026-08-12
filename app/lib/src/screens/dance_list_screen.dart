@@ -209,8 +209,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
   bool _started = false;
 
   /// The app-level collection-refresh notifier (ROADMAP 6.3), if provided.
-  /// Re-boots the list when an out-of-tab mutation (e.g. an import commit/undo
-  /// from Settings) bumps it. Tracked so listeners are swapped correctly.
+  ///
+  /// This screen no longer LISTENS to it — the stream supersedes that (see
+  /// [_dataSub]). It is still read for two things, and the distinction matters
+  /// because the old description ("re-boots the list when it is bumped") is now
+  /// false in both:
+  ///
+  /// - [_broadcastCollectionChange] bumps it so the screens that have NOT been
+  ///   converted still reload after a mutation made from here;
+  /// - its presence is the test for whether such a broadcast is possible at
+  ///   all, so an unscoped host falls back to reloading itself.
   ValueListenable<int>? _collectionRefresh;
 
   /// The live Collection snapshot (issue #768).

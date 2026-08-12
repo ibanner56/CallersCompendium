@@ -91,10 +91,6 @@ class _CollectionShellState extends State<CollectionShell> {
   /// state.
   _DetailMode _detailMode = _DetailMode.none;
 
-  /// Incrementing this value triggers [DanceListScreen] to reload via its
-  /// [refreshTrigger] parameter.
-  final _listRefresh = ValueNotifier<int>(0);
-
   /// The import sources, resolved once and cached for the lifetime of this
   /// state. [defaultImportSources] builds fresh [ImportSource] instances on
   /// every call and [ImportSource] uses identity equality, so rebuilding the
@@ -131,12 +127,6 @@ class _CollectionShellState extends State<CollectionShell> {
   /// preview Import button cannot commit the same plan twice.
   bool _importing = false;
 
-  @override
-  void dispose() {
-    _listRefresh.dispose();
-    super.dispose();
-  }
-
   void _onSelectDance(String danceId) {
     setState(() {
       _selectedDanceId = danceId;
@@ -149,10 +139,9 @@ class _CollectionShellState extends State<CollectionShell> {
   /// Called after a successful new-dance save. Selects the new dance so the
   /// detail pane shows it immediately. Delegates to [_onSelectDance]: creating
   /// a dance is a local selection and carries the same contract — exits import
-  /// mode, clears any online preview. Does not bump [_listRefresh] directly;
-  /// [CollectionRefreshScope.bump] already fires inside the editor on save and
-  /// bumping here too would double-load (issue #340). [_onSelectDance] likewise
-  /// does not bump [_listRefresh], so delegation is safe.
+  /// mode, clears any online preview. It broadcasts nothing: the editor's own
+  /// [CollectionRefreshScope.bump] on save already reaches the unconverted
+  /// screens, and the Collection list now reloads from its own stream.
   void _onNewDance(String danceId) => _onSelectDance(danceId);
 
   /// Wide layout: swap the detail pane over to the embedded import view.
@@ -300,7 +289,6 @@ class _CollectionShellState extends State<CollectionShell> {
       if (!mounted) return;
       if (result.kind == OnlineImportKind.created) {
         CollectionRefreshScope.bump(context);
-        _listRefresh.value++;
       }
       final danceId = result.danceId;
       // Land on the imported dance ONLY for a single-dance import. This online
@@ -334,22 +322,24 @@ class _CollectionShellState extends State<CollectionShell> {
   }
 
   /// Called by the embedded [DanceDetailScreen] after a successful soft-delete.
-  /// Clears the selection and refreshes the list so the deleted dance disappears.
+  /// Clears the selection; the list removes the dance from its own stream.
   void _onDetailDeleted() {
-    _listRefresh.value++;
     setState(() => _selectedDanceId = null);
   }
 
   /// Called by the embedded [DanceDetailScreen] when the Undo snackbar restores
-  /// a dance.  Refreshes the list so the dance reappears; keeps the selection.
-  void _onDetailRestored() {
-    _listRefresh.value++;
-  }
+  /// a dance.
+  ///
+  /// Now a no-op, and deliberately kept rather than removed from
+  /// [DanceDetailScreen]'s contract: the restore is a database write, so the
+  /// list's stream reinstates the row without being told. The callback stays
+  /// because the detail screen has no other way to say "I restored something"
+  /// and a future consumer may need to know.
+  void _onDetailRestored() {}
 
   /// Called by the embedded [DanceDetailScreen] after duplication.
-  /// Refreshes the list (so the copy appears) and selects the new id.
+  /// Selects the new id; the copy reaches the list through its own stream.
   void _onNavigateTo(String danceId) {
-    _listRefresh.value++;
     setState(() {
       _selectedDanceId = danceId;
       _detailMode = _DetailMode.none;
