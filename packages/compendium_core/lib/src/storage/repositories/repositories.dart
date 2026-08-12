@@ -41,6 +41,62 @@ class CompendiumRepositories {
   final VenueRepository venues;
   final SettingsRepository settings;
 
+  /// Emits once whenever anything the Collection's reference/vocabulary data is
+  /// built from changes — the trigger for re-reading a `CollectionData`
+  /// snapshot (issue #768).
+  ///
+  /// A **change signal**, not the data: it carries no payload, because the
+  /// snapshot is assembled app-side from seven queries across five
+  /// repositories and there is no single row set to hand back. Callers pair it
+  /// with their own loader (see `CollectionData.watch`).
+  ///
+  /// ## The declared table set, justified per entry
+  ///
+  /// The same rule [ProgramRepository.watchCallingHistoryForDance] states:
+  /// `customSelect` is opaque to drift, so every table the *composed read*
+  /// touches must be named here or a subscriber silently stops updating. This
+  /// set is the union of what `CollectionData.load` reads:
+  ///
+  /// * `dances` — the collection itself, and every facet vocabulary derived
+  ///   from it (forms, formations, progressions, statuses, levels, and the
+  ///   mixed-level / mixer / rating flags).
+  /// * `choreographers` — author names, and the author facet.
+  /// * `tags` — tag names and colours, and the tag facet.
+  /// * `custom_field_defs` — the list/searchable field definitions.
+  /// * `published_sources` — the cited-source facet.
+  /// * `program_slots` and `programs` — the per-dance call tallies and
+  ///   last-called stamps, exactly [ProgramRepository.programDerivedCounts]'s
+  ///   read set, which is folded into the same snapshot.
+  ///
+  /// The **join** tables (`dance_authors`, `dance_tags`, `dance_sources`,
+  /// `custom_field_values`) are deliberately absent, and that is safe for a
+  /// non-obvious reason worth stating: every write that changes them goes
+  /// through `DanceRepository`'s upsert, which rewrites the owning `dances`
+  /// row in the same transaction — so `dances` is always notified alongside
+  /// them. Adding them would cost extra emits for no additional coverage. If a
+  /// path is ever added that edits a join table *without* touching its dance,
+  /// this set must grow.
+  ///
+  /// `venues` is absent because `CollectionData` reads no venue data.
+  Stream<void> watchCollectionSources() => db
+      .customSelect(
+        'SELECT 1',
+        readsFrom: {
+          db.dances,
+          db.choreographers,
+          db.tags,
+          db.customFieldDefs,
+          db.publishedSources,
+          db.programSlots,
+          db.programs,
+        },
+      )
+      .watch()
+      // Discard the sentinel rows: the payload is meaningless and mapping here
+      // makes the runtime type genuinely `Stream<void>`, so a caller can
+      // transform it without tripping over `Stream<List<QueryRow>>`.
+      .map((_) {});
+
   /// Opens the database (running any pending schema migration) and, if a
   /// migration owes a derived-index rebuild, back-fills it.
   ///

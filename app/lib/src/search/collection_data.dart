@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 
 import '../models/dance_list_entry.dart';
@@ -94,6 +96,53 @@ class CollectionData {
 
   final Taxonomy taxonomy;
   final List<String> sectionLabels;
+
+  /// The window used to collapse a burst of writes into one reload.
+  ///
+  /// Sized to be imperceptible (well under a frame budget's worth of delay for
+  /// a user who has just tapped Confirm) while still spanning the gaps in a
+  /// loop of sequential awaits. See [watch] for why a window is needed at all.
+  static const coalesceWindow = Duration(milliseconds: 24);
+
+  /// A live [CollectionData], re-read whenever anything it is built from
+  /// changes (issue #768).
+  ///
+  /// ## Why this reloads the snapshot rather than streaming its parts
+  ///
+  /// [load] composes seven queries across five repositories into one immutable
+  /// value that three screens share. Streaming each part and recombining would
+  /// emit up to seven times per write and could render a half-updated
+  /// snapshot; re-running the load on a single change signal keeps the
+  /// existing value atomic and leaves [load] the only place the composition is
+  /// expressed.
+  ///
+  /// ## Why the coalescing window is load-bearing, not a nicety
+  ///
+  /// Bursts of sequential writes are normal here. Batch tagging in the
+  /// Collection updates **one dance per transaction in a loop**
+  /// (`dance_list_screen.dart`, `_applyBatchTags`), so tagging 50 dances is 50
+  /// commits, and drift notifies per commit. Without a window, one user action
+  /// would re-run this seven-query load 50 times and re-run the FTS search
+  /// after each — precisely the thrashing issue #340 records, arriving as a
+  /// side effect of fixing staleness.
+  ///
+  /// The imperative code this replaces did not need a window because it
+  /// broadcast **once, after** the loop. A stream has no equivalent hook: the
+  /// database announces each commit as it happens and cannot know a batch is
+  /// still in progress. So the window is what preserves the one-action /
+  /// one-reload property that `RefreshCoalescer` gave the scope-based path —
+  /// the same guarantee, moved to where the events now originate.
+  ///
+  /// Emits an initial value immediately, so a subscriber renders without
+  /// waiting for a write.
+  static Stream<CollectionData> watch(
+    CompendiumRepositories repos, {
+    String? callerFilter,
+    Duration coalesce = coalesceWindow,
+  }) => repos
+      .watchCollectionSources()
+      .transform(_CoalesceTrailing<void>(coalesce))
+      .asyncMap((_) => load(repos, callerFilter: callerFilter));
 
   static Future<CollectionData> load(
     CompendiumRepositories repos, {
@@ -261,4 +310,63 @@ class CollectionData {
     callCounts:
         callCounts[dance.id] ?? const DanceCallCounts(all: 0, performed: 0),
   );
+}
+
+/// Collapses events arriving within [window] of each other into one, emitting
+/// the **first** immediately and then at most one more per quiet period.
+///
+/// Leading-edge rather than a plain trailing debounce, so the first change a
+/// user makes is reflected without waiting out the window; the trailing emit
+/// then covers everything that arrived during it. A pure trailing debounce
+/// would delay every single-write update by the full window for no benefit.
+class _CoalesceTrailing<T> extends StreamTransformerBase<T, T> {
+  const _CoalesceTrailing(this.window);
+
+  final Duration window;
+
+  @override
+  Stream<T> bind(Stream<T> stream) {
+    late StreamController<T> controller;
+    StreamSubscription<T>? subscription;
+    Timer? timer;
+    var pending = false;
+    late T last;
+
+    void flush() {
+      timer = null;
+      if (!pending) return;
+      pending = false;
+      controller.add(last);
+      // Keep the window open after a trailing emit so a burst that continues
+      // past it is still collapsed rather than emitting once per window.
+      timer = Timer(window, flush);
+    }
+
+    controller = StreamController<T>(
+      onListen: () {
+        subscription = stream.listen(
+          (event) {
+            last = event;
+            if (timer == null) {
+              controller.add(event); // leading edge
+              timer = Timer(window, flush);
+            } else {
+              pending = true;
+            }
+          },
+          onError: controller.addError,
+          onDone: () {
+            timer?.cancel();
+            controller.close();
+          },
+        );
+      },
+      onCancel: () {
+        timer?.cancel();
+        timer = null;
+        return subscription?.cancel();
+      },
+    );
+    return controller.stream;
+  }
 }
