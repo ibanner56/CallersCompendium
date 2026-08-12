@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:compendium_app/src/search/collection_data.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' as drift;
 import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
@@ -13,6 +15,38 @@ import '../support/test_repositories.dart';
 /// that re-reads on every commit is easy; one that does so exactly once per
 /// user action is the constraint issue #340 records, and the batch paths in
 /// this app write one row per transaction in a loop.
+/// Holds the watched-collection query open, so the stream can be closed before
+/// it ever emits.
+///
+/// `QueryInterceptor.runSelect` returns a `Future`, so an interceptor may await
+/// before delegating — the seam that makes "the source ended without emitting"
+/// reproducible without racing a database that is too fast to lose.
+class _ParkFirstWatchQuery extends drift.QueryInterceptor {
+  final _gate = Completer<void>();
+  bool _armed = false;
+  bool didPark = false;
+
+  void arm() => _armed = true;
+  void release() {
+    if (!_gate.isCompleted) _gate.complete();
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) async {
+    // `watchCollectionSources`'s sentinel; parking it stops the snapshot being
+    // assembled at all.
+    if (_armed && !didPark && statement.trim() == 'SELECT 1') {
+      didPark = true;
+      await _gate.future;
+    }
+    return executor.runSelect(statement, args);
+  }
+}
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -172,57 +206,55 @@ void main() {
     },
   );
 
-  testWidgets(
-    'a screen whose database closes mid-open fails its load instead of '
-    'hanging forever',
-    (tester) async {
-      // The screens complete their initial load from the stream's FIRST value.
-      // If the source ends without ever emitting — the database closed while
-      // the screen was opening, which teardown does — a future that is never
-      // completed leaves `_load` awaiting indefinitely: no data, no error, no
-      // spinner ever resolving. Asserted here on the shape both screens use.
+  test(
+    'the stream ends with onDone and NO value when its query never returns '
+    '(the precondition each screen guards; does not exercise any screen)',
+    () async {
+      // The screens complete their initial load from the stream's FIRST value,
+      // so "the source ended without emitting" is the input their `onDone`
+      // guards handle. This proves that input is real and reachable.
       //
-      // ## What this test CANNOT tell you, learned the hard way
+      // It does NOT race a database — in-memory sqlite delivers a snapshot
+      // inside a single frame, which defeated three earlier attempts. It PARKS
+      // the watched query on a future that is never completed, then closes the
+      // database underneath. Deterministic, no timing assumption.
       //
-      // It asserts on a hand-rolled REPLICA of the listen/onDone shape, not on
-      // any screen. So it passes whether or not a given screen implements it —
-      // and one did not: `dance_list_screen` was exposed for nine review
-      // rounds while this test sat green, because that screen has no
-      // first-value Completer at all. It renders its skeleton whenever `_data`
-      // and `_loadError` are both null, so the same hazard reaches it through
-      // its loading STATE rather than through a future.
-      //
-      // Driving the real screen instead was attempted and does not work with a
-      // real database: settling lets the first snapshot arrive (so a later
-      // close is a no-op), a single `pump` is *also* enough for in-memory
-      // sqlite to deliver it, and closing before mount throws in setup before
-      // any subscription exists. The window needs a database slow or broken
-      // enough to be racing, which a test fixture is not.
-      //
-      // So treat this as a specification of the shape, and check new
-      // subscribers against it by reading them — it will not fail for you.
-      final source = StreamController<CollectionData>();
-      final first = Completer<CollectionData>();
-      final sub = source.stream.listen(
-        (data) {
-          if (!first.isCompleted) first.complete(data);
-        },
-        onError: (Object e) {
-          if (!first.isCompleted) first.completeError(e);
-        },
-        onDone: () {
-          if (!first.isCompleted) {
-            first.completeError(
-              StateError('collection stream closed before its first value'),
-            );
-          }
-        },
+      // The name says what it does not do, because the test it replaces was a
+      // hand-rolled REPLICA of the listen/onDone shape and passed whether or
+      // not any screen implemented it — which is how `dance_list_screen` stayed
+      // exposed through nine review rounds while this file was green.
+      // Extending this to drive a real screen was attempted and not achieved:
+      // with `runAsync` the stream does terminate, but the widget still renders
+      // its skeleton, and that gap is unexplained rather than understood.
+      final parker = _ParkFirstWatchQuery();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(NativeDatabase.memory().interceptWith(parker)),
+        contraTaxonomy,
+      );
+      addTearDown(() async {
+        parker.release();
+      });
+      parker.arm();
+
+      var emitted = 0;
+      var done = 0;
+      var errored = 0;
+      final sub = CollectionData.watch(repos).listen(
+        (_) => emitted++,
+        onError: (Object _) => errored++,
+        onDone: () => done++,
       );
       addTearDown(sub.cancel);
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+      expect(parker.didPark, isTrue, reason: 'the watched query was parked');
+      expect(emitted, 0, reason: 'nothing can have been delivered');
 
-      await source.close();
+      unawaited(repos.db.close());
+      await Future<void>.delayed(const Duration(milliseconds: 60));
 
-      await expectLater(first.future, throwsStateError);
+      expect(done, 1, reason: 'the source ended');
+      expect(emitted, 0, reason: 'and it ended having emitted nothing');
+      expect(errored, 0, reason: 'via onDone, not onError — different guards');
     },
   );
 
