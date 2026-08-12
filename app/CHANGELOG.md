@@ -11,6 +11,14 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-08-12
+
+Flutter build: `0.1.0+1`.
+
+This beta promotes the accumulated fixes and improvements from Unreleased,
+including reliable undo refreshes, bare ContraDB box-circulate imports, and
+searchable star-grip and single-file details.
+
 ### Fixed
 
 - **Undoing a dance you just deleted now brings it back everywhere, not just in
@@ -499,7 +507,7 @@ each release so store builds and tags can be traced back to an entry.
   *different* figures, you still see the three-option variation prompt introduced
   earlier. Program import is not affected.
 
-## [0.1.0] - 2026-08-01
+### Beta.6 history
 
 Flutter build: `0.1.0+1`.
 
@@ -1131,6 +1139,17 @@ follow.
   silently stop running.
 
 ### Data / Migrations
+
+- **Schema advances from version 20 to 25.** Upgrading is automatic; v21
+  removes retired provenance payloads and snapshots, v22 adds figure-group
+  correlation for concurrent figures, v23 adds per-field sharing disclosure,
+  v24 adds mixer metadata, and v25 adds Device Sync timestamps and tombstones.
+  Existing data is preserved by the migration steps and their tests.
+- **Taxonomy advances from version 23 to 27.** The additions and
+  recognition changes improve mixer partner references, balance hands,
+  inverse-pair routing, star-promenade handling, and star-grip/single-file
+  rendering and search. This taxonomy version is a documentary marker only:
+  nothing reads it at runtime and it does not itself rewrite the database.
 
 - **Schema advances from version 15 to 20 — automatically and losslessly, on
   first launch.** Five steps run in order; nothing needs a reinstall and there
