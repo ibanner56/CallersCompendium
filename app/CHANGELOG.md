@@ -11,8 +11,6 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
-_Nothing yet._
-
 ## [0.1.0] - 2026-08-12
 
 Flutter build: `0.1.0+1`.
