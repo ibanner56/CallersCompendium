@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_app/src/screens/dance_detail/calling_history_section.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -15,7 +16,7 @@ import '../support/test_repositories.dart';
 /// seven places did not. These tests mount the section with no scope at all, so
 /// the only thing that can make them pass is the database telling the widget.
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  drift.driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   final now = DateTime.utc(2026, 1, 1);
 
@@ -257,6 +258,82 @@ void main() {
     },
   );
 
+  testWidgets(
+    'does not read the venue catalogue for a history that links no venue',
+    (tester) async {
+      // Regression guard for a perf regression this section nearly shipped: the
+      // one-shot load it replaced paid for `venues.listAll()` only when some
+      // record carried a venueId, and loading it unconditionally would add that
+      // query to opening any dance — including the common case of a dance with
+      // no calling history at all.
+      final counter = _VenueSelectCounter();
+      final db = openWidgetTestDatabase(
+        NativeDatabase.memory().interceptWith(counter),
+      );
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.dances.create(dance('d1', 'Petronella'));
+      await repos.venues.upsert(
+        Venue(id: 'grange-hall', name: 'Grange Hall', city: 'Nelson'),
+      );
+      // A program with a free-text venue only: rendered from the record itself,
+      // so the catalogue is not needed to label it.
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Autumn Ball',
+          venue: 'Town Hall',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      counter.reset();
+
+      await pumpSection(tester, repos);
+      expect(historyRows(), findsOne);
+
+      expect(
+        counter.count,
+        0,
+        reason: 'no record links a venue, so the catalogue is not needed',
+      );
+    },
+  );
+
+  testWidgets('reads the venue catalogue once a record links a venue', (
+    tester,
+  ) async {
+    final counter = _VenueSelectCounter();
+    final db = openWidgetTestDatabase(
+      NativeDatabase.memory().interceptWith(counter),
+    );
+    addTearDown(db.close);
+    final repos = CompendiumRepositories(db, contraTaxonomy);
+    final grange = Venue(
+      id: 'grange-hall',
+      name: 'Grange Hall',
+      city: 'Nelson',
+    );
+    await repos.dances.create(dance('d1', 'Petronella'));
+    await repos.venues.upsert(grange);
+    await repos.programs.create(
+      program(
+        id: 'p1',
+        title: 'Autumn Ball',
+        venueId: 'grange-hall',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      ),
+    );
+    counter.reset();
+
+    await pumpSection(tester, repos);
+
+    final row = tester.widget<CallingHistoryRow>(
+      find.byKey(const ValueKey('calling-history-s1')),
+    );
+    expect(row.venueLabel, grange.displayName);
+    expect(counter.count, 1, reason: 'read once, then cached');
+  });
+
   testWidgets('half-calling stats appear with the history, not a beat later', (
     tester,
   ) async {
@@ -289,4 +366,22 @@ void main() {
           'rebuild rather than one emit behind it',
     );
   });
+}
+
+/// Counts reads of the venue catalogue, so a test can assert the section pays
+/// for it only when a calling-history record actually links a venue.
+class _VenueSelectCounter extends drift.QueryInterceptor {
+  int count = 0;
+
+  void reset() => count = 0;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (statement.contains('FROM "venues"')) count++;
+    return executor.runSelect(statement, args);
+  }
 }

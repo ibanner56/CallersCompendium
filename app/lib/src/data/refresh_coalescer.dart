@@ -12,11 +12,13 @@ import 'package:flutter/foundation.dart';
 /// bump; this keeps it at one reload per user action, which is the constraint
 /// issue #340 records: fixing a stale view must not produce a thrashing one.
 ///
-/// No view subscribes to *both* channels any more — the two that did now read
-/// their program-derived data from a stream instead (issue #768). What remains
-/// is the single-channel case: one mutation site can bump the same notifier
-/// more than once in a block (a commit followed by its own follow-up write),
-/// and a screen that re-boots per bump would load twice for one action.
+/// `ProgramSummaryScreen` is the remaining both-channels subscriber: it renders
+/// program data and the dances inside it, so it listens to each. The two
+/// Collection-side views that used to — the "called ×N" badge and the dance
+/// detail's calling history — no longer do, because they read their
+/// program-derived data from a stream now (issue #768). They still route their
+/// one remaining channel through here, for the case where a single mutation
+/// site bumps the same notifier more than once in a block.
 ///
 /// Deferral is a microtask, not a frame, so a reload still starts before the
 /// next build and `pumpAndSettle` observes it without extra pumps.

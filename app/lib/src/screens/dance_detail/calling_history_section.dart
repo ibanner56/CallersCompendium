@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
@@ -82,13 +80,9 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
   /// only when an argument that changes the query changes.
   Stream<DanceCallingHistory>? _history;
 
-  /// Venue display names by id, resolved once. Outside the stream's declared
-  /// tables by design; see rule 4 on [CallingHistorySection].
+  /// Venue display names by id, for the linked venues seen so far. Outside the
+  /// stream's declared tables by design; see rule 4 on [CallingHistorySection].
   Map<String, Venue> _venuesById = const {};
-
-  /// Guards against a slow venue load from an earlier configuration landing
-  /// after a newer one has started.
-  int _venueLoadSeq = 0;
 
   @override
   void didChangeDependencies() {
@@ -114,37 +108,54 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
   /// [FutureBuilder] around a [StreamBuilder]. A settings *change* arrives as a
   /// new [CallingHistorySection.trackAllCallers], which rebuilds this stream —
   /// settings are not part of the watched table set, and do not need to be.
-  Stream<DanceCallingHistory> _watch() {
-    unawaited(_loadVenueLabels());
-    return Stream.fromFuture(
-      resolveCallingHistoryCallerFilter(
-        widget.repositories.settings,
-        trackAllCallers: widget.trackAllCallers,
-      ),
-    ).asyncExpand(
-      (callerFilter) =>
-          widget.repositories.programs.watchCallingHistoryForDance(
-            widget.danceId,
-            performedOnly: widget.performedOnly,
-            callerFilter: callerFilter,
-          ),
-    );
-  }
+  Stream<DanceCallingHistory> _watch() =>
+      Stream.fromFuture(
+        resolveCallingHistoryCallerFilter(
+          widget.repositories.settings,
+          trackAllCallers: widget.trackAllCallers,
+        ),
+      ).asyncExpand(
+        (callerFilter) => widget.repositories.programs
+            .watchCallingHistoryForDance(
+              widget.danceId,
+              performedOnly: widget.performedOnly,
+              callerFilter: callerFilter,
+            )
+            .asyncMap(_withVenueLabels),
+      );
 
-  /// Loads the venue catalogue so a history row whose program links a [Venue]
-  /// can show that venue's display name rather than the program's free text.
-  /// A failure here must not take out the whole section: the rows fall back to
+  /// Ensures [_venuesById] can resolve every linked venue in [history], then
+  /// passes the history through unchanged.
+  ///
+  /// The catalogue is read only when a record links a venue the cache cannot
+  /// already resolve, so a dance with no calling history — or one whose
+  /// programs carry only free-text venues — costs no query at all. That gating
+  /// is inherited, not invented: the one-shot load this replaced paid for the
+  /// catalogue only when `callingHistory.any((r) => r.venueId != null)`, and
+  /// dropping it would have added a `venues.listAll()` to opening any dance.
+  ///
+  /// Running inside `asyncMap` rather than beside the stream is what makes the
+  /// labels arrive with the rows they belong to, and removes any need to guard
+  /// against a stale load landing late: `asyncMap` will not deliver the next
+  /// value until this one resolves.
+  ///
+  /// A failure here must not take out the whole section — the rows fall back to
   /// their own free-text venue, which is what they render without a catalogue.
-  Future<void> _loadVenueLabels() async {
-    final seq = ++_venueLoadSeq;
-    try {
-      final venues = await widget.repositories.venues.listAll();
-      if (!mounted || seq != _venueLoadSeq) return;
-      setState(() => _venuesById = {for (final v in venues) v.id: v});
-    } catch (_) {
-      if (!mounted || seq != _venueLoadSeq) return;
-      setState(() => _venuesById = const {});
+  Future<DanceCallingHistory> _withVenueLabels(
+    DanceCallingHistory history,
+  ) async {
+    final hasUnresolved = history.records.any(
+      (r) => r.venueId != null && !_venuesById.containsKey(r.venueId),
+    );
+    if (hasUnresolved) {
+      try {
+        final venues = await widget.repositories.venues.listAll();
+        _venuesById = {for (final v in venues) v.id: v};
+      } catch (_) {
+        // Keep whatever the cache holds; rows fall back to free text.
+      }
     }
+    return history;
   }
 
   @override
