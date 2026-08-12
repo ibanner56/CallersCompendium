@@ -503,6 +503,38 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// FTS query for a badge is the thrash issue #340 records; the rows are
   /// re-derived in memory from the dances already loaded instead. The one
   /// exception is the last-called sort, whose ORDER BY those very tallies feed.
+  ///
+  /// ## What this skip list must be complete with respect to (issue #768)
+  ///
+  /// Write the **completeness claim**, not just the exceptions — because the
+  /// claim is what a later change invalidates, and the code that depends on it
+  /// will not look any different afterwards.
+  ///
+  /// On `main` this optimisation lived on the per-dance-tallies subscription,
+  /// where the exception list was *provably* complete: that channel could
+  /// deliver only `callCounts` and `lastCalled`, and the one sort those feed
+  /// was the one exception listed. Converting to [CollectionData.watch] merged
+  /// six channels into one — dances, choreographers, tags, field defs, sources
+  /// and tallies — and the optimisation was carried across **with its exception
+  /// list intact**. The implementation travelled; the proof did not. A snapshot
+  /// can now differ in ways that never previously arrived alone, and the author
+  /// rename below is the case that found it.
+  ///
+  /// So: this list is complete with respect to the **seven tables**
+  /// `watchCollectionSources` reads. Widen that set and every exception here
+  /// must be re-derived, not merely reviewed.
+  ///
+  /// ## Why a half-refreshed view is worse than a stale one
+  ///
+  /// The failure mode to weigh is not "the list goes stale". A stale list looks
+  /// *unchanged*, so nothing invites the user to trust it. Getting this wrong
+  /// produces a list that **visibly updates while being wrongly ordered** — and
+  /// the freshly-correct labels are precisely what make the wrong order
+  /// credible. Partial freshness beats uniform staleness at doing damage.
+  ///
+  /// Hence the test to apply when converting the next screen: when a snapshot
+  /// updates one thing derived from a source, does it update **everything**
+  /// derived from that same source?
   void _onCollectionData(CollectionData data) {
     final previous = _data;
     final searchAffected =
