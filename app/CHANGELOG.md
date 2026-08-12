@@ -11,108 +11,26 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
+_Nothing yet._
+
 ## [0.1.0] - 2026-08-12
 
 Flutter build: `0.1.0+1`.
 
-### Beta.7
+This section covers the `0.1.0` line. **`v0.1.0-beta.7`** (this pre-release) builds
+on **`v0.1.0-beta.6`** and finishes the jobs beta.6 started. Its theme is **making
+what you already have complete and findable**: the app is now **fully translated in
+every language it ships in**, **mixers** are supported end to end — marked, searched,
+and given named partner positions — and figure details that were previously imported
+but invisible (**star grip**, **single-file**, **balance handedness**, **quadruplet**
+formations) now show up in display and search. Alongside that: **plain `.json`
+program export**, **tag colours**, **per-row collection details**, and a fix for
+**undo** so a restored dance reappears everywhere rather than only in the database.
+The changes **since beta.6** are grouped first; the standing feature overview and
+install notes follow.
 
-This pre-release (`v0.1.0-beta.7`) promotes the accumulated fixes and improvements from Unreleased,
-including reliable undo refreshes, bare ContraDB box-circulate imports, and searchable star-grip and single-file details.
-### Fixed
-
-- **Undoing a dance you just deleted now brings it back everywhere, not just in
-  the database.** If you opened a dance from search, from a link on another
-  dance, from a program's set list, or straight after importing it, then deleted
-  it and tapped **Undo**, the dance was restored but every list still behaved as
-  though it were gone — a related-dance link kept reading "(missing dance)"
-  until the app was restarted. Only one route in, tapping a row in the
-  Collection, was unaffected. Undo now tells the other views to refresh, the way
-  the rest of the app already does (#768).
-
-- **Bare ContraDB box circulates now import correctly (#752).** A ContraDB
-  dance written as `larks cross while robins loop` (or any role pair) was not
-  recognized as a box circulate. It now imports as `box_circulate`, with the
-  crossing dancer set recorded as `who` and the hand recorded when stated — so
-  it shows up correctly when filtering or searching by move.
-
-### Changed
-
-- **Star grip and single-file formation now appear in dance text — and in search
-  (#749, #840, taxonomy v27).** Two figure details were imported and stored but
-  never shown:
-
-  - A star with a hands-across or wrist-grip hold now reads **"star right –
-    hands across – 4 places"** in every rendered view, matching the way
-    ContraDB writes it. Stars with no stated grip are unchanged.
-
-  - A single-file promenade now reads **"single file promenade along"** (or
-    "across") in every view. The direction is always included — it was
-    previously hidden even when the source stated it. The dancer group is
-    omitted; it's an importer artefact and doesn't add meaning.
-
-  - A single-file circle now reads **"single file circle clockwise N places"**
-    instead of "circle left N places - single file". Clockwise and
-    counterclockwise use their plain English names rather than "left" and
-    "right".
-
-  All three forms are now searchable: typing "hands across", "single file", or
-  "clockwise" in free-text search will find the relevant figures.
-
-  One thing to expect: re-opening the app after this update will re-index your
-  dances in the background. During that short window the new search terms may
-  not return results yet.
-
-- **The Caller's Box single-file promenade now imports as a single-file circle
-  (#749 Part E).** TCB writes "Single file promenade clockwise" for what the
-  app models as a circle in single-file formation. That phrasing is now
-  recognised on import and stored as a structured circle figure.
-
-- **ContraDB single-file promenade now captures the stated direction (#749 Part
-  A).** A ContraDB dance that says "single file promenade along" now stores
-  `dir: along`, so the direction survives a round-trip through import and
-  export. Previously the direction was parsed but discarded.
-
-- **Imported figures now keep the hand and dancers The Caller's Box wrote in
-  shorthand.** TCB notes handedness and who you're dancing with in a compact
-  code beside the figure — the `(NR)` in "Pass through along (NR)", or the
-  `(SR;NL)` in "Square through 2 (SR;NL)". That code used to be thrown away on
-  import, and the app filled in a default instead — which was sometimes the
-  opposite of what the dance actually said. 2,504 imported figures now carry
-  what the source stated. 116 of them were previously stored with the wrong
-  hand or shoulder and are now right.
-
-  Where the code names dancers the app can represent, they're kept too, so a
-  square through records which dancers you pass on each hand rather than
-  assuming. Where it names something the app has no way to express — an
-  "opposite", a phantom, or a same-role neighbour — the figure is left alone
-  rather than guessed at.
-
-  One thing to expect: re-importing a dance you imported before this change may
-  now offer it as a variation, because those 116 figures genuinely describe
-  different choreography from what was stored. That's the app noticing a real
-  difference, not a false alarm.
-
-- **Star promenades no longer claim a hand.** A star promenade used to display
-  as "Neighbor star promenade right ½" — but that "right" describes the two
-  dancers holding hands in the *centre*, not your connection with the neighbour
-  you pick up on the side. Reading it as a hand you take with your neighbour is
-  simply wrong, so it has been removed from the figure. Where The Caller's Box
-  states the centre — the `(WR)` in `Neighbor star promenade 1/2 (WR)` — it now
-  appears as a note beside the figure, reading "robins by the right in the
-  center" in your chosen dialect rather than a frozen "W". (That quotation is
-  verbatim app output, which uses the US spelling like the rest of the
-  interface; the surrounding prose keeps this file's British voice.) 626
-  imported figures are affected corpus-wide, and existing dances are updated on
-  first launch.
-
-  Two smaller improvements ride along. Anything else written beside a star
-  promenade — a qualifier like "(hand-in-hand with neighbor)" or "[with N1]" —
-  used to be dropped on import and is now kept. And star promenades imported
-  from ContraDB now come in as plain text figures instead: ContraDB records who
-  is in the centre rather than whom you pick up, and rather than guess the
-  difference we keep its own wording, with only the role names put into your
-  chosen dialect.
+> Upgrading rewrites some stored figures (schema 20 → 25). It is automatic and
+> preserves every dance's timing — see **Data / Migrations** below.
 
 ### Added
 
@@ -269,264 +187,6 @@ including reliable undo refreshes, bare ContraDB box-circulate imports, and sear
   settings, the pasted title-list import and its review groups, the
   shorthand-seeding step, and the custom-field sharing notice. All five languages
   now cover every string in the app.
-
-### Changed
-
-- **Caller's Box online search no longer offers dances whose figures it won't
-  share.** Not every dance in The Caller's Box has permission for its figures to
-  be shown; picking one of those used to give you a title and a formation with
-  no figures at all, which is almost never what a dance search was for. About
-  three in ten results were affected, and it was worst when searching *by
-  figure* — a quarter of the answers to "which dances have a balance" were
-  dances whose balance you couldn't then read. Those dances are now left out of
-  Caller's Box search results, including when a pasted title list looks a title
-  up online. You can still bring one in deliberately by importing it by its link
-  or ID, which works exactly as before. The **Resolve unmatched online** button
-  on a pasted program is deliberately left alone — it imports unattended, so
-  changing what it finds would change what it decides to keep. ContraDB
-  searches are unaffected.
-- **Caller's Box searches now consider every match, not just the first fifty.**
-  The Caller's Box returns fifty results at a time; the app now asks for the
-  complete set when a search is small enough to make that cheap, so hiding the
-  dances above doesn't quietly cost you ones you could have used. Very broad
-  searches still show the first fifty, so typing a single letter doesn't pull
-  megabytes from a volunteer-run site.
-
-- **On a tablet or desktop, saving a new dance now selects it automatically in
-  the detail pane.** Previously, creating a dance and saving left the detail pane
-  showing whatever was selected before — or the empty placeholder. Now, after a
-  successful save, the new dance is immediately selected and shown beside the
-  list. Cancelling the editor still leaves the previous selection unchanged. On a
-  phone the editor closes as before — the list and detail are not side by side
-  there.
-
-- **The import screen now opens on The Caller's Box.** It previously opened on
-  *a Caller's Compendium JSON file*. The source list is also reordered — a list
-  of titles, The Caller's Box, ContraDB, a Caller's Compendium JSON file, a
-  Caller's Companion .USR file — so the list order and the starting selection are
-  now separate things. If you import Compendium JSON files, you will need to pick
-  that source from the list rather than finding it already selected. This affects
-  both the import pane in Collection and Settings → Import.
-
-- **Qualifier notes on The Caller's Box figures now come through structured.**
-  Lines from The Caller's Box that carry a qualifier — for example, a promenade
-  "across the set", or one followed by a right and left through — previously imported
-  as unstructured custom figures because the note tripped a guard designed for
-  other sources. The guard is now skipped for Caller's Box lines, so those figures
-  arrive as named moves with the qualifier in a note, exactly as the source states.
-
-  If you re-import a dance from The Caller's Box, figures that previously appeared
-  as custom text may now appear as structured ones. Nothing changes in dances you
-  do not re-import.
-
-- **Imported dances no longer keep a copy of the page they came from.** When you
-  imported a dance from ContraDB, The Caller's Box or a Caller's Companion file,
-  the app also stored the original record verbatim — for a web import, the entire
-  page. Nothing in the app ever read it back, so it was pure weight: several
-  kilobytes per imported dance, carried in your library and in every backup you
-  made. It is now removed on upgrade, and no longer stored on new imports.
-
-  Re-importing and duplicate detection are unaffected — those match on the
-  source and its record id, and re-fetch from the source when you ask them to.
-
-  **This is not reversible.** Upgrading deletes those stored copies. If you want
-  them, export a backup *before* upgrading. Nothing you can see or edit in the
-  app is affected: dances, figures, notes, tags, programs and the rest are
-  untouched, as is where each dance came from (source, record id, import date,
-  permission and license).
-
-### Removed
-
-- An internal `snapshots` table that was never written to. It existed for a
-  planned "a newer version of this collection is available" prompt against a
-  hosted archive — a feature that was dropped in favour of importing directly
-  from the source.
-- **Support for collections last opened by beta.1 or earlier.** Caller's
-  Compendium will no longer open a collection file that old; it stops rather
-  than upgrading it halfway, which would leave the file quietly incomplete.
-  Every tester is on beta.2 or later, so in practice no collection is affected.
-  If you do still have a pre-beta.2 file, open it once with beta.2 — or any
-  later release you already have — and it will be upgraded normally, after which
-  this release can open it.
-
-### Fixed
-
-- **Changes you make in one place now show up everywhere, without restarting the
-  app.** Editing a dance, adding it to a program, marking slots performed,
-  creating or deleting a program, or importing one all used to leave every
-  *other* open view showing the data as it was before. So a dance's **called N
-  times** badge stayed put after you added it to a program; its **Calling
-  history** ignored the program you had just added it to; a program you were
-  looking at kept showing a dance's old difficulty level after you edited it;
-  and a program arriving through a shared `.ccshare` file did not appear in the
-  Programs list at all until the app was relaunched. Every one of those writes
-  now tells the views that render the data to refresh, and each view refreshes
-  once per change rather than once per edited dance. Opening a dance from a
-  **related dance** link and renaming it there also updates the link you came
-  from, instead of leaving the old title behind — and deleting it there marks
-  the link as missing rather than leaving a link to a dance that is gone
-  (#768, #851).
-
-- **Skipping every dance in a shared import no longer disables Import when the
-  bundle carries a program.** Previously, if you already owned every dance in a
-  shared bundle and set them all to Skip, the Import button went grey — making
-  the program unreachable even though it was the only thing you wanted. The fix
-  covers both the share-target path (opening a `.ccshare` sent to you) and the
-  manual-pick path (choosing a `.ccshare` from "Choose file"). Programs are now
-  committed regardless of how dance rows are dispositioned, and a note in the
-  review panel tells you a program will be included so the summary is never
-  misleading (#869).
-
-- **Importing a `.ccshare` file through the manual Import picker now includes the
-  program.** Previously, picking a `.ccshare` file from the "Choose file" button
-  silently dropped any program it contained — you'd see the dances arrive but the
-  program (with its event details, venue, and slot order) was quietly lost. Now
-  the program, venue, and all slot details are imported alongside the dances,
-  exactly as they are when you open the file directly from Files. The import can
-  be undone in one tap.
-
-- **Aliased moves now re-route when their defining param is toggled.** Setting
-  `hand: left` on a box the gnat makes it a swat the flea (and vice versa); the
-  same applies to do si do ⇄ see saw on shoulder. Previously the move's name and
-  data could disagree — the figure would read "swat the flea" while carrying
-  right-hand data. The fix lives in the taxonomy so every writer (import, editor,
-  share) benefits, not just the editor.
-
-- **The Caller's Box balance + box/swat import fold now preserves handedness.**
-  A balance with `(RH)` followed by a box the gnat imports as one figure with
-  the hand set, rather than losing the hand annotation.
-
-- **Programs recorded before you set a default caller now appear in calling
-  history and "called ×N" counts.** With "Track calling history for all
-  callers" off and a default caller configured, any program whose caller field
-  was blank or never filled in was silently excluded — so setting your own name
-  as default caller would make your entire pre-existing history disappear. Those
-  programs are now treated as your own and included alongside programs that
-  explicitly match the default caller. Programs led by a different, non-blank
-  caller remain excluded as before. (#850, supersedes the null-caller exclusion
-  from #583)
-
-- **A venue's street address no longer leaves your device when you share,
-  export, print, or copy a program.** The address line, city, state or province,
-  country, and postcode were being included in shared program files, exported
-  PDFs, and the plain-text set list — even though they are classified as
-  device-only data, and even though the venue's *contact people* were correctly
-  held back behind a tick box. There was never a prompt for the address, so
-  there was never a way to say no to it. It is now removed from every export
-  path. What still travels is the venue's name, plus its website, schedule,
-  price, sponsor, event name, and notes, so a recipient still knows which hall
-  you mean. Your own records are untouched: the address is still on the venue,
-  and a backup still contains it.
-
-- **A choreographer's deceased mark is no longer included in a shared file.** It
-  was travelling alongside the author's name and website, while their email and
-  location were correctly stripped. It is personal information about someone who
-  cannot object to it being passed on, so it now stays on your device with the
-  rest of their private details. The **Choreographer details** dialog and the
-  user guide now say so.
-
-- **A figure with 0 beats at the end of a dance no longer creates a ghost
-  section.** If the last figure in your dance takes no beats of its own — like
-  a "form short waves" placed right at the end — it used to appear as a brand
-  new A1 section below B2 instead of staying at the bottom of B2. Similarly,
-  a 0-beat figure at any phrase boundary was quietly filed one phrase too late.
-  Both are now corrected. The fix also updates section-filtered search, so
-  searching for "B2, form short waves" now finds dances where that figure
-  was affected. Existing dances are recomputed on first open.
-
-- **Individual dancers now read by name everywhere, and you can reword them.**
-  Where a figure names one dancer rather than a pair — the lead of a figure 8,
-  the dolphin in a dolphin hey, or any "who"/"whom" you set to a single dancer —
-  the people picker showed the internal `twos role2` instead of "second robin".
-  So did the figure line, Perform mode and PDF export. All of them now use your
-  dialect's role terms. If you'd rather say "robin two", Settings → Dialect →
-  dancer terms now lists these four dancers so you can enter your own wording;
-  they were missing from that list entirely. Nothing about your saved dances
-  changes — this was only how they were displayed, and search results are
-  unaffected.
-
-- **Meanwhile containers now report their true structure quality, and the reparse
-  screen can now upgrade figures inside them.** Both the import review quality
-  chip and the "reparse custom figures" screen previously counted a meanwhile
-  group — two moves that happen at the same time — as fully structured even when
-  its concurrent sides were unstructured custom text. Quality chips will now show
-  lower scores for dances that contain such groups, and the reparse screen will
-  offer to upgrade sides inside them that the parser can now handle.
-
-- **Opening a program now takes you to the program, not the builder.** Two
-  places dropped you straight into the program editor instead of the
-  read-focused summary: the list of programs in a dance's calling history, and
-  picking a program from the global search palette (Ctrl/Cmd-K). Both now open
-  the same summary you get by tapping a program in the programs list — with
-  "Perform this program" front and centre, and "Edit program" a tap away if you
-  did want to change something.
-
-- **Square-through pass lists from The Caller's Box now decode correctly.**
-  Lines of the form "Square through 2 (N2R;SL)" carry a compact pass list that
-  specifies which dancers and which hands for each pass. Previously the pass list
-  was stripped before recognition, leaving the figure with the move's generic
-  defaults: the wrong dancer pair and a balance the line never calls. The pass
-  list is now decoded — dancer pairs come from the codes, hands alternate by
-  parity, and no balance is added unless the source line states one.
-
-- **"Followed by" search no longer matches both directions of a simultaneous
-  figure.** If a dance has two figures that happen at the same time (a "meanwhile"
-  or "while" container), searching for one followed by the other used to match
-  both `Then(X, Y)` and `Then(Y, X)`, even though neither side comes before the
-  other. It now only matches genuine sequences where one figure actually precedes
-  the next.
-
-- **Star grip and single-file flag now appear in the figure display.** When a
-  star figure specifies a grip (`wrist grip` or `hands across`) and when a
-  promenade or circle specifies single-file, those details are now shown in the
-  figure text. Previously they were stored correctly on import but invisible in
-  every rendered form.
-
-- **Adding a dance to a program now visibly confirms itself.** On a phone the
-  dance picker opens as a panel covering almost the whole screen, and the
-  "Added …" message appeared *behind* it — so on the one screen where you build
-  a program, tapping `+` looked like it did nothing. The dance was always added,
-  and the message was always announced to screen readers; you just couldn't see
-  it. The `+` on the row you tapped now briefly becomes a check, then returns to
-  a `+` so you can add the same dance again. The message still appears as before
-  everywhere it was already visible.
-
-- **Importing a dance from a different source that you already have now prompts
-  you instead of silently adding a second copy.** When a dance from ContraDB or
-  Caller's Box matches one you already imported from the other source — same
-  title, same caller, same figures — the app now asks what you want to do rather
-  than creating a duplicate. You can choose **Same dance** to link the import to
-  your existing copy — this replaces your version of the dance with the online
-  record's, including its figures, notes, tags, rating, and custom fields; its
-  place in your programs and its calling history are kept — **Import a second
-  copy** to
-  add it alongside your existing dance and keep both source records, or
-  **Cancel** to leave your collection as it is.
-
-  This prompt is for the identical-figures case only. When a confident match has
-  *different* figures, you still see the three-option variation prompt introduced
-  earlier. Program import is not affected.
-
-### Beta.6 history — 2026-08-01
-
-Flutter build: `0.1.0+1`.
-
-This section covers the `0.1.0` line. **`v0.1.0-beta.6`** (this pre-release) builds
-on **`v0.1.0-beta.5`** and is the largest beta so far. Its theme is **getting your
-existing library in, faithfully**: Caller's Companion files now bring their
-choreography across (previously they arrived with no figures at all), and
-thousands of Caller's Box and ContraDB lines that used to land as unstructured
-text — balanced waves, courtesy turns, mad robins, walk-forward figures, spelled-out
-shorthands — now import as real, searchable figures. Alongside that: **"meanwhile"
-(simultaneous) figures** are supported end to end, **pickers finally work on a
-phone**, and a **three-audit security and robustness pass** landed. The changes
-**since beta.5** are grouped first; the standing feature overview and install notes
-follow.
-
-> Upgrading rewrites some stored figures (schema 15 → 20). It is automatic and
-> preserves every dance's timing — see **Data / Migrations** below.
-
-### Added
 
 - **"Courtesy turn" is now a real figure.** Until now, a Caller's Box dance that
   called a courtesy turn on its own line landed in the unrecognized "custom"
@@ -800,6 +460,145 @@ follow.
 
 ### Changed
 
+- **Star grip and single-file formation now appear in dance text — and in search
+  (#749, #840, taxonomy v27).** Two figure details were imported and stored but
+  never shown:
+
+  - A star with a hands-across or wrist-grip hold now reads **"star right –
+    hands across – 4 places"** in every rendered view, matching the way
+    ContraDB writes it. Stars with no stated grip are unchanged.
+
+  - A single-file promenade now reads **"single file promenade along"** (or
+    "across") in every view. The direction is always included — it was
+    previously hidden even when the source stated it. The dancer group is
+    omitted; it's an importer artefact and doesn't add meaning.
+
+  - A single-file circle now reads **"single file circle clockwise N places"**
+    instead of "circle left N places - single file". Clockwise and
+    counterclockwise use their plain English names rather than "left" and
+    "right".
+
+  All three forms are now searchable: typing "hands across", "single file", or
+  "clockwise" in free-text search will find the relevant figures.
+
+  One thing to expect: re-opening the app after this update will re-index your
+  dances in the background. During that short window the new search terms may
+  not return results yet.
+
+- **The Caller's Box single-file promenade now imports as a single-file circle
+  (#749 Part E).** TCB writes "Single file promenade clockwise" for what the
+  app models as a circle in single-file formation. That phrasing is now
+  recognised on import and stored as a structured circle figure.
+
+- **ContraDB single-file promenade now captures the stated direction (#749 Part
+  A).** A ContraDB dance that says "single file promenade along" now stores
+  `dir: along`, so the direction survives a round-trip through import and
+  export. Previously the direction was parsed but discarded.
+
+- **Imported figures now keep the hand and dancers The Caller's Box wrote in
+  shorthand.** TCB notes handedness and who you're dancing with in a compact
+  code beside the figure — the `(NR)` in "Pass through along (NR)", or the
+  `(SR;NL)` in "Square through 2 (SR;NL)". That code used to be thrown away on
+  import, and the app filled in a default instead — which was sometimes the
+  opposite of what the dance actually said. 2,504 imported figures now carry
+  what the source stated. 116 of them were previously stored with the wrong
+  hand or shoulder and are now right.
+
+  Where the code names dancers the app can represent, they're kept too, so a
+  square through records which dancers you pass on each hand rather than
+  assuming. Where it names something the app has no way to express — an
+  "opposite", a phantom, or a same-role neighbour — the figure is left alone
+  rather than guessed at.
+
+  One thing to expect: re-importing a dance you imported before this change may
+  now offer it as a variation, because those 116 figures genuinely describe
+  different choreography from what was stored. That's the app noticing a real
+  difference, not a false alarm.
+
+- **Star promenades no longer claim a hand.** A star promenade used to display
+  as "Neighbor star promenade right ½" — but that "right" describes the two
+  dancers holding hands in the *centre*, not your connection with the neighbour
+  you pick up on the side. Reading it as a hand you take with your neighbour is
+  simply wrong, so it has been removed from the figure. Where The Caller's Box
+  states the centre — the `(WR)` in `Neighbor star promenade 1/2 (WR)` — it now
+  appears as a note beside the figure, reading "robins by the right in the
+  center" in your chosen dialect rather than a frozen "W". (That quotation is
+  verbatim app output, which uses the US spelling like the rest of the
+  interface; the surrounding prose keeps this file's British voice.) 626
+  imported figures are affected corpus-wide, and existing dances are updated on
+  first launch.
+
+  Two smaller improvements ride along. Anything else written beside a star
+  promenade — a qualifier like "(hand-in-hand with neighbor)" or "[with N1]" —
+  used to be dropped on import and is now kept. And star promenades imported
+  from ContraDB now come in as plain text figures instead: ContraDB records who
+  is in the centre rather than whom you pick up, and rather than guess the
+  difference we keep its own wording, with only the role names put into your
+  chosen dialect.
+
+- **Caller's Box online search no longer offers dances whose figures it won't
+  share.** Not every dance in The Caller's Box has permission for its figures to
+  be shown; picking one of those used to give you a title and a formation with
+  no figures at all, which is almost never what a dance search was for. About
+  three in ten results were affected, and it was worst when searching *by
+  figure* — a quarter of the answers to "which dances have a balance" were
+  dances whose balance you couldn't then read. Those dances are now left out of
+  Caller's Box search results, including when a pasted title list looks a title
+  up online. You can still bring one in deliberately by importing it by its link
+  or ID, which works exactly as before. The **Resolve unmatched online** button
+  on a pasted program is deliberately left alone — it imports unattended, so
+  changing what it finds would change what it decides to keep. ContraDB
+  searches are unaffected.
+- **Caller's Box searches now consider every match, not just the first fifty.**
+  The Caller's Box returns fifty results at a time; the app now asks for the
+  complete set when a search is small enough to make that cheap, so hiding the
+  dances above doesn't quietly cost you ones you could have used. Very broad
+  searches still show the first fifty, so typing a single letter doesn't pull
+  megabytes from a volunteer-run site.
+
+- **On a tablet or desktop, saving a new dance now selects it automatically in
+  the detail pane.** Previously, creating a dance and saving left the detail pane
+  showing whatever was selected before — or the empty placeholder. Now, after a
+  successful save, the new dance is immediately selected and shown beside the
+  list. Cancelling the editor still leaves the previous selection unchanged. On a
+  phone the editor closes as before — the list and detail are not side by side
+  there.
+
+- **The import screen now opens on The Caller's Box.** It previously opened on
+  *a Caller's Compendium JSON file*. The source list is also reordered — a list
+  of titles, The Caller's Box, ContraDB, a Caller's Compendium JSON file, a
+  Caller's Companion .USR file — so the list order and the starting selection are
+  now separate things. If you import Compendium JSON files, you will need to pick
+  that source from the list rather than finding it already selected. This affects
+  both the import pane in Collection and Settings → Import.
+
+- **Qualifier notes on The Caller's Box figures now come through structured.**
+  Lines from The Caller's Box that carry a qualifier — for example, a promenade
+  "across the set", or one followed by a right and left through — previously imported
+  as unstructured custom figures because the note tripped a guard designed for
+  other sources. The guard is now skipped for Caller's Box lines, so those figures
+  arrive as named moves with the qualifier in a note, exactly as the source states.
+
+  If you re-import a dance from The Caller's Box, figures that previously appeared
+  as custom text may now appear as structured ones. Nothing changes in dances you
+  do not re-import.
+
+- **Imported dances no longer keep a copy of the page they came from.** When you
+  imported a dance from ContraDB, The Caller's Box or a Caller's Companion file,
+  the app also stored the original record verbatim — for a web import, the entire
+  page. Nothing in the app ever read it back, so it was pure weight: several
+  kilobytes per imported dance, carried in your library and in every backup you
+  made. It is now removed on upgrade, and no longer stored on new imports.
+
+  Re-importing and duplicate detection are unaffected — those match on the
+  source and its record id, and re-fetch from the source when you ask them to.
+
+  **This is not reversible.** Upgrading deletes those stored copies. If you want
+  them, export a backup *before* upgrading. Nothing you can see or edit in the
+  app is affected: dances, figures, notes, tags, programs and the rest are
+  untouched, as is where each dance came from (source, record id, import date,
+  permission and license).
+
 - **"Gate" is now a single figure instead of two identical-looking ones.** The
   move picker used to show two rows both labelled "gate" — one from ContraDB's
   vocabulary and one from The Caller's Box's — with no way to tell them apart.
@@ -828,6 +627,18 @@ follow.
 
 ### Removed
 
+- An internal `snapshots` table that was never written to. It existed for a
+  planned "a newer version of this collection is available" prompt against a
+  hosted archive — a feature that was dropped in favour of importing directly
+  from the source.
+- **Support for collections last opened by beta.1 or earlier.** Caller's
+  Compendium will no longer open a collection file that old; it stops rather
+  than upgrading it halfway, which would leave the file quietly incomplete.
+  Every tester is on beta.2 or later, so in practice no collection is affected.
+  If you do still have a pre-beta.2 file, open it once with beta.2 — or any
+  later release you already have — and it will be upgraded normally, after which
+  this release can open it.
+
 - **The automatic "can carry progression" hint is gone from the figure
   editor.** Swing and allemande no longer show an info-icon/tooltip nudge
   beside the Progression toggle. The manual **Progression** toggle is
@@ -836,6 +647,177 @@ follow.
   metadata) was removed along with it. Closes #551.
 
 ### Fixed
+
+- **Undoing a dance you just deleted now brings it back everywhere, not just in
+  the database.** If you opened a dance from search, from a link on another
+  dance, from a program's set list, or straight after importing it, then deleted
+  it and tapped **Undo**, the dance was restored but every list still behaved as
+  though it were gone — a related-dance link kept reading "(missing dance)"
+  until the app was restarted. Only one route in, tapping a row in the
+  Collection, was unaffected. Undo now tells the other views to refresh, the way
+  the rest of the app already does (#768).
+
+- **Bare ContraDB box circulates now import correctly (#752).** A ContraDB
+  dance written as `larks cross while robins loop` (or any role pair) was not
+  recognized as a box circulate. It now imports as `box_circulate`, with the
+  crossing dancer set recorded as `who` and the hand recorded when stated — so
+  it shows up correctly when filtering or searching by move.
+
+- **Changes you make in one place now show up everywhere, without restarting the
+  app.** Editing a dance, adding it to a program, marking slots performed,
+  creating or deleting a program, or importing one all used to leave every
+  *other* open view showing the data as it was before. So a dance's **called N
+  times** badge stayed put after you added it to a program; its **Calling
+  history** ignored the program you had just added it to; a program you were
+  looking at kept showing a dance's old difficulty level after you edited it;
+  and a program arriving through a shared `.ccshare` file did not appear in the
+  Programs list at all until the app was relaunched. Every one of those writes
+  now tells the views that render the data to refresh, and each view refreshes
+  once per change rather than once per edited dance. Opening a dance from a
+  **related dance** link and renaming it there also updates the link you came
+  from, instead of leaving the old title behind — and deleting it there marks
+  the link as missing rather than leaving a link to a dance that is gone
+  (#768, #851).
+
+- **Skipping every dance in a shared import no longer disables Import when the
+  bundle carries a program.** Previously, if you already owned every dance in a
+  shared bundle and set them all to Skip, the Import button went grey — making
+  the program unreachable even though it was the only thing you wanted. The fix
+  covers both the share-target path (opening a `.ccshare` sent to you) and the
+  manual-pick path (choosing a `.ccshare` from "Choose file"). Programs are now
+  committed regardless of how dance rows are dispositioned, and a note in the
+  review panel tells you a program will be included so the summary is never
+  misleading (#869).
+
+- **Importing a `.ccshare` file through the manual Import picker now includes the
+  program.** Previously, picking a `.ccshare` file from the "Choose file" button
+  silently dropped any program it contained — you'd see the dances arrive but the
+  program (with its event details, venue, and slot order) was quietly lost. Now
+  the program, venue, and all slot details are imported alongside the dances,
+  exactly as they are when you open the file directly from Files. The import can
+  be undone in one tap.
+
+- **Aliased moves now re-route when their defining param is toggled.** Setting
+  `hand: left` on a box the gnat makes it a swat the flea (and vice versa); the
+  same applies to do si do ⇄ see saw on shoulder. Previously the move's name and
+  data could disagree — the figure would read "swat the flea" while carrying
+  right-hand data. The fix lives in the taxonomy so every writer (import, editor,
+  share) benefits, not just the editor.
+
+- **The Caller's Box balance + box/swat import fold now preserves handedness.**
+  A balance with `(RH)` followed by a box the gnat imports as one figure with
+  the hand set, rather than losing the hand annotation.
+
+- **Programs recorded before you set a default caller now appear in calling
+  history and "called ×N" counts.** With "Track calling history for all
+  callers" off and a default caller configured, any program whose caller field
+  was blank or never filled in was silently excluded — so setting your own name
+  as default caller would make your entire pre-existing history disappear. Those
+  programs are now treated as your own and included alongside programs that
+  explicitly match the default caller. Programs led by a different, non-blank
+  caller remain excluded as before. (#850, supersedes the null-caller exclusion
+  from #583)
+
+- **A venue's street address no longer leaves your device when you share,
+  export, print, or copy a program.** The address line, city, state or province,
+  country, and postcode were being included in shared program files, exported
+  PDFs, and the plain-text set list — even though they are classified as
+  device-only data, and even though the venue's *contact people* were correctly
+  held back behind a tick box. There was never a prompt for the address, so
+  there was never a way to say no to it. It is now removed from every export
+  path. What still travels is the venue's name, plus its website, schedule,
+  price, sponsor, event name, and notes, so a recipient still knows which hall
+  you mean. Your own records are untouched: the address is still on the venue,
+  and a backup still contains it.
+
+- **A choreographer's deceased mark is no longer included in a shared file.** It
+  was travelling alongside the author's name and website, while their email and
+  location were correctly stripped. It is personal information about someone who
+  cannot object to it being passed on, so it now stays on your device with the
+  rest of their private details. The **Choreographer details** dialog and the
+  user guide now say so.
+
+- **A figure with 0 beats at the end of a dance no longer creates a ghost
+  section.** If the last figure in your dance takes no beats of its own — like
+  a "form short waves" placed right at the end — it used to appear as a brand
+  new A1 section below B2 instead of staying at the bottom of B2. Similarly,
+  a 0-beat figure at any phrase boundary was quietly filed one phrase too late.
+  Both are now corrected. The fix also updates section-filtered search, so
+  searching for "B2, form short waves" now finds dances where that figure
+  was affected. Existing dances are recomputed on first open.
+
+- **Individual dancers now read by name everywhere, and you can reword them.**
+  Where a figure names one dancer rather than a pair — the lead of a figure 8,
+  the dolphin in a dolphin hey, or any "who"/"whom" you set to a single dancer —
+  the people picker showed the internal `twos role2` instead of "second robin".
+  So did the figure line, Perform mode and PDF export. All of them now use your
+  dialect's role terms. If you'd rather say "robin two", Settings → Dialect →
+  dancer terms now lists these four dancers so you can enter your own wording;
+  they were missing from that list entirely. Nothing about your saved dances
+  changes — this was only how they were displayed, and search results are
+  unaffected.
+
+- **Meanwhile containers now report their true structure quality, and the reparse
+  screen can now upgrade figures inside them.** Both the import review quality
+  chip and the "reparse custom figures" screen previously counted a meanwhile
+  group — two moves that happen at the same time — as fully structured even when
+  its concurrent sides were unstructured custom text. Quality chips will now show
+  lower scores for dances that contain such groups, and the reparse screen will
+  offer to upgrade sides inside them that the parser can now handle.
+
+- **Opening a program now takes you to the program, not the builder.** Two
+  places dropped you straight into the program editor instead of the
+  read-focused summary: the list of programs in a dance's calling history, and
+  picking a program from the global search palette (Ctrl/Cmd-K). Both now open
+  the same summary you get by tapping a program in the programs list — with
+  "Perform this program" front and centre, and "Edit program" a tap away if you
+  did want to change something.
+
+- **Square-through pass lists from The Caller's Box now decode correctly.**
+  Lines of the form "Square through 2 (N2R;SL)" carry a compact pass list that
+  specifies which dancers and which hands for each pass. Previously the pass list
+  was stripped before recognition, leaving the figure with the move's generic
+  defaults: the wrong dancer pair and a balance the line never calls. The pass
+  list is now decoded — dancer pairs come from the codes, hands alternate by
+  parity, and no balance is added unless the source line states one.
+
+- **"Followed by" search no longer matches both directions of a simultaneous
+  figure.** If a dance has two figures that happen at the same time (a "meanwhile"
+  or "while" container), searching for one followed by the other used to match
+  both `Then(X, Y)` and `Then(Y, X)`, even though neither side comes before the
+  other. It now only matches genuine sequences where one figure actually precedes
+  the next.
+
+- **Star grip and single-file flag now appear in the figure display.** When a
+  star figure specifies a grip (`wrist grip` or `hands across`) and when a
+  promenade or circle specifies single-file, those details are now shown in the
+  figure text. Previously they were stored correctly on import but invisible in
+  every rendered form.
+
+- **Adding a dance to a program now visibly confirms itself.** On a phone the
+  dance picker opens as a panel covering almost the whole screen, and the
+  "Added …" message appeared *behind* it — so on the one screen where you build
+  a program, tapping `+` looked like it did nothing. The dance was always added,
+  and the message was always announced to screen readers; you just couldn't see
+  it. The `+` on the row you tapped now briefly becomes a check, then returns to
+  a `+` so you can add the same dance again. The message still appears as before
+  everywhere it was already visible.
+
+- **Importing a dance from a different source that you already have now prompts
+  you instead of silently adding a second copy.** When a dance from ContraDB or
+  Caller's Box matches one you already imported from the other source — same
+  title, same caller, same figures — the app now asks what you want to do rather
+  than creating a duplicate. You can choose **Same dance** to link the import to
+  your existing copy — this replaces your version of the dance with the online
+  record's, including its figures, notes, tags, rating, and custom fields; its
+  place in your programs and its calling history are kept — **Import a second
+  copy** to
+  add it alongside your existing dance and keep both source records, or
+  **Cancel** to leave your collection as it is.
+
+  This prompt is for the identical-figures case only. When a confident match has
+  *different* figures, you still see the three-option variation prompt introduced
+  earlier. Program import is not affected.
 
 - **In-app update checks work again for beta testers.** The signature file that
   proves an update manifest is genuine went missing from the update site on
