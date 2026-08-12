@@ -168,9 +168,19 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// [ProgramEditorScreen]'s `_performRenderer`).
   static final FigureRenderer _performRenderer = FigureRenderer(contraTaxonomy);
 
-  /// Collapses the two bumps a dance+program write emits into one reload; this
-  /// pane's [_load] pulls the whole collection, so loading twice is expensive
-  /// as well as wrong (issue #340).
+  /// Collapses a burst of refresh requests into a single [_load].
+  ///
+  /// It no longer collapses "the two bumps a dance+program write emits" — this
+  /// pane stopped subscribing to `CollectionRefreshScope` and
+  /// `ProgramsRefreshScope` when it moved to the stream (issue #768), so that
+  /// pair no longer reaches it. What it collapses now is the two sources that
+  /// remain: [CollectionData.watch] emits, and the parent shell's
+  /// [ProgramSummaryPane.refreshTrigger].
+  ///
+  /// Still load-bearing for the same reason, which is why it survives the
+  /// conversion rather than retiring with the subscriptions: [_load] pulls the
+  /// whole collection, so loading twice is expensive as well as wrong
+  /// (issue #340).
   late final RefreshCoalescer _refreshCoalescer = RefreshCoalescer(() {
     if (mounted) _load();
   });
