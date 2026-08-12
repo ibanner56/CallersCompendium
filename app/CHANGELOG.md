@@ -15,10 +15,10 @@ each release so store builds and tags can be traced back to an entry.
 
 Flutter build: `0.1.0+1`.
 
-This beta promotes the accumulated fixes and improvements from Unreleased,
-including reliable undo refreshes, bare ContraDB box-circulate imports, and
-searchable star-grip and single-file details.
+### Beta.7
 
+This pre-release (`v0.1.0-beta.7`) promotes the accumulated fixes and improvements from Unreleased,
+including reliable undo refreshes, bare ContraDB box-circulate imports, and searchable star-grip and single-file details.
 ### Fixed
 
 - **Undoing a dance you just deleted now brings it back everywhere, not just in
