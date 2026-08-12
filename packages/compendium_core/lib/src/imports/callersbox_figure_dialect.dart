@@ -38,15 +38,27 @@ import 'figure_text_scrub.dart';
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
 ///
 /// **Pre-recognizer ordering.** The first thirteen entries (through
-/// `_singleFileCircleRecognizer`) each require a distinct move anchor and a
-/// successful resolution to their own move, so among themselves order is not
-/// correctness-critical.  Two overlapping anchor pairs are resolved by the
-/// second condition: `\bpromenades?\b` can match a `star promenade` line (the
-/// star resolves to `star_promenade`, so `_promenadeAnnotation` declines it)
-/// and `promenade` can also match a single-file circle line (the full phrase
-/// including "single file" makes `_promenadeAnnotation` decline those too).
-/// Both pairs are listed specific-first so the ordering reads the way the
-/// precedence works.
+/// `_singleFileCircleRecognizer`) all anchor on a move keyword, and all
+/// require a successful resolution to their own move, so in most cases
+/// order is not correctness-critical.  Three overlapping anchor pairs each
+/// resolve safely without a fixed ordering:
+///
+/// 1. `_balanceHandAnnotation` and `_balancePairHandAnnotation` share the
+///    `\bbalance\b` anchor but match mutually exclusive annotation shapes:
+///    `_balanceHandRe` matches a single cell `(RH)`/`(LH)` (no comma);
+///    `_balancePairHandRe` requires a comma-separated pair `(MRH,WLH)`.
+///    Neither regex can match what the other requires.
+///
+/// 2. `_starPromenadeAnnotation` / `_promenadeAnnotation`: `\bpromenades?\b`
+///    can match a `star promenade` line, but that line resolves to
+///    `star_promenade`, so `_promenadeAnnotation` (which pins `promenade`)
+///    declines it.  Listed star-first so the ordering reads the way the
+///    precedence works.
+///
+/// 3. `_promenadeAnnotation` / `_singleFileCircleRecognizer`: `promenade`
+///    can match a single-file circle line, but `_promenadeAnnotation`
+///    declines it because the full "single file promenade …" phrase does
+///    not resolve to `promenade`.  Listed specific-first.
 ///
 /// **The last three entries are order-dependent.** `_perRoleChoreoAnnotation`
 /// and `_proseAnnotation` have no move anchor; either can claim any structured
