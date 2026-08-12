@@ -214,6 +214,31 @@ class CompendiumRepositories {
   /// succeeds, so an interrupted upgrade is retried on the next open;
   /// concurrent calls share one in-flight future. A failed attempt clears the
   /// memo so a later call retries rather than replaying the cached failure.
+  ///  ///
+  /// ## Every write below this point is visible to drift's watchers (#768)
+  ///
+  /// The sweeps reachable from here used to write with bare `customStatement`,
+  /// which drift cannot attribute to a table and therefore does not broadcast.
+  /// #932 closed that class in [DanceRepository]; this closes the rest of it.
+  ///
+  /// The reason it is worth closing HERE, rather than left to the ordering
+  /// argument that made it harmless, is that the two families of raw write in
+  /// this package are protected by guarantees of very different strength:
+  ///
+  /// - `database.dart`'s raw writes sit inside `MigrationStrategy.onUpgrade`,
+  ///   which drift runs while opening the database. No query has been issued
+  ///   yet, so no stream can exist to miss them. That is **structural** — it
+  ///   cannot be invalidated by a later change to this file.
+  /// - The sweeps below run from [ensureMigrated], on an already-open database.
+  ///   They are safe only because the one production caller
+  ///   (`main.dart`'s startup sequence) runs before the shell is built, so no
+  ///   screen has subscribed yet. That is **ordering**, and ordering is exactly
+  ///   the kind of guarantee a future change breaks without noticing: expose
+  ///   any of these sweeps as a "repair my library" button in settings, and
+  ///   every one of them becomes an invisible write to a watched table.
+  ///
+  /// Both were safe today. Only one was safe for a reason that survives the
+  /// rest of #768, so the ordering-dependent family is the one that got fixed.
   ///
   /// [onDerivedRebuildProgress], when supplied, is forwarded to
   /// [DanceRepository.rebuildAllDerived] so the caller (e.g. the app's startup
@@ -223,6 +248,36 @@ class CompendiumRepositories {
     DerivedRebuildProgressCallback? onDerivedRebuildProgress,
   }) => _migration ??= _runMigration(onDerivedRebuildProgress);
   Future<void>? _migration;
+
+  /// Writes a one-shot migration-sweep marker so drift's watchers see it.
+  ///
+  /// Five sweeps in this file record completion the same way. Routing them
+  /// through one helper means the SQL identifier, the notified table and the
+  /// update kind cannot drift apart in five places independently — the same
+  /// reason #932 interpolated `actualTableName` rather than repeating a
+  /// literal.
+  ///
+  /// ## Why no `updateKind`
+  ///
+  /// `INSERT OR REPLACE` is genuinely BOTH kinds: it inserts when the marker is
+  /// absent and replaces an existing row when it is not, and which one happens
+  /// is not knowable at the call site. Drift treats a null kind as "unspecified"
+  /// and matches it against every `limitUpdateKind` filter
+  /// (`stream_queries.dart`, `SpecificUpdateQuery.matches`: `update.kind == null
+  /// || limitUpdateKind == null || update.kind == limitUpdateKind`).
+  ///
+  /// So omitting it is the accurate encoding rather than the lazy one. Naming a
+  /// kind here would be a guess, and a wrong guess is worse than silence: a
+  /// future rule filtering on the other kind would silently not match, which is
+  /// exactly the invisible-write failure this change exists to remove.
+  Future<void> _writeSweepMarker(String key, String valueJson) async {
+    await db.customUpdate(
+      'INSERT OR REPLACE INTO ${db.settings.actualTableName} '
+      '(key, value_json) VALUES (?, ?)',
+      variables: [Variable<String>(key), Variable<String>(valueJson)],
+      updates: {db.settings},
+    );
+  }
 
   Future<void> _runMigration(
     DerivedRebuildProgressCallback? onDerivedRebuildProgress,
@@ -250,9 +305,12 @@ class CompendiumRepositories {
         // forever. Every one of those reads does filter `deleted_at IS NULL`
         // anyway, so a marker can neither be read back as still-set after this
         // clears it nor be resurrected by a stale row.
-        await db.customStatement('DELETE FROM settings WHERE key = ?', [
-          derivedRebuildRequiredKey,
-        ]);
+        await db.customUpdate(
+          'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
+          variables: [Variable<String>(derivedRebuildRequiredKey)],
+          updates: {db.settings},
+          updateKind: UpdateKind.delete,
+        );
       }
       await _repairPurgeCorruptionIfNeeded();
       // Each sweep below reports back whether a derived rebuild has happened
@@ -319,17 +377,20 @@ class CompendiumRepositories {
         .get();
     if (done.isNotEmpty) return;
     await db.transaction(() async {
-      await db.customStatement(
-        'DELETE FROM program_slots WHERE dance_id IS NULL AND text IS NULL',
+      await db.customUpdate(
+        'DELETE FROM ${db.programSlots.actualTableName} '
+        'WHERE dance_id IS NULL AND text IS NULL',
+        updates: {db.programSlots},
+        updateKind: UpdateKind.delete,
       );
-      await db.customStatement(
-        'DELETE FROM dance_links WHERE kind = ? AND target_dance_id IS NULL',
-        [LinkKind.relatedDance.name],
+      await db.customUpdate(
+        'DELETE FROM ${db.danceLinks.actualTableName} '
+        'WHERE kind = ? AND target_dance_id IS NULL',
+        variables: [Variable<String>(LinkKind.relatedDance.name)],
+        updates: {db.danceLinks},
+        updateKind: UpdateKind.delete,
       );
-      await db.customStatement(
-        'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-        [purgeCorruptionRepairDoneKey, 'true'],
-      );
+      await _writeSweepMarker(purgeCorruptionRepairDoneKey, 'true');
     });
   }
 
@@ -367,10 +428,7 @@ class CompendiumRepositories {
     // Skip the rebuild if one already ran this call — it used the current
     // labelForFigure code, so section values are already correct.
     if (!alreadyRebuilt) await runDerivedRebuild(onProgress: onProgress);
-    await db.customStatement(
-      'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-      [sectionRuleVersionKey, '"$kSectionRuleVersion"'],
-    );
+    await _writeSweepMarker(sectionRuleVersionKey, '"$kSectionRuleVersion"');
     return true;
   }
 
@@ -418,9 +476,15 @@ class CompendiumRepositories {
         // Rewrite only the figures_json column — nothing else about the dance
         // changes, and a full _upsert would needlessly rebuild derived rows
         // per dance (the bulk rebuild at the end is cheaper).
-        await db.customStatement(
-          'UPDATE dances SET figures_json = ? WHERE id = ?',
-          [encodeFigures(normalised.figures), dance.id],
+        await db.customUpdate(
+          'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
+          'WHERE id = ?',
+          variables: [
+            Variable<String>(encodeFigures(normalised.figures)),
+            Variable<String>(dance.id),
+          ],
+          updates: {db.dances},
+          updateKind: UpdateKind.update,
         );
       }
     }
@@ -437,10 +501,7 @@ class CompendiumRepositories {
 
     // Write the marker AFTER success — if the rebuild throws, the marker is
     // not written and the next startup retries.
-    await db.customStatement(
-      'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-      [inversePairNormalisationDoneKey, '"done"'],
-    );
+    await _writeSweepMarker(inversePairNormalisationDoneKey, '"done"');
     return alreadyRebuilt || rebuilt;
   }
 
@@ -513,9 +574,14 @@ class CompendiumRepositories {
       // Rewrite only the figures_json column — nothing else about the dance
       // changes, and a full _upsert would needlessly rebuild derived rows per
       // dance (the bulk rebuild below is cheaper).
-      await db.customStatement(
-        'UPDATE dances SET figures_json = ? WHERE id = ?',
-        [encodeFigures(stripped.figures), dance.id],
+      await db.customUpdate(
+        'UPDATE ${db.dances.actualTableName} SET figures_json = ? WHERE id = ?',
+        variables: [
+          Variable<String>(encodeFigures(stripped.figures)),
+          Variable<String>(dance.id),
+        ],
+        updates: {db.dances},
+        updateKind: UpdateKind.update,
       );
     }
 
@@ -523,10 +589,7 @@ class CompendiumRepositories {
 
     // Write the marker AFTER success — if the rebuild throws, the marker is
     // not written and the next startup retries.
-    await db.customStatement(
-      'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-      [starPromenadeHandRemovalDoneKey, '"done"'],
-    );
+    await _writeSweepMarker(starPromenadeHandRemovalDoneKey, '"done"');
     // Reached only by running a rebuild (or having had one run earlier this
     // call), so a rebuild has always happened by this point.
     return true;
@@ -577,10 +640,7 @@ class CompendiumRepositories {
 
     // Write the marker AFTER success — if the rebuild throws, the marker is
     // not written and the next startup retries.
-    await db.customStatement(
-      'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-      [gripSingleFileCanonicalInclusionDoneKey, '"done"'],
-    );
+    await _writeSweepMarker(gripSingleFileCanonicalInclusionDoneKey, '"done"');
     // Reached only by running a rebuild (or having had one run earlier this
     // call), so a rebuild has always happened by this point.
     return true;
