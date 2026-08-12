@@ -105,10 +105,25 @@ and produces no Android artifact.
 1. **Update `app/CHANGELOG.md`** so the release has real notes (this is what the
    draft's body is generated from — see
    [CHANGELOG-driven release notes](#changelog-driven-release-notes)). Promote
-   the accumulated `## [Unreleased]` items into a new versioned section **before**
+   the accumulated `## [Unreleased]` items into the versioned section **before**
    tagging. The release fails fast in the `meta` job if `Unreleased` still has
    list items. For a stable (plain `x.y.z`) tag, it also requires the matching
    versioned section.
+
+   **If a section for this core version already exists, merge into it — do not
+   create a second one.** Successive betas in a line all render the *same*
+   heading (`v0.1.0-beta.7` reads `## [0.1.0]`), so after the first promotion
+   that section is already present. Renaming the `## [Unreleased]` heading with
+   `sed`/`perl` therefore produces **two** `## [0.1.0]` sections and corrupts the
+   file. Move the items across, update the existing section's date, and leave a
+   fresh empty `## [Unreleased]` above it. Count the headings before and after:
+
+   ```sh
+   grep -c '^## \[0\.1\.0\]' app/CHANGELOG.md   # must be 1, before and after
+   ```
+
+   Only a release whose core version is genuinely new (a minor or major bump)
+   adds a new heading.
 
    ```md
    ## [Unreleased]
@@ -126,9 +141,57 @@ and produces no Android artifact.
    - Include the ``Flutter build: `x.y.z+N` `` line (the `+build` from
      `app/pubspec.yaml`) so tags trace back to an entry.
    - Leave a fresh, empty `## [Unreleased]` at the top for the next cycle.
-2. Ensure `app/pubspec.yaml` `version:` (and the guarded `kAppVersion`) are the
-   version you intend to ship. The workflow **fails** if the tag's `x.y.z` core
-   doesn't match the pubspec semver.
+   - **Include a Data / Migrations section whenever `kCompendiumSchemaVersion`
+     or `contraTaxonomyVersion` has moved** since that section was last written.
+     Read both from source at tag time — they move while a release is being
+     prepared, so a value quoted from an earlier status report may already be
+     stale. State old → new and what the migration does: these notes are where a
+     user learns what is about to happen to their data.
+
+     The range starts at the value **the previous tag shipped**, not at whatever
+     it was when you last looked. Derive it:
+
+     ```sh
+     git show v0.1.0-beta.6:packages/compendium_core/lib/src/storage/database.dart \
+       | grep -o 'kCompendiumSchemaVersion = [0-9]*'
+     ```
+
+     A release that spans several bumps covers all of them in one range.
+
+   **Then verify the notes are the ones you just wrote.** `--check` tests that a
+   section *exists*, not that it is *fresh*, so it returns 0 against a section
+   left over from the previous release — and the draft would then carry the
+   previous release's notes, and its migration range, under the new version's
+   banner:
+
+   ```sh
+   python3 tools/release/gen_release_notes.py \
+     --version 0.1.0-beta.7 --tag v0.1.0-beta.7 --channel beta \
+     --changelog app/CHANGELOG.md --output /tmp/notes.md
+   ```
+
+   Read `/tmp/notes.md` and confirm it describes *this* release — the right
+   version, the right migration range, the actual new work. `tools/ci/check_changelog_promoted.py`
+   gates both conditions on tag push, but read the rendered notes anyway; the
+   gate cannot judge whether the prose is true.
+
+   > **`--version` takes the bare version; only `--tag` carries the `v`.** Both
+   > tools resolve the CHANGELOG heading by splitting the version on `-`/`+` —
+   > they do **not** strip a leading `v`. Passing `--version v0.1.0-beta.7`
+   > therefore looks for a `## [v0.1.0]` section, which cannot exist, and the
+   > error names a heading one character off from the real one. It fails
+   > plausibly rather than obviously, so check the prefix before believing the
+   > message.
+2. Ensure `app/pubspec.yaml` `version:` (and the guarded `kAppVersion`) carry the
+   **core** `x.y.z` you intend to ship. The workflow **fails** if the tag's
+   `x.y.z` core doesn't match the pubspec semver.
+   - **Do not add a prerelease suffix to the pubspec version.** A beta ships with
+     the pubspec at its plain core (`0.1.0+1` for every `v0.1.0-beta.N`); the
+     channel comes from the tag, not the pubspec. The gate compares the **tag's
+     core** (prerelease stripped) against the **pubspec version with only
+     `+build` stripped** — the prerelease suffix is *kept* on the pubspec side.
+     So `0.1.0-beta.7+1` is compared as `0.1.0` vs `0.1.0-beta.7` and fails the
+     `meta` gate. Bump the pubspec only when the core version itself changes.
    - **Never bump `schemaVersion` in a PATCH release** (ADR-002 §7).
 3. Tag and push (a plain `x.y.z` tag → **stable**; a prerelease tag like
    `v0.2.0-beta.1` → **beta** channel + GitHub prerelease):
