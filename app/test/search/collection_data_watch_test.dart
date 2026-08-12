@@ -319,11 +319,34 @@ void main() {
             'this is why the abandoning party must settle it itself',
       );
 
-      // What the screens now do at the point of abandonment.
+      // What the screens now do at the point of abandonment, in
+      // `_replaceSubscription`: settle the pending future BEFORE cancelling.
       if (!first.isCompleted) {
         first.completeError(StateError('subscription replaced'));
       }
-      await expectLater(first.future, throwsStateError);
+
+      // Awaited with a TIMEOUT rather than a bare `expectLater`, because of
+      // how this guard fails when the invariant is broken: the defect is a
+      // future that never completes, so without the settle above the await
+      // would hang and the suite would stall with no message. A timeout turns
+      // that into a readable failure naming the invariant — which is the
+      // difference between a guard that reports and one that just stops.
+      await expectLater(
+        first.future.timeout(
+          const Duration(seconds: 2),
+          // Deliberately a DIFFERENT type from the expected StateError. A
+          // first attempt threw StateError here and the mutation passed —
+          // `throwsStateError` was satisfied by the timeout itself, so the
+          // guard could not tell "settled" from "never completed". The whole
+          // point is to distinguish those two, so the timeout must not
+          // impersonate the success case.
+          onTimeout: () => throw TimeoutException(
+            'first-value future never completed: whatever abandoned the '
+            'subscription did not settle it (see _replaceSubscription)',
+          ),
+        ),
+        throwsStateError,
+      );
       parker.release();
     },
   );
