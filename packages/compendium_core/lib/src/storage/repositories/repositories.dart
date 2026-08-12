@@ -157,6 +157,14 @@ class CompendiumRepositories {
   ///    sits inside `MigrationStrategy`, so it runs during `openConnection`,
   ///    before the database can serve a query at all, let alone hold a
   ///    watcher. Nothing can observe them by construction.
+  ///
+  ///    **"Eleven" counts row writes, not `customStatement` calls.** That file
+  ///    has 21 of the latter; the other ten are DDL and a `PRAGMA`, several
+  ///    passed as named SQL constants rather than literals, so they are
+  ///    invisible to a search keyed on `INSERT`/`UPDATE`/`DELETE`. Re-count by
+  ///    walking each call's argument and classifying its leading keyword, or a
+  ///    different method will produce 21 and read as a correction to this
+  ///    number rather than an answer to a different question.
   /// 2. **Converted, not merely safe** — the repair/normalisation sweeps *in
   ///    this file* used to write four tables raw: `program_slots` and
   ///    `dance_links` (the dangling-reference cleanup), `dances` (the
