@@ -34,7 +34,12 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  (Reminder: never bump schema in a patch release.)
 - [ ] If `kCompendiumSchemaVersion` or `contraTaxonomyVersion` moved since the
  versioned CHANGELOG section was last written, that section has a **Data /
- Migrations** entry stating old → new and what the migration does.
+ Migrations** entry stating old → new and what the migration does. Each moved
+ constant needs its own labelled range (`schema … 20 → 25`,
+ `taxonomy … 23 → 27`); the gate checks them separately.
+- [ ] Exactly one `## [x.y.z]` heading for the release's core version
+ (`grep -c '^## \[0\.1\.0\]' app/CHANGELOG.md` → `1`). Promotion merges into the
+ existing section; a second heading renders fine and orphans the older one.
 
 ## 2. Data safety (Gate — local-first app, user data is sacred)
 - [ ] Every schema migration since the last release has a v(N-1)→vN migration test

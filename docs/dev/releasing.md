@@ -122,6 +122,12 @@ and produces no Android artifact.
    grep -c '^## \[0\.1\.0\]' app/CHANGELOG.md   # must be 1, before and after
    ```
 
+   `check_changelog_promoted.py` also enforces this on tag push, and names the
+   count it found. It did not always: a release branch once shipped two
+   `## [0.1.0]` headings, passed the gate, and rendered correct-looking notes —
+   because the notes render from the *first* section, so the orphaned one was
+   invisible until someone went looking for the older release's entry.
+
    Only a release whose core version is genuinely new (a minor or major bump)
    adds a new heading.
 
@@ -154,9 +160,20 @@ and produces no Android artifact.
      ```sh
      git show v0.1.0-beta.6:packages/compendium_core/lib/src/storage/database.dart \
        | grep -o 'kCompendiumSchemaVersion = [0-9]*'
+     git show v0.1.0-beta.6:packages/compendium_core/lib/src/taxonomy/contra_taxonomy.dart \
+       | grep -o 'contraTaxonomyVersion = [0-9]*'
      ```
 
-     A release that spans several bumps covers all of them in one range.
+     A release that spans several bumps covers all of them in one range. The
+     gate checks both constants and requires a range for each that has moved,
+     so write `schema … 20 → 25` and `taxonomy … 23 → 27` as separate,
+     explicitly labelled ranges.
+
+     A taxonomy bump is **not** a data migration — nothing reads
+     `contraTaxonomyVersion` at runtime and no rebuild is triggered by it. It is
+     still user-visible, because dances get categorised or matched differently,
+     so it belongs in the notes; describe what changed about recognition or
+     canonical form rather than implying the database is rewritten.
 
    **Then verify the notes are the ones you just wrote.** `--check` tests that a
    section *exists*, not that it is *fresh*, so it returns 0 against a section
