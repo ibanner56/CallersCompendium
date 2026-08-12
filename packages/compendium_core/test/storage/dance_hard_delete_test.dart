@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show ResultSetImplementation;
+import 'package:drift/drift.dart' show Table, TableInfo;
 import 'package:test/test.dart';
 
 import 'test_database.dart';
@@ -118,13 +118,19 @@ void main() {
     /// passes trivially if you query the table directly afterwards, because
     /// the SQL was always correct. What was missing was the notification, and
     /// a stream is the only thing that can observe its absence.
+    /// [table] supplies BOTH the SQL identifier and the `readsFrom` target, so
+    /// the query cannot end up counting one table while listening to another —
+    /// a mismatch that would make these tests pass or fail for the wrong
+    /// reason. Same single-source rule the repository writes now follow.
     Future<({List<int> seen, StreamSubscription<void> sub})> watchCount(
-      String table,
-      ResultSetImplementation<dynamic, dynamic> drift,
+      TableInfo<Table, dynamic> table,
     ) async {
       final seen = <int>[];
       final sub = db
-          .customSelect('SELECT COUNT(*) AS n FROM $table', readsFrom: {drift})
+          .customSelect(
+            'SELECT COUNT(*) AS n FROM ${table.actualTableName}',
+            readsFrom: {table},
+          )
           .watch()
           .listen((rows) => seen.add(rows.single.read<int>('n')));
       // Let the initial value arrive so a later emit is a real change.
@@ -145,7 +151,7 @@ void main() {
         await dances.create(
           sampleDance(id: 'd1', title: 'Only Dance', authorIds: const ['c1']),
         );
-        final probe = await watchCount('choreographers', db.choreographers);
+        final probe = await watchCount(db.choreographers);
         addTearDown(probe.sub.cancel);
         expect(probe.seen, [1]);
 
@@ -173,10 +179,7 @@ void main() {
             sourceCitations: [SourceCitation(sourceId: 's1')],
           ),
         );
-        final probe = await watchCount(
-          'published_sources',
-          db.publishedSources,
-        );
+        final probe = await watchCount(db.publishedSources);
         addTearDown(probe.sub.cancel);
         expect(probe.seen, [1]);
 
@@ -212,7 +215,7 @@ void main() {
           ],
         ),
       );
-      final probe = await watchCount('dance_links', db.danceLinks);
+      final probe = await watchCount(db.danceLinks);
       addTearDown(probe.sub.cancel);
       expect(probe.seen, [1]);
 
@@ -222,40 +225,44 @@ void main() {
       expect(probe.seen.last, 0);
     });
 
-    test('CHARACTERISATION (cannot fail on omitted `updates:`): a purge notifies '
-        'a program_slots watcher', () async {
-      // Same incidental cover as the dance_links case above — see its comment.
-      // This is the table the streams shipped in #924 actually read, so it is
-      // worth pinning even though it is not a red-run-proven guard.
-      await dances.create(sampleDance(id: 'd1', title: 'Called Once'));
-      await programs.create(
-        Program(
-          id: 'p1',
-          title: 'Friday',
-          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
-          createdAt: DateTime.utc(2026),
-          updatedAt: DateTime.utc(2026),
-        ),
-      );
-      // Counts slots still linked to a dance — what the calling-history and
-      // called-count streams shipped in #924 actually read.
-      final seen = <int>[];
-      final sub = db
-          .customSelect(
-            'SELECT COUNT(*) AS n FROM program_slots WHERE dance_id IS NOT NULL',
-            readsFrom: {db.programSlots},
-          )
-          .watch()
-          .listen((rows) => seen.add(rows.single.read<int>('n')));
-      addTearDown(sub.cancel);
-      await pumpEventQueue();
-      expect(seen, [1]);
+    test(
+      'CHARACTERISATION (cannot fail on omitted `updates:`): a purge notifies '
+      'a program_slots watcher',
+      () async {
+        // Same incidental cover as the dance_links case above — see its comment.
+        // This is the table the streams shipped in #924 actually read, so it is
+        // worth pinning even though it is not a red-run-proven guard.
+        await dances.create(sampleDance(id: 'd1', title: 'Called Once'));
+        await programs.create(
+          Program(
+            id: 'p1',
+            title: 'Friday',
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        // Counts slots still linked to a dance — what the calling-history and
+        // called-count streams shipped in #924 actually read.
+        final seen = <int>[];
+        final sub = db
+            .customSelect(
+              'SELECT COUNT(*) AS n FROM ${db.programSlots.actualTableName} '
+              'WHERE dance_id IS NOT NULL',
+              readsFrom: {db.programSlots},
+            )
+            .watch()
+            .listen((rows) => seen.add(rows.single.read<int>('n')));
+        addTearDown(sub.cancel);
+        await pumpEventQueue();
+        expect(seen, [1]);
 
-      await dances.softDelete('d1', at: DateTime.utc(2026, 2));
-      await dances.purgeDeleted(now: DateTime.utc(2026, 6));
-      await pumpEventQueue();
+        await dances.softDelete('d1', at: DateTime.utc(2026, 2));
+        await dances.purgeDeleted(now: DateTime.utc(2026, 6));
+        await pumpEventQueue();
 
-      expect(seen.last, 0);
-    });
+        expect(seen.last, 0);
+      },
+    );
   });
 }

@@ -837,6 +837,15 @@ class DanceRepository {
   /// `program_slots` or `dance_links` never re-runs for a purge — the silent
   /// staleness issue #768 exists to remove, arriving from the write side.
   ///
+  /// Each statement's table name is interpolated from the **same** table object
+  /// it names in `updates:`, so the SQL target and the notified table cannot
+  /// disagree — the convention `stampExistenceTransition` established in
+  /// `existence.dart`. A literal string in either position would let one be
+  /// renamed without the other, and the resulting mismatch is silent: the write
+  /// still succeeds, and the wrong table (or no table) is notified. The
+  /// sub-selects are left literal because they are *read*, not written, so they
+  /// have no notification target to diverge from.
+  ///
   /// **Today these two writes would survive the omission by accident, and that
   /// is the reason to state this rather than rely on it.** drift generates
   /// `WritePropagation` rules from the schema's foreign keys
@@ -878,7 +887,8 @@ class DanceRepository {
     if (toPurge.isEmpty) return;
     for (final d in toPurge) {
       await _db.customUpdate(
-        'UPDATE program_slots SET text = ? WHERE dance_id = ? AND text IS NULL',
+        'UPDATE ${_db.programSlots.actualTableName} SET text = ? '
+        'WHERE dance_id = ? AND text IS NULL',
         variables: [Variable<String>(d.title), Variable<String>(d.id)],
         updates: {_db.programSlots},
         updateKind: UpdateKind.update,
@@ -888,8 +898,8 @@ class DanceRepository {
     for (final chunk in _chunkIds(ids)) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
       await _db.customUpdate(
-        'DELETE FROM dance_links WHERE kind = ? AND target_dance_id IN '
-        '($placeholders)',
+        'DELETE FROM ${_db.danceLinks.actualTableName} '
+        'WHERE kind = ? AND target_dance_id IN ($placeholders)',
         variables: [
           Variable<String>(LinkKind.relatedDance.name),
           for (final id in chunk) Variable<String>(id),
@@ -992,8 +1002,9 @@ class DanceRepository {
     for (final chunk in _chunkIds(candidates.choreographerIds.toList())) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
       await _db.customUpdate(
-        'DELETE FROM choreographers WHERE id IN ($placeholders) AND id NOT IN '
-        '(SELECT choreographer_id FROM dance_authors)',
+        'DELETE FROM ${_db.choreographers.actualTableName} '
+        'WHERE id IN ($placeholders) '
+        'AND id NOT IN (SELECT choreographer_id FROM dance_authors)',
         variables: [for (final id in chunk) Variable<String>(id)],
         updates: {_db.choreographers},
         updateKind: UpdateKind.delete,
@@ -1002,8 +1013,9 @@ class DanceRepository {
     for (final chunk in _chunkIds(candidates.sourceIds.toList())) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
       await _db.customUpdate(
-        'DELETE FROM published_sources WHERE id IN ($placeholders) AND id NOT '
-        'IN (SELECT source_id FROM dance_sources)',
+        'DELETE FROM ${_db.publishedSources.actualTableName} '
+        'WHERE id IN ($placeholders) '
+        'AND id NOT IN (SELECT source_id FROM dance_sources)',
         variables: [for (final id in chunk) Variable<String>(id)],
         updates: {_db.publishedSources},
         updateKind: UpdateKind.delete,
