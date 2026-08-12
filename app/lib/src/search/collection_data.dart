@@ -386,6 +386,16 @@ class _CoalesceTrailing<T> extends StreamTransformerBase<T, T> {
           },
         );
       },
+      // Forward backpressure to the source. `CollectionData.watch` puts an
+      // `asyncMap` downstream, which pauses its subscription while the load it
+      // is running completes. Without these hooks that pause stops at this
+      // controller: the upstream keeps delivering, the controller buffers, and
+      // every buffered event becomes another queued reload the moment the slow
+      // one finishes — so a burst arriving during a long load costs MORE work
+      // than the same burst arriving when idle, which is the opposite of what
+      // the coalescing is for.
+      onPause: () => subscription?.pause(),
+      onResume: () => subscription?.resume(),
       onCancel: () {
         timer?.cancel();
         timer = null;

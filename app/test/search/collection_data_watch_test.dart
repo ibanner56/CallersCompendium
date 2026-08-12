@@ -83,12 +83,19 @@ void main() {
     }
     await Future<void>.delayed(const Duration(milliseconds: 200));
 
-    // One leading emit for the burst, plus at most one trailing emit that
-    // carries the final state. Ten reloads would be the #340 regression.
+    // The regression signal is "one reload per write", so that is what this
+    // asserts — strictly fewer than the ten writes made. A tighter bound
+    // (<= 2) would encode the *current* timing rather than the property:
+    // the coalescer is rate-based, so a slower machine can legitimately
+    // fit more than one window into the same burst without any
+    // regression. The exact collapsing is pinned deterministically in the
+    // transformer test below, where no database timing is involved.
     expect(
       seen.length - 1,
-      lessThanOrEqualTo(2),
-      reason: 'a 10-dance batch must not produce 10 reloads; saw $seen',
+      lessThan(10),
+      reason:
+          'a 10-dance batch must not produce one reload per write; '
+          'saw \$seen',
     );
   });
 
@@ -112,6 +119,26 @@ void main() {
       hasLength(10),
       reason: 'coalescing must not drop the final state of a burst',
     );
+  });
+
+  test('a synchronous burst collapses to exactly two emits', () async {
+    // Deterministic counterpart to the end-to-end ceiling above: events are
+    // delivered in one synchronous block, so no database or machine timing can
+    // stretch the burst across two windows. Exactly one leading emit plus one
+    // trailing emit carrying the final value.
+    final source = StreamController<int>();
+    final seen = <int>[];
+    final sub = source.stream
+        .transform(debugCoalesceTrailing<int>(const Duration(milliseconds: 24)))
+        .listen(seen.add);
+    addTearDown(sub.cancel);
+
+    for (var i = 1; i <= 10; i++) {
+      source.add(i);
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+
+    expect(seen, [1, 10], reason: 'leading edge, then the final value');
   });
 
   test(
