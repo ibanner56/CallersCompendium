@@ -228,7 +228,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// the program, its dances and its venue all have to be re-fetched. Without
   /// these two fields it would also re-enter [_watchCollectionData], which
   /// cancels and re-opens the subscription and therefore re-runs the whole
-  /// whole [CollectionData.load]. One write would cost two full
+  /// [CollectionData.load]. One write would cost two full
   /// snapshot loads and a fresh coalescer, which is the issue #340 thrash this
   /// conversion is supposed to avoid rather than introduce.
   CollectionData? _latestData;
