@@ -211,7 +211,12 @@ void main() {
   // Red-run target: mutate out the shape guard in `_proseAnnotation` by
   // removing the `.where(_annotationBodyHasLowercase)` filter and passing
   // all annotations to `_joinAnnotations`. A shorthand annotation like `(OR)`
-  // on a chain would then produce a spurious note `OR` instead of no note.
+  // on a do si do would then produce a spurious note `OR` instead of no note.
+  //
+  // Note: chain is not a valid red-run example here — `_chainAnnotation` fires
+  // first and preserves ALL annotations verbatim (chain+(OR) → note=OR with or
+  // without the guard), so removing the filter has no observable effect on a
+  // chain line. The fixture must use a move with no dedicated pre-recognizer.
   //
   // Red result (test "shorthand annotation does NOT become a note"):
   // `f.note` would contain `OR` instead of being null.
@@ -223,7 +228,7 @@ void main() {
       expect(f.note, 'in center');
     });
 
-    test('(along the set) on a chain → combined with chain\'s own note', () {
+    test('(along the set) on a chain → annotation only (no destination)', () {
       final f = _single('Ladies chain (along the set)', beats: 8);
       expect(f.move, 'chain');
       // Chain's own "to <dancer>" note absent (no destination); annotation only.
