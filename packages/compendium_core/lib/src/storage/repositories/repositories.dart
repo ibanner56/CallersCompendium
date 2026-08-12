@@ -93,15 +93,22 @@ class CompendiumRepositories {
   ///    before the database can serve a query at all, let alone hold a
   ///    watcher. Nothing can observe them by construction.
   /// 2. **Safe by ordering** — the repair/normalisation sweeps *in this file*
-  ///    write `program_slots`, `dance_links` and `dances` raw. They are
-  ///    reached only through [ensureMigrated], which the app awaits in its
-  ///    startup sequence before any screen mounts. That is a weaker guarantee
-  ///    than (1): it is app-level sequencing, not a property of the code, and
-  ///    it is the same shape as the incidental co-location documented on
-  ///    `DanceRepository._cleanupDanglingReferences`. **If a sweep is ever made
-  ///    re-runnable from a settings screen, or moved after the first frame, it
-  ///    must move to `customUpdate` with an explicit `updates:` set first**, or
-  ///    a live Collection will silently keep pre-repair data.
+  ///    write four tables raw: `program_slots` and `dance_links` (the
+  ///    dangling-reference cleanup), `dances` (the `figures_json`-only
+  ///    rewrites), and `settings` (the marker reads/writes that decide whether
+  ///    each sweep is owed). The first three are watched by the signal above;
+  ///    `settings` is not watched by anything **yet**, which is why it belongs
+  ///    in this group rather than group 3 — it becomes exposed the moment any
+  ///    screen reads a preference reactively.
+  ///
+  ///    They are reached only through [ensureMigrated], which the app awaits in
+  ///    its startup sequence before any screen mounts. That is a weaker
+  ///    guarantee than (1): it is app-level sequencing, not a property of the
+  ///    code, and it is the same shape as the incidental co-location documented
+  ///    on `DanceRepository._cleanupDanglingReferences`. **If a sweep is ever
+  ///    made re-runnable from a settings screen, or moved after the first
+  ///    frame, it must move to `customUpdate` with an explicit `updates:` set
+  ///    first**, or a live Collection will silently keep pre-repair data.
   /// 3. **Unwatchable** — the `dance_fts` writes in `DanceRepository`. It is an
   ///    FTS index rebuilt from derived rows; nothing streams it and nothing
   ///    should.
