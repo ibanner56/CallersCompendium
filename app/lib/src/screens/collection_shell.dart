@@ -392,7 +392,6 @@ class _CollectionShellState extends State<CollectionShell> {
               onSelectDance: _onSelectDance,
               onNewDance: _onNewDance,
               selectedDanceId: _selectedDanceId,
-              refreshTrigger: _listRefresh,
               onImport: _onImport,
               onSelectOnlineDance: _onSelectOnlineDance,
               selectedOnlineId: _onlinePreview?.result.id,

@@ -67,8 +67,11 @@ import 'online_import_variation_dialog.dart';
 ///
 /// [selectedDanceId] highlights the currently selected row in split-pane mode.
 ///
-/// [refreshTrigger] allows a parent widget to request a full list reload by
-/// incrementing the notifier value (e.g. after a detail-pane delete/restore).
+/// The list keeps itself current from the database (issue #768), so it takes
+/// no `refreshTrigger`: a parent has nothing to request that the stream does
+/// not already deliver. The parameter was removed rather than left in place,
+/// because `_boot` is now idempotent — it would have accepted a parent's
+/// reload request and silently done nothing.
 ///
 /// **Caller's Box online search** (`docs/design/callersbox.md`): when the user
 /// turns on the "Online search" switch inside the Advanced panel, the search
@@ -85,7 +88,6 @@ class DanceListScreen extends StatefulWidget {
     this.onSelectDance,
     this.onNewDance,
     this.selectedDanceId,
-    this.refreshTrigger,
     this.onImport,
     this.onSelectOnlineDance,
     this.selectedOnlineId,
@@ -104,11 +106,6 @@ class DanceListScreen extends StatefulWidget {
   /// Id of the currently selected dance for row highlighting in split-pane
   /// mode. Has no effect when [onSelectDance] is null.
   final String? selectedDanceId;
-
-  /// When non-null, the list calls [_boot] whenever this notifier's value
-  /// changes — allowing the [CollectionShell] to trigger a refresh after a
-  /// delete or restore in the detail pane.
-  final ValueListenable<int>? refreshTrigger;
 
   /// Called when the user taps the app-bar Import action. Null ⇒ the action is
   /// hidden (the list has no way to open import on its own). The owning shell
@@ -186,8 +183,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   /// Whether the user has explicitly chosen a sort this session. Once set, the
   /// saved default (ROADMAP G.6a) no longer seeds `_sort` — protecting an
-  /// in-session choice from a late async read and from a [refreshTrigger]
-  /// reload (which re-runs [_boot]).
+  /// in-session choice from a late async read.
   bool _sortUserSet = false;
 
   /// Whether the saved-default sort seed has run (it runs at most once, on the

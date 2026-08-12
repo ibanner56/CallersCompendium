@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_app/src/search/collection_data.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
@@ -98,6 +100,37 @@ void main() {
       reason: 'coalescing must not drop the final state of a burst',
     );
   });
+
+  test(
+    'a burst still delivers its final state when the source ends mid-window',
+    () async {
+      // The coalescer holds a trailing value for up to one window. If the
+      // source ends inside that window — a database closed at teardown, a
+      // screen disposed while a batch is still committing — the held value
+      // must still be emitted, or the last state of the burst is silently
+      // lost while every intermediate one was delivered.
+      final source = StreamController<void>();
+      final seen = <int>[];
+      var n = 0;
+      final sub = source.stream
+          .transform(debugCoalesceTrailing<void>(const Duration(seconds: 5)))
+          .listen((_) => seen.add(++n));
+      addTearDown(sub.cancel);
+
+      source.add(null); // leading edge, emitted immediately
+      await pumpEventQueue();
+      expect(seen, [1]);
+
+      source.add(null); // held as the trailing value
+      await source.close(); // ...and the source ends before the window elapses
+      await pumpEventQueue();
+
+      expect(seen, [
+        1,
+        2,
+      ], reason: 'the held trailing value must be flushed before closing');
+    },
+  );
 
   test('a program-side write refreshes the per-dance call tallies', () async {
     final repos = openTestRepositories();

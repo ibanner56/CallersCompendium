@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../models/dance_list_entry.dart';
 
@@ -99,9 +100,12 @@ class CollectionData {
 
   /// The window used to collapse a burst of writes into one reload.
   ///
-  /// Sized to be imperceptible (well under a frame budget's worth of delay for
-  /// a user who has just tapped Confirm) while still spanning the gaps in a
-  /// loop of sequential awaits. See [watch] for why a window is needed at all.
+  /// Roughly one and a half frames at 60 Hz — deliberately a little OVER a
+  /// frame, not under. A window shorter than the gap between two sequential
+  /// awaits would not collapse the batch it exists to collapse, which is the
+  /// whole point (see [watch]); and the delay is only ever paid by a burst,
+  /// because the leading edge emits immediately. A single write is not
+  /// deferred at all.
   static const coalesceWindow = Duration(milliseconds: 24);
 
   /// A live [CollectionData], re-read whenever anything it is built from
@@ -319,6 +323,10 @@ class CollectionData {
 /// user makes is reflected without waiting out the window; the trailing emit
 /// then covers everything that arrived during it. A pure trailing debounce
 /// would delay every single-write update by the full window for no benefit.
+@visibleForTesting
+StreamTransformerBase<T, T> debugCoalesceTrailing<T>(Duration window) =>
+    _CoalesceTrailing<T>(window);
+
 class _CoalesceTrailing<T> extends StreamTransformerBase<T, T> {
   const _CoalesceTrailing(this.window);
 
@@ -357,6 +365,16 @@ class _CoalesceTrailing<T> extends StreamTransformerBase<T, T> {
           onError: controller.addError,
           onDone: () {
             timer?.cancel();
+            timer = null;
+            // Emit anything still held before closing. Without this the final
+            // state of a burst is lost whenever the source ends mid-window —
+            // a database closed during teardown, or a screen disposed while a
+            // batch is still committing — which would contradict the trailing
+            // guarantee this transformer exists to provide.
+            if (pending) {
+              pending = false;
+              controller.add(last);
+            }
             controller.close();
           },
         );

@@ -97,7 +97,7 @@ Future<void> _pumpScreen(
           ),
         ),
       ),
-      home: DanceListScreen(refreshTrigger: refreshTrigger),
+      home: const DanceListScreen(),
     ),
   );
 }

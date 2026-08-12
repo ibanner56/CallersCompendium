@@ -619,7 +619,7 @@ void main() {
         Scaffold(
           body: Column(
             children: [
-              Expanded(child: DanceListScreen(refreshTrigger: listRefresh)),
+              const Expanded(child: DanceListScreen()),
               Builder(
                 builder: (context) => ElevatedButton(
                   key: const ValueKey('open-detail'),
