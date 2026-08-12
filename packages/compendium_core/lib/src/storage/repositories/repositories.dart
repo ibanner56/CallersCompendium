@@ -157,30 +157,37 @@ class CompendiumRepositories {
   ///    sits inside `MigrationStrategy`, so it runs during `openConnection`,
   ///    before the database can serve a query at all, let alone hold a
   ///    watcher. Nothing can observe them by construction.
-  /// 2. **Safe by ordering** — the repair/normalisation sweeps *in this file*
-  ///    write four tables raw: `program_slots` and `dance_links` (the
-  ///    dangling-reference cleanup), `dances` (the `figures_json`-only
-  ///    rewrites), and `settings` (the marker reads/writes that decide whether
-  ///    each sweep is owed). The first three are watched by the signal above;
-  ///    `settings` is not watched by anything **yet**, which is why it belongs
-  ///    in this group rather than group 3 — it becomes exposed the moment any
-  ///    screen reads a preference reactively.
+  /// 2. **Converted, not merely safe** — the repair/normalisation sweeps *in
+  ///    this file* used to write four tables raw: `program_slots` and
+  ///    `dance_links` (the dangling-reference cleanup), `dances` (the
+  ///    `figures_json`-only rewrites), and `settings` (the markers that decide
+  ///    whether each sweep is owed). They now go through `customUpdate` with an
+  ///    explicit `updates:` set, so every one of them reaches subscribers.
   ///
-  ///    They are reached only through [ensureMigrated], which the app awaits in
-  ///    its startup sequence before any screen mounts. That is a weaker
-  ///    guarantee than (1): it is app-level sequencing, not a property of the
-  ///    code, and it is the same shape as the incidental co-location documented
-  ///    on `DanceRepository._cleanupDanglingReferences`. **If a sweep is ever
-  ///    made re-runnable from a settings screen, or moved after the first
-  ///    frame, it must move to `customUpdate` with an explicit `updates:` set
-  ///    first**, or a live Collection will silently keep pre-repair data.
+  ///    They were safe before that only by **ordering** — reached solely
+  ///    through [ensureMigrated], which the app awaits in its startup sequence
+  ///    before any screen mounts. That is a weaker guarantee than (1): app-level
+  ///    sequencing rather than a property of the code, and the same shape as the
+  ///    incidental co-location documented on
+  ///    `DanceRepository._cleanupDanglingReferences`. Exposing any sweep as a
+  ///    "repair my library" button, or moving one after the first frame, would
+  ///    have turned it into an invisible write to a watched table with no
+  ///    diagnostic. Converting them removes that future rather than documenting
+  ///    it — see [ensureMigrated] for why this family was chosen over (1).
+  ///
+  ///    `settings` is still watched by nothing, so its conversion buys no
+  ///    refresh today. It is deliberate all the same: the cost is one call
+  ///    shape, and the alternative is a table that becomes exposed silently the
+  ///    moment any screen reads a preference reactively. **Before adding such a
+  ///    watcher, read the self-trigger hazard on `SettingsRepository`** — a
+  ///    naive `settings` stream is woken by the program editor's own autosave.
   /// 3. **Unwatchable** — the `dance_fts` writes in `DanceRepository`. It is an
   ///    FTS index rebuilt from derived rows; nothing streams it and nothing
   ///    should.
   ///
-  /// Only group 2 is a live thread to pull, and deliberately not pulled here:
-  /// it belongs in its own change with its own reproduction, not folded into
-  /// the conversion that happens to make `dances` watched.
+  /// Group 2 was the only live thread here, and it has since been pulled — in
+  /// its own change with its own reproduction, rather than folded into the
+  /// conversion that made `dances` watched. Groups 1 and 3 stand.
   Stream<void> watchCollectionSources() => db
       .customSelect(
         'SELECT 1',
@@ -214,31 +221,23 @@ class CompendiumRepositories {
   /// succeeds, so an interrupted upgrade is retried on the next open;
   /// concurrent calls share one in-flight future. A failed attempt clears the
   /// memo so a later call retries rather than replaying the cached failure.
-  ///  ///
+  ///
   /// ## Every write below this point is visible to drift's watchers (#768)
   ///
   /// The sweeps reachable from here used to write with bare `customStatement`,
   /// which drift cannot attribute to a table and therefore does not broadcast.
-  /// #932 closed that class in [DanceRepository]; this closes the rest of it.
+  /// #932 closed that class in [DanceRepository]; this closed the rest of it.
   ///
-  /// The reason it is worth closing HERE, rather than left to the ordering
-  /// argument that made it harmless, is that the two families of raw write in
-  /// this package are protected by guarantees of very different strength:
-  ///
-  /// - `database.dart`'s raw writes sit inside `MigrationStrategy.onUpgrade`,
-  ///   which drift runs while opening the database. No query has been issued
-  ///   yet, so no stream can exist to miss them. That is **structural** — it
-  ///   cannot be invalidated by a later change to this file.
-  /// - The sweeps below run from [ensureMigrated], on an already-open database.
-  ///   They are safe only because the one production caller
-  ///   (`main.dart`'s startup sequence) runs before the shell is built, so no
-  ///   screen has subscribed yet. That is **ordering**, and ordering is exactly
-  ///   the kind of guarantee a future change breaks without noticing: expose
-  ///   any of these sweeps as a "repair my library" button in settings, and
-  ///   every one of them becomes an invisible write to a watched table.
-  ///
-  /// Both were safe today. Only one was safe for a reason that survives the
-  /// rest of #768, so the ordering-dependent family is the one that got fixed.
+  /// Why this family and not `database.dart`'s eleven raw writes, which remain
+  /// raw: the full classification is on [watchCollectionSources], and the short
+  /// version is that the two are protected by guarantees of different strength.
+  /// `database.dart`'s sit inside `MigrationStrategy`, so no query has been
+  /// issued yet and no stream can exist to miss them — **structural**, and not
+  /// invalidatable by a later edit to this file. These ran on an already-open
+  /// database and were safe only because the one production caller runs before
+  /// the shell is built — **ordering**, which a future change breaks without
+  /// noticing. Both were safe; only one was safe for a reason that survives the
+  /// rest of #768.
   ///
   /// [onDerivedRebuildProgress], when supplied, is forwarded to
   /// [DanceRepository.rebuildAllDerived] so the caller (e.g. the app's startup
