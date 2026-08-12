@@ -1928,7 +1928,7 @@ class AppLocalizationsDa extends AppLocalizations {
       'Endnu ikke inkluderet i noget program.';
 
   @override
-  String get danceCallingHistoryError => 'Could not load the calling history.';
+  String get danceCallingHistoryError => 'Kunne ikke indlæse kaldehistorikken.';
 
   @override
   String get danceShowCanonicalTerms => 'Vis kanoniske termer';
