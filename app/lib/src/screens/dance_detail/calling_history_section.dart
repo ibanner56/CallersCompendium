@@ -93,6 +93,14 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
   @override
   void didUpdateWidget(CallingHistorySection oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.repositories != widget.repositories) {
+      // The cache is keyed by venue id, which is only meaningful within one
+      // database. Carrying it across a swap would let a stale entry answer for
+      // an id that exists in both, and the "already resolved" check would then
+      // skip the reload that would have corrected it — so the row would render
+      // the OLD database's venue name. Clear it rather than trust the id.
+      _venuesById = const {};
+    }
     if (oldWidget.danceId != widget.danceId ||
         oldWidget.performedOnly != widget.performedOnly ||
         oldWidget.trackAllCallers != widget.trackAllCallers ||

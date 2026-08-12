@@ -334,6 +334,78 @@ void main() {
     expect(counter.count, 1, reason: 'read once, then cached');
   });
 
+  testWidgets('does not carry the venue cache across a database swap', (
+    tester,
+  ) async {
+    // Two databases that use the SAME venue id for different venues — which
+    // is what makes the cache dangerous rather than merely stale: the id
+    // resolves, so the "already resolved" check would skip the reload and the
+    // row would keep rendering the first database's name.
+    Future<CompendiumRepositories> build(String venueName) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(dance('d1', 'Petronella'));
+      await repos.venues.upsert(
+        Venue(id: 'shared-id', name: venueName, city: 'Nelson'),
+      );
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Autumn Ball',
+          venueId: 'shared-id',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      return repos;
+    }
+
+    final first = await build('Grange Hall');
+    final second = await build('Town Hall');
+
+    Widget sectionFor(CompendiumRepositories repos) => MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+      home: Scaffold(
+        body: SingleChildScrollView(
+          child: CallingHistorySection(
+            repositories: repos,
+            danceId: 'd1',
+            performedOnly: false,
+            trackAllCallers: true,
+            onOpenProgram: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(sectionFor(first));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<CallingHistoryRow>(
+            find.byKey(const ValueKey('calling-history-s1')),
+          )
+          .venueLabel,
+      contains('Grange Hall'),
+    );
+
+    // Same widget position, different database: the State is reused, so the
+    // cache would survive unless it is cleared.
+    await tester.pumpWidget(sectionFor(second));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<CallingHistoryRow>(
+            find.byKey(const ValueKey('calling-history-s1')),
+          )
+          .venueLabel,
+      contains('Town Hall'),
+      reason:
+          'the venue id is only meaningful within one database, so the cache '
+          'must not answer for the new one',
+    );
+  });
+
   testWidgets('half-calling stats appear with the history, not a beat later', (
     tester,
   ) async {
