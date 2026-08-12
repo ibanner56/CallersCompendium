@@ -193,15 +193,16 @@ and produces no Android artifact.
      So `0.1.0-beta.7+1` is compared as `0.1.0` vs `0.1.0-beta.7` and fails the
      `meta` gate. Bump the pubspec only when the core version itself changes.
    - **Never bump `schemaVersion` in a PATCH release** (ADR-002 §7).
-3. **Land the promotion on `main` first, then tag the merge commit.** Steps 1–2
-   edit tracked files, so they go through a PR like any other change — the
-   release is tagged from `main`, never from the release branch. After the PR
-   merges, re-fetch and tag the **merge commit**, not the `origin/main` you
-   fetched before opening the PR:
+3. **Land the promotion on `main` first, then tag `main`'s tip.** Steps 1–2 edit
+   tracked files, so they go through a PR like any other change — the release is
+   tagged from `main`, never from the release branch. This repo squash-merges, so
+   what you want is the post-merge tip of `main` (a single-parent commit, not a
+   two-parent merge commit). After the PR merges, re-fetch — the `origin/main`
+   you fetched before opening the PR is now stale:
 
    ```sh
    git fetch origin main
-   git rev-parse origin/main        # the merge commit — tag this
+   git rev-parse origin/main        # the post-merge tip — tag this
    ```
 
    Tagging a pre-merge SHA points the release at a tree whose `## [Unreleased]`
@@ -209,10 +210,12 @@ and produces no Android artifact.
    your working copy. If the tag is already pushed, delete and re-push it at the
    right commit before the draft is published.
 4. Tag and push (a plain `x.y.z` tag → **stable**; a prerelease tag like
-   `v0.2.0-beta.1` → **beta** channel + GitHub prerelease):
+   `v0.2.0-beta.1` → **beta** channel + GitHub prerelease). **Name the commit
+   explicitly** — a bare `git tag v0.2.0` tags whatever `HEAD` happens to be,
+   which is the release branch if you never switched off it:
 
    ```sh
-   git tag v0.2.0
+   git tag v0.2.0 "$(git rev-parse origin/main)"
    git push origin v0.2.0
    ```
 
