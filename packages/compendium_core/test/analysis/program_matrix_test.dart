@@ -1031,8 +1031,8 @@ void main() {
           allemande('role2s'),
         ]),
       ]);
-      expect(m.isPhraseCollision(0, colOfMove(m, 'allemande:larks')), isFalse);
-      expect(m.isPhraseCollision(1, colOfMove(m, 'allemande:robins')), isFalse);
+      expect(m.isCollision(0, colOfMove(m, 'allemande:larks')), isFalse);
+      expect(m.isCollision(1, colOfMove(m, 'allemande:robins')), isFalse);
     });
 
     test('two lark allemandes in the SAME phrase of adjacent dances DO still '
@@ -1049,8 +1049,8 @@ void main() {
         ]),
       ]);
       final c = colOfMove(m, 'allemande:larks');
-      expect(m.isPhraseCollision(0, c), isTrue);
-      expect(m.isPhraseCollision(1, c), isTrue);
+      expect(m.isCollision(0, c), isTrue);
+      expect(m.isCollision(1, c), isTrue);
     });
 
     test('a plain swing and a balance-prefixed swing of the SAME role, in the '
@@ -1066,11 +1066,8 @@ void main() {
           swingWithPrefix('partners', 'balance'),
         ]),
       ]);
-      expect(m.isPhraseCollision(0, colOfMove(m, 'swing:partner')), isFalse);
-      expect(
-        m.isPhraseCollision(1, colOfMove(m, 'swing:partner:balance')),
-        isFalse,
-      );
+      expect(m.isCollision(0, colOfMove(m, 'swing:partner')), isFalse);
+      expect(m.isCollision(1, colOfMove(m, 'swing:partner:balance')), isFalse);
     });
 
     test('two balance-prefixed partner swings in the SAME phrase of adjacent '
@@ -1086,8 +1083,8 @@ void main() {
         ]),
       ]);
       final c = colOfMove(m, 'swing:partner:balance');
-      expect(m.isPhraseCollision(0, c), isTrue);
-      expect(m.isPhraseCollision(1, c), isTrue);
+      expect(m.isCollision(0, c), isTrue);
+      expect(m.isCollision(1, c), isTrue);
     });
 
     test('the collapsed custom column never collides', () {
