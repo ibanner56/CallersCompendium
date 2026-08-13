@@ -60,6 +60,26 @@ class ProgramsListScreen extends StatefulWidget {
 
 class _ProgramsListScreenState extends State<ProgramsListScreen> {
   late CompendiumRepositories _repos;
+
+  /// Whether one-time setup has run. **This is a contract between two changes
+  /// that arrived from opposite directions, and neither states it alone.**
+  ///
+  /// The subscription is opened exactly once per [State] — issue #768, so that
+  /// a rebuild neither drops nor duplicates it. Issue #895 then gave
+  /// [ProgramsShell] a [GlobalKey] so this State *survives* being reparented
+  /// across the 900 px breakpoint (`programs_shell.dart:44`), which is what
+  /// preserves the sort and scroll position through a rotation.
+  ///
+  /// Together those mean: **a rotation must not re-open the subscription.** It
+  /// does not today, because a reparented Element is moved rather than
+  /// destroyed — `deactivate` then `activate`, never `dispose` — so this flag
+  /// stays true and the only cancel paths ([dispose] and `_resubscribe`, which
+  /// immediately re-opens) are unreachable from a breakpoint crossing.
+  ///
+  /// What would falsify it: moving the subscription to `initState` and dropping
+  /// the flag (correct before #895, a leak after it), or overriding
+  /// `deactivate` to cancel — which would leave `_started` true with no stream,
+  /// i.e. a list that silently stops updating after the first rotation.
   bool _started = false;
 
   List<Program>? _programs;
