@@ -178,12 +178,19 @@ class CollectionData {
   ///
   /// Emits an initial value immediately, so a subscriber renders without
   /// waiting for a write.
+  /// [watchVenues] adds `venues` to the watched set for consumers that render a
+  /// venue label beside this data (issue #944). `CollectionData` itself carries
+  /// no venue — the Collection list renders none — so it defaults to false and
+  /// only the program editor and program summary opt in. See
+  /// `CompendiumRepositories.watchCollectionSources` for why this is a
+  /// parameter rather than an entry.
   static Stream<CollectionData> watch(
     CompendiumRepositories repos, {
     String? callerFilter,
     Duration coalesce = coalesceWindow,
+    bool watchVenues = false,
   }) => repos
-      .watchCollectionSources()
+      .watchCollectionSources(includeVenues: watchVenues)
       .transform(_CoalesceTrailing<void>(coalesce))
       .asyncMap((_) => load(repos, callerFilter: callerFilter));
 

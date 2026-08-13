@@ -196,9 +196,53 @@ class CompendiumRepositories {
   /// Group 2 was the only live thread here, and it has since been pulled — in
   /// its own change with its own reproduction, rather than folded into the
   /// conversion that made `dances` watched. Groups 1 and 3 stand.
-  Stream<void> watchCollectionSources() => db
+  ///
+  /// ## Why [includeVenues] is a parameter and not an entry (issue #944)
+  ///
+  /// This signal has three consumers and they do not read the same data. The
+  /// Collection list renders no venue at all — `CollectionData` does not carry
+  /// one — while the program editor and the program summary each resolve a
+  /// venue *label* beside it, from a table this set omits.
+  ///
+  /// Adding `venues` unconditionally would fix their staleness by reloading the
+  /// whole Collection snapshot on every venue edit for a screen that displays
+  /// no venue, which is issue #340's over-firing: curing staleness by causing
+  /// churn. Removing it is what leaves the labels stale. Neither is right,
+  /// because **the set is being asked one question on behalf of consumers with
+  /// different answers.**
+  ///
+  /// So the caller states what it renders. That is the whole of the fix: not a
+  /// wider set, not a narrower one, but one chosen per consumer. Cheap here
+  /// because there is exactly one axis of disagreement — if a second appears,
+  /// this becomes an argument for a set built from the caller's needs rather
+  /// than a boolean bolted onto a shared one.
+  ///
+  /// ## The SQL marker is load-bearing (drift `StreamKey`)
+  ///
+  /// drift caches active query streams by `StreamKey(sql, variables)` and
+  /// **`readsFrom` is not part of that key**
+  /// (`drift/lib/src/runtime/executor/stream_queries.dart`: `StreamKey` holds
+  /// only `sql` and `variables`; `registerStream` returns the cached stream for
+  /// an equal key). Two sentinels reading `SELECT 1` with *different* declared
+  /// tables are therefore the same stream, and the second subscriber silently
+  /// inherits the first's read set — including a narrower one.
+  ///
+  /// That is this issue's own defect arriving by a route no read set can close:
+  /// the set is stated correctly at both call sites and one of them is ignored.
+  /// It is also non-deterministic, because which set wins depends on which
+  /// screen was opened first.
+  ///
+  /// So every sentinel carries a distinct comment naming its read set. The
+  /// comment changes the SQL text — and therefore the key — while being inert
+  /// to SQLite. Any new sentinel must do the same; the guard is
+  /// `per_consumer_read_sets_test.dart`, which asserts the *behaviour* (one
+  /// stream wakes, the other does not) rather than the marker, so it survives a
+  /// change of technique here.
+  Stream<void> watchCollectionSources({bool includeVenues = false}) => db
       .customSelect(
-        'SELECT 1',
+        includeVenues
+            ? '/* collection sources +venues */ SELECT 1'
+            : '/* collection sources */ SELECT 1',
         readsFrom: {
           db.dances,
           db.choreographers,
@@ -207,6 +251,8 @@ class CompendiumRepositories {
           db.publishedSources,
           db.programSlots,
           db.programs,
+          // Only for consumers that render a venue label. See above.
+          if (includeVenues) db.venues,
         },
       )
       .watch()
