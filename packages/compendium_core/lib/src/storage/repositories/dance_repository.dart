@@ -993,9 +993,10 @@ class DanceRepository {
   /// after purge -> watcher saw: [1]   | truth in db: 0
   /// ```
   ///
-  /// Nothing watches these tables **yet**, so that was unobservable rather than
-  /// harmless — the first reactive read over either would have shipped it. See
-  /// `dance_hard_delete_test.dart`, which now holds that scenario as a guard.
+  /// Nothing watched these tables when the omission was found, so it was
+  /// unobservable rather than harmless — and both are watched now, so the
+  /// `updates:` sets below are load-bearing today rather than prospectively.
+  /// See `dance_hard_delete_test.dart`, which holds that scenario as a guard.
   Future<void> _garbageCollectOrphanedRefs(
     ({Set<String> choreographerIds, Set<String> sourceIds}) candidates,
   ) async {

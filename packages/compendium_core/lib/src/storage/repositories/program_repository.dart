@@ -857,9 +857,8 @@ class ProgramRepository {
   ///    in the same change.** Leaving it attached means one write both re-emits
   ///    the stream and re-runs the imperative load — reintroducing #340 while
   ///    fixing staleness. The scopes themselves come out last, once nothing
-  ///    subscribes: `ProgramsRefreshScope` has been retired on exactly that
-  ///    condition, and `CollectionRefreshScope` still has one subscriber
-  ///    (`dance_detail_screen.dart`) whose data is not yet a stream.
+  ///    subscribes; both app-side channels have now reached that condition, one
+  ///    of them by being retired on it.
   Stream<DanceCallingHistory> watchCallingHistoryForDance(
     String danceId, {
     bool performedOnly = false,
