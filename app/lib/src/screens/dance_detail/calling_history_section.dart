@@ -33,13 +33,23 @@ import '../../theme/app_spacing.dart';
 ///    [DanceCallingHistory] rather than from a second stream, so a program write
 ///    rebuilds this section once. Over-firing is issue #340's failure and pulls
 ///    opposite to staleness; both have to be held at once.
-/// 4. **A read outside the stream's declared tables is stated, not assumed.**
-///    The venue *label* comes from the `venues` catalogue, which is deliberately
-///    outside that set, so it is loaded once here (see `_loadVenueLabels`) and a
-///    venue renamed while this screen is open keeps its old label until the
-///    screen is reopened. That is unchanged from the pre-stream behaviour — no
-///    venue-editing path refreshed this screen either — and it is written down
-///    because an unstated gap is indistinguishable from the bug in rule 1.
+/// 4. **The read set is the consumer's, not the query's** (issue #944).
+///    This section renders a venue label per row, so it opts into `venues` —
+///    while the Collection list, which renders no venue, does not. The same
+///    repository method therefore serves two different watched sets, because
+///    "what does this query select?" and "what does this screen render?" are
+///    different questions and only the second one is the correct read set.
+///
+///    It was originally written the other way: `venues` deliberately excluded,
+///    with a note that a rename would keep the old label until the screen was
+///    reopened. Stating the gap did not stop it being a defect.
+/// 4a. **A cache in front of a stream can defeat its read set.** Widening the
+///    set was necessary and not sufficient here: [_withVenueLabels] re-read the
+///    catalogue only when a record linked an id it could not resolve, and a
+///    rename leaves the id resolvable. The stream fired, this consumer re-ran,
+///    and it declined to re-read something it believed it already knew. The
+///    read set can make a consumer re-run; it cannot make it re-read. See
+///    [_venuesDirty].
 /// 5. **The screen drops its `ProgramsRefreshScope` listener in the same
 ///    change.** Keeping it would reload the whole screen on top of this stream's
 ///    emit: one write, two rebuilds. The scope itself stays — the screens not
@@ -80,9 +90,28 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
   /// only when an argument that changes the query changes.
   Stream<DanceCallingHistory>? _history;
 
-  /// Venue display names by id, for the linked venues seen so far. Outside the
-  /// stream's declared tables by design; see rule 4 on [CallingHistorySection].
+  /// Whether the stream has delivered a value yet — see [_venuesDirty].
+  bool _seenFirstEmit = false;
+
+  /// Venue display names by id, for the linked venues seen so far.
+  ///
+  /// `venues` IS in this stream's declared tables now (issue #944), so an emit
+  /// can carry a venue change — but the cache in front of it would still serve
+  /// the old name, which is what [_venuesDirty] exists to prevent.
   Map<String, Venue> _venuesById = const {};
+
+  /// Whether [_venuesById] may be out of date.
+  ///
+  /// Set on every emit after the first, because the stream watches `venues` for
+  /// this consumer and an emit is therefore the only signal available that one
+  /// may have changed — the rows themselves carry ids, which a rename does not
+  /// alter. Cleared when the catalogue is re-read.
+  ///
+  /// The cost of being conservative is one `venues.listAll()` per emit that
+  /// resolves at least one linked venue; the cost of being clever would be a
+  /// rename that never appears. That trade is why this is a flag and not a
+  /// comparison.
+  bool _venuesDirty = false;
 
   @override
   void didChangeDependencies() {
@@ -129,6 +158,13 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
               performedOnly: widget.performedOnly,
               callerFilter: callerFilter,
             )
+            .map((history) {
+              // First emit populates the cache via the unresolved-id path; from
+              // then on, any emit may be carrying a venue write.
+              if (_seenFirstEmit) _venuesDirty = true;
+              _seenFirstEmit = true;
+              return history;
+            })
             .asyncMap(_withVenueLabels),
       );
 
@@ -152,10 +188,36 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
   Future<DanceCallingHistory> _withVenueLabels(
     DanceCallingHistory history,
   ) async {
+    // ## Why an id-resolvability check is not enough (issue #944)
+    //
+    // This cache used to re-read only when a record linked a venue it could
+    // not resolve. A **rename** leaves the id perfectly resolvable, so the
+    // check was false and the cache was never refreshed — the section rendered
+    // the old name indefinitely, and no read set could have fixed it: the
+    // stream fired, the consumer re-ran, and it declined to re-read something
+    // it believed it already knew.
+    //
+    // So a re-read is forced when the emit could have carried a venue change.
+    // `_venuesDirty` is set by the subscription on every emit after the first,
+    // which is exactly when a venue write may have occurred — the stream now
+    // watches `venues` for this consumer, so an emit is the signal.
+    //
+    // The unresolved-id check is kept as well, because it covers the other
+    // case: a program that gained a link to a venue this cache has never seen.
+    // Neither condition implies the other.
+    // The cost gate above still applies to both conditions: a history whose
+    // programs all carry free text links no venue, so the catalogue cannot
+    // change what it renders and is not read however dirty the cache is.
+    //
+    // The flag is cleared only when a read actually happens, so skipping here
+    // does not lose the signal — a later emit whose records do link a venue
+    // still re-reads.
+    final linksAnyVenue = history.records.any((r) => r.venueId != null);
     final hasUnresolved = history.records.any(
       (r) => r.venueId != null && !_venuesById.containsKey(r.venueId),
     );
-    if (hasUnresolved) {
+    if (linksAnyVenue && (hasUnresolved || _venuesDirty)) {
+      _venuesDirty = false;
       try {
         final venues = await widget.repositories.venues.listAll();
         _venuesById = {for (final v in venues) v.id: v};

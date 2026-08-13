@@ -357,41 +357,63 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _replaceSubscription();
     _pendingFirst = first;
     _subscribedTrackAllCallers = _trackHistoryForAllCallers;
-    _dataSub = CollectionData.watch(_repos, callerFilter: callerFilter).listen(
-      (data) {
-        _latestData = data;
-        if (!first.isCompleted) {
-          _pendingFirst = null;
-          first.complete(data);
-          return;
-        }
-        if (mounted) setState(() => _data = data);
-      },
-      onError: (Object error) {
-        if (!first.isCompleted) {
-          _pendingFirst = null;
-          first.completeError(error);
-          return;
-        }
-        // A LATER failure keeps the picker on its last good data rather than
-        // blanking it: this is reference data beside an editor holding unsaved
-        // work, so an empty picker would be worse than a slightly stale one.
-        // Deliberately not silent — it surfaces through the screen's own error
-        // state only if nothing has loaded yet, which the branch above covers.
-      },
-      onDone: () {
-        // The source can end without ever emitting — the database closed while
-        // this screen was opening, which happens in teardown. Completing the
-        // future is what stops `_load` awaiting forever; the error routes to
-        // the screen's existing load-failure branch.
-        if (!first.isCompleted) {
-          _pendingFirst = null;
-          first.completeError(
-            StateError('collection stream closed before its first value'),
-          );
-        }
-      },
-    );
+    _dataSub =
+        CollectionData.watch(
+          _repos,
+          callerFilter: callerFilter,
+          // The editor renders the linked venue's name in simple mode's
+          // read-only fallback, from a table `CollectionData` does not carry
+          // (issue #944).
+          watchVenues: true,
+        ).listen(
+          (data) {
+            _latestData = data;
+            if (!first.isCompleted) {
+              _pendingFirst = null;
+              first.complete(data);
+              return;
+            }
+            if (mounted) setState(() => _data = data);
+            // Re-resolve the linked venue on every later emit (issue #944).
+            //
+            // Opting into `watchVenues` is necessary and not sufficient: it makes
+            // the stream fire on a venue write, but `_linkedVenue` is populated by
+            // `_load`, which runs once per editor. Without this the rename would
+            // wake the picker and leave the label beside it showing the old name —
+            // a *partially* refreshed screen, which is harder to notice than one
+            // that never updates.
+            //
+            // `_refreshLinkedVenue` already drops a result whose id no longer
+            // matches `_venueId`, so a rename landing while the user is changing
+            // the link cannot resurrect the old selection.
+            final linkedId = _venueId;
+            if (linkedId != null) unawaited(_refreshLinkedVenue(linkedId));
+          },
+          onError: (Object error) {
+            if (!first.isCompleted) {
+              _pendingFirst = null;
+              first.completeError(error);
+              return;
+            }
+            // A LATER failure keeps the picker on its last good data rather than
+            // blanking it: this is reference data beside an editor holding unsaved
+            // work, so an empty picker would be worse than a slightly stale one.
+            // Deliberately not silent — it surfaces through the screen's own error
+            // state only if nothing has loaded yet, which the branch above covers.
+          },
+          onDone: () {
+            // The source can end without ever emitting — the database closed while
+            // this screen was opening, which happens in teardown. Completing the
+            // future is what stops `_load` awaiting forever; the error routes to
+            // the screen's existing load-failure branch.
+            if (!first.isCompleted) {
+              _pendingFirst = null;
+              first.completeError(
+                StateError('collection stream closed before its first value'),
+              );
+            }
+          },
+        );
     return first.future;
   }
 
