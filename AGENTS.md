@@ -226,8 +226,11 @@ surface must be classified **in the same PR that introduces it**.
 This exists because the boundary used to be prose and prose does not hold. A doc
 comment on `Choreographer` said its `email`/`location` "MUST NOT be emitted in
 any shareable export"; nothing enforced it, and the same question had no answer
-at all for the 22 columns of `venues`. Five ratchets now enforce it, so the
-failure mode is a red CI run rather than a silent leak.
+at all for the 22 columns of `venues`. A family of ratchets across
+`packages/compendium_core/test/privacy/` and `app/test/data/` now enforces it —
+covering database columns, settings keys declared as an exact constant, and
+settings keys built at runtime from a declared prefix — so the failure mode is
+a red CI run rather than a silent leak.
 
 Three axes per field, and the third is the one to think about:
 
