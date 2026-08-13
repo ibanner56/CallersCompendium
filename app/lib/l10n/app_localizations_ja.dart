@@ -3416,7 +3416,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importResolveOnline => 'オンラインで未一致を解決';
 
   @override
-  String get importPlaintextImportedOnline => 'Caller\'s Boxからインポート';
+  String get importPlaintextImportedOnline => 'オンラインからインポート済み';
 
   @override
   String get importPlaintextLinked => 'ダンスにリンク';
@@ -3428,7 +3428,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importPlaintextUnmatched => '一致なし — ノートとして追加';
 
   @override
-  String get importPlaintextSearchError => 'The Caller\'s Boxを検索できませんでした。';
+  String get importPlaintextSearchError => 'オンライン検索に失敗しました。';
 
   @override
   String importPlaintextSlotCount(int count) {
@@ -3445,9 +3445,9 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       remaining,
       locale: localeName,
-      other: '$remaining件のタイトルをノートとして保持',
+      other: '$remaining件をメモとして保存',
     );
-    return '自信を持って一致するCaller\'s Boxの結果が見つかりませんでした — $_temp0。';
+    return '確実なオンライン一致は見つかりませんでした — $_temp0。';
   }
 
   @override
@@ -3455,15 +3455,15 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       linked,
       locale: localeName,
-      other: '$linked件のタイトル',
+      other: '$linked件',
     );
     String _temp1 = intl.Intl.pluralLogic(
       remaining,
       locale: localeName,
-      other: '；$remaining件はまだノートです。',
+      other: '；$remaining件はメモのまま。',
       zero: '。',
     );
-    return 'The Caller\'s Boxから$_temp0をリンクしました$_temp1';
+    return 'オンラインで$_temp0のタイトルをリンクしました$_temp1';
   }
 
   @override
@@ -3548,6 +3548,11 @@ class AppLocalizationsJa extends AppLocalizations {
       other: '貼り付けたタイトル$count件',
     );
     return '$_temp0';
+  }
+
+  @override
+  String importReviewProgramAmbiguousLine(String title) {
+    return '「$title」 — 1つ選ぶか、メモのままにしてください';
   }
 
   @override
