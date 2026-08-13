@@ -49,7 +49,9 @@ line**, and you get a live preview before anything is saved:
 
 Press **Import** to create the program; an **Undo** option appears in case you
 change your mind. You can then open the program and tidy up any notes — for
-example, searching your collection to link a dance the paste couldn't find.
+example, searching your collection to link a dance the paste couldn't find, or
+using a note slot's **…** menu to create a new dance from it directly (see
+"Kinds of slots" below).
 
 **Fill the gaps from The Caller's Box.** If some lines didn't match anything in
 your collection, the preview shows a **Resolve unmatched online** button. It
@@ -119,7 +121,11 @@ A program is made of three kinds of slots:
 
 - **Dance slots** — dances pulled from your [collection](./glossary.md#collection).
 - **Free-text slots** — for the things between dances: a break, a waltz,
-  announcements.
+  announcements. A free-text slot with real text in it also offers **Create a
+  dance from this** on its **…** menu, which opens the dance editor pre-filled
+  with that text as the title; saving links the slot to the new dance in one
+  step, so a note left behind by an import that couldn't find a match doesn't
+  need a separate trip through the collection to fix.
 - **[Alts](./glossary.md#alt)** — an alternate dance you might call instead
   of the one above it. An alt appears indented under its primary and is marked
   with an icon and text (never color alone), so it is always clear which dance is
