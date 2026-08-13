@@ -11,6 +11,14 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
+### Added
+
+- A note slot in the program builder (e.g. one left behind when a title-list
+  import couldn't find a matching dance) can now be turned into a real dance
+  in place: its overflow menu offers **Create a dance from this**, which opens
+  the dance editor pre-filled from the note and links the slot to the new
+  dance once you save. (#881)
+
 ### Fixed
 
 - The tag and author/choreographer picker on phones no longer closes after

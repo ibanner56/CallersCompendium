@@ -33,6 +33,7 @@ class DanceEditorController extends ChangeNotifier {
     required CompendiumRepositories repositories,
     required this.danceId,
     required Dialect dialect,
+    this.initialTitle,
   }) : _repos = repositories,
        _activeDialect = dialect,
        titleController = LingoTextEditingController(dialect: dialect),
@@ -46,6 +47,14 @@ class DanceEditorController extends ChangeNotifier {
   final CompendiumRepositories _repos;
   final String? danceId;
   Dialect _activeDialect;
+
+  /// A title to seed a **new** dance's title field with (issue #881's
+  /// "create a dance from this" program-slot action). Ignored when
+  /// [danceId] is non-null (editing an existing dance never reseeds its
+  /// title). Applied in [load]'s new-dance branch, in the same position as
+  /// the figures-template seed, so a restored autosave draft still overrides
+  /// it — the seed is a starting point, not a guaranteed final value.
+  final String? initialTitle;
 
   /// Renders canonical stored note text back into the active dialect for
   /// editing. Only [FigureRenderer.renderFreeText] (roles-only, case-preserving)
@@ -294,6 +303,16 @@ class DanceEditorController extends ChangeNotifier {
       // dance-authoring defaults. Each read is independently guarded so a
       // settings failure falls back silently to today's hardcoded default
       // rather than failing the editor load.
+
+      // Seed the title from the program-slot "create a dance from this" flow
+      // (issue #881), if one was provided. This runs BEFORE the draft-restore
+      // check below (like the figures template further down), so a restored
+      // autosave draft still overrides it — the seed is a starting point the
+      // user reviews and can edit, never a guaranteed final value.
+      final seedTitle = initialTitle;
+      if (seedTitle != null && seedTitle.isNotEmpty) {
+        titleController.text = seedTitle;
+      }
       try {
         _form = danceFormFromStored(
           await _repos.settings.get(kDefaultDanceFormKey),

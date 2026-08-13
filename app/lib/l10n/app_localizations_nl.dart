@@ -2524,6 +2524,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsMarkPerformedMenu => 'Markeren als uitgevoerd';
 
   @override
+  String get programsCreateDanceFromNoteMenu => 'Maak hier een dans van';
+
+  @override
+  String programsCreatedDanceFromNoteAnnounce(String title) {
+    return '$title aangemaakt en aan deze plek gekoppeld.';
+  }
+
+  @override
   String get programsRemoveSlotMenu => 'Slot verwijderen';
 
   @override

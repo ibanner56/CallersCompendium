@@ -4146,6 +4146,18 @@ abstract class AppLocalizations {
   /// **'Mark performed'**
   String get programsMarkPerformedMenu;
 
+  /// Overflow menu item on a note slot that opens the dance editor, pre-filled from the note, and links this slot to the new dance once saved (issue #881).
+  ///
+  /// In en, this message translates to:
+  /// **'Create a dance from this'**
+  String get programsCreateDanceFromNoteMenu;
+
+  /// Accessibility announcement after creating a dance from a note slot and converting the slot to reference it (issue #881).
+  ///
+  /// In en, this message translates to:
+  /// **'Created {title} and linked this slot to it.'**
+  String programsCreatedDanceFromNoteAnnounce(String title);
+
   /// Overflow menu item to remove a slot from the program.
   ///
   /// In en, this message translates to:

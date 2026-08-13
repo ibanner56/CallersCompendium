@@ -3379,6 +3379,20 @@
   "@programsMarkPerformedMenu": {
     "description": "Overflow menu item to mark a slot as performed."
   },
+  "programsCreateDanceFromNoteMenu": "Create a dance from this",
+  "@programsCreateDanceFromNoteMenu": {
+    "description": "Overflow menu item on a note slot that opens the dance editor, pre-filled from the note, and links this slot to the new dance once saved (issue #881)."
+  },
+  "programsCreatedDanceFromNoteAnnounce": "Created {title} and linked this slot to it.",
+  "@programsCreatedDanceFromNoteAnnounce": {
+    "description": "Accessibility announcement after creating a dance from a note slot and converting the slot to reference it (issue #881).",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Petronella"
+      }
+    }
+  },
   "programsRemoveSlotMenu": "Remove slot",
   "@programsRemoveSlotMenu": {
     "description": "Overflow menu item to remove a slot from the program."

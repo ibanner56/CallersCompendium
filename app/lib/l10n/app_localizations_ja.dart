@@ -2445,6 +2445,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsMarkPerformedMenu => '実施済みとしてマーク';
 
   @override
+  String get programsCreateDanceFromNoteMenu => 'これからダンスを作成';
+
+  @override
+  String programsCreatedDanceFromNoteAnnounce(String title) {
+    return '$titleを作成し、このスロットにリンクしました。';
+  }
+
+  @override
   String get programsRemoveSlotMenu => 'スロットを削除';
 
   @override

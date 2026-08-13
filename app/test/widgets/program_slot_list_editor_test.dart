@@ -52,6 +52,7 @@ void main() {
               onReorder: (_, _) {},
               onSlotChanged: (_, _) {},
               onRemove: (_) {},
+              onCreateDance: (_) {},
             ),
           ),
         ),

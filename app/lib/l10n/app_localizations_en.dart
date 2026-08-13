@@ -2505,6 +2505,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsMarkPerformedMenu => 'Mark performed';
 
   @override
+  String get programsCreateDanceFromNoteMenu => 'Create a dance from this';
+
+  @override
+  String programsCreatedDanceFromNoteAnnounce(String title) {
+    return 'Created $title and linked this slot to it.';
+  }
+
+  @override
   String get programsRemoveSlotMenu => 'Remove slot';
 
   @override
