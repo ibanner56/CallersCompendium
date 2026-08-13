@@ -9,6 +9,7 @@ import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
+import 'package:compendium_app/src/search/program_sort.dart' show ProgramSort;
 import 'package:compendium_app/src/screens/programs_shell.dart';
 
 import 'support/test_repositories.dart';
@@ -736,6 +737,103 @@ void main() {
           ),
         );
         handle.dispose();
+      },
+    );
+  });
+
+  group('rotation across the split-pane breakpoint (issue #895)', () {
+    /// Rotating a tablet crosses [ProgramsShell.splitBreakpoint] (900px): the
+    /// narrow branch builds a bare [ProgramsListScreen]
+    /// (`programs_shell.dart:70`) while the wide branch builds one nested in
+    /// `Row > SizedBox > ScaffoldMessenger` (`:82-89`) — structurally
+    /// different tree positions, so before the fix Flutter discards the old
+    /// Element/State and mounts a fresh one there rather than reusing it. An
+    /// in-list sort choice is therefore silently lost on rotation, a second
+    /// and distinct defect from the "no persistence" gap #895 reports (there
+    /// is nothing to "restore" here — the State itself is destroyed).
+    testWidgets(
+      'an in-list sort choice survives crossing the breakpoint from wide to '
+      'narrow',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.programs.create(_program(id: 'p1', title: 'Zeta'));
+        await repos.programs.create(_program(id: 'p2', title: 'Alpha'));
+
+        await _pumpWide(tester, repos);
+
+        // Switch off the Title default so a reset is observable.
+        await tester.tap(find.byKey(const ValueKey('programs-sort')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Event date').last);
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<PopupMenuButton<ProgramSort>>(
+                find.byKey(const ValueKey('programs-sort')),
+              )
+              .initialValue,
+          ProgramSort.eventDate,
+        );
+
+        // Cross the breakpoint downward (simulating a rotation) without
+        // rebuilding the whole widget tree from scratch.
+        tester.view.physicalSize = const Size(600, 1200);
+        await tester.pumpAndSettle();
+
+        expect(
+          tester
+              .widget<PopupMenuButton<ProgramSort>>(
+                find.byKey(const ValueKey('programs-sort')),
+              )
+              .initialValue,
+          ProgramSort.eventDate,
+          reason:
+              'Crossing the breakpoint must reparent the existing '
+              'ProgramsListScreen State, not rebuild it from scratch — '
+              'losing the in-list sort choice is exactly the "rotation '
+              'resets the list" defect this guard exists to catch.',
+        );
+      },
+    );
+
+    testWidgets(
+      'an in-list sort choice survives crossing the breakpoint from narrow '
+      'to wide',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.programs.create(_program(id: 'p1', title: 'Zeta'));
+        await repos.programs.create(_program(id: 'p2', title: 'Alpha'));
+
+        await _pumpNarrow(tester, repos);
+
+        await tester.tap(find.byKey(const ValueKey('programs-sort')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Recently updated').last);
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<PopupMenuButton<ProgramSort>>(
+                find.byKey(const ValueKey('programs-sort')),
+              )
+              .initialValue,
+          ProgramSort.recentlyUpdated,
+        );
+
+        tester.view.physicalSize = const Size(1400, 900);
+        await tester.pumpAndSettle();
+
+        expect(
+          tester
+              .widget<PopupMenuButton<ProgramSort>>(
+                find.byKey(const ValueKey('programs-sort')),
+              )
+              .initialValue,
+          ProgramSort.recentlyUpdated,
+          reason:
+              'Same hazard in the other direction: narrow -> wide also '
+              'swaps tree position (`programs_shell.dart:70` vs `:82-89`) '
+              'and must reparent rather than rebuild.',
+        );
       },
     );
   });

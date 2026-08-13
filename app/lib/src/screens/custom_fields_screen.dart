@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -46,31 +48,60 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
   bool _loading = true;
   Object? _loadError;
 
+  /// The live custom-field definitions (issue #768).
+  ///
+  /// Watches `custom_field_defs` only. `isInUse` and `listUsedChoiceValues`
+  /// read `custom_field_values` and are deliberately outside this stream — see
+  /// `CustomFieldDefRepository.watchAll`. They are asked on demand, at the
+  /// moment the form opens, which is when their answer is used.
+  StreamSubscription<List<CustomFieldDef>>? _defsSub;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_started) return;
     _started = true;
     _repos = RepositoriesScope.of(context);
-    _load();
+    _subscribe();
   }
 
-  Future<void> _load() async {
-    try {
-      final defs = await _repos.customFieldDefs.listAll();
-      if (!mounted) return;
-      setState(() {
-        _defs = defs;
-        _loading = false;
-        _loadError = null;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _loadError = e;
-        _loading = false;
-      });
-    }
+  void _subscribe() {
+    _defsSub = _repos.customFieldDefs.watchAll().listen(
+      (defs) {
+        if (!mounted) return;
+        setState(() {
+          _defs = defs;
+          _loading = false;
+          _loadError = null;
+        });
+      },
+      onError: (Object e) {
+        if (!mounted) return;
+        setState(() {
+          _loadError = e;
+          _loading = false;
+        });
+      },
+    );
+  }
+
+  /// Retry after a load error: the stream may have terminated with it, so a
+  /// fresh subscription is opened rather than waiting for an emit that a closed
+  /// source will never produce.
+  void _retry() {
+    unawaited(_defsSub?.cancel());
+    _defsSub = null;
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
+    _subscribe();
+  }
+
+  @override
+  void dispose() {
+    unawaited(_defsSub?.cancel());
+    super.dispose();
   }
 
   Future<void> _openForm({CustomFieldDef? existing}) async {
@@ -103,9 +134,19 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
       // returns the id the row actually occupies, which differs when a
       // tombstoned CustomFieldDef already held this UNIQUE key and was adopted.
       // The returned id is not needed because `result` is never referenced
-      // again and `_load()` below re-reads every definition from the database,
-      // so local state is correct either way. If that `_load()` is ever
-      // removed, this discard becomes a bug.
+      // again and the list is re-read from the database rather than patched
+      // locally, so displayed state carries the adopted id either way.
+      //
+      // That re-read used to be an explicit `_load()` below, and this comment
+      // used to say the discard became a bug if it were removed (issue #768).
+      // It has been removed — the screen now subscribes to
+      // `customFieldDefs.watchAll()`, and the upsert writes the table the
+      // stream watches, so the re-read still happens. The invalidating
+      // condition is therefore no longer "`_load()` is removed" but **"this
+      // screen stops re-reading definitions from the database"**, which is the
+      // property the discard actually depends on. Patching `_defs` locally from
+      // `result` would reintroduce the bug the original comment warned about,
+      // because `result` carries the pre-adoption id.
       // ignore: unused_result
       await _repos.customFieldDefs.upsert(result);
       // Show the one-time sharing disclosure when the user creates their very
@@ -120,7 +161,8 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
           if (mounted) await _showSharingDisclosure();
         }
       }
-      await _load();
+      // No reload: the upsert writes `custom_field_defs`, which this screen
+      // watches.
     }
   }
 
@@ -170,7 +212,7 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
 
     try {
       await _repos.customFieldDefs.delete(def.id);
-      await _load();
+      // No reload: the delete tombstones the row and the stream re-emits.
     } on StateError catch (e, st) {
       if (!mounted) return;
       // The repo throws StateError when values still exist on dances. Log the
@@ -226,7 +268,7 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
             const SizedBox(height: 8),
             Text(l10n.customFieldsLoadError),
             const SizedBox(height: 8),
-            FilledButton(onPressed: _load, child: Text(l10n.commonRetry)),
+            FilledButton(onPressed: _retry, child: Text(l10n.commonRetry)),
           ],
         ),
       );

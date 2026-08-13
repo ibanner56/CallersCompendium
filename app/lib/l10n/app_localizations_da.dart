@@ -557,6 +557,17 @@ class AppLocalizationsDa extends AppLocalizations {
       'Hvordan samlingen sorteres, når du åbner den. Du kan stadig ændre sorteringen under gennemsynet.';
 
   @override
+  String get settingsDefaultsSortLastUsed => 'Sidst brugt';
+
+  @override
+  String get settingsDefaultsProgramSortTitle =>
+      'Sorteringsrækkefølge for programmer';
+
+  @override
+  String get settingsDefaultsProgramSortSubtitle =>
+      'Hvordan programlisten sorteres, når du åbner den. Du kan stadig ændre sorteringen, mens du gennemser.';
+
+  @override
   String get settingsDefaultsCanonicalTitle =>
       'Åbn dansdetaljer med kanoniske termer';
 
@@ -3531,7 +3542,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importResolveOnline => 'Opløs umatchede online';
 
   @override
-  String get importPlaintextImportedOnline => 'Importeret fra Caller\'s Box';
+  String get importPlaintextImportedOnline => 'Importeret online';
 
   @override
   String get importPlaintextLinked => 'Knyttet til dans';
@@ -3543,7 +3554,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importPlaintextUnmatched => 'Intet match – tilføjet som note';
 
   @override
-  String get importPlaintextSearchError => 'Kunne ikke søge The Caller\'s Box.';
+  String get importPlaintextSearchError => 'Kunne ikke søge online.';
 
   @override
   String importPlaintextSlotCount(int count) {
@@ -3561,10 +3572,10 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       remaining,
       locale: localeName,
-      other: '$remaining titler beholdt som noter',
-      one: '$remaining titel beholdt som note',
+      other: '$remaining titler gemt som noter',
+      one: '$remaining titel gemt som note',
     );
-    return 'Ingen sikre Caller\'s Box-matches fundet – $_temp0.';
+    return 'Ingen sikre onlinematch fundet — $_temp0.';
   }
 
   @override
@@ -3582,7 +3593,7 @@ class AppLocalizationsDa extends AppLocalizations {
       one: '; $remaining stadig en note.',
       zero: '.',
     );
-    return 'Tilknyttede $_temp0 fra The Caller\'s Box$_temp1';
+    return 'Koblede $_temp0 online$_temp1';
   }
 
   @override
@@ -3670,6 +3681,11 @@ class AppLocalizationsDa extends AppLocalizations {
       one: '1 indsat titel',
     );
     return '$_temp0';
+  }
+
+  @override
+  String importReviewProgramAmbiguousLine(String title) {
+    return '\"$title\" — vælg én, eller behold som note';
   }
 
   @override

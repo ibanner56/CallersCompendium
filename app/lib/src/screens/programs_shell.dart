@@ -29,6 +29,20 @@ class ProgramsShell extends StatefulWidget {
 class _ProgramsShellState extends State<ProgramsShell> {
   String? _selectedProgramId;
 
+  /// Identifies the single logical [ProgramsListScreen] across both
+  /// [LayoutBuilder] branches (`_buildSplitPane` vs the narrow branch below).
+  ///
+  /// Those branches place the list at structurally different tree positions
+  /// (bare vs nested in `Row > SizedBox > ScaffoldMessenger`), so without a
+  /// stable key Flutter treats a breakpoint crossing as removing one Element
+  /// and inserting a different one — discarding the list's State (its sort
+  /// choice, in particular) even though it is logically the same screen
+  /// (issue #895). A [GlobalKey] on the same widget in both branches makes
+  /// Flutter *move* the existing Element (and its State) to the new position
+  /// instead, the same way [CollectionShell] already keys its detail-pane
+  /// [ScaffoldMessenger] (`collection_shell.dart:116`).
+  final _listKey = GlobalKey();
+
   void _onSelectProgram(String id) {
     setState(() => _selectedProgramId = id);
   }
@@ -67,7 +81,7 @@ class _ProgramsShellState extends State<ProgramsShell> {
         // program never appeared until restart (issue #768). It needs none now:
         // the list subscribes to its own data, which is a channel that cannot
         // be forgotten at a call site.
-        return const ProgramsListScreen();
+        return ProgramsListScreen(key: _listKey);
       },
     );
   }
@@ -81,6 +95,7 @@ class _ProgramsShellState extends State<ProgramsShell> {
           width: ProgramsShell.listPaneWidth,
           child: ScaffoldMessenger(
             child: ProgramsListScreen(
+              key: _listKey,
               onSelectProgram: _onSelectProgram,
               onCreateProgram: () => _openBuilder(context),
               selectedProgramId: _selectedProgramId,

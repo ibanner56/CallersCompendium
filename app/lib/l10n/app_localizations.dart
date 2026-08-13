@@ -1040,6 +1040,24 @@ abstract class AppLocalizations {
   /// **'How the Collection is sorted when you open it. You can still change the sort while browsing.'**
   String get settingsDefaultsSortSubtitle;
 
+  /// Dropdown option meaning the list should open in whatever sort the user last chose while browsing, rather than a fixed one (issue #895).
+  ///
+  /// In en, this message translates to:
+  /// **'Last used'**
+  String get settingsDefaultsSortLastUsed;
+
+  /// Title of the default Programs sort-order picker (issue #895), mirroring settingsDefaultsSortTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs sort order'**
+  String get settingsDefaultsProgramSortTitle;
+
+  /// Explanation for the default Programs sort-order picker (issue #895), mirroring settingsDefaultsSortSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How the Programs list is sorted when you open it. You can still change the sort while browsing.'**
+  String get settingsDefaultsProgramSortSubtitle;
+
   /// Toggle title: open dances in canonical terms rather than the active dialect.
   ///
   /// In en, this message translates to:
@@ -5594,10 +5612,10 @@ abstract class AppLocalizations {
   /// **'Resolve unmatched online'**
   String get importResolveOnline;
 
-  /// Per-line status: this title was resolved and imported from The Caller's Box.
+  /// Per-line status: this title was resolved and imported from an online source (The Caller's Box or ContraDB). Deliberately does not name which source (issue #943 ruling: no source attribution in this step; the source is still recorded in the imported dance's provenance).
   ///
   /// In en, this message translates to:
-  /// **'Imported from Caller\'s Box'**
+  /// **'Imported online'**
   String get importPlaintextImportedOnline;
 
   /// Per-line status: this title was linked to an existing local dance.
@@ -5618,10 +5636,10 @@ abstract class AppLocalizations {
   /// **'No match — added as note'**
   String get importPlaintextUnmatched;
 
-  /// Snackbar shown when resolving unmatched title-list lines online fails. The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209).
+  /// Snackbar shown when resolving unmatched title-list lines online fails. Deliberately does not name a source (issue #943: the resolver tries The Caller's Box then ContraDB). The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t search The Caller\'s Box.'**
+  /// **'Couldn\'t search online.'**
   String get importPlaintextSearchError;
 
   /// Count of slots in the title-list import preview.
@@ -5630,16 +5648,16 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 slot} other{{count} slots}}'**
   String importPlaintextSlotCount(int count);
 
-  /// Snackbar shown after online resolution when no confident matches were found.
+  /// Snackbar shown after online resolution when no confident matches were found. Deliberately does not name a source (issue #943: tries The Caller's Box then ContraDB).
   ///
   /// In en, this message translates to:
-  /// **'No confident Caller\'s Box matches found — {remaining, plural, =1{{remaining} title kept as a note} other{{remaining} titles kept as notes}}.'**
+  /// **'No confident online matches found — {remaining, plural, =1{{remaining} title kept as a note} other{{remaining} titles kept as notes}}.'**
   String importPlaintextResolvedNone(int remaining);
 
-  /// Snackbar shown after online resolution when some titles were linked, optionally noting how many remain unmatched.
+  /// Snackbar shown after online resolution when some titles were linked, optionally noting how many remain unmatched. Deliberately does not name a source (issue #943: tries The Caller's Box then ContraDB).
   ///
   /// In en, this message translates to:
-  /// **'Linked {linked, plural, =1{{linked} title} other{{linked} titles}} from The Caller\'s Box{remaining, plural, =0{.} =1{; {remaining} still a note.} other{; {remaining} still notes.}}'**
+  /// **'Linked {linked, plural, =1{{linked} title} other{{linked} titles}} online{remaining, plural, =0{.} =1{; {remaining} still a note.} other{; {remaining} still notes.}}'**
   String importPlaintextResolvedLinked(int linked, int remaining);
 
   /// Tooltip on the close button of the embedded import review screen.
@@ -5743,6 +5761,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 pasted title} other{{count} pasted titles}}'**
   String importReviewTitleListPasted(int count);
+
+  /// Heading over a group of candidate rows for one pasted program line that no online source could resolve confidently (more than one dance shared the title). The user picks at most one candidate to import; leaving them all skipped keeps the line as a free-text note.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" — pick one, or leave as a note'**
+  String importReviewProgramAmbiguousLine(String title);
 
   /// Summary/group count of pasted titles that resolved to a dance available to import.
   ///

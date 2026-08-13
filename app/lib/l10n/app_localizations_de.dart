@@ -562,6 +562,17 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wie die Sammlung beim Öffnen sortiert ist. Die Sortierung kann beim Durchsuchen noch geändert werden.';
 
   @override
+  String get settingsDefaultsSortLastUsed => 'Zuletzt verwendet';
+
+  @override
+  String get settingsDefaultsProgramSortTitle =>
+      'Sortierreihenfolge der Programme';
+
+  @override
+  String get settingsDefaultsProgramSortSubtitle =>
+      'Wie die Programmliste beim Öffnen sortiert wird. Du kannst die Sortierung beim Durchsuchen weiterhin ändern.';
+
+  @override
   String get settingsDefaultsCanonicalTitle =>
       'Tanzdetails in kanonischen Begriffen öffnen';
 
@@ -3563,7 +3574,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get importResolveOnline => 'Nicht zugeordnete online auflösen';
 
   @override
-  String get importPlaintextImportedOnline => 'Aus Caller\'s Box importiert';
+  String get importPlaintextImportedOnline => 'Online importiert';
 
   @override
   String get importPlaintextLinked => 'Mit Tanz verknüpft';
@@ -3577,8 +3588,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Keine Übereinstimmung – als Notiz hinzugefügt';
 
   @override
-  String get importPlaintextSearchError =>
-      'The Caller\'s Box konnte nicht durchsucht werden.';
+  String get importPlaintextSearchError => 'Online-Suche fehlgeschlagen.';
 
   @override
   String importPlaintextSlotCount(int count) {
@@ -3599,7 +3609,7 @@ class AppLocalizationsDe extends AppLocalizations {
       other: '$remaining Titel als Notizen gespeichert',
       one: '$remaining Titel als Notiz gespeichert',
     );
-    return 'Keine zuverlässigen Übereinstimmungen in The Caller\'s Box gefunden — $_temp0.';
+    return 'Keine sicheren Online-Treffer gefunden — $_temp0.';
   }
 
   @override
@@ -3613,11 +3623,11 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp1 = intl.Intl.pluralLogic(
       remaining,
       locale: localeName,
-      other: '; $remaining noch als Notizen.',
-      one: '; $remaining noch als Notiz.',
+      other: '; $remaining weiterhin Notizen.',
+      one: '; $remaining weiterhin eine Notiz.',
       zero: '.',
     );
-    return '$_temp0 aus The Caller\'s Box verknüpft$_temp1';
+    return '$_temp0 online verknüpft$_temp1';
   }
 
   @override
@@ -3706,6 +3716,11 @@ class AppLocalizationsDe extends AppLocalizations {
       one: '1 eingefügter Titel',
     );
     return '$_temp0';
+  }
+
+  @override
+  String importReviewProgramAmbiguousLine(String title) {
+    return '„$title“ — einen auswählen oder als Notiz belassen';
   }
 
   @override

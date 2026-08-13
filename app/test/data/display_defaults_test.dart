@@ -1,4 +1,6 @@
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/search/collection_query.dart';
+import 'package:compendium_app/src/search/program_sort.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -200,6 +202,159 @@ void main() {
       restored['circle']!['places'] = 3;
       restored['swing'] = {'beats': 16};
       expect(restored['circle'], {'turn': 'right', 'places': 3});
+    });
+  });
+
+  group('sort default keys (issue #895)', () {
+    test('use their stable stored key strings', () {
+      expect(kDefaultProgramSortKey, 'default_program_sort');
+      expect(kLastUsedCollectionSortKey, 'last_used_collection_sort');
+      expect(
+        kLastUsedCollectionSortDirectionKey,
+        'last_used_collection_sort_direction',
+      );
+      expect(kLastUsedProgramSortKey, 'last_used_program_sort');
+      expect(
+        kLastUsedProgramSortDirectionKey,
+        'last_used_program_sort_direction',
+      );
+      expect(kLastUsedSortSentinel, 'last_used');
+    });
+  });
+
+  group('SortDefaultSetting equality (issue #895)', () {
+    test('two concrete settings are equal iff their sort matches', () {
+      expect(
+        const SortDefaultSetting.concrete(CollectionSort.title),
+        const SortDefaultSetting.concrete(CollectionSort.title),
+      );
+      expect(
+        const SortDefaultSetting.concrete(CollectionSort.title),
+        isNot(const SortDefaultSetting.concrete(CollectionSort.author)),
+      );
+    });
+
+    test('every "Last used" entry is equal regardless of its fallback sort — '
+        'required for DropdownButton to highlight the right item by ==', () {
+      expect(
+        const SortDefaultSetting.lastUsed(CollectionSort.title),
+        const SortDefaultSetting.lastUsed(CollectionSort.author),
+      );
+      expect(
+        const SortDefaultSetting.lastUsed(CollectionSort.title).hashCode,
+        const SortDefaultSetting.lastUsed(CollectionSort.author).hashCode,
+      );
+    });
+
+    test('a concrete setting is never equal to a "Last used" one', () {
+      expect(
+        const SortDefaultSetting.concrete(CollectionSort.title),
+        isNot(const SortDefaultSetting.lastUsed(CollectionSort.title)),
+      );
+    });
+
+    test('a CollectionSort setting and a same-named ProgramSort setting are '
+        'distinct types and never equal', () {
+      expect(
+        // ignore: unrelated_type_equality_checks
+        const SortDefaultSetting.concrete(CollectionSort.title) ==
+            const SortDefaultSetting.concrete(ProgramSort.title),
+        isFalse,
+      );
+    });
+  });
+
+  group(
+    'sortDefaultSettingFromStored / encodeSortDefaultSetting (issue #895)',
+    () {
+      test(
+        'the sentinel resolves to lastUsed regardless of the resolver/fallback',
+        () {
+          final mode = sortDefaultSettingFromStored(
+            kLastUsedSortSentinel,
+            collectionSortFromName,
+            CollectionSort.title,
+          );
+          expect(mode.isLastUsed, isTrue);
+        },
+      );
+
+      test(
+        'round-trips every non-relevance CollectionSort via encode/decode',
+        () {
+          for (final sort in CollectionSort.values) {
+            if (sort == CollectionSort.relevance) continue;
+            final mode = SortDefaultSetting.concrete(sort);
+            final decoded = sortDefaultSettingFromStored(
+              encodeSortDefaultSetting(mode),
+              collectionSortFromName,
+              CollectionSort.title,
+            );
+            expect(decoded.isLastUsed, isFalse);
+            expect(decoded.sort, sort);
+          }
+        },
+      );
+
+      test('round-trips every ProgramSort via encode/decode', () {
+        for (final sort in ProgramSort.values) {
+          final mode = SortDefaultSetting.concrete(sort);
+          final decoded = sortDefaultSettingFromStored(
+            encodeSortDefaultSetting(mode),
+            programSortFromName,
+            ProgramSort.title,
+          );
+          expect(decoded.isLastUsed, isFalse);
+          expect(decoded.sort, sort);
+        }
+      });
+
+      test('encodes lastUsed to the sentinel, never a sort name', () {
+        expect(
+          encodeSortDefaultSetting(
+            const SortDefaultSetting.lastUsed(CollectionSort.title),
+          ),
+          kLastUsedSortSentinel,
+        );
+      });
+
+      test('falls back to the historical default for null, non-strings, and '
+          'unknown names — never throws', () {
+        for (final stored in [null, 3, 'not-a-sort']) {
+          final mode = sortDefaultSettingFromStored(
+            stored,
+            collectionSortFromName,
+            CollectionSort.title,
+          );
+          expect(mode.isLastUsed, isFalse);
+          expect(mode.sort, CollectionSort.title);
+        }
+      });
+
+      test('a stored CollectionSort.relevance is never resolved as a concrete '
+          'default (the resolver it delegates to excludes it)', () {
+        final mode = sortDefaultSettingFromStored(
+          CollectionSort.relevance.name,
+          collectionSortFromName,
+          CollectionSort.title,
+        );
+        expect(mode.isLastUsed, isFalse);
+        expect(mode.sort, CollectionSort.title);
+      });
+    },
+  );
+
+  group('sortDirectionFromName (issue #895)', () {
+    test('round-trips every direction via .name', () {
+      for (final direction in SortDirection.values) {
+        expect(sortDirectionFromName(direction.name), direction);
+      }
+    });
+
+    test('returns null for null, non-strings, and unknown names', () {
+      expect(sortDirectionFromName(null), isNull);
+      expect(sortDirectionFromName(3), isNull);
+      expect(sortDirectionFromName('sideways'), isNull);
     });
   });
 }

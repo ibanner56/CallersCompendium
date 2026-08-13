@@ -140,3 +140,71 @@ openTestRepositoriesWithDelayedSettings() {
   final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
   return (repos: repos, settings: settings);
 }
+
+/// A [SettingsRepository] whose [get] can be held open indefinitely, used to
+/// deterministically reproduce a "late settings read arrives after the user
+/// has already sorted in-list" race for the Collection/Programs default-sort
+/// seed (issue #895) — the read counterpart of [DelayedSettingsRepository],
+/// which gates [set] only and so cannot hold open the read side of that race.
+///
+/// A test calls [holdNextRead] for a given [key], triggers the screen's boot
+/// (which starts the seed read), waits for [readStarted] to confirm the read
+/// is in flight, performs the in-session user action the read must not
+/// clobber, then completes [releaseRead] to let the stale read resolve and
+/// asserts the user's choice — not the seed — won.
+class DelayedReadSettingsRepository extends SettingsRepository {
+  DelayedReadSettingsRepository(super.db);
+
+  String? _armedKey;
+  Completer<void>? _armedGate;
+  Completer<void>? _activeGate;
+  Completer<void>? _readStarted;
+
+  /// Arms the gate: the next [get] call for [key] will complete [readStarted]
+  /// and then suspend until [releaseRead] is called. Reads for any other key
+  /// pass straight through, mirroring [DelayedSettingsRepository.holdNextWrite]
+  /// gating only the write it is told to.
+  void holdNextRead(String key) {
+    _armedKey = key;
+    _armedGate = Completer<void>();
+    _readStarted = Completer<void>();
+  }
+
+  /// Resolves once a gated [get] call has started (and is suspended awaiting
+  /// [releaseRead]).
+  Future<void> get readStarted => _readStarted?.future ?? Future<void>.value();
+
+  /// Lets a read suspended by [holdNextRead] proceed. Idempotent, mirroring
+  /// [DelayedSettingsRepository.releaseWrite].
+  void releaseRead() {
+    final gate = _activeGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  @override
+  Future<Object?> get(String key) async {
+    if (key == _armedKey) {
+      final gate = _armedGate!;
+      _armedKey = null;
+      _armedGate = null;
+      _activeGate = gate;
+      _readStarted?.complete();
+      _readStarted = null;
+      await gate.future;
+      _activeGate = null;
+    }
+    return super.get(key);
+  }
+}
+
+/// Opens in-memory repositories backed by a [DelayedReadSettingsRepository],
+/// so tests can hold a default-sort seed read open while the user sorts
+/// in-list, reproducing the late-read-clobber race for both the Collection
+/// and Programs lists (issue #895).
+({CompendiumRepositories repos, DelayedReadSettingsRepository settings})
+openTestRepositoriesWithDelayedSettingsRead() {
+  final db = openWidgetTestDatabase();
+  final settings = DelayedReadSettingsRepository(db);
+  final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
+  return (repos: repos, settings: settings);
+}

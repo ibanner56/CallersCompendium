@@ -365,10 +365,15 @@ class TitleListPreflight {
 ///
 /// The critical difference from the program path is that **nothing is written
 /// here**. `resolveConfidentOnlineDanceId` imports as it goes, because a program
-/// line has no user watching; a Collection import does, so every plan is handed
-/// to `ImportReviewScreen` and committed only on the user's confirmation, where
-/// an ambiguous verdict already defaults to skip and can never silently
-/// duplicate.
+/// line has no user watching **when it resolves confidently**; a Collection
+/// import always has a user, so every plan is handed to `ImportReviewScreen`
+/// and committed only on the user's confirmation, where an ambiguous verdict
+/// already defaults to skip and can never silently duplicate. Since issue
+/// #943, a program line that no source resolves confidently CAN also reach
+/// `ImportReviewScreen` — via `resolveUnmatchedOnline`'s caller previewing its
+/// [ParsedProgramLine.onlineCandidates] — but that is a screen-level path
+/// this function never takes: `resolveTitleList` neither calls nor is called
+/// by it.
 ///
 /// Requests are issued **one at a time** (matching the program flow), reporting
 /// through [onProgress] as `(done, total)` and checking [isCancelled] between

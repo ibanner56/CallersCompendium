@@ -16,7 +16,12 @@ import 'display_defaults.dart'
         kDefaultDanceProgressionKey,
         kDefaultMoveParamOverridesKey,
         kDefaultProgramBandKey,
-        kDefaultProgramCallerKey;
+        kDefaultProgramCallerKey,
+        kDefaultProgramSortKey,
+        kLastUsedCollectionSortDirectionKey,
+        kLastUsedCollectionSortKey,
+        kLastUsedProgramSortDirectionKey,
+        kLastUsedProgramSortKey;
 import 'formation_colors_controller.dart' show kFormationColorOverridesKey;
 import 'locale_scope.dart' show kLocaleKey;
 import 'reduce_motion_scope.dart' show kReduceMotionKey;
@@ -88,6 +93,11 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kDefaultProgramBandKey,
     kDefaultProgramCallerKey,
     kDefaultCollectionSortKey,
+    kDefaultProgramSortKey,
+    kLastUsedCollectionSortKey,
+    kLastUsedCollectionSortDirectionKey,
+    kLastUsedProgramSortKey,
+    kLastUsedProgramSortDirectionKey,
     kDefaultDanceDetailRenderingKey,
     kDefaultDanceFormKey,
     kDefaultDanceFormationShapeKey,

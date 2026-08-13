@@ -5,8 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/display_defaults.dart';
 import '../data/programs_refresh_scope.dart';
 import '../data/repositories_scope.dart';
+import '../search/program_sort.dart';
+import '../search/program_sort_labels.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/program_list_tile.dart';
@@ -21,35 +24,6 @@ import 'recently_deleted_screen.dart';
 
 /// The program-import sources offered by the Programs list "Import" menu.
 enum _ProgramImportSource { plaintext, contraDb }
-
-/// How the Programs list is ordered (`docs/design/ux.md` §4).
-enum ProgramSort {
-  title('Title'),
-  recentlyUpdated('Recently updated'),
-  eventDate('Event date');
-
-  const ProgramSort(this.label);
-  final String label;
-
-  /// The historical (pre-toggle) direction for this sort key, used to seed the
-  /// direction toggle so behavior is unchanged until the user flips it.
-  SortDirection get defaultDirection => switch (this) {
-    ProgramSort.title || ProgramSort.eventDate => SortDirection.ascending,
-    ProgramSort.recentlyUpdated => SortDirection.descending,
-  };
-}
-
-/// Localized label for a [ProgramSort] option shown in the Programs list sort
-/// menu. Mirrors the L2 `collection_query_labels.dart` pattern so the display
-/// text is translatable without baking a locale into the enum — whose English
-/// [ProgramSort.label] field is still used by the (L5) Settings default-sort
-/// picker.
-String programSortLabel(AppLocalizations l10n, ProgramSort sort) =>
-    switch (sort) {
-      ProgramSort.title => l10n.programsSortTitle,
-      ProgramSort.recentlyUpdated => l10n.programsSortRecentlyUpdated,
-      ProgramSort.eventDate => l10n.programsSortEventDate,
-    };
 
 /// Programs list (`docs/design/ux.md` §4): non-deleted programs with title,
 /// event date, venue, slot count and a status chip (icon+text). Sort by title /
@@ -105,6 +79,18 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   StreamSubscription<({List<Program> programs, Map<String, Venue> venuesById})>?
   _programsSub;
 
+  /// Whether the user has explicitly chosen a sort this session (issue #895).
+  /// Once set, the saved default no longer seeds `_sort` — protecting an
+  /// in-session choice from a late async read. Mirrors
+  /// `dance_list_screen.dart`'s `_sortUserSet` guard for the Collection list,
+  /// which this screen had no equivalent of before this issue: it never read
+  /// settings at all.
+  bool _sortUserSet = false;
+
+  /// Whether the saved-default sort seed has run (it runs at most once, from
+  /// [didChangeDependencies]).
+  bool _defaultSortSeeded = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -112,6 +98,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       _started = true;
       _repos = RepositoriesScope.of(context);
       _subscribe();
+      // Fire-and-forget: unlike the Collection list, sorting here is a pure
+      // client-side re-order of already-loaded data (`_sorted`), not a
+      // database query, so the seed has nothing to sequence after — it only
+      // needs `setState` to run before the next build that reads `_sort`.
+      unawaited(_seedDefaultSort());
     }
   }
 
@@ -182,6 +173,80 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     unawaited(_programsSub?.cancel());
     _programsSub = null;
     _subscribe();
+  }
+
+  /// Seeds `_sort` (and, under "Last used", `_sortDir`) from the saved default
+  /// Programs sort order (issue #895), at most once and only if the user
+  /// hasn't already chosen a sort this session. A `null`/invalid stored value
+  /// leaves the historical default (`title`, ascending) in place. Mirrors
+  /// `dance_list_screen.dart`'s `_seedDefaultSort` exactly, including the
+  /// (sort, direction) *pair* comparison at the end — a key-only comparison
+  /// would skip the `setState` whenever the resolved sort equals the initial
+  /// `_sort` (title) even when the direction differs, silently dropping a
+  /// stored non-default direction under "Last used".
+  Future<void> _seedDefaultSort() async {
+    if (_defaultSortSeeded || _sortUserSet) return;
+    _defaultSortSeeded = true;
+    // A settings read/decode failure must not fail the whole Programs load:
+    // fall back silently to the historical default (title, ascending).
+    SortDefaultSetting<ProgramSort> mode;
+    try {
+      final stored = await _repos.settings.get(kDefaultProgramSortKey);
+      mode = sortDefaultSettingFromStored(
+        stored,
+        programSortFromName,
+        ProgramSort.title,
+      );
+    } catch (_) {
+      return;
+    }
+    if (!mounted || _sortUserSet) return;
+    ProgramSort sort;
+    SortDirection direction;
+    if (mode.isLastUsed) {
+      // "Last used": seed from the list's own last-used sort + direction
+      // (issue #895), not the fixed default. A second settings read, tolerant
+      // of failure the same way as the mode read above.
+      try {
+        final storedSort = await _repos.settings.get(kLastUsedProgramSortKey);
+        final storedDirection = await _repos.settings.get(
+          kLastUsedProgramSortDirectionKey,
+        );
+        sort = programSortFromName(storedSort) ?? ProgramSort.title;
+        direction =
+            sortDirectionFromName(storedDirection) ?? sort.defaultDirection;
+      } catch (_) {
+        return;
+      }
+      if (!mounted || _sortUserSet) return;
+    } else {
+      // A fixed default always uses that sort's natural direction, regardless
+      // of what was last used in the list (Isaac's ruling, issue #895) — never
+      // the stored last-used direction, which is why this branch never reads
+      // the last-used keys at all.
+      sort = mode.sort;
+      direction = sort.defaultDirection;
+    }
+
+    if (sort != _sort || direction != _sortDir) {
+      setState(() {
+        _sort = sort;
+        _sortDir = direction;
+      });
+    }
+  }
+
+  /// Persists the Programs list's own last-used sort + direction (issue
+  /// #895), read back by [_seedDefaultSort] when the configured default is
+  /// "Last used". Fire-and-forget, mirroring the Collection list's
+  /// `_persistLastUsedSort`. Unlike Collection's `CollectionSort`, `ProgramSort`
+  /// has no query-scoped member like `relevance`, so every value here is a
+  /// durable choice and none needs skipping.
+  void _persistLastUsedSort() {
+    unawaited(_repos.settings.set(kLastUsedProgramSortKey, _sort.name));
+    unawaited(
+      _repos.settings.set(kLastUsedProgramSortDirectionKey, _sortDir.name),
+    );
   }
 
   @override
@@ -432,10 +497,14 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
               ),
               initialValue: _sort,
               icon: const Icon(Icons.sort),
-              onSelected: (value) => setState(() {
-                _sort = value;
-                _sortDir = value.defaultDirection;
-              }),
+              onSelected: (value) {
+                setState(() {
+                  _sortUserSet = true;
+                  _sort = value;
+                  _sortDir = value.defaultDirection;
+                });
+                _persistLastUsedSort();
+              },
               itemBuilder: (context) => [
                 for (final option in ProgramSort.values)
                   PopupMenuItem(
@@ -454,11 +523,15 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                     ? Icons.arrow_upward
                     : Icons.arrow_downward,
               ),
-              onPressed: () => setState(() {
-                _sortDir = _sortDir == SortDirection.ascending
-                    ? SortDirection.descending
-                    : SortDirection.ascending;
-              }),
+              onPressed: () {
+                setState(() {
+                  _sortUserSet = true;
+                  _sortDir = _sortDir == SortDirection.ascending
+                      ? SortDirection.descending
+                      : SortDirection.ascending;
+                });
+                _persistLastUsedSort();
+              },
             ),
           ],
         ],

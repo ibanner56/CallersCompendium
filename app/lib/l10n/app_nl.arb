@@ -620,6 +620,18 @@
   "@settingsDefaultsSortSubtitle": {
     "x-sourceSha256": "5064e817e377d00ff74f2ef2e99a5cb6ff0d3ff1072eab2f0b57f9f560533c6e"
   },
+  "settingsDefaultsSortLastUsed": "Laatst gebruikt",
+  "@settingsDefaultsSortLastUsed": {
+    "x-sourceSha256": "830ec7f812f9d862250b61add10f9a078de67a3282dd9e94f60d64cec58eefec"
+  },
+  "settingsDefaultsProgramSortTitle": "Sorteervolgorde van programma's",
+  "@settingsDefaultsProgramSortTitle": {
+    "x-sourceSha256": "37cbb9162bf3bcacfb7b1859e6a76a97c9e8cf2fb2a8a3186b61dad2981bb729"
+  },
+  "settingsDefaultsProgramSortSubtitle": "Hoe de programmalijst wordt gesorteerd wanneer je deze opent. Je kunt de sortering tijdens het bladeren nog steeds wijzigen.",
+  "@settingsDefaultsProgramSortSubtitle": {
+    "x-sourceSha256": "d1b19f20d70621043d6259de6852f88a01ea347990acd4533d3289d45eb9a5f7"
+  },
   "settingsDefaultsCanonicalTitle": "Dansdetails openen in canonieke termen",
   "@settingsDefaultsCanonicalTitle": {
     "x-sourceSha256": "befaeb6d65d4ce394b461aa5bb7f03f2090f47c63c139de5874d0180529e0886"
@@ -3636,9 +3648,9 @@
   "@importResolveOnline": {
     "x-sourceSha256": "80adb7c46e8275ab83e72cb1b511a9ab32e3bf3d66c57ace9a543695c94e7eae"
   },
-  "importPlaintextImportedOnline": "Geïmporteerd uit Caller's Box",
+  "importPlaintextImportedOnline": "Online geïmporteerd",
   "@importPlaintextImportedOnline": {
-    "x-sourceSha256": "881352263c2257640a7e9149d060e79e13d2a2897c031c6a7522d765e20729b3"
+    "x-sourceSha256": "43b9c0391742a75e355811bf470040292a2d7617b77bab47270c74a4df9e82b7"
   },
   "importPlaintextLinked": "Gekoppeld aan dans",
   "@importPlaintextLinked": {
@@ -3652,21 +3664,21 @@
   "@importPlaintextUnmatched": {
     "x-sourceSha256": "c75529d1966c53eff681e20bff89285e46d5a95113b5386ba9b0d0933f354fd3"
   },
-  "importPlaintextSearchError": "The Caller's Box kon niet worden doorzocht.",
+  "importPlaintextSearchError": "Kon niet online zoeken.",
   "@importPlaintextSearchError": {
-    "x-sourceSha256": "d966cb5cacb6da39acfd84d18df744eadc31937ffa9fea048fe0f39c3c19f7ba"
+    "x-sourceSha256": "846135a18d9158388aa1e402333b0d017fd769c0c1168273e3046c66c4b980b1"
   },
   "importPlaintextSlotCount": "{count, plural, =1{1 slot} other{{count} slots}}",
   "@importPlaintextSlotCount": {
     "x-sourceSha256": "caa898d6da7283b1c6390e2d3c4bc26411578269d37aff2208672d7bc25efc30"
   },
-  "importPlaintextResolvedNone": "Geen betrouwbare overeenkomsten van Caller's Box gevonden — {remaining, plural, =1{{remaining} titel als noot bewaard} other{{remaining} titels als noten bewaard}}.",
+  "importPlaintextResolvedNone": "Geen betrouwbare online overeenkomsten gevonden — {remaining, plural, =1{{remaining} titel bewaard als notitie} other{{remaining} titels bewaard als notities}}.",
   "@importPlaintextResolvedNone": {
-    "x-sourceSha256": "425eb7282a85e6620e598e59936ee147f9c7edc10e82e30eb2160b2ad43db52b"
+    "x-sourceSha256": "82a0aacc5431571db67139bd700232f4ea76548cb70d02cdd808fedd272f7b50"
   },
-  "importPlaintextResolvedLinked": "{linked, plural, =1{{linked} titel} other{{linked} titels}} van The Caller's Box gekoppeld{remaining, plural, =0{.} =1{; {remaining} nog steeds een noot.} other{; {remaining} nog steeds noten.}}",
+  "importPlaintextResolvedLinked": "{linked, plural, =1{{linked} titel} other{{linked} titels}} online gekoppeld{remaining, plural, =0{.} =1{; {remaining} nog een notitie.} other{; {remaining} nog notities.}}",
   "@importPlaintextResolvedLinked": {
-    "x-sourceSha256": "31251adcdedc680488466115653d15d6fa6699f623c68d0e0944634b0474a70d"
+    "x-sourceSha256": "1419cd7e44ccda1131261da7617c9e873071b64a1940d8efb5023cd96ff58d32"
   },
   "importReviewClose": "Import sluiten",
   "@importReviewClose": {
@@ -3735,6 +3747,10 @@
   "importReviewTitleListPasted": "{count, plural, =1{1 geplakte titel} other{{count} geplakte titels}}",
   "@importReviewTitleListPasted": {
     "x-sourceSha256": "e524b5247662541304b96807c83d4083646529514f126b7c2fca33e917ac08b9"
+  },
+  "importReviewProgramAmbiguousLine": "„{title}” — kies er één, of laat als notitie staan",
+  "@importReviewProgramAmbiguousLine": {
+    "x-sourceSha256": "64f34196c48ede648b27e75c39bed0c16801a40f9a1027866ea97720f66a2952"
   },
   "importReviewTitleListToImport": "{count, plural, =1{1 te importeren} other{{count} te importeren}}",
   "@importReviewTitleListToImport": {

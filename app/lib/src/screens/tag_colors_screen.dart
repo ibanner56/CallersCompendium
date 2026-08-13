@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
@@ -36,31 +38,46 @@ class _TagColorsScreenState extends State<TagColorsScreen> {
   bool _loading = true;
   Object? _loadError;
 
+  /// The live tag list (issue #768).
+  ///
+  /// A tag's colour lives in the tag row, so an `upsert` from anywhere — this
+  /// screen, the dance editor, the batch-tag dialog — reaches this list without
+  /// anyone routing it here.
+  StreamSubscription<List<Tag>>? _tagsSub;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_started) return;
     _started = true;
     _repos = RepositoriesScope.of(context);
-    _load();
+    _subscribe();
   }
 
-  Future<void> _load() async {
-    try {
-      final tags = await _repos.tags.listAll();
-      if (!mounted) return;
-      setState(() {
-        _tags = tags;
-        _loading = false;
-        _loadError = null;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _loadError = e;
-        _loading = false;
-      });
-    }
+  void _subscribe() {
+    _tagsSub = _repos.tags.watchAll().listen(
+      (tags) {
+        if (!mounted) return;
+        setState(() {
+          _tags = tags;
+          _loading = false;
+          _loadError = null;
+        });
+      },
+      onError: (Object e) {
+        if (!mounted) return;
+        setState(() {
+          _loadError = e;
+          _loading = false;
+        });
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    unawaited(_tagsSub?.cancel());
+    super.dispose();
   }
 
   Future<void> _setColor(Tag tag, int? color) async {
@@ -80,13 +97,13 @@ class _TagColorsScreenState extends State<TagColorsScreen> {
       );
       return;
     }
-    if (!mounted) return;
-    setState(() {
-      _tags = [
-        for (final t in _tags)
-          if (t.id == tag.id) updated else t,
-      ];
-    });
+    // No local splice. The upsert writes `tags`, and this screen watches that
+    // table, so the new colour arrives through the stream.
+    //
+    // Deleting the splice is the point rather than a tidy-up: while it was
+    // here, a test asserting "the colour changes" would pass whether or not the
+    // stream delivered anything, because `setState` had already applied it. A
+    // guard for this screen could not have failed.
   }
 
   Future<void> _edit(Tag tag) async {

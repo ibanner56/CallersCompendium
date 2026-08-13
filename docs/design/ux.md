@@ -25,7 +25,11 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 
 ### 1. Collection (browse + search)
 - Virtualized list: title, authors, formation chip, tags, custom list fields.
-  Sort by title/author/recently-added/last-called.
+  Sort by title/author/recently-added/last-called; opens in the saved
+  default sort (Settings ▸ Defaults), or in whatever sort was last used if
+  "Last used" is selected there (issue #895). Sort survives crossing the
+  list/detail split-pane breakpoint (e.g. a tablet rotation), which used to
+  discard the list's state.
 - Search bar = unified FTS; **filter panel** for structured search: formation,
   progression, author, tags, custom fields, and figure queries ("contains
   petronella in B1", "chain **then** swing") built with a friendly query
@@ -66,6 +70,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - Autosave drafts; explicit save commits; undo history.
 
 ### 4. Programs list & builder
+- List: sort by title/recently-updated/event date; opens in the saved default
+  sort (Settings ▸ Defaults, added by issue #895 — Programs previously had
+  none), or the last-used sort if that mode is selected. Survives crossing the
+  list/detail split-pane breakpoint, same as Collection above.
 - Builder: two-pane — program (ordered slots) | collection picker with the
   same filter panel as Collection.
 - Slots: dance slots + free-text slots (break, waltz, announcements); **ALT

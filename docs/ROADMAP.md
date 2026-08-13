@@ -505,6 +505,17 @@ taxonomy are unchanged.
   some callers always want dialect applied. Both are app-only, small, and
   persist the user's preferred starting state via `SettingsRepository`.
 
+- [x] G.6c **Programs default sort, and a "Last used" mode for both lists**
+  (issue #895) — the Programs list had no default-sort setting at all; it now
+  mirrors Collection's. Both pickers gained a "Last used" option alongside
+  their fixed choices: selecting it makes the list remember whatever sort
+  (key **and** direction) you last picked while browsing, rather than always
+  opening at one fixed value. The shipped value for both is unchanged —
+  "Title" — so no migration was needed; "Last used" is opt-in. Rotating a
+  tablet across the split-pane breakpoint no longer discards the list's State
+  (sort, search, filters, scroll) either, fixing a second, related defect the
+  same issue surfaced.
+
 **Dance-authoring defaults**
 
 - [x] DD.1 **New-dance metadata defaults** — configurable defaults applied when

@@ -4,8 +4,10 @@ import 'package:drift/drift.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
+import 'package:compendium_app/src/search/program_sort.dart';
 import 'package:compendium_app/src/widgets/program_list_tile.dart';
 import 'package:compendium_app/src/widgets/weekday_header_strip.dart';
 
@@ -50,6 +52,11 @@ Future<void> _pump(WidgetTester tester, CompendiumRepositories repos) async {
   );
   await tester.pumpAndSettle();
 }
+
+List<String> _titlesInOrder(WidgetTester tester) => tester
+    .widgetList<ProgramListTile>(find.byType(ProgramListTile))
+    .map((t) => t.program.title)
+    .toList();
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -124,27 +131,167 @@ void main() {
     );
     await _pump(tester, repos);
 
-    List<String> titlesInOrder() => tester
-        .widgetList<ProgramListTile>(find.byType(ProgramListTile))
-        .map((t) => t.program.title)
-        .toList();
-
     // Default: title A→Z.
-    expect(titlesInOrder(), ['Alpha', 'Zeta']);
+    expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
 
     // Recently updated: p2 (Feb) before p1 (Jan).
     await tester.tap(find.byKey(const ValueKey('programs-sort')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Recently updated').last);
     await tester.pumpAndSettle();
-    expect(titlesInOrder(), ['Alpha', 'Zeta']);
+    expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
 
     // Event date: p2 (Mar) before p1 (May).
     await tester.tap(find.byKey(const ValueKey('programs-sort')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Event date').last);
     await tester.pumpAndSettle();
-    expect(titlesInOrder(), ['Alpha', 'Zeta']);
+    expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
+  });
+
+  group('default and "Last used" sort (issue #895)', () {
+    testWidgets('opens in the saved default sort order', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultProgramSortKey,
+        ProgramSort.eventDate.name,
+      );
+      await repos.programs.create(
+        _program(id: 'p1', title: 'Zeta', eventDate: DateTime.utc(2026, 5, 1)),
+      );
+      await repos.programs.create(
+        _program(id: 'p2', title: 'Alpha', eventDate: DateTime.utc(2026, 3, 1)),
+      );
+
+      await _pump(tester, repos);
+
+      // No user interaction: the list opens already sorted by event date
+      // (p2's March date before p1's May date), not the hardcoded title
+      // default — Programs had no such seed at all before issue #895.
+      expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
+    });
+
+    testWidgets(
+      'opens in the last-used sort AND direction when the default is '
+      '"Last used" — even when the stored key equals the historical default',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(kDefaultProgramSortKey, kLastUsedSortSentinel);
+        // The stored last-used KEY is `title` — the same as the screen's
+        // initial `_sort` — so a key-only comparison would treat this as
+        // "nothing changed" and skip applying the stored DIRECTION, silently
+        // opening ascending instead of descending. Mirrors the Collection
+        // half-restore trap recorded against `dance_list_screen.dart:589`.
+        await repos.settings.set(
+          kLastUsedProgramSortKey,
+          ProgramSort.title.name,
+        );
+        await repos.settings.set(
+          kLastUsedProgramSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await repos.programs.create(_program(id: 'p1', title: 'Alpha'));
+        await repos.programs.create(_program(id: 'p2', title: 'Zeta'));
+
+        await _pump(tester, repos);
+
+        expect(_titlesInOrder(tester), ['Zeta', 'Alpha']);
+      },
+    );
+
+    testWidgets('a fixed (non-"Last used") default always opens at its natural '
+        'direction, regardless of what was last used in the list', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kDefaultProgramSortKey, ProgramSort.title.name);
+      await repos.settings.set(kLastUsedProgramSortKey, ProgramSort.title.name);
+      await repos.settings.set(
+        kLastUsedProgramSortDirectionKey,
+        SortDirection.descending.name,
+      );
+      await repos.programs.create(_program(id: 'p1', title: 'Alpha'));
+      await repos.programs.create(_program(id: 'p2', title: 'Zeta'));
+
+      await _pump(tester, repos);
+
+      expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
+    });
+
+    testWidgets('changing the sort in-list persists it as last-used (key and '
+        'direction)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p1', title: 'Alpha'));
+      await repos.programs.create(_program(id: 'p2', title: 'Zeta'));
+      await _pump(tester, repos);
+
+      await tester.tap(find.byKey(const ValueKey('programs-sort')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Event date').last);
+      await tester.pumpAndSettle();
+
+      expect(
+        await repos.settings.get(kLastUsedProgramSortKey),
+        ProgramSort.eventDate.name,
+      );
+      expect(
+        await repos.settings.get(kLastUsedProgramSortDirectionKey),
+        ProgramSort.eventDate.defaultDirection.name,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('programs-sort-direction')));
+      await tester.pumpAndSettle();
+
+      expect(
+        await repos.settings.get(kLastUsedProgramSortKey),
+        ProgramSort.eventDate.name,
+      );
+      expect(
+        await repos.settings.get(kLastUsedProgramSortDirectionKey),
+        isNot(ProgramSort.eventDate.defaultDirection.name),
+      );
+    });
+
+    testWidgets(
+      'a late default-sort seed read does not clobber a sort the user '
+      'already chose in-session',
+      (tester) async {
+        final opened = openTestRepositoriesWithDelayedSettingsRead();
+        final repos = opened.repos;
+        final settings = opened.settings;
+        // A FIXED (non-"Last used") default that visibly reorders this data,
+        // so a stale re-application after the user's own choice is
+        // observable rather than incidentally matching it.
+        await repos.settings.set(
+          kDefaultProgramSortKey,
+          ProgramSort.eventDate.name,
+        );
+        await repos.programs.create(
+          _program(id: 'p1', title: 'Alpha', eventDate: DateTime.utc(2026, 5)),
+        );
+        await repos.programs.create(
+          _program(id: 'p2', title: 'Zeta', eventDate: DateTime.utc(2026, 3)),
+        );
+
+        settings.holdNextRead(kDefaultProgramSortKey);
+        await _pump(tester, repos);
+        await settings.readStarted;
+
+        await tester.tap(find.byKey(const ValueKey('programs-sort')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Title').last);
+        await tester.pumpAndSettle();
+        expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
+
+        // Let the stale default-sort read resolve. It must not overwrite the
+        // user's in-session choice of Title with the fixed `eventDate`
+        // default it was reading.
+        settings.releaseRead();
+        await tester.pumpAndSettle();
+
+        expect(_titlesInOrder(tester), ['Alpha', 'Zeta']);
+      },
+    );
   });
 
   testWidgets(
