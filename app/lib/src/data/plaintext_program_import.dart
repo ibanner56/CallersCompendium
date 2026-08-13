@@ -1,5 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 
+import 'online_search.dart';
+
 /// How a single pasted line resolved against the local collection.
 enum PlaintextLineResolution {
   /// Exactly one local dance matched the title (case-insensitive) — the slot
@@ -24,6 +26,7 @@ class ParsedProgramLine {
     this.danceId,
     this.matchCount = 0,
     this.importedOnline = false,
+    this.onlineCandidates = const [],
   }) : assert(
          // importedOnline is only meaningful for a matched line (a dance was
          // created online and linked into the slot). Note resolutions never set
@@ -70,6 +73,15 @@ class ParsedProgramLine {
   /// [resolution] is [PlaintextLineResolution.matched]; drives the preview's
   /// "Imported from Caller's Box" label.
   final bool importedOnline;
+
+  /// Online candidates no source could resolve confidently (issue #943): more
+  /// than one exact-title hit was found (from one source, or combined across
+  /// sources when none was ever confident), so which dance was meant is
+  /// genuinely ambiguous. Non-empty only when [resolution] is
+  /// [PlaintextLineResolution.unmatched] — the line still degrades to a note
+  /// by default (nothing here is written), but a non-empty list tells the
+  /// screen a review step could resolve it instead of leaving it a note.
+  final List<OnlineSearchResultRow> onlineCandidates;
 
   /// Whether this line will become a free-text note slot (unmatched or
   /// ambiguous) rather than a dance-linked slot.

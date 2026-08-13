@@ -10,6 +10,7 @@ import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/programs_refresh_scope.dart';
 import '../data/online_search.dart';
+import '../data/program_ambiguous_review.dart';
 import '../data/repositories_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/shorthand_mappings_scope.dart';
@@ -89,6 +90,8 @@ class ImportReviewScreen extends StatefulWidget {
     this.onlineService,
     this.onClose,
     this.sharedBundle,
+    this.programAmbiguousImport,
+    this.onProgramCommitted,
   }) : assert(sources.length > 0, 'at least one import source is required');
 
   /// The selectable import sources. The screen opens on the one marked
@@ -132,6 +135,22 @@ class ImportReviewScreen extends StatefulWidget {
   /// offers a transient Undo snackbar. When null the screen behaves exactly as
   /// the manual import flows do.
   final SharedBundleImport? sharedBundle;
+
+  /// Program-import lines online resolution could not confidently resolve
+  /// (issue #943), pre-previewed non-committingly. When non-null the screen
+  /// seeds these as review rows — one per candidate, grouped under their
+  /// pasted line — skipping the manual input phase entirely (mirrors
+  /// [sharedBundle]'s seeding). Never combined with [sharedBundle] by any
+  /// caller. Requires [onProgramCommitted].
+  final ProgramAmbiguousImport? programAmbiguousImport;
+
+  /// Invoked once, right before the screen dismisses, after a successful
+  /// (non-undone) commit of a [programAmbiguousImport] seed. Keys are
+  /// [ProgramAmbiguousLine.originalLineIndex]; a line absent from the map had
+  /// no candidate committed (every candidate was left at skip, or none
+  /// previewed) and stays a note. Never invoked when [programAmbiguousImport]
+  /// is null.
+  final void Function(Map<int, String> danceIdsByLineIndex)? onProgramCommitted;
 
   @override
   State<ImportReviewScreen> createState() => _ImportReviewScreenState();
@@ -313,6 +332,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// rendered this one's already-owned / not-found groups and summary counts.
   TitleListResolution? _titleList;
 
+  /// Row index → [ProgramAmbiguousLine.originalLineIndex], for a row seeded
+  /// from [ImportReviewScreen.programAmbiguousImport]; empty list otherwise.
+  /// Parallel to `_batch.records` — index `i` here describes `_batch!.records[i]`.
+  /// Rows sharing the same line index are the candidates for one pasted
+  /// program line, in the order [buildProgramAmbiguousImport] previewed them.
+  List<int> _programLineOfRow = const [];
+
   /// Progress through the title-list online lookups as `(done, total)`, or
   /// `null` when no title-list resolution is running.
   (int, int)? _titleListProgress;
@@ -384,6 +410,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         _pasteController.text = bundle.json;
         _sourceUri = null;
         _plan();
+      } else if (widget.programAmbiguousImport != null) {
+        // Program-import fallback ambiguity (issue #943): skip the manual
+        // input phase entirely, mirroring the sharedBundle seeding above —
+        // there is no adapter to run, only already-previewed candidates to
+        // lay out for review.
+        _adoptProgramAmbiguousSeed(widget.programAmbiguousImport!);
       }
     }
   }
@@ -631,6 +663,34 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     });
   }
 
+  /// Seeds the review directly from a [ProgramAmbiguousImport] (issue #943):
+  /// flattens every line's previewed candidates into one batch, in line order,
+  /// via [_adoptBatch] — then forces every row's choice to skip regardless of
+  /// its verdict's usual default. Unlike every other source, nothing here
+  /// should ever auto-select: an ambiguous program line has no single
+  /// "obvious" candidate by definition (that is precisely why it is
+  /// ambiguous), so [_defaultChoice]'s isNew → create default would otherwise
+  /// silently import the FIRST candidate of every line the instant the review
+  /// opens.
+  Future<void> _adoptProgramAmbiguousSeed(ProgramAmbiguousImport seed) async {
+    final records = <ImportRecordPlan>[];
+    final lineOfRow = <int>[];
+    for (final line in seed.lines) {
+      for (final plan in line.candidates) {
+        records.add(plan);
+        lineOfRow.add(line.originalLineIndex);
+      }
+    }
+    await _adoptBatch(ImportBatchResult(records: records));
+    if (!mounted) return;
+    setState(() {
+      _programLineOfRow = lineOfRow;
+      for (final choice in _choices) {
+        choice.kind = _ActionKind.skip;
+      }
+    });
+  }
+
   /// Returns to the input step, discarding the planned batch and everything
   /// describing it.
   ///
@@ -651,6 +711,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     _phase = _Phase.input;
     _batch = null;
     _titleList = null;
+    _programLineOfRow = const [];
     _titleListProgress = null;
     _planError = null;
     // _cachedPickedBundle is maintained by _onPasteChanged and does not need
@@ -775,12 +836,32 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     }
   }
 
-  /// Builds the batch actually committed plus its resolutions map; skipped rows
-  /// are omitted so nothing is written for them.
-  (ImportBatchResult, Map<int, DedupeResolution>, int) _buildCommitBatch() {
+  /// Builds the batch actually committed plus its resolutions map; skipped
+  /// rows are omitted so nothing is written for them. Also returns, in acted
+  /// order, which original row index produced each acted entry — needed by
+  /// [_commit] to map a [ImportReviewScreen.programAmbiguousImport] seed's
+  /// committed ids back to its line indices (issue #943).
+  ///
+  /// Within one program-ambiguity line ([_programLineOfRow]), only the FIRST
+  /// non-skip row is honoured — including one already committed via the
+  /// per-row Edit action. A user who set more than one candidate to a
+  /// non-skip action would otherwise import the same pasted line twice, which
+  /// [ProgramAmbiguousLine]'s own doc comment says can never happen. This is a
+  /// backstop, not a UI affordance: the candidate rows have no mutual-exclusion
+  /// control of their own, and every one is an ordinary review row.
+  (ImportBatchResult, Map<int, DedupeResolution>, int, List<int>)
+  _buildCommitBatch() {
     final batch = _batch!;
     final acted = <ImportRecordPlan>[];
+    final actedRowIndices = <int>[];
     final resolutions = <int, DedupeResolution>{};
+    // Seed with lines whose candidate already committed via per-row Edit, so
+    // a different candidate for the same line can never ALSO import here.
+    final decidedProgramLines = <int>{
+      for (var i = 0; i < batch.records.length; i++)
+        if (_committed.contains(i) && i < _programLineOfRow.length)
+          _programLineOfRow[i],
+    };
     var skipped = 0;
     for (var i = 0; i < batch.records.length; i++) {
       // Rows already committed via the per-row Edit action are excluded so the
@@ -791,12 +872,25 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         skipped++;
         continue;
       }
+      if (i < _programLineOfRow.length &&
+          !decidedProgramLines.add(_programLineOfRow[i])) {
+        // Another candidate for this line already committed to a non-skip
+        // choice (or committed on its own via Edit); this one no-ops.
+        skipped++;
+        continue;
+      }
       final (plan, resolution) = planned;
       final j = acted.length;
       acted.add(plan);
+      actedRowIndices.add(i);
       if (resolution != null) resolutions[j] = resolution;
     }
-    return (ImportBatchResult(records: acted), resolutions, skipped);
+    return (
+      ImportBatchResult(records: acted),
+      resolutions,
+      skipped,
+      actedRowIndices,
+    );
   }
 
   /// Commits just row [i] on its own (honouring its chosen resolution) and then
@@ -869,7 +963,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   Future<void> _commit() async {
-    final (commitBatch, resolutions, skipped) = _buildCommitBatch();
+    final (commitBatch, resolutions, skipped, actedRowIndices) =
+        _buildCommitBatch();
     setState(() => _phase = _Phase.committing);
     final pipeline = ImportPipeline(_repos.dances, _repos.choreographers);
     // Commit/undo routing is gated on the concrete adapter type — NOT on
@@ -941,6 +1036,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           session: session,
           skipped: skipped,
           onUndo: () => pipeline.undo(session),
+          programResults: _programCommitResults(session, actedRowIndices),
         );
       }
     } catch (e, stackTrace) {
@@ -956,6 +1052,27 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
       );
     }
+  }
+
+  /// Maps a just-committed [session]'s successful records back to
+  /// [ProgramAmbiguousLine.originalLineIndex] (issue #943), for
+  /// [ImportReviewScreen.onProgramCommitted]. `null` when this review was not
+  /// seeded from a [ImportReviewScreen.programAmbiguousImport] — distinct from
+  /// an empty map, which would mean a program seed where nothing committed.
+  Map<int, String>? _programCommitResults(
+    ImportSession session,
+    List<int> actedRowIndices,
+  ) {
+    if (_programLineOfRow.isEmpty) return null;
+    final results = <int, String>{};
+    for (var j = 0; j < session.records.length; j++) {
+      final record = session.records[j];
+      if (!record.succeeded || record.danceId == null) continue;
+      final rowIndex = actedRowIndices[j];
+      if (rowIndex >= _programLineOfRow.length) continue;
+      results[_programLineOfRow[rowIndex]] = record.danceId!;
+    }
+    return results;
   }
 
   /// Opt-in, previewed shorthand seeding from a Caller's Companion file's
@@ -1115,6 +1232,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     required int skipped,
     required Future<void> Function() onUndo,
     CcUsrImportResult? ccResult,
+    Map<int, String>? programResults,
   }) async {
     final l10n = AppLocalizations.of(context);
     var created = 0, reimported = 0, linked = 0, duplicated = 0, varied = 0;
@@ -1287,6 +1405,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
       );
     } else {
+      // Program-import fallback ambiguity (issue #943): report which lines
+      // resolved before dismissing, so the caller can link those dances into
+      // program slots. Never fired on an undone commit — nothing was kept.
+      if (programResults != null) {
+        widget.onProgramCommitted?.call(programResults);
+      }
       // Embedded (onClose provided): dismiss via the shell — it has no route to
       // pop. Pushed (onClose null): pop this screen's route as before.
       final onClose = widget.onClose;
@@ -1774,8 +1898,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               if (_showSoftCapWarning) _buildSoftCapWarning(context),
               if (unreadable.isNotEmpty) _buildBatchErrors(context, unreadable),
               if (titleList != null) _buildTitleListSummary(context, titleList),
-              for (var i = 0; i < batch.records.length; i++)
+              for (var i = 0; i < batch.records.length; i++) ...[
+                if (_isFirstRowOfProgramLine(i))
+                  _buildProgramLineHeading(context, i),
                 _buildRow(context, i, batch.records[i]),
+              ],
               if (titleList != null)
                 ..._buildTitleListGroups(context, titleList),
             ],
@@ -2189,6 +2316,45 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  /// Whether row [i] is the first row of a program-ambiguity line (issue
+  /// #943) — the point at which [_buildProgramLineHeading] should render.
+  bool _isFirstRowOfProgramLine(int i) {
+    if (i >= _programLineOfRow.length) return false;
+    return i == 0 || _programLineOfRow[i - 1] != _programLineOfRow[i];
+  }
+
+  /// The heading introducing one program-ambiguity line's candidate rows
+  /// (issue #943): the pasted line text, so the user can see which line these
+  /// candidates are for before choosing one (or leaving them all skipped,
+  /// keeping the line a note).
+  Widget _buildProgramLineHeading(BuildContext context, int i) {
+    final l10n = AppLocalizations.of(context);
+    final lineIndex = _programLineOfRow[i];
+    final lineText = widget.programAmbiguousImport!.lines
+        .firstWhere((l) => l.originalLineIndex == lineIndex)
+        .lineText;
+    return Padding(
+      key: ValueKey('import-program-line-$lineIndex'),
+      padding: const EdgeInsets.only(top: 12, bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(Icons.help_outline, size: 18),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              l10n.importReviewProgramAmbiguousLine(lineText),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRow(BuildContext context, int i, ImportRecordPlan plan) {
     final l10n = AppLocalizations.of(context);
     final draft = plan.draft;
@@ -2250,8 +2416,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               // consent, and so every imported row is covered by the transient
               // batch Undo. Also suppressed for a manually picked .ccshare with
               // programs (_effectiveSharedBundle, issue #852/#880) for the same
-              // reason.
-              if (_effectiveSharedBundle == null) ...[
+              // reason, and for a program-ambiguity candidate (issue #943):
+              // [_showResult] only reports [ImportReviewScreen.onProgramCommitted]
+              // from the batch commit path, so an Edit-committed candidate would
+              // create a dance the program screen never learns about and can
+              // never link into its slot.
+              if (_effectiveSharedBundle == null &&
+                  i >= _programLineOfRow.length) ...[
                 const SizedBox(height: 4),
                 Align(
                   alignment: Alignment.centerLeft,
