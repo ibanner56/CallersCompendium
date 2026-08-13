@@ -239,8 +239,8 @@ void main() {
   );
 
   testWidgets(
-    'issue #340: resolving online imports a dance and writes it to the '
-    'collection stream (imported dance + author must appear live)',
+    'issue #340: resolving online imports a dance and its author into the '
+    'collection database',
     (tester) async {
       final repos = openTestRepositories();
       final online = CallersBoxOnline(
@@ -259,10 +259,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // A dance (and its author) was imported into the collection.
+      // The dance was imported into the collection.
       expect(
         (await repos.dances.listAll()).map((d) => d.title),
         contains('Money Musk'),
+      );
+      // Its author ("Traditional", per the fixture JSON's "Authors" field) was
+      // imported alongside it, not left as a dangling reference.
+      expect(
+        (await repos.choreographers.listAll()).map((c) => c.name),
+        contains('Traditional'),
       );
     },
   );

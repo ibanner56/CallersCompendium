@@ -151,7 +151,7 @@ void main() {
 
   testWidgets(
     'issue #340: committing a ContraDB program writes imported dances into the '
-    'collection stream',
+    'collection database',
     (tester) async {
       final repos = openTestRepositories();
       final contraDb = ContraDbOnline(
