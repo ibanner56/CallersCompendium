@@ -8,10 +8,7 @@ import 'package:test/test.dart';
 void main() {
   group('bare pasted title (title-list / plaintext import)', () {
     test('a plain title passes through trimmed', () {
-      expect(
-        danceTitleFromSlotNote('  Petronella  '),
-        'Petronella',
-      );
+      expect(danceTitleFromSlotNote('  Petronella  '), 'Petronella');
     });
 
     test('a title with no surrounding whitespace is unchanged', () {
@@ -33,19 +30,14 @@ void main() {
 
   group('archive import unresolved-dance marker', () {
     test('marker-only note (no original text) strips to empty', () {
-      expect(
-        danceTitleFromSlotNote('Dance not imported (abc123)'),
-        '',
-      );
+      expect(danceTitleFromSlotNote('Dance not imported (abc123)'), '');
     });
 
     test(
       'original text + blank line + marker keeps only the original text',
       () {
         expect(
-          danceTitleFromSlotNote(
-            'Chorus Jig\n\nDance not imported (abc123)',
-          ),
+          danceTitleFromSlotNote('Chorus Jig\n\nDance not imported (abc123)'),
           'Chorus Jig',
         );
       },
@@ -81,10 +73,7 @@ void main() {
     });
 
     test('blank lines before the real content are skipped', () {
-      expect(
-        danceTitleFromSlotNote('\n\n  Waltz  \n\nmore text'),
-        'Waltz',
-      );
+      expect(danceTitleFromSlotNote('\n\n  Waltz  \n\nmore text'), 'Waltz');
     });
 
     test('an empty note yields an empty seed', () {
