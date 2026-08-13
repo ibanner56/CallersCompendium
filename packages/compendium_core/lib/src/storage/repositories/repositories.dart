@@ -78,7 +78,7 @@ class CompendiumRepositories {
   /// derived from whichever writers had been looked at:
   ///
   /// 1. *"only `DanceRepository`'s upsert writes them"* — false;
-  ///    `ArchiveService._clearAll` deletes all four directly.
+  ///    `ArchiveRestorer._clearAll` deletes all four directly.
   /// 2. *"every path that writes a join table also writes `dances` in the same
   ///    transaction"* — also false; `adoptTombstonedNaturalKey`
   ///    (`existence.dart`) deletes join rows and writes only the **adopted**
@@ -89,7 +89,7 @@ class CompendiumRepositories {
   /// | writer | join-table write | also writes, same transaction |
   /// |---|---|---|
   /// | `DanceRepository` upsert | `into(danceAuthors/Tags/Sources/customFieldValues)` | `dances` |
-  /// | `ArchiveService._clearAll` | `delete(...)` on all four | `dances` |
+  /// | `ArchiveRestorer._clearAll` | `delete(...)` on all four | `dances` |
   /// | `adoptTombstonedNaturalKey` | `DELETE FROM <joinTable>` | `tags` / `choreographers` / `custom_field_defs` |
   ///
   /// **Every path that writes a join table also writes, in the same
@@ -122,7 +122,7 @@ class CompendiumRepositories {
   ///
   /// **The search in step 1 is where both falsifications came from, so do it
   /// by parameter as well as by name.** A grep for `danceTags` finds the
-  /// upsert and `ArchiveService._clearAll`, because those name the table
+  /// upsert and `ArchiveRestorer._clearAll`, because those name the table
   /// directly. It does **not** find `adoptTombstonedNaturalKey`, which takes
   /// the table as an argument:
   ///

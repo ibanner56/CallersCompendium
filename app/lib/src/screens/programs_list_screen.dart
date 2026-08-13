@@ -1,5 +1,6 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
@@ -57,14 +58,18 @@ String programSortLabel(AppLocalizations l10n, ProgramSort sort) =>
 ///
 /// [onSelectProgram] wires split-pane callers ([ProgramsShell]); when null the
 /// list uses push-navigation to the editor. [selectedProgramId] highlights the
-/// selected row and [refreshTrigger] lets a parent request a reload.
+/// selected row.
+///
+/// The list is **driven by a stream** ([ProgramRepository.watchAll]) rather than
+/// by reload requests (issue #768). It takes no `refreshTrigger`: the parameter
+/// was removed rather than left accepted-and-ignored, so a caller still passing
+/// one is a compile error instead of a silently dead argument.
 class ProgramsListScreen extends StatefulWidget {
   const ProgramsListScreen({
     super.key,
     this.onSelectProgram,
     this.onCreateProgram,
     this.selectedProgramId,
-    this.refreshTrigger,
   });
 
   final void Function(String programId)? onSelectProgram;
@@ -74,7 +79,6 @@ class ProgramsListScreen extends StatefulWidget {
   final VoidCallback? onCreateProgram;
 
   final String? selectedProgramId;
-  final ValueListenable<int>? refreshTrigger;
 
   @override
   State<ProgramsListScreen> createState() => _ProgramsListScreenState();
@@ -90,20 +94,16 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   ProgramSort _sort = ProgramSort.title;
   SortDirection _sortDir = ProgramSort.title.defaultDirection;
 
-  /// The app-level programs-refresh notifier (issue #768), if provided. Program
-  /// data is written from outside the Programs tab — the "add to program" sheet
-  /// on a Collection row, an archive or program import, a share-target bundle —
-  /// and this list is kept alive in an `IndexedStack`, so without this those
-  /// writes were invisible until the app restarted. Tracked so the listener is
-  /// swapped correctly.
-  ValueListenable<int>? _programsRefresh;
-
-  /// The revision this list published itself. A broadcast notifies every
-  /// subscriber including this one; where the list has already applied the
-  /// change locally (the optimistic row removal on delete, which deliberately
-  /// avoids a full reload) the echo is skipped so the mutation still costs one
-  /// render, not two (issue #340).
-  int? _selfBroadcastRevision;
+  /// The live Programs list (issue #768).
+  ///
+  /// Program data is written from outside the Programs tab — the "add to
+  /// program" sheet on a Collection row, an archive or program import, a
+  /// share-target bundle — and this list is kept alive in an `IndexedStack`, so
+  /// before the conversion those writes were invisible until the app restarted.
+  /// A broadcast fixed the sites anyone remembered; the stream fixes the ones
+  /// nobody did.
+  StreamSubscription<({List<Program> programs, Map<String, Venue> venuesById})>?
+  _programsSub;
 
   @override
   void didChangeDependencies() {
@@ -111,76 +111,104 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
-      widget.refreshTrigger?.addListener(_onRefreshTriggered);
-      _load();
-    }
-    final programsRefresh = ProgramsRefreshScope.maybeOf(context);
-    if (!identical(programsRefresh, _programsRefresh)) {
-      _programsRefresh?.removeListener(_onRefreshTriggered);
-      _programsRefresh = programsRefresh;
-      _programsRefresh?.addListener(_onRefreshTriggered);
+      _subscribe();
     }
   }
 
-  @override
-  void didUpdateWidget(ProgramsListScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.refreshTrigger != widget.refreshTrigger) {
-      oldWidget.refreshTrigger?.removeListener(_onRefreshTriggered);
-      widget.refreshTrigger?.addListener(_onRefreshTriggered);
-    }
-  }
-
-  void _onRefreshTriggered() {
-    final revision = _programsRefresh?.value;
-    if (revision != null && revision == _selfBroadcastRevision) return;
-    if (mounted) _load();
-  }
-
-  /// Broadcasts "program data changed" so the views rendering program-derived
-  /// data elsewhere — the Collection's "called N times" badge, a dance detail
-  /// screen's calling history, a summary pane beside this list — reload.
+  /// Opens the subscription. Deliberately not awaiting a first value the way
+  /// the Collection panes do: this list has nothing to sequence after it, so
+  /// there is no pending future for an abandonment path to orphan — the hazard
+  /// that `_replaceSubscription`, in the program summary **pane**
+  /// (`program_summary_screen.dart`), exists to close cannot arise here, and
+  /// adding a completer to mirror it would create the hazard rather than guard
+  /// against it.
   ///
-  /// Reloading this list is the broadcast's job, not the caller's; a site that
-  /// does both loads twice for one mutation (issue #340). Pass
-  /// [alreadyApplied] when the list has updated itself optimistically, to skip
-  /// its own echo. Returns `false` when no scope is mounted (focused widget
-  /// tests), so the caller can fall back to reloading directly.
-  bool _broadcastProgramChange({bool alreadyApplied = false}) {
-    final revision = _programsRefresh;
-    if (revision is! ValueNotifier<int>) return false;
-    // Set before incrementing: listeners fire synchronously inside the setter.
-    if (alreadyApplied) _selfBroadcastRevision = revision.value + 1;
-    revision.value++;
-    return true;
+  /// Named in prose rather than as a `[...]` reference because it is a private
+  /// member of a private `State` class in another library, so a dartdoc link
+  /// cannot resolve to it — and a link that silently resolves to nothing is the
+  /// same defect as the wrong class name this replaces.
+  void _subscribe() {
+    _programsSub = _repos.programs
+        .watchAll()
+        // `asyncMap`, not a handler that awaits inside `listen`.
+        //
+        // Resolving venue labels is asynchronous, and `listen` does not
+        // await its callback: two emits arriving close together would run
+        // concurrently and could finish in the wrong order, letting an
+        // older list win by finishing last. `asyncMap` holds the
+        // subscription until each mapper completes, so that interleaving
+        // cannot occur — a property of the stream rather than a counter
+        // this screen has to maintain and a future edit could drop.
+        //
+        // The alternative, a sequence number compared after the await, was
+        // written first and removed: it worked, but nothing could test it.
+        // Inverting the order deterministically needs the venue read held
+        // open, and holding a read open on a single-connection database
+        // blocks the very write that would produce the second emit.
+        .asyncMap(_withVenues)
+        .listen(
+          _onPrograms,
+          onError: (Object error) {
+            if (mounted) setState(() => _loadError = error);
+          },
+        );
+  }
+
+  /// Pairs a program list with the venues its rows need.
+  ///
+  /// The catalogue is read only when a program actually links one;
+  /// [ProgramListTile] falls back to `Program.venue` with an empty map.
+  ///
+  /// This read is NOT part of the watched set, so a venue rename does not
+  /// re-emit and the label here stays stale until some other write does
+  /// (issue #944). Stated because an unstated boundary is indistinguishable
+  /// from a missing table in `readsFrom`.
+  Future<({List<Program> programs, Map<String, Venue> venuesById})> _withVenues(
+    List<Program> programs,
+  ) async {
+    final hasLinkedVenue = programs.any((p) => p.venueId != null);
+    return (
+      programs: programs,
+      venuesById: hasLinkedVenue
+          ? {for (final v in await _repos.venues.listAll()) v.id: v}
+          : const <String, Venue>{},
+    );
+  }
+
+  /// Retry after a load error: the stream may have terminated with it, so the
+  /// old subscription is cancelled and a fresh one opened rather than waiting
+  /// for an emit that a closed source will never produce.
+  void _resubscribe() {
+    unawaited(_programsSub?.cancel());
+    _programsSub = null;
+    _subscribe();
   }
 
   @override
   void dispose() {
-    widget.refreshTrigger?.removeListener(_onRefreshTriggered);
-    _programsRefresh?.removeListener(_onRefreshTriggered);
+    unawaited(_programsSub?.cancel());
     super.dispose();
   }
 
-  Future<void> _load() async {
-    try {
-      final programs = await _repos.programs.listAll();
-      // Only load the venue catalogue when a program actually links one;
-      // ProgramListTile falls back to Program.venue with an empty map.
-      final hasLinkedVenue = programs.any((p) => p.venueId != null);
-      final venuesById = hasLinkedVenue
-          ? {for (final v in await _repos.venues.listAll()) v.id: v}
-          : const <String, Venue>{};
-      if (!mounted) return;
-      setState(() {
-        _programs = programs;
-        _venuesById = venuesById;
-        _loadError = null;
-      });
-    } catch (error) {
-      if (mounted) setState(() => _loadError = error);
-    }
+  void _onPrograms(
+    ({List<Program> programs, Map<String, Venue> venuesById}) snapshot,
+  ) {
+    if (!mounted) return;
+    setState(() {
+      _programs = snapshot.programs;
+      _venuesById = snapshot.venuesById;
+      _loadError = null;
+    });
   }
+
+  /// Broadcasts "program data changed" for the views that are still driven by
+  /// [ProgramsRefreshScope].
+  ///
+  /// This list no longer *listens*: it has a stream, and doing both would
+  /// reload it twice per mutation (issue #340). It still broadcasts, because
+  /// unconverted views depend on it — the scope comes out once nothing
+  /// subscribes, not before.
+  void _broadcastProgramChange() => ProgramsRefreshScope.bump(context);
 
   /// Day-precision event dates (time-of-day dropped) for the "this week"
   /// header strip's markers (ROADMAP G.8's first-day-of-week consumer).
@@ -224,12 +252,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       widget.onCreateProgram!();
       return;
     }
-    final result = await Navigator.of(context).push<String>(
+    await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const ProgramEditorScreen()),
     );
-    // The builder broadcasts its own save, which already reloaded this list
-    // (issue #768); reloading again here would load twice (issue #340).
-    if (mounted && result != null && _programsRefresh == null) await _load();
+    // No reload: the save is a write to `programs`/`program_slots`, so the
+    // stream has already delivered it (issue #768).
   }
 
   Future<void> _openProgram(String id) async {
@@ -249,14 +276,13 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         builder: (_) => ProgramSummaryScreen(programId: id),
       ),
     );
-    if (mounted && _programsRefresh == null) await _load();
   }
 
   Future<void> _openRecentlyDeleted() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => RecentlyDeletedScreen.programs()),
     );
-    if (mounted) await _load();
+    // A restore from that screen clears `deleted_at`, which the stream sees.
   }
 
   Future<void> _openPlaintextImport() async {
@@ -267,10 +293,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     );
     if (!mounted) return;
     if (result != null) {
-      // The import broadcasts its own commit, which already reloaded this list
-      // (issue #768); the direct reload is the unscoped fallback.
-      if (_programsRefresh == null) await _load();
-      if (mounted) widget.onSelectProgram?.call(result);
+      // The commit is a write, so the stream has already delivered it.
+      widget.onSelectProgram?.call(result);
     }
   }
 
@@ -282,10 +306,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     );
     if (!mounted) return;
     if (result != null) {
-      // The import broadcasts its own commit, which already reloaded this list
-      // (issue #768); the direct reload is the unscoped fallback.
-      if (_programsRefresh == null) await _load();
-      if (mounted) widget.onSelectProgram?.call(result);
+      // The commit is a write, so the stream has already delivered it.
+      widget.onSelectProgram?.call(result);
     }
   }
 
@@ -293,10 +315,26 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     await _repos.programs.softDelete(program.id, at: DateTime.now().toUtc());
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    setState(() => _programs?.removeWhere((p) => p.id == program.id));
-    // The row is already gone from this list; the broadcast is for everything
-    // else that renders this program's slots (issue #768, gap 4).
-    _broadcastProgramChange(alreadyApplied: true);
+    // No optimistic removal: the soft delete is a write to `programs`, so the
+    // stream re-emits without the row. Removing it here as well would render
+    // the same change twice and, worse, leave this list's state diverging from
+    // the stream's if the write were ever to fail after the fact.
+    //
+    // The broadcast is for everything else that renders this program's slots
+    // (issue #768, gap 4) — this list does not listen to it.
+    _broadcastProgramChange();
+    // Captured NOW, while the context is live, because the undo callback runs
+    // after it may not be. `notifierOf` exists for exactly this — it resolves
+    // the notifier *without* registering a dependency, so it is safe to hold
+    // across the pop; `bump(context)` would have to read a defunct context.
+    //
+    // The previous shape guarded the bump with `if (mounted)`, which is not a
+    // fix but a silencer: it made the unsafe read unreachable by making the
+    // broadcast not happen at all. A user who navigates away before pressing
+    // Undo would restore the program and notify nobody, which is the staleness
+    // this whole issue is about — reintroduced in the one callback documented
+    // as outliving its screen.
+    final programsRefresh = ProgramsRefreshScope.notifierOf(context);
     showUndoSnackBar(
       ScaffoldMessenger.of(context),
       key: const ValueKey('program-deleted-snackbar'),
@@ -305,10 +343,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.restore(program.id, at: DateTime.now().toUtc());
-        // The broadcast must not depend on this screen's lifetime — an undo
-        // snackbar outlives its host by design. Only the unscoped fallback
-        // does, because it reloads *this* screen.
-        if (!_broadcastProgramChange() && mounted) await _load();
+        // No `mounted` check and no context read: the notifier was captured
+        // above. This list needs no reload of its own either way — the restore
+        // is a write and the stream carries it.
+        programsRefresh?.value++;
       },
     );
   }
@@ -324,8 +362,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       newTitle: l10n.commonDuplicateTitleSuffix(program.title),
     );
     if (!mounted) return;
-    if (!_broadcastProgramChange()) await _load();
-    if (!mounted) return;
+    _broadcastProgramChange();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         key: const ValueKey('program-duplicated-snackbar'),
@@ -456,7 +493,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                   _programs = null;
                   _loadError = null;
                 });
-                _load();
+                _resubscribe();
               },
               child: Text(l10n.commonRetry),
             ),

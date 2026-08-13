@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../data/programs_refresh_scope.dart';
 import 'program_editor_screen.dart';
 import 'program_summary_screen.dart';
 import 'programs_list_screen.dart';
@@ -29,26 +28,9 @@ class ProgramsShell extends StatefulWidget {
 
 class _ProgramsShellState extends State<ProgramsShell> {
   String? _selectedProgramId;
-  final _listRefresh = ValueNotifier<int>(0);
-
-  @override
-  void dispose() {
-    _listRefresh.dispose();
-    super.dispose();
-  }
 
   void _onSelectProgram(String id) {
     setState(() => _selectedProgramId = id);
-  }
-
-  /// Requests a reload of the two browse panes.
-  ///
-  /// Every screen that writes a program now broadcasts via
-  /// [ProgramsRefreshScope], which both panes subscribe to directly, so this
-  /// local trigger fires only when no scope is mounted (focused widget tests).
-  /// Doing both would reload each pane twice per mutation (issue #340).
-  void _refreshBrowsePanes() {
-    if (ProgramsRefreshScope.notifierOf(context) == null) _listRefresh.value++;
   }
 
   /// Opens the full-screen builder route and refreshes the browse panes on
@@ -60,11 +42,12 @@ class _ProgramsShellState extends State<ProgramsShell> {
       ),
     );
     if (!mounted) return;
+    // No refresh request: both panes are stream-driven (issue #768), so the
+    // builder's own write is what reloads them. Only the selection changes
+    // here, and that is this shell's state rather than either pane's data.
     if (result == 'deleted') {
-      _refreshBrowsePanes();
       setState(() => _selectedProgramId = null);
     } else if (result != null) {
-      _refreshBrowsePanes();
       setState(() => _selectedProgramId = result);
     }
   }
@@ -78,11 +61,13 @@ class _ProgramsShellState extends State<ProgramsShell> {
         }
         // Narrow: single-pane list. Tapping a program pushes the read-focused
         // [ProgramSummaryScreen] (not the edit builder), mirroring the dance
-        // side's narrow list → [DanceDetailScreen] flow. The refresh trigger is
-        // passed here too (issue #768): without it a phone had no refresh
-        // channel at all — not even this shell's — so a program created by an
-        // import never appeared until the app restarted.
-        return ProgramsListScreen(refreshTrigger: _listRefresh);
+        // side's narrow list → [DanceDetailScreen] flow.
+        //
+        // A phone once had no refresh channel here at all, so an imported
+        // program never appeared until restart (issue #768). It needs none now:
+        // the list subscribes to its own data, which is a channel that cannot
+        // be forgotten at a call site.
+        return const ProgramsListScreen();
       },
     );
   }
@@ -99,7 +84,6 @@ class _ProgramsShellState extends State<ProgramsShell> {
               onSelectProgram: _onSelectProgram,
               onCreateProgram: () => _openBuilder(context),
               selectedProgramId: _selectedProgramId,
-              refreshTrigger: _listRefresh,
             ),
           ),
         ),
@@ -110,18 +94,11 @@ class _ProgramsShellState extends State<ProgramsShell> {
                 ? ProgramSummaryPane(
                     key: ValueKey('summary-$selectedId'),
                     programId: selectedId,
-                    refreshTrigger: _listRefresh,
                     onOpenBuilder: () =>
                         _openBuilder(context, programId: selectedId),
-                    onDeleted: () {
-                      _refreshBrowsePanes();
-                      setState(() => _selectedProgramId = null);
-                    },
-                    onNavigateTo: (id) {
-                      _refreshBrowsePanes();
-                      setState(() => _selectedProgramId = id);
-                    },
-                    onProgramMutated: _refreshBrowsePanes,
+                    onDeleted: () => setState(() => _selectedProgramId = null),
+                    onNavigateTo: (id) =>
+                        setState(() => _selectedProgramId = id),
                   )
                 : const _EmptyEditorPane(),
           ),

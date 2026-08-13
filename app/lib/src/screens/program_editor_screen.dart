@@ -229,13 +229,62 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _enrichment = SearchEnrichment.fromDialects(newDialects);
     }
 
+    // Scope the picker's call counts consistently with the Collection list
+    // (issue #583); [of] returns false when the scope is absent (narrow
+    // embedded tests), i.e. track all callers.
+    //
+    // Read UNCONDITIONALLY, outside the first-load guard. It used to be read
+    // only inside it, which meant the setting was captured once and never
+    // again: `TrackHistoryForAllCallersScope` is an `InheritedNotifier`, so a
+    // toggle did rebuild this screen and did call this method — the value was
+    // simply never re-read, and the picker served the previous filter's call
+    // counts for the rest of the screen's life (issue #948).
+    _trackHistoryForAllCallers = TrackHistoryForAllCallersScope.of(context);
+
     if (!_loaded && _loadError == null && _data == null) {
       _repos = RepositoriesScope.of(context);
-      // Scope the picker's call counts consistently with the Collection list
-      // (issue #583); [of] returns false when the scope is absent (narrow
-      // embedded tests), i.e. track all callers.
-      _trackHistoryForAllCallers = TrackHistoryForAllCallersScope.of(context);
       _load();
+    } else if (_loaded &&
+        _subscribedTrackAllCallers != null &&
+        _subscribedTrackAllCallers != _trackHistoryForAllCallers) {
+      unawaited(_resubscribePicker());
+    }
+  }
+
+  /// Re-opens the picker's subscription under the current caller filter.
+  ///
+  /// **Reference data only.** The list screen answers the same change with a
+  /// full `_boot`, and copying that here would be wrong: this screen holds a
+  /// working copy of the program with debounced autosave, so re-running [_load]
+  /// would re-read the program from the database and discard whatever the user
+  /// has typed. The filter affects the picker's call counts and nothing else on
+  /// this screen, so re-subscribing is both sufficient and the only safe scope.
+  ///
+  /// Gated on [_loaded] so it cannot supersede the initial load: that load
+  /// awaits this same first-value future, and cancelling it mid-flight would
+  /// raise `_SupersededLoad` into a caller that owns `_loaded` — leaving the
+  /// editor on its loading state with nothing left to clear it. The residual
+  /// window is a toggle landing *during* the initial load, which needs the user
+  /// to reach Settings inside that load's own `await`; the subscription then
+  /// keeps the filter it opened with. Left rather than closed with machinery,
+  /// because the reconciliation would be unreachable code guarding a state no
+  /// navigation can produce.
+  Future<void> _resubscribePicker() async {
+    try {
+      final callerFilter = await resolveCallingHistoryCallerFilter(
+        _repos.settings,
+        trackAllCallers: _trackHistoryForAllCallers,
+      );
+      final data = await _watchCollectionData(callerFilter);
+      if (!mounted) return;
+      setState(() => _data = _latestData ?? data);
+    } on _SupersededLoad {
+      // A newer re-subscribe replaced this one; it owns `_data` now.
+      return;
+    } catch (_) {
+      // Keep the last good picker data rather than blanking it, matching the
+      // stream's own later-failure policy: this is reference data beside an
+      // editor holding unsaved work.
     }
   }
 
@@ -278,9 +327,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// invisible to it, because **cancelling a `StreamSubscription` invokes none
   /// of its callbacks**: replacing the subscription, and [dispose].
   ///
-  /// This screen's `_load` runs once (guarded by `!_loaded`), so the replace
-  /// path is not currently reachable here — but the dispose path is, and the
-  /// guard is written for the class rather than for the reachable half. See
+  /// Both paths are reachable here. The replace path became reachable when
+  /// [_resubscribePicker] landed (issue #948) — before that this screen's
+  /// `_load` ran once, guarded by `!_loaded`, and only dispose could abandon a
+  /// pending future. The guard was written for the class rather than for the
+  /// reachable half, which is why that change needed no new machinery; see
   /// `program_summary_screen`, where round 11 found the replace path live.
   void _replaceSubscription() {
     final pending = _pendingFirst;
@@ -292,10 +343,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _dataSub = null;
   }
 
+  /// Whether the LIVE subscription was opened under "track all callers".
+  ///
+  /// Compared against the scope's current value rather than against
+  /// [_trackHistoryForAllCallers], which is updated on every dependency change
+  /// and so cannot say what the open subscription is actually serving. Null
+  /// until the first subscription exists.
+  bool? _subscribedTrackAllCallers;
+
   Future<CollectionData> _watchCollectionData(String? callerFilter) {
     final first = Completer<CollectionData>();
     _replaceSubscription();
     _pendingFirst = first;
+    _subscribedTrackAllCallers = _trackHistoryForAllCallers;
     _dataSub = CollectionData.watch(_repos, callerFilter: callerFilter).listen(
       (data) {
         _latestData = data;

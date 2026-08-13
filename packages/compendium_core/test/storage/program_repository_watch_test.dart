@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show UpdateKind, Variable;
 import 'package:test/test.dart';
 
 import 'test_database.dart';
@@ -504,6 +505,101 @@ void main() {
 
       expect(probe.values.length - before, 1);
     });
+  });
+
+  group('watchAll', () {
+    test('emits the current list immediately on listen', () async {
+      await programs.create(program(id: 'p1', title: 'Spring Dance'));
+      final probe = _Probe(programs.watchAll());
+      addTearDown(probe.cancel);
+
+      expect((await probe.next()).map((p) => p.id), ['p1']);
+    });
+
+    test('GUARD: a slot-only edit re-emits — the assertion drift\'s inferred '
+        'read set fails', () async {
+      // The single most valuable test in this file. `listAll` selects
+      // `programs` and then fans out in Dart to `_slotsForMany`, so the
+      // natural implementation — `select(programs).watch()` — depends on
+      // `programs` alone and never hears about this write. It would pass
+      // every other test here.
+      await programs.create(
+        program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      final probe = _Probe(programs.watchAll());
+      addTearDown(probe.cancel);
+      expect((await probe.next()).single.slots, hasLength(1));
+
+      // Adding a slot through `ProgramRepository.update` would rewrite the
+      // parent `programs` row in the same transaction, and that write alone
+      // would wake the stream — masking a missing `program_slots` entry
+      // entirely. So the slot goes in on its own, touching one table.
+      //
+      // `customUpdate` with an explicit `updates:` rather than
+      // `customStatement`, because a bare statement is invisible to drift's
+      // watchers (issues #932, #940) and the test would then fail for the
+      // write's reason instead of the stream's.
+      await db.customUpdate(
+        'INSERT INTO ${db.programSlots.actualTableName} '
+        '(id, program_id, position, dance_id) VALUES (?, ?, ?, ?)',
+        variables: [
+          Variable<String>('s2'),
+          Variable<String>('p1'),
+          Variable<int>(1),
+          Variable<String>('d2'),
+        ],
+        updates: {db.programSlots},
+        updateKind: UpdateKind.insert,
+      );
+
+      final next = await probe.next();
+      expect(
+        next.single.slots.map((s) => s.id),
+        ['s1', 's2'],
+        reason: 'the new slot must reach a subscriber',
+      );
+    });
+
+    test('GUARD: renaming a program re-emits', () async {
+      await programs.create(program(id: 'p1', title: 'Spring Dance'));
+      final probe = _Probe(programs.watchAll());
+      addTearDown(probe.cancel);
+      expect((await probe.next()).single.title, 'Spring Dance');
+
+      await programs.update(
+        program(id: 'p1', title: 'Autumn Dance', updatedAt: now),
+      );
+
+      expect((await probe.next()).single.title, 'Autumn Dance');
+    });
+
+    test('GUARD: a soft delete drops the row from the list', () async {
+      await programs.create(program(id: 'p1'));
+      final probe = _Probe(programs.watchAll());
+      addTearDown(probe.cancel);
+      expect(await probe.next(), hasLength(1));
+
+      await programs.softDelete('p1', at: now);
+
+      expect(await probe.next(), isEmpty);
+    });
+
+    // `program_provenance` is the third table in the declared set and has NO
+    // guard here, deliberately. Nothing writes it alone: the row is deleted and
+    // re-inserted inside the same transaction as the `programs` upsert that
+    // carries it, so a subscriber would be woken by `programs` even if the
+    // entry were missing. A test would therefore pass with the table dropped
+    // from the set — it would assert the transaction's shape, not the
+    // declaration.
+    //
+    // It stays in the set because the declaration is a statement about what
+    // `listAll` reads, which is checkable by reading `listAll`; a future path
+    // that writes provenance on its own would then already be covered. This is
+    // the same invariant the Collection sources rely on for join tables, and
+    // the same reason it is written down rather than tested.
   });
 }
 
