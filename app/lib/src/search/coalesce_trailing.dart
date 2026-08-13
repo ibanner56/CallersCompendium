@@ -36,6 +36,26 @@ StreamTransformerBase<T, T> debugCoalesceTrailing<T>(Duration window) =>
 /// measured against the burst shape a given consumer actually faces, and a
 /// shared default would be a number no caller had checked — so each states its
 /// own and shows its working.
+///
+/// ## `Duration.zero` short-circuits to an identity transformer
+///
+/// A zero window means "coalesce nothing", and without a short-circuit it does
+/// **not** deliver that. `Timer(Duration.zero, …)` is still a real timer: the
+/// leading edge emits, the timer is armed, and any event arriving before it
+/// fires is held and replaced. A synchronous burst of `1, 2, 3` therefore
+/// emitted `1, 3` — the middle value silently dropped by a window that was
+/// supposed to be inert.
+///
+/// That is a trap for exactly the caller most likely to pass zero: a test using
+/// it as the disabled control arm against which a real window is measured. Such
+/// a control was quietly doing some coalescing of its own.
+///
+/// So zero returns the source stream untouched. The two figures that justify
+/// the detail screen's window were re-measured under both implementations and
+/// are identical (`1 vs 2` for a burst written one transaction at a time,
+/// `1 vs 1` for one issued all at once), so this changes no conclusion already
+/// drawn from them — those bursts have real time between their events, which is
+/// why they never exercised the same-turn case above.
 class CoalesceTrailing<T> extends StreamTransformerBase<T, T> {
   const CoalesceTrailing(this.window);
 
@@ -43,6 +63,22 @@ class CoalesceTrailing<T> extends StreamTransformerBase<T, T> {
 
   @override
   Stream<T> bind(Stream<T> stream) {
+    // A negative window is meaningless, and — this is the point — it fails
+    // *silently*: `Timer` does not reject a negative duration, it fires as soon
+    // as possible, so every event trips the trailing flush immediately.
+    //
+    // Stated from what `Timer` actually does, verified rather than assumed: a
+    // negative-duration timer constructs without throwing and fires within a
+    // millisecond. "Timer throws on a negative duration" is the intuitive
+    // reason for this guard and it is false; the guard is here because nothing
+    // throws.
+    assert(
+      !window.isNegative,
+      'a coalescing window cannot be negative (got $window): Timer would '
+      'accept it and fire immediately, silently disabling coalescing',
+    );
+    // See the doc above: without this, zero is not inert.
+    if (window == Duration.zero) return stream;
     late StreamController<T> controller;
     StreamSubscription<T>? subscription;
     Timer? timer;

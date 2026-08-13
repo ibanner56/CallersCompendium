@@ -10,6 +10,18 @@ import '../support/test_repositories.dart';
 /// The screen behaviour is asserted in `refresh_scopes_test.dart`; what is
 /// tested here is the stream's own contract — what wakes it, what does not, and
 /// how many times it re-reads for a burst.
+/// The control arm for every window measurement below: the transformer
+/// contributing nothing, so a burst measured with it shows what the stream
+/// costs on its own.
+///
+/// Named rather than written inline as `Duration.zero`, because "zero" at a
+/// call site reads as an unset default when what is meant is "deliberately
+/// disabled". The name is also only honest because `CoalesceTrailing`
+/// short-circuits zero to an identity transformer — before that, this control
+/// arm still coalesced a same-turn burst, which is precisely the trap the
+/// short-circuit removes.
+const _noCoalescing = Duration.zero;
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -181,7 +193,7 @@ void main() {
     final unwindowed = await _burst(
       repos: openTestRepositories(),
       writes: 10,
-      coalesce: Duration.zero,
+      coalesce: _noCoalescing,
     );
 
     // Measured repeatedly at 1 vs 2 on in-memory sqlite in a debug build — so
@@ -220,7 +232,7 @@ void main() {
       );
       final unwindowed = await _tightBurst(
         repos: openTestRepositories(),
-        coalesce: Duration.zero,
+        coalesce: _noCoalescing,
       );
 
       expect(

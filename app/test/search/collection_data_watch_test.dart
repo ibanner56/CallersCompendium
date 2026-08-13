@@ -388,4 +388,43 @@ void main() {
 
     expect(latest!.callCounts['d1']?.all, 1);
   });
+
+  group('CoalesceTrailing input validation', () {
+    test('a negative window trips the assert rather than silently disabling', () {
+      // The guard exists because the failure is SILENT, not because anything
+      // throws on its own: `Timer` accepts a negative duration and fires as
+      // soon as possible, so without this a negative window would disable
+      // coalescing with no diagnostic at all.
+      //
+      // Asserted here rather than trusted, so the guard has been shown to fire.
+      expect(
+        () => const CoalesceTrailing<int>(
+          Duration(milliseconds: -1),
+        ).bind(const Stream<int>.empty()),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
+    test('Duration.zero really is inert, not merely small', () async {
+      // The paired positive: zero is a legitimate argument, not an error.
+      //
+      // And it is a regression guard with a recorded red run. Before the
+      // identity short-circuit this assertion FAILED with `[1, 3]`: a zero
+      // window still armed a real `Timer`, so the middle event of a synchronous
+      // burst was held and replaced. A control arm that was supposed to be
+      // disabled was quietly coalescing.
+      //
+      // Removing the short-circuit reproduces `[1, 3]` exactly.
+      final seen = <int>[];
+      final sub = Stream.fromIterable([
+        1,
+        2,
+        3,
+      ]).transform(const CoalesceTrailing<int>(Duration.zero)).listen(seen.add);
+      addTearDown(sub.cancel);
+      await pumpEventQueue();
+
+      expect(seen, [1, 2, 3]);
+    });
+  });
 }
