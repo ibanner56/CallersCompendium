@@ -648,9 +648,10 @@ class _AuthorFacetState extends State<_AuthorFacet> {
             },
             // Picking always closes the sheet on narrow layouts (owner's Q1
             // decision, uniform across all seven call sites) — even here,
-            // where multi-select via repeated adds is the norm. The cleared
-            // + refocused field below keeps "tap again to add another" as
-            // smooth as the wide inline overlay's loop.
+            // where multi-select via repeated adds is the norm. `_add`
+            // clears the query so the next search starts empty, but (unlike
+            // `NamePicker`'s tag/author fields) does not refocus: a tap on
+            // the field is what reopens the sheet for the next add.
             onSelected: (a) => _add(a.id),
             fieldViewBuilder: (context, controller, focusNode, onSubmit) {
               return TextField(

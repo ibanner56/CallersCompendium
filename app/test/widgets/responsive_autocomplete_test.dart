@@ -17,6 +17,7 @@ class _TestPicker extends StatefulWidget {
     this.compactHeightBreakpoint = 480,
     this.autofocus = false,
     this.focusNode,
+    this.refocusAfterSelect = false,
   });
 
   final List<String> options;
@@ -27,15 +28,46 @@ class _TestPicker extends StatefulWidget {
   final bool autofocus;
   final FocusNode? focusNode;
 
+  /// Mirrors `name_picker.dart`'s `_AddAutocomplete.onSelected`
+  /// (`:162-163`): clears the field and re-requests focus after every pick,
+  /// which is what turns a successful selection into "reopen the sheet" on
+  /// a phone. Requires [focusNode] to be non-null (the test needs a handle
+  /// on the same node the widget refocuses to assert on it).
+  final bool refocusAfterSelect;
+
   @override
   State<_TestPicker> createState() => _TestPickerState();
 }
 
 class _TestPickerState extends State<_TestPicker> {
+  // Owned only so `refocusAfterSelect` has something to clear — mirrors
+  // `_AddAutocompleteState._controller` in name_picker.dart.
+  TextEditingController? _ownedController;
+  TextEditingController get _controller =>
+      _ownedController ??= TextEditingController();
+
+  @override
+  void dispose() {
+    _ownedController?.dispose();
+    super.dispose();
+  }
+
   Iterable<String> _optionsFor(TextEditingValue value) {
     final q = value.text.trim().toLowerCase();
     if (q.isEmpty) return const [];
     return widget.options.where((o) => o.toLowerCase().contains(q));
+  }
+
+  void _handleSelected(String option) {
+    widget.onSelected(option);
+    if (widget.refocusAfterSelect) {
+      assert(
+        widget.focusNode != null,
+        'refocusAfterSelect requires an explicit focusNode to refocus',
+      );
+      _controller.clear();
+      widget.focusNode!.requestFocus();
+    }
   }
 
   @override
@@ -44,11 +76,12 @@ class _TestPickerState extends State<_TestPicker> {
       sheetSemanticLabel: 'Search options',
       autofocus: widget.autofocus,
       focusNode: widget.focusNode,
+      textEditingController: widget.refocusAfterSelect ? _controller : null,
       compactWidthBreakpoint: widget.compactWidthBreakpoint,
       compactHeightBreakpoint: widget.compactHeightBreakpoint,
       displayStringForOption: (o) => o,
       optionsBuilder: _optionsFor,
-      onSelected: widget.onSelected,
+      onSelected: _handleSelected,
       fieldViewBuilder: (context, controller, focusNode, onSubmit) {
         return TextField(
           key: const ValueKey('test-input'),
@@ -89,6 +122,7 @@ Future<void> _pump(
   bool autofocus = false,
   TextDirection textDirection = TextDirection.ltr,
   FocusNode? focusNode,
+  bool refocusAfterSelect = false,
 }) async {
   await tester.pumpWidget(
     Directionality(
@@ -103,6 +137,7 @@ Future<void> _pump(
             compactHeightBreakpoint: compactHeightBreakpoint,
             autofocus: autofocus,
             focusNode: focusNode,
+            refocusAfterSelect: refocusAfterSelect,
           ),
         ),
       ),
@@ -164,6 +199,7 @@ void main() {
       bool autofocus = false,
       TextDirection textDirection = TextDirection.ltr,
       FocusNode? focusNode,
+      bool refocusAfterSelect = false,
     }) async {
       await setScreenSize(tester, const Size(360, 720));
       await _pump(
@@ -173,6 +209,7 @@ void main() {
         autofocus: autofocus,
         textDirection: textDirection,
         focusNode: focusNode,
+        refocusAfterSelect: refocusAfterSelect,
       );
     }
 
@@ -375,6 +412,140 @@ void main() {
           find.byKey(const ValueKey('test-option-option-39')),
           findsOneWidget,
         );
+      },
+    );
+
+    testWidgets(
+      'repeated selections keep reopening the sheet, not just the first '
+      '(#894)',
+      (tester) async {
+        final focusNode = FocusNode();
+        addTearDown(focusNode.dispose);
+        final picked = <String>[];
+        await pumpNarrow(
+          tester,
+          options: const ['alpha', 'bravo', 'charlie', 'delta'],
+          onSelected: picked.add,
+          focusNode: focusNode,
+          refocusAfterSelect: true,
+        );
+
+        // The first open is tap-driven — `AbsorbPointer` means the tap
+        // never reaches the launcher, so `openedViaFocus == false` here.
+        // Every reopen after that is itself focus-driven (the refocus below
+        // is what opens it), which is the branch #894 actually broke.
+        await tester.tap(
+          find.byKey(const ValueKey('test-input')),
+          warnIfMissed: false,
+        );
+        await tester.pumpAndSettle();
+
+        for (final name in ['alpha', 'bravo', 'charlie']) {
+          expect(
+            find.byType(BottomSheet),
+            findsOneWidget,
+            reason: 'sheet must still be open before picking "$name"',
+          );
+          await tester.enterText(
+            find.byKey(const ValueKey('test-input')),
+            name,
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(ValueKey('test-option-$name')));
+          await tester.pumpAndSettle();
+        }
+
+        expect(picked, ['alpha', 'bravo', 'charlie']);
+        // The count matters — issue #894's own acceptance criterion is
+        // "three or more", since a fix that only reopens after every other
+        // addition passes a two-addition test for the wrong reason (it
+        // would still fail on the third, as this assertion establishes).
+        expect(
+          find.byType(BottomSheet),
+          findsOneWidget,
+          reason: 'sheet must still be open after the third pick',
+        );
+      },
+    );
+
+    testWidgets(
+      'a focus-driven open that is dismissed without picking does not '
+      'permanently swallow a later genuine Tab/AT focus arrival (#894)',
+      (tester) async {
+        final focusNode = FocusNode();
+        addTearDown(focusNode.dispose);
+        await pumpNarrow(
+          tester,
+          options: const ['swing'],
+          onSelected: (_) {},
+          focusNode: focusNode,
+        );
+
+        // Open via a genuine focus gain (Tab/AT traversal) — the
+        // `openedViaFocus == true` branch that arms the guard.
+        focusNode.requestFocus();
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsOneWidget);
+
+        // Dismiss WITHOUT picking (back/drag-down) — tap the modal barrier,
+        // well above the sheet's own content (`initialChildSize: 0.6`).
+        await tester.tapAt(const Offset(180, 10));
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsNothing);
+
+        // A later, unrelated, genuine Tab/AT-driven focus arrival must
+        // still open the sheet. Before the fix this stays swallowed
+        // forever: the guard, once armed by the dismiss above, is never
+        // consumed — the launcher is unmounted while the sheet is open, so
+        // no automatic focus-restoration ever arrives to consume it.
+        focusNode.requestFocus();
+        await tester.pumpAndSettle();
+
+        expect(find.byType(BottomSheet), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'a focus-driven open that is dismissed without picking does not '
+      'immediately reopen (the boomerang the guard exists to prevent)',
+      (tester) async {
+        final focusNode = FocusNode();
+        addTearDown(focusNode.dispose);
+        await pumpNarrow(
+          tester,
+          options: const ['swing'],
+          onSelected: (_) {},
+          focusNode: focusNode,
+        );
+
+        focusNode.requestFocus();
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsOneWidget);
+
+        await tester.tapAt(const Offset(180, 10));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(BottomSheet), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'dismissing without selecting after a tap-driven open also leaves it '
+      'closed',
+      (tester) async {
+        await pumpNarrow(tester, options: const ['swing'], onSelected: (_) {});
+
+        await tester.tap(
+          find.byKey(const ValueKey('test-input')),
+          warnIfMissed: false,
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsOneWidget);
+
+        await tester.tapAt(const Offset(180, 10));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(BottomSheet), findsNothing);
       },
     );
   });
