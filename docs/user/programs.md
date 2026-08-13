@@ -179,7 +179,7 @@ Here is how to read it:
   | Star | **Introduced here** | The first dance (top to bottom) whose choreography uses that move, wherever it falls in that dance |
   | Flag | **Dance's first figure** | The move that dance opens with |
   | Check | **Present** | The move appears in that dance |
-  | Alert | **Same beats as adjacent dance** (or **Same phrase as adjacent dance**, if you turn the setting below off) | See below |
+  | Alert | **Shares beats with an adjacent dance** (or **Same phrase as adjacent dance**, if you turn the setting below off) | See below |
 
 - **The alert marker** replaces the check when a move's beats actually **overlap**
   in **two dances that run back-to-back** in the program — for example a partner
@@ -222,9 +222,9 @@ A few practical notes:
   menu, and it is unavailable while the matrix is empty. The PDF is landscape and
   carries its own legend — where the screen uses icons, the printed page uses the
   marks `★` (introduced here), `▸` (dance's first figure), `✓` (present), and `‼`
-  (same beats as adjacent dance, or same phrase as adjacent dance if you've
-  turned the setting off). Columns you have hidden on screen still print:
-  the export always covers the full matrix. See
+  (shares beats with an adjacent dance, or same phrase as adjacent dance if
+  you've turned the setting off). Columns you have hidden on screen still
+  print: the export always covers the full matrix. See
   [Share, print & export](./sharing.md#print-the-programming-matrix).
 
 ## Print, export, and email a program

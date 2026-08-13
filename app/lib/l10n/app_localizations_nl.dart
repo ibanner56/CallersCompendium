@@ -2750,7 +2750,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsMatrixLegendCollisionBeats =>
-      'Zelfde beats als aangrenzende dans';
+      'Deelt beats met aangrenzende dans';
 
   @override
   String get programsMatrixEmptyTitle => 'Nog geen gestructureerde figuren';
@@ -3239,7 +3239,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get exportMatrixLegendCollisionBeats =>
-      'Zelfde beats als aangrenzende dans';
+      'Deelt beats met aangrenzende dans';
 
   @override
   String exportMatrixOmittedCaption(int count) {

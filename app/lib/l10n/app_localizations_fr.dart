@@ -2703,7 +2703,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'no': 'absent',
       'other': 'présent$_temp0$_temp1$_temp2',
     });
-    return '$dance, $move : $_temp3';
+    return '$dance, $move : $_temp3';
   }
 
   @override
@@ -2772,7 +2772,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsMatrixLegendCollisionBeats =>
-      'Mêmes temps qu\'une danse voisine';
+      'Partage des temps avec une danse voisine';
 
   @override
   String get programsMatrixEmptyTitle => 'Pas encore de figures structurées';
@@ -3264,7 +3264,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get exportMatrixLegendCollisionBeats =>
-      'Mêmes temps qu\'une danse voisine';
+      'Partage des temps avec une danse voisine';
 
   @override
   String exportMatrixOmittedCaption(int count) {

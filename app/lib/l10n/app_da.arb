@@ -2848,9 +2848,9 @@
   "@programsMatrixLegendCollision": {
     "x-sourceSha256": "936bb9f875e0fa8ffd95ab55900d21e20214b1c419e4146b2ea566633a4c78b6"
   },
-  "programsMatrixLegendCollisionBeats": "Samme slag som nabodans",
+  "programsMatrixLegendCollisionBeats": "Deler slag med nabodans",
   "@programsMatrixLegendCollisionBeats": {
-    "x-sourceSha256": "85f973012d1d4aa241ce86591a971b2af20ec44c1eca0f73d964a996df028eb3"
+    "x-sourceSha256": "0a365ce270024cc558afcc42e8145ea39eac9b4782a421d840c23c22c66eafb4"
   },
   "programsMatrixEmptyTitle": "Ingen strukturerede figurer endnu",
   "@programsMatrixEmptyTitle": {
@@ -3356,9 +3356,9 @@
   "@exportMatrixLegendCollision": {
     "x-sourceSha256": "936bb9f875e0fa8ffd95ab55900d21e20214b1c419e4146b2ea566633a4c78b6"
   },
-  "exportMatrixLegendCollisionBeats": "Samme slag som nabodans",
+  "exportMatrixLegendCollisionBeats": "Deler slag med nabodans",
   "@exportMatrixLegendCollisionBeats": {
-    "x-sourceSha256": "85f973012d1d4aa241ce86591a971b2af20ec44c1eca0f73d964a996df028eb3"
+    "x-sourceSha256": "0a365ce270024cc558afcc42e8145ea39eac9b4782a421d840c23c22c66eafb4"
   },
   "exportMatrixOmittedCaption": "{count, plural, =1{1 fritekst-slot} other{{count} fritekst-slots}} (pauser, noter) udeladt – matrixen viser kun danse.",
   "@exportMatrixOmittedCaption": {

@@ -164,7 +164,7 @@ void main() {
     expect(find.text('Introduced here'), findsOneWidget);
     expect(find.text("Dance's first figure"), findsOneWidget);
     expect(find.text('Present'), findsOneWidget);
-    expect(find.text('Same beats as adjacent dance'), findsOneWidget);
+    expect(find.text('Shares beats with an adjacent dance'), findsOneWidget);
     // A opens with a neighbor swing → the neighbor split column is both its
     // program debut and its first figure; the partner baseline is not present.
     expect(

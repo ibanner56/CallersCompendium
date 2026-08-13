@@ -4400,7 +4400,7 @@ abstract class AppLocalizations {
   /// Matrix legend label for the alert marker when the 'flag exact beat overlap only' setting is on (the default, issue #962): the move's beat span actually overlaps a strictly-adjacent dance's occurrence, not merely the same named phrase.
   ///
   /// In en, this message translates to:
-  /// **'Same beats as adjacent dance'**
+  /// **'Shares beats with an adjacent dance'**
   String get programsMatrixLegendCollisionBeats;
 
   /// Title of the matrix empty state shown when no dance has structured figures.
@@ -5177,7 +5177,7 @@ abstract class AppLocalizations {
   /// Legend entry on the programming-matrix PDF for the alert marker when the 'flag exact beat overlap only' setting is on (the default, issue #962): a move whose beat span actually overlaps a strictly-adjacent dance's occurrence.
   ///
   /// In en, this message translates to:
-  /// **'Same beats as adjacent dance'**
+  /// **'Shares beats with an adjacent dance'**
   String get exportMatrixLegendCollisionBeats;
 
   /// Caption on the programming-matrix PDF noting how many free-text slots (breaks, notes) were left out because the matrix shows dances only.

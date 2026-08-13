@@ -2731,7 +2731,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsMatrixLegendCollisionBeats =>
-      'Same beats as adjacent dance';
+      'Shares beats with an adjacent dance';
 
   @override
   String get programsMatrixEmptyTitle => 'No structured figures yet';
@@ -3217,7 +3217,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportMatrixLegendCollision => 'Same phrase as adjacent dance';
 
   @override
-  String get exportMatrixLegendCollisionBeats => 'Same beats as adjacent dance';
+  String get exportMatrixLegendCollisionBeats =>
+      'Shares beats with an adjacent dance';
 
   @override
   String exportMatrixOmittedCaption(int count) {

@@ -3661,7 +3661,7 @@
   "@programsMatrixLegendCollision": {
     "description": "Matrix legend label for the alert marker when the 'flag exact beat overlap only' setting is off: the move merely starts in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance in the program (issue #582's original behaviour)."
   },
-  "programsMatrixLegendCollisionBeats": "Same beats as adjacent dance",
+  "programsMatrixLegendCollisionBeats": "Shares beats with an adjacent dance",
   "@programsMatrixLegendCollisionBeats": {
     "description": "Matrix legend label for the alert marker when the 'flag exact beat overlap only' setting is on (the default, issue #962): the move's beat span actually overlaps a strictly-adjacent dance's occurrence, not merely the same named phrase."
   },
@@ -4314,7 +4314,7 @@
   "@exportMatrixLegendCollision": {
     "description": "Legend entry on the programming-matrix PDF for the alert marker when the 'flag exact beat overlap only' setting is off: a move merely starting in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance (issue #582's original behaviour)."
   },
-  "exportMatrixLegendCollisionBeats": "Same beats as adjacent dance",
+  "exportMatrixLegendCollisionBeats": "Shares beats with an adjacent dance",
   "@exportMatrixLegendCollisionBeats": {
     "description": "Legend entry on the programming-matrix PDF for the alert marker when the 'flag exact beat overlap only' setting is on (the default, issue #962): a move whose beat span actually overlaps a strictly-adjacent dance's occurrence."
   },

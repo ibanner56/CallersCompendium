@@ -2663,7 +2663,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsMatrixLegendCollision => '隣接ダンスと同じフレーズ';
 
   @override
-  String get programsMatrixLegendCollisionBeats => '隣接ダンスと同じ拍';
+  String get programsMatrixLegendCollisionBeats => '隣接ダンスと拍が重なる';
 
   @override
   String get programsMatrixEmptyTitle => 'まだ構造化されたフィギュアがありません';
@@ -3135,7 +3135,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportMatrixLegendCollision => '隣接ダンスと同じフレーズ';
 
   @override
-  String get exportMatrixLegendCollisionBeats => '隣接ダンスと同じ拍';
+  String get exportMatrixLegendCollisionBeats => '隣接ダンスと拍が重なる';
 
   @override
   String exportMatrixOmittedCaption(int count) {

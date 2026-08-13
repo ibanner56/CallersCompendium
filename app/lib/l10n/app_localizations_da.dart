@@ -2739,7 +2739,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsMatrixLegendCollision => 'Samme frase som nabodans';
 
   @override
-  String get programsMatrixLegendCollisionBeats => 'Samme slag som nabodans';
+  String get programsMatrixLegendCollisionBeats => 'Deler slag med nabodans';
 
   @override
   String get programsMatrixEmptyTitle => 'Ingen strukturerede figurer endnu';
@@ -3225,7 +3225,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get exportMatrixLegendCollision => 'Samme frase som nabodans';
 
   @override
-  String get exportMatrixLegendCollisionBeats => 'Samme slag som nabodans';
+  String get exportMatrixLegendCollisionBeats => 'Deler slag med nabodans';
 
   @override
   String exportMatrixOmittedCaption(int count) {

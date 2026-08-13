@@ -2763,7 +2763,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programsMatrixLegendCollisionBeats =>
-      'Gleiche Takte wie Nachbartanz';
+      'Teilt Takte mit Nachbartanz';
 
   @override
   String get programsMatrixEmptyTitle => 'Noch keine strukturierten Figuren';
@@ -3256,8 +3256,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportMatrixLegendCollision => 'Gleiche Phrase wie Nachbartanz';
 
   @override
-  String get exportMatrixLegendCollisionBeats =>
-      'Gleiche Takte wie Nachbartanz';
+  String get exportMatrixLegendCollisionBeats => 'Teilt Takte mit Nachbartanz';
 
   @override
   String exportMatrixOmittedCaption(int count) {

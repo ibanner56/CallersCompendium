@@ -2848,9 +2848,9 @@
   "@programsMatrixLegendCollision": {
     "x-sourceSha256": "936bb9f875e0fa8ffd95ab55900d21e20214b1c419e4146b2ea566633a4c78b6"
   },
-  "programsMatrixLegendCollisionBeats": "Gleiche Takte wie Nachbartanz",
+  "programsMatrixLegendCollisionBeats": "Teilt Takte mit Nachbartanz",
   "@programsMatrixLegendCollisionBeats": {
-    "x-sourceSha256": "85f973012d1d4aa241ce86591a971b2af20ec44c1eca0f73d964a996df028eb3"
+    "x-sourceSha256": "0a365ce270024cc558afcc42e8145ea39eac9b4782a421d840c23c22c66eafb4"
   },
   "programsMatrixEmptyTitle": "Noch keine strukturierten Figuren",
   "@programsMatrixEmptyTitle": {
@@ -3356,9 +3356,9 @@
   "@exportMatrixLegendCollision": {
     "x-sourceSha256": "936bb9f875e0fa8ffd95ab55900d21e20214b1c419e4146b2ea566633a4c78b6"
   },
-  "exportMatrixLegendCollisionBeats": "Gleiche Takte wie Nachbartanz",
+  "exportMatrixLegendCollisionBeats": "Teilt Takte mit Nachbartanz",
   "@exportMatrixLegendCollisionBeats": {
-    "x-sourceSha256": "85f973012d1d4aa241ce86591a971b2af20ec44c1eca0f73d964a996df028eb3"
+    "x-sourceSha256": "0a365ce270024cc558afcc42e8145ea39eac9b4782a421d840c23c22c66eafb4"
   },
   "exportMatrixOmittedCaption": "{count, plural, =1{1 Freitext-Slot} other{{count} Freitext-Slots}} (Pausen, Notizen) ausgelassen — die Matrix zeigt nur Tänze.",
   "@exportMatrixOmittedCaption": {

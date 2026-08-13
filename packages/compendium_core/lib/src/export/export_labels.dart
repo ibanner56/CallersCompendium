@@ -126,7 +126,7 @@ class ProgramMatrixExportLabels {
     this.legendDebut = 'Introduced here',
     this.legendFirst = "Dance's first figure",
     this.legendPresent = 'Present',
-    this.legendCollisionBeats = 'Same beats as adjacent dance',
+    this.legendCollisionBeats = 'Shares beats with an adjacent dance',
     this.legendCollisionPhrase = 'Same phrase as adjacent dance',
     this.omittedCaption = _englishOmittedCaption,
   });
