@@ -111,7 +111,9 @@ class _ReparseCustomFiguresScreenState
     // Capture the refresh notifier BEFORE the await: if the user navigates Back
     // while the batch runs, this widget's context is defunct by the time the
     // write completes, so we must not read it (or bump via context) afterwards.
-    final refresh = CollectionRefreshScope.maybeOf(context);
+    // `notifierOf`: captured only to bump after the batch, so a rebuild
+    // dependency would wake this screen for every unrelated collection write.
+    final refresh = CollectionRefreshScope.notifierOf(context);
 
     final confirmed = await showDialog<bool>(
       context: context,

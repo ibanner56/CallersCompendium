@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/date_format_scope.dart';
-import '../data/programs_refresh_scope.dart';
 import '../data/refresh_coalescer.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
@@ -162,8 +161,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// Collapses a burst of refresh requests into a single [_load].
   ///
   /// It no longer collapses "the two bumps a dance+program write emits" — this
-  /// pane stopped subscribing to `CollectionRefreshScope` and
-  /// `ProgramsRefreshScope` when it moved to the stream (issue #768), and the
+  /// pane stopped subscribing to `CollectionRefreshScope` (and to the since
+  /// retired `ProgramsRefreshScope`) when it moved to the stream (#768), and the
   /// shell's `refreshTrigger` went with the rest of that plumbing. **One source
   /// reaches it now: [CollectionData.watch].**
   ///
@@ -194,8 +193,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     // went stale from either side. Both subscriptions are gone: the watched
     // source set behind [CollectionData.watch] spans the dance tables *and*
     // `programs`/`program_slots`, so one stream covers what two channels did.
-    // Writes made *here* still bump `ProgramsRefreshScope` (see
-    // [_broadcastProgramChange]) for the views not yet converted.
+    // Writes made here no longer broadcast either — `ProgramsRefreshScope` was
+    // retired once its last reader became stream-driven (issue #768).
   }
 
   /// The live Collection reference data for this pane (issue #768).
@@ -374,17 +373,6 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     return first.future;
   }
 
-  /// Broadcasts "program data changed" for any view still driven by
-  /// [ProgramsRefreshScope].
-  ///
-  /// This pane does not listen — it has a stream — and neither does the
-  /// coexisting Programs list any more, so this no longer needs a return value
-  /// or an unscoped fallback: an in-place mutation writes `programs` /
-  /// `program_slots`, and every view of those is stream-driven. The broadcast
-  /// stays because the scope comes out once nothing depends on it, which is a
-  /// separate change from this one.
-  void _broadcastProgramChange() => ProgramsRefreshScope.bump(context);
-
   @override
   void dispose() {
     _replaceSubscription();
@@ -481,7 +469,6 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       SnackBar(content: Text(l10n.programsDuplicatedSnack(copy.title))),
     );
     // The copy carries the same dance slots, so every derived count moved.
-    _broadcastProgramChange();
     widget.onNavigateTo(copy.id);
   }
 
@@ -494,13 +481,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    // Captured before [onDeleted] runs, which unmounts this pane in BOTH
-    // layouts — the wide shell clears the selection and swaps in the empty
-    // pane, the narrow route pops. A `mounted`-guarded bump inside the undo
-    // callback would therefore never fire, restoring the program to the
-    // database while every program view carried on without it. Same reason the
-    // builder and the import screens capture their notifier up-front.
-    final programsRefresh = ProgramsRefreshScope.notifierOf(context);
+    // Nothing is captured before the snackbar any more. [onDeleted] unmounts
+    // this pane in BOTH layouts — the wide shell clears the selection and swaps
+    // in the empty pane, the narrow route pops — so a broadcast from inside the
+    // undo callback had to hold a notifier resolved up-front, and a
+    // `mounted`-guarded bump would never have fired at all. The restore is now
+    // its own notification: every program view watches `programs` (issue #768),
+    // whether or not the screen that offered the Undo still exists.
     showUndoSnackBar(
       ScaffoldMessenger.of(context),
       message: l10n.programsDeletedSnack(source.title),
@@ -508,10 +495,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.restore(source.id, at: DateTime.now().toUtc());
-        programsRefresh?.value++;
       },
     );
-    _broadcastProgramChange();
     widget.onDeleted();
   }
 
@@ -547,7 +532,6 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             // "called N times" badge, a mounted dance detail's calling history.
             // Calling `_load` here as well would load this pane twice for one
             // adjustment (issue #340).
-            _broadcastProgramChange();
           },
         ),
       ),
@@ -754,10 +738,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       ),
     );
     // Mark-all-performed is exactly the write that made the Collection's
-    // "called N times" badge stale (issue #768, gap 3), so this broadcasts
-    // rather than refreshing only the Programs side. The local refreshes are
-    // the unscoped fallback; running both would load this pane twice.
-    _broadcastProgramChange();
+    // "called N times" badge stale (issue #768, gap 3). It used to broadcast
+    // for that reason; the badge and the calling history watch `program_slots`
+    // themselves now, so the write reaches them unaided and this pane's own
+    // stream re-emits for it.
   }
 
   /// Builds the read-only, ordered set list. Primaries are numbered 1..n and

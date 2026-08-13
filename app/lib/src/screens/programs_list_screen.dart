@@ -6,7 +6,6 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/display_defaults.dart';
-import '../data/programs_refresh_scope.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../search/program_sort.dart';
@@ -298,15 +297,6 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     });
   }
 
-  /// Broadcasts "program data changed" for the views that are still driven by
-  /// [ProgramsRefreshScope].
-  ///
-  /// This list no longer *listens*: it has a stream, and doing both would
-  /// reload it twice per mutation (issue #340). It still broadcasts, because
-  /// unconverted views depend on it — the scope comes out once nothing
-  /// subscribes, not before.
-  void _broadcastProgramChange() => ProgramsRefreshScope.bump(context);
-
   /// Day-precision event dates (time-of-day dropped) for the "this week"
   /// header strip's markers (ROADMAP G.8's first-day-of-week consumer).
   static Set<DateTime> _programEventDates(List<Program> programs) => {
@@ -365,9 +355,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     // rather than dropping the caller straight into the edit builder. Mirrors
     // the dance side's narrow list → [DanceDetailScreen] flow; Edit lives
     // behind the summary. Every way the summary can mutate the program (edit /
-    // duplicate / delete / mark performed) now broadcasts, so this list has
-    // already reloaded by the time the route pops; the direct reload is the
-    // fallback for focused tests that mount no scope (issue #768).
+    // duplicate / delete / mark performed) is a write to `programs` /
+    // `program_slots`, which this list watches — so it has already updated by
+    // the time the route pops, with no broadcast involved and no reload of its
+    // own to perform (issue #768).
     await Navigator.of(context).push<String>(
       MaterialPageRoute<String>(
         builder: (_) => ProgramSummaryScreen(programId: id),
@@ -417,21 +408,19 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     // the same change twice and, worse, leave this list's state diverging from
     // the stream's if the write were ever to fail after the fact.
     //
-    // The broadcast is for everything else that renders this program's slots
-    // (issue #768, gap 4) — this list does not listen to it.
-    _broadcastProgramChange();
-    // Captured NOW, while the context is live, because the undo callback runs
-    // after it may not be. `notifierOf` exists for exactly this — it resolves
-    // the notifier *without* registering a dependency, so it is safe to hold
-    // across the pop; `bump(context)` would have to read a defunct context.
+    // Everything else that renders this program's slots (issue #768, gap 4)
+    // learns about the delete, and about an Undo, from its own stream — so this
+    // no longer captures a refresh notifier before the snackbar.
     //
-    // The previous shape guarded the bump with `if (mounted)`, which is not a
-    // fix but a silencer: it made the unsafe read unreachable by making the
-    // broadcast not happen at all. A user who navigates away before pressing
-    // Undo would restore the program and notify nobody, which is the staleness
-    // this whole issue is about — reintroduced in the one callback documented
-    // as outliving its screen.
-    final programsRefresh = ProgramsRefreshScope.notifierOf(context);
+    // Two hazards died with that capture, and they are recorded because the
+    // shape recurs wherever a callback outlives the widget that offered it. The
+    // notifier had to be resolved while the context was live, since the undo
+    // callback runs when it may not be; and an earlier version guarded the bump
+    // with `if (mounted)`, which was not a fix but a silencer — it made the
+    // unsafe read unreachable by making the broadcast not happen, so a user who
+    // navigated away before pressing Undo restored the program and notified
+    // nobody. That is the staleness this whole issue is about, reintroduced in
+    // the one callback documented as needing care.
     showUndoSnackBar(
       ScaffoldMessenger.of(context),
       key: const ValueKey('program-deleted-snackbar'),
@@ -440,10 +429,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.restore(program.id, at: DateTime.now().toUtc());
-        // No `mounted` check and no context read: the notifier was captured
-        // above. This list needs no reload of its own either way — the restore
-        // is a write and the stream carries it.
-        programsRefresh?.value++;
+        // No `mounted` check and no context read, and nothing captured above
+        // to bump: the restore is a write and the stream carries it, to this
+        // list and to every other view of the program.
       },
     );
   }
@@ -459,7 +447,6 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       newTitle: l10n.commonDuplicateTitleSuffix(program.title),
     );
     if (!mounted) return;
-    _broadcastProgramChange();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         key: const ValueKey('program-duplicated-snackbar'),

@@ -9,7 +9,6 @@ import '../data/contradb_online.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/program_ambiguous_review.dart';
-import '../data/programs_refresh_scope.dart';
 import '../data/plaintext_program_import.dart';
 import '../data/program_import_online_resolver.dart';
 import '../data/repositories_scope.dart';
@@ -354,11 +353,10 @@ class _PlaintextProgramImportScreenState
         .where((l) => l.resolution == PlaintextLineResolution.matched)
         .length;
     final notes = lines.length - matched;
-    // The program itself is new, so every program view is stale — including on
-    // a phone, where the Programs list had no refresh channel at all before
-    // issue #768. Undo hard-deletes it again, so that broadcasts too.
-    final programsRefresh = ProgramsRefreshScope.notifierOf(context);
-    programsRefresh?.value++;
+    // The program itself is new, and Undo hard-deletes it again. Neither needs
+    // a broadcast: every program view watches `programs` directly (issue #768),
+    // which is also what finally gave the phone Programs list a refresh path —
+    // it had no channel at all before.
     showUndoSnackBar(
       messenger,
       key: const ValueKey('plaintext-import-committed-snackbar'),
@@ -372,7 +370,6 @@ class _PlaintextProgramImportScreenState
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.hardDelete([id]);
-        programsRefresh?.value++;
       },
     );
     navigator.pop(id);

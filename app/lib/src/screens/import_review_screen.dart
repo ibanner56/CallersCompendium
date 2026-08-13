@@ -8,7 +8,6 @@ import '../data/callersbox_online.dart';
 import '../data/import_diagnostic_labels.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
-import '../data/programs_refresh_scope.dart';
 import '../data/online_search.dart';
 import '../data/program_ambiguous_review.dart';
 import '../data/repositories_scope.dart';
@@ -1065,11 +1064,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         );
         if (!mounted) return;
         setState(() => _phase = _Phase.review);
+        // The program views this used to broadcast to are stream-driven now,
+        // so only the Collection channel remains (issue #768).
         CollectionRefreshScope.bump(context);
-        // A Caller's Companion archive carries programs as well as dances, so
-        // the program views are stale too (issue #768). Refreshing only the
-        // Collection here is the asymmetry that issue documents.
-        ProgramsRefreshScope.bump(context);
         await _showResult(
           session: result.danceSession,
           skipped: skipped,
@@ -1236,12 +1233,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
     if (!mounted) return;
     setState(() => _phase = _Phase.review);
-    // Refresh the live Collection so the imported rows appear immediately, and
-    // the program views too: this path commits dances **and** programs through
-    // the archive importer, and refreshing one of the two was how a shared
-    // program stayed invisible until relaunch (issue #768).
+    // Refresh the live Collection so the imported rows appear immediately.
+    // This path commits programs as well, and refreshing only one of the two
+    // was how a shared program stayed invisible until relaunch (issue #768) —
+    // the program views watch the database themselves now, so they need no
+    // broadcast at all.
     CollectionRefreshScope.bump(context);
-    ProgramsRefreshScope.bump(context);
     await _showSharedBundleUndo(result: result, importer: importer);
   }
 
@@ -1260,8 +1257,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // Capture the refresh notifier now: the snackbar (and its Undo) outlives
     // this screen once we pop back to the shell, so the async Undo callback
     // can't read it from this (by then defunct) context.
-    final refresh = CollectionRefreshScope.maybeOf(context);
-    final programsRefresh = ProgramsRefreshScope.maybeOf(context);
+    // `notifierOf`, not `maybeOf`: this is captured to be bumped from the Undo
+    // callback and never read, so a rebuild dependency on the channel is pure
+    // over-firing — and this screen is itself a bumper, so it was rebuilding
+    // itself on its own writes. Only the Collection channel is captured now;
+    // the programs half of this undo reaches its views by their own streams.
+    final refresh = CollectionRefreshScope.notifierOf(context);
     final importedDances = result.danceSession.records
         .where((r) => r.succeeded && r.action != CommitAction.skip)
         .length;
@@ -1278,8 +1279,6 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         if (result.isUndone) return;
         await importer.undo(result);
         refresh?.value++;
-        // The bundle's programs were undone too (issue #768).
-        programsRefresh?.value++;
       },
     );
 
@@ -1459,10 +1458,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (!mounted) return;
     if (undone) {
       // Undo reverted the DB; refresh again and stay for another attempt. An
-      // archive undo removes imported programs as well as dances, so both
-      // channels fire (they coalesce to one reload per subscriber).
+      // archive undo removes imported programs as well as dances; the program
+      // views pick that up from their own streams (issue #768).
       CollectionRefreshScope.bump(context);
-      ProgramsRefreshScope.bump(context);
       setState(() => _phase = _Phase.review);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

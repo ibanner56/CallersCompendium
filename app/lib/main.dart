@@ -32,7 +32,6 @@ import 'src/data/incoming_file_channel.dart';
 import 'src/data/locale_scope.dart';
 import 'src/data/migration_error_labels.dart';
 import 'src/data/migration_guard.dart';
-import 'src/data/programs_refresh_scope.dart';
 import 'src/data/colour_dance_theme_scope.dart';
 import 'src/data/reduce_motion_scope.dart';
 import 'src/data/regional_formats.dart';
@@ -311,18 +310,12 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<Locale?> _localeNotifier = ValueNotifier(null);
 
   /// App-level "the collection changed, reload it" signal (ROADMAP 6.3).
-  /// Bumped by the import review flow (reached from Settings) so the live
-  /// Collection list re-boots without a relaunch. Exposed via
-  /// [CollectionRefreshScope].
+  /// Bumped by the import review flow (reached from Settings), the dance
+  /// editor and the batch paths. It used to say the Collection *list* re-boots
+  /// on it; that list watches the database itself now, and the one screen still
+  /// reloading from this signal is `DanceDetailScreen` (issue #768). Exposed
+  /// via [CollectionRefreshScope], whose doc carries the full account.
   final ValueNotifier<int> _collectionRefreshNotifier = ValueNotifier(0);
-
-  /// App-level "program data changed, reload the program views" signal
-  /// (issue #768). Bumped by every screen that writes a program or its slots —
-  /// the builder, the summary, the "add to program" sheet, the import routes —
-  /// so the Programs list, the summary pane, the Collection's "called N times"
-  /// badge and the dance detail screen's calling history all reflect the write
-  /// without a relaunch. Exposed via [ProgramsRefreshScope].
-  final ValueNotifier<int> _programsRefreshNotifier = ValueNotifier(0);
 
   /// App-level "tap a tag → show the Collection filtered to it" coordinator
   /// (issue #414). Provided via [CollectionFilterScope] above the root
@@ -919,7 +912,6 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _firstDayOfWeekNotifier.dispose();
     _localeNotifier.dispose();
     _collectionRefreshNotifier.dispose();
-    _programsRefreshNotifier.dispose();
     _derivedRebuildProgress.dispose();
     _collectionFilterController.dispose();
     _customThemes.dispose();
@@ -1308,18 +1300,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                                             child: CollectionRefreshScope(
                                                               revision:
                                                                   _collectionRefreshNotifier,
-                                                              child: ProgramsRefreshScope(
-                                                                revision:
-                                                                    _programsRefreshNotifier,
-                                                                child: CollectionFilterScope(
-                                                                  controller:
-                                                                      _collectionFilterController,
-                                                                  child: VenueEntityModeScope(
-                                                                    notifier:
-                                                                        _venueEntityModeNotifier,
-                                                                    child:
-                                                                        child!,
-                                                                  ),
+                                                              child: CollectionFilterScope(
+                                                                controller:
+                                                                    _collectionFilterController,
+                                                                child: VenueEntityModeScope(
+                                                                  notifier:
+                                                                      _venueEntityModeNotifier,
+                                                                  child: child!,
                                                                 ),
                                                               ),
                                                             ),

@@ -210,6 +210,28 @@ class _DanceListScreenState extends State<DanceListScreen> {
   static const String _noGroupSentinel = '';
 
   late CompendiumRepositories _repos;
+
+  /// Whether one-time setup has run. **A contract between two changes that
+  /// arrived from opposite directions, and neither states it alone.**
+  ///
+  /// The subscription is opened exactly once per [State] — issue #768, so that
+  /// a rebuild neither drops nor duplicates it. Issue #895 then gave
+  /// [CollectionShell] a [GlobalKey] so this State *survives* being reparented
+  /// across the 900 px breakpoint (`collection_shell.dart`), which is what
+  /// preserves the sort, search text, filters and scroll position through a
+  /// rotation.
+  ///
+  /// Together those mean: **a rotation must not re-open the subscription.** It
+  /// does not today, because a reparented Element is moved rather than
+  /// destroyed — `deactivate` then `activate`, never `dispose` — so this flag
+  /// stays true and the only cancel paths ([dispose] and `_replaceSubscription`,
+  /// which immediately re-opens) are unreachable from a breakpoint crossing.
+  ///
+  /// What would falsify it: moving the subscription to `initState` and dropping
+  /// the flag (correct before #895, a leak after it), or overriding
+  /// `deactivate` to cancel — which would leave this flag true with no stream,
+  /// i.e. a list that silently stops updating after the first rotation. The
+  /// same contract is recorded on `programs_list_screen.dart`'s `_started`.
   bool _started = false;
 
   /// The app-level collection-refresh notifier (ROADMAP 6.3), if provided.
@@ -233,10 +255,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// choreographer, custom-field or program-side write reaches this list
   /// without any mutation site remembering to broadcast.
   ///
-  /// There is deliberately no `ProgramsRefreshScope` subscription, and the
-  /// `CollectionRefreshScope` one is gone with this change too — either would
-  /// re-run the load on top of the stream's own emit, costing two reloads per
-  /// write (issue #340). Both scopes remain for the screens not yet converted.
+  /// This screen subscribes to no refresh scope: either would re-run the load
+  /// on top of the stream's own emit, costing two reloads per write (issue
+  /// #340). `ProgramsRefreshScope` no longer exists at all — it was retired
+  /// once its last reader became stream-driven — and `CollectionRefreshScope`
+  /// survives only for `DanceDetailScreen`, whose dance fields still come from
+  /// a one-shot load.
   StreamSubscription<CollectionData>? _dataSub;
 
   /// The caller filter [_dataSub] was opened with. A change to the "track all
@@ -344,7 +368,15 @@ class _DanceListScreenState extends State<DanceListScreen> {
     // Resolved to BUMP (see [_broadcastCollectionChange]), not to subscribe:
     // this list reads its data from a stream now, so listening here as well
     // would reload it twice per write (issue #340).
-    _collectionRefresh = CollectionRefreshScope.maybeOf(context);
+    //
+    // `notifierOf`, not `maybeOf`: the latter registers a rebuild dependency,
+    // so this list — which wants nothing from the channel but the ability to
+    // broadcast on it — was rebuilt by every bump any screen made. No second
+    // query resulted (the branches above are all guarded by value comparisons,
+    // so a spurious `didChangeDependencies` does nothing), but a wasted rebuild
+    // of the collection list per unrelated write is over-firing in the small,
+    // and it is the failure this comment already disclaimed.
+    _collectionRefresh = CollectionRefreshScope.notifierOf(context);
 
     // Subscribe to the app-level tag-filter coordinator (issue #414). A tag tap
     // anywhere publishes a request; this list reacts by applying a single-tag
@@ -2555,11 +2587,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
           : () async {
               // DanceDetailScreen pops with true when a dance is deleted
               // so the Collection can reload and remove the stale row.
-              // The detail screen now broadcasts the undo itself, which
-              // re-boots this list through its CollectionRefreshScope
-              // subscription — so onRestored is the *fallback* for focused
-              // tests that mount no scope, not the primary path. Reloading in
-              // both would load twice for one undo (issue #340).
+              // The detail screen broadcasts the undo itself, for the
+              // unconverted screens — but NOT for this list, which has no
+              // subscription to reach: the restore is a write to `dances`, and
+              // the stream carries it here. So `onRestored` is a fallback for
+              // focused tests that mount no scope, not the primary path, and
+              // reloading here as well would load twice (issue #340).
               final deleted = await Navigator.of(context).push<bool>(
                 MaterialPageRoute(
                   builder: (_) => DanceDetailScreen(
