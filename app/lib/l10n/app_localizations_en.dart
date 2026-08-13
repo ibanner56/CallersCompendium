@@ -2546,6 +2546,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsEditDanceSlotTitle => 'Edit dance slot';
 
   @override
+  String get programsCurrentDanceLabel => 'Dance';
+
+  @override
+  String get programsReplaceDanceButton => 'Replace…';
+
+  @override
+  String get programsReplaceDanceSheetTitle => 'Replace dance';
+
+  @override
+  String programsReplacedDanceAnnounce(String title) {
+    return 'Replaced with $title.';
+  }
+
+  @override
   String get programsEditNoteTitle => 'Edit note';
 
   @override
@@ -5291,6 +5305,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String collectionPickerAddedTooltip(String title) {
     return 'Added $title';
+  }
+
+  @override
+  String collectionPickerReplaceSemantic(String title) {
+    return 'Replace with $title';
+  }
+
+  @override
+  String collectionPickerReplaceTooltip(String title) {
+    return 'Replace with $title';
   }
 
   @override

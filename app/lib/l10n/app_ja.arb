@@ -2736,6 +2736,22 @@
   "@programsEditDanceSlotTitle": {
     "x-sourceSha256": "e43b72ebed0bf394c380361f216bf2939805be4c91f1c1354c5c54d7f126155e"
   },
+  "programsCurrentDanceLabel": "ダンス",
+  "@programsCurrentDanceLabel": {
+    "x-sourceSha256": "23d2d73543f9d7d92ac704296e5ee744037f5f4c938e21abf2c17002c4e9ba71"
+  },
+  "programsReplaceDanceButton": "置き換え…",
+  "@programsReplaceDanceButton": {
+    "x-sourceSha256": "b4c0296774b90f9321ed926ebec00f646da5ed48bb096011d8740ea9c1bfdb94"
+  },
+  "programsReplaceDanceSheetTitle": "ダンスを置き換え",
+  "@programsReplaceDanceSheetTitle": {
+    "x-sourceSha256": "a58cf6cfa84cb9a9d99787953b4a08d557db63e60733835726fdcd861f69ea5f"
+  },
+  "programsReplacedDanceAnnounce": "{title}に置き換えました。",
+  "@programsReplacedDanceAnnounce": {
+    "x-sourceSha256": "81545740acf5aaf40fd7913f9073161ce69bb1beaf05c089d1d7f10e2d530891"
+  },
   "programsEditNoteTitle": "ノートを編集",
   "@programsEditNoteTitle": {
     "x-sourceSha256": "299e604ccff332f5d5f5f89eb9d36772dc5b9370c843583c89430e8db3b5bbc6"
@@ -5307,6 +5323,14 @@
   "collectionPickerAddedTooltip": "{title}を追加しました",
   "@collectionPickerAddedTooltip": {
     "x-sourceSha256": "bd54be65ac53f59330b61ab0c531aaf980a42419312b19aae1448368389d785b"
+  },
+  "collectionPickerReplaceSemantic": "{title}に置き換え",
+  "@collectionPickerReplaceSemantic": {
+    "x-sourceSha256": "0516003afeb88a71af6af6be66d7713cf7fceb973d3c4ac0cb4bf6a34bc5c5da"
+  },
+  "collectionPickerReplaceTooltip": "{title}に置き換え",
+  "@collectionPickerReplaceTooltip": {
+    "x-sourceSha256": "0516003afeb88a71af6af6be66d7713cf7fceb973d3c4ac0cb4bf6a34bc5c5da"
   },
   "collectionPickerInProgramSemantic": "{title}はすでにプログラムに含まれています",
   "@collectionPickerInProgramSemantic": {

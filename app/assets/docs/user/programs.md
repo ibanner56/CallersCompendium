@@ -133,7 +133,11 @@ A program is made of three kinds of slots:
 
 Each slot can also carry a **note**, a **guest caller**, and a **planned length**
 in minutes — useful both for pacing the evening and for the timing display in
-[Perform mode](./perform.md#keep-time-through-the-evening).
+[Perform mode](./perform.md#keep-time-through-the-evening). A dance slot's
+**…** menu also offers **Edit slot**, whose dialog includes a **Replace…**
+button for swapping the dance in place — keeping the note, guest caller,
+planned length, and mark-performed status exactly as they were — instead of
+adding the new dance, dragging it into position, and deleting the old one.
 
 To reorder slots, use the **drag handle** or the **move up / move down** buttons.
 Both do the same job, so you are never forced to drag.

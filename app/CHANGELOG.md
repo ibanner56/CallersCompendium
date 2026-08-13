@@ -13,6 +13,12 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Replace a program slot's dance in place, from the "Edit dance slot"
+  dialog.** Previously the only way to swap a dance was to add the
+  replacement, drag it into position, and delete the old one; the dialog now
+  offers a **Replace…** button that opens the dance picker and swaps the
+  slot's dance, keeping its caller note, guest caller, planned minutes, alt
+  flag, and mark-performed status exactly as they were. (#964)
 - A note slot in the program builder (e.g. one left behind when a title-list
   import couldn't find a matching dance) can now be turned into a real dance
   in place: its overflow menu offers **Create a dance from this**, which opens

@@ -2485,6 +2485,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsEditDanceSlotTitle => 'ダンススロットを編集';
 
   @override
+  String get programsCurrentDanceLabel => 'ダンス';
+
+  @override
+  String get programsReplaceDanceButton => '置き換え…';
+
+  @override
+  String get programsReplaceDanceSheetTitle => 'ダンスを置き換え';
+
+  @override
+  String programsReplacedDanceAnnounce(String title) {
+    return '$titleに置き換えました。';
+  }
+
+  @override
   String get programsEditNoteTitle => 'ノートを編集';
 
   @override
@@ -5125,6 +5139,16 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String collectionPickerAddedTooltip(String title) {
     return '$titleを追加しました';
+  }
+
+  @override
+  String collectionPickerReplaceSemantic(String title) {
+    return '$titleに置き換え';
+  }
+
+  @override
+  String collectionPickerReplaceTooltip(String title) {
+    return '$titleに置き換え';
   }
 
   @override
