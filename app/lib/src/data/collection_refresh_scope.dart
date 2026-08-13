@@ -60,9 +60,8 @@ class CollectionRefreshScope extends InheritedNotifier<ValueNotifier<int>> {
   /// The revision notifier, resolved **without** registering a dependency.
   ///
   /// The right choice for every caller that only intends to *broadcast*: a
-  /// bumper that depends
-  /// on this scope is rebuilt by every other bumper, which is issue #340's
-  /// over-firing bought with no benefit.
+  /// bumper that depends on this scope is rebuilt by every other bumper, which
+  /// is issue #340's over-firing bought with no benefit.
   ///
   /// Also the right choice for a caller that must broadcast after its own
   /// context is gone — an undo callback outliving the screen that showed the

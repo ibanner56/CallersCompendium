@@ -933,12 +933,28 @@ void main() {
       // would fail this ratchet on correct code. A ratchet that fails for
       // reasons unrelated to its claim gets edited reflexively, and then it is
       // inert while still reading green.
+      // Resolved from either cwd. `flutter test` runs from the package root,
+      // so 'lib' is the normal case; a runner invoked from the repo root would
+      // otherwise throw a FileSystemException whose message says nothing about
+      // what this test was trying to do.
+      final lib = [
+        Directory('lib'),
+        Directory('app/lib'),
+      ].firstWhere((d) => d.existsSync(), orElse: () => Directory('lib'));
+      expect(
+        lib.existsSync(),
+        isTrue,
+        reason:
+            'ratchet could not locate app/lib from ${Directory.current.path}',
+      );
+
       final offenders = <String>{};
-      final lib = Directory('lib');
+      var scanned = 0;
       for (final file in lib.listSync(recursive: true).whereType<File>()) {
         final path = file.path.replaceAll(r'\', '/');
         if (!path.endsWith('.dart')) continue;
         if (path.endsWith('collection_refresh_scope.dart')) continue;
+        scanned++;
         for (final line in file.readAsLinesSync()) {
           if (line.contains('CollectionRefreshScope.maybeOf(')) {
             // The FILE, not the line: pinning a line number would make this
@@ -948,6 +964,14 @@ void main() {
           }
         }
       }
+      // Assert the scan actually happened. Today an empty scan fails anyway,
+      // because the expectation below is non-empty — but the moment
+      // DanceDetailScreen is converted and that set becomes `{}`, a scan that
+      // found nothing would pass for the wrong reason. This is the same rule
+      // the rest of this PR's tests follow: assert the precondition, not just
+      // the conclusion.
+      expect(scanned, greaterThan(50), reason: 'scanned only $scanned files');
+
       expect(
         offenders,
         {'lib/src/screens/dance_detail_screen.dart'},
