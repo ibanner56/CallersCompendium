@@ -585,7 +585,7 @@ void main() {
 
   testWidgets(
     'issue #768 guard: a batch rating change reloads the collection once via '
-    'the stream, not a second time via _boot',
+    'the stream, not a second time through a manual reload path',
     (tester) async {
       final counted = countingRepos();
       await counted.repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
@@ -613,7 +613,7 @@ void main() {
         2,
         reason:
             'one write must trigger one reload from CollectionData.watch, with '
-            'no extra _boot reload',
+            'no extra manual reload on top of the stream',
       );
     },
   );
