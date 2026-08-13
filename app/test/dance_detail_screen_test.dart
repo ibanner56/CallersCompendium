@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
@@ -1972,4 +1974,168 @@ void main() {
       expect(body.data, 'A1: neighbours balance and swing.');
     });
   });
+
+  testWidgets('rebuilding with a different danceId re-subscribes', (
+    tester,
+  ) async {
+    // The stream is opened once and held in the State, so a rebuild that
+    // changes the id has to replace it — otherwise the screen renders one dance
+    // while subscribed to another, which is worse than either staleness or
+    // churn.
+    //
+    // Driven through a host that swaps the id on the SAME element, because that
+    // is the only way to reach didUpdateWidget: pushing a route or changing a
+    // key creates a fresh State and never exercises it.
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Beta'));
+
+    final id = ValueNotifier<String>('d1');
+    addTearDown(id.dispose);
+    final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(dialect.dispose);
+    final requirePerformed = ValueNotifier<bool>(false);
+    addTearDown(requirePerformed.dispose);
+
+    await tester.binding.setSurfaceSize(const Size(1200, 2400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(
+            notifier: dialect,
+            child: RequirePerformedForHistoryScope(
+              notifier: requirePerformed,
+              // No key: the element must be REUSED across the id change.
+              child: ValueListenableBuilder<String>(
+                valueListenable: id,
+                builder: (_, value, _) => DanceDetailScreen(danceId: value),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Alpha'), findsWidgets);
+
+    final stateBefore = tester.state(find.byType(DanceDetailScreen));
+    id.value = 'd2';
+    await tester.pumpAndSettle();
+
+    expect(find.text('Beta'), findsWidgets);
+    expect(find.text('Alpha'), findsNothing);
+    // Assert the precondition, not just the conclusion: if the State had been
+    // recreated, this would pass without didUpdateWidget existing at all.
+    expect(
+      tester.state(find.byType(DanceDetailScreen)),
+      same(stateBefore),
+      reason: 'the same State must have been reused, or this tests nothing',
+    );
+  });
+
+  group('a failing record read (issue #963)', () {
+    // The conversion to a stream made `onError` the ONLY error path on this
+    // screen: a `FutureBuilder` surfaces a failure into its snapshot, a
+    // subscription hands it to a callback and forgets it if that callback does
+    // nothing. Discarding it would leave a screen that silently keeps its last
+    // state with nothing logged and nothing shown.
+    //
+    // Rendering is deliberately unchanged — the previous builder never read
+    // `snapshot.error`, so a failure already rendered as "not found" — and that
+    // is exactly why the log matters: on screen, a broken query and an absent
+    // dance are the same thing.
+
+    testWidgets('is logged, and still renders the not-found body', (
+      tester,
+    ) async {
+      final sink = _RecordingSink();
+      installCaughtErrorLog(sink);
+      addTearDown(resetCaughtErrorLogForTesting);
+
+      final db = openWidgetTestDatabase();
+      addTearDown(db.close);
+      final dances = _FailingDances(db, contraTaxonomy)..failNext = true;
+      final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
+      await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      // Assert the injection actually happened. An injected failure that
+      // silently fails to inject is indistinguishable from behaviour that
+      // survived it, and would make both assertions below pass for the wrong
+      // reason.
+      expect(dances.fired, isTrue, reason: 'the injected failure must fire');
+      expect(
+        sink.sources,
+        contains('dance_detail_screen._subscribe'),
+        reason: 'a failing record read must reach the diagnostic log',
+      );
+      expect(find.text('Dance not found.'), findsOneWidget);
+    });
+
+    testWidgets('recovers on the next write rather than staying failed', (
+      tester,
+    ) async {
+      // `cancelOnError: false`, asserted rather than asserted-in-a-comment.
+      // A failed one-shot future stayed failed until something forced a
+      // reload; the subscription survives its own error.
+      final db = openWidgetTestDatabase();
+      addTearDown(db.close);
+      final dances = _FailingDances(db, contraTaxonomy)..failNext = true;
+      final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
+      await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+
+      await _pumpDetail(tester, repos, 'd1');
+      expect(dances.fired, isTrue);
+      expect(find.text('Dance not found.'), findsOneWidget);
+
+      final stored = await repos.dances.getById('d1');
+      await repos.dances.update(stored!.copyWith(title: 'Renamed'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Renamed'), findsWidgets);
+      expect(find.text('Dance not found.'), findsNothing);
+    });
+  });
+}
+
+/// Records the `source` of every logged caught error.
+class _RecordingSink implements CrashLogSink {
+  final List<String> sources = [];
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) =>
+      sources.add(source);
+}
+
+/// Fails the next detail-record read, once, then behaves normally.
+///
+/// Injected through `CompendiumRepositories`' test seam rather than by matching
+/// SQL text, so a rename of the method it overrides breaks the build instead of
+/// silently ceasing to inject.
+class _FailingDances extends DanceRepository {
+  _FailingDances(super.db, super.taxonomy);
+
+  bool failNext = false;
+
+  /// Whether the injected failure actually happened.
+  bool get fired => _fired;
+  bool _fired = false;
+
+  @override
+  Future<List<({String id, String title})>> listIdsAndTitles({
+    bool includeDeleted = false,
+  }) {
+    if (failNext) {
+      failNext = false;
+      _fired = true;
+      return Future.error(StateError('injected record read failure'));
+    }
+    return super.listIdsAndTitles(includeDeleted: includeDeleted);
+  }
 }

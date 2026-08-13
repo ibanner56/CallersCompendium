@@ -78,6 +78,15 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **A dance's detail view now updates while you are looking at it.** Editing a
+  dance from somewhere else — a batch tag or level change in the Collection, an
+  import, a re-parse, or an edit made on another screen — left the open dance
+  card showing the pre-edit title, authors, tags, custom fields, sources and
+  provenance until you navigated away and came back. It now follows the
+  database directly, so those changes appear as they happen. Its **Calling
+  history** already worked this way and is unchanged; adding the dance to a
+  program still updates that section alone rather than reloading the whole
+  card. (#768)
 - Rotating a tablet across the Collection/Programs split-pane breakpoint
   (900px) no longer resets the list's current sort, search text, filters, or
   scroll position. Previously the list was rebuilt from scratch on that

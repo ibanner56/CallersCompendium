@@ -154,9 +154,9 @@ class _CollectionShellState extends State<CollectionShell> {
   /// Called after a successful new-dance save. Selects the new dance so the
   /// detail pane shows it immediately. Delegates to [_onSelectDance]: creating
   /// a dance is a local selection and carries the same contract — exits import
-  /// mode, clears any online preview. It broadcasts nothing: the editor's own
-  /// [CollectionRefreshScope.bump] on save already reaches the unconverted
-  /// screens, and the Collection list now reloads from its own stream.
+  /// mode, clears any online preview. It broadcasts nothing and reloads
+  /// nothing: both panes read the database directly, so the save reaches them
+  /// on its own.
   void _onNewDance(String danceId) => _onSelectDance(danceId);
 
   /// Wide layout: swap the detail pane over to the embedded import view.
@@ -497,12 +497,12 @@ class _CollectionShellState extends State<CollectionShell> {
     final selectedId = _selectedDanceId;
     if (selectedId != null) {
       return DanceDetailScreen(
-        // Keyed on the dance id so the screen fully resets when the
-        // selection changes (fresh FutureBuilder, clean _canonicalView).
-        // Note the key changes only with the *selection*: an edit to the dance
-        // already shown does not re-create this pane, which is why the pane
-        // subscribes to `CollectionRefreshScope` itself and the list's batch
-        // handlers broadcast rather than reloading only themselves (#768).
+        // Keyed on the dance id so the pane fully resets when the selection
+        // changes — a fresh subscription, and a clean canonical/dialect
+        // toggle. Note the key changes only with the *selection*: an edit to
+        // the dance already shown does not re-create this pane, so nothing
+        // here carries that edit into it. What does is the pane's own watch on
+        // the database (#768); this key is why it needs one.
         key: ValueKey('detail-$selectedId'),
         danceId: selectedId,
         onDeleted: _onDetailDeleted,

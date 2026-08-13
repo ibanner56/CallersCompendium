@@ -18,11 +18,22 @@ import 'venue_repository.dart';
 /// wires up storage once (`CompendiumRepositories(db, taxonomy)`) instead of
 /// constructing each repository individually.
 class CompendiumRepositories {
+  /// [settings] and [dances] exist as **test seams**, and only as that: each
+  /// defaults to the real repository, so no production call site passes either.
+  ///
+  /// A test that needs to count how many times a screen re-read its data
+  /// substitutes a counting subclass here. The alternative — matching SQL text
+  /// in a `QueryInterceptor` — can report zero for two different reasons, "it
+  /// never ran" and "the query no longer looks like that", and a count that
+  /// silently becomes zero turns a ceiling assertion into an assertion about
+  /// nothing. A subclass is checked by the compiler instead: rename or
+  /// re-signature the method it overrides and the test fails to build.
   CompendiumRepositories(
     this.db,
     Taxonomy taxonomy, {
     SettingsRepository? settings,
-  }) : dances = DanceRepository(db, taxonomy),
+    DanceRepository? dances,
+  }) : dances = dances ?? DanceRepository(db, taxonomy),
        choreographers = ChoreographerRepository(db),
        tags = TagRepository(db),
        customFieldDefs = CustomFieldDefRepository(db),
@@ -212,10 +223,15 @@ class CompendiumRepositories {
   /// different answers.**
   ///
   /// So the caller states what it renders. That is the whole of the fix: not a
-  /// wider set, not a narrower one, but one chosen per consumer. Cheap here
-  /// because there is exactly one axis of disagreement — if a second appears,
-  /// this becomes an argument for a set built from the caller's needs rather
-  /// than a boolean bolted onto a shared one.
+  /// wider set, not a narrower one, but one chosen per consumer.
+  ///
+  /// That was written with one axis of disagreement in view, and predicted that
+  /// a second would argue for a set built from the caller's needs rather than a
+  /// boolean bolted onto a shared one. **A second has since appeared**, over
+  /// `programs`/`program_slots`, and it was resolved the predicted way — see
+  /// [watchDanceSources], which is a sibling with its own set rather than a
+  /// third flag here. `includeVenues` stays a parameter because the venue axis
+  /// splits consumers of *this* set; the program axis splits the set itself.
   ///
   /// ## The SQL marker is load-bearing (drift `StreamKey`)
   ///
@@ -259,6 +275,97 @@ class CompendiumRepositories {
       // Discard the sentinel rows: the payload is meaningless and mapping here
       // makes the runtime type genuinely `Stream<void>`, so a caller can
       // transform it without tripping over `Stream<List<QueryRow>>`.
+      .map((_) {});
+
+  /// Emits once whenever anything a **single dance's own record** is built from
+  /// changes — the trigger for re-reading a hydrated dance (issue #768).
+  ///
+  /// A change signal, not the data, for the same reason as
+  /// [watchCollectionSources]: the read it stands in for is a fan-out across
+  /// several repositories with no single row set to hand back.
+  ///
+  /// ## Why this is a sibling and not `watchCollectionSources`
+  ///
+  /// It is that set **minus `programs` and `program_slots`**, and the
+  /// subtraction is the whole point. A dance's own record is not program-derived
+  /// — call tallies and calling history are — so a consumer that renders only
+  /// the record has nothing to re-read when a slot is added, marked performed,
+  /// or reordered.
+  ///
+  /// Reusing the wider set would therefore re-run this fan-out on every
+  /// program-side write for a consumer that renders none of it. Where such a
+  /// consumer *also* shows program-derived data, it does so through a second
+  /// stream scoped to that data — so the wider set would cost a full reload on
+  /// top of that stream's own emit: one write, two rebuilds, which is issue
+  /// #340's over-firing arriving as a side effect of fixing staleness.
+  ///
+  /// ## The declared table set, justified per entry
+  ///
+  /// * `dances` — the row itself, and every other dance's title, for resolving
+  ///   related-dance links and cross-reference candidates.
+  /// * `choreographers` — resolved author names.
+  /// * `tags` — tag names and colours.
+  /// * `custom_field_defs` — the labels custom-field values are displayed under.
+  /// * `published_sources` — the cited sources a record expands its citations
+  ///   into.
+  ///
+  /// `venues` is absent because a dance record carries no venue. `dance_figures`
+  /// is absent because figures are decoded from the `figures_json` column on
+  /// `dances` and their sections are derived in memory, so nothing reads that
+  /// table on this path.
+  ///
+  /// ## The child tables are omitted, and the invariant is the reason
+  ///
+  /// Hydrating one dance also reads `dance_authors`, `dance_tags`,
+  /// `dance_links`, `dance_sources`, `custom_field_values` and `provenance`.
+  /// None is named here, on the same rule [watchCollectionSources] states and
+  /// for a set re-derived rather than inherited: **every path that writes one of
+  /// them also writes, in the same transaction, at least one table above.**
+  /// drift dispatches a transaction's updates as one set on commit, so naming
+  /// them would add emits without adding coverage.
+  ///
+  /// Four of the six are the ones that method already enumerates. The other two
+  /// were checked from scratch, because a conclusion about a different set is
+  /// not evidence about these:
+  ///
+  /// * `provenance` — written only by the dance upsert, the archive restore's
+  ///   clear-all, and FK cascade from a `dances` delete; all three write
+  ///   `dances`. No natural-key adoption path touches it.
+  /// * `dance_links` — same three, plus the dangling-reference cleanup, which
+  ///   runs inside `purgeDeleted`/`hardDelete` and so also writes `dances`.
+  ///
+  /// `dance_links` has one writer that genuinely breaks the invariant: the
+  /// purge-corruption repair below writes `dance_links`, `program_slots` and
+  /// `settings`, and **none of those is in the set above**. It is safe for a
+  /// different reason, and the difference is worth keeping rather than
+  /// flattening into "it's covered" — it is reachable only from
+  /// [ensureMigrated], which the app awaits before it builds a widget, so no
+  /// subscriber can exist while it runs. That is app-level ordering, not a
+  /// property of this file: **exposing any sweep as a user-triggered button, or
+  /// moving one after the first frame, makes `dance_links` a required entry
+  /// here.**
+  ///
+  /// ## The SQL marker is load-bearing
+  ///
+  /// The marker below differs from [watchCollectionSources]'s, and must. drift
+  /// keys its stream cache on `(sql, variables)` and ignores `readsFrom`, so two
+  /// sentinels sharing `SELECT 1` are one stream and the second subscriber
+  /// silently inherits the first's set — non-deterministically, since which one
+  /// wins depends on which subscribed first. That is the full account on
+  /// [watchCollectionSources]; the guard is `per_consumer_read_sets_test.dart`,
+  /// which asserts the behaviour rather than the marker text.
+  Stream<void> watchDanceSources() => db
+      .customSelect(
+        '/* dance sources */ SELECT 1',
+        readsFrom: {
+          db.dances,
+          db.choreographers,
+          db.tags,
+          db.customFieldDefs,
+          db.publishedSources,
+        },
+      )
+      .watch()
       .map((_) {});
 
   /// Opens the database (running any pending schema migration) and, if a

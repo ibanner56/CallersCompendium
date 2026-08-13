@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
@@ -12,7 +14,6 @@ import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/collection_refresh_scope.dart';
 import '../data/formation_colors_scope.dart';
-import '../data/refresh_coalescer.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
@@ -123,7 +124,29 @@ class DanceDetailScreen extends StatefulWidget {
 
 class _DanceDetailScreenState extends State<DanceDetailScreen> {
   late CompendiumRepositories _repos;
-  Future<DanceDetailData?>? _future;
+
+  /// The live record (issue #768), and whether it has arrived yet.
+  ///
+  /// Two fields rather than one nullable, because `null` is a real value here:
+  /// the dance may not exist, or may have been deleted while this screen is
+  /// open. Without [_loaded], "still loading" and "loaded, no such dance" are
+  /// the same state and the screen renders its not-found message during the
+  /// first frame of every open.
+  DanceDetailData? _data;
+  bool _loaded = false;
+
+  /// The live subscription, and the id it was opened for.
+  ///
+  /// Held in the State and opened once — never built in [build], which would
+  /// re-subscribe and re-query on every frame. Replaced only when the id
+  /// changes, which is what [didUpdateWidget] checks.
+  StreamSubscription<DanceDetailData?>? _dataSub;
+  String? _subscribedId;
+
+  /// Whether the one-shot start sequence has run. Distinct from [_loaded]:
+  /// this is set before the settings seed is awaited, so a second
+  /// [didChangeDependencies] cannot start it twice.
+  bool _started = false;
 
   /// Whether this screen is rendering a non-persisted preview dance (online
   /// Caller's Box result) rather than a saved one. Guards all collection-only
@@ -156,49 +179,40 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
 
   static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
-  /// The app-level dance-data refresh notifier (issue #768), if provided. A
-  /// batch edit in the Collection list can change the dance this screen is
-  /// showing while the wide layout's detail pane is showing it — the pane is
-  /// keyed on the *selection*, so it never rebuilds for an edit.
+  /// The app-level dance-data refresh notifier (issue #768), if provided.
   ///
-  /// The only program-derived thing this screen renders is the **Calling
-  /// history** section, which watches the database itself
-  /// ([CallingHistorySection]); a program-side listener here as well would
-  /// reload the whole screen on top of that section's own emit — one write,
-  /// two rebuilds, issue #340's failure. `ProgramsRefreshScope` has since been
-  /// retired outright for want of any subscriber.
+  /// Resolved to **bump**, not to subscribe. This screen reads its record from
+  /// [DanceDetailData.watch] now, so an edit made anywhere arrives from the
+  /// database — listening here as well would reload it a second time for the
+  /// same write, which is issue #340's over-firing.
   ///
-  /// **This is the last remaining refresh-scope subscription in the app.** The
-  /// dance fields above still come from a one-shot [_load], so this channel is
-  /// the only thing that makes an edit made elsewhere appear here; it retires
-  /// when this screen's own data moves to a stream, and not before.
+  /// `notifierOf`, not `maybeOf`: the latter registers a rebuild dependency, so
+  /// this screen was woken by every bump any screen made, including bumps for
+  /// writes it does not render.
+  ///
+  /// The one thing still broadcast from here is the delete-undo in [_delete],
+  /// which has to reach views that are not stream-driven. Its nullness is no
+  /// longer used as a fallback test anywhere on this screen: the stream reaches
+  /// this record whether or not a scope is mounted, so there is nothing left to
+  /// fall back to.
   ValueListenable<int>? _collectionRefresh;
-
-  /// Collapses several collection bumps arriving in the same synchronous block
-  /// into one reload, so this screen — which composes the most queries of any —
-  /// does not load twice per mutation (issue #340).
-  late final RefreshCoalescer _refreshCoalescer = RefreshCoalescer(() {
-    if (mounted) _reload();
-  });
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Preview mode renders in-memory data directly and reads no scopes (repos,
-    // calling-history setting) — none of the collection-only paths apply.
+    // calling-history setting) — none of the collection-only paths apply, and
+    // in particular it opens no stream: a non-persisted dance has no row for a
+    // watcher to watch.
     if (_isPreview) {
-      _future ??= Future.value(widget.previewData);
+      if (!_loaded) {
+        _data = widget.previewData;
+        _loaded = true;
+      }
       return;
     }
-    // Subscribe to the app-level dance-data refresh notifier. Registers a
-    // rebuild dependency; the notifier is stable across the app's lifetime, so
-    // this attaches once.
-    final collectionRefresh = CollectionRefreshScope.maybeOf(context);
-    if (!identical(collectionRefresh, _collectionRefresh)) {
-      _collectionRefresh?.removeListener(_onExternalRefresh);
-      _collectionRefresh = collectionRefresh;
-      _collectionRefresh?.addListener(_onExternalRefresh);
-    }
+    // Resolved to bump only — see [_collectionRefresh].
+    _collectionRefresh = CollectionRefreshScope.notifierOf(context);
     // The two calling-history settings are passed straight down to
     // [CallingHistorySection], which rebuilds its query when either changes.
     // didChangeDependencies is always followed by a build, so keeping the
@@ -206,53 +220,139 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     // reloads this whole screen to re-run one query (issue #768).
     _requirePerformedForHistory = RequirePerformedForHistoryScope.of(context);
     _trackHistoryForAllCallers = TrackHistoryForAllCallersScope.of(context);
-    if (_future == null) {
+    if (!_started) {
+      _started = true;
       _repos = RepositoriesScope.of(context);
-      _future = _load();
+      unawaited(_start());
     }
   }
 
-  Future<DanceDetailData?> _load() async {
-    // Seed the initial rendering from the saved default (ROADMAP G.6b) before
-    // the body first renders; skip if the user already flipped the toggle (the
-    // body only shows after this future resolves, so this is a belt-and-braces
-    // guard mirroring the settings-screen load-vs-toggle race). A settings
-    // read/decode failure must not fail the whole detail load — fall back
-    // silently to the historical active-dialect rendering.
-    if (!_canonicalUserSet) {
-      try {
-        final storedRendering = await _repos.settings.get(
-          kDefaultDanceDetailRenderingKey,
-        );
-        if (!_canonicalUserSet) {
-          _canonicalView =
-              danceDetailRenderingFromStored(storedRendering) ==
-              DanceDetailRendering.canonical;
-        }
-      } catch (_) {
-        // diagnostics: silent — rendering preference read failed; keeps historical default (active dialect).
+  @override
+  void didUpdateWidget(DanceDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Re-subscribe when the id changes, so the stream never outlives the
+    // question it was opened to answer.
+    //
+    // Whether any caller does this is not something this widget can know, and
+    // an earlier version of this comment asserted that none did — a claim about
+    // other files' navigation and keying, which is exactly the shape that goes
+    // stale silently. What it is here for is local and checkable: without it a
+    // rebuild with a new id would render one dance while subscribed to another,
+    // which is worse than either staleness or churn.
+    if (!_isPreview && _started && widget.danceId != oldWidget.danceId) {
+      _loaded = false;
+      _data = null;
+      _subscribe();
+    }
+  }
+
+  /// Seeds the rendering preference, then opens the live subscription.
+  ///
+  /// Ordered, not concurrent: the seed decides how the figure table renders, so
+  /// running it after the first record arrived would render the body once in
+  /// the wrong dialect and then flip it.
+  Future<void> _start() async {
+    await _seedCanonicalDefault();
+    if (!mounted) return;
+    _subscribe();
+  }
+
+  /// Reads the saved default dance-detail rendering (ROADMAP G.6b) once per
+  /// mount and seeds [_canonicalView] from it.
+  ///
+  /// **One-shot, and outside the stream.** This is a preference, not part of
+  /// the record: it decides the initial state of a control the user can then
+  /// flip. Re-reading it on every emit would cost a query per write for a value
+  /// that changes only when the user changes a preference or restores a backup;
+  /// watching the table it lives in is worse still, because an unrelated editor
+  /// autosaves into that table on a debounce while the user types.
+  ///
+  /// It was previously re-read on each reload, guarded by [_canonicalUserSet] —
+  /// incidental to being inside the load rather than a designed refresh, since
+  /// nothing bumped the old channel for a preference write either. A change
+  /// made while this screen is open is picked up the next time it opens, as it
+  /// was before.
+  ///
+  /// The [_canonicalUserSet] guard is kept regardless, because this now runs
+  /// concurrently with nothing but is still awaited before the body renders;
+  /// it mirrors the settings-screen load-vs-toggle race guard. A settings
+  /// read/decode failure must not fail the whole screen — fall back silently to
+  /// the historical active-dialect rendering.
+  Future<void> _seedCanonicalDefault() async {
+    if (_canonicalUserSet) return;
+    try {
+      final storedRendering = await _repos.settings.get(
+        kDefaultDanceDetailRenderingKey,
+      );
+      if (!_canonicalUserSet) {
+        _canonicalView =
+            danceDetailRenderingFromStored(storedRendering) ==
+            DanceDetailRendering.canonical;
       }
+    } catch (_) {
+      // diagnostics: silent — rendering preference read failed; keeps historical default (active dialect).
     }
-
-    return DanceDetailData.load(_repos, widget.danceId!);
   }
 
-  void _reload() {
-    setState(() {
-      _future = _load();
-    });
-  }
-
-  /// Reloads after a refresh broadcast. Ignored before the first load has been
-  /// scheduled: [_future] is `null` only until [didChangeDependencies] runs, and
-  /// reloading ahead of it would read `_repos` before it is assigned.
-  void _onExternalRefresh() {
-    if (mounted && _future != null) _refreshCoalescer.request();
+  /// Opens (or reopens) the live subscription for the current id.
+  ///
+  /// The previous subscription is replaced **synchronously** and cancelled
+  /// afterwards, rather than awaited first. Awaiting first leaves a window in
+  /// which two calls can both read the same `_dataSub`, both replace it, and
+  /// leak whichever assignment lost. Nothing reaches that window today — it
+  /// needs an id change while the preference seed is still pending — but the
+  /// ordering costs nothing and removes the case rather than relying on no
+  /// caller finding it.
+  void _subscribe() {
+    final danceId = widget.danceId!;
+    final previous = _dataSub;
+    _subscribedId = danceId;
+    _dataSub = DanceDetailData.watch(_repos, danceId).listen(
+      (data) {
+        if (!mounted || _subscribedId != danceId) return;
+        setState(() {
+          _data = data;
+          _loaded = true;
+        });
+      },
+      // A stream error means the record could not be re-read — a failing query,
+      // a database closed under us. Rendered exactly as a failed one-shot load
+      // was: the not-found body. That is deliberately unchanged (the previous
+      // `FutureBuilder` never read `snapshot.error`, so an error and an absent
+      // dance already looked alike here), but it is precisely why this has to
+      // be logged rather than discarded: on screen the two are
+      // indistinguishable, so "the dance won't open" arrives as a bug report
+      // with nothing behind it unless the failure reaches the diagnostic log
+      // (issue #963).
+      //
+      // `logCaughtError` rather than the type-only variant: this is our own
+      // local database, not untrusted network or parse content being echoed
+      // back, which is the case that variant exists for.
+      //
+      // `cancelOnError: false`, so a failure does not tear down the
+      // subscription — the next write re-runs the load and the screen recovers
+      // on its own, where a failed one-shot future stayed failed until
+      // something forced a reload.
+      onError: (Object error, StackTrace stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'dance_detail_screen._subscribe',
+        );
+        if (!mounted || _subscribedId != danceId) return;
+        setState(() {
+          _data = null;
+          _loaded = true;
+        });
+      },
+      cancelOnError: false,
+    );
+    unawaited(previous?.cancel());
   }
 
   @override
   void dispose() {
-    _collectionRefresh?.removeListener(_onExternalRefresh);
+    unawaited(_dataSub?.cancel());
     super.dispose();
   }
 
@@ -289,39 +389,30 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         builder: (_) => DanceEditorScreen(danceId: widget.danceId!),
       ),
     );
-    // The editor bumps CollectionRefreshScope on save, which reloads this
-    // screen through its subscription; reloading here as well would load twice
-    // for one edit (issue #340). Only reload directly when no scope is mounted
-    // (focused widget tests).
-    if (mounted && _collectionRefresh == null) _reload();
+    // Nothing to reload: a save writes `dances`, which this screen watches, so
+    // the edit arrives on its own — with no broadcast to remember and no
+    // dependence on a scope being mounted. Reloading here as well would load
+    // twice for one edit (issue #340).
   }
 
   /// Opens another dance's detail — from an auto cross-reference link in the
   /// hook / calling notes, or from a `relatedDance` link row. Both route here
-  /// so the two kinds of dance-to-dance link behave identically *and* so the
-  /// await/reload contract exists in one place rather than two copies that can
-  /// drift (issue #768).
+  /// so the two kinds of dance-to-dance link behave identically (issue #768).
   ///
-  /// Awaited because the pushed screen can edit, duplicate or delete the dance
-  /// it shows, and this screen renders that dance's title in its cross-
-  /// reference and related-link rows.
+  /// Nothing is reloaded when the pushed screen pops, and that is now correct
+  /// rather than the gap it once was. The pushed screen can edit, duplicate or
+  /// delete the dance it shows, and this screen renders that dance's title in
+  /// its cross-reference and related-link rows — but all three write `dances`,
+  /// which this screen watches, so each arrives on its own.
   ///
-  /// An **edit** arrives through this screen's subscription, because the editor
-  /// broadcasts on save. A **delete** does not: [_delete] soft-deletes and pops
-  /// `true` without broadcasting, relying on the list screen's pop-result
-  /// reload — which does nothing for a sibling detail screen sitting under the
-  /// pushed route. So the popped result is consumed here and drives the reload
-  /// for exactly that case, leaving the edit path to the broadcast rather than
-  /// reloading for both (issue #340). The unscoped branch keeps focused widget
-  /// tests, which mount no scope, behaving as they did.
+  /// The `bool` result is still consumed by the routes that pop into a list;
+  /// this screen simply no longer needs it, so it is not awaited for its value.
   Future<void> _openDance(String danceId) async {
-    final deleted = await Navigator.of(context).push<bool>(
+    await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) => DanceDetailScreen(danceId: danceId),
       ),
     );
-    if (!mounted) return;
-    if (deleted == true || _collectionRefresh == null) _reload();
   }
 
   /// Duplicates the dance, appends " (copy)" to the copy's title (since
@@ -371,10 +462,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// snackbar is enqueued. In split-pane mode, this ensures the snackbar
   /// appears in the detail pane rather than being lost on unmount.
   Future<void> _delete() async {
-    final resolvedTitle = (await _future)?.dance.title;
-    if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    final title = resolvedTitle ?? l10n.danceScreenTitle;
+    final title = _data?.dance.title ?? l10n.danceScreenTitle;
     // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
     if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
     if (!mounted) return;
@@ -661,84 +750,66 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final detail = _data;
+    // No builders here: the record is a State field fed by one subscription, so
+    // the four places that read it share one value and one rebuild. Four
+    // builders over a stream would need four subscriptions — a single-listener
+    // stream cannot serve them — and would run the query four times over.
+    //
     // Wrap the whole screen (AppBar + body + FAB) so the colour tint covers the
-    // dance's entire view, consistent with the Perform screens. The title comes
-    // from the same cached [_future]; until it resolves the tint is a no-op.
-    return FutureBuilder<DanceDetailData?>(
-      future: _future,
-      builder: (context, titleSnapshot) {
-        return ColourDanceTheme(
-          title: titleSnapshot.data?.dance.title,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final compact =
-                  constraints.maxWidth <
-                  DanceDetailScreen.compactActionsBreakpoint;
-              return Scaffold(
-                appBar: AppBar(
-                  title: Text(l10n.danceScreenTitle),
-                  actions: [
-                    if (!_isPreview)
-                      FutureBuilder<DanceDetailData?>(
-                        future: _future,
-                        builder: (context, snapshot) {
-                          if (snapshot.data == null) {
-                            return const SizedBox.shrink();
-                          }
-                          final detail = snapshot.data!;
-                          return compact
-                              ? _compactActions(context, detail)
-                              : _fullActions(context, detail);
-                        },
-                      ),
-                  ],
-                ),
-                body: FutureBuilder<DanceDetailData?>(
-                  future: _future,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState != ConnectionState.done) {
-                      return const SkeletonDetailView();
-                    }
-                    final detail = snapshot.data;
-                    if (detail == null) {
-                      return Center(child: Text(l10n.danceNotFound));
-                    }
-                    return _buildBody(detail);
-                  },
-                ),
-                // Edit mirrors the program preview's builder affordance: a bottom-right
-                // extended FAB (`docs/design/ux.md` §2/§3) rather than an AppBar action,
-                // so opening the editor is consistent across the dance and program views.
-                // In preview mode the same slot becomes an Import button.
-                floatingActionButton: FutureBuilder<DanceDetailData?>(
-                  future: _future,
-                  builder: (context, snapshot) {
-                    if (snapshot.data == null) return const SizedBox.shrink();
-                    if (_isPreview) {
-                      return FloatingActionButton.extended(
-                        key: const ValueKey('import-dance'),
-                        heroTag: 'import-dance',
-                        onPressed: widget.onImport == null
-                            ? null
-                            : () => widget.onImport!(),
-                        icon: const Icon(Icons.library_add_outlined),
-                        label: Text(l10n.importAction),
-                      );
-                    }
-                    return FloatingActionButton.extended(
-                      key: const ValueKey('edit-dance'),
-                      heroTag: 'edit-dance',
-                      onPressed: _openEditor,
-                      icon: const Icon(Icons.edit_note),
-                      label: Text(l10n.danceEditFab),
-                    );
-                  },
-                ),
-              );
-            },
-          ),
-        );
-      },
+    // dance's entire view, consistent with the Perform screens. Until the
+    // record arrives the title is null and the tint is a no-op.
+    return ColourDanceTheme(
+      title: detail?.dance.title,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact =
+              constraints.maxWidth < DanceDetailScreen.compactActionsBreakpoint;
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(l10n.danceScreenTitle),
+              actions: [
+                if (!_isPreview && detail != null)
+                  compact
+                      ? _compactActions(context, detail)
+                      : _fullActions(context, detail),
+              ],
+            ),
+            // [_loaded] is what separates "still loading" from "loaded, and
+            // there is no such dance" — the distinction a `ConnectionState`
+            // used to carry. A stream has no equivalent, and without the flag
+            // every open would render the not-found message for a frame.
+            body: !_loaded
+                ? const SkeletonDetailView()
+                : detail == null
+                ? Center(child: Text(l10n.danceNotFound))
+                : _buildBody(detail),
+            // Edit mirrors the program preview's builder affordance: a bottom-right
+            // extended FAB (`docs/design/ux.md` §2/§3) rather than an AppBar action,
+            // so opening the editor is consistent across the dance and program views.
+            // In preview mode the same slot becomes an Import button.
+            floatingActionButton: detail == null
+                ? null
+                : _isPreview
+                ? FloatingActionButton.extended(
+                    key: const ValueKey('import-dance'),
+                    heroTag: 'import-dance',
+                    onPressed: widget.onImport == null
+                        ? null
+                        : () => widget.onImport!(),
+                    icon: const Icon(Icons.library_add_outlined),
+                    label: Text(l10n.importAction),
+                  )
+                : FloatingActionButton.extended(
+                    key: const ValueKey('edit-dance'),
+                    heroTag: 'edit-dance',
+                    onPressed: _openEditor,
+                    icon: const Icon(Icons.edit_note),
+                    label: Text(l10n.danceEditFab),
+                  ),
+          );
+        },
+      ),
     );
   }
 

@@ -312,6 +312,33 @@ worktree and cannot touch anyone else's state:
 git checkout HEAD~1 -- <path>     # or any ref
 ```
 
+### Commit before you mutate, and restore from *that commit* — not `HEAD`
+
+The rule above names the mechanism (a ref, not the stash) but not the referent,
+and the referent is where it bites. `git checkout HEAD -- <path>` **discards
+uncommitted work**: if the change under test has not been committed yet, `HEAD`
+is the state *before* it, so the "restore" wipes the file instead of removing the
+mutation. The command succeeds, prints nothing, and leaves a tree that still
+compiles — so the next test run reports on code that is no longer the change.
+
+This has happened, mid-red-run, on work that was otherwise complying with the
+rule. What caught it was `git status` showing the file no longer modified; a
+rule fully complied with that still permits the damage is a defective rule, not
+a user error.
+
+So: **commit the change first, then mutate, then restore from that commit's
+SHA.**
+
+```sh
+git commit -m "..."               # the change under test now has a SHA
+# ...apply the mutation, run the test, watch it go red...
+git checkout <that-sha> -- <path> # removes the mutation, keeps the change
+```
+
+Verify the restore rather than assuming it: `grep` for the mutation marker and
+confirm the file still contains the change, because "the mutation is gone" and
+"the change is still there" are different facts and only the first is obvious.
+
 ## Attributing decisions
 
 Say who decided something, not just what was decided.

@@ -3,33 +3,41 @@ import 'package:flutter/widgets.dart';
 /// Broadcasts "dance data changed — reload the views that render it" without
 /// coupling the caller to them.
 ///
-/// A screen that mutates a dance outside the view showing it bumps [revision];
-/// subscribers reload. The bumpers are the import review flow (ROADMAP 6.3),
-/// reached from Settings while the Collection tab is kept alive in an
-/// `IndexedStack`, the dance editor, the re-parse batch, and the Collection
-/// list's own batch operations.
+/// A screen that mutates a dance outside the view showing it bumps [revision].
+/// The bumpers are the import review flow (ROADMAP 6.3), reached from Settings
+/// while the Collection tab is kept alive in an `IndexedStack`, the dance
+/// editor, the re-parse batch, and the Collection list's own batch operations.
 ///
-/// **Exactly one screen subscribes: `DanceDetailScreen`.** It renders dance fields that
-/// can be edited elsewhere and still loads them with a one-shot future, so this
-/// channel is the only thing that makes such an edit appear in the detail pane.
-/// The program summary pane used to listen as well and no longer does — it
-/// moved to `CollectionData.watch` (issue #768; see
-/// `program_summary_screen.dart`, which records the same fact from its side).
-/// So did `DanceListScreen`, which this doc used to describe as re-booting for
-/// imported and batch-edited dances; it watches those tables itself now, and
-/// only bumps here so the screens that are not yet converted still hear about
-/// its own batch writes. Every other reader captures the notifier to *bump* it.
+/// **Nothing in the app subscribes any more, and the channel still has
+/// bumpers.** Those are two separate facts and the pairing is the point: a bump
+/// is not an error or a leak, it is a broadcast that currently reaches nobody.
+/// Each view that used to reload from it now watches the database directly, the
+/// last of them being the dance detail screen (issue #768).
+///
+/// Stated as "nothing in the app" rather than "nothing at all", because
+/// [maybeOf] — the only resolver that registers a rebuild dependency, and
+/// therefore the only way to subscribe — does still have one caller: the test
+/// that proves it registers that dependency, without which the ratchet below
+/// would be asserting a negative nothing could distinguish from a broken
+/// resolver. The ratchet in `refresh_scopes_test.dart` scans `app/lib`, so
+/// `app/lib` is the scope of the claim it enforces, and this sentence matches
+/// it deliberately.
+///
+/// So this channel is now removable, and removing it is its own step. What
+/// makes it so is precisely the above: while a subscriber existed, deleting it
+/// would have stranded that subscriber; while bumpers exist, deleting it means
+/// visiting each of them.
 ///
 /// Program data used to have its own channel, `ProgramsRefreshScope`, kept
 /// separate so that a view subscribed to the data it actually renders rather
 /// than re-booting on every write (issue #340). It has been retired: every
-/// program view watches the database directly now, so it had no subscribers
-/// left. This is the last channel standing, and it goes the same way once
-/// `DanceDetailScreen` is converted.
+/// program view watches the database directly, so it had no subscribers left.
+/// This is the last channel standing, for the same reason and pending the same
+/// removal.
 ///
-/// The dedupe rule that keeps that promise: **a mutation site either broadcasts
-/// or reloads itself, never both.** [bump] reports whether a scope was found so
-/// a site can fall back to its own reload when unscoped:
+/// The dedupe rule that made the migration safe: **a mutation site either
+/// broadcasts or reloads itself, never both.** [bump] reports whether a scope
+/// was found so a site can fall back to its own reload when unscoped:
 ///
 /// ```dart
 /// if (!CollectionRefreshScope.bump(context)) await _boot();
@@ -70,20 +78,43 @@ class CollectionRefreshScope extends InheritedNotifier<ValueNotifier<int>> {
   /// way.
   ///
   /// Returning `null` when unscoped is load-bearing beyond the focused-test
-  /// case below: several sites use the captured value's *nullness* as the test
-  /// for "can I broadcast at all?", falling back to reloading themselves when
-  /// they cannot (`dance_list_screen.dart`, `dance_detail_screen.dart`). That
-  /// is the dedupe rule above, implemented. [notifierOf] and [maybeOf] agree on
-  /// it, so swapping one for the other cannot disturb it — **deleting this
-  /// scope would**, and those sites would then need unconditional self-reloads.
+  /// case below: a site can use the captured value's *nullness* as the test for
+  /// "can I broadcast at all?", falling back to reloading itself when it
+  /// cannot. That is the dedupe rule above, implemented. [notifierOf] and
+  /// [maybeOf] agree on it, so swapping one for the other cannot disturb it —
+  /// **deleting this scope would**, and any such site would then need an
+  /// unconditional self-reload.
   static ValueNotifier<int>? notifierOf(BuildContext context) =>
       context.getInheritedWidgetOfExactType<CollectionRefreshScope>()?.notifier;
 
   /// The revision notifier, **registering a rebuild dependency**.
   ///
-  /// Only for a widget that genuinely wants rebuilding when the collection
-  /// changes. Exactly one does: `DanceDetailScreen`, which listens. Anything
-  /// that merely bumps wants [notifierOf] instead.
+  /// The only resolver here that subscribes, and no widget in `app/lib` calls
+  /// it — every view that renders dance data watches the database instead.
+  ///
+  /// It is not uncalled, and the distinction matters to whoever deletes this
+  /// class. `CollectionRefreshScope.maybeOf(` appears **twice** outside this
+  /// file, both in `refresh_scopes_test.dart`, and they are not the same kind
+  /// of thing:
+  ///
+  /// * one real call, in the test asserting that this resolver registers a
+  ///   rebuild dependency where [notifierOf] does not;
+  /// * one **string literal**, inside the source ratchet that scans `app/lib`
+  ///   for callers — so a grep reports two hits where there is one caller, and
+  ///   the second cannot be removed without disabling the ratchet.
+  ///
+  /// Deleting this method therefore removes that test's subject, and with it
+  /// the only thing making "nothing in `app/lib` subscribes" a checked claim
+  /// rather than an assumed one. That is the precondition the removal step
+  /// depends on, so the removal has to replace it rather than simply inherit
+  /// it.
+  ///
+  /// Kept for that reason rather than deleted here: it is what the removal step
+  /// will act on, and it is what makes the removal's precondition verifiable.
+  ///
+  /// Anything that merely bumps wants [notifierOf] instead: depending on this
+  /// scope in order to broadcast on it means being rebuilt by every other
+  /// broadcaster.
   static ValueNotifier<int>? maybeOf(BuildContext context) => context
       .dependOnInheritedWidgetOfExactType<CollectionRefreshScope>()
       ?.notifier;

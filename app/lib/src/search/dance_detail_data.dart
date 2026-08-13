@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/widgets.dart';
 
+import 'coalesce_trailing.dart';
+
 /// A resolved custom-field row for display: the definition's [label] paired
 /// with its already-formatted [value].
 typedef CustomFieldDisplay = ({String label, String value});
@@ -58,6 +60,114 @@ class DanceDetailData {
   /// Matches other dances' titles inside this dance's free text (hook /
   /// calling notes) so they can render as tappable cross-reference links.
   final DanceTitleLinker crossRefLinker;
+
+  /// The window used to collapse a burst of writes into one reload.
+  ///
+  /// Measured against the burst this consumer actually faces, not chosen for a
+  /// frame budget — see [CoalesceTrailing] for why a window is required at all
+  /// rather than being an optimisation.
+  ///
+  /// The burst here is **not** a batch of edits to the dance being shown; it is
+  /// a batch of edits to *other* dances. Batch tagging in the Collection writes
+  /// one dance per transaction in a loop, so tagging 50 dances is 50 commits on
+  /// `dances`, and every one of them wakes this stream even though at most one
+  /// touched the record on screen. Uncoalesced that is 50 full [load] runs — a
+  /// fan-out across five repositories each time — behind a screen whose visible
+  /// content changed at most once.
+  ///
+  /// 24 ms, matching the figure measured for the same 50-write batch shape on
+  /// the Collection's own snapshot: inter-commit gaps of median 1.46 ms, p90
+  /// 1.66 ms, max 2.36 ms on in-memory sqlite in a debug build, so the window
+  /// is about 10x the widest observed gap. The measurement is of the *writer*,
+  /// which is the same writer for both consumers; it is quoted rather than
+  /// cited because a number that lives in another file is one this file cannot
+  /// keep true.
+  ///
+  /// ## It is not the only thing bounding reloads, and that was measured
+  ///
+  /// A subscriber that maps each wake to an async load also pauses the source
+  /// while that load runs, and drift collapses the updates that arrive during
+  /// the pause into a single re-run on resume. So backpressure supplies a bound
+  /// of its own, before this constant does anything.
+  ///
+  /// The figures, for a 10-write burst on in-memory sqlite in a debug build,
+  /// stated as numbers so that deleting this window is a decision about a known
+  /// cost rather than about a description:
+  ///
+  /// | burst shape | window | no window |
+  /// |---|---|---|
+  /// | writes awaited one at a time — the batch-tag loop's shape | **1** | **2** |
+  /// | writes issued together (`Future.wait`) | 1 | 1 |
+  ///
+  /// So what this constant buys, on the shape the app actually produces, is the
+  /// difference between one re-read and two — not between one and ten. Ten was
+  /// the intuition it was nearly justified with, and it is wrong: backpressure
+  /// had already collapsed the burst to two before the window saw it.
+  ///
+  /// The second row is the reason the first is not stated more strongly.
+  /// Concurrent writes commit close enough together that drift dispatches them
+  /// as one update, so there is nothing left for a window to collapse. A window
+  /// cannot beat a burst the database has already merged.
+  ///
+  /// `dance_detail_data_watch_test.dart` asserts the first row as a strict
+  /// inequality, so removing the transformer fails a test rather than quietly
+  /// leaving these figures equal.
+  ///
+  /// Both directions of error, since an unexplained constant invites deletion:
+  ///
+  /// - **Too short** — it stops collapsing and the batch leaks reloads,
+  ///   proportionally rather than off a cliff: a burst emits roughly
+  ///   `gap / window` of its writes.
+  /// - **Too long** — the tail of a burst takes longer to settle. A single
+  ///   write is never delayed in either direction, because the leading edge
+  ///   emits immediately; the window is only ever paid by a burst.
+  ///
+  /// An under-sized window costs extra loads, never correctness: every emit
+  /// re-runs [load] in full, so each one carries a complete, self-consistent
+  /// record.
+  static const coalesceWindow = Duration(milliseconds: 24);
+
+  /// A live [DanceDetailData] for [danceId], re-read whenever anything the
+  /// dance's own record is built from changes (issue #768). Emits `null` when
+  /// the dance does not exist, or has been deleted while this stream is open.
+  ///
+  /// ## Why this re-reads the whole record rather than streaming its parts
+  ///
+  /// [load] composes a fan-out across five repositories into one immutable
+  /// value. Streaming each part and recombining would emit once per part per
+  /// write and could render a half-updated record — an author list from before
+  /// an edit beside a title from after it. Re-running the load on a single
+  /// change signal keeps the value atomic and leaves [load] the only place the
+  /// composition is expressed.
+  ///
+  /// Deliberately no query count: [load] resolves related-dance titles and
+  /// cited sources with `Future.wait` over however many the dance links, and
+  /// skips both entirely when it links none, so the statement count is a
+  /// property of the data rather than a constant.
+  ///
+  /// ## What this stream deliberately does not carry
+  ///
+  /// Nothing program-derived. [DanceDetailData] omits calling history and its
+  /// stats for that reason, and the watched set behind this stream omits
+  /// `programs` and `program_slots` to match — so adding a dance to a program
+  /// does not re-run this fan-out. A consumer that renders program-derived data
+  /// too subscribes to it separately, at the granularity that data changes.
+  ///
+  /// Nothing from `settings`, either. A preference read is not part of the
+  /// record, and the table is written on a debounce by an unrelated editor's
+  /// autosave, so a watcher over it would wake this load twice a second while
+  /// someone types elsewhere in the app.
+  ///
+  /// Emits an initial value immediately, so a subscriber renders without
+  /// waiting for a write.
+  static Stream<DanceDetailData?> watch(
+    CompendiumRepositories repos,
+    String danceId, {
+    Duration coalesce = coalesceWindow,
+  }) => repos
+      .watchDanceSources()
+      .transform(CoalesceTrailing<void>(coalesce))
+      .asyncMap((_) => load(repos, danceId));
 
   /// Hydrates the detail data for the dance identified by [danceId] from
   /// [repos], returning `null` when no such dance exists.

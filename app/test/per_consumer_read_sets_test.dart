@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/drift.dart' show driftRuntimeOptions;
@@ -374,6 +376,92 @@ void main() {
         reason: 'the same write must wake the consumer that does render one',
       );
     });
+
+    /// Subscribes to both sentinels — in the order given — writes a program
+    /// slot, and reports how many times each woke.
+    ///
+    /// The order is a parameter because the defect this guards is
+    /// order-dependent: drift caches query streams by `(sql, variables)` and
+    /// ignores `readsFrom`, so two sentinels whose SQL text is equal are ONE
+    /// stream and whichever subscribed first decides the read set for both. A
+    /// single-order test passes against that bug half the time, which is worse
+    /// than not testing it — the half that passes looks like proof.
+    Future<({int dance, int collection})> wakesForProgramWrite({
+      required bool danceFirst,
+    }) async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Alpha',
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+
+      var dance = 0;
+      var collection = 0;
+      late StreamSubscription<void> first;
+      late StreamSubscription<void> second;
+      if (danceFirst) {
+        first = repos.watchDanceSources().listen((_) => dance++);
+        second = repos.watchCollectionSources().listen((_) => collection++);
+      } else {
+        first = repos.watchCollectionSources().listen((_) => collection++);
+        second = repos.watchDanceSources().listen((_) => dance++);
+      }
+      addTearDown(first.cancel);
+      addTearDown(second.cancel);
+
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      final danceBefore = dance;
+      final collectionBefore = collection;
+
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Autumn Ball',
+          status: ProgramStatus.draft,
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      return (
+        dance: dance - danceBefore,
+        collection: collection - collectionBefore,
+      );
+    }
+
+    for (final danceFirst in [true, false]) {
+      final label = danceFirst ? 'dance sentinel first' : 'collection first';
+      test(
+        'a program write wakes only the collection sentinel ($label)',
+        () async {
+          final wakes = await wakesForProgramWrite(danceFirst: danceFirst);
+
+          expect(
+            wakes.dance,
+            0,
+            reason:
+                'a dance record carries nothing program-derived, so the dance '
+                'sentinel must not wake for a program write',
+          );
+          // Paired, and load-bearing beyond non-vacuity: if the two sentinels
+          // collide into one stream, this is the half that shows the write was
+          // dispatched at all, so a zero above means "declined" rather than
+          // "nothing happened".
+          expect(
+            wakes.collection,
+            greaterThan(0),
+            reason: 'the collection sentinel watches programs and must wake',
+          );
+        },
+      );
+    }
   });
 }
 

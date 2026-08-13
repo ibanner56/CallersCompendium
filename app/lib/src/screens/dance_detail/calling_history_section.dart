@@ -52,8 +52,9 @@ import '../../theme/app_spacing.dart';
 ///    [_venuesDirty].
 /// 5. **The screen drops its `ProgramsRefreshScope` listener in the same
 ///    change.** Keeping it would reload the whole screen on top of this stream's
-///    emit: one write, two rebuilds. The scope itself stays — the screens not
-///    yet converted still depend on it.
+///    emit: one write, two rebuilds. That scope has since been retired outright,
+///    once nothing subscribed to it — the removal being its own step, after the
+///    last conversion rather than alongside the first.
 ///
 /// Rendered only for a saved dance; calling history is a collection-only
 /// concept, so the online-preview detail view omits this section entirely.
