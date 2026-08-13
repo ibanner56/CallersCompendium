@@ -1975,6 +1975,69 @@ void main() {
     });
   });
 
+  testWidgets('rebuilding with a different danceId re-subscribes', (
+    tester,
+  ) async {
+    // The stream is opened once and held in the State, so a rebuild that
+    // changes the id has to replace it — otherwise the screen renders one dance
+    // while subscribed to another, which is worse than either staleness or
+    // churn.
+    //
+    // Driven through a host that swaps the id on the SAME element, because that
+    // is the only way to reach didUpdateWidget: pushing a route or changing a
+    // key creates a fresh State and never exercises it.
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Beta'));
+
+    final id = ValueNotifier<String>('d1');
+    addTearDown(id.dispose);
+    final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(dialect.dispose);
+    final requirePerformed = ValueNotifier<bool>(false);
+    addTearDown(requirePerformed.dispose);
+
+    await tester.binding.setSurfaceSize(const Size(1200, 2400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(
+            notifier: dialect,
+            child: RequirePerformedForHistoryScope(
+              notifier: requirePerformed,
+              // No key: the element must be REUSED across the id change.
+              child: ValueListenableBuilder<String>(
+                valueListenable: id,
+                builder: (_, value, _) => DanceDetailScreen(danceId: value),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Alpha'), findsWidgets);
+
+    final stateBefore = tester.state(find.byType(DanceDetailScreen));
+    id.value = 'd2';
+    await tester.pumpAndSettle();
+
+    expect(find.text('Beta'), findsWidgets);
+    expect(find.text('Alpha'), findsNothing);
+    // Assert the precondition, not just the conclusion: if the State had been
+    // recreated, this would pass without didUpdateWidget existing at all.
+    expect(
+      tester.state(find.byType(DanceDetailScreen)),
+      same(stateBefore),
+      reason: 'the same State must have been reused, or this tests nothing',
+    );
+  });
+
   group('a failing record read (issue #963)', () {
     // The conversion to a stream made `onError` the ONLY error path on this
     // screen: a `FutureBuilder` surfaces a failure into its snapshot, a

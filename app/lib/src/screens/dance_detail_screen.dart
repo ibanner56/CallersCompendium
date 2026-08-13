@@ -233,12 +233,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     // Re-subscribe when the id changes, so the stream never outlives the
     // question it was opened to answer.
     //
-    // No live caller does this — every routed use pushes a new screen, and the
-    // split-pane host keys its detail pane on the selected id, so a selection
-    // change re-creates this State rather than updating it. So this is
-    // robustness against a future caller that drops the key, not a fix for an
-    // observed defect; without it such a caller would render one dance while
-    // subscribed to another, which is worse than either staleness or churn.
+    // Whether any caller does this is not something this widget can know, and
+    // an earlier version of this comment asserted that none did — a claim about
+    // other files' navigation and keying, which is exactly the shape that goes
+    // stale silently. What it is here for is local and checkable: without it a
+    // rebuild with a new id would render one dance while subscribed to another,
+    // which is worse than either staleness or churn.
     if (!_isPreview && _started && widget.danceId != oldWidget.danceId) {
       _loaded = false;
       _data = null;
@@ -261,16 +261,17 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// mount and seeds [_canonicalView] from it.
   ///
   /// **One-shot, and outside the stream.** This is a preference, not part of
-  /// the record: it is written only from the settings screen, and it decides
-  /// the initial state of a control the user can then flip. Re-reading it on
-  /// every emit would cost a query per write for a value that almost never
-  /// changes; watching the table it lives in is worse still, because an
-  /// unrelated editor autosaves into that table on a debounce while the user
-  /// types.
+  /// the record: it decides the initial state of a control the user can then
+  /// flip. Re-reading it on every emit would cost a query per write for a value
+  /// that changes only when the user changes a preference or restores a backup;
+  /// watching the table it lives in is worse still, because an unrelated editor
+  /// autosaves into that table on a debounce while the user types.
   ///
   /// It was previously re-read on each reload, guarded by [_canonicalUserSet] —
   /// incidental to being inside the load rather than a designed refresh, since
-  /// no path re-seeds a mounted screen with a changed value.
+  /// nothing bumped the old channel for a preference write either. A change
+  /// made while this screen is open is picked up the next time it opens, as it
+  /// was before.
   ///
   /// The [_canonicalUserSet] guard is kept regardless, because this now runs
   /// concurrently with nothing but is still awaited before the body renders;
