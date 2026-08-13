@@ -69,9 +69,9 @@ class ProgramSlotListEditor extends StatefulWidget {
 
   /// Opens the host's dance picker and resolves to the id of the dance the
   /// user picked, or `null` if they dismissed it without picking one
-  /// (issue #964). Passed straight through to the slot edit dialog's
-  /// "Replace…" affordance, which is hidden entirely when this is `null` — a
-  /// host with no picker to offer (e.g. a future embedding without
+  /// (issue #964). Passed straight through to the slot edit dialog, whose
+  /// "Replace…" **button** (not the whole dance row) is omitted when this is
+  /// `null` — a host with no picker to offer (e.g. a future embedding without
   /// `CollectionData`) need not supply it. The pick is held in the dialog's
   /// own state and only committed if the dialog's Save is tapped afterward, so
   /// Cancel discards it like every other in-dialog edit.
@@ -804,8 +804,12 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
     if (picked == null || !mounted) return;
     setState(() => _danceId = picked);
     final l10n = AppLocalizations.of(context);
+    // Same fallback the visible row uses (below, in build) for a dance id
+    // that resolves to nothing — keeps the announcement and the on-screen
+    // title consistent if the picked dance becomes unavailable between the
+    // pick and this frame.
     final title =
-        widget.danceTitle?.call(picked) ?? l10n.programsUntitledDanceFallback;
+        widget.danceTitle?.call(picked) ?? l10n.programsDeletedDanceFallback;
     SemanticsService.sendAnnouncement(
       View.of(context),
       l10n.programsReplacedDanceAnnounce(title),
@@ -945,8 +949,11 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
 }
 
 /// The current dance's title + a "Replace…" affordance (issue #964), shown
-/// only for a dance slot. Hidden entirely when the host offers no picker
-/// ([onPickReplacementDance] null) rather than rendering a disabled button.
+/// only for a dance slot. The row itself (title) always renders when this
+/// widget is built (its host, `_SlotEditDialog`, is the one gating on
+/// `_isDanceSlot`); only the Replace **button** is omitted when the host
+/// offers no picker ([onPickReplacementDance] null), rather than rendering it
+/// disabled.
 class _ReplaceDanceRow extends StatelessWidget {
   const _ReplaceDanceRow({required this.title, this.onPickReplacementDance});
 
