@@ -8,7 +8,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
-import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -106,25 +105,16 @@ void main() {
     );
   }
 
-  /// Mounts [child] under the real refresh scopes plus the scopes the
-  /// Collection/Programs screens read. Returns the collection revision notifier
-  /// so a test can bump it directly where it is asserting the *subscriber*
-  /// rather than a mutation site.
-  ///
-  /// There is only one notifier to return now: `ProgramsRefreshScope` was
-  /// retired once every program view became stream-driven (issue #768).
-  Future<ValueNotifier<int>> pump(
+  /// Mounts [child] under the scopes the Collection/Programs screens read.
+  Future<void> pump(
     WidgetTester tester,
     CompendiumRepositories repos,
     Widget child, {
     Size surfaceSize = const Size(1400, 3000),
     bool requirePerformedForHistory = false,
-    bool mountRefreshScopes = true,
   }) async {
     await tester.binding.setSurfaceSize(surfaceSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    final collection = ValueNotifier<int>(0);
-    addTearDown(collection.dispose);
     final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
     addTearDown(dialect.dispose);
     final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
@@ -149,12 +139,7 @@ void main() {
                 notifier: dialect,
                 child: RequirePerformedForHistoryScope(
                   notifier: requirePerformed,
-                  child: mountRefreshScopes
-                      ? CollectionRefreshScope(
-                          revision: collection,
-                          child: inner!,
-                        )
-                      : inner!,
+                  child: inner!,
                 ),
               ),
             ),
@@ -164,7 +149,6 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    return collection;
   }
 
   /// Two real screens alive at once, each in its own [ScaffoldMessenger] the
@@ -239,12 +223,7 @@ void main() {
     (tester) async {
       final repos = openTestRepos();
       await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
-      await pump(
-        tester,
-        repos,
-        const DanceListScreen(),
-        mountRefreshScopes: false,
-      );
+      await pump(tester, repos, const DanceListScreen());
       expect(find.byKey(const ValueKey('called-count-d1')), findsNothing);
 
       // Written from nowhere in particular, with no channel to announce it —
@@ -406,8 +385,6 @@ void main() {
           slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
         ),
       );
-      final refresh = ValueNotifier<int>(0);
-      addTearDown(refresh.dispose);
       await pump(
         tester,
         repos,
@@ -475,8 +452,6 @@ void main() {
           slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
         ),
       );
-      final refresh = ValueNotifier<int>(0);
-      addTearDown(refresh.dispose);
       await pump(
         tester,
         repos,
@@ -603,9 +578,7 @@ void main() {
           slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
         ),
       );
-      final refresh = ValueNotifier<int>(0);
-      addTearDown(refresh.dispose);
-      final collectionRevision = await pump(
+      await pump(
         tester,
         repos,
         ProgramSummaryPane(
@@ -620,16 +593,14 @@ void main() {
       expect(find.textContaining('Beginner'), findsWidgets);
 
       // The dance is edited from a screen this pane pushed (its slot rows open
-      // DanceDetailScreen, which opens the editor); the editor bumps the
-      // collection revision on save. Bumping it directly here keeps the test on
-      // the subscriber under test rather than on the editor's own coverage.
+      // DanceDetailScreen, which opens the editor); the write must reach the
+      // already-mounted summary directly from the watched tables.
       await repos.dances.update(
         (await repos.dances.getById('d1'))!.copyWith(
           level: DanceLevel.intermediate,
           updatedAt: now.add(const Duration(days: 1)),
         ),
       );
-      collectionRevision.value++;
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Intermediate'), findsWidgets);
@@ -677,17 +648,9 @@ void main() {
           ],
         ),
       );
-      // Mounted WITHOUT the refresh scopes on purpose. Scoped, the subscription
-      // would refresh this screen and the test would pass whether or not the
-      // push is awaited — the vacuous case. Unscoped, the only thing that can
-      // refresh the row is the await plus fallback reload, which is the change
-      // under test.
-      await pump(
-        tester,
-        repos,
-        const DanceDetailScreen(danceId: 'd1'),
-        mountRefreshScopes: false,
-      );
+      // The only thing that can refresh the row here is the awaited push's
+      // follow-up reload, which is the change under test.
+      await pump(tester, repos, const DanceDetailScreen(danceId: 'd1'));
 
       // Fixture check: the link row really resolves and renders d2's title, so
       // the assertion below is about a refresh rather than a missing row.
@@ -764,8 +727,6 @@ void main() {
           slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
         ),
       );
-      final refresh = ValueNotifier<int>(0);
-      addTearDown(refresh.dispose);
       var paneVisible = true;
       late void Function(void Function()) rebuildHost;
 
@@ -868,195 +829,6 @@ void main() {
       expect(find.text('Alpha'), findsOne);
     },
   );
-
-  group('the scopes a screen depends on', () {
-    // Issue #768: a screen that only ever *broadcasts* on a refresh scope must
-    // resolve it with `notifierOf`, not `maybeOf`. `maybeOf` registers a
-    // rebuild dependency, so every bump made anywhere rebuilt every bumper —
-    // over-firing (issue #340) bought with no benefit, and disclaimed by the
-    // very comments sitting above those calls.
-    //
-    // Asserted by counting builds of a real screen. `DanceListScreen` is the
-    // interesting one: it is stream-driven and bumps, so it is a pure bumper.
-    // Tested on the scope itself rather than through a screen, deliberately.
-    //
-    // Two screen-level attempts failed and BOTH passed against the mutant: one
-    // counted dirty elements after `pumpAndSettle` (zero by construction), the
-    // other read `element.dirty` straight after the bump — but `InheritedNotifier`
-    // calls `notifyClients` during its OWN build, not synchronously on notify,
-    // so the flag is not set yet at that moment. A rebuild of a large screen is
-    // simply not observable from outside it.
-    //
-    // The claim is a property of the resolver, so a probe that counts its own
-    // builds observes it exactly, and the paired assertion below makes the
-    // negative non-vacuous: the same probe under `maybeOf` DOES rebuild.
-    testWidgets('notifierOf registers no dependency; maybeOf does', (
-      tester,
-    ) async {
-      final revision = ValueNotifier<int>(0);
-      addTearDown(revision.dispose);
-      var withNotifierOf = 0;
-      var withMaybeOf = 0;
-
-      await tester.pumpWidget(
-        CollectionRefreshScope(
-          revision: revision,
-          child: Directionality(
-            textDirection: TextDirection.ltr,
-            child: Column(
-              children: [
-                Builder(
-                  builder: (context) {
-                    CollectionRefreshScope.notifierOf(context);
-                    withNotifierOf++;
-                    return const SizedBox.shrink();
-                  },
-                ),
-                Builder(
-                  builder: (context) {
-                    CollectionRefreshScope.maybeOf(context);
-                    withMaybeOf++;
-                    return const SizedBox.shrink();
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-      expect(withNotifierOf, 1);
-      expect(withMaybeOf, 1);
-
-      revision.value++;
-      await tester.pump();
-
-      expect(
-        withNotifierOf,
-        1,
-        reason: 'notifierOf must not register a rebuild dependency',
-      );
-      expect(
-        withMaybeOf,
-        2,
-        reason: 'maybeOf must — without this the negative above is vacuous',
-      );
-    });
-
-    // A source-level ratchet, and named as one: the behavioural test above
-    // proves what the two resolvers DO, but nothing stops a future edit calling
-    // the depending one from a widget that only broadcasts — which is the
-    // regression this PR fixes, in four places at once.
-    //
-    // Exactly one widget may register a dependency, and it is the one that
-    // genuinely listens.
-    test('only the screen that listens resolves the scope with maybeOf', () {
-      // A `Set` of separator-normalised paths: `listSync` order is not
-      // specified and `file.path` is `\`-separated on Windows, either of which
-      // would fail this ratchet on correct code. A ratchet that fails for
-      // reasons unrelated to its claim gets edited reflexively, and then it is
-      // inert while still reading green.
-      // Resolved from either cwd. `flutter test` runs from the package root,
-      // so 'lib' is the normal case; a runner invoked from the repo root would
-      // otherwise throw a FileSystemException whose message says nothing about
-      // what this test was trying to do.
-      final lib = [
-        Directory('lib'),
-        Directory('app/lib'),
-      ].firstWhere((d) => d.existsSync(), orElse: () => Directory('lib'));
-      expect(
-        lib.existsSync(),
-        isTrue,
-        reason:
-            'ratchet could not locate app/lib from ${Directory.current.path}',
-      );
-
-      final offenders = <String>{};
-      var scanned = 0;
-      for (final file in lib.listSync(recursive: true).whereType<File>()) {
-        // Relative to the resolved directory, so the recorded path does not
-        // depend on which candidate matched. Recording `file.path` verbatim
-        // made the expectation below cwd-dependent — the repo-root fallback
-        // would have produced `app/lib/...` and failed on correct code, which
-        // is a defect this ratchet acquired while being made cwd-independent.
-        final path = file.path
-            .replaceAll(r'\', '/')
-            .substring(lib.path.replaceAll(r'\', '/').length + 1);
-        if (!path.endsWith('.dart')) continue;
-        if (path.endsWith('collection_refresh_scope.dart')) continue;
-        scanned++;
-        for (final line in file.readAsLinesSync()) {
-          if (line.contains('CollectionRefreshScope.maybeOf(')) {
-            // The FILE, not the line: pinning a line number would make this
-            // ratchet fail on any unrelated edit above the call — the same
-            // reflexive-edit failure as above, from a different direction.
-            offenders.add(path);
-          }
-        }
-      }
-      // Assert the scan actually happened. Today an empty scan fails anyway,
-      // because the expectation below is non-empty — but the moment
-      // DanceDetailScreen is converted and that set becomes `{}`, a scan that
-      // found nothing would pass for the wrong reason. This is the same rule
-      // the rest of this PR's tests follow: assert the precondition, not just
-      // the conclusion.
-      expect(scanned, greaterThan(50), reason: 'scanned only $scanned files');
-
-      expect(
-        offenders,
-        <String>{},
-        reason:
-            'a widget that only broadcasts must use notifierOf; maybeOf '
-            'registers a rebuild dependency and wakes it on every bump. '
-            'Scope is app/lib deliberately: maybeOf still has one caller, the '
-            'test above, which is what keeps the negative checkable',
-      );
-    });
-
-    // The inverse of the test this replaces, which asserted that the detail
-    // screen still reloaded on a bump — true while its record came from a
-    // one-shot load, and the reason the channel could not be retired.
-    //
-    // Both halves are needed and neither is decoration. On its own the negative
-    // is satisfied by a screen that has stopped updating altogether, which is
-    // the staleness this whole issue is about — so the positive is what
-    // distinguishes "no longer listens to the channel" from "no longer works".
-    testWidgets(
-      'the detail screen no longer reloads on a bump, and DOES reload on the '
-      'write itself',
-      (tester) async {
-        final repos = openTestRepos();
-        await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
-        final collectionRevision = await pump(
-          tester,
-          repos,
-          const DanceDetailScreen(danceId: 'd1'),
-        );
-        expect(find.text('Alpha'), findsWidgets);
-
-        // A bump with nothing written behind it. Nothing should change,
-        // because there is nothing to change to — but if the screen still
-        // listened, this is where it would re-read.
-        collectionRevision.value++;
-        await tester.pumpAndSettle();
-        expect(find.text('Alpha'), findsWidgets);
-
-        // Now the write, with NO bump after it. This is the half that used to
-        // be the precondition for the opposite claim: the same edit that could
-        // not reach this screen on its own now does.
-        final stored = await repos.dances.getById('d1');
-        await repos.dances.update(
-          stored!.copyWith(title: 'Renamed', updatedAt: DateTime.utc(2026, 2)),
-        );
-        await tester.pumpAndSettle();
-
-        expect(
-          find.text('Renamed'),
-          findsWidgets,
-          reason: 'the write alone must reach this screen, with no broadcast',
-        );
-      },
-    );
-  });
 
   testWidgets(
     'issue #340 guard: an external dance write reloads the detail screen '

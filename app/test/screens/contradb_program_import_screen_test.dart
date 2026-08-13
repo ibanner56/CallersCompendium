@@ -1,5 +1,4 @@
 import 'package:compendium_app/src/data/callersbox_online.dart';
-import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/contradb_online.dart';
 import 'package:compendium_app/src/data/contradb_program_search.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
@@ -50,7 +49,6 @@ Future<void> _pump(
   required ContraDbOnline contraDb,
   CallersBoxOnline? callersBox,
   ContraDbProgramSearch? programSearch,
-  ValueNotifier<int>? revision,
 }) async {
   await tester.binding.setSurfaceSize(const Size(600, 1200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -58,12 +56,8 @@ Future<void> _pump(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      builder: (context, child) {
-        final scoped = revision == null
-            ? child!
-            : CollectionRefreshScope(revision: revision, child: child!);
-        return RepositoriesScope(repositories: repos, child: scoped);
-      },
+      builder: (context, child) =>
+          RepositoriesScope(repositories: repos, child: child!),
       home: Builder(
         builder: (context) => Scaffold(
           body: Center(
@@ -156,8 +150,8 @@ void main() {
   });
 
   testWidgets(
-    'issue #340: committing a ContraDB program signals the collection to '
-    'refresh (imported dances must appear live)',
+    'issue #340: committing a ContraDB program writes imported dances into the '
+    'collection stream',
     (tester) async {
       final repos = openTestRepositories();
       final contraDb = ContraDbOnline(
@@ -166,15 +160,11 @@ void main() {
           return _danceHtml(id);
         },
       );
-      final revision = ValueNotifier<int>(0);
-      addTearDown(revision.dispose);
-
       await _pump(
         tester,
         repos,
         programFetcher: (_) async => _programHtml,
         contraDb: contraDb,
-        revision: revision,
       );
 
       await tester.enterText(
@@ -184,15 +174,11 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('contradb-program-fetch')));
       await tester.pumpAndSettle();
 
-      expect(revision.value, 0);
-
       await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
       await tester.pumpAndSettle();
 
-      // Two dances were imported into the collection, so the live Collection
-      // view must be told to reload.
+      // Two dances were imported into the collection.
       expect((await repos.dances.listAll()), hasLength(2));
-      expect(revision.value, greaterThan(0));
     },
   );
 

@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
-import '../data/collection_refresh_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../data/shorthand_mappings_scope.dart';
@@ -234,11 +233,6 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       await _controller.clearDraft();
       _controller.markSaved();
       if (mounted) {
-        // A create (new author/tags) or edit changes the collection, so tell
-        // the live Collection view to reload + re-derive its author filter
-        // (issue #340). This is the single signal for every editor entry point
-        // (list FAB, detail-pane edit, edit-before-import).
-        CollectionRefreshScope.bump(context);
         Navigator.of(context).pop(dance.id);
       }
     } catch (error, stackTrace) {

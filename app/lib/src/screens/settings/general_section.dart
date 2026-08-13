@@ -402,8 +402,8 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// or bare id to the `&format=JSON` endpoint before fetching), and the
   /// [ContraDbHtmlAdapter] ("ContraDB", which resolves a pasted dance URL or
   /// bare id to the `contradb.com/dances/N` HTML page and scrapes it). The
-  /// screen is fully self-contained (plan → review → commit → undo) and
-  /// refreshes the live Collection on commit via [CollectionRefreshScope].
+  /// screen is fully self-contained (plan → review → commit → undo); the live
+  /// Collection now picks up its writes from the database stream directly.
   Future<void> _onImportDances() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(

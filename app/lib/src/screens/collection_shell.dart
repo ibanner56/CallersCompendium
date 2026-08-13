@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/callersbox_online.dart';
-import '../data/collection_refresh_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
@@ -312,9 +311,6 @@ class _CollectionShellState extends State<CollectionShell> {
         );
       }
       if (!mounted) return;
-      if (result.kind == OnlineImportKind.created) {
-        CollectionRefreshScope.bump(context);
-      }
       final danceId = result.danceId;
       // Land on the imported dance ONLY for a single-dance import. This online
       // path is single-dance by construction; the explicit count guard ensures

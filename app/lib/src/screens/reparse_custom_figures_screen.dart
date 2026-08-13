@@ -2,7 +2,6 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../data/collection_refresh_scope.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../theme/app_spacing.dart';
@@ -108,13 +107,6 @@ class _ReparseCustomFiguresScreenState
     final navigator = Navigator.of(context);
     final repos = RepositoriesScope.of(context);
     final l10n = AppLocalizations.of(context);
-    // Capture the refresh notifier BEFORE the await: if the user navigates Back
-    // while the batch runs, this widget's context is defunct by the time the
-    // write completes, so we must not read it (or bump via context) afterwards.
-    // `notifierOf`: captured only to bump after the batch, so a rebuild
-    // dependency would wake this screen for every unrelated collection write.
-    final refresh = CollectionRefreshScope.notifierOf(context);
-
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -160,10 +152,6 @@ class _ReparseCustomFiguresScreenState
       return;
     }
 
-    // The write committed. Refresh the (possibly kept-alive) Collection tab via
-    // the notifier we captured up front, so it re-loads even if this route has
-    // since been popped.
-    if (changed > 0) refresh?.value++;
     if (!mounted) return;
     messenger.showSnackBar(
       SnackBar(

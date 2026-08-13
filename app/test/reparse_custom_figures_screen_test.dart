@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
-import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/screens/reparse_custom_figures_screen.dart';
@@ -278,50 +277,5 @@ void main() {
       find.byKey(const ValueKey('reparse-customs-apply-button')),
     );
     expect(button.onPressed, isNotNull);
-  });
-
-  testWidgets('a commit after the screen is disposed still refreshes the '
-      'collection', (tester) async {
-    final repos = openTestRepositories();
-    addTearDown(repos.db.close);
-    await repos.dances.create(
-      _dance(id: 'a', title: 'Alpha', figures: [_importGap('Neighbor swing')]),
-    );
-
-    final revision = ValueNotifier<int>(0);
-    addTearDown(revision.dispose);
-    final gate = Completer<int>();
-
-    await tester.pumpWidget(
-      CollectionRefreshScope(
-        revision: revision,
-        child: RepositoriesScope(
-          repositories: repos,
-          child: MaterialApp(
-            localizationsDelegates: testLocalizationsDelegates,
-            supportedLocales: testSupportedLocales,
-            home: ReparseCustomFiguresScreen(applier: (r, ids) => gate.future),
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(
-      find.byKey(const ValueKey('reparse-customs-apply-button')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('reparse-confirm-apply')));
-    await tester.pump(); // apply is now awaiting the gate
-
-    // Dispose the screen before the write completes.
-    await tester.pumpWidget(const SizedBox());
-
-    // The commit lands after dispose; the captured notifier must still fire so
-    // a kept-alive Collection tab reloads.
-    gate.complete(1);
-    await tester.pump();
-
-    expect(revision.value, 1);
   });
 }

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
@@ -12,7 +11,6 @@ import '../data/active_dialect_scope.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
-import '../data/collection_refresh_scope.dart';
 import '../data/formation_colors_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
@@ -179,24 +177,6 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
 
   static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
-  /// The app-level dance-data refresh notifier (issue #768), if provided.
-  ///
-  /// Resolved to **bump**, not to subscribe. This screen reads its record from
-  /// [DanceDetailData.watch] now, so an edit made anywhere arrives from the
-  /// database — listening here as well would reload it a second time for the
-  /// same write, which is issue #340's over-firing.
-  ///
-  /// `notifierOf`, not `maybeOf`: the latter registers a rebuild dependency, so
-  /// this screen was woken by every bump any screen made, including bumps for
-  /// writes it does not render.
-  ///
-  /// The one thing still broadcast from here is the delete-undo in [_delete],
-  /// which has to reach views that are not stream-driven. Its nullness is no
-  /// longer used as a fallback test anywhere on this screen: the stream reaches
-  /// this record whether or not a scope is mounted, so there is nothing left to
-  /// fall back to.
-  ValueListenable<int>? _collectionRefresh;
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -211,8 +191,6 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       }
       return;
     }
-    // Resolved to bump only — see [_collectionRefresh].
-    _collectionRefresh = CollectionRefreshScope.notifierOf(context);
     // The two calling-history settings are passed straight down to
     // [CallingHistorySection], which rebuilds its query when either changes.
     // didChangeDependencies is always followed by a build, so keeping the
@@ -488,15 +466,6 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           widget.danceId!,
           at: DateTime.now().toUtc(),
         );
-        // Broadcast rather than relying on [onRestored]. By the time undo runs
-        // this screen has usually been popped or unmounted — that is what an
-        // undo snackbar is for — and five of the routes that push it pass no
-        // [onRestored] at all, so the callback reaches nothing. The notifier is
-        // resolved in `didChangeDependencies`, long before any of that, so the
-        // broadcast does not depend on this widget still being alive; that
-        // ordering is the whole defect.
-        final revision = _collectionRefresh;
-        if (revision is ValueNotifier<int>) revision.value++;
         widget.onRestored?.call();
       },
     );

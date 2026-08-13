@@ -1,8 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart'
-    show ValueListenable, listEquals, mapEquals;
+import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -12,7 +11,6 @@ import '../data/active_dialect_scope.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/collection_tile_fields_scope.dart';
-import '../data/collection_refresh_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
@@ -234,19 +232,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// same contract is recorded on `programs_list_screen.dart`'s `_started`.
   bool _started = false;
 
-  /// The app-level collection-refresh notifier (ROADMAP 6.3), if provided.
-  ///
-  /// This screen no longer LISTENS to it — the stream supersedes that (see
-  /// [_dataSub]). It is still read for two things, and the distinction matters
-  /// because the old description ("re-boots the list when it is bumped") is now
-  /// false in both:
-  ///
-  /// - [_broadcastCollectionChange] bumps it so the screens that have NOT been
-  ///   converted still reload after a mutation made from here;
-  /// - its presence is the test for whether such a broadcast is possible at
-  ///   all, so an unscoped host falls back to reloading itself.
-  ValueListenable<int>? _collectionRefresh;
-
   /// The live Collection snapshot (issue #768).
   ///
   /// Supersedes both the imperative `_boot()` reload and the narrower
@@ -257,10 +242,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   ///
   /// This screen subscribes to no refresh scope: either would re-run the load
   /// on top of the stream's own emit, costing two reloads per write (issue
-  /// #340). `ProgramsRefreshScope` no longer exists at all — it was retired
-  /// once its last reader became stream-driven — and `CollectionRefreshScope`
-  /// survives only to carry this screen's own batch writes to anything that
-  /// still reloads from a broadcast.
+  /// #340). The database stream is the only refresh path left.
   StreamSubscription<CollectionData>? _dataSub;
 
   /// The caller filter [_dataSub] was opened with. A change to the "track all
@@ -365,19 +347,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _runSearch();
     }
 
-    // Resolved to BUMP (see [_broadcastCollectionChange]), not to subscribe:
-    // this list reads its data from a stream now, so listening here as well
-    // would reload it twice per write (issue #340).
-    //
-    // `notifierOf`, not `maybeOf`: the latter registers a rebuild dependency,
-    // so this list — which wants nothing from the channel but the ability to
-    // broadcast on it — was rebuilt by every bump any screen made. No second
-    // query resulted (the branches above are all guarded by value comparisons,
-    // so a spurious `didChangeDependencies` does nothing), but a wasted rebuild
-    // of the collection list per unrelated write is over-firing in the small,
-    // and it is the failure this comment already disclaimed.
-    _collectionRefresh = CollectionRefreshScope.notifierOf(context);
-
     // Subscribe to the app-level tag-filter coordinator (issue #414). A tag tap
     // anywhere publishes a request; this list reacts by applying a single-tag
     // filter. Registers a rebuild dependency; the controller is stable across
@@ -405,42 +374,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (!identical(widget.contraDbOnline, oldWidget.contraDbOnline)) {
       _contraDb = widget.contraDbOnline ?? ContraDbOnline();
     }
-  }
-
-  /// Broadcasts "dance data changed" after a mutation made from this list.
-  ///
-  /// **Nothing currently subscribes to that broadcast** (issue #768): the views
-  /// that used to reload from it — notably the wide layout's detail pane, which
-  /// is keyed on the *selection* and so never rebuilds for an edit — read the
-  /// database directly now, and a write to `dances` reaches them without it.
-  ///
-  /// So this is a broadcast with no listeners, and it is kept rather than
-  /// deleted because those are different jobs: retiring the channel means
-  /// visiting every site that bumps it, of which this is one. Stated because
-  /// the previous version of this comment described a listener that no longer
-  /// exists, and an obsolete reason reads exactly like a live one.
-  ///
-  /// A caller that mutates from here must not also re-boot: doing both would
-  /// load twice for one mutation (issue #340). Note the reason is **not** that
-  /// the broadcast reloads this list — it does not, and cannot, because this
-  /// list subscribes to no refresh *scope*. It does subscribe to
-  /// [CollectionData.watch], and that is what carries the write here.
-  ///
-  /// Falls back to a direct [_boot] in focused tests that mount no scope, which
-  /// is the one path where the notifier's absence has to be compensated for.
-  ///
-  /// The broadcast deliberately does **not** depend on this widget's lifetime:
-  /// it bumps the captured notifier rather than resolving one from `context`,
-  /// so an undo callback — which by design outlives the snackbar's host — is
-  /// not silently skipped. Only the unscoped fallback needs the widget, because
-  /// it reloads *this* screen.
-  Future<void> _broadcastCollectionChange() async {
-    final revision = _collectionRefresh;
-    if (revision is ValueNotifier<int>) {
-      revision.value++;
-      return;
-    }
-    if (mounted) await _boot();
   }
 
   /// Reacts to an app-level "filter the Collection to this tag" request (issue
@@ -1124,7 +1057,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
       }
       if (!mounted) return;
       if (result.kind == OnlineImportKind.created) {
-        CollectionRefreshScope.bump(context);
         _boot();
       }
       // Hand the result back to the preview route's awaiter, which navigates to
@@ -1276,7 +1208,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
 
     _exitSelectionMode();
-    await _broadcastCollectionChange();
     if (!mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
@@ -1310,7 +1241,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
         dance.copyWith(tagIds: entry.value, updatedAt: DateTime.now().toUtc()),
       );
     }
-    await _broadcastCollectionChange();
   }
 
   /// Sets the difficulty level on the selected dances. Opens the level picker,
@@ -1361,7 +1291,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
 
     _exitSelectionMode();
-    await _broadcastCollectionChange();
     if (!mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
@@ -1399,12 +1328,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
-    await _broadcastCollectionChange();
   }
 
   /// Shared tail of the batch handlers: announces [message] to AT, exits
-  /// selection mode, reloads, then shows either a plain "no changes" snackbar
-  /// (when [count] is 0) or an Undo prompt wired to [onUndo].
+  /// selection mode, then shows either a plain "no changes" snackbar (when
+  /// [count] is 0) or an Undo prompt wired to [onUndo].
   Future<void> _finishBatch({
     required int count,
     required String message,
@@ -1421,7 +1349,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
 
     _exitSelectionMode();
-    await _broadcastCollectionChange();
     if (!mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
@@ -1497,7 +1424,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
-    await _broadcastCollectionChange();
   }
 
   /// Merges tunes into the selected dances (additive union) via the batched,
@@ -1608,7 +1534,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
         dance.copyWith(tunes: entry.value, updatedAt: DateTime.now().toUtc()),
       );
     }
-    await _broadcastCollectionChange();
   }
 
   /// Sets or clears ONE custom field across the selected dances (upsert
@@ -1688,7 +1613,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
-    await _broadcastCollectionChange();
   }
 
   @override
@@ -1932,9 +1856,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
     // No explicit reload is needed here, and the reason is the stream rather
     // than the broadcast: a save writes `dances`, which this list watches, so
     // the row and the derived author filter arrive on their own. The editor
-    // also bumps `CollectionRefreshScope`, but that bump reaches nothing —
-    // this list subscribes to no refresh scope, and neither does anything
-    // else now. Reloading here as well would double-load (issue #340).
     final id = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const DanceEditorScreen()),
     );
@@ -2603,20 +2524,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
               // DanceDetailScreen pops with true when a dance is deleted
               // so the Collection can reload and remove the stale row.
               // The detail screen broadcasts the undo itself — but that
-              // broadcast is not what reaches this list, which subscribes to
-              // no refresh scope: the restore is a write to `dances`, and this
-              // list's own stream carries it here. So `onRestored` is a
-              // fallback for focused tests that mount no scope, not the
-              // primary path, and reloading here as well would load twice
-              // (issue #340).
               final deleted = await Navigator.of(context).push<bool>(
                 MaterialPageRoute(
-                  builder: (_) => DanceDetailScreen(
-                    danceId: entry.dance.id,
-                    onRestored: () {
-                      if (mounted && _collectionRefresh == null) _boot();
-                    },
-                  ),
+                  builder: (_) => DanceDetailScreen(danceId: entry.dance.id),
                 ),
               );
               if (mounted && deleted == true) await _boot();

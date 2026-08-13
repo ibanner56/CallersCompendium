@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/callersbox_online.dart';
-import '../data/collection_refresh_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/contradb_program_import.dart';
 import '../data/contradb_program_search.dart';
@@ -447,9 +446,6 @@ class _ContraDbProgramImportScreenState
     final navigator = Navigator.of(context);
     final linked = resolved.where((a) => a.isLinked).length;
     final notes = slots.length - linked;
-    // Any linked activity imported its ContraDB dance (and author) into the
-    // collection, so tell the live Collection view to reload (issue #340).
-    if (linked > 0) CollectionRefreshScope.bump(context);
     // The program itself is new, and Undo hard-deletes it again. Neither needs
     // a broadcast: every program view watches `programs` directly (issue #768),
     // which is also what finally gave the phone Programs list a refresh path —
