@@ -104,10 +104,19 @@ divide in two:
 
 A client implementation MUST therefore either suspend sync for the duration of
 an undoable import session, or treat publication as forfeiting the right to hard
-delete — falling back to a tombstone for any record that has appeared in this
-device's published manifest. The sibling case has already shipped as a real
-defect once: an import undo left a *revived* row live (#903), which would have
+delete — falling back to a tombstone for any record this device has ever named
+in a manifest it `PUT`. The sibling case has already shipped as a real defect
+once: an import undo left a *revived* row live (#903), which would have
 outranked that deletion on every peer once a client exists.
+
+A client taking the forfeiture route MUST evaluate that predicate against the
+durable marker in §3.2, written at §6.3 step 8, and MUST NOT evaluate it against
+the baseline. A baseline entry advances only where a peer was observed to carry
+this device's content hash (§6.3 step 9), so it records *confirmed agreement*,
+not *exposure*. Exposure begins one step earlier, at the `PUT`, so a baseline
+test leaves a window between one pass's step 8 and the next pass's step 9 in
+which the bytes are already reachable server-side while the check still answers
+"never published" — a narrower version of the hole this rule exists to close.
 
 **Backfill.** `updated_at` is stamped at migration time. `existence_at` MUST be
 backfilled as:
@@ -145,6 +154,7 @@ MUST be classified in the PR that creates it or the coverage ratchet fails.
 | `pending_deletions` | `kind`, `record_id`, `tombstoned_at`, `tombstone_hash` | `deviceScoped` |
 | `pending_deletions` | `tombstone_blob` | **`shareable`** |
 | `review_queue` | `kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, `queued_at` | `deviceScoped` |
+| `published_records` | `kind`, `record_id` | `deviceScoped` |
 
 `tombstone_blob` is `shareable` because it is record content that is
 re-transmitted, not device bookkeeping.
@@ -153,6 +163,16 @@ re-transmitted, not device bookkeeping.
 `review_queue` clear with the baseline. `pending_deletions` MUST survive an
 epoch reset and MUST clear on detach; after a restore its rows MUST be
 revalidated against the restored data.
+
+`published_records` is required only of clients taking §3.1's forfeiture route,
+and shares `pending_deletions`' lifecycle: it MUST survive an epoch reset and
+MUST clear on detach. It cannot live in the baseline, which clears on epoch
+reset — an expired store un-publishes nothing, because the peers that already
+downloaded a record still hold it live, and that liveness is exactly what
+forfeiture guards against. Detach differs: re-attach is a union that performs no
+deletion (§6.2), so a hard delete made while detached loses to the union rather
+than resurrecting on every pass. Its rows need no revalidation after a restore:
+a row naming a record the restore removed is never read.
 
 `review_queue` requires a new review surface: `import_review_screen.dart`
 reviews dances only. A generic keep-both-or-merge list suffices; no per-kind
@@ -375,7 +395,15 @@ Every settings key Device Sync introduces is `deviceScoped` and MUST NOT sync.
    (§6.9) applies here as in steady state.
 5. **Union**, then dedupe (§6.10). No deletion occurs during a fresh attach.
    Where two peers advertise the same id with different content, the higher
-   `updatedAt` wins; existence disagreements resolve per §6.4.
+   `updatedAt` wins; existence disagreements resolve per §6.4. Where the two
+   `updatedAt` values are **equal** and the bodies differ, §6.3's tie treatment
+   applies here too: neither body wins, the local one is left in place, and the
+   divergence MUST be reported. Step 6 then persists that local body's hash as
+   the baseline, so the record presents as `same`/`changed` on every later pass
+   and carries §6.3's reporting duty from then on. What a fresh attach MUST NOT
+   do is apply one body over the other silently. The two devices do not converge
+   either way — that is why this sits in §10 — so the report is the whole of the
+   requirement, and suppressing it is the whole of the harm.
 6. Persist the epoch and the resulting manifest as the new baseline. Quarantine
    and repair run **after** this, never during the union.
 
@@ -402,10 +430,15 @@ Every settings key Device Sync introduces is `deviceScoped` and MUST NOT sync.
    `updatedAt` is **equal** and the bodies differ, the `changed`/`changed` row
    does **not** resolve: neither side wins, neither body is applied, and the
    divergence MUST be reported. The `same`/`changed` row's strict `>` likewise
-   leaves an equal-`updatedAt` difference un-downloaded rather than guessing. An
-   implementation MUST NOT invent a tie-break — silently keeping local and
-   silently taking remote are both non-convergent, and a device choosing either
-   disagrees permanently with a peer that chose the other.
+   leaves an equal-`updatedAt` difference un-downloaded rather than guessing,
+   and MUST report it on the same terms. That row carries a reporting duty
+   because it is where a tie left unresolved anywhere else — including at a
+   fresh attach (§6.2 step 5) — resurfaces on every subsequent pass; without it
+   the divergence would be permanent *and* silent, and §10's claim that ties are
+   reported bilaterally would be false. An implementation MUST NOT invent a
+   tie-break — silently keeping local and silently taking remote are both
+   non-convergent, and a device choosing either disagrees permanently with a
+   peer that chose the other.
 
    One tick is one second (§2), so this is reachable in ordinary use: bulk
    imports, fresh attaches, and concurrent repairs (§6.9) all produce edits that
@@ -416,7 +449,10 @@ Every settings key Device Sync introduces is `deviceScoped` and MUST NOT sync.
 6. `GET /v1/blobs/{hash}` for each needed hash. The client MUST verify the hash
    before applying.
 7. Apply in one transaction (§6.7). Rebuild derived indexes.
-8. `PUT /v1/manifests/{self}`.
+8. `PUT /v1/manifests/{self}`. A client relying on §3.1's forfeiture rule MUST
+   record every record the manifest names in `published_records` **before**
+   issuing the request, so that a crash between the two over-marks rather than
+   under-marks.
 9. Store the new baseline. A record's entry advances **only** where a peer's
    manifest was observed to carry this device's current content hash.
 
@@ -526,9 +562,9 @@ The renamed key MUST be `<key>_<suffix>`, where `<suffix>` is the first
 **eight** lowercase hexadecimal digits of the **losing** UUID with hyphens
 removed — losing UUID `7f3a9c2b-…` against key `skill_level` yields
 `skill_level_7f3a9c2b`. The suffix MUST derive from the losing UUID and MUST NOT
-be a counter. Both devices then compute the same key without coordinating, and a
-third device carrying a third type yields a third distinct key rather than
-contending for the same one.
+be a counter. Because the suffix is a pure function of the losing UUID, every
+device derives this key without coordinating, and a third device carrying a
+third type yields a third distinct key rather than contending for the same one.
 
 This derivation is normative because `custom_field_defs.key` is `shareable` wire
 content that participates in the record's content hash: two implementations that
@@ -543,6 +579,16 @@ Distinct losing UUIDs cannot collide at full length. If the full-length key is
 *also* taken — reachable only if a user authored that exact key — the record
 MUST route to the review queue rather than renaming again, so the rule always
 terminates.
+
+The coordination-free property above covers the primary derivation only. Whether
+a key is "already taken" is decided against **local** state, and reconciliation
+is re-evaluated per device, per pass, against whatever peer manifests that
+device has observed, so two devices with different observed peer sets MAY mint
+different keys — one the eight-digit form, the other the full-length one — for
+the same losing UUID. That is not a fork. Both rows carry the same UUID, so the
+first pass in which those two devices see each other resolves them under step 1
+above (UUID known locally, last-writer-wins on `updatedAt`), with that step's
+review queue catching a residual name collision.
 
 **The remap.** Reconciliation produces `losing → surviving`, applied to local
 references **and** to every inbound record in the same batch, and persisted in
@@ -870,10 +916,13 @@ the **wire** spelling. A peer cannot push a `deviceScoped` setting.
 Inbound references to the losing UUID are remapped. `deviceLocal` fields
 preserved. Recency respected. Existence respected. Rename into an existing name.
 Two devices derive the **same** renamed custom-field key from the same collision
-(mutations: derive the suffix from a counter; derive it from the surviving UUID
-rather than the losing one). A collided derived key lengthens to the full UUID
-in one step. Custom-field type mismatch does not crash on read. Alias chains
-resolve transitively. Alias retention is content-bounded.
+(mutation: derive the suffix from a counter). Three devices carrying three types
+yield three **distinct** keys (mutation: derive the suffix from the surviving
+UUID rather than the losing one — two devices agree on the survivor, so a
+two-device fixture cannot distinguish the two derivations). A collided derived
+key lengthens to the full UUID in one step (mutation: lengthen progressively).
+Custom-field type mismatch does not crash on read. Alias chains resolve
+transitively. Alias retention is content-bounded.
 
 **Quarantine and repair.** Repairs against circulation without a user gesture
 (mutations: keep the `max`; reset from the local clock; require a gesture). A
@@ -887,12 +936,18 @@ reaches the second hop. A program citing a quarantined venue still publishes.
 **Deletion.** Absence never deletes (mutation: make absence delete). A pending
 tombstone is never republished. A pending-held row is never advertised as live.
 A referenced entity cannot be tombstoned away. Purge refuses to cascade off live
-records. An epoch reset does not discard a pending deletion.
+records. An epoch reset does not discard a pending deletion. A published record
+tombstones instead of hard-deleting (mutation: evaluate forfeiture against the
+baseline, which answers "never published" for a record `PUT` in the pass that no
+peer has confirmed yet).
 
 **Attach and restore.** Epoch mismatch → fresh attach, never deletion. Union and
-silent merge. Fresh attach stays referentially closed across a pending hold.
-Three-peer fresh attach (deleter, pending holder, stale peer). A restore
-converges rather than diverging.
+silent merge. An equal-`updatedAt` fresh-attach tie is reported rather than
+swallowed, and is reported again on the next steady pass (mutation: apply the
+remote body and skip the report — a mutation that merely keeps local is
+indistinguishable from the rule). Fresh attach stays referentially closed across
+a pending hold. Three-peer fresh attach (deleter, pending holder, stale peer). A
+restore converges rather than diverging.
 
 **Server.** Each cap rejected at the boundary, not after allocation. Allow-list
 bijection over real `encodeArchive`-shaped output, never a hand-written key
@@ -904,8 +959,8 @@ the batch or escaping the isolate. Interrupted sync is a no-op.
 The following are recorded as known and are not specified here:
 
 - Dance dedupe runs only at fresh attach, so a dance can fork permanently.
-- Equal `updatedAt` with differing bodies does not converge (§6.3). The
-  divergence is reported bilaterally rather than resolved, because every
+- Equal `updatedAt` with differing bodies does not converge (§6.2 step 5, §6.3).
+  The divergence is reported bilaterally rather than resolved, because every
   available tie-break is non-convergent.
 - Pepper rotation is impossible for inactive stores as specified.
 - The `T₀` backfill is per-device and can resurrect some pre-migration

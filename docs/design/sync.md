@@ -370,9 +370,10 @@ permanently swapped and every dance showing its values under the opposite key
 from its peer.
 
 The new key is **derived from the losing UUID**, not from a counter —
-`skill_level_7f3a9c2b`, taking the loser's first eight hex digits. Both devices
-compute the same key without coordinating, and a third device carrying a third
-type yields a third distinct key instead of contending for the same one. A
+`skill_level_7f3a9c2b`, taking the loser's first eight hex digits. The suffix is
+a pure function of the losing UUID, so every device derives the same key without
+coordinating, and a third device carrying a third type yields a third distinct
+key instead of contending for the same one. A
 counter would not be collision-safe: `custom_field_defs.key` is `UNIQUE`
 (`CustomFieldDefs.key` in `tables.dart`), so minting a `skill_level_2` that already exists — created
 by the user, or by an earlier reconciliation — violates the constraint, fails the
@@ -386,6 +387,18 @@ Progressive lengthening was rejected for the same reason a counter was: each
 intermediate length is a state two devices could disagree about, whereas one
 jump to the full UUID gives every device the same second candidate and cannot
 collide again, since distinct losers differ somewhere in their 32 digits.
+
+That second candidate is coordination-free in the same sense the first is: every
+device that escalates reaches the same key. But *whether* to escalate is not.
+"Already taken" can only be asked of local state, and reconciliation runs against
+whatever peer manifests a device has actually observed, so a device that has seen
+the conflicting def escalates while one that has not keeps the short form. The
+two are not forked — both rows carry the same losing UUID, so the first pass in
+which those devices meet resolves them by the ordinary UUID-known-locally path,
+and a residual name clash routes to the review queue. Worth separating out
+because the coordination-free property is the thing an implementer will lean on,
+and it is weaker in the escalation branch than in the derivation above it.
+
 `sync-spec.md` §6.6 states the derivation normatively.
 
 `venues` and `published_sources` have **no** `UNIQUE` natural key, so their UUIDs
@@ -476,8 +489,9 @@ it:
 | Pending deletions — markers (`kind`, `record_id`, `tombstoned_at`, `tombstone_hash`) | `pending_deletions` | `deviceScoped` |
 | Pending deletions — retained tombstone bytes (`tombstone_blob`) | `pending_deletions` | `shareable` |
 | Deferred review items (`kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, `queued_at`) | `review_queue` | `deviceScoped` |
+| Records this device has published (`kind`, `record_id`) | `published_records` | `deviceScoped` |
 
-**All three are scoped to the store identity**, and `id_aliases` and
+**All four are scoped to the store identity**, and `id_aliases` and
 `review_queue` are additionally scoped to the epoch and cleared with the
 baseline. Each records a conclusion drawn *about a particular store* — that two
 ids were merged, that a pair needs adjudicating — and neither conclusion survives
@@ -504,6 +518,27 @@ is stated rather than left to the implementation: retained across a *detach*, a
 stale `pending_deletions` row would suppress an entity from the manifest of an
 unrelated store indefinitely, and a stale alias would silently redirect ids that
 mean nothing there.
+
+**`published_records` takes the same lifecycle, and for a reason worth spelling
+out.** The hard-delete forfeiture rule asks a question the baseline cannot
+answer. A baseline entry advances only where a peer was observed carrying this
+device's hash, so it records *agreement*; forfeiture turns on *exposure*, which
+begins one step earlier, when the manifest is `PUT`. Using the baseline would
+leave a one-pass window in which a record is fetchable by every peer while the
+check still says "never published" — and a hard delete inside that window is the
+resurrection loop the rule exists to prevent, since the peer that downloaded it
+keeps republishing a row this device can no longer tombstone.
+
+So it is its own marker, written before the `PUT` rather than after it: a crash
+between the two then over-marks, costing an unnecessary tombstone, instead of
+under-marking and costing the guarantee. It survives an epoch reset because an
+expired store un-publishes nothing — the peers that already downloaded a record
+still hold it live, and that liveness is the whole hazard. It clears on detach
+because re-attach is a union that deletes nothing, so a hard delete made while
+detached loses to the union rather than looping. Stale entries after a restore
+are inert and need no revalidation: the marker is consulted only when deleting
+the record it names, so one naming a record the restore removed is never read,
+and one naming a record the restore brought back is still correct.
 
 Every row is per-installation protocol state, meaningless on another device, and
 adding them means a schema change **beyond the sync migration** — which the
@@ -2895,7 +2930,10 @@ claim is stated with its precondition rather than flatly.
 `id_aliases` and `review_queue` clear with the baseline. **`pending_deletions`
 does not** — for the same reason it survives an epoch reset: those rows record
 deletions the user performed that are owed but not yet applied, and a restore is
-no more evidence against them than a re-seeded store is.
+no more evidence against them than a re-seeded store is. `published_records`
+does not clear either, and unlike `pending_deletions` it needs no revalidation:
+its rows are read only when the record they name is about to be hard-deleted, so
+one left pointing at a record the restore removed is simply never consulted.
 
 The analogy is not exact, though, and the difference has to be handled rather
 than waved at: an epoch reset never touches local rows, whereas
@@ -3401,6 +3439,18 @@ must say this plainly rather than implying sync is opaque to us.
 - **Fresh-attach union and silent merge** — `{B,C}` joining `{A,B}` yields
   `{A,B,C}`; identical-choreography duplicates merge without a prompt;
   same-title-same-author-different-figures reaches the review queue.
+- **A fresh-attach tie is reported, not swallowed** — two devices attach holding
+  the same id with different bodies and identical `updatedAt`; assert neither
+  body is applied over the other, that both devices report the divergence, and
+  that a following steady pass reports it again. Mutation-proved by dropping the
+  report, **not** by changing which body survives: keeping local *is* the
+  specified behaviour, so a mutation that picks local is indistinguishable from
+  the rule and the test would pass against it. The harm here is silence rather
+  than the pick — the two devices do not converge either way, which is why this
+  sits in the deferred list — and a divergence nobody is told about is the one
+  outcome the rule excludes. Fresh attach is also the case the tie rule's own
+  justification cites as a same-second-edit generator, so leaving it unspecified
+  would have manufactured exactly the state the rule exists to surface.
 - **Server caps** — each limit rejected at the boundary, not after allocation.
 - **≥3-device convergence** — three devices, interleaved edits, all reach the
   same state. Two devices cannot exercise the max-`updatedAt`-across-N rule.
@@ -3453,9 +3503,16 @@ must say this plainly rather than implying sync is opaque to us.
   that rule reached review with a test already written for it. Mutation-proved by
   reconciling mismatched types anyway and watching `decodeCustomFieldValue` throw.
 - **A minted suffix never collides** — reconcile a type mismatch on a device that
-  already holds the key the suffix would produce; assert the apply commits.
-  Mutation-proved by switching the derivation to a `_2` counter, which violates
-  `UNIQUE` and fails every retry identically.
+  already holds the key the suffix would produce; assert the apply commits and
+  that the escalation lands on the full 32-digit form, not an intermediate
+  length. Mutation-proved three ways, since each leaves the others passing:
+  switch the derivation to a `_2` counter, which violates `UNIQUE` and fails
+  every retry identically; derive the suffix from the **surviving** UUID instead
+  of the losing one, which hands two distinct losers the same key and so needs a
+  three-device fixture to catch — two devices agree on the survivor, so a
+  two-device test passes against both derivations; and lengthen progressively,
+  which makes the second candidate depend on how many keys a device happens to
+  hold rather than on the collision itself.
 - **Alias chains resolve transitively** — build `Z→Y` then `Y→X` across three
   devices, then apply a blob referencing Z; assert it reaches X's live row.
   Mutation-proved by resolving a single hop, which lands on a UUID with no row
@@ -3465,6 +3522,16 @@ must say this plainly rather than implying sync is opaque to us.
   re-upload the entity as live, and applies the deletion once its last citation
   goes. Mutation-proved by republishing instead: A then downloads its own
   deletion back and the entity is live everywhere, permanently.
+- **A published record tombstones instead of hard-deleting** — publish a record
+  in one pass, then trigger a hard-delete path (an import undo) before any peer
+  has echoed the hash; assert a tombstone is written and the row is not removed.
+  Mutation-proved by testing forfeiture against the baseline instead of the
+  publication marker: the baseline advances only once a peer carries the hash, so
+  the record reads as "never published" for a full pass after its bytes went up,
+  the hard delete goes through, and the peer that already downloaded it
+  republishes it on every pass afterwards. The window is narrow, which is the
+  point — it is a one-pass version of the hole the forfeiture rule exists to
+  close, and it reopens without anyone misreading the rule.
 - **Only a deliberate edit resurrects** — editing an entity while its tombstone
   is pending cancels the tombstone and republishes; merely continuing to
   reference it does not. Both halves asserted, since the mechanism is only sound
