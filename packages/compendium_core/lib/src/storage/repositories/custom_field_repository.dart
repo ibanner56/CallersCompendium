@@ -84,6 +84,26 @@ class CustomFieldDefRepository {
     return [for (final row in rows) ?toModel(row)];
   }
 
+  /// [listAll] as a live stream: the current definitions immediately, then
+  /// again after every write that changes them (issue #768).
+  ///
+  /// Uses the query builder rather than a hand-written `readsFrom`, because
+  /// [listAll] is a single `select(customFieldDefs)` with no Dart fan-out. See
+  /// `VenueRepository.watchAll` for the contrast with the program list.
+  ///
+  /// **Deliberately does not cover [isInUse] or [listUsedChoiceValues].** Those
+  /// read `custom_field_values`, which is a different table and is NOT in this
+  /// stream's inferred set — so a dance gaining or losing a value for a field
+  /// does not re-emit here. That is correct for the definitions list, which
+  /// renders none of it, and it is stated because the two questions sound alike:
+  /// "which fields exist" is not "which fields are used".
+  Stream<List<CustomFieldDef>> watchAll() =>
+      (_db.select(_db.customFieldDefs)
+            ..where((t) => t.deletedAt.isNull())
+            ..orderBy([(t) => OrderingTerm(expression: t.label)]))
+          .watch()
+          .map((rows) => [for (final row in rows) ?toModel(row)]);
+
   /// Returns `true` if any dance currently has a value for field [id].
   ///
   /// Uses a `LIMIT 1` query so it short-circuits on the first match and avoids

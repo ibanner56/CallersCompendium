@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -9,11 +11,25 @@ import 'venue_editor_sheet.dart';
 /// A full-screen manager to browse, search, create, edit, and delete the
 /// reusable [Venue] records. Reached from Settings ▸ Venues.
 ///
-/// Deletion is permanent (venues are not soft-deleted) and guarded: the
-/// repository throws when a venue is still referenced by a program's
-/// `venueId`. That guard error is caught and surfaced as a friendly message
-/// rather than crashing (the user must unlink the venue from those programs
-/// first).
+/// Deletion is **irreversible from the UI but soft at the storage layer**, and
+/// guarded: the repository throws when a venue is still referenced by a
+/// program's `venueId`. That guard error is caught and surfaced as a friendly
+/// message rather than crashing (the user must unlink the venue from those
+/// programs first).
+///
+/// The two halves of that first clause were previously stated as one — the doc
+/// read "deletion is permanent (venues are not soft-deleted)", which is true of
+/// what the user can do and false of what the database holds.
+/// `VenueRepository.delete` tombstones via `stampExistenceTransition` unless
+/// `permanent: true`, which this screen never passes, and venues have no
+/// entry in the recently-deleted screen — so nothing can bring one back, while
+/// the row itself survives.
+///
+/// The distinction is load-bearing in both directions: the tombstone write is
+/// what re-emits on the watched stream below (a hard delete would too, but the
+/// row would be gone rather than filtered), and a surviving row is data that
+/// export and any future device sync must account for. Reads filter
+/// `deleted_at IS NULL`, so a deleted venue is absent from every list here.
 class VenueManagerScreen extends StatefulWidget {
   const VenueManagerScreen({super.key});
 
@@ -31,44 +47,67 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
   List<Venue> _venues = const [];
   String _query = '';
 
+  /// The live venue catalogue (issue #768).
+  ///
+  /// Replaces a one-shot read plus a `_load()` after each of this screen's own
+  /// writes. That worked only because this screen was the sole writer of the
+  /// table while it was mounted — a property of where it happens to be mounted
+  /// rather than of the code, and precisely the assumption that broke for the
+  /// kept-alive Collection and Programs lists when their parenting changed
+  /// underneath it.
+  StreamSubscription<List<Venue>>? _venuesSub;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
-      _load();
+      _subscribe();
     }
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  void _subscribe() {
+    _venuesSub = _repos.venues.watchAll().listen(
+      (venues) {
+        if (!mounted) return;
+        setState(() {
+          _venues = venues;
+          _loading = false;
+          _error = null;
+        });
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        if (kDebugMode) {
+          debugPrint('Could not load venues: $error\n$stackTrace');
+        }
+        if (!mounted) return;
+        setState(() {
+          _error = error;
+          _loading = false;
+        });
+      },
+    );
   }
 
-  Future<void> _load() async {
+  /// Retry after a load error. The stream may have terminated with it, so the
+  /// old subscription is cancelled and a new one opened rather than waiting for
+  /// an emit a closed source will never produce.
+  void _retry() {
+    unawaited(_venuesSub?.cancel());
+    _venuesSub = null;
     setState(() {
       _loading = true;
       _error = null;
     });
-    try {
-      final venues = await _repos.venues.listAll();
-      if (!mounted) return;
-      setState(() {
-        _venues = venues;
-        _loading = false;
-      });
-    } catch (error, stackTrace) {
-      if (kDebugMode) {
-        debugPrint('Could not load venues: $error\n$stackTrace');
-      }
-      if (!mounted) return;
-      setState(() {
-        _error = error;
-        _loading = false;
-      });
-    }
+    _subscribe();
+  }
+
+  @override
+  void dispose() {
+    unawaited(_venuesSub?.cancel());
+    _searchController.dispose();
+    super.dispose();
   }
 
   List<Venue> get _filtered {
@@ -83,16 +122,14 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
     final created = await VenueEditorSheet.show(context);
     if (created == null || !mounted) return;
     await _repos.venues.upsert(created);
-    if (!mounted) return;
-    await _load();
+    // No reload: the upsert writes `venues`, which this screen watches.
   }
 
   Future<void> _edit(Venue venue) async {
     final updated = await VenueEditorSheet.show(context, initial: venue);
     if (updated == null || !mounted) return;
     await _repos.venues.upsert(updated);
-    if (!mounted) return;
-    await _load();
+    // No reload: the upsert writes `venues`, which this screen watches.
   }
 
   Future<void> _confirmDelete(Venue venue) async {
@@ -124,8 +161,8 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
     final l10n = AppLocalizations.of(context);
     try {
       await _repos.venues.delete(venue.id);
-      if (!mounted) return;
-      await _load();
+      // No reload: the delete tombstones the row in `venues`, which this
+      // screen watches, so the list drops it without being told.
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.venueManagerDeletedSnack(venue.name))),
@@ -199,7 +236,7 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
           children: [
             Text(l10n.venueLoadError),
             const SizedBox(height: 8),
-            TextButton(onPressed: _load, child: Text(l10n.commonRetry)),
+            TextButton(onPressed: _retry, child: Text(l10n.commonRetry)),
           ],
         ),
       );
