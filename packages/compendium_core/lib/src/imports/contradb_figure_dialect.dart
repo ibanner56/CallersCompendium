@@ -1081,8 +1081,12 @@ FigureMatch? _tradeBy(String text) {
   if (!s.eatPhrase('trade by')) return null;
   s.eat('the');
   final params = <String, Object?>{'who': ?who};
-  final side = _shoulderPhrase(s);
-  if (side != null) params['shoulder'] = side;
+  final side = _leftRight(s.peek());
+  if (side != null) {
+    s.take();
+    if (!s.eat('shoulder')) s.eat('shoulders');
+    params['shoulder'] = side;
+  }
   return FigureMatch('pass_by', params: params, note: s.note());
 }
 
