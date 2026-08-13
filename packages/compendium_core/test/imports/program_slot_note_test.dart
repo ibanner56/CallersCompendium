@@ -26,6 +26,23 @@ void main() {
         'Money Musk — called by a guest',
       );
     });
+
+    test('a note that merely MENTIONS the marker phrase mid-line is kept '
+        'verbatim, not truncated at the mention (review finding)', () {
+      // The marker only applies when it is the ENTIRE first line (the
+      // producers always emit it alone — see kUnresolvedDanceMarkerPrefix's
+      // doc comment). A real title/note that happens to contain the same
+      // words — even ending in a closing paren — is real content and must
+      // survive whole, not be chopped off at the mention.
+      expect(
+        danceTitleFromSlotNote(
+          'Money Musk — check import log: Dance not imported (previous '
+          'attempt)',
+        ),
+        'Money Musk — check import log: Dance not imported (previous '
+        'attempt)',
+      );
+    });
   });
 
   group('archive import unresolved-dance marker', () {
