@@ -1546,7 +1546,7 @@ const Map<String, String> _invertPairHash = <String, String>{
   'twos': 'ones',
   'firstCorners': 'secondCorners',
   'secondCorners': 'firstCorners',
-  'everyone': 'everyone',
+  '*': '*',
 };
 
 /// formALongWaveWords. libfigure's deployed `figure.js` renders one of four
