@@ -444,6 +444,14 @@ lowers the line onto one `pull_by_dancers` per stated pass, carrying that pass's
   `P0`→`prevPartners`, `P2`→`nextPartners`, `P3`→`thirdPartners`,
   `P4`→`fourthPartners`, `P5`→`fifthPartners`,
   `S`/`S1`→`shadows`, `S2`→`secondShadows`, `M`/`W`→`role1s`/`role2s`.
+  ContraDB reaches the same ordinal tokens by a different route (issue #945):
+  its deployed `dialectForFigures` renders `3rd neighbors`/`4th neighbors`/
+  `2nd shadows` unconditionally, and — only when a dance uses one of
+  those — remaps plain `neighbors`/`next neighbors`/`shadows` to
+  `1st neighbors`/`2nd neighbors`/`1st shadows` for every figure in that
+  dance. `contradb_figure_dialect.dart`'s `_subjectPhrases` maps all six
+  rendered forms back to these same taxonomy tokens, so the two dialects are
+  visibly one convention despite the different surface notation.
 - **Codes we deliberately do NOT map** (the run is declined rather than
   approximated — what that costs depends on the decoder: the line goes custom
   where the run IS its structure, as in a hey or a grand right and left, but

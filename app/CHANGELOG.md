@@ -106,6 +106,17 @@ each release so store builds and tags can be traced back to an entry.
   a new tile near the top of the list instead of at its documented
   position — most visibly, splitting **Free-text entry** from **Figure
   shorthands**, which are contextually dependent. (#942)
+- **More ContraDB figures now import as structured moves instead of custom
+  text.** A dance that uses an ordinal dancer set (`3rd neighbors`,
+  `4th neighbors`, `2nd shadows`) previously dropped every plain `neighbors`/
+  `shadows` figure in that same dance to custom too, because ContraDB
+  silently renders those as `1st neighbors`/`2nd neighbors`/`1st shadows` for
+  the whole dance once any figure uses the ordinal — the import now
+  recognises all six forms. Lines like "dance out while ... dance in to a
+  long wave in the center" (previously split into a custom half plus a
+  structured half) now import as one structured figure. And "trade by
+  left/right [shoulder]" — the MWSD "Trade By" call — now imports as a
+  pass-by instead of custom text. (#945)
 
 ## [0.1.0] - 2026-08-12
 

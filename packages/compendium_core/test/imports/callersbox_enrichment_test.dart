@@ -62,9 +62,28 @@ void main() {
       expect(f.params['shoulder'], 'left');
     });
 
-    test('"trade by" stays custom (no taxonomy model)', () {
-      expect(_parse('Partners trade by the left')!.isCustom, isTrue);
+    test('"trade by" → pass_by (issue #945: the owner ruled this is the '
+        'MWSD "Trade By" call and should structure; the string "trade by '
+        'the" does not occur anywhere in the ~24k-file TCB corpus, so this '
+        'exact case was invented rather than sampled — the real corpus '
+        'evidence is "Men trade by right" / "Partners trade by left")', () {
+      final f = _parse('Partners trade by the left');
+      expect(f!.move, 'pass_by');
+      expect(f.isCustom, isFalse);
+      expect(f.params['who'], 'partners');
+      expect(f.params['shoulder'], 'left');
     });
+
+    test(
+      '"Men trade by right" → pass_by who=role1s shoulder=right (issue '
+      '#945, the high-value corpus case: 674+ occurrences of this shape)',
+      () {
+        final f = _parse('Men trade by right');
+        expect(f!.move, 'pass_by');
+        expect(f.params['who'], 'role1s');
+        expect(f.params['shoulder'], 'right');
+      },
+    );
 
     test('"trade the wave" stays custom', () {
       expect(_parse('Trade the wave')!.isCustom, isTrue);

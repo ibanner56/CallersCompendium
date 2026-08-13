@@ -252,6 +252,7 @@ const List<FigureMatch? Function(String)> _recognizers =
       _turnAlone,
       _madRobin,
       _passBy,
+      _tradeBy,
       _passThrough,
       _pullByDancers,
       _gate,
@@ -1061,6 +1062,34 @@ FigureMatch? _passBy(String text) {
   return FigureMatch('pass_by', params: params, note: s.note());
 }
 
+/// trade by (issue #945, defect C): `[who] trade by [the] [side
+/// shoulder(s)]`, preserving any trailing text as a verbatim note. This
+/// mirrors [_passBy] rather than the shared `_tradePassBy` in
+/// figure_parser.dart (which also structures `trade by` as of this issue)
+/// because a ContraDB dance can carry a trailing tail after the shoulder
+/// phrase — Kettle Drum's real line is `ladles trade by the left shoulder,
+/// catch left hands` — and the shared parser declines whole-line unless it
+/// fully consumes. Scoping the note-preserving leniency to the ContraDB
+/// dialect keeps the shared parser's strict full-consumption behaviour
+/// unchanged for every other TCB line. ContraDB defines no `trade` move at
+/// all (verified against the deployed bundle); this is deliberate leniency
+/// on human-typed custom prose, not a template-mirroring recognizer like the
+/// other entries in this file.
+FigureMatch? _tradeBy(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (!s.eatPhrase('trade by')) return null;
+  s.eat('the');
+  final params = <String, Object?>{'who': ?who};
+  final side = _leftRight(s.peek());
+  if (side != null) {
+    s.take();
+    if (!s.eat('shoulder')) s.eat('shoulders');
+    params['shoulder'] = side;
+  }
+  return FigureMatch('pass_by', params: params, note: s.note());
+}
+
 /// passThroughWords: `pass through [<side> shoulders] [<dir>]`. ContraDB usually
 /// renders a set direction (`across`/`along`), but real programs also render a
 /// bare `pass through` (Sweet Vicki, The Hobbit) and forms whose qualifier is
@@ -1506,10 +1535,89 @@ FigureMatch? _squareThrough(String text) {
   return FigureMatch('square_through', params: params, note: s.note());
 }
 
-/// formALongWaveWords (the common in=true/out=false form). Renders as: "WHO dance
-/// in to a long wave in the center [- balance the wave]".
+/// ContraDB's deployed `invertPairHash`, used only to guard the two `out`
+/// branches of [_formALongWave] below (issue #945, defect B). Declining any
+/// dancer set not in this table is the safe default — it is not a general
+/// dancer-set inverter.
+const Map<String, String> _invertPairHash = <String, String>{
+  'role1s': 'role2s',
+  'role2s': 'role1s',
+  'ones': 'twos',
+  'twos': 'ones',
+  'firstCorners': 'secondCorners',
+  'secondCorners': 'firstCorners',
+  '*': '*',
+};
+
+/// formALongWaveWords. libfigure's deployed `figure.js` renders one of four
+/// templates depending on the `in`/`out` flags:
+///
+///   out && in:  "`invertPair(who)` dance out while `who` dance in to a long
+///                wave in the center [- balance the wave]"
+///   out && !in: "`invertPair(who)` dance out [& balance]"
+///   !out && in: "`who` dance in to a long wave in the center
+///                [- balance the wave]" (the only branch previously
+///                implemented here)
+///   !out && !in: a different figure entirely ("`who` `smove` in the
+///                center"), out of scope for this recognizer.
+///
+/// In both `out` branches, `who` (the `who` param) is the role dancing IN
+/// (or, for `out && !in`, the role that *would* be "in"); the named subject
+/// in the rendered text is its `invertPair` partner. Getting this backwards
+/// silently swaps the roles and produces a wrong dance that still looks
+/// structured, so both branches verify the named subject against
+/// [_invertPairHash] and decline — falling through to the `meanwhile`
+/// fan-out — rather than over-claiming arbitrary "X dance out ..." prose.
 FigureMatch? _formALongWave(String text) {
   final s = _Scan(text);
+
+  // out && in: "<named> dance out while <who> dance in to a long wave in
+  // the center [- balance the wave]".
+  {
+    final start = s.pos;
+    final named = _subject(s);
+    if (named != null && s.eatPhrase('dance out while')) {
+      final who = _subject(s);
+      if (who != null &&
+          _invertPairHash[who] == named &&
+          s.eatPhrase('dance in to a long wave in the center')) {
+        final params = <String, Object?>{'who': who, 'in': true, 'out': true};
+        params['balance'] = s.eat('-') && s.eatPhrase('balance the wave');
+        return FigureMatch('form_a_long_wave', params: params, note: s.note());
+      }
+    }
+    s.reset(start);
+  }
+
+  // out && !in: "<named> dance out [& balance]", where <named> is the OUT
+  // role and `who` is its invertPair partner (the role dancing IN).
+  {
+    final start = s.pos;
+    final named = _subject(s);
+    if (named != null && s.eatPhrase('dance out')) {
+      final who = _invertPairHash[named];
+      if (who != null) {
+        final balance = s.eat('&') && s.eat('balance');
+        if (s.peek() == null) {
+          final params = <String, Object?>{
+            'who': who,
+            'in': false,
+            'out': true,
+            'balance': balance,
+          };
+          return FigureMatch(
+            'form_a_long_wave',
+            params: params,
+            note: s.note(),
+          );
+        }
+      }
+    }
+    s.reset(start);
+  }
+
+  // !out && in: "WHO dance in to a long wave in the center
+  // [- balance the wave]" (the pre-existing, most common form).
   final who = _subject(s);
   if (who == null) return null;
   if (!s.eatPhrase('dance in to a long wave in the center')) return null;
@@ -1607,6 +1715,22 @@ class _Scan {
 
 /// Dancer-set subjects, longest phrase first so `next neighbors` wins over
 /// `neighbors`. Post-scrub, gendered roles are already `role1s`/`role2s`.
+///
+/// ContraDB's deployed `dialectForFigures` performs a content-conditional,
+/// whole-dance remap: if any figure in the dance uses the `3rd neighbors`
+/// parameter, `neighbors` renders as `1st neighbors` and `next neighbors`
+/// renders as `2nd neighbors` for every figure in that dance — not just the
+/// one using the ordinal. Independently, if any figure uses `2nd shadows`,
+/// `shadows` renders as `1st shadows` for the whole dance. The ordinal
+/// entries below map those rendered forms back to their base taxonomy
+/// tokens (`1st neighbors` → `neighbors`, `1st shadows` → `shadows`) so the
+/// remap is transparent to every recognizer that calls `_subject`. The
+/// higher ordinals (`3rd`/`4th neighbors`, `2nd shadows`) are rendered
+/// unconditionally and map to their own distinct tokens, which already
+/// exist in `ParamVocab.pairDancerSets` (`param_types.dart`) — no taxonomy
+/// change needed. The new entries begin with distinct numeral prefixes, so
+/// ordering relative to each other is not load-bearing, but they are kept
+/// above the bare entries to preserve the "longest phrase first" invariant.
 const List<MapEntry<String, String>> _subjectPhrases =
     <MapEntry<String, String>>[
       MapEntry('next neighbors', 'nextNeighbors'),
@@ -1615,6 +1739,10 @@ const List<MapEntry<String, String>> _subjectPhrases =
       // (libfigure abbreviation; real render: The Hobbit — `prev neighbors
       // allemande left once`). Kept ahead of the bare `neighbors` entry.
       MapEntry('prev neighbors', 'prevNeighbors'),
+      MapEntry('1st neighbors', 'neighbors'),
+      MapEntry('2nd neighbors', 'nextNeighbors'),
+      MapEntry('3rd neighbors', 'thirdNeighbors'),
+      MapEntry('4th neighbors', 'fourthNeighbors'),
       MapEntry('neighbors', 'neighbors'),
       MapEntry('partners', 'partners'),
       MapEntry('role1s', 'role1s'),
@@ -1622,6 +1750,8 @@ const List<MapEntry<String, String>> _subjectPhrases =
       MapEntry('ones', 'ones'),
       MapEntry('twos', 'twos'),
       MapEntry('everyone', 'everyone'),
+      MapEntry('1st shadows', 'shadows'),
+      MapEntry('2nd shadows', 'secondShadows'),
       MapEntry('shadows', 'shadows'),
     ];
 
