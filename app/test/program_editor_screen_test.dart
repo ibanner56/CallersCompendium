@@ -713,10 +713,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // The typed fields must still show what was typed, not reset defaults.
-      expect(
-        find.widgetWithText(TextField, 'Guest Caller'),
-        findsOneWidget,
-      );
+      expect(find.widgetWithText(TextField, 'Guest Caller'), findsOneWidget);
       expect(find.widgetWithText(TextField, '12'), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('slot-edit-save')));

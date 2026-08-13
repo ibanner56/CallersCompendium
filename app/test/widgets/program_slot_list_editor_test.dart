@@ -126,47 +126,44 @@ void main() {
   // M3 (issue #964): a pick must be held in the dialog's own state and only
   // committed by Save — otherwise Cancel (or dismissing the dialog any other
   // way) would still have applied the replacement.
-  testWidgets(
-    'cancelling the slot edit dialog discards a picked replacement '
-    '(issue #964)',
-    (tester) async {
-      final changes = <ProgramSlot>[];
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: testLocalizationsDelegates,
-          supportedLocales: testSupportedLocales,
-          home: Scaffold(
-            body: ProgramSlotListEditor(
-              slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
-              danceTitles: (id) => 'Dance $id',
-              formationFor: (_) => null,
-              mixerFor: (_) => false,
-              onReorder: (_, _) {},
-              onSlotChanged: (_, updated) => changes.add(updated),
-              onRemove: (_) {},
-              onCreateDance: (_) {},
-              onPickReplacementDance: () async => 'd2',
-            ),
+  testWidgets('cancelling the slot edit dialog discards a picked replacement '
+      '(issue #964)', (tester) async {
+    final changes = <ProgramSlot>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: ProgramSlotListEditor(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+            danceTitles: (id) => 'Dance $id',
+            formationFor: (_) => null,
+            mixerFor: (_) => false,
+            onReorder: (_, _) {},
+            onSlotChanged: (_, updated) => changes.add(updated),
+            onRemove: (_) {},
+            onCreateDance: (_) {},
+            onPickReplacementDance: () async => 'd2',
           ),
         ),
-      );
+      ),
+    );
 
-      await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Edit slot'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit slot'));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
+    await tester.pumpAndSettle();
 
-      // The dialog now shows the picked replacement's title...
-      expect(find.text('Dance d2'), findsOneWidget);
+    // The dialog now shows the picked replacement's title...
+    expect(find.text('Dance d2'), findsOneWidget);
 
-      // ...but Cancel must discard it: onSlotChanged is never invoked.
-      await tester.tap(find.byKey(const ValueKey('slot-edit-cancel')));
-      await tester.pumpAndSettle();
+    // ...but Cancel must discard it: onSlotChanged is never invoked.
+    await tester.tap(find.byKey(const ValueKey('slot-edit-cancel')));
+    await tester.pumpAndSettle();
 
-      expect(changes, isEmpty);
-    },
-  );
+    expect(changes, isEmpty);
+  });
 }

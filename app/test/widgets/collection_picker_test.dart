@@ -472,28 +472,27 @@ void main() {
     // labels read "Add {title}" unconditionally, which passes a test that
     // only checks the replace-mode string. Checking BOTH modes in one test
     // is what makes the mutation observable.
-    testWidgets(
-      'replace mode labels rows as replace, not add (issue #964)',
-      (tester) async {
-        final repos = openTestRepositories();
-        await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
+    testWidgets('replace mode labels rows as replace, not add (issue #964)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
 
-        await _pumpPicker(tester, repos, onAddDance: (_) {});
-        await tester.pumpAndSettle();
-        expect(_addTooltip(tester, 'a'), 'Add Alpha Reel');
-        expect(_addIcon(tester, 'a'), Icons.add_circle_outline);
+      await _pumpPicker(tester, repos, onAddDance: (_) {});
+      await tester.pumpAndSettle();
+      expect(_addTooltip(tester, 'a'), 'Add Alpha Reel');
+      expect(_addIcon(tester, 'a'), Icons.add_circle_outline);
 
-        await _pumpPicker(
-          tester,
-          repos,
-          onAddDance: (_) {},
-          rowAction: PickerRowAction.replace,
-        );
-        await tester.pumpAndSettle();
-        expect(_addTooltip(tester, 'a'), 'Replace with Alpha Reel');
-        expect(_addIcon(tester, 'a'), Icons.swap_horiz);
-      },
-    );
+      await _pumpPicker(
+        tester,
+        repos,
+        onAddDance: (_) {},
+        rowAction: PickerRowAction.replace,
+      );
+      await tester.pumpAndSettle();
+      expect(_addTooltip(tester, 'a'), 'Replace with Alpha Reel');
+      expect(_addIcon(tester, 'a'), Icons.swap_horiz);
+    });
 
     testWidgets(
       'replace mode still fires onAddDance like add mode (issue #964)',
