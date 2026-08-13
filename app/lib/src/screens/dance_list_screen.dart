@@ -415,7 +415,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// A caller that mutates from here must not also re-boot: doing both would
   /// load twice for one mutation (issue #340). Note the reason is **not** that
   /// the broadcast reloads this list — it does not, and cannot, because this
-  /// list subscribes to nothing. The write reaches it through the stream. The
+  /// list subscribes to no refresh *scope*. It does subscribe to
+  /// [CollectionData.watch], and that is what carries the write here. The
   /// broadcast exists solely for the screens that are still imperative.
   ///
   /// Falls back to a direct [_boot] in focused tests that mount no scope, which
@@ -1925,8 +1926,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
     // than the broadcast: a save writes `dances`, which this list watches, so
     // the row and the derived author filter arrive on their own. The editor
     // also bumps `CollectionRefreshScope`, but that reaches the screens which
-    // are still imperative — not this one, which subscribes to nothing.
-    // Reloading here as well would double-load (issue #340).
+    // are still imperative — not this one, which subscribes to no refresh
+    // scope. Reloading here as well would double-load (issue #340).
     final id = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const DanceEditorScreen()),
     );
@@ -2595,9 +2596,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
               // DanceDetailScreen pops with true when a dance is deleted
               // so the Collection can reload and remove the stale row.
               // The detail screen broadcasts the undo itself, for the
-              // unconverted screens — but NOT for this list, which has no
-              // subscription to reach: the restore is a write to `dances`, and
-              // the stream carries it here. So `onRestored` is a fallback for
+              // unconverted screens — but NOT for this list, which subscribes
+              // to no refresh scope: the restore is a write to `dances`, and
+              // this list's own stream carries it here. So `onRestored` is a fallback for
               // focused tests that mount no scope, not the primary path, and
               // reloading here as well would load twice (issue #340).
               final deleted = await Navigator.of(context).push<bool>(
