@@ -101,7 +101,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // Numbers. The in-Perform manual text scale is used for layout sizing, so a
   // non-finite (NaN/Infinity) value is rejected outright rather than flowing
   // into a size calculation. It mirrors the live reader's contract exactly
-  // (`PerformA11yPrefs._readTextScale`): finite and at or above the enforced
+  // (`PerformA11yPrefsStore._readTextScale`): finite and at or above the enforced
   // minimum, with NO upper cap — the in-view A+ control is intentionally
   // unbounded, so a large-but-finite manual size is a legitimate low-vision
   // preference that must survive a restore.

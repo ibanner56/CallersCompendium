@@ -321,8 +321,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   /// Prompts before discarding unsaved edits when the user backs out of a dirty
   /// editor. Returns `true` when it is safe to leave (no unsaved changes, or the
-  /// user confirmed the discard). Mirrors [ProgramEditorScreen._confirmDiscard]
-  /// so the two editors share the same 'Discard changes?' affordance.
+  /// user confirmed the discard). Mirrors `_confirmDiscard` in the program
+  /// editor (`program_editor_screen.dart`) so the two editors share the same
+  /// 'Discard changes?' affordance. Named in prose because it is a private
+  /// member of a private `State` class in another library, which a bracketed
+  /// reference cannot resolve to.
   Future<bool> _confirmDiscard() async {
     if (!_controller.dirty) return true;
     final discard = await showDialog<bool>(
