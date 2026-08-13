@@ -230,7 +230,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // The line is now linked via Caller's Box, and the dance was imported.
-      expect(find.text("Imported from Caller's Box"), findsOneWidget);
+      expect(find.text("Imported online"), findsOneWidget);
       final saved = await repos.dances.listAll();
       expect(saved.map((d) => d.title), contains('Money Musk'));
 
@@ -310,7 +310,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(jsonFetches, 1);
-      expect(find.text("Imported from Caller's Box"), findsOneWidget);
+      expect(find.text("Imported online"), findsOneWidget);
 
       // Editing the paste clears the override and re-parses against the now
       // refreshed collection: the imported dance is a plain local match, and no
@@ -323,7 +323,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Linked to dance'), findsOneWidget);
-      expect(find.text("Imported from Caller's Box"), findsNothing);
+      expect(find.text("Imported online"), findsNothing);
       expect(
         find.byKey(const ValueKey('plaintext-import-resolve-online')),
         findsNothing,

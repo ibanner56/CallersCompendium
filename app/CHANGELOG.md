@@ -13,12 +13,19 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
-- Both the Collection and Programs lists now offer a "Last used" option for
+- **Both the Collection and Programs lists now offer a "Last used" option** for
   their default sort in Settings ▸ Defaults, alongside the existing fixed
   choices. With "Last used" selected, the sort key **and** direction you pick
   while browsing survive closing and reopening the app; with a fixed sort
   selected, behavior is unchanged from before. The Programs list previously
   had no default-sort setting at all. (#895)
+- **Pasted-program title-list import falls back to ContraDB.** "Resolve
+  unmatched online" on the pasted-title-list program import now tries The
+  Caller's Box first and, for any title Caller's Box cannot resolve
+  confidently, ContraDB next — a title that only lives in ContraDB no longer
+  has to be imported by hand afterwards. A title either source finds several
+  exact matches for (and neither source resolves it confidently) is now
+  offered to you to pick from, instead of always silently becoming a note.
 
 ### Fixed
 

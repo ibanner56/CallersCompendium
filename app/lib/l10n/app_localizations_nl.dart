@@ -3548,7 +3548,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get importResolveOnline => 'Niet-gekoppelde online zoeken';
 
   @override
-  String get importPlaintextImportedOnline => 'Geïmporteerd uit Caller\'s Box';
+  String get importPlaintextImportedOnline => 'Online geïmporteerd';
 
   @override
   String get importPlaintextLinked => 'Gekoppeld aan dans';
@@ -3562,8 +3562,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'Geen overeenkomst — als noot toegevoegd';
 
   @override
-  String get importPlaintextSearchError =>
-      'The Caller\'s Box kon niet worden doorzocht.';
+  String get importPlaintextSearchError => 'Kon niet online zoeken.';
 
   @override
   String importPlaintextSlotCount(int count) {
@@ -3581,10 +3580,10 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       remaining,
       locale: localeName,
-      other: '$remaining titels als noten bewaard',
-      one: '$remaining titel als noot bewaard',
+      other: '$remaining titels bewaard als notities',
+      one: '$remaining titel bewaard als notitie',
     );
-    return 'Geen betrouwbare overeenkomsten van Caller\'s Box gevonden — $_temp0.';
+    return 'Geen betrouwbare online overeenkomsten gevonden — $_temp0.';
   }
 
   @override
@@ -3598,11 +3597,11 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp1 = intl.Intl.pluralLogic(
       remaining,
       locale: localeName,
-      other: '; $remaining nog steeds noten.',
-      one: '; $remaining nog steeds een noot.',
+      other: '; $remaining nog notities.',
+      one: '; $remaining nog een notitie.',
       zero: '.',
     );
-    return '$_temp0 van The Caller\'s Box gekoppeld$_temp1';
+    return '$_temp0 online gekoppeld$_temp1';
   }
 
   @override
@@ -3691,6 +3690,11 @@ class AppLocalizationsNl extends AppLocalizations {
       one: '1 geplakte titel',
     );
     return '$_temp0';
+  }
+
+  @override
+  String importReviewProgramAmbiguousLine(String title) {
+    return '„$title” — kies er één, of laat als notitie staan';
   }
 
   @override

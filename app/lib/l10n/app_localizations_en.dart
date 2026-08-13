@@ -3526,7 +3526,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importResolveOnline => 'Resolve unmatched online';
 
   @override
-  String get importPlaintextImportedOnline => 'Imported from Caller\'s Box';
+  String get importPlaintextImportedOnline => 'Imported online';
 
   @override
   String get importPlaintextLinked => 'Linked to dance';
@@ -3538,8 +3538,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importPlaintextUnmatched => 'No match — added as note';
 
   @override
-  String get importPlaintextSearchError =>
-      'Couldn\'t search The Caller\'s Box.';
+  String get importPlaintextSearchError => 'Couldn\'t search online.';
 
   @override
   String importPlaintextSlotCount(int count) {
@@ -3560,7 +3559,7 @@ class AppLocalizationsEn extends AppLocalizations {
       other: '$remaining titles kept as notes',
       one: '$remaining title kept as a note',
     );
-    return 'No confident Caller\'s Box matches found — $_temp0.';
+    return 'No confident online matches found — $_temp0.';
   }
 
   @override
@@ -3578,7 +3577,7 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '; $remaining still a note.',
       zero: '.',
     );
-    return 'Linked $_temp0 from The Caller\'s Box$_temp1';
+    return 'Linked $_temp0 online$_temp1';
   }
 
   @override
@@ -3666,6 +3665,11 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 pasted title',
     );
     return '$_temp0';
+  }
+
+  @override
+  String importReviewProgramAmbiguousLine(String title) {
+    return '\"$title\" — pick one, or leave as a note';
   }
 
   @override

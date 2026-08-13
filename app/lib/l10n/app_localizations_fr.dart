@@ -3576,7 +3576,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get importResolveOnline => 'Résoudre les non-correspondances en ligne';
 
   @override
-  String get importPlaintextImportedOnline => 'Importé depuis Caller\'s Box';
+  String get importPlaintextImportedOnline => 'Importé en ligne';
 
   @override
   String get importPlaintextLinked => 'Lié à la danse';
@@ -3591,7 +3591,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importPlaintextSearchError =>
-      'Impossible de rechercher sur The Caller\'s Box.';
+      'Impossible de faire une recherche en ligne.';
 
   @override
   String importPlaintextSlotCount(int count) {
@@ -3609,10 +3609,10 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       remaining,
       locale: localeName,
-      other: '$remaining titres conservés comme notes',
-      one: '$remaining titre conservé comme note',
+      other: '$remaining titres conservés en notes',
+      one: '$remaining titre conservé en note',
     );
-    return 'Aucune correspondance Caller\'s Box trouvée — $_temp0.';
+    return 'Aucune correspondance en ligne fiable trouvée — $_temp0.';
   }
 
   @override
@@ -3626,11 +3626,11 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp1 = intl.Intl.pluralLogic(
       remaining,
       locale: localeName,
-      other: ' ; $remaining encore comme notes.',
-      one: ' ; $remaining encore comme note.',
+      other: ' ; $remaining encore en notes.',
+      one: ' ; $remaining encore en note.',
       zero: '.',
     );
-    return '$_temp0 depuis The Caller\'s Box$_temp1';
+    return '$_temp0 en ligne$_temp1';
   }
 
   @override
@@ -3719,6 +3719,11 @@ class AppLocalizationsFr extends AppLocalizations {
       one: '1 titre collé',
     );
     return '$_temp0';
+  }
+
+  @override
+  String importReviewProgramAmbiguousLine(String title) {
+    return '« $title » — choisissez-en un, ou laissez en note';
   }
 
   @override

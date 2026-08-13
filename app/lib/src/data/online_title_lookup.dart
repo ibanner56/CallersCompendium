@@ -54,9 +54,17 @@ final class OnlineTitleHit extends OnlineTitleLookupResult {
 /// No unique exact-title match, with the [failure] explaining which way it
 /// missed.
 final class OnlineTitleMiss extends OnlineTitleLookupResult {
-  const OnlineTitleMiss(this.failure);
+  const OnlineTitleMiss(this.failure, {this.candidates = const []});
 
   final OnlineTitleLookupFailure failure;
+
+  /// The exact-title hit rows when [failure] is
+  /// [OnlineTitleLookupFailure.multipleExactMatches]; empty for every other
+  /// failure. Lets a caller that wants to offer these for disambiguation
+  /// (the program import's ContraDB fallback, issue #943) present them
+  /// without a second search — [lookupUniqueExactTitle] already fetched them
+  /// to determine the miss.
+  final List<OnlineSearchResultRow> candidates;
 }
 
 /// Searches [service] for [title] and returns the **unique exact-title hit** —
@@ -71,7 +79,13 @@ final class OnlineTitleMiss extends OnlineTitleLookupResult {
 /// - the **program** path ([resolveConfidentOnlineDanceId] in
 ///   `program_import_online_resolver.dart`) is non-interactive — no user is
 ///   present to adjudicate a program line — so it previews and commits the hit
-///   itself under the #685/#686 rules;
+///   itself under the #685/#686 rules. A **miss** of
+///   [OnlineTitleLookupFailure.multipleExactMatches] does not stop there,
+///   though (issue #943): the screen driving `resolveUnmatchedOnline` can
+///   preview [OnlineTitleMiss.candidates] and hand them to `ImportReviewScreen`
+///   for the user to pick from, exactly like the Collection path below — the
+///   non-interactive rule is about what a *hit* does, not about what happens
+///   when every source misses or is ambiguous;
 /// - the **Collection** path (`title_list_import.dart`, issue #823) previews the
 ///   hit into an `ImportRecordPlan` and hands it to `ImportReviewScreen`, which
 ///   commits nothing until the user confirms.
@@ -115,7 +129,10 @@ Future<OnlineTitleLookupResult> lookupUniqueExactTitle(
     return const OnlineTitleMiss(OnlineTitleLookupFailure.noExactMatch);
   }
   if (exact.length > 1) {
-    return const OnlineTitleMiss(OnlineTitleLookupFailure.multipleExactMatches);
+    return OnlineTitleMiss(
+      OnlineTitleLookupFailure.multipleExactMatches,
+      candidates: exact,
+    );
   }
   return OnlineTitleHit(exact.single);
 }

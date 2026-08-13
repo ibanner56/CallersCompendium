@@ -5,11 +5,16 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_refresh_scope.dart';
+import '../data/contradb_online.dart';
+import '../data/import_io.dart';
+import '../data/online_search.dart';
+import '../data/program_ambiguous_review.dart';
 import '../data/programs_refresh_scope.dart';
 import '../data/plaintext_program_import.dart';
 import '../data/program_import_online_resolver.dart';
 import '../data/repositories_scope.dart';
 import '../utils/undo_snack_bar.dart';
+import 'import_review_screen.dart';
 
 /// Builds a [Program] from a pasted, newline-separated list of dance titles
 /// (epic #291, sub-issue #312).
@@ -20,20 +25,35 @@ import '../utils/undo_snack_bar.dart';
 /// free-text note slot — the same note path announcements/breaks use — so
 /// nothing is dropped and ordering is preserved.
 ///
-/// The Caller's Box fallback (#313) resolves unmatched titles on demand via the
-/// "Resolve unmatched online" action; ContraDB import (#314) remains out of
-/// scope here.
+/// The "Resolve unmatched online" action tries The Caller's Box first (#313),
+/// then falls back to ContraDB (#943) for any title Caller's Box could not
+/// resolve confidently. A title **any** source found several exact-title hits
+/// for (and no source ever resolved confidently) is offered to the user via
+/// [ImportReviewScreen] rather than silently degrading to a note — see
+/// [_resolveOnline]. This does not require both sources to be ambiguous: a
+/// title that is ambiguous on Caller's Box and simply misses on ContraDB
+/// still gets offered.
 ///
 /// Pushed as a route; pops with the created program's id on success (null if the
 /// user backs out), mirroring [ProgramEditorScreen]. Commit shows an undo
 /// SnackBar that hard-deletes the just-created program.
 class PlaintextProgramImportScreen extends StatefulWidget {
-  const PlaintextProgramImportScreen({super.key, this.callersBoxOnline});
+  const PlaintextProgramImportScreen({
+    super.key,
+    this.callersBoxOnline,
+    this.contraDbOnline,
+  });
 
   /// Injectable Caller's Box search + import service seam. Tests supply a
   /// seam-backed instance so resolution never touches the network; defaults to a
   /// network-backed [CallersBoxOnline].
   final CallersBoxOnline? callersBoxOnline;
+
+  /// Injectable ContraDB search + import service seam (issue #943), tried as
+  /// the fallback source when Caller's Box does not resolve a title
+  /// confidently. Tests supply a seam-backed instance; defaults to a
+  /// network-backed [ContraDbOnline].
+  final ContraDbOnline? contraDbOnline;
 
   @override
   State<PlaintextProgramImportScreen> createState() =>
@@ -44,6 +64,7 @@ class _PlaintextProgramImportScreenState
     extends State<PlaintextProgramImportScreen> {
   late final CompendiumRepositories _repos;
   late final CallersBoxOnline _online;
+  late final ContraDbOnline _contraDb;
   bool _started = false;
 
   final _titleController = TextEditingController();
@@ -56,9 +77,9 @@ class _PlaintextProgramImportScreenState
   bool _committing = false;
 
   /// Set once the "Resolve unmatched online" action has run for the current
-  /// paste text: the resolved lines (some unmatched now linked via Caller's Box)
-  /// that override the freshly-parsed lines for preview/commit. Cleared whenever
-  /// the paste text changes, so edits re-parse from scratch.
+  /// paste text: the resolved lines (some unmatched now linked via Caller's Box
+  /// or ContraDB) that override the freshly-parsed lines for preview/commit.
+  /// Cleared whenever the paste text changes, so edits re-parse from scratch.
   List<ParsedProgramLine>? _resolvedOverride;
 
   /// Whether an online resolution pass is currently running.
@@ -79,6 +100,7 @@ class _PlaintextProgramImportScreenState
       _started = true;
       _repos = RepositoriesScope.of(context);
       _online = widget.callersBoxOnline ?? CallersBoxOnline();
+      _contraDb = widget.contraDbOnline ?? ContraDbOnline();
       _titleController.addListener(_onTitleChanged);
       _pasteController.addListener(_onPasteChanged);
       _load();
@@ -159,6 +181,7 @@ class _PlaintextProgramImportScreenState
       resolved = await resolveUnmatchedOnline(
         before,
         service: _online,
+        fallbacks: [_contraDb],
         repos: _repos,
       );
     } catch (error, stackTrace) {
@@ -180,10 +203,21 @@ class _PlaintextProgramImportScreenState
       return;
     }
     if (!mounted) return;
+
+    // Issue #943: a title neither source resolved confidently, but at least
+    // one found several exact-title hits, is offered to the user via
+    // ImportReviewScreen rather than silently degrading straight to a note —
+    // mirroring #823's batch-review ruling. Runs before the summary snackbar
+    // so its counts reflect whatever the user actually resolved here.
+    if (resolved.any((l) => l.onlineCandidates.isNotEmpty)) {
+      resolved = await _reviewAmbiguousLines(resolved);
+      if (!mounted) return;
+    }
+
     final l10n = AppLocalizations.of(context);
     final linked = resolved.where((l) => l.importedOnline).length;
-    // Any dances resolved from The Caller's Box are now in the collection
-    // (their authors too), so ask the live Collection view to reload (#340).
+    // Any dances resolved online are now in the collection (their authors
+    // too), so ask the live Collection view to reload (#340).
     if (linked > 0) CollectionRefreshScope.bump(context);
     final remaining = resolved
         .where((l) => l.resolution == PlaintextLineResolution.unmatched)
@@ -216,6 +250,51 @@ class _PlaintextProgramImportScreenState
         ),
       ),
     );
+  }
+
+  /// Previews every ambiguous [lines] entry's online candidates and, if any
+  /// previewed successfully, pushes [ImportReviewScreen] seeded with them
+  /// (issue #943). Returns [lines] with any line the user picked a candidate
+  /// for replaced by a fresh `matched` line linking that dance; every other
+  /// line (including one whose candidates all failed to preview, or that the
+  /// user left at skip) is returned unchanged, still `unmatched`.
+  Future<List<ParsedProgramLine>> _reviewAmbiguousLines(
+    List<ParsedProgramLine> lines,
+  ) async {
+    final seed = await buildProgramAmbiguousImport(
+      lines,
+      servicesBySource: {
+        OnlineSource.callersBox: _online,
+        OnlineSource.contraDb: _contraDb,
+      },
+      repos: _repos,
+    );
+    if (seed == null || !mounted) return lines;
+    Map<int, String>? programResults;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ImportReviewScreen(
+          sources: defaultImportSources(),
+          programAmbiguousImport: seed,
+          onProgramCommitted: (results) => programResults = results,
+        ),
+      ),
+    );
+    final results = programResults;
+    if (results == null || results.isEmpty) return lines;
+    return [
+      for (var i = 0; i < lines.length; i++)
+        if (results.containsKey(i))
+          ParsedProgramLine(
+            text: lines[i].text,
+            resolution: PlaintextLineResolution.matched,
+            danceId: results[i],
+            matchCount: 1,
+            importedOnline: true,
+          )
+        else
+          lines[i],
+    ];
   }
 
   Future<void> _commit() async {

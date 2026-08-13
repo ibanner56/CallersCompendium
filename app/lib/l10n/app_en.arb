@@ -4712,9 +4712,9 @@
   "@importResolveOnline": {
     "description": "Button that searches online sources for the unmatched title-list lines."
   },
-  "importPlaintextImportedOnline": "Imported from Caller's Box",
+  "importPlaintextImportedOnline": "Imported online",
   "@importPlaintextImportedOnline": {
-    "description": "Per-line status: this title was resolved and imported from The Caller's Box."
+    "description": "Per-line status: this title was resolved and imported from an online source (The Caller's Box or ContraDB). Deliberately does not name which source (issue #943 ruling: no source attribution in this step; the source is still recorded in the imported dance's provenance)."
   },
   "importPlaintextLinked": "Linked to dance",
   "@importPlaintextLinked": {
@@ -4728,9 +4728,9 @@
   "@importPlaintextUnmatched": {
     "description": "Per-line status: this title matched nothing, so it was kept as a note."
   },
-  "importPlaintextSearchError": "Couldn't search The Caller's Box.",
+  "importPlaintextSearchError": "Couldn't search online.",
   "@importPlaintextSearchError": {
-    "description": "Snackbar shown when resolving unmatched title-list lines online fails. The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209)."
+    "description": "Snackbar shown when resolving unmatched title-list lines online fails. Deliberately does not name a source (issue #943: the resolver tries The Caller's Box then ContraDB). The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209)."
   },
   "importPlaintextSlotCount": "{count, plural, =1{1 slot} other{{count} slots}}",
   "@importPlaintextSlotCount": {
@@ -4741,18 +4741,18 @@
       }
     }
   },
-  "importPlaintextResolvedNone": "No confident Caller's Box matches found — {remaining, plural, =1{{remaining} title kept as a note} other{{remaining} titles kept as notes}}.",
+  "importPlaintextResolvedNone": "No confident online matches found — {remaining, plural, =1{{remaining} title kept as a note} other{{remaining} titles kept as notes}}.",
   "@importPlaintextResolvedNone": {
-    "description": "Snackbar shown after online resolution when no confident matches were found.",
+    "description": "Snackbar shown after online resolution when no confident matches were found. Deliberately does not name a source (issue #943: tries The Caller's Box then ContraDB).",
     "placeholders": {
       "remaining": {
         "type": "int"
       }
     }
   },
-  "importPlaintextResolvedLinked": "Linked {linked, plural, =1{{linked} title} other{{linked} titles}} from The Caller's Box{remaining, plural, =0{.} =1{; {remaining} still a note.} other{; {remaining} still notes.}}",
+  "importPlaintextResolvedLinked": "Linked {linked, plural, =1{{linked} title} other{{linked} titles}} online{remaining, plural, =0{.} =1{; {remaining} still a note.} other{; {remaining} still notes.}}",
   "@importPlaintextResolvedLinked": {
-    "description": "Snackbar shown after online resolution when some titles were linked, optionally noting how many remain unmatched.",
+    "description": "Snackbar shown after online resolution when some titles were linked, optionally noting how many remain unmatched. Deliberately does not name a source (issue #943: tries The Caller's Box then ContraDB).",
     "placeholders": {
       "linked": {
         "type": "int"
@@ -4870,6 +4870,15 @@
     "placeholders": {
       "count": {
         "type": "int"
+      }
+    }
+  },
+  "importReviewProgramAmbiguousLine": "\"{title}\" — pick one, or leave as a note",
+  "@importReviewProgramAmbiguousLine": {
+    "description": "Heading over a group of candidate rows for one pasted program line that no online source could resolve confidently (more than one dance shared the title). The user picks at most one candidate to import; leaving them all skipped keeps the line as a free-text note.",
+    "placeholders": {
+      "title": {
+        "type": "String"
       }
     }
   },

@@ -3640,9 +3640,9 @@
   "@importResolveOnline": {
     "x-sourceSha256": "80adb7c46e8275ab83e72cb1b511a9ab32e3bf3d66c57ace9a543695c94e7eae"
   },
-  "importPlaintextImportedOnline": "Importeret fra Caller's Box",
+  "importPlaintextImportedOnline": "Importeret online",
   "@importPlaintextImportedOnline": {
-    "x-sourceSha256": "881352263c2257640a7e9149d060e79e13d2a2897c031c6a7522d765e20729b3"
+    "x-sourceSha256": "43b9c0391742a75e355811bf470040292a2d7617b77bab47270c74a4df9e82b7"
   },
   "importPlaintextLinked": "Knyttet til dans",
   "@importPlaintextLinked": {
@@ -3656,21 +3656,21 @@
   "@importPlaintextUnmatched": {
     "x-sourceSha256": "c75529d1966c53eff681e20bff89285e46d5a95113b5386ba9b0d0933f354fd3"
   },
-  "importPlaintextSearchError": "Kunne ikke søge The Caller's Box.",
+  "importPlaintextSearchError": "Kunne ikke søge online.",
   "@importPlaintextSearchError": {
-    "x-sourceSha256": "d966cb5cacb6da39acfd84d18df744eadc31937ffa9fea048fe0f39c3c19f7ba"
+    "x-sourceSha256": "846135a18d9158388aa1e402333b0d017fd769c0c1168273e3046c66c4b980b1"
   },
   "importPlaintextSlotCount": "{count, plural, =1{1 slot} other{{count} slots}}",
   "@importPlaintextSlotCount": {
     "x-sourceSha256": "caa898d6da7283b1c6390e2d3c4bc26411578269d37aff2208672d7bc25efc30"
   },
-  "importPlaintextResolvedNone": "Ingen sikre Caller's Box-matches fundet – {remaining, plural, =1{{remaining} titel beholdt som note} other{{remaining} titler beholdt som noter}}.",
+  "importPlaintextResolvedNone": "Ingen sikre onlinematch fundet — {remaining, plural, =1{{remaining} titel gemt som note} other{{remaining} titler gemt som noter}}.",
   "@importPlaintextResolvedNone": {
-    "x-sourceSha256": "425eb7282a85e6620e598e59936ee147f9c7edc10e82e30eb2160b2ad43db52b"
+    "x-sourceSha256": "82a0aacc5431571db67139bd700232f4ea76548cb70d02cdd808fedd272f7b50"
   },
-  "importPlaintextResolvedLinked": "Tilknyttede {linked, plural, =1{{linked} titel} other{{linked} titler}} fra The Caller's Box{remaining, plural, =0{.} =1{; {remaining} stadig en note.} other{; {remaining} stadig noter.}}",
+  "importPlaintextResolvedLinked": "Koblede {linked, plural, =1{{linked} titel} other{{linked} titler}} online{remaining, plural, =0{.} =1{; {remaining} stadig en note.} other{; {remaining} stadig noter.}}",
   "@importPlaintextResolvedLinked": {
-    "x-sourceSha256": "31251adcdedc680488466115653d15d6fa6699f623c68d0e0944634b0474a70d"
+    "x-sourceSha256": "1419cd7e44ccda1131261da7617c9e873071b64a1940d8efb5023cd96ff58d32"
   },
   "importReviewClose": "Luk import",
   "@importReviewClose": {
@@ -3739,6 +3739,10 @@
   "importReviewTitleListPasted": "{count, plural, =1{1 indsat titel} other{{count} indsatte titler}}",
   "@importReviewTitleListPasted": {
     "x-sourceSha256": "e524b5247662541304b96807c83d4083646529514f126b7c2fca33e917ac08b9"
+  },
+  "importReviewProgramAmbiguousLine": "\"{title}\" — vælg én, eller behold som note",
+  "@importReviewProgramAmbiguousLine": {
+    "x-sourceSha256": "64f34196c48ede648b27e75c39bed0c16801a40f9a1027866ea97720f66a2952"
   },
   "importReviewTitleListToImport": "{count, plural, =1{1 at importere} other{{count} at importere}}",
   "@importReviewTitleListToImport": {
