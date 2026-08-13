@@ -871,5 +871,85 @@ void main() {
       expect(resolved.single.importedOnline, isTrue);
       expect(resolved.single.danceId, 'imported-money musk');
     });
+
+    // Regression pin (raised in review of PR #959). `resolveUnmatchedOnline`
+    // can run more than once on the same unresolved text — the screen re-feeds
+    // its previous `_resolvedOverride` in on a second "Resolve unmatched
+    // online" tap — so a line entering this function may already carry
+    // `onlineCandidates` from an EARLIER pass. Both early-return branches in
+    // `_resolveLineAcrossSources` (a #685 decline, and "every source missed
+    // this time") must never let that stale list survive into the result.
+    test('a #685 decline on a re-run clears a stale onlineCandidates list from '
+        'an earlier ambiguous run', () async {
+      final repos = openTestRepositories();
+      final sharedFigures = [
+        Figure(move: 'swing', params: {'who': 'partners', 'beats': 8}),
+      ];
+      await repos.dances.create(
+        _localDance(id: 'local-existing', figures: sharedFigures),
+      );
+      final callersBox = _FakeOnlineService(
+        rowsByTitle: {
+          'money musk': [_row('Money Musk', id: '10600')],
+        },
+        confidentTitles: {'money musk'},
+        previewFiguresByTitle: {'money musk': sharedFigures}, // identical
+      );
+
+      // A stale line as it would exist after a PRIOR resolve pass found
+      // Caller's Box ambiguous — carrying candidates this pass must not
+      // repeat, since this pass's Caller's Box search is a #685 decline.
+      final staleLine = ParsedProgramLine(
+        text: 'Money Musk',
+        resolution: PlaintextLineResolution.unmatched,
+        onlineCandidates: [
+          _row('Money Musk', id: '1'),
+          _row('Money Musk', id: '2'),
+        ],
+      );
+
+      final resolved = await resolveUnmatchedOnline(
+        [staleLine],
+        service: callersBox,
+        repos: repos,
+      );
+
+      final line = resolved.single;
+      expect(line.resolution, PlaintextLineResolution.unmatched);
+      expect(
+        line.onlineCandidates,
+        isEmpty,
+        reason:
+            'a #685 decline must clear stale candidates from an earlier '
+            'ambiguous run, not just leave the line unchanged',
+      );
+    });
+
+    test('a clean re-run miss clears a stale onlineCandidates list from an '
+        'earlier ambiguous run', () async {
+      final repos = openTestRepositories();
+      // This run: no results at all (a clean miss), unlike the earlier run
+      // that produced the stale candidates below.
+      final callersBox = _FakeOnlineService(rowsByTitle: const {});
+
+      final staleLine = ParsedProgramLine(
+        text: 'Money Musk',
+        resolution: PlaintextLineResolution.unmatched,
+        onlineCandidates: [
+          _row('Money Musk', id: '1'),
+          _row('Money Musk', id: '2'),
+        ],
+      );
+
+      final resolved = await resolveUnmatchedOnline(
+        [staleLine],
+        service: callersBox,
+        repos: repos,
+      );
+
+      final line = resolved.single;
+      expect(line.resolution, PlaintextLineResolution.unmatched);
+      expect(line.onlineCandidates, isEmpty);
+    });
   });
 }

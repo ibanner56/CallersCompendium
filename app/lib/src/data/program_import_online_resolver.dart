@@ -108,15 +108,32 @@ Future<ParsedProgramLine> _resolveLineAcrossSources(
       case _SourceDeclined():
         // #685, applied regardless of source: never silently create a
         // duplicate of a dance the user already has. See this method's doc.
-        return line;
+        //
+        // Rebuilt rather than returning `line` verbatim: `line` may be a
+        // *previous* resolve pass's result (a user can tap "Resolve unmatched
+        // online" more than once on the same unresolved text — the screen's
+        // `_effectiveLines` re-feeds `_resolvedOverride` in) and could already
+        // carry a stale, non-empty `onlineCandidates` from that earlier run.
+        // Returning it unchanged here would leave this run's decline still
+        // reporting the previous run's candidates, which is exactly the kind
+        // of resolution/evidence mismatch that made this trap worth
+        // documenting in the first place.
+        return ParsedProgramLine(
+          text: line.text,
+          resolution: PlaintextLineResolution.unmatched,
+        );
       case _SourceAmbiguous(:final rows):
         ambiguousCandidates.addAll(rows);
       case _SourceMiss():
         break;
     }
   }
-  // Every source missed, or was ambiguous, and none was confident or declined.
-  if (ambiguousCandidates.isEmpty) return line;
+  // Every source missed, or was ambiguous, and none was confident or
+  // declined. `onlineCandidates` defaults to empty, so a line whose sources
+  // all now miss cleanly (even if a PRIOR resolve pass had left it carrying
+  // candidates) is correctly reported as a plain unmatched note, not a stale
+  // ambiguity — see the _SourceDeclined case above for why `line` is never
+  // returned verbatim here either.
   return ParsedProgramLine(
     text: line.text,
     resolution: PlaintextLineResolution.unmatched,

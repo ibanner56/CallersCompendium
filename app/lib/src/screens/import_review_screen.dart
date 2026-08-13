@@ -92,7 +92,17 @@ class ImportReviewScreen extends StatefulWidget {
     this.sharedBundle,
     this.programAmbiguousImport,
     this.onProgramCommitted,
-  }) : assert(sources.length > 0, 'at least one import source is required');
+  }) : assert(sources.length > 0, 'at least one import source is required'),
+       assert(
+         programAmbiguousImport == null || onProgramCommitted != null,
+         'programAmbiguousImport requires onProgramCommitted — otherwise a '
+         'committed candidate can never be linked back into its program slot',
+       ),
+       assert(
+         programAmbiguousImport == null || sharedBundle == null,
+         'programAmbiguousImport and sharedBundle are two different seeding '
+         'paths and are never combined by any caller',
+       );
 
   /// The selectable import sources. The screen opens on the one marked
   /// [ImportSource.preselected], falling back to the first when none is —
