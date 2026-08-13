@@ -1,5 +1,6 @@
 import '../model/figure.dart';
 import '../taxonomy/contra_taxonomy.dart';
+import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
 import 'figure_text_scrub.dart';
@@ -1252,7 +1253,38 @@ _Match? _chain(List<String> w) {
     w.removeRange(toIdx, end);
   }
   final who = _takeDancer(w);
-  if (!_consumePhrase(w, ['chain'])) return null;
+  // v28 (#976): "<actor> do a <side>-hand <ladies|gents> chain". The token
+  // immediately before `chain` here — already normalized to `role1s`/`role2s`
+  // by `canonicalize.dart`'s legacy role synonyms, same as [who] above — is
+  // ALWAYS "ladies" or "gents" across all 126 corpus lines that use this
+  // construction (issue #976 §2.4), REGARDLESS of the actual actor (e.g.
+  // "Women do a left-hand gents chain to partner"): it is TCB's fixed
+  // idiomatic name for the two chain hand-patterns, not a second, independent
+  // role statement. So it is consumed here but never read into a param —
+  // [who] (the actor read above, BEFORE "do a") is the real `who`. Matched as
+  // a strict, contiguous shape (not a general scan), since that is the only
+  // shape attested; a partial/non-matching "do a" survives as leftover and
+  // falls through to the plain-chain path below, which then declines it via
+  // the ordinary "leftover tokens → custom" rule.
+  String? statedHand;
+  for (var i = 0; i + 4 < w.length; i++) {
+    if (w[i] != 'do' || w[i + 1] != 'a') continue;
+    final handTok = w[i + 2];
+    final roleTok = w[i + 3];
+    final hand = handTok == 'left-hand'
+        ? 'left'
+        : handTok == 'right-hand'
+        ? 'right'
+        : null;
+    if (hand != null &&
+        (roleTok == 'role1s' || roleTok == 'role2s') &&
+        w[i + 4] == 'chain') {
+      statedHand = hand;
+      w.removeRange(i, i + 5);
+    }
+    break;
+  }
+  if (statedHand == null && !_consumePhrase(w, ['chain'])) return null;
   final who2 = who ?? _takeDancer(w);
   // Optional direction (a leading diagonal wins over a trailing across/along).
   String? dir = diag;
@@ -1271,7 +1303,18 @@ _Match? _chain(List<String> w) {
   // match and let it fall back to custom. No explicit dancer → leave `who`
   // unset so the taxonomy default (role2s) applies.
   if (who2 != null && who2 != 'role1s' && who2 != 'role2s') return null;
-  return _Match('chain', {'who': ?who2, 'dir': ?dir}, note);
+  // v28 (#976): populate `hand` ONLY when a role token was actually read for
+  // `who` (`who2 != null`) — never when `who` is left unset for the taxonomy
+  // default to fill at read time, per #976 §6.1.3: deriving a hand from OUR
+  // default rather than the source would be fabrication. When `who` IS
+  // known, an explicitly stated hand (the "do a" construction) is used
+  // as-is, even when it contradicts the role-implied side (a deliberate
+  // "women do a left-hand gents chain"); otherwise the role-implied side
+  // (`chainHandForWho`) is written explicitly, matching every other write
+  // site (#976 §6.1) so search/canonical stay consistent regardless of which
+  // site wrote the figure.
+  final hand = who2 == null ? null : (statedHand ?? chainHandForWho(who2));
+  return _Match('chain', {'who': ?who2, 'hand': ?hand, 'dir': ?dir}, note);
 }
 
 // The Caller's Box's standalone courtesy turn (taxonomy v23). Grammar:

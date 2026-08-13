@@ -1,4 +1,5 @@
 import '../model/figure.dart';
+import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
@@ -508,12 +509,25 @@ FigureMatch? _slideAlongSet(String text) {
   return FigureMatch('slide_along_set', params: {'slide': dir}, note: s.note());
 }
 
-/// chainWords: `[<left|right> diagonal] <role1s|role2s> chain`. The leading
-/// diagonal qualifier renders only for non-default values (real render: The
-/// Judge — `left diagonal ladles chain to shadow`) and maps to the `dir` param;
-/// the ubiquitous form is a bare `ladles chain`. A trailing positional qualifier
-/// (e.g. `to shadow`) survives verbatim as the note (Q2: shadow kept as a note,
-/// never fabricated into a dancer target).
+/// chainWords: `[<left|right> diagonal] <role1s|role2s>
+/// [<left|right>-hand] chain`. The leading diagonal qualifier renders only
+/// for non-default values (real render: The Judge — `left diagonal ladles
+/// chain to shadow`) and maps to the `dir` param; the ubiquitous form is a
+/// bare `ladles chain`. The hand slot (v28, #976) sits between the subject
+/// and `chain`, matching ContraDB's `chainWords` order (`words(sdiag, swho,
+/// thand, smove)`, `figure.js:266-278`) — hyphenated (`left-hand`) because
+/// that is [_leftRight]'s inverse: ContraDB's renderer emits
+/// `shand + "-hand"` (`figure.js:275`), never a bare side, for this move. A
+/// bare `<role> chain` (no hand token) sets the role-implied side via
+/// [chainHandForWho] — the role word IS the source stating the hand (#976
+/// §6.1.2) — which [_subject]'s role1s/role2s requirement above guarantees
+/// is always present here, so the role-word-scoping rule (#976 §6.1.3) is
+/// satisfied by construction and needs no extra guard in THIS parser.
+/// ContraDB's wildcard hand (`*-hand`, `figure.js:271-272`) declines the
+/// whole line to `custom` — consistent with `_leftRight` already declining
+/// bare `*` for every other move here. A trailing positional qualifier
+/// (e.g. `to shadow`) survives verbatim as the note (Q2: shadow kept as a
+/// note, never fabricated into a dancer target).
 FigureMatch? _chain(String text) {
   final s = _Scan(text);
   String? dir;
@@ -528,9 +542,22 @@ FigureMatch? _chain(String text) {
     }
   }
   final who = _subject(s);
-  if (who != 'role1s' && who != 'role2s') return null;
+  if (who == null || (who != 'role1s' && who != 'role2s')) return null;
+  final handToken = s.peek();
+  if (handToken == '*-hand') return null;
+  String? statedHand;
+  if (handToken == 'left-hand') {
+    statedHand = 'left';
+    s.take();
+  } else if (handToken == 'right-hand') {
+    statedHand = 'right';
+    s.take();
+  }
   if (!s.eat('chain')) return null;
-  final params = <String, Object?>{'who': who};
+  final params = <String, Object?>{
+    'who': who,
+    'hand': statedHand ?? chainHandForWho(who),
+  };
   if (dir != null) params['dir'] = dir;
   return FigureMatch('chain', params: params, note: s.note());
 }

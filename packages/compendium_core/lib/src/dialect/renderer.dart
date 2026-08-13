@@ -360,6 +360,24 @@ class FigureRenderer {
         );
       }
       if (pinned.containsKey(name)) return '';
+      // `chain.hand` (#976): silenced on BOTH paths — not display-only, unlike
+      // every other entry in this loop — when it equals the side [who]
+      // already implies (`chainHandForWho`). A stated hand that CONTRADICTS
+      // the role reading still renders, hyphenated (`left-hand`/`right-hand`,
+      // matching ContraDB's `shand + "-hand"`). This cannot go through
+      // `_isDisplaySilenced`/`_silencedDefaultParams`: that mechanism compares
+      // against the SPEC default, not a sibling param, and `chain`'s one slot
+      // there already holds `dir`. See the taxonomy's v28 note for why
+      // silencing canonical text too is the deliberate exception here.
+      if (def.id == 'chain' && name == 'hand') {
+        final rawHand = params[name];
+        if (rawHand is! String || rawHand == ParamVocab.unspecified) {
+          return '';
+        }
+        final who = params['who'];
+        final impliedHand = who is String ? chainHandForWho(who) : null;
+        return rawHand == impliedHand ? '' : '$rawHand-hand';
+      }
       // Display-only omission of a param whose value equals its silenced
       // default (direction/facing) or the move's default subject.
       if (!forCanonical && _isDisplaySilenced(def, name, params[name])) {
