@@ -203,9 +203,10 @@ The matrix shows **presence, not counts** — whether a move is in a dance, not 
 many times, and not the order the moves come in. That is exactly what you want
 for spotting patterns across the evening: scan a move's column and you can see at
 a glance that, say, several dances in a row all have a swing, or that one move
-turns up in nearly every dance. To make the grid meaningful, swings are split out
-by role and heys by their length, so similar-looking moves are not lumped
-together.
+turns up in nearly every dance. To make the grid meaningful, swings, allemandes,
+and chains are split out by role (partner/neighbor/larks/robins/…), swings
+additionally by a balance-and or meltdown prefix, and heys by their length, so
+similar-looking moves are not lumped together.
 
 A few practical notes:
 

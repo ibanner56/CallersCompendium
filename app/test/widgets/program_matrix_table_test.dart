@@ -589,7 +589,9 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.bySemanticsLabel('Move: allemande, used in 1 of 2 dances'),
+        find.bySemanticsLabel(
+          'Move: neighbor allemande, used in 1 of 2 dances',
+        ),
         findsOneWidget,
       );
     });

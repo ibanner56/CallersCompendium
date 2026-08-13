@@ -26,6 +26,18 @@ each release so store builds and tags can be traced back to an entry.
   has to be imported by hand afterwards. A title either source finds several
   exact matches for (and neither source resolves it confidently) is now
   offered to you to pick from, instead of always silently becoming a note.
+- **The programming matrix now disambiguates allemande/chain by role and
+  swing by its balance/meltdown prefix**, mirroring the existing swing/hey
+  role/length split. Allemande and chain each split into per-role columns
+  (partner/neighbor/larks/robins/shadow/…, shown only when a dance actually
+  uses that role); swing additionally splits each role into a plain column
+  plus present-only "bal & swing" / "meltdown swing" sub-columns. A
+  `meltdown_swing` figure now shows up under its role's `swing` column
+  (e.g. "partner meltdown swing") instead of a separate, unlabelled column.
+  This also fixes the same-figure-same-phrase collision check, which
+  previously flagged e.g. a lark allemande next to a robin allemande, or a
+  plain swing next to a balance-and-swing, as the same figure repeating.
+  (#933)
 
 ### Fixed
 

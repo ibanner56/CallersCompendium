@@ -26,6 +26,16 @@ void main() {
   );
   Figure swing([String? who]) =>
       testFigure(move: 'swing', params: {'who': ?who});
+  Figure swingWithPrefix(String? who, String prefix) =>
+      testFigure(move: 'swing', params: {'who': ?who, 'prefix': prefix});
+  Figure meltdownSwing([String? who]) =>
+      testFigure(move: 'meltdown_swing', params: {'who': ?who});
+  Figure allemande([String? who]) =>
+      testFigure(move: 'allemande', params: {'who': ?who});
+  Figure chain([String? who]) =>
+      testFigure(move: 'chain', params: {'who': ?who});
+  Figure seeSaw() => testFigure(move: 'see_saw', params: const {});
+  Figure doSiDo() => testFigure(move: 'do_si_do', params: const {});
   Figure hey([String? length]) =>
       testFigure(move: 'hey', params: {'length': ?length});
   Figure custom(String text) =>
@@ -204,6 +214,167 @@ void main() {
       expect(colOf(matrix, 'dolphin_hey'), isNonNegative);
       expect(ids(matrix).where((k) => k.startsWith('hey:')), isEmpty);
     });
+  });
+
+  group('buildProgramMatrix — allemande/chain role split (issue #933)', () {
+    test('allemande with no who defaults to the neighbor column', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [allemande()]),
+      ]);
+      expect(colOf(matrix, 'allemande:neighbor'), isNonNegative);
+    });
+
+    test('chain with no who defaults to the robins column', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [chain()]),
+      ]);
+      expect(colOf(matrix, 'chain:robins'), isNonNegative);
+    });
+
+    test('allemande/chain have NO baseline — present-only', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [swing()]),
+      ]);
+      expect(ids(matrix).where((k) => k.startsWith('allemande:')), isEmpty);
+      expect(ids(matrix).where((k) => k.startsWith('chain:')), isEmpty);
+    });
+
+    test('lark allemande and robin allemande are DIFFERENT columns', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [allemande('role1s')]),
+        dance('d2', 'B', [allemande('role2s')]),
+      ]);
+      expect(ids(matrix), containsAll(['allemande:larks', 'allemande:robins']));
+    });
+
+    test('gent chain and lady chain are DIFFERENT columns', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [chain('role1s')]),
+        dance('d2', 'B', [chain('role2s')]),
+      ]);
+      expect(ids(matrix), containsAll(['chain:larks', 'chain:robins']));
+    });
+
+    test('an unusual allemande who lands in the other bucket', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [allemande('everyone')]),
+      ]);
+      expect(colOf(matrix, 'allemande:other'), isNonNegative);
+    });
+
+    test(
+      'allemande/chain columns are present-only, role order matches swing',
+      () {
+        final matrix = buildProgramMatrix([
+          dance('d1', 'A', [
+            allemande('sameRoles'),
+            allemande('role2s'),
+            allemande('ones'),
+          ]),
+        ]);
+        final allemandeCols = ids(
+          matrix,
+        ).where((k) => k.startsWith('allemande:')).toList();
+        expect(allemandeCols, [
+          'allemande:robins',
+          'allemande:ones',
+          'allemande:same',
+        ]);
+      },
+    );
+  });
+
+  group('buildProgramMatrix — swing prefix split (issue #933)', () {
+    test('a plain swing (prefix none) keeps its pre-existing key', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [swing('partners')]),
+      ]);
+      expect(ids(matrix), contains('swing:partner'));
+      expect(ids(matrix).where((k) => k.contains(':partner:')), isEmpty);
+    });
+
+    test('a balance-prefixed swing gets its own sub-column', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [swingWithPrefix('partners', 'balance')]),
+      ]);
+      expect(colOf(matrix, 'swing:partner:balance'), isNonNegative);
+      // The plain baseline column still appears (unconditional baseline,
+      // maintainer decision), even though no dance has a plain partner swing.
+      expect(colOf(matrix, 'swing:partner'), isNonNegative);
+    });
+
+    test('plain partner swing and balance-prefixed partner swing are '
+        'DIFFERENT columns', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [swing('partners')]),
+        dance('d2', 'B', [swingWithPrefix('partners', 'balance')]),
+      ]);
+      expect(
+        ids(matrix),
+        containsAll(['swing:partner', 'swing:partner:balance']),
+      );
+      // Each is present in exactly the dance that has it.
+      final plain = colOf(matrix, 'swing:partner');
+      final balance = colOf(matrix, 'swing:partner:balance');
+      expect(matrix.isPresent(0, plain), isTrue);
+      expect(matrix.isPresent(0, balance), isFalse);
+      expect(matrix.isPresent(1, balance), isTrue);
+    });
+
+    test('a meltdown-prefixed swing (authored directly, not the alias) gets '
+        'its own sub-column', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [swingWithPrefix('neighbors', 'meltdown')]),
+      ]);
+      expect(colOf(matrix, 'swing:neighbor:meltdown'), isNonNegative);
+    });
+
+    test('the `meltdown_swing` ALIAS folds into the same swing:<role>:meltdown '
+        'column as an explicit prefix=meltdown swing (issue #933) — not its '
+        'own stray column', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [meltdownSwing('partners')]),
+        dance('d2', 'B', [swingWithPrefix('partners', 'meltdown')]),
+      ]);
+      expect(ids(matrix), contains('swing:partner:meltdown'));
+      // Not present as its own raw alias-id column.
+      expect(ids(matrix), isNot(contains('meltdown_swing')));
+      // Both dances share the ONE column (the fold, not two distinct ones).
+      expect(
+        ids(matrix).where((k) => k == 'swing:partner:meltdown'),
+        hasLength(1),
+      );
+      final col = colOf(matrix, 'swing:partner:meltdown');
+      expect(matrix.isPresent(0, col), isTrue);
+      expect(matrix.isPresent(1, col), isTrue);
+    });
+
+    test('meltdown_swing with no who defaults to the partner column', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [meltdownSwing()]),
+      ]);
+      expect(colOf(matrix, 'swing:partner:meltdown'), isNonNegative);
+    });
+  });
+
+  group('buildProgramMatrix — alias columns stay distinct (issue #933)', () {
+    test('see_saw (alias of do_si_do, NOT split) keeps its own column', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [seeSaw(), doSiDo()]),
+      ]);
+      expect(ids(matrix), containsAll(['see_saw', 'do_si_do']));
+    });
+
+    test(
+      'an alias of a non-split move is classified `known`, not `unknown`',
+      () {
+        final matrix = buildProgramMatrix([
+          dance('d1', 'A', [seeSaw()]),
+        ]);
+        final col = matrix.columns.firstWhere((c) => c.moveId == 'see_saw');
+        expect(col.kind, MatrixColumnKind.known);
+      },
+    );
   });
 
   group('buildProgramMatrix — presence cells', () {
@@ -545,6 +716,62 @@ void main() {
       expect(label(split('swing', 'partner'), dialect), 'partner twirl');
       expect(label(split('hey', 'full'), dialect), 'full reel');
     });
+
+    test('allemande/chain role labels under the canonical dialect '
+        '(issue #933)', () {
+      expect(label(split('allemande', 'neighbor')), 'neighbor allemande');
+      expect(label(split('allemande', 'same')), 'same-role allemande');
+      expect(label(split('allemande', 'other')), 'allemande (other)');
+      expect(label(split('chain', 'ones')), 'ones chain');
+      expect(label(split('chain', 'twos')), 'twos chain');
+    });
+
+    test('allemande/chain larks/robins honour a role dialect', () {
+      final larksRobins = Dialect(
+        name: 'Larks & Robins',
+        roles: const {
+          'role1': RoleTerm('lark', plural: 'larks'),
+          'role2': RoleTerm('robin', plural: 'robins'),
+        },
+      );
+      expect(label(split('allemande', 'larks'), larksRobins), 'lark allemande');
+      expect(label(split('chain', 'robins'), larksRobins), 'robin chain');
+    });
+
+    test('a lark allemande and a robin allemande have DIFFERENT labels '
+        '(issue #933 — the false-collision fix depends on this)', () {
+      expect(
+        label(split('allemande', 'larks')),
+        isNot(label(split('allemande', 'robins'))),
+      );
+    });
+
+    test('swing prefix headers ABBREVIATE balance (maintainer decision) but '
+        'spell out meltdown (issue #933)', () {
+      expect(label(split('swing', 'partner:balance')), 'partner bal & swing');
+      expect(label(split('swing', 'neighbor:balance')), 'neighbor bal & swing');
+      expect(
+        label(split('swing', 'partner:meltdown')),
+        'partner meltdown swing',
+      );
+    });
+
+    test('a plain swing and a balance-prefixed swing of the SAME role have '
+        'DIFFERENT labels (issue #933 — the false-collision fix depends on '
+        'this)', () {
+      expect(
+        label(split('swing', 'partner')),
+        isNot(label(split('swing', 'partner:balance'))),
+      );
+    });
+
+    test('swing prefix headers honour a dialect move substitution', () {
+      final dialect = Dialect(name: 'Test', moves: const {'swing': 'twirl'});
+      expect(
+        label(split('swing', 'partner:balance'), dialect),
+        'partner bal & twirl',
+      );
+    });
   });
 
   group('matrixColumnLabel — non-split columns', () {
@@ -593,6 +820,65 @@ void main() {
       expect(
         matrixColumnLabel(unknown, contraTaxonomy, Dialect.canonical),
         'zebra_move',
+      );
+    });
+
+    test(
+      'an alias of a NON-split move is labelled under its OWN display name, '
+      'not its target\'s (issue #933 — see_saw must not read as "do si do")',
+      () {
+        const seeSawCol = MatrixColumn(
+          moveId: 'see_saw',
+          kind: MatrixColumnKind.known,
+        );
+        const doSiDoCol = MatrixColumn(
+          moveId: 'do_si_do',
+          kind: MatrixColumnKind.known,
+        );
+        expect(
+          matrixColumnLabel(seeSawCol, contraTaxonomy, Dialect.canonical),
+          'see saw',
+        );
+        expect(
+          matrixColumnLabel(doSiDoCol, contraTaxonomy, Dialect.canonical),
+          'do si do',
+        );
+        // The load-bearing assertion: two figures a caller can tell apart
+        // must not collapse to one header.
+        expect(
+          matrixColumnLabel(seeSawCol, contraTaxonomy, Dialect.canonical),
+          isNot(
+            matrixColumnLabel(doSiDoCol, contraTaxonomy, Dialect.canonical),
+          ),
+        );
+      },
+    );
+
+    test('an alias column\'s dialect substitution is keyed by the CANONICAL '
+        'move id, matching FigureRenderer.displayMoveName\'s rule', () {
+      const seeSawCol = MatrixColumn(
+        moveId: 'see_saw',
+        kind: MatrixColumnKind.known,
+      );
+      final dialect = Dialect(
+        name: 'Test',
+        moves: const {'do_si_do': 'circle round'},
+      );
+      // A substitution keyed by the TARGET id still applies to the alias
+      // column (matches displayMoveName's canonical-id lookup rule)...
+      expect(
+        matrixColumnLabel(seeSawCol, contraTaxonomy, dialect),
+        'circle round',
+      );
+      // ...while a substitution keyed by the alias's OWN id does nothing,
+      // since dialect.moves is a canonical-id map.
+      final aliasKeyedDialect = Dialect(
+        name: 'Test2',
+        moves: const {'see_saw': 'circle round'},
+      );
+      expect(
+        matrixColumnLabel(seeSawCol, contraTaxonomy, aliasKeyedDialect),
+        'see saw',
       );
     });
   });
@@ -701,6 +987,78 @@ void main() {
       ]);
       expect(m.isPhraseCollision(0, colOfMove(m, 'swing:partner')), isFalse);
       expect(m.isPhraseCollision(1, colOfMove(m, 'swing:neighbor')), isFalse);
+    });
+
+    test('a lark allemande and a robin allemande in the SAME phrase of '
+        'adjacent dances do NOT collide (issue #933 — this is the reported '
+        'defect)', () {
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [
+          Figure(move: 'do_si_do', params: {'beats': 48}),
+          allemande('role1s'),
+        ]),
+        dance('d2', 'B', [
+          Figure(move: 'do_si_do', params: {'beats': 48}),
+          allemande('role2s'),
+        ]),
+      ]);
+      expect(m.isPhraseCollision(0, colOfMove(m, 'allemande:larks')), isFalse);
+      expect(m.isPhraseCollision(1, colOfMove(m, 'allemande:robins')), isFalse);
+    });
+
+    test('two lark allemandes in the SAME phrase of adjacent dances DO still '
+        'collide (pairs with the test above — proves it is not vacuous: the '
+        'columns really are compared, just not across roles)', () {
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [
+          Figure(move: 'do_si_do', params: {'beats': 48}),
+          allemande('role1s'),
+        ]),
+        dance('d2', 'B', [
+          Figure(move: 'do_si_do', params: {'beats': 48}),
+          allemande('role1s'),
+        ]),
+      ]);
+      final c = colOfMove(m, 'allemande:larks');
+      expect(m.isPhraseCollision(0, c), isTrue);
+      expect(m.isPhraseCollision(1, c), isTrue);
+    });
+
+    test('a plain swing and a balance-prefixed swing of the SAME role, in the '
+        'SAME phrase of adjacent dances, do NOT collide (issue #933 — the '
+        'other reported defect)', () {
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [
+          Figure(move: 'do_si_do', params: {'beats': 48}),
+          swing('partners'),
+        ]),
+        dance('d2', 'B', [
+          Figure(move: 'do_si_do', params: {'beats': 48}),
+          swingWithPrefix('partners', 'balance'),
+        ]),
+      ]);
+      expect(m.isPhraseCollision(0, colOfMove(m, 'swing:partner')), isFalse);
+      expect(
+        m.isPhraseCollision(1, colOfMove(m, 'swing:partner:balance')),
+        isFalse,
+      );
+    });
+
+    test('two balance-prefixed partner swings in the SAME phrase of adjacent '
+        'dances DO still collide (pairs with the test above)', () {
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [
+          Figure(move: 'do_si_do', params: {'beats': 48}),
+          swingWithPrefix('partners', 'balance'),
+        ]),
+        dance('d2', 'B', [
+          Figure(move: 'do_si_do', params: {'beats': 48}),
+          swingWithPrefix('partners', 'balance'),
+        ]),
+      ]);
+      final c = colOfMove(m, 'swing:partner:balance');
+      expect(m.isPhraseCollision(0, c), isTrue);
+      expect(m.isPhraseCollision(1, c), isTrue);
     });
 
     test('the collapsed custom column never collides', () {
