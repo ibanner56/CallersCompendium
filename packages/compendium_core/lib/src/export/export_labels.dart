@@ -110,6 +110,11 @@ class ProgramExportLabels {
 /// (`export/program_matrix_pdf.dart`). [omittedCaption] renders the
 /// "N free-text slots omitted" caption with its (locale-aware, pluralized)
 /// count.
+///
+/// Two collision legend captions are needed (issue #962): the printed legend
+/// must always match [ProgramMatrix.collisionMode], since the on-screen matrix
+/// and its PDF export share the same underlying [ProgramMatrix] and must never
+/// disagree about what the alert marker means.
 class ProgramMatrixExportLabels {
   const ProgramMatrixExportLabels({
     this.defaultTitle = 'Programming matrix',
@@ -121,7 +126,8 @@ class ProgramMatrixExportLabels {
     this.legendDebut = 'Introduced here',
     this.legendFirst = "Dance's first figure",
     this.legendPresent = 'Present',
-    this.legendCollision = 'Same phrase as adjacent dance',
+    this.legendCollisionBeats = 'Shares beats with an adjacent dance',
+    this.legendCollisionPhrase = 'Same phrase as adjacent dance',
     this.omittedCaption = _englishOmittedCaption,
   });
 
@@ -132,6 +138,13 @@ class ProgramMatrixExportLabels {
   final String legendDebut;
   final String legendFirst;
   final String legendPresent;
-  final String legendCollision;
+
+  /// Legend caption for [MatrixCollisionMode.exactBeats] (issue #962, the
+  /// default).
+  final String legendCollisionBeats;
+
+  /// Legend caption for [MatrixCollisionMode.phrase] (issue #582's original
+  /// behaviour, now opt-in).
+  final String legendCollisionPhrase;
   final String Function(int count) omittedCaption;
 }

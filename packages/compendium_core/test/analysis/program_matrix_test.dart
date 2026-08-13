@@ -597,10 +597,14 @@ void main() {
     });
   });
 
-  group('isPhraseCollision — same figure, same phrase, adjacent dances', () {
+  group('isCollision — phrase mode (issue #582; opt-in via #962)', () {
     // A figure's phrase is derived from its cumulative beat offset under the
     // default 4x16 structure (A1 0-15, A2 16-31, B1 32-47, B2 48-63). `fig`
     // sets an explicit beat length so a move can be steered into a phrase.
+    // Every buildProgramMatrix call below pins `collisionMode: phrase`
+    // explicitly — these tests document and guard the ORIGINAL #582
+    // behaviour, which #962 demoted to opt-in (exact-beat overlap is now the
+    // default; see the "isCollision — exact-beat mode" group below).
     Figure fig(String id, int beats) =>
         testFigure(move: id, params: {'beats': beats});
 
@@ -624,10 +628,10 @@ void main() {
         final m = buildProgramMatrix([
           dance('d1', 'A', balanceB1a),
           dance('d2', 'B', balanceB1b),
-        ]);
+        ], collisionMode: MatrixCollisionMode.phrase);
         final c = colOfMove(m, 'balance');
-        expect(m.isPhraseCollision(0, c), isTrue);
-        expect(m.isPhraseCollision(1, c), isTrue);
+        expect(m.isCollision(0, c), isTrue);
+        expect(m.isCollision(1, c), isTrue);
       },
     );
 
@@ -637,10 +641,10 @@ void main() {
         dance('d1', 'A', [fig('do_si_do', 32), fig('balance', 16)]),
         // balance in A1 (beat 0).
         dance('d2', 'B', [fig('balance', 16), fig('do_si_do', 16)]),
-      ]);
+      ], collisionMode: MatrixCollisionMode.phrase);
       final c = colOfMove(m, 'balance');
-      expect(m.isPhraseCollision(0, c), isFalse);
-      expect(m.isPhraseCollision(1, c), isFalse);
+      expect(m.isCollision(0, c), isFalse);
+      expect(m.isCollision(1, c), isFalse);
     });
 
     test(
@@ -652,10 +656,10 @@ void main() {
           // Middle dance has no balance, so d1 and d3 are not neighbours.
           dance('d2', 'B', [fig('circle', 16)]),
           dance('d3', 'C', balanceB1),
-        ]);
+        ], collisionMode: MatrixCollisionMode.phrase);
         final c = colOfMove(m, 'balance');
-        expect(m.isPhraseCollision(0, c), isFalse);
-        expect(m.isPhraseCollision(2, c), isFalse);
+        expect(m.isCollision(0, c), isFalse);
+        expect(m.isCollision(2, c), isFalse);
       },
     );
 
@@ -665,12 +669,12 @@ void main() {
         dance('d1', 'A', balanceB1),
         dance('d2', 'B', balanceB1),
         dance('d3', 'C', balanceB1),
-      ]);
+      ], collisionMode: MatrixCollisionMode.phrase);
       final c = colOfMove(m, 'balance');
       // Middle row collides with both neighbours; ends collide with the middle.
-      expect(m.isPhraseCollision(0, c), isTrue);
-      expect(m.isPhraseCollision(1, c), isTrue);
-      expect(m.isPhraseCollision(2, c), isTrue);
+      expect(m.isCollision(0, c), isTrue);
+      expect(m.isCollision(1, c), isTrue);
+      expect(m.isCollision(2, c), isTrue);
     });
 
     test('split (swing role) columns collide on same role + same phrase', () {
@@ -682,10 +686,10 @@ void main() {
       final m = buildProgramMatrix([
         dance('d1', 'A', swingB2),
         dance('d2', 'B', swingB2),
-      ]);
+      ], collisionMode: MatrixCollisionMode.phrase);
       final c = colOfMove(m, 'swing:partner');
-      expect(m.isPhraseCollision(0, c), isTrue);
-      expect(m.isPhraseCollision(1, c), isTrue);
+      expect(m.isCollision(0, c), isTrue);
+      expect(m.isCollision(1, c), isTrue);
     });
 
     test('different swing roles in the same phrase do NOT collide', () {
@@ -698,20 +702,20 @@ void main() {
           Figure(move: 'do_si_do', params: {'beats': 48}),
           swing('neighbors'),
         ]),
-      ]);
-      expect(m.isPhraseCollision(0, colOfMove(m, 'swing:partner')), isFalse);
-      expect(m.isPhraseCollision(1, colOfMove(m, 'swing:neighbor')), isFalse);
+      ], collisionMode: MatrixCollisionMode.phrase);
+      expect(m.isCollision(0, colOfMove(m, 'swing:partner')), isFalse);
+      expect(m.isCollision(1, colOfMove(m, 'swing:neighbor')), isFalse);
     });
 
     test('the collapsed custom column never collides', () {
       final m = buildProgramMatrix([
         dance('d1', 'A', [custom('petronella twirl')]),
         dance('d2', 'B', [custom('california twirl')]),
-      ]);
+      ], collisionMode: MatrixCollisionMode.phrase);
       final c = colOfMove(m, customMove);
       expect(c, isNot(-1));
-      expect(m.isPhraseCollision(0, c), isFalse);
-      expect(m.isPhraseCollision(1, c), isFalse);
+      expect(m.isCollision(0, c), isFalse);
+      expect(m.isCollision(1, c), isFalse);
       // Custom is excluded from the phrase map entirely.
       expect(m.rows.first.phraseLabelsByMove.containsKey(customMove), isFalse);
     });
@@ -720,8 +724,8 @@ void main() {
       final m = buildProgramMatrix([
         dance('d1', 'A', [fig('balance', 16)]),
         dance('d2', 'B', [fig('circle', 16)]),
-      ]);
-      expect(m.isPhraseCollision(0, colOfMove(m, 'balance')), isFalse);
+      ], collisionMode: MatrixCollisionMode.phrase);
+      expect(m.isCollision(0, colOfMove(m, 'balance')), isFalse);
     });
 
     test('a move repeated in one dance still needs a neighbour to collide', () {
@@ -729,9 +733,9 @@ void main() {
       final m = buildProgramMatrix([
         dance('d1', 'A', [fig('balance', 32), fig('balance', 16)]),
         dance('d2', 'B', [fig('circle', 16)]),
-      ]);
+      ], collisionMode: MatrixCollisionMode.phrase);
       expect(m.rows.first.phraseLabelsByMove['balance'], {'A1', 'B1'});
-      expect(m.isPhraseCollision(0, colOfMove(m, 'balance')), isFalse);
+      expect(m.isCollision(0, colOfMove(m, 'balance')), isFalse);
     });
 
     test('figures with UNSET beats land in the right phrase via effective '
@@ -763,11 +767,11 @@ void main() {
         final m = buildProgramMatrix([
           dance('d1', 'A', [move('do_si_do'), swing()]),
           dance('d2', 'B', [move('do_si_do'), move('do_si_do'), swing()]),
-        ]);
+        ], collisionMode: MatrixCollisionMode.phrase);
         expect(m.rows[0].phraseLabelsByMove['swing:partner'], {'A1'});
         expect(m.rows[1].phraseLabelsByMove['swing:partner'], {'A2'});
-        expect(m.isPhraseCollision(0, colOfMove(m, 'swing:partner')), isFalse);
-        expect(m.isPhraseCollision(1, colOfMove(m, 'swing:partner')), isFalse);
+        expect(m.isCollision(0, colOfMove(m, 'swing:partner')), isFalse);
+        expect(m.isCollision(1, colOfMove(m, 'swing:partner')), isFalse);
       },
     );
 
@@ -787,5 +791,175 @@ void main() {
         expect(m.rows.first.phraseLabelsByMove['balance'], {'A2'});
       },
     );
+  });
+
+  group('isCollision — exact-beat mode (issue #962, the default)', () {
+    Figure fig(String id, int beats) =>
+        testFigure(move: id, params: {'beats': beats});
+
+    int colOfMove(ProgramMatrix m, String moveId) =>
+        m.columns.indexWhere((c) => c.moveId == moveId);
+
+    test('buildProgramMatrix defaults to exact-beat mode', () {
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [fig('balance', 16)]),
+      ]);
+      expect(m.collisionMode, MatrixCollisionMode.exactBeats);
+    });
+
+    test("the issue's own example: same phrase bucket, no beat overlap, "
+        'is NOT flagged', () {
+      // balance at [32,40) in d1 vs [40,48) in d2 — both land in the B1
+      // bucket (32-47) but their beat spans do not overlap at all. This is
+      // #962's motivating case, reproduced exactly against the maintainer
+      // comment's description.
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [fig('do_si_do', 32), fig('balance', 8)]),
+        dance('d2', 'B', [fig('do_si_do', 40), fig('balance', 8)]),
+      ]);
+      final c = colOfMove(m, 'balance');
+      expect(m.isCollision(0, c), isFalse);
+      expect(m.isCollision(1, c), isFalse);
+      // The SAME dances would collide under the old phrase-bucket rule —
+      // confirms this is a genuine behaviour narrowing, not a no-op.
+      final phraseMatrix = buildProgramMatrix([
+        dance('d1', 'A', [fig('do_si_do', 32), fig('balance', 8)]),
+        dance('d2', 'B', [fig('do_si_do', 40), fig('balance', 8)]),
+      ], collisionMode: MatrixCollisionMode.phrase);
+      final pc = colOfMove(phraseMatrix, 'balance');
+      expect(phraseMatrix.isCollision(0, pc), isTrue);
+      expect(phraseMatrix.isCollision(1, pc), isTrue);
+    });
+
+    test('a partial beat overlap across adjacent dances IS flagged', () {
+      // d1 balance spans [32,48); d2 balance spans [40,56) — they overlap on
+      // [40,48) even though they don't start at the same beat.
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [fig('do_si_do', 32), fig('balance', 16)]),
+        dance('d2', 'B', [fig('do_si_do', 40), fig('balance', 16)]),
+      ]);
+      final c = colOfMove(m, 'balance');
+      expect(m.isCollision(0, c), isTrue);
+      expect(m.isCollision(1, c), isTrue);
+    });
+
+    test('a zero-beat figure (form_long_waves) collides as a point at its '
+        'start beat', () {
+      // form_long_waves has no `beats` param stored, so its effective beats
+      // is the taxonomy default 0 (contra_taxonomy.dart ~:1909) — a bare
+      // formation label. Both dances land it at beat 16.
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [fig('do_si_do', 16), move('form_long_waves')]),
+        dance('d2', 'B', [fig('circle', 16), move('form_long_waves')]),
+      ]);
+      expect(m.rows[0].beatSpansByMove['form_long_waves'], [
+        const BeatSpan(16, 0),
+      ]);
+      final c = colOfMove(m, 'form_long_waves');
+      expect(m.isCollision(0, c), isTrue);
+      expect(m.isCollision(1, c), isTrue);
+    });
+
+    test('a zero-beat figure does NOT collide with a non-overlapping span', () {
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [fig('do_si_do', 16), move('form_long_waves')]),
+        dance('d2', 'B', [fig('do_si_do', 32), fig('form_long_waves', 8)]),
+      ]);
+      // d1's point is at beat 16; d2's span is [32,40) — no overlap.
+      final c = colOfMove(m, 'form_long_waves');
+      expect(m.isCollision(0, c), isFalse);
+      expect(m.isCollision(1, c), isFalse);
+    });
+
+    test('a zero-beat figure DOES collide when it falls inside a '
+        'non-zero-length neighbouring span', () {
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [fig('do_si_do', 16), move('form_long_waves')]),
+        dance('d2', 'B', [fig('do_si_do', 12), fig('form_long_waves', 8)]),
+      ]);
+      // d1's point is at beat 16; d2's span is [12,20), which contains 16.
+      expect(m.rows[0].beatSpansByMove['form_long_waves'], [
+        const BeatSpan(16, 0),
+      ]);
+      expect(m.rows[1].beatSpansByMove['form_long_waves'], [
+        const BeatSpan(12, 8),
+      ]);
+      final c = colOfMove(m, 'form_long_waves');
+      expect(m.isCollision(0, c), isTrue);
+      expect(m.isCollision(1, c), isTrue);
+    });
+
+    test('the collapsed custom column never collides in exact-beat mode', () {
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [custom('petronella twirl')]),
+        dance('d2', 'B', [custom('california twirl')]),
+      ]);
+      final c = colOfMove(m, customMove);
+      expect(c, isNot(-1));
+      expect(m.isCollision(0, c), isFalse);
+      expect(m.isCollision(1, c), isFalse);
+      expect(m.rows.first.beatSpansByMove.containsKey(customMove), isFalse);
+    });
+  });
+
+  group('BeatSpan.overlaps', () {
+    test('two non-zero spans overlap iff their ranges intersect', () {
+      expect(const BeatSpan(0, 16).overlaps(const BeatSpan(8, 16)), isTrue);
+      expect(const BeatSpan(0, 16).overlaps(const BeatSpan(16, 16)), isFalse);
+      expect(const BeatSpan(0, 16).overlaps(const BeatSpan(17, 16)), isFalse);
+    });
+
+    test('two zero-beat spans overlap only at the exact same start', () {
+      expect(const BeatSpan(16, 0).overlaps(const BeatSpan(16, 0)), isTrue);
+      expect(const BeatSpan(16, 0).overlaps(const BeatSpan(17, 0)), isFalse);
+    });
+
+    test(
+      'a zero-beat span overlaps a non-zero span iff it falls inside it',
+      () {
+        expect(const BeatSpan(16, 0).overlaps(const BeatSpan(12, 8)), isTrue);
+        expect(const BeatSpan(20, 0).overlaps(const BeatSpan(12, 8)), isFalse);
+        // Boundary: the zero-beat point exactly at the non-zero span's start is
+        // inside (half-open on the low end); exactly at its end is NOT.
+        expect(const BeatSpan(12, 0).overlaps(const BeatSpan(12, 8)), isTrue);
+        expect(const BeatSpan(20, 0).overlaps(const BeatSpan(12, 8)), isFalse);
+        expect(const BeatSpan(12, 8).overlaps(const BeatSpan(12, 0)), isTrue);
+      },
+    );
+  });
+
+  group('MatrixRow equality/hashCode — beatSpansByMove (issue #962)', () {
+    test('rows differing only in beatSpansByMove are NOT equal', () {
+      final base = MatrixRow(
+        danceId: 'd1',
+        title: 'A',
+        firstMoveId: null,
+        presentMoveIds: const {'balance'},
+        beatSpansByMove: const {
+          'balance': [BeatSpan(0, 16)],
+        },
+      );
+      final sameSpans = MatrixRow(
+        danceId: 'd1',
+        title: 'A',
+        firstMoveId: null,
+        presentMoveIds: const {'balance'},
+        beatSpansByMove: const {
+          'balance': [BeatSpan(0, 16)],
+        },
+      );
+      final differentSpans = MatrixRow(
+        danceId: 'd1',
+        title: 'A',
+        firstMoveId: null,
+        presentMoveIds: const {'balance'},
+        beatSpansByMove: const {
+          'balance': [BeatSpan(16, 16)],
+        },
+      );
+      expect(base, sameSpans);
+      expect(base.hashCode, sameSpans.hashCode);
+      expect(base, isNot(differentSpans));
+    });
   });
 }

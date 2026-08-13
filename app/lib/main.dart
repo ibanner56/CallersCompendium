@@ -40,6 +40,7 @@ import 'src/data/repositories_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
 import 'src/data/track_history_for_all_callers_scope.dart';
 import 'src/data/seed_service.dart';
+import 'src/data/matrix_collision_mode_scope.dart';
 import 'src/data/set_list_color_coding_scope.dart';
 import 'src/data/shorthand_mappings_controller.dart';
 import 'src/data/shorthand_mappings_scope.dart';
@@ -63,6 +64,7 @@ import 'src/screens/settings_screen.dart'
         kAppThemeKey,
         kColourDanceThemeKey,
         kCollectionTileVisibleFieldsKey,
+        kMatrixExactBeatCollisionKey,
         kRequirePerformedForHistoryKey,
         kSortIgnoreArticlesKey,
         kTrackHistoryForAllCallersKey,
@@ -287,6 +289,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<bool> _venueEntityModeNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _colourDanceThemeNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _setListColorCodingNotifier = ValueNotifier(true);
+  final ValueNotifier<bool> _matrixExactBeatCollisionNotifier = ValueNotifier(
+    true,
+  );
   final ValueNotifier<DateFormatSetting> _dateFormatNotifier = ValueNotifier(
     DateFormatSetting.system,
   );
@@ -774,6 +779,16 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (setListColorCoding is bool) {
       _setListColorCodingNotifier.value = setListColorCoding;
     }
+    // Load the Programs "flag exact beat overlap only" matrix-collision
+    // setting (issue #962), defaulting to on (true) when unset. Defensive: a
+    // read failure keeps the on-by-default state so startup never blocks on a
+    // settings hiccup.
+    final matrixExactBeatCollision = await _appData.repositories.settings
+        .get(kMatrixExactBeatCollisionKey)
+        .catchError((_) => null);
+    if (matrixExactBeatCollision is bool) {
+      _matrixExactBeatCollisionNotifier.value = matrixExactBeatCollision;
+    }
     // Load the regional-format preference (ROADMAP G.8), defaulting to System
     // when unset. Defensive: a read failure or garbage token resolves to the
     // safe System default via the resolver. For the custom variant (#584) the
@@ -862,6 +877,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _venueEntityModeNotifier.dispose();
     _colourDanceThemeNotifier.dispose();
     _setListColorCodingNotifier.dispose();
+    _matrixExactBeatCollisionNotifier.dispose();
     _dateFormatNotifier.dispose();
     _firstDayOfWeekNotifier.dispose();
     _localeNotifier.dispose();
@@ -1237,31 +1253,36 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                                 child: SetListColorCodingScope(
                                                   notifier:
                                                       _setListColorCodingNotifier,
-                                                  child: DateFormatScope(
+                                                  child: MatrixCollisionModeScope(
                                                     notifier:
-                                                        _dateFormatNotifier,
-                                                    child: FirstDayOfWeekScope(
+                                                        _matrixExactBeatCollisionNotifier,
+                                                    child: DateFormatScope(
                                                       notifier:
-                                                          _firstDayOfWeekNotifier,
-                                                      child: LocaleScope(
+                                                          _dateFormatNotifier,
+                                                      child: FirstDayOfWeekScope(
                                                         notifier:
-                                                            _localeNotifier,
-                                                        child: BackupControllerScope(
-                                                          onRestored:
-                                                              reloadFromSettings,
-                                                          child: CollectionRefreshScope(
-                                                            revision:
-                                                                _collectionRefreshNotifier,
-                                                            child: ProgramsRefreshScope(
+                                                            _firstDayOfWeekNotifier,
+                                                        child: LocaleScope(
+                                                          notifier:
+                                                              _localeNotifier,
+                                                          child: BackupControllerScope(
+                                                            onRestored:
+                                                                reloadFromSettings,
+                                                            child: CollectionRefreshScope(
                                                               revision:
-                                                                  _programsRefreshNotifier,
-                                                              child: CollectionFilterScope(
-                                                                controller:
-                                                                    _collectionFilterController,
-                                                                child: VenueEntityModeScope(
-                                                                  notifier:
-                                                                      _venueEntityModeNotifier,
-                                                                  child: child!,
+                                                                  _collectionRefreshNotifier,
+                                                              child: ProgramsRefreshScope(
+                                                                revision:
+                                                                    _programsRefreshNotifier,
+                                                                child: CollectionFilterScope(
+                                                                  controller:
+                                                                      _collectionFilterController,
+                                                                  child: VenueEntityModeScope(
+                                                                    notifier:
+                                                                        _venueEntityModeNotifier,
+                                                                    child:
+                                                                        child!,
+                                                                  ),
                                                                 ),
                                                               ),
                                                             ),

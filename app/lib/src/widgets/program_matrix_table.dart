@@ -166,7 +166,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Legend(),
+            _Legend(collisionMode: matrix.collisionMode),
             const Divider(height: 1, thickness: 1),
             Expanded(
               child: Semantics(
@@ -318,10 +318,8 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                                           r,
                                           c,
                                         ),
-                                        collision: matrix.isPhraseCollision(
-                                          r,
-                                          c,
-                                        ),
+                                        collision: matrix.isCollision(r, c),
+                                        collisionMode: matrix.collisionMode,
                                       ),
                                 ],
                               ),
@@ -745,6 +743,7 @@ class _Cell extends StatelessWidget {
     required this.first,
     required this.programDebut,
     required this.collision,
+    required this.collisionMode,
   });
 
   final String danceTitle;
@@ -753,6 +752,7 @@ class _Cell extends StatelessWidget {
   final bool first;
   final bool programDebut;
   final bool collision;
+  final MatrixCollisionMode collisionMode;
 
   @override
   Widget build(BuildContext context) {
@@ -761,9 +761,10 @@ class _Cell extends StatelessWidget {
 
     Widget? mark;
     if (collision) {
-      // Same-figure-same-phrase collision with a strictly-adjacent dance: a
-      // shape-distinct alert (never colour alone) that takes precedence over
-      // the debut/first highlights — it's the signal a caller must notice.
+      // Same-figure collision with a strictly-adjacent dance (issue #962: the
+      // exact rule depends on the matrix's collisionMode): a shape-distinct
+      // alert (never colour alone) that takes precedence over the
+      // debut/first highlights — it's the signal a caller must notice.
       mark = Icon(Icons.report, size: 20, color: theme.colorScheme.error);
     } else if (programDebut) {
       // Program debut: distinct SHAPE (star) + text, not colour alone.
@@ -784,7 +785,7 @@ class _Cell extends StatelessWidget {
         danceTitle,
         moveLabel,
         present ? 'yes' : 'no',
-        collision ? 'yes' : 'no',
+        _collisionSemanticsArg(collision, collisionMode),
         programDebut ? 'yes' : 'no',
         first ? 'yes' : 'no',
       ),
@@ -816,6 +817,15 @@ class _Cell extends StatelessWidget {
 /// in the `matrixCellSemantic` ICU message (a single message with select
 /// branches for present / introduced-here / dance's-first-figure), so no
 /// fragment concatenation happens in Dart.
+///
+/// The `collision` argument for `programsMatrixCellSemantic` (issue #962): the
+/// ICU message needs to say WHICH collision rule fired, not merely that one
+/// did, since the two modes describe genuinely different situations. `'other'`
+/// (the message's default/no-match arm) covers "no collision".
+String _collisionSemanticsArg(bool collision, MatrixCollisionMode mode) {
+  if (!collision) return 'other';
+  return mode == MatrixCollisionMode.exactBeats ? 'beats' : 'phrase';
+}
 
 class _CompactMatrix extends StatelessWidget {
   const _CompactMatrix({
@@ -858,7 +868,7 @@ class _CompactMatrix extends StatelessWidget {
               title: matrix.rows[r].title,
               first: matrix.isFirst(r, c),
               programDebut: matrix.isProgramDebut(r, c),
-              collision: matrix.isPhraseCollision(r, c),
+              collision: matrix.isCollision(r, c),
               isAlt: altDanceIds.contains(matrix.rows[r].danceId),
               half: matrix.rows[r].half,
               formation: matrix.rows[r].formation,
@@ -909,7 +919,13 @@ class _CompactMatrix extends StatelessWidget {
           ),
         );
         for (final m in repeated) {
-          children.add(_MoveCard(summary: m, total: total));
+          children.add(
+            _MoveCard(
+              summary: m,
+              total: total,
+              collisionMode: matrix.collisionMode,
+            ),
+          );
         }
       } else {
         children.add(
@@ -928,7 +944,13 @@ class _CompactMatrix extends StatelessWidget {
       if (singles.isNotEmpty) {
         children.add(_SectionHeader(label: l10n.programsMatrixUsedOnceHeader));
         for (final m in singles) {
-          children.add(_MoveCard(summary: m, total: total));
+          children.add(
+            _MoveCard(
+              summary: m,
+              total: total,
+              collisionMode: matrix.collisionMode,
+            ),
+          );
         }
       }
     }
@@ -1045,10 +1067,15 @@ class _SectionHeader extends StatelessWidget {
 /// N of M dances") and each dance chip announces "dance, move: present" (plus
 /// "introduced here" / "dance's first figure"), matching [_Cell].
 class _MoveCard extends StatelessWidget {
-  const _MoveCard({required this.summary, required this.total});
+  const _MoveCard({
+    required this.summary,
+    required this.total,
+    required this.collisionMode,
+  });
 
   final _MoveSummary summary;
   final int total;
+  final MatrixCollisionMode collisionMode;
 
   @override
   Widget build(BuildContext context) {
@@ -1101,6 +1128,7 @@ class _MoveCard extends StatelessWidget {
                   first: d.first,
                   programDebut: d.programDebut,
                   collision: d.collision,
+                  collisionMode: collisionMode,
                   isAlt: d.isAlt,
                   half: d.half,
                   formation: d.formation,
@@ -1120,6 +1148,7 @@ class _DanceChip extends StatelessWidget {
     required this.first,
     required this.programDebut,
     required this.collision,
+    required this.collisionMode,
     required this.isAlt,
     required this.formation,
     this.half,
@@ -1130,6 +1159,7 @@ class _DanceChip extends StatelessWidget {
   final bool first;
   final bool programDebut;
   final bool collision;
+  final MatrixCollisionMode collisionMode;
   final bool isAlt;
   final ProgramHalf? half;
   final Formation formation;
@@ -1160,7 +1190,8 @@ class _DanceChip extends StatelessWidget {
     final IconData markIcon;
     final Color markColor;
     if (collision) {
-      // Same-phrase repeat with a strictly-adjacent dance: top-precedence
+      // Same-figure collision with a strictly-adjacent dance (issue #962: the
+      // exact rule depends on the matrix's collisionMode): top-precedence
       // alert (shape + semantics, never colour alone).
       markIcon = Icons.report;
       markColor = theme.colorScheme.error;
@@ -1179,7 +1210,7 @@ class _DanceChip extends StatelessWidget {
         whoWithFormation,
         moveLabel,
         'yes',
-        collision ? 'yes' : 'no',
+        _collisionSemanticsArg(collision, collisionMode),
         programDebut ? 'yes' : 'no',
         first ? 'yes' : 'no',
       ),
@@ -1243,6 +1274,10 @@ class _DanceChip extends StatelessWidget {
 }
 
 class _Legend extends StatelessWidget {
+  const _Legend({required this.collisionMode});
+
+  final MatrixCollisionMode collisionMode;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1256,7 +1291,9 @@ class _Legend extends StatelessWidget {
           _LegendItem(
             icon: Icons.report,
             color: theme.colorScheme.error,
-            label: l10n.programsMatrixLegendCollision,
+            label: collisionMode == MatrixCollisionMode.exactBeats
+                ? l10n.programsMatrixLegendCollisionBeats
+                : l10n.programsMatrixLegendCollision,
           ),
           _LegendItem(
             icon: Icons.star,

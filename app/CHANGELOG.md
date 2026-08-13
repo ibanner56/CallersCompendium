@@ -31,6 +31,25 @@ each release so store builds and tags can be traced back to an entry.
   has to be imported by hand afterwards. A title either source finds several
   exact matches for (and neither source resolves it confidently) is now
   offered to you to pick from, instead of always silently becoming a note.
+- **New Settings ▸ General ▸ Programs setting: "Flag exact beat overlap
+  only."** Controls how the programming matrix's alert marker decides that a
+  repeated move in two back-to-back dances is worth a second look — see
+  **Changed** below for what the new default does differently. Turning it off
+  restores the matrix's previous same-phrase behavior. (#962)
+
+### Changed
+
+- **The programming matrix's same-figure alert now defaults to flagging exact
+  beat overlap, not merely the same named phrase.** Previously, a move
+  repeating in two back-to-back dances was flagged whenever it merely
+  *started* in the same phrase bucket (A1, A2, B1, B2…) — even when the two
+  occurrences' beats didn't actually overlap (e.g. one dance's balance at
+  beats 32–39 and the next dance's at beats 40–47, both in bucket B1 but never
+  overlapping). The matrix — and its PDF export, which always uses the same
+  legend — now flags a repeat only when the beats genuinely overlap between
+  the two dances. This changes what existing programs' matrices flag; turn
+  off the new "Flag exact beat overlap only" setting in Settings ▸ General ▸
+  Programs to restore the previous same-phrase behavior. (#962)
 
 ### Fixed
 

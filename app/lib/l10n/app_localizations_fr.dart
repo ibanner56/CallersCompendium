@@ -806,6 +806,17 @@ class AppLocalizationsFr extends AppLocalizations {
       'Parcourez, modifiez et supprimez vos fiches de lieu réutilisables.';
 
   @override
+  String get settingsGeneralProgramsHeader => 'Programmes';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionTitle =>
+      'Signaler uniquement un chevauchement exact des temps';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionSubtitle =>
+      'Dans la matrice de programmation, ne signaler une figure répétée entre deux danses consécutives que lorsque ses temps se chevauchent réellement — pas seulement lorsqu\'elle tombe dans la même phrase nommée (A1, A2, B1, B2…). Désactivez pour signaler toute répétition dans la même phrase, même si les temps eux-mêmes ne se chevauchent pas.';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Performance';
 
   @override
@@ -2685,7 +2696,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'yes': ', se répète dans la même phrase qu\'une danse voisine',
+      'phrase': ', se répète dans la même phrase qu\'une danse voisine',
+      'beats': ', partage des temps avec une danse voisine',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -2766,6 +2778,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get programsMatrixLegendCollision =>
       'Même phrase qu\'une danse voisine';
+
+  @override
+  String get programsMatrixLegendCollisionBeats =>
+      'Partage des temps avec une danse voisine';
 
   @override
   String get programsMatrixEmptyTitle => 'Pas encore de figures structurées';
@@ -3254,6 +3270,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get exportMatrixLegendCollision => 'Même phrase qu\'une danse voisine';
+
+  @override
+  String get exportMatrixLegendCollisionBeats =>
+      'Partage des temps avec une danse voisine';
 
   @override
   String exportMatrixOmittedCaption(int count) {

@@ -8,11 +8,12 @@ import 'program_pdf.dart' show loadProgramMatrixMarkerFont, loadProgramPdfTheme;
 
 /// Marker glyphs for the printed matrix. Deliberately distinct SHAPES + a
 /// legend (never colour alone) so the report matches the on-screen table's
-/// accessibility contract (`ProgramMatrixTable`, WCAG 1.4.1): a
-/// same-figure-same-phrase collision with a strictly-adjacent dance is an
-/// alert (`‼`, top precedence), a move's program debut (first dance to use it)
-/// is a star, a dance's own first figure is a triangle, any other present move
-/// is a check, and an absent move is blank.
+/// accessibility contract (`ProgramMatrixTable`, WCAG 1.4.1): a same-figure
+/// collision with a strictly-adjacent dance ([ProgramMatrix.isCollision],
+/// under whichever [MatrixCollisionMode] the matrix carries — issue #962) is
+/// an alert (`‼`, top precedence), a move's program debut (first dance to use
+/// it) is a star, a dance's own first figure is a triangle, any other present
+/// move is a check, and an absent move is blank.
 ///
 /// The collision mark (`‼`, U+203C) is present in the bundled Roboto font's
 /// glyph set, so it renders without help. The star/triangle/check marks are
@@ -104,7 +105,7 @@ Future<Uint8List> buildProgramMatrixPdf(
         if (matrix.isEmpty)
           pw.Text(labels.emptyState, style: const pw.TextStyle(fontSize: 12))
         else ...[
-          _legend(labels, resolvedMarkerFont!),
+          _legend(labels, resolvedMarkerFont!, matrix.collisionMode),
           pw.SizedBox(height: 8),
           _matrixTable(
             matrix,
@@ -192,7 +193,7 @@ pw.Widget _matrixTable(
           ),
           for (var c = 0; c < matrix.columns.length; c++)
             markCell(
-              matrix.isPhraseCollision(r, c)
+              matrix.isCollision(r, c)
                   ? _collisionMark
                   : matrix.isProgramDebut(r, c)
                   ? _debutMark
@@ -214,18 +215,26 @@ pw.Widget _matrixTable(
   );
 }
 
-pw.Widget _legend(ProgramMatrixExportLabels labels, pw.Font markerFont) =>
-    pw.Text(
-      '$_collisionMark  ${labels.legendCollision}      '
-      '$_debutMark  ${labels.legendDebut}      '
-      '$_firstMark  ${labels.legendFirst}      '
-      '$_presentMark  ${labels.legendPresent}',
-      style: pw.TextStyle(
-        fontSize: 10,
-        color: PdfColors.grey700,
-        fontFallback: [markerFont],
-      ),
-    );
+/// The legend caption for the alert marker must always match
+/// [collisionMode] — the same [ProgramMatrix] object drives both the
+/// on-screen matrix and this PDF, so the printed legend can never disagree
+/// with what the screen's alert marker means (issue #962).
+pw.Widget _legend(
+  ProgramMatrixExportLabels labels,
+  pw.Font markerFont,
+  MatrixCollisionMode collisionMode,
+) => pw.Text(
+  '$_collisionMark  '
+  '${collisionMode == MatrixCollisionMode.exactBeats ? labels.legendCollisionBeats : labels.legendCollisionPhrase}      '
+  '$_debutMark  ${labels.legendDebut}      '
+  '$_firstMark  ${labels.legendFirst}      '
+  '$_presentMark  ${labels.legendPresent}',
+  style: pw.TextStyle(
+    fontSize: 10,
+    color: PdfColors.grey700,
+    fontFallback: [markerFont],
+  ),
+);
 
 String _dateVenue(
   DateTime? eventDate,

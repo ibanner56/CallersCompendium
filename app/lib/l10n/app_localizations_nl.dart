@@ -791,6 +791,17 @@ class AppLocalizationsNl extends AppLocalizations {
       'Blader door, bewerk en verwijder je herbruikbare locatierecords.';
 
   @override
+  String get settingsGeneralProgramsHeader => 'Programma\'s';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionTitle =>
+      'Alleen exacte overlap van beats markeren';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionSubtitle =>
+      'In de programmeringsmatrix wordt een herhaalde figuur tussen twee opeenvolgende dansen alleen gemarkeerd als de beats daadwerkelijk overlappen — niet alleen wanneer deze in dezelfde benoemde frase (A1, A2, B1, B2…) valt. Zet uit om elke herhaling in dezelfde frase te markeren, ook als de beats zelf niet overlappen.';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Uitvoering';
 
   @override
@@ -2662,7 +2673,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'yes': ', herhaalt in dezelfde frase als een aangrenzende dans',
+      'phrase': ', herhaalt in dezelfde frase als een aangrenzende dans',
+      'beats': ', deelt beats met een aangrenzende dans',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -2743,6 +2755,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get programsMatrixLegendCollision =>
       'Zelfde frase als aangrenzende dans';
+
+  @override
+  String get programsMatrixLegendCollisionBeats =>
+      'Deelt beats met aangrenzende dans';
 
   @override
   String get programsMatrixEmptyTitle => 'Nog geen gestructureerde figuren';
@@ -3228,6 +3244,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get exportMatrixLegendCollision =>
       'Zelfde frase als aangrenzende dans';
+
+  @override
+  String get exportMatrixLegendCollisionBeats =>
+      'Deelt beats met aangrenzende dans';
 
   @override
   String exportMatrixOmittedCaption(int count) {

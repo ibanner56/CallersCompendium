@@ -880,6 +880,18 @@
   "@settingsGeneralManageVenuesSubtitle": {
     "x-sourceSha256": "b908fb342897dfbf4a729c24b2246ea63e50ed835b5040f8d92f4d695bd271b8"
   },
+  "settingsGeneralProgramsHeader": "Programmer",
+  "@settingsGeneralProgramsHeader": {
+    "x-sourceSha256": "b6747064b2a6dd95ce21899cbfa4a60ed8980b4819014b7a4fce0d849a599fb2"
+  },
+  "settingsGeneralMatrixExactCollisionTitle": "Markér kun nøjagtigt overlappende slag",
+  "@settingsGeneralMatrixExactCollisionTitle": {
+    "x-sourceSha256": "6877e4a9153aed977728160cf1cccaf58f10d5b1500280fb8c9c0343213f1a2e"
+  },
+  "settingsGeneralMatrixExactCollisionSubtitle": "I programmeringsmatrixen markeres en gentaget figur mellem to danse i træk kun, når dens slag rent faktisk overlapper — ikke blot når den falder i samme navngivne frase (A1, A2, B1, B2…). Slå fra for at markere enhver gentagelse i samme frase, selv hvis slagene ikke overlapper.",
+  "@settingsGeneralMatrixExactCollisionSubtitle": {
+    "x-sourceSha256": "d433fe862ddd3dc1f28811aa7a4fdf16562e53f4ad6e664bb57d18586a978c77"
+  },
   "settingsGeneralPerformanceHeader": "Performance",
   "@settingsGeneralPerformanceHeader": {
     "x-sourceSha256": "442aded87a55aa8c8f7d5ff0c30228150d4b1cb8756e4be138d615ca4708fc26"
@@ -2792,9 +2804,9 @@
   "@programsMatrixFormationSemantic": {
     "x-sourceSha256": "3a3521ba348685d92642d35cb5148b4a48ad0ff7c15c4f3a1af88de6e895e2a2"
   },
-  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{ikke til stede} other{til stede{collision, select, yes{, gentages i samme frase som en nabodans} other{}}{debut, select, yes{, introduceret her} other{}}{first, select, yes{, dansens første figur} other{}}}}",
+  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{ikke til stede} other{til stede{collision, select, phrase{, gentages i samme frase som en nabodans} beats{, deler slag med en nabodans} other{}}{debut, select, yes{, introduceret her} other{}}{first, select, yes{, dansens første figur} other{}}}}",
   "@programsMatrixCellSemantic": {
-    "x-sourceSha256": "9db9e695931294c9780a41459c426bbbe020cbcc5c18201dfcbc098eb9f9fa06"
+    "x-sourceSha256": "1f5b065b58ffef684670949c662ec681d2533f3887cf067de3b6235cb5892d00"
   },
   "programsMatrixChipQualifiedTitle": "{alt, select, yes{{half, select, first{{title} (alternativ dans, første halvdel)} second{{title} (alternativ dans, anden halvdel)} other{{title} (alternativ dans)}}} other{{half, select, first{{title} (første halvdel)} second{{title} (anden halvdel)} other{{title}}}}}",
   "@programsMatrixChipQualifiedTitle": {
@@ -2843,6 +2855,10 @@
   "programsMatrixLegendCollision": "Samme frase som nabodans",
   "@programsMatrixLegendCollision": {
     "x-sourceSha256": "936bb9f875e0fa8ffd95ab55900d21e20214b1c419e4146b2ea566633a4c78b6"
+  },
+  "programsMatrixLegendCollisionBeats": "Deler slag med nabodans",
+  "@programsMatrixLegendCollisionBeats": {
+    "x-sourceSha256": "0a365ce270024cc558afcc42e8145ea39eac9b4782a421d840c23c22c66eafb4"
   },
   "programsMatrixEmptyTitle": "Ingen strukturerede figurer endnu",
   "@programsMatrixEmptyTitle": {
@@ -3347,6 +3363,10 @@
   "exportMatrixLegendCollision": "Samme frase som nabodans",
   "@exportMatrixLegendCollision": {
     "x-sourceSha256": "936bb9f875e0fa8ffd95ab55900d21e20214b1c419e4146b2ea566633a4c78b6"
+  },
+  "exportMatrixLegendCollisionBeats": "Deler slag med nabodans",
+  "@exportMatrixLegendCollisionBeats": {
+    "x-sourceSha256": "0a365ce270024cc558afcc42e8145ea39eac9b4782a421d840c23c22c66eafb4"
   },
   "exportMatrixOmittedCaption": "{count, plural, =1{1 fritekst-slot} other{{count} fritekst-slots}} (pauser, noter) udeladt – matrixen viser kun danse.",
   "@exportMatrixOmittedCaption": {
