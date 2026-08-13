@@ -2043,11 +2043,13 @@ void main() {
   testWidgets('3 or fewer params render inline with no disclosure', (
     tester,
   ) async {
-    // chain has 3 params (who, dir, beats) — all inline, no disclosure.
+    // star_promenade has 3 params (who, turn, beats) — all inline, no
+    // disclosure. (chain gained a 4th param, `hand`, in #976, so it no
+    // longer demonstrates the ≤3 case this test is about.)
     final drafts = <FigureDraft>[
       FigureDraft(
-        move: 'chain',
-        params: {'who': 'role2s', 'dir': 'across', 'beats': 8},
+        move: 'star_promenade',
+        params: {'who': 'role1s', 'turn': 0.5, 'beats': 4},
       ),
     ];
     await _pump(tester, drafts);
