@@ -607,10 +607,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('batch-rating-confirm')));
       await tester.pumpAndSettle();
 
-      expect(
-        (await counted.repos.dances.getById('d1'))!.rating,
-        4,
-      );
+      expect((await counted.repos.dances.getById('d1'))!.rating, 4);
       expect(
         counted.dances.loads,
         2,

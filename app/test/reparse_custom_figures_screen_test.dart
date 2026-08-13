@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
