@@ -16,6 +16,7 @@ import '../data/refresh_coalescer.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../export/dance_pdf.dart';
 import '../export/export_labels_l10n.dart';
 import '../search/dance_detail_data.dart';
@@ -225,7 +226,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
               DanceDetailRendering.canonical;
         }
       } catch (_) {
-        // Keep the historical default (active dialect).
+        // diagnostics: silent — rendering preference read failed; keeps historical default (active dialect).
       }
     }
 
@@ -611,7 +612,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     final l10n = AppLocalizations.of(context);
     try {
       await SharePlus.instance.share(ShareParams(text: text, subject: subject));
-    } on Exception catch (_) {
+    } on Exception catch (e, stackTrace) {
+      logCaughtError(e, stackTrace, source: 'dance_detail_screen._shareDance');
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.exportShareDanceError)),
       );
@@ -642,7 +644,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           labels: danceExportLabels(l10n),
         ),
       );
-    } on Exception catch (_) {
+    } on Exception catch (e, stackTrace) {
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'dance_detail_screen._exportDancePdf',
+      );
       messenger.showSnackBar(SnackBar(content: Text(l10n.exportDanceError)));
     }
   }

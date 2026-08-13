@@ -554,6 +554,7 @@ Future<TitleListRow> _resolveOne(
     plans.add(preview.plan);
     return TitleListRow.toImport(title: title, planIndex: plans.length - 1);
   } on Exception catch (_) {
+    // diagnostics: silent — preview fetch failure surfaced via TitleListRow.notFound(fetchError) to the title list import screen
     return TitleListRow.notFound(
       title: title,
       reason: TitleListNotFoundReason.fetchError,
@@ -586,6 +587,7 @@ Future<List<String>> _authorNamesFor(
         if (names[id] != null) names[id]!,
     ];
   } on Exception catch (_) {
+    // diagnostics: silent — author names are a disambiguating nicety; degrade to empty rather than failing the row
     return const [];
   }
 }

@@ -273,6 +273,7 @@ Future<_SourceAttempt> _attemptSource(
     final danceId = result.danceId;
     return danceId != null ? _SourceImported(danceId) : const _SourceMiss();
   } on Exception catch (_) {
+    // diagnostics: silent — fetch/import failure returns _SourceMiss; surfaced as unmatched/note slot to import review
     return const _SourceMiss();
   }
 }

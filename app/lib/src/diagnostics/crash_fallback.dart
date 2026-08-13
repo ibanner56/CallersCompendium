@@ -37,7 +37,10 @@ class _CrashFallbackState extends State<CrashFallback> {
       await Clipboard.setData(ClipboardData(text: _detailsText));
       if (mounted) setState(() => _copied = true);
     } catch (_) {
-      // Copying is best-effort; never let it throw out of the fallback.
+      // diagnostics: silent — copying is best-effort; this widget renders in
+      // place of a failed build (potentially above the app's own scopes) and
+      // deliberately does no I/O of its own to avoid a crash-during-crash loop
+      // (see the class doc), so a clipboard failure here is not logged either.
     }
   }
 

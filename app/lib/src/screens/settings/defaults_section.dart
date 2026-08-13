@@ -128,6 +128,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           });
         })
         .catchError((_) {
+          // diagnostics: silent — default-collection-sort read failed; falls
+          // back to the built-in title/ascending default.
           if (!mounted || _defaultSortUserSet) return;
           setState(
             () => _defaultCollectionSort = const SortDefaultSetting.concrete(
@@ -148,6 +150,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           });
         })
         .catchError((_) {
+          // diagnostics: silent — default-program-sort read failed; falls
+          // back to the built-in title/ascending default.
           if (!mounted || _defaultProgramSortUserSet) return;
           setState(
             () => _defaultProgramSort = const SortDefaultSetting.concrete(
@@ -166,6 +170,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           });
         })
         .catchError((_) {
+          // diagnostics: silent — default-rendering read failed; falls back
+          // to the active-dialect default.
           if (!mounted || _defaultRenderingUserSet) return;
           setState(
             () => _defaultDanceDetailRendering =
@@ -182,7 +188,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           }
         })
         .catchError((_) {
-          /* fall back to a blank caller field */
+          /* diagnostics: silent — fall back to a blank caller field */
         });
     repos.settings
         .get(kDefaultProgramBandKey)
@@ -194,7 +200,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           }
         })
         .catchError((_) {
-          /* fall back to a blank band field */
+          /* diagnostics: silent — fall back to a blank band field */
         });
     repos.settings
         .get(kDefaultDanceFormKey)
@@ -203,6 +209,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           setState(() => _defaultDanceForm = danceFormFromStored(stored));
         })
         .catchError((_) {
+          // diagnostics: silent — default-dance-form read failed; falls back
+          // to the built-in contra default.
           if (!mounted || _defaultDanceFormUserSet) return;
           setState(() => _defaultDanceForm = DanceForm.contra);
         });
@@ -216,6 +224,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           );
         })
         .catchError((_) {
+          // diagnostics: silent — default-formation-shape read failed; falls
+          // back to the built-in duple-improper default.
           if (!mounted || _defaultDanceFormationShapeUserSet) return;
           setState(
             () => _defaultDanceFormationShape = FormationShape.dupleImproper,
@@ -230,6 +240,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           );
         })
         .catchError((_) {
+          // diagnostics: silent — default-progression read failed; falls back
+          // to the built-in single-progression default.
           if (!mounted || _defaultDanceProgressionUserSet) return;
           setState(() => _defaultDanceProgression = Progression.single);
         });
@@ -243,7 +255,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           }
         })
         .catchError((_) {
-          /* fall back to a blank (standard) phrase field */
+          /* diagnostics: silent — fall back to a blank (standard) phrase field */
         });
     repos.settings
         .get(kDefaultDanceFiguresTemplateKey)
@@ -260,7 +272,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           });
         })
         .catchError((_) {
-          /* keep the pre-seeded default `stand_still × 8` template */
+          /* diagnostics: silent — keep the pre-seeded default `stand_still × 8` template */
         });
     repos.settings
         .get(kDefaultMoveParamOverridesKey)
@@ -278,7 +290,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           });
         })
         .catchError((_) {
-          /* keep the empty override map (pure taxonomy defaults) */
+          /* diagnostics: silent — keep the empty override map (pure taxonomy defaults) */
         });
     repos.settings
         .get(kFreeTextEntryKey)
@@ -287,6 +299,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           setState(() => _freeTextEntry = stored is bool ? stored : false);
         })
         .catchError((_) {
+          // diagnostics: silent — free-text-entry read failed; falls back to
+          // the built-in off default.
           if (!mounted || _freeTextEntryUserSet) return;
           setState(() => _freeTextEntry = false);
         });

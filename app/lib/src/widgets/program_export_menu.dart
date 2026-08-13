@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_pdf.dart';
 import '../export/program_share_bundle.dart';
@@ -482,6 +483,7 @@ class ProgramExportMenu extends StatelessWidget {
     try {
       await action();
     } on Exception catch (e, st) {
+      logCaughtError(e, st, source: 'program_export_menu._guard');
       if (kDebugMode) {
         debugPrint('$failureMessage: $e\n$st');
       }

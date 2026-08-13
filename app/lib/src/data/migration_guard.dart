@@ -275,6 +275,7 @@ Future<void> runMigrationPreflight({
         timestamp: now(),
       );
     } on Object catch (error) {
+      // diagnostics: silent — pre-migration snapshot failed; returns SnapshotFailure to caller (bootstrap infrastructure, not UI).
       final failure = SnapshotFailure(
         fromVersion: fileVersion,
         toVersion: runningSchemaVersion,
@@ -454,7 +455,8 @@ Future<void> _pruneSnapshots(Directory dir, int retain) async {
     try {
       await file.delete();
     } on FileSystemException {
-      // Best-effort pruning: a snapshot we couldn't delete is harmless.
+      // diagnostics: silent — best-effort pruning; a snapshot we couldn't
+      // delete is harmless.
     }
   }
 }
@@ -535,6 +537,7 @@ Future<BackUpAndResetResult> performBackUpAndReset({
       timestamp: now,
     );
   } on Object catch (error) {
+    // diagnostics: silent — snapshot write failed; returns BackUpFailed to caller (bootstrap infrastructure, not UI).
     return BackUpFailed(cause: classifySnapshotFailure(error), error: error);
   }
 
@@ -551,7 +554,7 @@ Future<BackUpAndResetResult> performBackUpAndReset({
       bridgeTag: bridgeTag,
     );
   } on Object {
-    // Non-fatal: proceed without a log file.
+    // diagnostics: silent — non-fatal: proceed without a log file.
   }
 
   return BackUpReady(snapshot, diagnosticLogFile: logFile);
@@ -627,6 +630,7 @@ Future<ResetResult> performReset({
       await deleter(dbFile);
     }
   } on Object catch (error) {
+    // diagnostics: silent — DB file deletion failed; returns ResetFailed to caller (bootstrap infrastructure, not UI).
     return ResetFailed(error);
   }
   // WAL/SHM sidecars: best-effort, non-load-bearing.
@@ -636,7 +640,8 @@ Future<ResetResult> performReset({
       try {
         await sidecar.delete();
       } on FileSystemException {
-        // Best-effort: a stale sidecar is harmless once the main file is gone.
+        // diagnostics: silent — best-effort: a stale sidecar is harmless once
+        // the main file is gone.
       }
     }
   }

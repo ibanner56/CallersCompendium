@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../diagnostics/error_log.dart';
+
 /// Keeps the device screen awake for the lifetime of a Perform view
 /// (`docs/design/ux.md` §5; ROADMAP 5.2). A caller often props a tablet across
 /// the room, so the screen must not auto-sleep while a large-print reading view
@@ -74,6 +76,11 @@ mixin PerformWakelockMixin<T extends StatefulWidget>
           '${enable ? 'enable' : 'disable'} wake-lock: $error\n$stackTrace',
         );
       }
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'perform_wakelock._setWakelock',
+      );
     }
   }
 }

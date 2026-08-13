@@ -13,6 +13,7 @@ import '../data/programs_refresh_scope.dart';
 import '../data/plaintext_program_import.dart';
 import '../data/program_import_online_resolver.dart';
 import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../utils/undo_snack_bar.dart';
 import 'import_review_screen.dart';
 
@@ -115,7 +116,12 @@ class _PlaintextProgramImportScreenState
         _collection = collection;
         _loadError = null;
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'plaintext_program_import_screen._load',
+      );
       if (mounted) setState(() => _loadError = error);
     }
   }
@@ -191,6 +197,11 @@ class _PlaintextProgramImportScreenState
           'Plaintext title-list online resolve failed: $error\n$stackTrace',
         );
       }
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'plaintext_program_import_screen._resolveOnline',
+      );
       setState(() => _resolving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -232,8 +243,8 @@ class _PlaintextProgramImportScreenState
         if (!mounted) return;
         _collection = collection;
       } on Exception {
-        // A refresh failure is non-fatal: the resolved override already links
-        // the imported dances for this session.
+        // diagnostics: silent — a refresh failure is non-fatal: the resolved
+        // override already links the imported dances for this session.
       }
     }
     setState(() {
@@ -320,6 +331,11 @@ class _PlaintextProgramImportScreenState
           'Plaintext program import write failed: $error\n$stackTrace',
         );
       }
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'plaintext_program_import_screen._commit',
+      );
       setState(() => _committing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

@@ -16,6 +16,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/shorthand_mappings_scope.dart';
 import '../data/title_list_import.dart';
 import '../data/venue_entity_mode_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/figure_diff_view.dart';
 import 'dance_editor_screen.dart';
@@ -303,9 +304,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           );
         }
       } catch (_) {
-        // Not a decodable archive — leave bundle null; the dance-only path
-        // handles it unchanged and GenericJsonAdapter will report the error at
-        // plan time.
+        // diagnostics: silent — not a decodable archive; leave bundle null,
+        // the dance-only path handles it unchanged and GenericJsonAdapter will
+        // report the error at plan time (which is logged there instead).
       }
     }
     // The listener fires synchronously inside TextEditingController.value =,
@@ -451,9 +452,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       // provenance so this import is recorded as file/paste (uri == null).
       // _onPasteChanged fires synchronously and updates _cachedPickedBundle.
       _sourceUri = null;
-    } on ImportFileTooLargeException catch (e) {
+    } on ImportFileTooLargeException catch (e, stackTrace) {
       // Untrusted input rejected before it was read into memory — tell the user
       // plainly (accessible SnackBar) and leave the input untouched.
+      logCaughtError(e, stackTrace, source: 'import_review_screen._chooseFile');
       messenger.showSnackBar(
         SnackBar(
           key: const ValueKey('import-file-too-large'),
@@ -479,7 +481,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       final bytes = await picker();
       if (!mounted || bytes == null) return;
       setState(() => _payloadBytes = bytes);
-    } on ImportFileTooLargeException catch (e) {
+    } on ImportFileTooLargeException catch (e, stackTrace) {
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'import_review_screen._chooseUsrFile',
+      );
       messenger.showSnackBar(
         SnackBar(
           key: const ValueKey('import-file-too-large'),
@@ -500,7 +507,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final String target;
     try {
       target = _selected.urlBuilder?.call(input) ?? input;
-    } on UrlFetchException catch (e) {
+    } on UrlFetchException catch (e, stackTrace) {
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'import_review_screen._fetchFromUrl.buildUrl',
+      );
       setState(() => _fetchError = importErrorMessage(l10n, e));
       return;
     }
@@ -517,16 +529,29 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // the human URL/id the user typed.
         _sourceUri = target;
       });
-    } on UrlFetchException catch (e) {
+    } on UrlFetchException catch (e, stackTrace) {
       if (!mounted) return;
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'import_review_screen._fetchFromUrl.fetch',
+      );
       setState(() => _fetchError = importErrorMessage(l10n, e));
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) return;
       // Never surface the raw error to the user (CWE-209); keep it for debug
       // logging only and show a generic, localized fetch-failure message.
       if (kDebugMode) {
         debugPrint('Import URL fetch failed: $e');
       }
+      // Same CWE-209 caution as the debug-only print above: an arbitrary
+      // fetch-transport error is not known log-safe, so only its shape is
+      // recorded (issue #963).
+      logCaughtErrorTypeOnly(
+        e,
+        stackTrace,
+        source: 'import_review_screen._fetchFromUrl.fetch',
+      );
       setState(() => _fetchError = l10n.importErrorUnreachable);
     } finally {
       if (mounted) setState(() => _fetching = false);
@@ -560,8 +585,20 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         index: index,
       );
       await _adoptBatch(batch);
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) return;
+      // `payload`/`bytes` here is the raw pasted/fetched/file content the user
+      // supplied; a parse error from `pipeline.plan` (e.g. an adapter's own
+      // ArchiveError) can echo fragments of it (see `docs/dev/localization.md`
+      // on `ArchiveError(message:)` carrying internal diagnostics). It's
+      // neither redacted by `CrashRedactor` (which only strips DB-known
+      // content, emails/phones/paths) nor DB-derived, so only the error's
+      // shape is recorded here, not its message (issue #963).
+      logCaughtErrorTypeOnly(
+        e,
+        stackTrace,
+        source: 'import_review_screen._plan',
+      );
       setState(() {
         _planError = e;
         _phase = _Phase.review;
@@ -604,17 +641,31 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       );
       if (!mounted) return;
       await _adoptBatch(resolution.batch, titleList: resolution);
-    } on TitleListTooLargeException catch (e) {
+    } on TitleListTooLargeException catch (e, stackTrace) {
       if (!mounted) return;
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'import_review_screen._planTitleList',
+      );
       setState(() {
         _resetToInput();
         _titleListError = titleListTooLargeMessage(l10n, e);
       });
     } on TitleListCancelled {
+      // diagnostics: silent — user-initiated cancellation (the `isCancelled`
+      // callback tripped), not a failure; nothing to log.
       if (!mounted) return;
       setState(_resetToInput);
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) return;
+      // Same pasted-content caution as `_plan` above: `payload` is raw pasted
+      // text, so only the error's shape is recorded, not its message.
+      logCaughtErrorTypeOnly(
+        e,
+        stackTrace,
+        source: 'import_review_screen._planTitleList',
+      );
       setState(() {
         _planError = e;
         _phase = _Phase.review;
@@ -962,6 +1013,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       if (kDebugMode) {
         debugPrint('Import commit-for-edit failed: $e\n$stackTrace');
       }
+      logCaughtError(e, stackTrace, source: 'import_review_screen._editRow');
       setState(() => _phase = _Phase.review);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1054,6 +1106,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       if (kDebugMode) {
         debugPrint('Import commit failed: $e\n$stackTrace');
       }
+      logCaughtError(e, stackTrace, source: 'import_review_screen._commit');
       setState(() => _phase = _Phase.review);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1134,9 +1187,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         await controller.upsert(mapping);
         seeded++;
       } catch (e, stackTrace) {
-        // Bounds/duplicate backstop — never surface a raw error to the user
-        // (this is an optional background step), but log it so an unexpected
-        // failure is diagnosable.
+        // diagnostics: silent — bounds/duplicate backstop; never surface a raw
+        // error to the user (this is an optional background step, and the
+        // token/mapping content is unvalidated pasted import content, so it
+        // isn't logged either — see `_plan`'s `logCaughtErrorTypeOnly` note
+        // above for why raw pasted content isn't recorded). Debug-only print
+        // remains for local diagnosis.
         if (kDebugMode) {
           debugPrint('Shorthand seed upsert failed: $e\n$stackTrace');
         }

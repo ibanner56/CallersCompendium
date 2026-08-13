@@ -31,6 +31,7 @@ Future<bool> verifyArtifactSha256(File file, String expectedSha256Hex) async {
   try {
     digest = await sha256.bind(file.openRead()).first;
   } on Object {
+    // diagnostics: silent — I/O error reading the artifact file for SHA-256 verification; fails closed (returns false)
     return false;
   }
   return constantTimeHexEquals(digest.toString(), expectedSha256Hex);

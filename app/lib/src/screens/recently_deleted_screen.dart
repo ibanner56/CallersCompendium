@@ -154,7 +154,7 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
           setState(() => _retention = resolved);
         })
         .catchError((_) {
-          /* keep the seeded default */
+          /* diagnostics: silent — retention setting read failed; keeps seeded default. */
         });
   }
 

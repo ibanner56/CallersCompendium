@@ -318,21 +318,21 @@ class DanceEditorController extends ChangeNotifier {
           await _repos.settings.get(kDefaultDanceFormKey),
         );
       } catch (_) {
-        /* keep the hardcoded DanceForm.contra default */
+        // diagnostics: silent — DanceForm default read failed; falls back to hardcoded contra.
       }
       try {
         _formationShape = formationShapeFromStored(
           await _repos.settings.get(kDefaultDanceFormationShapeKey),
         );
       } catch (_) {
-        /* keep the hardcoded FormationShape.dupleImproper default */
+        // diagnostics: silent — FormationShape default read failed; falls back to hardcoded dupleImproper.
       }
       try {
         _progression = progressionFromStored(
           await _repos.settings.get(kDefaultDanceProgressionKey),
         );
       } catch (_) {
-        /* keep the hardcoded Progression.single default */
+        // diagnostics: silent — Progression default read failed; falls back to hardcoded single.
       }
       try {
         final raw = dancePhraseStructureRawFromStored(
@@ -341,7 +341,7 @@ class DanceEditorController extends ChangeNotifier {
         // Empty ⇒ leave the historical standard 4×16 (blank controller).
         if (raw.isNotEmpty) phraseController.text = raw;
       } catch (_) {
-        /* keep the hardcoded standard phrase structure */
+        // diagnostics: silent — phrase structure default read failed; falls back to hardcoded standard.
       }
       // Seed the starting figures from the saved template (ROADMAP DD.2).
       // Unset ⇒ the default `stand_still × 8`; a read/decode failure also
@@ -355,6 +355,7 @@ class DanceEditorController extends ChangeNotifier {
         );
         figureDrafts.addAll(template.map(FigureDraft.fromFigure));
       } catch (_) {
+        // diagnostics: silent — figures template read/decode failed; falls back to default stand_still × 8.
         figureDrafts.addAll(
           defaultNewDanceFigureTemplate().map(FigureDraft.fromFigure),
         );
@@ -382,7 +383,7 @@ class DanceEditorController extends ChangeNotifier {
       try {
         draftSnapshot = decodeDraft(raw);
       } catch (_) {
-        // Corrupt / unrecognised draft version — silently discard.
+        // diagnostics: silent — corrupt/unrecognised draft version; discard rather than fail the editor load.
         await _repos.settings.remove(draftKey, permanent: true);
       }
       if (draftSnapshot != null && !_disposed) {
@@ -439,6 +440,9 @@ class DanceEditorController extends ChangeNotifier {
     try {
       _phraseStructure = PhraseStructure.parse(phraseController.text);
     } on FormatException {
+      // diagnostics: silent — invalid phrase structure is surfaced by the
+      // field validator instead (see the method doc); here it just leaves the
+      // last good warnings rather than clearing them.
       return;
     }
     final issues = <ValidationIssue>[];
@@ -677,8 +681,7 @@ class DanceEditorController extends ChangeNotifier {
       final encoded = encodeDraft(captureSnapshot());
       await _repos.settings.set(draftKey, encoded);
     } catch (_) {
-      // A draft write failure must never disrupt editing, nor permanently
-      // stall the save chain for later autosaves; the next edit retries.
+      // diagnostics: silent — draft write failure; must never stall editing or permanently block later autosaves.
     }
   }
 

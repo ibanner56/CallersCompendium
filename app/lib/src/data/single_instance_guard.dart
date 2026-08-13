@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart'
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../diagnostics/error_log.dart';
+
 /// File name of the desktop single-instance lock, kept inside the app's private
 /// application-support directory (never a world-writable/predictable temp path).
 const String kSingleInstanceLockFileName = 'single_instance.lock';
@@ -115,6 +117,7 @@ class AdvisoryFileLock implements InstanceLockPrimitive {
       // can't be taken.
       await _lock(raf);
     } on FileSystemException catch (error) {
+      // diagnostics: silent — lock acquisition failed; determines whether to return null (contention) or rethrow (unexpected fault).
       await raf.close();
       // Only *genuine contention* (the lock is held by another live process)
       // means a second instance is running → return null (alreadyRunning). Any
@@ -142,7 +145,8 @@ class _RandomAccessFileLockHandle implements InstanceLockHandle {
     try {
       await _raf.unlock();
     } on FileSystemException {
-      // Best-effort: closing the handle (below) releases the lock regardless.
+      // diagnostics: silent — best-effort: closing the handle (below)
+      // releases the lock regardless.
     }
     await _raf.close();
   }
@@ -223,6 +227,11 @@ class DesktopSingleInstance {
           'Single-instance guard unavailable, failing open: $error\n$stackTrace',
         );
       }
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'single_instance_guard.acquire',
+      );
       return SingleInstanceResult.unavailable;
     }
   }

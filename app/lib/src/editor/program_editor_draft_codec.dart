@@ -290,6 +290,7 @@ ProgramSlot _parseSlot(Object? e) {
       performedAt: _dateOrNull(m['performedAt'], 'slot.performedAt'),
     );
   } on ArgumentError catch (err) {
+    // diagnostics: silent — converts ArgumentError to FormatException and rethrows;
     // The ProgramSlot constructor throws ArgumentError (a Dart Error, not an
     // Exception) for a slot with neither danceId nor text, a negative position,
     // or negative plannedMinutes. Surface it as a FormatException so the load

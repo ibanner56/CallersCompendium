@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../diagnostics/error_log.dart';
 import '../export/dance_pdf.dart';
 import '../export/export_labels_l10n.dart';
 import '../utils/safe_name.dart';
@@ -152,6 +153,7 @@ class DanceExportMenu extends StatelessWidget {
     try {
       await action();
     } on Exception catch (e, st) {
+      logCaughtError(e, st, source: 'dance_export_menu._guard');
       if (kDebugMode) {
         debugPrint('$failureMessage: $e\n$st');
       }

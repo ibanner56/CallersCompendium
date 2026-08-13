@@ -154,10 +154,12 @@ class ArchiveIntakeService {
     try {
       bytes = await (_injectedReader ?? _readFileWithCap)(path);
     } on OversizedArchiveException {
+      // diagnostics: silent — surfaced via ArchiveIntakeValidation.rejected(tooLarge) to the intake screen
       return ArchiveIntakeValidation.rejected(
         ArchiveIntakeRejectionReason.tooLarge,
       );
     } catch (_) {
+      // diagnostics: silent — surfaced via ArchiveIntakeValidation.rejected(unreadable) to the intake screen
       return ArchiveIntakeValidation.rejected(
         ArchiveIntakeRejectionReason.unreadable,
       );
@@ -186,6 +188,7 @@ class ArchiveIntakeService {
     try {
       json = utf8.decode(bytes);
     } catch (_) {
+      // diagnostics: silent — surfaced via ArchiveIntakeValidation.rejected(notArchive) to the intake screen
       return ArchiveIntakeValidation.rejected(
         ArchiveIntakeRejectionReason.notArchive,
       );
@@ -195,6 +198,7 @@ class ArchiveIntakeService {
     try {
       read = decodeArchive(json);
     } catch (_) {
+      // diagnostics: silent — surfaced via ArchiveIntakeValidation.rejected(notArchive) to the intake screen;
       // decodeArchive is contract-bound not to throw for recoverable problems,
       // but stay defensive — never let anything escape intake.
       return ArchiveIntakeValidation.rejected(

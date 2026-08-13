@@ -63,7 +63,7 @@ class CustomThemesController extends ChangeNotifier {
           try {
             _themes.add(CustomTheme.fromJson(entry.cast<String, Object?>()));
           } catch (_) {
-            // Skip a corrupt entry rather than losing every theme.
+            // diagnostics: silent — skips a corrupt entry rather than losing every theme
           }
         }
       }

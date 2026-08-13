@@ -24,6 +24,7 @@ import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
+import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
@@ -453,7 +454,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
       );
       if (!mounted) return;
       _watchCollectionData(callerFilter);
-    } catch (error) {
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'dance_list_screen._boot');
       if (mounted) setState(() => _loadError = error);
     }
   }
@@ -470,7 +472,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
     unawaited(_dataSub?.cancel());
     _dataSub = CollectionData.watch(_repos, callerFilter: callerFilter).listen(
       _onCollectionData,
-      onError: (Object error) {
+      onError: (Object error, StackTrace stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'dance_list_screen._watchCollectionData',
+        );
         if (mounted) setState(() => _loadError = error);
       },
       onDone: () {
@@ -592,6 +599,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
         CollectionSort.title,
       );
     } catch (_) {
+      // diagnostics: silent — a settings read/decode failure must not fail the
+      // whole Collection load; fall back to the historical default (title,
+      // ascending).
       return;
     }
     if (!mounted || _sortUserSet) return;
@@ -613,6 +623,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
             sortDirectionFromName(storedDirection) ??
             sort.searchSort.defaultDirection;
       } catch (_) {
+        // diagnostics: silent — same tolerance as the mode read above; fall
+        // back by returning and leaving the built-in default in place.
         return;
       }
       if (!mounted || _sortUserSet) return;
@@ -726,8 +738,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ];
         _searching = false;
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted || seq != _searchSeq) return;
+      logCaughtError(error, stackTrace, source: 'dance_list_screen._runSearch');
       setState(() {
         _searchError = error;
         // Clear stale results so the live count matches the error state rather
@@ -870,15 +883,30 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _onlineResults = results;
         _onlineSearching = false;
       });
-    } on UrlFetchException catch (error) {
+    } on UrlFetchException catch (error, stackTrace) {
       if (!mounted || seq != _onlineSeq) return;
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._runOnlineSearch',
+      );
       setState(() {
         _onlineError = importErrorMessage(l10n, error);
         _onlineResults = const [];
         _onlineSearching = false;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
       if (!mounted || seq != _onlineSeq) return;
+      // Unlike the typed branch above, an arbitrary caught error here is not
+      // known to be log-safe (it may originate from an online transport's raw
+      // response), so only its shape is recorded (issue #963), mirroring the
+      // same CWE-209-motivated caution as `contradb_program_import_screen`'s
+      // fetch catch.
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._runOnlineSearch',
+      );
       setState(() {
         _onlineError = l10n.onlineSearchFailed(_onlineSource.label);
         _onlineResults = const [];
@@ -917,13 +945,25 @@ class _DanceListScreenState extends State<DanceListScreen> {
     OnlinePreview preview;
     try {
       preview = await _online.loadPreview(_repos, result);
-    } on UrlFetchException catch (error) {
+    } on UrlFetchException catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._pushOnlinePreview',
+      );
       if (mounted) navigator.pop();
       messenger.showSnackBar(
         SnackBar(content: Text(importErrorMessage(l10n, error))),
       );
       return;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      // See `_runOnlineSearch` above: an arbitrary online-transport error is
+      // not known log-safe, so only its shape is recorded.
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._pushOnlinePreview',
+      );
       if (mounted) navigator.pop();
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.onlineLoadError(sourceLabel))),
@@ -1055,12 +1095,24 @@ class _DanceListScreenState extends State<DanceListScreen> {
           ),
         );
       }
-    } on UrlFetchException catch (error) {
+    } on UrlFetchException catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._importOnline',
+      );
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(content: Text(importErrorMessage(l10n, error))),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      // See `_runOnlineSearch` above: an arbitrary online-transport/import
+      // error is not known log-safe, so only its shape is recorded.
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._importOnline',
+      );
       if (!mounted) return;
       messenger.showSnackBar(SnackBar(content: Text(l10n.onlineImportError)));
     } finally {

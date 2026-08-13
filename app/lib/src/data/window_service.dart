@@ -116,8 +116,8 @@ class WindowService with WindowListener {
         visibleY: visiblePosition.dy,
       );
     } catch (_) {
-      // If display info is unavailable, still enforce the minimum size so we
-      // never restore an unusably tiny window.
+      // diagnostics: silent — if display info is unavailable, still enforce the minimum size so we
+      // never restore an unusably tiny window
       return frame.clampToBounds(
         visibleWidth: frame.width,
         visibleHeight: frame.height,

@@ -76,8 +76,10 @@ class IncomingFileChannel {
       final path = await _channel.invokeMethod<String>('getInitialFile');
       return (path != null && path.isNotEmpty) ? path : null;
     } on MissingPluginException {
+      // diagnostics: silent — no native implementation on this platform; treat as no file
       return null;
     } on PlatformException {
+      // diagnostics: silent — channel error on start; treat as no file so the app always starts
       return null;
     }
   }
@@ -91,8 +93,10 @@ class IncomingFileChannel {
       final url = await _channel.invokeMethod<String>('getInitialUrl');
       return (url != null && url.isNotEmpty) ? url : null;
     } on MissingPluginException {
+      // diagnostics: silent — no native implementation on this platform; treat as no URL
       return null;
     } on PlatformException {
+      // diagnostics: silent — channel error on start; treat as no URL so the app always starts
       return null;
     }
   }

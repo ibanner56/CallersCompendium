@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/collection_refresh_scope.dart';
 import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../theme/app_spacing.dart';
 
 /// Signature for loading the re-parse preview; defaults to
@@ -77,7 +78,12 @@ class _ReparseCustomFiguresScreenState
             _loadError = null;
           });
         })
-        .catchError((Object error) {
+        .catchError((Object error, StackTrace stackTrace) {
+          logCaughtError(
+            error,
+            stackTrace,
+            source: 'reparse_custom_figures_screen._load',
+          );
           if (!mounted) return;
           setState(() => _loadError = error);
         });
@@ -138,7 +144,12 @@ class _ReparseCustomFiguresScreenState
     int changed;
     try {
       changed = await applier(repos, ids);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'reparse_custom_figures_screen._onApply',
+      );
       // Re-enable the button and tell the user; nothing was committed because
       // the batch is a single transaction (it rolls back as a whole).
       if (!mounted) return;

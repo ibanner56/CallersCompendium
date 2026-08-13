@@ -23,6 +23,7 @@ import '../../data/verbose_figure_rendering_scope.dart';
 import '../../data/decimal_turns_scope.dart';
 import '../../data/matrix_collision_mode_scope.dart';
 import '../../data/venue_entity_mode_scope.dart';
+import '../../diagnostics/error_log.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
@@ -92,6 +93,7 @@ class _GeneralSectionState extends State<GeneralSection> {
           setState(() => _autoSizePerform = value is bool ? value : true);
         })
         .catchError((_) {
+          // diagnostics: silent — auto-size setting read failed; falls back to on-by-default.
           if (!mounted || _autoSizeUserSet) return;
           setState(() => _autoSizePerform = true);
         });
@@ -124,6 +126,7 @@ class _GeneralSectionState extends State<GeneralSection> {
           );
         })
         .catchError((_) {
+          // diagnostics: silent — retention setting read failed; falls back to built-in default.
           if (!mounted || _softDeleteRetentionUserSet) return;
           setState(
             () => _softDeleteRetentionDays = kSoftDeleteRetentionDefaultDays,
@@ -176,6 +179,7 @@ class _GeneralSectionState extends State<GeneralSection> {
           );
         })
         .catchError((_) {
+          // diagnostics: silent — backup cadence setting read failed; falls back to Off.
           if (!mounted) return;
           setState(() => _backupCadence = BackupReminderCadence.off);
         });
@@ -185,7 +189,9 @@ class _GeneralSectionState extends State<GeneralSection> {
           if (!mounted) return;
           setState(() => _lastBackupAt = lastBackupAtFromStored(stored));
         })
-        .catchError((_) {});
+        .catchError(
+          (_) {},
+        ); // diagnostics: silent — last-backup timestamp read failed; leaves _lastBackupAt null (no user surface).
   }
 
   Future<void> _onBackupCadenceChanged(BackupReminderCadence cadence) async {
@@ -233,6 +239,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       });
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupExported)));
     } on Exception catch (e, st) {
+      logCaughtError(e, st, source: 'general_section._onExportBackup');
       if (kDebugMode) {
         debugPrint('Backup export failed: $e\n$st');
       }
@@ -302,6 +309,7 @@ class _GeneralSectionState extends State<GeneralSection> {
         ),
       );
     } on Exception catch (e, st) {
+      logCaughtError(e, st, source: 'general_section._onRestoreBackup');
       if (kDebugMode) {
         debugPrint('Backup restore failed: $e\n$st');
       }
@@ -381,6 +389,7 @@ class _GeneralSectionState extends State<GeneralSection> {
         SnackBar(content: Text(l10n.backupRestoreSettingsRetried)),
       );
     } on Exception catch (e, st) {
+      logCaughtError(e, st, source: 'general_section._retrySettingsRestore');
       if (kDebugMode) debugPrint('Backup settings retry failed: $e\n$st');
       if (!mounted) return;
       _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
@@ -907,7 +916,8 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
       final json = await widget.picker();
       if (!mounted || json == null) return;
       _controller.text = json;
-    } on BackupFileTooLargeException catch (e) {
+    } on BackupFileTooLargeException catch (e, stackTrace) {
+      logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
       // Surface the size-cap refusal as a friendly message instead of letting
       // it crash the picker: the file was never read, so live data is safe.
       if (!mounted) return;

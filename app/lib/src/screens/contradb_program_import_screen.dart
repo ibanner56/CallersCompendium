@@ -16,6 +16,7 @@ import '../data/import_io.dart';
 import '../data/program_title_date.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../utils/undo_snack_bar.dart';
 
 /// How the user is choosing which ContraDB program to import.
@@ -235,6 +236,24 @@ class _ContraDbProgramImportScreenState
       if (kDebugMode) {
         debugPrint('ContraDB program fetch failed: $error\n$stackTrace');
       }
+      // Mirrors the CWE-209 policy just above: UrlFetchException is log-safe
+      // by construction (typed reason only, never raw prose), but any other
+      // caught type here is exactly the "arbitrary caught exception" the
+      // comment above refuses to surface to the UI, so it isn't logged
+      // verbatim either — only its shape (issue #963).
+      if (error is UrlFetchException) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'contradb_program_import_screen._fetchProgram',
+        );
+      } else {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'contradb_program_import_screen._fetchProgram',
+        );
+      }
       setState(() {
         _fetching = false;
         _fetchFailed = true;
@@ -282,8 +301,9 @@ class _ContraDbProgramImportScreenState
         );
       });
     } catch (_) {
-      // The marker is a best-effort hint: if the collection can't be read we
-      // simply show no markers rather than surfacing an error.
+      // diagnostics: silent — the marker is a best-effort hint; if the
+      // collection can't be read we simply show no markers rather than
+      // surfacing an error.
     }
   }
 
@@ -305,8 +325,13 @@ class _ContraDbProgramImportScreenState
         _indexLoading = false;
         _searchResults = filterProgramIndex(entries, _searchController.text);
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'contradb_program_import_screen._loadIndex',
+      );
       setState(() {
         _indexLoading = false;
         _searchError = error;
@@ -352,6 +377,11 @@ class _ContraDbProgramImportScreenState
       if (kDebugMode) {
         debugPrint('ContraDB program resolve failed: $error\n$stackTrace');
       }
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'contradb_program_import_screen._commit.resolve',
+      );
       setState(() => _committing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -397,6 +427,11 @@ class _ContraDbProgramImportScreenState
       if (kDebugMode) {
         debugPrint('ContraDB program import write failed: $error\n$stackTrace');
       }
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'contradb_program_import_screen._commit.write',
+      );
       setState(() => _committing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -461,7 +496,8 @@ class _ContraDbProgramImportScreenState
       final value = stored is String ? stored.trim() : '';
       if (value.isNotEmpty) return value;
     } catch (_) {
-      // Unreadable/corrupt default → leave the caller blank.
+      // diagnostics: silent — unreadable/corrupt default; leave the caller
+      // blank.
     }
     return null;
   }

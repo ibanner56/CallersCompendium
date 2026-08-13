@@ -55,6 +55,7 @@ import 'src/data/walkthrough_snippet_library_scope.dart';
 import 'src/data/window_service.dart';
 import 'src/diagnostics/crash_log_store.dart';
 import 'src/diagnostics/crash_reporter.dart';
+import 'src/diagnostics/error_log.dart';
 import 'src/licenses.dart';
 import 'src/screens/app_shell.dart';
 import 'src/screens/contradb_program_import_screen.dart';
@@ -88,6 +89,10 @@ Future<void> main() async {
   runGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
     installGlobalErrorHandlers(crashReporter);
+    // Installs the seam every caught, user-facing error (issue #963) reaches
+    // the same log the three global handlers above write to — see
+    // `error_log.dart` for why this can't be a scoped/InheritedWidget lookup.
+    installCaughtErrorLog(crashReporter);
     // #441: On desktop, refuse a second instance BEFORE constructing [AppData]
     // (which opens the on-device database) so two processes can't race the
     // migration / derived-rebuild marker and trip `database is locked`. The
@@ -485,7 +490,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
     final String validated;
     try {
       validated = extractSharedContraDbProgramUrl(raw);
-    } on UrlFetchException catch (e) {
+    } on UrlFetchException catch (e, stackTrace) {
+      // UrlFetchException is log-safe by construction (typed reason + status/
+      // timeout fields only, never a URL or raw prose — see
+      // `import_io.dart`'s `UrlFetchException` doc), so it's always logged
+      // here regardless of whether there's a mounted surface to also show it
+      // on (issue #963 — this was the reported failure path: a caught error
+      // that reached a snackbar but never the diagnostic log).
+      logCaughtError(e, stackTrace, source: 'main._handleIncomingUrl');
       if (!mounted) return;
       // Localize the curated, URL-free failure reason. Use the navigator's
       // context (under MaterialApp's Localizations); if it isn't available yet
@@ -602,6 +614,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
         if (kDebugMode) {
           debugPrint('First-run seed failed: $error\n$stackTrace');
         }
+        logCaughtError(error, stackTrace, source: 'main.first-run-seed');
       }
     }
     // Fast, once-per-launch integrity probe (SQLite `PRAGMA quick_check`, per
@@ -629,11 +642,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
       if (kDebugMode) {
         debugPrint('Integrity probe threw: $error\n$stackTrace');
       }
-      widget.crashReporter?.record(
-        error,
-        stackTrace,
-        source: 'integrity-probe',
-      );
+      logCaughtError(error, stackTrace, source: 'integrity-probe');
     }
     // Resolve the configured soft-delete retention window (ROADMAP G.4),
     // defaulting to 30 days when unset. A `null` window means "never
@@ -681,7 +690,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // subsequent launch.
     final storedTheme = await _appData.repositories.settings
         .get(kAppThemeKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     final themeName = storedTheme is String ? storedTheme : null;
     final selection = AppThemeSelection.forName(themeName);
     if (selection != null) _themeNotifier.value = selection;
@@ -719,11 +730,15 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // hiccup.
     final reduceMotion = await _appData.repositories.settings
         .get(kReduceMotionKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     if (reduceMotion is bool) _reduceMotionNotifier.value = reduceMotion;
     final verboseFigures = await _appData.repositories.settings
         .get(kVerboseFigureRenderingKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     if (verboseFigures is bool) {
       _verboseFigureRenderingNotifier.value = verboseFigures;
     }
@@ -733,7 +748,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // value can never flip the toggle on.
     final decimalTurns = await _appData.repositories.settings
         .get(kDecimalTurnsKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     if (decimalTurns is bool) {
       _decimalTurnsNotifier.value = decimalTurns;
     }
@@ -742,13 +759,17 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // value keeps today's behavior (only recompute beats while untouched).
     final aggressiveBeatsUpdate = await _appData.repositories.settings
         .get(kAggressiveBeatsUpdateKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     if (aggressiveBeatsUpdate is bool) {
       _aggressiveBeatsUpdateNotifier.value = aggressiveBeatsUpdate;
     }
     final confirmBeforeDelete = await _appData.repositories.settings
         .get(kConfirmBeforeDeleteKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     if (confirmBeforeDelete is bool) {
       _confirmBeforeDeleteNotifier.value = confirmBeforeDelete;
     }
@@ -756,7 +777,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // so a read failure or missing key keeps the simple free-text venue field.
     final venueEntityMode = await _appData.repositories.settings
         .get(kVenueEntityModeKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     if (venueEntityMode is bool) {
       _venueEntityModeNotifier.value = venueEntityMode;
     }
@@ -764,7 +787,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // opt-in, so a read failure or missing key stays off.
     final colourDanceTheme = await _appData.repositories.settings
         .get(kColourDanceThemeKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     if (colourDanceTheme is bool) {
       _colourDanceThemeNotifier.value = colourDanceTheme;
     } else {
@@ -775,7 +800,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // on-by-default state so startup never blocks on a settings hiccup.
     final setListColorCoding = await _appData.repositories.settings
         .get(kSetListColorCodingKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     if (setListColorCoding is bool) {
       _setListColorCodingNotifier.value = setListColorCoding;
     }
@@ -796,10 +823,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // missing/over-long/garbage pattern collapses back to System.
     final dateFormat = await _appData.repositories.settings
         .get(kDateFormatKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     final dateFormatCustom = await _appData.repositories.settings
         .get(kDateFormatCustomPatternKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     _dateFormatNotifier.value = dateFormatSettingFromStored(
       dateFormat,
       dateFormatCustom,
@@ -809,7 +840,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // safe System default via the resolver.
     final firstDayOfWeek = await _appData.repositories.settings
         .get(kFirstDayOfWeekKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     _firstDayOfWeekNotifier.value = firstDayOfWeekPrefFromStored(
       firstDayOfWeek,
     );
@@ -821,7 +854,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // unsupported locale.
     final locale = await _appData.repositories.settings
         .get(kLocaleKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     _localeNotifier.value = localeFromStored(
       locale,
       AppLocalizations.supportedLocales,
@@ -844,7 +879,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // See CollectionTileFieldsScope.decodeStored for the three-case logic.
     final storedTileFields = await _appData.repositories.settings
         .get(kCollectionTileVisibleFieldsKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     _collectionTileFieldsNotifier.value =
         CollectionTileFieldsScope.decodeStored(storedTileFields);
   }

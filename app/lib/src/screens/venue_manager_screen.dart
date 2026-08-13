@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
 import 'venue_editor_sheet.dart';
 
 /// A full-screen manager to browse, search, create, edit, and delete the
@@ -81,6 +82,11 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
         if (kDebugMode) {
           debugPrint('Could not load venues: $error\n$stackTrace');
         }
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'venue_manager_screen._subscribe',
+        );
         if (!mounted) return;
         setState(() {
           _error = error;
@@ -167,9 +173,10 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.venueManagerDeletedSnack(venue.name))),
       );
-    } on StateError {
+    } on StateError catch (e, stackTrace) {
       // The delete guard fired: the venue is still linked to one or more
       // programs. Surface a friendly, actionable message instead of crashing.
+      logCaughtError(e, stackTrace, source: 'venue_manager_screen._delete');
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(

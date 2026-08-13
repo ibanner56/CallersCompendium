@@ -14,6 +14,7 @@ import '../data/set_list_color_coding_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
 import '../data/venue_label.dart';
+import '../diagnostics/error_log.dart';
 import '../search/collection_data.dart';
 import '../search/facet_labels.dart';
 import '../theme/set_list_accents.dart';
@@ -342,7 +343,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             }
             if (mounted) _refreshCoalescer.request();
           },
-          onError: (Object error) {
+          onError: (Object error, StackTrace stackTrace) {
             if (!first.isCompleted) {
               _pendingFirst = null;
               first.completeError(error);
@@ -351,6 +352,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             // Unlike the program EDITOR, this pane can show an error and holds no
             // unsaved work, so a failed refresh is surfaced rather than left to
             // render stale data indefinitely.
+            logCaughtError(
+              error,
+              stackTrace,
+              source: 'program_summary_screen._watchCollectionData',
+            );
             if (mounted) setState(() => _error = error);
           },
           onDone: () {
@@ -441,12 +447,14 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         _error = null;
       });
     } on _SupersededLoad {
-      // A newer `_load` replaced this one's subscription before it produced a
-      // snapshot. It owns `_loading`/`_error` now, so this call must leave both
-      // alone and return — clearing `_loading` here would unblank the pane
-      // while the newer load is still running.
+      // diagnostics: silent — a newer `_load` replaced this one's
+      // subscription before it produced a snapshot. It owns
+      // `_loading`/`_error` now, so this call must leave both alone and
+      // return — clearing `_loading` here would unblank the pane while the
+      // newer load is still running.
       return;
-    } catch (error) {
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'program_summary_screen._load');
       if (mounted) {
         setState(() {
           _error = error;

@@ -28,8 +28,8 @@ Future<String?> resolveCallingHistoryCallerFilter(
   try {
     stored = await settings.get(kDefaultProgramCallerKey);
   } catch (_) {
-    // A settings read failure must not over-filter history: fall back to
-    // tracking all callers (the historical behavior).
+    // diagnostics: silent — a settings read failure must not over-filter history;
+    // falls back to tracking all callers (fail-open, no user surface).
     return null;
   }
   final caller = stored is String ? stored.trim() : '';

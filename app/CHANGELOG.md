@@ -68,6 +68,13 @@ each release so store builds and tags can be traced back to an entry.
   the two dances. This changes what existing programs' matrices flag; turn
   off the new "Flag exact beat overlap only" setting in Settings ▸ General ▸
   Programs to restore the previous same-phrase behavior. (#962)
+- **The diagnostic log now captures errors you see on screen, not just
+  crashes.** Previously it recorded only outright application crashes; an
+  error that was caught and shown to you as a snackbar or an inline message
+  (a failed import, a blocked delete, a failed backup) never reached it, so
+  exporting logs after one of those could turn up nothing. It's still fully
+  offline — nothing is sent anywhere unless you explicitly export it from
+  Settings ▸ Diagnostics. (#963)
 
 ### Fixed
 

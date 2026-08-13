@@ -9,6 +9,7 @@ import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/online_search_labels.dart';
 import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/brand_mark.dart';
 import 'dance_detail_screen.dart';
@@ -216,13 +217,23 @@ class _CollectionShellState extends State<CollectionShell> {
         _onlinePreview = preview;
         _onlinePreviewLoading = false;
       });
-    } on UrlFetchException catch (error) {
+    } on UrlFetchException catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'collection_shell._onSelectOnlineDance',
+      );
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
         _onlinePreviewError = importErrorMessage(l10n, error);
         _onlinePreviewLoading = false;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'collection_shell._onSelectOnlineDance',
+      );
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
         _onlinePreviewError = l10n.onlineLoadError(result.source.label);
@@ -322,12 +333,22 @@ class _CollectionShellState extends State<CollectionShell> {
           content: Text(onlineImportMessage(l10n, result)),
         ),
       );
-    } on UrlFetchException catch (error) {
+    } on UrlFetchException catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'collection_shell._importOnline',
+      );
       if (!mounted) return;
       messenger?.showSnackBar(
         SnackBar(content: Text(importErrorMessage(l10n, error))),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'collection_shell._importOnline',
+      );
       if (!mounted) return;
       messenger?.showSnackBar(SnackBar(content: Text(l10n.onlineImportError)));
     } finally {
