@@ -1040,6 +1040,24 @@ abstract class AppLocalizations {
   /// **'How the Collection is sorted when you open it. You can still change the sort while browsing.'**
   String get settingsDefaultsSortSubtitle;
 
+  /// Dropdown option meaning the list should open in whatever sort the user last chose while browsing, rather than a fixed one (issue #895).
+  ///
+  /// In en, this message translates to:
+  /// **'Last used'**
+  String get settingsDefaultsSortLastUsed;
+
+  /// Title of the default Programs sort-order picker (issue #895), mirroring settingsDefaultsSortTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs sort order'**
+  String get settingsDefaultsProgramSortTitle;
+
+  /// Explanation for the default Programs sort-order picker (issue #895), mirroring settingsDefaultsSortSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How the Programs list is sorted when you open it. You can still change the sort while browsing.'**
+  String get settingsDefaultsProgramSortSubtitle;
+
   /// Toggle title: open dances in canonical terms rather than the active dialect.
   ///
   /// In en, this message translates to:

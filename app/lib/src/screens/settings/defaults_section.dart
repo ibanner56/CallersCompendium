@@ -13,6 +13,8 @@ import '../../editor/figure_draft.dart';
 import '../../search/collection_query.dart';
 import '../../search/collection_query_labels.dart';
 import '../../search/facet_labels.dart';
+import '../../search/program_sort.dart';
+import '../../search/program_sort_labels.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/figure_list_editor.dart';
@@ -33,9 +35,16 @@ class DefaultsSection extends StatefulWidget {
 }
 
 class _DefaultsSectionState extends State<DefaultsSection> {
-  /// Default Collection sort order (ROADMAP G.6a). `null` = not yet loaded;
-  /// the view shows `title` (today's default) until the read resolves.
-  CollectionSort? _defaultCollectionSort;
+  /// Default Collection sort order (ROADMAP G.6a), extended to a
+  /// [SortDefaultSetting] by issue #895 (ROADMAP G.6c) so "Last used" can be
+  /// selected alongside a fixed sort. `null` = not yet loaded; the view shows
+  /// `title` (today's default) until the read resolves.
+  SortDefaultSetting<CollectionSort>? _defaultCollectionSort;
+
+  /// Default Programs sort order (issue #895, ROADMAP G.6c), mirroring
+  /// [_defaultCollectionSort] — Programs had no Settings default before this;
+  /// `null` = not yet loaded, shown as `title` until the read resolves.
+  SortDefaultSetting<ProgramSort>? _defaultProgramSort;
 
   /// Default dance-detail rendering (ROADMAP G.6b). `null` = not yet loaded;
   /// the view shows active-dialect (today's default) until the read resolves.
@@ -44,6 +53,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   // Separate per-setting guards: a user changing one default before its read
   // resolves must not suppress seeding the *other* default from storage.
   bool _defaultSortUserSet = false;
+  bool _defaultProgramSortUserSet = false;
   bool _defaultRenderingUserSet = false;
 
   /// Default caller/band for new programs (ROADMAP G.3). Free text seeded once
@@ -110,13 +120,40 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         .then((stored) {
           if (!mounted || _defaultSortUserSet) return;
           setState(() {
-            _defaultCollectionSort =
-                collectionSortFromName(stored) ?? CollectionSort.title;
+            _defaultCollectionSort = sortDefaultSettingFromStored(
+              stored,
+              collectionSortFromName,
+              CollectionSort.title,
+            );
           });
         })
         .catchError((_) {
           if (!mounted || _defaultSortUserSet) return;
-          setState(() => _defaultCollectionSort = CollectionSort.title);
+          setState(
+            () => _defaultCollectionSort = const SortDefaultSetting.concrete(
+              CollectionSort.title,
+            ),
+          );
+        });
+    repos.settings
+        .get(kDefaultProgramSortKey)
+        .then((stored) {
+          if (!mounted || _defaultProgramSortUserSet) return;
+          setState(() {
+            _defaultProgramSort = sortDefaultSettingFromStored(
+              stored,
+              programSortFromName,
+              ProgramSort.title,
+            );
+          });
+        })
+        .catchError((_) {
+          if (!mounted || _defaultProgramSortUserSet) return;
+          setState(
+            () => _defaultProgramSort = const SortDefaultSetting.concrete(
+              ProgramSort.title,
+            ),
+          );
         });
     repos.settings
         .get(kDefaultDanceDetailRenderingKey)
@@ -394,13 +431,32 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     super.dispose();
   }
 
-  Future<void> _onDefaultCollectionSortChanged(CollectionSort value) async {
+  Future<void> _onDefaultCollectionSortChanged(
+    SortDefaultSetting<CollectionSort> value,
+  ) async {
     setState(() {
       _defaultSortUserSet = true;
       _defaultCollectionSort = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultCollectionSortKey, value.name);
+    await repos.settings.set(
+      kDefaultCollectionSortKey,
+      encodeSortDefaultSetting(value),
+    );
+  }
+
+  Future<void> _onDefaultProgramSortChanged(
+    SortDefaultSetting<ProgramSort> value,
+  ) async {
+    setState(() {
+      _defaultProgramSortUserSet = true;
+      _defaultProgramSort = value;
+    });
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(
+      kDefaultProgramSortKey,
+      encodeSortDefaultSetting(value),
+    );
   }
 
   Future<void> _onDefaultDanceDetailRenderingChanged(
@@ -422,8 +478,14 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       onDefaultProgramCallerChanged: _onDefaultProgramCallerChanged,
       programBandController: _defaultProgramBand,
       onDefaultProgramBandChanged: _onDefaultProgramBandChanged,
-      defaultCollectionSort: _defaultCollectionSort ?? CollectionSort.title,
+      defaultCollectionSort:
+          _defaultCollectionSort ??
+          const SortDefaultSetting.concrete(CollectionSort.title),
       onDefaultCollectionSortChanged: _onDefaultCollectionSortChanged,
+      defaultProgramSort:
+          _defaultProgramSort ??
+          const SortDefaultSetting.concrete(ProgramSort.title),
+      onDefaultProgramSortChanged: _onDefaultProgramSortChanged,
       defaultDanceDetailRendering:
           _defaultDanceDetailRendering ?? DanceDetailRendering.activeDialect,
       onDefaultDanceDetailRenderingChanged:
@@ -499,6 +561,8 @@ class _DefaultsView extends StatelessWidget {
     required this.onDefaultProgramBandChanged,
     required this.defaultCollectionSort,
     required this.onDefaultCollectionSortChanged,
+    required this.defaultProgramSort,
+    required this.onDefaultProgramSortChanged,
     required this.defaultDanceDetailRendering,
     required this.onDefaultDanceDetailRenderingChanged,
     required this.defaultDanceForm,
@@ -529,8 +593,12 @@ class _DefaultsView extends StatelessWidget {
   final ValueChanged<String> onDefaultProgramCallerChanged;
   final TextEditingController programBandController;
   final ValueChanged<String> onDefaultProgramBandChanged;
-  final CollectionSort defaultCollectionSort;
-  final ValueChanged<CollectionSort> onDefaultCollectionSortChanged;
+  final SortDefaultSetting<CollectionSort> defaultCollectionSort;
+  final ValueChanged<SortDefaultSetting<CollectionSort>>
+  onDefaultCollectionSortChanged;
+  final SortDefaultSetting<ProgramSort> defaultProgramSort;
+  final ValueChanged<SortDefaultSetting<ProgramSort>>
+  onDefaultProgramSortChanged;
   final DanceDetailRendering defaultDanceDetailRendering;
   final ValueChanged<DanceDetailRendering> onDefaultDanceDetailRenderingChanged;
   final DanceForm defaultDanceForm;
@@ -584,12 +652,17 @@ class _DefaultsView extends StatelessWidget {
   /// The Collection sort orders offered as a default. Excludes
   /// [CollectionSort.relevance], which is only meaningful for a bare full-text
   /// query and never a sensible saved default.
-  static const List<CollectionSort> _sortOptions = [
+  static const List<CollectionSort> _collectionSortOptions = [
     CollectionSort.title,
     CollectionSort.author,
     CollectionSort.recentlyAdded,
     CollectionSort.lastCalled,
   ];
+
+  /// The Programs sort orders offered as a default (issue #895); every member
+  /// of [ProgramSort] is a sensible fixed default, unlike Collection's
+  /// [_collectionSortOptions] (which excludes `relevance`).
+  static const List<ProgramSort> _programSortOptions = ProgramSort.values;
 
   @override
   Widget build(BuildContext context) {
@@ -640,18 +713,44 @@ class _DefaultsView extends StatelessWidget {
         ListTile(
           title: Text(l10n.settingsDefaultsSortTitle),
           subtitle: Text(l10n.settingsDefaultsSortSubtitle),
-          trailing: DropdownButton<CollectionSort>(
+          trailing: DropdownButton<SortDefaultSetting<CollectionSort>>(
             key: const ValueKey('defaults-collection-sort'),
             value: defaultCollectionSort,
             onChanged: (value) {
               if (value != null) onDefaultCollectionSortChanged(value);
             },
             items: [
-              for (final sort in _sortOptions)
+              for (final sort in _collectionSortOptions)
                 DropdownMenuItem(
-                  value: sort,
+                  value: SortDefaultSetting.concrete(sort),
                   child: Text(collectionSortLabel(l10n, sort)),
                 ),
+              DropdownMenuItem(
+                value: SortDefaultSetting.lastUsed(CollectionSort.title),
+                child: Text(l10n.settingsDefaultsSortLastUsed),
+              ),
+            ],
+          ),
+        ),
+        ListTile(
+          title: Text(l10n.settingsDefaultsProgramSortTitle),
+          subtitle: Text(l10n.settingsDefaultsProgramSortSubtitle),
+          trailing: DropdownButton<SortDefaultSetting<ProgramSort>>(
+            key: const ValueKey('defaults-program-sort'),
+            value: defaultProgramSort,
+            onChanged: (value) {
+              if (value != null) onDefaultProgramSortChanged(value);
+            },
+            items: [
+              for (final sort in _programSortOptions)
+                DropdownMenuItem(
+                  value: SortDefaultSetting.concrete(sort),
+                  child: Text(programSortLabel(l10n, sort)),
+                ),
+              DropdownMenuItem(
+                value: SortDefaultSetting.lastUsed(ProgramSort.title),
+                child: Text(l10n.settingsDefaultsSortLastUsed),
+              ),
             ],
           ),
         ),

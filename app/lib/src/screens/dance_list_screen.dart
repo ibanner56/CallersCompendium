@@ -183,7 +183,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   /// Whether the user has explicitly chosen a sort this session. Once set, the
   /// saved default (ROADMAP G.6a) no longer seeds `_sort` — protecting an
-  /// in-session choice from a late async read.
+  /// in-session choice from a late async read. Under a "Last used" default
+  /// (issue #895) this guard's *purpose* shifts — it stops the async last-used
+  /// read from clobbering a fresher in-session choice — but it does not
+  /// disappear; the read is still async either way.
   bool _sortUserSet = false;
 
   /// Whether the saved-default sort seed has run (it runs at most once, on the
@@ -568,30 +571,90 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (mounted) await _runSearch();
   }
 
-  /// Seeds `_sort` from the saved default Collection sort order (ROADMAP G.6a),
-  /// at most once and only if the user hasn't already chosen a sort this
-  /// session. A `null`/invalid stored value leaves the historical default
-  /// (`title`) in place. Called before the first search so the list opens in
-  /// the default sort; a no-op on subsequent [_boot]s (e.g. a refresh).
+  /// Seeds `_sort` (and, under "Last used", `_sortDir`) from the saved default
+  /// Collection sort order (ROADMAP G.6a; extended to a "Last used" mode by
+  /// issue #895 / ROADMAP G.6c), at most once and only if the user hasn't already chosen a
+  /// sort this session. A `null`/invalid stored value leaves the historical
+  /// default (`title`, ascending) in place. Called before the first search so
+  /// the list opens in the default sort; a no-op on subsequent [_boot]s (e.g.
+  /// a refresh).
   Future<void> _seedDefaultSort() async {
     if (_defaultSortSeeded || _sortUserSet) return;
     _defaultSortSeeded = true;
     // A settings read/decode failure must not fail the whole Collection load:
-    // fall back silently to the historical default (`title`).
-    Object? stored;
+    // fall back silently to the historical default (title, ascending).
+    SortDefaultSetting<CollectionSort> mode;
     try {
-      stored = await _repos.settings.get(kDefaultCollectionSortKey);
+      final stored = await _repos.settings.get(kDefaultCollectionSortKey);
+      mode = sortDefaultSettingFromStored(
+        stored,
+        collectionSortFromName,
+        CollectionSort.title,
+      );
     } catch (_) {
       return;
     }
     if (!mounted || _sortUserSet) return;
-    final sort = collectionSortFromName(stored);
-    if (sort != null && sort != _sort) {
+    CollectionSort sort;
+    SortDirection direction;
+    if (mode.isLastUsed) {
+      // "Last used": seed from the list's own last-used sort + direction
+      // (issue #895), not the fixed default. A second settings read, tolerant
+      // of failure the same way as the mode read above.
+      try {
+        final storedSort = await _repos.settings.get(
+          kLastUsedCollectionSortKey,
+        );
+        final storedDirection = await _repos.settings.get(
+          kLastUsedCollectionSortDirectionKey,
+        );
+        sort = collectionSortFromName(storedSort) ?? CollectionSort.title;
+        direction =
+            sortDirectionFromName(storedDirection) ??
+            sort.searchSort.defaultDirection;
+      } catch (_) {
+        return;
+      }
+      if (!mounted || _sortUserSet) return;
+    } else {
+      // A fixed default always uses that sort's natural direction, regardless
+      // of what was last used in the list (Isaac's ruling, issue #895) — never
+      // the stored last-used direction, which is why this branch never reads
+      // the last-used keys at all.
+      sort = mode.sort;
+      direction = sort.searchSort.defaultDirection;
+    }
+
+    // Compare the (sort, direction) PAIR, not just the sort key: a key-only
+    // comparison skips this `setState` whenever the resolved sort equals the
+    // initial `_sort` (title) even when the direction differs — silently
+    // dropping a stored non-default direction under "Last used". Traced
+    // against issue #895 as `dance_list_screen.dart:589`'s original
+    // `sort != _sort` guard, harmless before this change because direction was
+    // always *derived* from the key, never read independently.
+    if (sort != _sort || direction != _sortDir) {
       setState(() {
         _sort = sort;
-        _sortDir = sort.searchSort.defaultDirection;
+        _sortDir = direction;
       });
     }
+  }
+
+  /// Persists the Collection list's own last-used sort + direction (issue
+  /// #895), read back by [_seedDefaultSort] when the configured default is
+  /// "Last used". Fire-and-forget: neither write is on the UI's critical path,
+  /// mirroring how every other in-place Settings write in this screen behaves.
+  ///
+  /// Skips [CollectionSort.relevance]: it is only meaningful for an active
+  /// bare-FTS query, never a durable choice, so persisting it would silently
+  /// erase whatever concrete sort the user had actually been using before the
+  /// query became a bare full-text search.
+  void _persistLastUsedSort() {
+    if (_sort == CollectionSort.relevance) return;
+    unawaited(_repos.settings.set(kLastUsedCollectionSortKey, _sort.name));
+    unawaited(
+      _repos.settings.set(kLastUsedCollectionSortDirectionKey, _sortDir.name),
+    );
   }
 
   void _retryLoad() {
@@ -1604,6 +1667,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
                 _sort = value;
                 _sortDir = value.searchSort.defaultDirection;
               });
+              _persistLastUsedSort();
               _runSearch();
             },
             itemBuilder: (context) => [
@@ -1632,6 +1696,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
                     ? SortDirection.descending
                     : SortDirection.ascending;
               });
+              _persistLastUsedSort();
               _runSearch();
             },
           ),

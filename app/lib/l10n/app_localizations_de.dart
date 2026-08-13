@@ -562,6 +562,17 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wie die Sammlung beim Öffnen sortiert ist. Die Sortierung kann beim Durchsuchen noch geändert werden.';
 
   @override
+  String get settingsDefaultsSortLastUsed => 'Zuletzt verwendet';
+
+  @override
+  String get settingsDefaultsProgramSortTitle =>
+      'Sortierreihenfolge der Programme';
+
+  @override
+  String get settingsDefaultsProgramSortSubtitle =>
+      'Wie die Programmliste beim Öffnen sortiert wird. Du kannst die Sortierung beim Durchsuchen weiterhin ändern.';
+
+  @override
   String get settingsDefaultsCanonicalTitle =>
       'Tanzdetails in kanonischen Begriffen öffnen';
 

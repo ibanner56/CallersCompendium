@@ -742,6 +742,18 @@
   "@settingsDefaultsSortSubtitle": {
     "description": "Explanation for the default Collection sort-order picker."
   },
+  "settingsDefaultsSortLastUsed": "Last used",
+  "@settingsDefaultsSortLastUsed": {
+    "description": "Dropdown option meaning the list should open in whatever sort the user last chose while browsing, rather than a fixed one (issue #895)."
+  },
+  "settingsDefaultsProgramSortTitle": "Programs sort order",
+  "@settingsDefaultsProgramSortTitle": {
+    "description": "Title of the default Programs sort-order picker (issue #895), mirroring settingsDefaultsSortTitle."
+  },
+  "settingsDefaultsProgramSortSubtitle": "How the Programs list is sorted when you open it. You can still change the sort while browsing.",
+  "@settingsDefaultsProgramSortSubtitle": {
+    "description": "Explanation for the default Programs sort-order picker (issue #895), mirroring settingsDefaultsSortSubtitle."
+  },
   "settingsDefaultsCanonicalTitle": "Open dance details in canonical terms",
   "@settingsDefaultsCanonicalTitle": {
     "description": "Toggle title: open dances in canonical terms rather than the active dialect."

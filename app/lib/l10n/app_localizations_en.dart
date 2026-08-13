@@ -554,6 +554,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'How the Collection is sorted when you open it. You can still change the sort while browsing.';
 
   @override
+  String get settingsDefaultsSortLastUsed => 'Last used';
+
+  @override
+  String get settingsDefaultsProgramSortTitle => 'Programs sort order';
+
+  @override
+  String get settingsDefaultsProgramSortSubtitle =>
+      'How the Programs list is sorted when you open it. You can still change the sort while browsing.';
+
+  @override
   String get settingsDefaultsCanonicalTitle =>
       'Open dance details in canonical terms';
 

@@ -13,6 +13,12 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Both the Collection and Programs lists now offer a "Last used" option** for
+  their default sort in Settings ▸ Defaults, alongside the existing fixed
+  choices. With "Last used" selected, the sort key **and** direction you pick
+  while browsing survive closing and reopening the app; with a fixed sort
+  selected, behavior is unchanged from before. The Programs list previously
+  had no default-sort setting at all. (#895)
 - **Pasted-program title-list import falls back to ContraDB.** "Resolve
   unmatched online" on the pasted-title-list program import now tries The
   Caller's Box first and, for any title Caller's Box cannot resolve
@@ -23,6 +29,10 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- Rotating a tablet across the Collection/Programs split-pane breakpoint
+  (900px) no longer resets the list's current sort, search text, filters, or
+  scroll position. Previously the list was rebuilt from scratch on that
+  transition, discarding all of it. (#895)
 - The tag and author/choreographer picker on phones no longer closes after
   every other addition. Adding entries in a row now keeps the picker open
   each time until you save or close it yourself. Fixes an issue where a

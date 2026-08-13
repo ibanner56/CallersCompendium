@@ -12,6 +12,8 @@ import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
+import 'package:compendium_app/src/search/collection_query.dart'
+    show CollectionSort;
 import 'package:compendium_app/src/widgets/brand_mark.dart';
 
 import 'support/test_repositories.dart';
@@ -600,5 +602,100 @@ void main() {
         containsAll(<String>['Imported Reel', 'Imported Jig']),
       );
     });
+  });
+
+  group('rotation across the split-pane breakpoint (issue #895)', () {
+    /// Same hazard as `programs_shell_test.dart`'s rotation group: the narrow
+    /// branch builds a bare `DanceListScreen` (`collection_shell.dart:362`)
+    /// while the wide branch nests one in `Row > SizedBox > ScaffoldMessenger`
+    /// (`:381`) — different tree positions, so before the fix Flutter
+    /// discards the old Element/State on a breakpoint crossing rather than
+    /// reusing it, silently losing an in-list sort choice (and, more broadly,
+    /// search text / facets / scroll — only sort is asserted here since only
+    /// sort is in scope for #895).
+    testWidgets(
+      'an in-list sort choice survives crossing the breakpoint from wide to '
+      'narrow',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Zesty Reel'));
+        await repos.dances.create(_dance(id: 'd2', title: 'Autumn Waltz'));
+
+        await _pumpShell(tester, repos, size: const Size(1400, 900));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.sort));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Author').last);
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<PopupMenuButton<CollectionSort>>(
+                find.byType(PopupMenuButton<CollectionSort>),
+              )
+              .initialValue,
+          CollectionSort.author,
+        );
+
+        tester.view.physicalSize = const Size(600, 1200);
+        await tester.pumpAndSettle();
+
+        expect(
+          tester
+              .widget<PopupMenuButton<CollectionSort>>(
+                find.byType(PopupMenuButton<CollectionSort>),
+              )
+              .initialValue,
+          CollectionSort.author,
+          reason:
+              'Crossing the breakpoint must reparent the existing '
+              'DanceListScreen State, not rebuild it from scratch — losing '
+              'the in-list sort choice is exactly the "rotation resets the '
+              'list" defect this guard exists to catch.',
+        );
+      },
+    );
+
+    testWidgets(
+      'an in-list sort choice survives crossing the breakpoint from narrow '
+      'to wide',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Zesty Reel'));
+        await repos.dances.create(_dance(id: 'd2', title: 'Autumn Waltz'));
+
+        await _pumpShell(tester, repos, size: const Size(600, 1200));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.sort));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Recently added').last);
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<PopupMenuButton<CollectionSort>>(
+                find.byType(PopupMenuButton<CollectionSort>),
+              )
+              .initialValue,
+          CollectionSort.recentlyAdded,
+        );
+
+        tester.view.physicalSize = const Size(1400, 900);
+        await tester.pumpAndSettle();
+
+        expect(
+          tester
+              .widget<PopupMenuButton<CollectionSort>>(
+                find.byType(PopupMenuButton<CollectionSort>),
+              )
+              .initialValue,
+          CollectionSort.recentlyAdded,
+          reason:
+              'Same hazard in the other direction: narrow -> wide also '
+              'swaps tree position (`collection_shell.dart:362` vs `:381`) '
+              'and must reparent rather than rebuild.',
+        );
+      },
+    );
   });
 }
