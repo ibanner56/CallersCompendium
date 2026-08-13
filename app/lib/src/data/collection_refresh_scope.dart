@@ -4,20 +4,21 @@ import 'package:flutter/widgets.dart';
 /// coupling the caller to them.
 ///
 /// A screen that mutates a dance outside the view showing it bumps [revision];
-/// subscribers reload. That covers the import review flow (ROADMAP 6.3),
+/// subscribers reload. The bumpers are the import review flow (ROADMAP 6.3),
 /// reached from Settings while the Collection tab is kept alive in an
-/// `IndexedStack`, the dance editor, and the Collection list's own batch
-/// operations. `DanceListScreen` re-boots so imported and batch-edited dances
-/// appear immediately, mirroring how a G.5 restore refreshes the app via
-/// `BackupControllerScope`.
+/// `IndexedStack`, the dance editor, the re-parse batch, and the Collection
+/// list's own batch operations.
 ///
-/// **One screen subscribes: `DanceDetailScreen`.** It renders dance fields that
+/// **Exactly one screen subscribes: `DanceDetailScreen`.** It renders dance fields that
 /// can be edited elsewhere and still loads them with a one-shot future, so this
 /// channel is the only thing that makes such an edit appear in the detail pane.
 /// The program summary pane used to listen as well and no longer does — it
 /// moved to `CollectionData.watch` (issue #768; see
 /// `program_summary_screen.dart`, which records the same fact from its side).
-/// Every other reader here captures the notifier in order to *bump* it.
+/// So did `DanceListScreen`, which this doc used to describe as re-booting for
+/// imported and batch-edited dances; it watches those tables itself now, and
+/// only bumps here so the screens that are not yet converted still hear about
+/// its own batch writes. Every other reader captures the notifier to *bump* it.
 ///
 /// Program data used to have its own channel, `ProgramsRefreshScope`, kept
 /// separate so that a view subscribed to the data it actually renders rather

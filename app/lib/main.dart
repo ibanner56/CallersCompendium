@@ -305,9 +305,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<Locale?> _localeNotifier = ValueNotifier(null);
 
   /// App-level "the collection changed, reload it" signal (ROADMAP 6.3).
-  /// Bumped by the import review flow (reached from Settings) so the live
-  /// Collection list re-boots without a relaunch. Exposed via
-  /// [CollectionRefreshScope].
+  /// Bumped by the import review flow (reached from Settings), the dance
+  /// editor and the batch paths. It used to say the Collection *list* re-boots
+  /// on it; that list watches the database itself now, and the one screen still
+  /// reloading from this signal is `DanceDetailScreen` (issue #768). Exposed
+  /// via [CollectionRefreshScope], whose doc carries the full account.
   final ValueNotifier<int> _collectionRefreshNotifier = ValueNotifier(0);
 
   /// App-level "tap a tag → show the Collection filtered to it" coordinator

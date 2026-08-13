@@ -951,7 +951,14 @@ void main() {
       final offenders = <String>{};
       var scanned = 0;
       for (final file in lib.listSync(recursive: true).whereType<File>()) {
-        final path = file.path.replaceAll(r'\', '/');
+        // Relative to the resolved directory, so the recorded path does not
+        // depend on which candidate matched. Recording `file.path` verbatim
+        // made the expectation below cwd-dependent — the repo-root fallback
+        // would have produced `app/lib/...` and failed on correct code, which
+        // is a defect this ratchet acquired while being made cwd-independent.
+        final path = file.path
+            .replaceAll(r'\', '/')
+            .substring(lib.path.replaceAll(r'\', '/').length + 1);
         if (!path.endsWith('.dart')) continue;
         if (path.endsWith('collection_refresh_scope.dart')) continue;
         scanned++;
@@ -974,7 +981,7 @@ void main() {
 
       expect(
         offenders,
-        {'lib/src/screens/dance_detail_screen.dart'},
+        {'src/screens/dance_detail_screen.dart'},
         reason:
             'a widget that only broadcasts must use notifierOf; maybeOf '
             'registers a rebuild dependency and wakes it on every bump',
