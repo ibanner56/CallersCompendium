@@ -50,6 +50,7 @@ Future<void> _pumpPicker(
   CompendiumRepositories repos, {
   required void Function(String danceId) onAddDance,
   SearchEnrichment? enrichment,
+  PickerRowAction rowAction = PickerRowAction.add,
 }) async {
   enrichment ??= SearchEnrichment.empty;
   // A tall surface so the search bar, filter/by-phrase/advanced panels and the
@@ -70,6 +71,7 @@ Future<void> _pumpPicker(
             dialect: Dialect.larksRobins,
             enrichment: enrichment,
             onAddDance: onAddDance,
+            rowAction: rowAction,
           ),
         ),
       ),
@@ -460,5 +462,57 @@ void main() {
       // assertion: dispose() must cancel the confirmation timers.
       expect(find.byType(CollectionPicker), findsNothing);
     });
+  });
+
+  // --- rowAction (issue #964) -------------------------------------------------
+
+  group('rowAction', () {
+    // M5 (issue #964): the paired assertion matters as much as the replace
+    // one — a mutation that deletes the rowAction branch would make row
+    // labels read "Add {title}" unconditionally, which passes a test that
+    // only checks the replace-mode string. Checking BOTH modes in one test
+    // is what makes the mutation observable.
+    testWidgets(
+      'replace mode labels rows as replace, not add (issue #964)',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
+
+        await _pumpPicker(tester, repos, onAddDance: (_) {});
+        await tester.pumpAndSettle();
+        expect(_addTooltip(tester, 'a'), 'Add Alpha Reel');
+        expect(_addIcon(tester, 'a'), Icons.add_circle_outline);
+
+        await _pumpPicker(
+          tester,
+          repos,
+          onAddDance: (_) {},
+          rowAction: PickerRowAction.replace,
+        );
+        await tester.pumpAndSettle();
+        expect(_addTooltip(tester, 'a'), 'Replace with Alpha Reel');
+        expect(_addIcon(tester, 'a'), Icons.swap_horiz);
+      },
+    );
+
+    testWidgets(
+      'replace mode still fires onAddDance like add mode (issue #964)',
+      (tester) async {
+        final added = <String>[];
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
+
+        await _pumpPicker(
+          tester,
+          repos,
+          onAddDance: added.add,
+          rowAction: PickerRowAction.replace,
+        );
+        await tester.pumpAndSettle();
+
+        await _tapVisible(tester, find.byKey(const ValueKey('picker-add-a')));
+        expect(added, ['a']);
+      },
+    );
   });
 }

@@ -585,6 +585,153 @@ void main() {
     expect(saved.slots.single.plannedMinutes, 12);
   });
 
+  // M1 (issue #964): the replacement must rebuild the slot preserving
+  // everything but danceId — never as a bare `ProgramSlot(id, position,
+  // danceId)`, which is the shape both `_addDanceSlot` (a brand-new slot with
+  // nothing yet to preserve) and `#960`'s note→dance rebuild (which
+  // deliberately drops only `text`) would produce if copied verbatim here.
+  testWidgets(
+    'replacing a dance keeps the slot\'s other metadata (issue #964)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Rory O\'Moore'));
+      final performedAt = DateTime.utc(2026, 2, 2);
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [
+            ProgramSlot(
+              id: 's0',
+              position: 0,
+              danceId: 'd1',
+              guestCaller: 'Guest Caller',
+              plannedMinutes: 12,
+              isAlt: true,
+              performedAt: performedAt,
+            ),
+          ],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1');
+
+      await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit slot'));
+      await tester.pumpAndSettle();
+
+      // The dialog shows the dance currently in the slot before any pick.
+      // Scoped to the dialog itself: the same title also renders in the slot
+      // list and (on this wide surface) the inline picker pane underneath.
+      expect(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Chase the Squirrel'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
+      await tester.pumpAndSettle();
+      // Scoped to the replacement sheet's own picker: the inline picker pane
+      // underneath renders a same-keyed 'picker-add-d2' row too.
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('replace-picker')),
+          matching: find.byKey(const ValueKey('picker-add-d2')),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Back in the (still-open) dialog, showing the replacement.
+      expect(find.byKey(const ValueKey('slot-edit-save')), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Rory O\'Moore'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      final slot = saved!.slots.single;
+      expect(slot.danceId, 'd2');
+      expect(slot.guestCaller, 'Guest Caller');
+      expect(slot.plannedMinutes, 12);
+      expect(slot.isAlt, isTrue);
+      expect(slot.performedAt, performedAt);
+    },
+  );
+
+  // M2 (issue #964): a pick must be held in the dialog's own state, not
+  // applied immediately — otherwise text typed into the note/guest/minutes
+  // fields before the replacement would be lost when the pick pops the dialog
+  // back open on top of a rebuilt slot.
+  testWidgets(
+    'in-flight dialog edits survive a dance replacement (issue #964)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Rory O\'Moore'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1');
+
+      await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit slot'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('slot-edit-guest')),
+        'Guest Caller',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('slot-edit-minutes')),
+        '12',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('replace-picker')),
+          matching: find.byKey(const ValueKey('picker-add-d2')),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The typed fields must still show what was typed, not reset defaults.
+      expect(
+        find.widgetWithText(TextField, 'Guest Caller'),
+        findsOneWidget,
+      );
+      expect(find.widgetWithText(TextField, '12'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      final slot = saved!.slots.single;
+      expect(slot.danceId, 'd2');
+      expect(slot.guestCaller, 'Guest Caller');
+      expect(slot.plannedMinutes, 12);
+    },
+  );
+
   testWidgets('mark all performed stamps performedAt on dance slots', (
     tester,
   ) async {

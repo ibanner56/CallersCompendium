@@ -3421,6 +3421,28 @@
   "@programsEditDanceSlotTitle": {
     "description": "Title of the dialog for editing a dance program slot."
   },
+  "programsCurrentDanceLabel": "Dance",
+  "@programsCurrentDanceLabel": {
+    "description": "Caption above the current dance's title in the slot edit dialog (issue #964)."
+  },
+  "programsReplaceDanceButton": "Replace…",
+  "@programsReplaceDanceButton": {
+    "description": "Button in the slot edit dialog that opens the picker to swap the slot's dance in place (issue #964)."
+  },
+  "programsReplaceDanceSheetTitle": "Replace dance",
+  "@programsReplaceDanceSheetTitle": {
+    "description": "Title of the bottom sheet for picking a replacement dance for a program slot (issue #964)."
+  },
+  "programsReplacedDanceAnnounce": "Replaced with {title}.",
+  "@programsReplacedDanceAnnounce": {
+    "description": "Screen-reader announcement after picking a replacement dance in the slot edit dialog (issue #964).",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
   "programsEditNoteTitle": "Edit note",
   "@programsEditNoteTitle": {
     "description": "Title of the dialog for editing a free-text (note) program slot."
@@ -7067,6 +7089,24 @@
   "collectionPickerAddedTooltip": "Added {title}",
   "@collectionPickerAddedTooltip": {
     "description": "Tooltip for the picker's add button during the brief confirmation that follows a tap, while it shows a check instead of a plus (#796). The button stays active — a dance may legitimately be added to a program more than once — so this reports what just happened rather than disabling the action.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "collectionPickerReplaceSemantic": "Replace with {title}",
+  "@collectionPickerReplaceSemantic": {
+    "description": "Screen-reader label for a picker row when the picker is in replace mode (issue #964) — tapping the row replaces a program slot's dance rather than adding a new slot.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "collectionPickerReplaceTooltip": "Replace with {title}",
+  "@collectionPickerReplaceTooltip": {
+    "description": "Tooltip for a picker row's tap target when the picker is in replace mode (issue #964).",
     "placeholders": {
       "title": {
         "type": "String"

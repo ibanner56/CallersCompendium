@@ -4200,6 +4200,30 @@ abstract class AppLocalizations {
   /// **'Edit dance slot'**
   String get programsEditDanceSlotTitle;
 
+  /// Caption above the current dance's title in the slot edit dialog (issue #964).
+  ///
+  /// In en, this message translates to:
+  /// **'Dance'**
+  String get programsCurrentDanceLabel;
+
+  /// Button in the slot edit dialog that opens the picker to swap the slot's dance in place (issue #964).
+  ///
+  /// In en, this message translates to:
+  /// **'Replace…'**
+  String get programsReplaceDanceButton;
+
+  /// Title of the bottom sheet for picking a replacement dance for a program slot (issue #964).
+  ///
+  /// In en, this message translates to:
+  /// **'Replace dance'**
+  String get programsReplaceDanceSheetTitle;
+
+  /// Screen-reader announcement after picking a replacement dance in the slot edit dialog (issue #964).
+  ///
+  /// In en, this message translates to:
+  /// **'Replaced with {title}.'**
+  String programsReplacedDanceAnnounce(String title);
+
   /// Title of the dialog for editing a free-text (note) program slot.
   ///
   /// In en, this message translates to:
@@ -8086,6 +8110,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Added {title}'**
   String collectionPickerAddedTooltip(String title);
+
+  /// Screen-reader label for a picker row when the picker is in replace mode (issue #964) — tapping the row replaces a program slot's dance rather than adding a new slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace with {title}'**
+  String collectionPickerReplaceSemantic(String title);
+
+  /// Tooltip for a picker row's tap target when the picker is in replace mode (issue #964).
+  ///
+  /// In en, this message translates to:
+  /// **'Replace with {title}'**
+  String collectionPickerReplaceTooltip(String title);
 
   /// Screen-reader label for the persistent in-program marker shown on a picker row when the dance already appears in the program being built (#796). Not a button — it is a status indicator.
   ///

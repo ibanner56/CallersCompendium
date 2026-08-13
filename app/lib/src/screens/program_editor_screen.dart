@@ -1649,6 +1649,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             onSlotChanged: _updateSlot,
             onRemove: _removeSlot,
             onCreateDance: _createDanceFromSlot,
+            onPickReplacementDance: _data == null
+                ? null
+                : _pickReplacementDance,
           ),
           const SizedBox(height: 80),
         ],
@@ -1700,6 +1703,73 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                       addedDanceCounts: counts,
                       // Keep the sheet open so callers can add several dances.
                       onAddDance: _addDanceSlot,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Opens a picker sheet that resolves to the id of the dance the user
+  /// tapped, or `null` if they closed it without picking one (issue #964).
+  /// Passed to [ProgramSlotListEditor.onPickReplacementDance], which the slot
+  /// edit dialog calls from its own [AlertDialog] — there is no nested
+  /// [Navigator] anywhere under `app/lib` (verified: `grep -rln "Navigator("
+  /// app/lib` returns no hits), so this sheet lands on the same root stack,
+  /// on top of the open dialog, exactly like [PerformAdjustSheet] already
+  /// nests its own insert-a-dance sheet inside its enclosing sheet.
+  ///
+  /// Unlike [_openPickerSheet] this pops on the **first** tap: replacing a
+  /// slot's dance is a single choice, not an open-ended add session.
+  Future<String?> _pickReplacementDance() async {
+    final data = _data;
+    if (data == null) return null;
+    final l10n = AppLocalizations.of(context);
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.85,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const SizedBox(width: 16),
+                    Text(
+                      l10n.programsReplaceDanceSheetTitle,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      key: const ValueKey('replace-picker-sheet-close'),
+                      tooltip: l10n.commonClose,
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: ValueListenableBuilder<Map<String, int>>(
+                    valueListenable: _pickerCounts,
+                    builder: (context, counts, _) => CollectionPicker(
+                      key: const ValueKey('replace-picker'),
+                      data: data,
+                      dialect: _dialect,
+                      enrichment: _enrichment,
+                      scrollController: scrollController,
+                      addedDanceCounts: counts,
+                      rowAction: PickerRowAction.replace,
+                      onAddDance: (danceId) =>
+                          Navigator.of(sheetContext).pop(danceId),
                     ),
                   ),
                 ),
