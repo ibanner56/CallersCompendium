@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:compendium_app/src/diagnostics/crash_log_store.dart';
