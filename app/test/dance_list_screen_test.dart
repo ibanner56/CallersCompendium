@@ -310,6 +310,199 @@ void main() {
     },
   );
 
+  group('"Last used" default sort (issue #895)', () {
+    testWidgets(
+      'opens in the last-used sort AND direction when the default is '
+      '"Last used" — even when the stored key equals the historical default',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          kDefaultCollectionSortKey,
+          kLastUsedSortSentinel,
+        );
+        // The stored last-used KEY is `title` — the same as the screen's
+        // initial `_sort` — so a key-only comparison (the pre-fix
+        // `sort != _sort` guard) would treat this as "nothing changed" and
+        // skip applying the stored DIRECTION, silently opening ascending
+        // instead of the descending direction actually last used. This is
+        // the half-restore trap recorded against `dance_list_screen.dart:589`.
+        await repos.settings.set(
+          kLastUsedCollectionSortKey,
+          CollectionSort.title.name,
+        );
+        await repos.settings.set(
+          kLastUsedCollectionSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await repos.dances.create(_dance(id: 'd1', title: 'Aardvark'));
+        await repos.dances.create(_dance(id: 'd2', title: 'Zephyr'));
+
+        await _pumpScreen(tester, repos);
+        await tester.pumpAndSettle();
+
+        expect(_titles(tester), ['Zephyr', 'Aardvark']);
+      },
+    );
+
+    testWidgets('a fixed (non-"Last used") default always opens at its natural '
+        'direction, regardless of what was last used in the list', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      // The default stays the fixed concrete sort `title`; only the
+      // last-used keys (which a "Last used" default would have read) carry
+      // a different direction. They must be ignored.
+      await repos.settings.set(
+        kDefaultCollectionSortKey,
+        CollectionSort.title.name,
+      );
+      await repos.settings.set(
+        kLastUsedCollectionSortKey,
+        CollectionSort.title.name,
+      );
+      await repos.settings.set(
+        kLastUsedCollectionSortDirectionKey,
+        SortDirection.descending.name,
+      );
+      await repos.dances.create(_dance(id: 'd1', title: 'Aardvark'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Zephyr'));
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+
+      expect(_titles(tester), ['Aardvark', 'Zephyr']);
+    });
+
+    testWidgets('changing the sort in-list persists it as last-used (key and '
+        'direction)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Zesty Reel'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Autumn Waltz'));
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.sort));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Recently added').last);
+      await tester.pumpAndSettle();
+
+      expect(
+        await repos.settings.get(kLastUsedCollectionSortKey),
+        CollectionSort.recentlyAdded.name,
+      );
+      expect(
+        await repos.settings.get(kLastUsedCollectionSortDirectionKey),
+        CollectionSort.recentlyAdded.searchSort.defaultDirection.name,
+      );
+
+      // Flipping the direction toggle persists the new direction under the
+      // same (unchanged) sort key.
+      await tester.tap(find.byKey(const ValueKey('collection-sort-direction')));
+      await tester.pumpAndSettle();
+
+      expect(
+        await repos.settings.get(kLastUsedCollectionSortKey),
+        CollectionSort.recentlyAdded.name,
+      );
+      expect(
+        await repos.settings.get(kLastUsedCollectionSortDirectionKey),
+        isNot(CollectionSort.recentlyAdded.searchSort.defaultDirection.name),
+      );
+    });
+
+    testWidgets(
+      'selecting "Best match" (relevance) during a bare full-text search '
+      'does not overwrite the stored last-used sort',
+      (tester) async {
+        final repos = openTestRepositories();
+        // A prior last-used value exists — the durable choice this guard
+        // exists to protect from an incidental, query-scoped selection.
+        await repos.settings.set(
+          kLastUsedCollectionSortKey,
+          CollectionSort.author.name,
+        );
+        await repos.settings.set(
+          kLastUsedCollectionSortDirectionKey,
+          SortDirection.ascending.name,
+        );
+        await repos.dances.create(_dance(id: 'd1', title: 'Zesty Reel'));
+        await repos.dances.create(_dance(id: 'd2', title: 'Autumn Waltz'));
+        await _pumpScreen(tester, repos);
+        await tester.pumpAndSettle();
+
+        // A bare full-text query makes "Best match" (relevance) available.
+        await _search(tester, 'reel');
+        await tester.tap(find.byIcon(Icons.sort));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Best match').last);
+        await tester.pumpAndSettle();
+
+        expect(
+          await repos.settings.get(kLastUsedCollectionSortKey),
+          CollectionSort.author.name,
+          reason:
+              'Relevance is only meaningful for the active bare-FTS query, '
+              'never a durable last-used choice; persisting it would erase '
+              'the sort the user was actually using.',
+        );
+        expect(
+          await repos.settings.get(kLastUsedCollectionSortDirectionKey),
+          SortDirection.ascending.name,
+        );
+      },
+    );
+
+    testWidgets(
+      'a late default-sort seed read does not clobber a sort the user already '
+      'chose in-session',
+      (tester) async {
+        final opened = openTestRepositoriesWithDelayedSettingsRead();
+        final repos = opened.repos;
+        final settings = opened.settings;
+        // A FIXED (non-"Last used") default: only `kDefaultCollectionSortKey`
+        // decides the seeded sort here, and — unlike the last-used keys —
+        // nothing the user does in the list writes back to it. So a stale
+        // read of it, resumed after the user has already chosen a different
+        // sort, is a genuine "old value overwrites a newer choice" race, not
+        // one the user's own write incidentally self-heals.
+        await repos.settings.set(
+          kDefaultCollectionSortKey,
+          CollectionSort.recentlyAdded.name,
+        );
+        // Distinct `createdAt` values: with identical ones, `recentlyAdded`
+        // and `title` order would coincide for this data and the test could
+        // pass for the wrong reason regardless of whether the guard exists.
+        await repos.dances.create(
+          _dance(id: 'd1', title: 'Aardvark', createdAt: DateTime.utc(2025)),
+        );
+        await repos.dances.create(
+          _dance(id: 'd2', title: 'Zephyr', createdAt: DateTime.utc(2026)),
+        );
+
+        // Hold the seed's mode read open so the user can act while it is
+        // still in flight — the exact race `_sortUserSet` exists to guard.
+        settings.holdNextRead(kDefaultCollectionSortKey);
+        await _pumpScreen(tester, repos);
+        await tester.pumpAndSettle();
+        await settings.readStarted;
+
+        await tester.tap(find.byIcon(Icons.sort));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Title').last);
+        await tester.pumpAndSettle();
+        expect(_titles(tester), ['Aardvark', 'Zephyr']);
+
+        // Let the stale default-sort read resolve. It must not overwrite the
+        // user's in-session choice of Title with the fixed `recentlyAdded`
+        // default it was reading.
+        settings.releaseRead();
+        await tester.pumpAndSettle();
+
+        expect(_titles(tester), ['Aardvark', 'Zephyr']);
+      },
+    );
+  });
+
   testWidgets(
     'issue #340: a dance added externally with a new author appears — and the '
     'new author joins the filter — after CollectionRefreshScope fires, without '

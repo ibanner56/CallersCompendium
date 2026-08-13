@@ -555,6 +555,17 @@ class AppLocalizationsNl extends AppLocalizations {
       'Hoe de collectie wordt gesorteerd wanneer je die opent. Je kunt de sortering nog steeds aanpassen tijdens het bladeren.';
 
   @override
+  String get settingsDefaultsSortLastUsed => 'Laatst gebruikt';
+
+  @override
+  String get settingsDefaultsProgramSortTitle =>
+      'Sorteervolgorde van programma\'s';
+
+  @override
+  String get settingsDefaultsProgramSortSubtitle =>
+      'Hoe de programmalijst wordt gesorteerd wanneer je deze opent. Je kunt de sortering tijdens het bladeren nog steeds wijzigen.';
+
+  @override
   String get settingsDefaultsCanonicalTitle =>
       'Dansdetails openen in canonieke termen';
 

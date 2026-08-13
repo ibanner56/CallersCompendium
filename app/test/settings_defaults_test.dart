@@ -11,6 +11,7 @@ import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
+import 'package:compendium_app/src/search/program_sort.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
@@ -111,11 +112,11 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<CollectionSort>>(
+          .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
             find.byKey(const ValueKey('defaults-collection-sort')),
           )
           .value,
-      CollectionSort.title,
+      const SortDefaultSetting.concrete(CollectionSort.title),
     );
     expect(
       tester
@@ -139,11 +140,11 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<CollectionSort>>(
+          .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
             find.byKey(const ValueKey('defaults-collection-sort')),
           )
           .value,
-      CollectionSort.author,
+      const SortDefaultSetting.concrete(CollectionSort.author),
     );
     expect(
       await repos.settings.get(kDefaultCollectionSortKey),
@@ -185,11 +186,11 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<CollectionSort>>(
+          .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
             find.byKey(const ValueKey('defaults-collection-sort')),
           )
           .value,
-      CollectionSort.lastCalled,
+      const SortDefaultSetting.concrete(CollectionSort.lastCalled),
     );
   });
 
@@ -210,11 +211,11 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<CollectionSort>>(
+          .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
             find.byKey(const ValueKey('defaults-collection-sort')),
           )
           .value,
-      CollectionSort.author,
+      const SortDefaultSetting.concrete(CollectionSort.author),
     );
     expect(
       tester
@@ -223,6 +224,156 @@ void main() {
           )
           .value,
       isTrue,
+    );
+  });
+
+  group('Programs default sort (issue #895)', () {
+    testWidgets('shows Title (the historical default) when unset', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+
+      expect(
+        tester
+            .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+              find.byKey(const ValueKey('defaults-program-sort')),
+            )
+            .value,
+        const SortDefaultSetting.concrete(ProgramSort.title),
+      );
+    });
+
+    testWidgets('changing it persists the concrete sort', (tester) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+
+      await tester.tap(find.byKey(const ValueKey('defaults-program-sort')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Event date').last);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+              find.byKey(const ValueKey('defaults-program-sort')),
+            )
+            .value,
+        const SortDefaultSetting.concrete(ProgramSort.eventDate),
+      );
+      expect(
+        await repos.settings.get(kDefaultProgramSortKey),
+        ProgramSort.eventDate.name,
+      );
+    });
+
+    testWidgets('a saved default sort is reflected on reload', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultProgramSortKey,
+        ProgramSort.recentlyUpdated.name,
+      );
+
+      await _pumpDefaults(tester, repos);
+
+      expect(
+        tester
+            .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+              find.byKey(const ValueKey('defaults-program-sort')),
+            )
+            .value,
+        const SortDefaultSetting.concrete(ProgramSort.recentlyUpdated),
+      );
+    });
+  });
+
+  group('"Last used" default-sort option (issue #895)', () {
+    testWidgets(
+      'selecting Last used for Collection persists the sentinel, not an '
+      'enum name',
+      (tester) async {
+        final repos = openTestRepositories();
+        await _pumpDefaults(tester, repos);
+
+        await tester.tap(
+          find.byKey(const ValueKey('defaults-collection-sort')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Last used').last);
+        await tester.pumpAndSettle();
+
+        expect(
+          tester
+              .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+                find.byKey(const ValueKey('defaults-collection-sort')),
+              )
+              .value,
+          const SortDefaultSetting.lastUsed(CollectionSort.title),
+        );
+        expect(
+          await repos.settings.get(kDefaultCollectionSortKey),
+          kLastUsedSortSentinel,
+        );
+      },
+    );
+
+    testWidgets(
+      'selecting Last used for Programs persists the sentinel, not an enum '
+      'name',
+      (tester) async {
+        final repos = openTestRepositories();
+        await _pumpDefaults(tester, repos);
+
+        await tester.tap(find.byKey(const ValueKey('defaults-program-sort')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Last used').last);
+        await tester.pumpAndSettle();
+
+        expect(
+          tester
+              .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+                find.byKey(const ValueKey('defaults-program-sort')),
+              )
+              .value,
+          const SortDefaultSetting.lastUsed(ProgramSort.title),
+        );
+        expect(
+          await repos.settings.get(kDefaultProgramSortKey),
+          kLastUsedSortSentinel,
+        );
+      },
+    );
+
+    testWidgets(
+      'a saved "last_used" sentinel reflects as Last used on reload for '
+      'both lists',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          kDefaultCollectionSortKey,
+          kLastUsedSortSentinel,
+        );
+        await repos.settings.set(kDefaultProgramSortKey, kLastUsedSortSentinel);
+
+        await _pumpDefaults(tester, repos);
+
+        expect(
+          tester
+              .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+                find.byKey(const ValueKey('defaults-collection-sort')),
+              )
+              .value,
+          const SortDefaultSetting.lastUsed(CollectionSort.title),
+        );
+        expect(
+          tester
+              .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+                find.byKey(const ValueKey('defaults-program-sort')),
+              )
+              .value,
+          const SortDefaultSetting.lastUsed(ProgramSort.title),
+        );
+      },
     );
   });
 

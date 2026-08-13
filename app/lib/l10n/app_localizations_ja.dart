@@ -546,6 +546,16 @@ class AppLocalizationsJa extends AppLocalizations {
       'コレクションを開いたときの並び順です。閲覧中でも並び順を変更できます。';
 
   @override
+  String get settingsDefaultsSortLastUsed => '前回使用した並び順';
+
+  @override
+  String get settingsDefaultsProgramSortTitle => 'プログラムの並び順';
+
+  @override
+  String get settingsDefaultsProgramSortSubtitle =>
+      'プログラム一覧を開いたときの並び順です。閲覧中に並び順を変更することもできます。';
+
+  @override
   String get settingsDefaultsCanonicalTitle => 'ダンスの詳細を正式な用語で表示する';
 
   @override

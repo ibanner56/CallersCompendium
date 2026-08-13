@@ -620,6 +620,18 @@
   "@settingsDefaultsSortSubtitle": {
     "x-sourceSha256": "5064e817e377d00ff74f2ef2e99a5cb6ff0d3ff1072eab2f0b57f9f560533c6e"
   },
+  "settingsDefaultsSortLastUsed": "Zuletzt verwendet",
+  "@settingsDefaultsSortLastUsed": {
+    "x-sourceSha256": "830ec7f812f9d862250b61add10f9a078de67a3282dd9e94f60d64cec58eefec"
+  },
+  "settingsDefaultsProgramSortTitle": "Sortierreihenfolge der Programme",
+  "@settingsDefaultsProgramSortTitle": {
+    "x-sourceSha256": "37cbb9162bf3bcacfb7b1859e6a76a97c9e8cf2fb2a8a3186b61dad2981bb729"
+  },
+  "settingsDefaultsProgramSortSubtitle": "Wie die Programmliste beim Öffnen sortiert wird. Du kannst die Sortierung beim Durchsuchen weiterhin ändern.",
+  "@settingsDefaultsProgramSortSubtitle": {
+    "x-sourceSha256": "d1b19f20d70621043d6259de6852f88a01ea347990acd4533d3289d45eb9a5f7"
+  },
   "settingsDefaultsCanonicalTitle": "Tanzdetails in kanonischen Begriffen öffnen",
   "@settingsDefaultsCanonicalTitle": {
     "x-sourceSha256": "befaeb6d65d4ce394b461aa5bb7f03f2090f47c63c139de5874d0180529e0886"

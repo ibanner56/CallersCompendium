@@ -16,9 +16,118 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 
 /// Key used to persist the default Collection sort order (ROADMAP G.6a).
-/// Stored as the [CollectionSort] enum's stable `.name`. Absent/invalid ⇒ the
-/// list falls back to its historical default (`title`).
+/// Stored as the `CollectionSort` enum's stable `.name`, **or**
+/// [kLastUsedSortSentinel] to mean "seed from whatever was last used in the
+/// list itself" (issue #895). Absent/invalid ⇒ the list falls back to its
+/// historical default (`title`).
 const String kDefaultCollectionSortKey = 'default_collection_sort';
+
+/// Key used to persist the default Programs sort order (issue #895), mirroring
+/// [kDefaultCollectionSortKey]. Stored as the `ProgramSort` enum's stable
+/// `.name`, or [kLastUsedSortSentinel]. Absent/invalid ⇒ the list falls back to
+/// its historical default (`title`).
+const String kDefaultProgramSortKey = 'default_program_sort';
+
+/// The sentinel value stored under [kDefaultCollectionSortKey] /
+/// [kDefaultProgramSortKey] to mean "seed the list from its own last-used sort
+/// (key + direction), not a fixed one" (issue #895) — never a member of
+/// `CollectionSort` / `ProgramSort` themselves (see
+/// `sortDefaultSettingFromStored`'s doc for why the enums stay untouched).
+const String kLastUsedSortSentinel = 'last_used';
+
+/// Keys holding the Collection list's own last-used sort (key and direction),
+/// written whenever the user changes the sort **in the list** and read only
+/// when [kDefaultCollectionSortKey] resolves to [kLastUsedSortSentinel]
+/// (issue #895). Absent/invalid ⇒ the list's historical default (`title`,
+/// ascending).
+const String kLastUsedCollectionSortKey = 'last_used_collection_sort';
+const String kLastUsedCollectionSortDirectionKey =
+    'last_used_collection_sort_direction';
+
+/// Keys holding the Programs list's own last-used sort (key and direction),
+/// mirroring [kLastUsedCollectionSortKey] / [kLastUsedCollectionSortDirectionKey]
+/// (issue #895).
+const String kLastUsedProgramSortKey = 'last_used_program_sort';
+const String kLastUsedProgramSortDirectionKey =
+    'last_used_program_sort_direction';
+
+/// A resolved default-sort setting for a list screen (Collection or Programs,
+/// issue #895): either a fixed concrete [sort], or [isLastUsed] meaning the
+/// list should seed from its own last-used sort keys instead of a fixed one.
+///
+/// Generic over the list's own sort enum (`CollectionSort` / `ProgramSort`) so
+/// the Settings ▸ Defaults picker can share one value type across both lists
+/// while keeping their sort values distinct (a `SortDefaultSetting<ProgramSort>`
+/// can never hold a `CollectionSort`).
+///
+/// Equality/hashCode deliberately ignore [sort] when [isLastUsed] is true, so
+/// every "Last used" entry compares equal regardless of its incidental
+/// fallback value — required for `DropdownButton<SortDefaultSetting<T>>` to
+/// highlight the right item by `==`, since the fallback passed to
+/// [SortDefaultSetting.lastUsed] need not be identical at every call site.
+class SortDefaultSetting<T> {
+  const SortDefaultSetting.concrete(this.sort) : isLastUsed = false;
+  const SortDefaultSetting.lastUsed(this.sort) : isLastUsed = true;
+
+  /// The configured concrete sort when [isLastUsed] is false; an unused
+  /// fallback value when [isLastUsed] is true (kept only so the type stays
+  /// non-nullable — never read in that case).
+  final T sort;
+  final bool isLastUsed;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! SortDefaultSetting<T>) return false;
+    if (isLastUsed != other.isLastUsed) return false;
+    return isLastUsed || sort == other.sort;
+  }
+
+  @override
+  int get hashCode => isLastUsed ? Object.hash(T, true) : Object.hash(T, sort);
+}
+
+/// Resolves a persisted default-sort settings value (from
+/// [kDefaultCollectionSortKey] or [kDefaultProgramSortKey]) into a
+/// [SortDefaultSetting].
+///
+/// [fromName] is the sort-specific resolver (`collectionSortFromName` /
+/// `programSortFromName`) and [historicalDefault] its historical fallback
+/// (`title` for both lists). [kLastUsedSortSentinel] short-circuits into
+/// [SortDefaultSetting.lastUsed] before [fromName] is ever consulted, so it is
+/// never passed to a resolver that has no member for it — deliberately: see
+/// the enum-membership hazard recorded against issue #895 (extending
+/// `CollectionSort`/`ProgramSort` themselves with a `lastUsed` member would
+/// reach an exhaustive `searchSort` switch with no case to give it, and would
+/// be auto-asserted as a persistable default by
+/// `collection_query_test.dart`'s round-trip test).
+SortDefaultSetting<T> sortDefaultSettingFromStored<T>(
+  Object? stored,
+  T? Function(Object?) fromName,
+  T historicalDefault,
+) {
+  if (stored == kLastUsedSortSentinel) {
+    return SortDefaultSetting.lastUsed(historicalDefault);
+  }
+  return SortDefaultSetting.concrete(fromName(stored) ?? historicalDefault);
+}
+
+/// Encodes a [SortDefaultSetting] back to its stored settings string, the
+/// inverse of [sortDefaultSettingFromStored].
+String encodeSortDefaultSetting<T extends Enum>(SortDefaultSetting<T> value) =>
+    value.isLastUsed ? kLastUsedSortSentinel : value.sort.name;
+
+/// Resolves a persisted settings value into a [SortDirection].
+///
+/// Returns `null` for `null`, a non-string, or an unrecognized name — the
+/// caller falls back to its own sort-specific default direction, mirroring
+/// every other `*FromStored` resolver in this file.
+SortDirection? sortDirectionFromName(Object? stored) {
+  if (stored is! String) return null;
+  for (final direction in SortDirection.values) {
+    if (direction.name == stored) return direction;
+  }
+  return null;
+}
 
 /// Key used to persist the default caller name for new programs (ROADMAP G.3).
 /// Free text; prefills a NEW program's caller in the program editor. Absent or

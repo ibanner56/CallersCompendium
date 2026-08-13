@@ -374,7 +374,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**49 settings keys**: 41 shareable, 8 device-scoped. 2 personal data by category.
+**54 settings keys**: 46 shareable, 8 device-scoped. 2 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -404,10 +404,15 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `default_move_param_overrides` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_program_band` | `pd:Name` | app user | shareable | A performer name the user pre-fills onto new programs — most often their own band. Personal data, shareable for the same reason as programs.band. |
 | `default_program_caller` | `pd:Name` | app user | shareable | A performer name the user pre-fills onto new programs — most often themselves. Personal data, shareable for the same reason as programs.caller. |
+| `default_program_sort` | `dpv:NonPersonalData` | app user | shareable |  |
 | `first_day_of_week` | `dpv:NonPersonalData` | app user | shareable |  |
 | `formation_color_overrides` | `dpv:NonPersonalData` | app user | shareable |  |
 | `free_text_entry` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_backup_at` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `last_used_collection_sort` | `dpv:NonPersonalData` | app user | shareable |  |
+| `last_used_collection_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
+| `last_used_program_sort` | `dpv:NonPersonalData` | app user | shareable |  |
+| `last_used_program_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
 | `perform_canonical_view` | `dpv:NonPersonalData` | app user | shareable |  |
 | `perform_stage_mode` | `dpv:NonPersonalData` | app user | shareable |  |
 | `perform_text_scale` | `dpv:NonPersonalData` | app user | device-scoped | Tuned to the screen it was set on. A scale chosen for a phone held at arm's length is wrong on a laptop driving a projector. |

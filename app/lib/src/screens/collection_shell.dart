@@ -115,6 +115,20 @@ class _CollectionShellState extends State<CollectionShell> {
   /// per-pane [ScaffoldMessenger]s and would find no Scaffold to attach to).
   final _detailMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
+  /// Identifies the single logical [DanceListScreen] across both
+  /// [LayoutBuilder] branches (the narrow branch vs `_buildSplitPane`).
+  ///
+  /// Those branches place the list at structurally different tree positions
+  /// (bare vs nested in `Row > SizedBox > ScaffoldMessenger`), so without a
+  /// stable key Flutter treats a breakpoint crossing (e.g. a tablet rotation)
+  /// as removing one Element and inserting a different one — discarding the
+  /// list's State (its sort choice, search text, facets, and scroll position)
+  /// even though it is logically the same screen (issue #895). A [GlobalKey]
+  /// on the same widget in both branches makes Flutter *move* the existing
+  /// Element (and its State) to the new position instead, mirroring
+  /// [_detailMessengerKey] above.
+  final _listKey = GlobalKey();
+
   /// The currently previewed online dance in the detail pane, plus its
   /// loading/error state. Meaningful only while [_detailMode] is
   /// [_DetailMode.onlinePreview].
@@ -360,6 +374,7 @@ class _CollectionShellState extends State<CollectionShell> {
         // onSelectOnlineDance is left null), sharing the online service so the
         // same seam is used in tests.
         return DanceListScreen(
+          key: _listKey,
           onImport: _pushImportRoute,
           callersBoxOnline: _callersBox,
           contraDbOnline: _contraDb,
@@ -379,6 +394,7 @@ class _CollectionShellState extends State<CollectionShell> {
           width: CollectionShell.listPaneWidth,
           child: ScaffoldMessenger(
             child: DanceListScreen(
+              key: _listKey,
               onSelectDance: _onSelectDance,
               onNewDance: _onNewDance,
               selectedDanceId: _selectedDanceId,

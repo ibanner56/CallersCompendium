@@ -557,6 +557,17 @@ class AppLocalizationsDa extends AppLocalizations {
       'Hvordan samlingen sorteres, når du åbner den. Du kan stadig ændre sorteringen under gennemsynet.';
 
   @override
+  String get settingsDefaultsSortLastUsed => 'Sidst brugt';
+
+  @override
+  String get settingsDefaultsProgramSortTitle =>
+      'Sorteringsrækkefølge for programmer';
+
+  @override
+  String get settingsDefaultsProgramSortSubtitle =>
+      'Hvordan programlisten sorteres, når du åbner den. Du kan stadig ændre sorteringen, mens du gennemser.';
+
+  @override
   String get settingsDefaultsCanonicalTitle =>
       'Åbn dansdetaljer med kanoniske termer';
 

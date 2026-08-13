@@ -567,6 +567,16 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ordre de tri de la collection à l’ouverture. Vous pouvez toujours modifier le tri pendant la navigation.';
 
   @override
+  String get settingsDefaultsSortLastUsed => 'Dernier utilisé';
+
+  @override
+  String get settingsDefaultsProgramSortTitle => 'Ordre de tri des programmes';
+
+  @override
+  String get settingsDefaultsProgramSortSubtitle =>
+      'Comment la liste des programmes est triée à l\'ouverture. Vous pouvez toujours modifier le tri en parcourant la liste.';
+
+  @override
   String get settingsDefaultsCanonicalTitle =>
       'Ouvrir les détails de la danse en termes canoniques';
 
