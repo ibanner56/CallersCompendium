@@ -404,6 +404,62 @@ class ProgramRepository {
     ];
   }
 
+  /// The tables [listAll] reads, and therefore the `readsFrom` set
+  /// [watchAll] declares. Justified per table:
+  ///
+  /// * `programs` — the row set itself: title, event date, venue text/link,
+  ///   `deleted_at` for the soft-delete filter, and the title ordering.
+  /// * `program_slots` — every program carries its slots
+  ///   (`_slotsForMany`), so adding, removing, reordering or editing a slot
+  ///   changes what [listAll] returns while touching no `programs` row.
+  /// * `program_provenance` — the imported-from record folded in by
+  ///   `_provenanceForMany`. Nothing in the Programs list renders it *today*,
+  ///   but it is part of the [Program] value this stream hands out, so a
+  ///   subscriber receiving a stale one is the same defect as a stale title.
+  ///
+  /// `venues` is deliberately NOT here, matching [_programDerivedTables]: the
+  /// venue *label* is resolved app-side from the catalogue, so a venue rename
+  /// does not re-emit and the label stays stale until something else reloads.
+  /// That boundary is stated rather than fixed here because fixing it by
+  /// widening this set would push a reload onto every subscriber on every
+  /// venue edit, including subscribers that render no venue at all — curing
+  /// staleness by causing issue #340. It needs a per-consumer read set, which
+  /// is tracked separately (issue #944).
+  Set<ResultSetImplementation<dynamic, dynamic>> get _programListTables => {
+    _db.programs,
+    _db.programSlots,
+    _db.programProvenance,
+  };
+
+  /// [listAll] as a live stream: emits the current list immediately, then again
+  /// after every write that could change it.
+  ///
+  /// ## Why a sentinel `customSelect` rather than watching the query
+  ///
+  /// The obvious implementation — `_db.select(_db.programs).watch()` — is
+  /// wrong here, and wrong in the way this issue is about: it looks correct and
+  /// fails silently.
+  ///
+  /// drift infers a builder query's read set from the query itself, so
+  /// `select(programs).watch()` re-emits for `programs` and **nothing else**.
+  /// But [listAll] is not one query: it selects programs and then fans out in
+  /// Dart to `_slotsForMany` and `_provenanceForMany`. Those reads happen after
+  /// drift has finished deciding what the stream depends on, so editing a slot
+  /// would change the list's contents and re-emit nothing at all.
+  ///
+  /// That makes the inferred set more dangerous than a hand-written one, not
+  /// less: a `customSelect` with no `readsFrom` is obviously unfinished,
+  /// whereas the builder hands back a plausible answer to a narrower question
+  /// than the caller asked. The sentinel makes the dependency explicit and puts
+  /// it in one place — [_programListTables] — where each entry is justified.
+  ///
+  /// `program_repository_watch_test.dart` pins this: it asserts a slot-only
+  /// edit re-emits, which is exactly the assertion the builder version fails.
+  Stream<List<Program>> watchAll({bool includeDeleted = false}) => _db
+      .customSelect('SELECT 1', readsFrom: _programListTables)
+      .watch()
+      .asyncMap((_) => listAll(includeDeleted: includeDeleted));
+
   /// Lightweight `(id, title)` listing that reads only the two columns it needs
   /// — avoiding the per-row [_slotsFor] child-query fan-out that [listAll]
   /// performs. Ordered by title then id; soft-deleted programs are excluded

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
@@ -394,7 +392,6 @@ void main() {
         repos,
         ProgramSummaryPane(
           programId: 'p1',
-          refreshTrigger: refresh,
           onOpenBuilder: () {},
           onDeleted: () {},
           onNavigateTo: (_) {},
@@ -417,117 +414,32 @@ void main() {
     },
   );
 
-  testWidgets(
-    'issue #768: a re-entrant load during a caller-filter change never '
-    'presents the previous filter\'s snapshot (asserted as "does not settle", '
-    'not as a rendered tally — see comment)',
-    (tester) async {
-      // The window: `_watchCollectionData` records the NEW caller filter and
-      // opens a new subscription, but `_latestData` still holds the snapshot
-      // the OLD filter produced. Until that subscription's first emit, the two
-      // disagree. A `_load` re-entering there used to satisfy every condition
-      // of the reuse gate — live subscription, matching filter, non-null cache
-      // — and be handed the superseded snapshot.
-      //
-      // ## Why this asserts "the pane does not settle" rather than a tally
-      //
-      // The caller filter changes only the call counts, last-called and
-      // calling-history fields of `CollectionData`. This pane renders none of
-      // them directly — it reads `choreographersById` and gates `canPerform`,
-      // both filter-independent — and surfaces the filtered fields only by
-      // handing the snapshot to `PerformProgramScreen`. So there is no tally on
-      // screen to assert against, and inventing one by driving into the perform
-      // screen would test that screen's rendering rather than this gate.
-      //
-      // What IS observable, and is exactly the property, is that the pane must
-      // not COMPLETE a load using the superseded snapshot: with the defect,
-      // `_load` returns the cached value immediately and the pane settles with
-      // it; with the gate, it waits for the new subscription. The parked query
-      // holds that state open so the difference is deterministic rather than a
-      // race.
-      final parker = _ParkWatchSentinels();
-      final db = openWidgetTestDatabase(
-        NativeDatabase.memory().interceptWith(parker),
-      );
-      addTearDown(db.close);
-      final repos = CompendiumRepositories(db, contraTaxonomy);
-
-      await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
-      await repos.programs.create(
-        program(
-          id: 'p1',
-          title: 'Friday Night',
-          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
-        ),
-      );
-      final refresh = ValueNotifier<int>(0);
-      addTearDown(refresh.dispose);
-      await pump(
-        tester,
-        repos,
-        ProgramSummaryPane(
-          programId: 'p1',
-          refreshTrigger: refresh,
-          onOpenBuilder: () {},
-          onDeleted: () {},
-          onNavigateTo: (_) {},
-        ),
-      );
-      expect(
-        find.text('Friday Night'),
-        findsWidgets,
-        reason: 'the pane loaded under the initial (track-all) filter',
-      );
-
-      // Change the filter out from under the live subscription. With no
-      // default caller the resolver returns null ("track all"); setting one
-      // makes it return 'Ann'. `settings` is not in the watched source set, so
-      // this write emits nothing — the reload is driven explicitly below,
-      // which is what keeps the ordering deterministic.
-      await repos.settings.set(kDefaultProgramCallerKey, 'Ann');
-      parker.arm();
-
-      // Leading edge: `_load` #2 sees the new filter, replaces the
-      // subscription, and parks awaiting its first value.
-      refresh.value++;
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 5));
-      expect(
-        parker.parked,
-        greaterThan(0),
-        reason: 'the replacement subscription is held before its first emit',
-      );
-
-      // Trailing edge: `_load` #3 re-enters INSIDE that window. This is the
-      // load that used to be handed the previous filter's snapshot.
-      refresh.value++;
-      await tester.pump(const Duration(milliseconds: 40));
-      await tester.pump();
-
-      expect(
-        find.byType(CircularProgressIndicator),
-        findsWidgets,
-        reason:
-            'the re-entrant load must wait for the new filter\'s snapshot; '
-            'settling here means it accepted the superseded one',
-      );
-
-      // Released INSIDE the test body, not in teardown. `testWidgets` runs the
-      // body against a fake async clock, so a future parked on a real database
-      // query only resumes while the test is pumping — awaiting it from
-      // teardown hangs the suite rather than failing it. (Observed: this test
-      // hung until the release moved here.) Its sibling in
-      // `collection_data_watch_test.dart` awaits its close in teardown safely
-      // because it is a plain `test`, with no fake clock.
-      parker.release();
-      await tester.pumpAndSettle();
-      expect(
-        find.text('Friday Night'),
-        findsWidgets,
-        reason: 'and it does settle once the new snapshot arrives',
-      );
-    },
-  );
+  // REMOVED: 'a re-entrant load during a caller-filter change never presents
+  // the previous filter's snapshot'.
+  //
+  // The gate it guarded is still in `_watchCollectionData` and still correct.
+  // The test is gone because this PR made the state it needed unreachable, and
+  // a guard that cannot fail is worse than an absent one — it reads as coverage.
+  //
+  // What changed: the pane's `refreshTrigger` was removed with the rest of the
+  // Programs refresh plumbing, so the coalescer is now `_load`'s only caller.
+  // Re-entering `_load` is therefore no longer something a test can request; it
+  // is a race inside the two DB reads that precede `_watchCollectionData`.
+  //
+  // A replacement was written and then withdrawn. It parked `getById` to hold
+  // one load open while another completed the filter change, which is
+  // deterministic — but the clause under test (`_pendingFirst == null`) only
+  // changes the outcome while the replacement subscription is STILL PENDING,
+  // and holding it pending as well leaves nothing to settle the pane at all.
+  // The mutation confirmed it rather than the reasoning: with
+  // `_pendingFirst == null` deleted, that test still passed.
+  //
+  // Deliberately not replaced with a proxy assertion. Nothing this pane renders
+  // depends on the caller filter — it draws `choreographersById` and a
+  // `canPerform` gate, and hands the filtered fields to `PerformProgramScreen`
+  // — so any on-screen assertion would be testing something other than the
+  // gate. See `program_editor_screen`, where `_resubscribePicker` makes the
+  // same replace path reachable and is covered there.
 
   testWidgets(
     'gap 3: mark-all-performed in a program summary updates a live Collection '
@@ -551,7 +463,6 @@ void main() {
           const DanceListScreen(),
           ProgramSummaryPane(
             programId: 'p1',
-            refreshTrigger: refresh,
             onOpenBuilder: () {},
             onDeleted: () {},
             onNavigateTo: (_) {},
@@ -678,7 +589,6 @@ void main() {
         repos,
         ProgramSummaryPane(
           programId: 'p1',
-          refreshTrigger: refresh,
           onOpenBuilder: () {},
           onDeleted: () {},
           onNavigateTo: (_) {},
@@ -851,7 +761,6 @@ void main() {
               paneVisible
                   ? ProgramSummaryPane(
                       programId: 'p1',
-                      refreshTrigger: refresh,
                       onOpenBuilder: () {},
                       onDeleted: () => rebuildHost(() => paneVisible = false),
                       onNavigateTo: (_) {},
@@ -1068,38 +977,6 @@ class _CountingSettings extends SettingsRepository {
   Future<Object?> get(String key) {
     _reads.update(key, (v) => v + 1, ifAbsent: () => 1);
     return super.get(key);
-  }
-}
-
-/// Holds EVERY `CollectionData.watch` sentinel query while armed, releasing
-/// them all together.
-///
-/// Deliberately not "park the first one": the behaviour under test opens a
-/// second subscription in response to the first being parked, so a
-/// park-once gate would let that one through and erase the difference between
-/// the defect and the fix. The count is exposed so a test can assert it
-/// actually parked rather than assuming it did.
-class _ParkWatchSentinels extends drift.QueryInterceptor {
-  final _gate = Completer<void>();
-  bool _armed = false;
-  int parked = 0;
-
-  void arm() => _armed = true;
-  void release() {
-    if (!_gate.isCompleted) _gate.complete();
-  }
-
-  @override
-  Future<List<Map<String, Object?>>> runSelect(
-    drift.QueryExecutor executor,
-    String statement,
-    List<Object?> args,
-  ) async {
-    if (_armed && statement.trim() == 'SELECT 1') {
-      parked++;
-      await _gate.future;
-    }
-    return executor.runSelect(statement, args);
   }
 }
 

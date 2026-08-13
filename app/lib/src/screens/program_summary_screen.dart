@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -51,17 +50,7 @@ class ProgramSummaryScreen extends StatefulWidget {
 }
 
 class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
-  /// Reloads the reused [ProgramSummaryPane] in place after an edit that keeps
-  /// the same program id. A duplicate instead re-targets [_programId], which
-  /// re-keys and rebuilds the pane, so it reloads without a tick.
-  final _refresh = ValueNotifier<int>(0);
   late String _programId = widget.programId;
-
-  @override
-  void dispose() {
-    _refresh.dispose();
-    super.dispose();
-  }
 
   Future<void> _openBuilder() async {
     final result = await Navigator.of(context).push<String>(
@@ -74,10 +63,12 @@ class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
       // The builder deleted the program; leave the summary and return to the
       // list (which reloads and drops the stale row).
       Navigator.of(context).pop();
-    } else if (result != null) {
-      // The builder saved edits under the same id; reload the summary in place.
-      _refresh.value++;
     }
+    // A save under the same id needs no tick: it writes `programs` /
+    // `program_slots`, which are in the pane's watched set, so the stream has
+    // already reloaded it (issue #768). Bumping a notifier here as well would
+    // reload twice for one edit (issue #340) — and once the pane stopped
+    // listening, would reload nothing at all while still looking wired.
   }
 
   @override
@@ -87,7 +78,6 @@ class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
       // duplicate re-targets this screen.
       key: ValueKey('summary-screen-$_programId'),
       programId: _programId,
-      refreshTrigger: _refresh,
       showAppBar: true,
       prominentPerform: true,
       onOpenBuilder: _openBuilder,
@@ -117,30 +107,17 @@ class ProgramSummaryPane extends StatefulWidget {
   const ProgramSummaryPane({
     super.key,
     required this.programId,
-    required this.refreshTrigger,
     required this.onOpenBuilder,
     required this.onDeleted,
     required this.onNavigateTo,
-    this.onProgramMutated,
     this.showAppBar = false,
     this.prominentPerform = false,
   });
 
   final String programId;
-  final ValueListenable<int> refreshTrigger;
   final VoidCallback onOpenBuilder;
   final VoidCallback onDeleted;
   final void Function(String id) onNavigateTo;
-
-  /// Called after an **in-place** mutation that keeps this pane on the same
-  /// program — "Mark all performed" and in-event Perform adjustments (which can
-  /// change slot count, mark slots performed, and bump `updatedAt`). The wide
-  /// split-pane wires this to bump its shared list refresh so the coexisting
-  /// program list reflects the change without a manual reload. The narrow
-  /// [ProgramSummaryScreen] leaves it unset: its list reloads unconditionally
-  /// when the summary route pops, so there is nothing to signal. Duplicate and
-  /// delete are handled separately via [onNavigateTo] / [onDeleted].
-  final VoidCallback? onProgramMutated;
 
   /// Wraps the pane in a [Scaffold] [AppBar] (back button + generic title) when
   /// pushed as a full-screen route on narrow layouts. The wide detail pane
@@ -185,15 +162,15 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   ///
   /// It no longer collapses "the two bumps a dance+program write emits" — this
   /// pane stopped subscribing to `CollectionRefreshScope` and
-  /// `ProgramsRefreshScope` when it moved to the stream (issue #768), so that
-  /// pair no longer reaches it. What it collapses now is the two sources that
-  /// remain: [CollectionData.watch] emits, and the parent shell's
-  /// [ProgramSummaryPane.refreshTrigger].
+  /// `ProgramsRefreshScope` when it moved to the stream (issue #768), and the
+  /// shell's `refreshTrigger` went with the rest of that plumbing. **One source
+  /// reaches it now: [CollectionData.watch].**
   ///
-  /// Still load-bearing for the same reason, which is why it survives the
-  /// conversion rather than retiring with the subscriptions: [_load] pulls the
-  /// whole collection, so loading twice is expensive as well as wrong
-  /// (issue #340).
+  /// A single source does not make it redundant, which is why it survives
+  /// rather than retiring with the subscriptions. `CollectionData.watch`
+  /// coalesces on a leading edge with a trailing flush, so one burst can still
+  /// deliver two emits — and [_load] pulls the whole collection, so loading
+  /// twice is expensive as well as wrong (issue #340).
   late final RefreshCoalescer _refreshCoalescer = RefreshCoalescer(() {
     if (mounted) _load();
   });
@@ -209,7 +186,6 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
-      widget.refreshTrigger.addListener(_onRefresh);
       _load();
     }
     // This pane was the app's only BOTH-channels subscriber — it renders
@@ -319,6 +295,22 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// This does not weaken the issue #340 protection above: on the reuse path
   /// the subscription has emitted by definition, so `_pendingFirst` is null
   /// there and the branch still fires.
+  ///
+  /// ## No longer covered by a test on this screen, and why
+  ///
+  /// It was, until the Programs refresh plumbing came out (issue #768). The
+  /// coalescer is now [_load]'s only caller, so re-entering it is a race inside
+  /// the two DB reads that precede this method rather than something a test can
+  /// ask for — and the clause only changes the outcome while the replacement
+  /// subscription is still pending, which cannot be held open without leaving
+  /// the pane with nothing to settle it. A test written for it passed with the
+  /// clause deleted; it was withdrawn rather than kept as false coverage, with
+  /// the reasoning in `refresh_scopes_test.dart` where it used to live.
+  ///
+  /// The clause stays. It is one comparison, it is correct, and
+  /// `program_editor_screen` reaches this same path deliberately now
+  /// (`_resubscribePicker`, issue #948) — so the class is live even though this
+  /// screen's instance of it is not.
   Future<CollectionData> _watchCollectionData(String? callerFilter) {
     final cached = _latestData;
     if (_dataSub != null &&
@@ -367,19 +359,19 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     return first.future;
   }
 
-  void _onRefresh() {
-    if (mounted) _refreshCoalescer.request();
-  }
-
-  /// Broadcasts "program data changed" so every view rendering this program's
-  /// slots reloads — this pane among them, which is why the caller must not
-  /// also call [_load] (issue #340). Returns `false` when no scope is mounted,
-  /// so the caller can fall back to its own reload plus [onProgramMutated].
-  bool _broadcastProgramChange() => ProgramsRefreshScope.bump(context);
+  /// Broadcasts "program data changed" for any view still driven by
+  /// [ProgramsRefreshScope].
+  ///
+  /// This pane does not listen — it has a stream — and neither does the
+  /// coexisting Programs list any more, so this no longer needs a return value
+  /// or an unscoped fallback: an in-place mutation writes `programs` /
+  /// `program_slots`, and every view of those is stream-driven. The broadcast
+  /// stays because the scope comes out once nothing depends on it, which is a
+  /// separate change from this one.
+  void _broadcastProgramChange() => ProgramsRefreshScope.bump(context);
 
   @override
   void dispose() {
-    widget.refreshTrigger.removeListener(_onRefresh);
     _replaceSubscription();
     super.dispose();
   }
@@ -527,22 +519,18 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           onExit: (state) => _performResume = state,
           // This is the real in-event path: the program is saved, so in-event
           // adjustments (`docs/design/ux.md` §5) persist immediately via the
-          // repository (bumping `updatedAt`, and possibly the slot count) and
-          // the summary reloads to reflect them. On the wide split-pane
-          // [onProgramMutated] also refreshes the coexisting program list so
-          // its slot count / ordering do not go stale.
+          // repository (bumping `updatedAt`, and possibly the slot count). The
+          // summary and the coexisting Programs list both re-render from their
+          // own subscriptions, so neither needs telling.
           onProgramChanged: (updated) async {
             await _repos.programs.update(updated);
             if (!mounted) return;
-            // The broadcast reloads this pane and every other view of these
-            // slots — the coexisting program list, the Collection's "called N
-            // times" badge, a mounted dance detail's calling history. Doing it
-            // *and* the two local refreshes below would load this pane twice
-            // (issue #340), so the local path is the unscoped fallback only.
-            if (!_broadcastProgramChange()) {
-              _load();
-              widget.onProgramMutated?.call();
-            }
+            // The write itself is what reloads this pane and every other view
+            // of these slots — the coexisting program list, the Collection's
+            // "called N times" badge, a mounted dance detail's calling history.
+            // Calling `_load` here as well would load this pane twice for one
+            // adjustment (issue #340).
+            _broadcastProgramChange();
           },
         ),
       ),
@@ -752,12 +740,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     // "called N times" badge stale (issue #768, gap 3), so this broadcasts
     // rather than refreshing only the Programs side. The local refreshes are
     // the unscoped fallback; running both would load this pane twice.
-    if (!_broadcastProgramChange()) {
-      _load();
-      // On the wide split-pane, refresh the coexisting list too (this bumps
-      // `updatedAt`, affecting the "recently updated" sort order).
-      widget.onProgramMutated?.call();
-    }
+    _broadcastProgramChange();
   }
 
   /// Builds the read-only, ordered set list. Primaries are numbered 1..n and
