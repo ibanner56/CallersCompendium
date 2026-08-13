@@ -63,11 +63,13 @@ enum MatrixColumnKind {
   custom,
 
   /// A sub-column of a move that is split by one of its params so callers can
-  /// see variety at a glance: `swing` is split by role (`who`) and `hey` by
-  /// length. The column's [MatrixColumn.moveId] is a compound key
-  /// (`<baseMoveId>:<variant>`, e.g. `swing:partner`, `hey:full`); the parent
-  /// move and the variant are carried in [MatrixColumn.baseMoveId] /
-  /// [MatrixColumn.variant] so the label function can render the header.
+  /// see variety at a glance: `swing`, `allemande`, and `chain` are split by
+  /// role (`who`) — `swing` additionally by its `prefix` (none/balance/
+  /// meltdown) — and `hey` by length (issue #933). The column's
+  /// [MatrixColumn.moveId] is a compound key (`<baseMoveId>:<variant>`, e.g.
+  /// `swing:partner`, `swing:partner:balance`, `allemande:larks`, `hey:full`);
+  /// the parent move and the variant are carried in [MatrixColumn.baseMoveId]
+  /// / [MatrixColumn.variant] so the label function can render the header.
   split,
 }
 
@@ -77,11 +79,19 @@ const String swingMoveId = 'swing';
 /// The parent move id for [heyColumnKey]-style split columns.
 const String heyMoveId = 'hey';
 
+/// The parent move id for [allemandeColumnKey]-style split columns
+/// (issue #933).
+const String allemandeMoveId = 'allemande';
+
+/// The parent move id for [chainColumnKey]-style split columns (issue #933).
+const String chainMoveId = 'chain';
+
 /// Swing role variants in header order: [swingBaselineVariants] first (always
-/// shown), then the present-only variants. Anything not mapped lands in
-/// `other` so nothing is silently dropped.
+/// shown for swing — see [buildProgramMatrix]'s baseline behaviour), then the
+/// present-only variants shared by swing, allemande, and chain's role split.
+/// Anything not mapped lands in `other` so nothing is silently dropped.
 const List<String> swingBaselineVariants = ['partner', 'neighbor'];
-const List<String> _swingPresentOnlyVariants = [
+const List<String> _roleGroupPresentOnlyVariants = [
   'larks',
   'robins',
   'shadow',
@@ -93,16 +103,36 @@ const List<String> _swingPresentOnlyVariants = [
 ];
 const List<String> _swingVariantOrder = [
   ...swingBaselineVariants,
-  ..._swingPresentOnlyVariants,
+  ..._roleGroupPresentOnlyVariants,
+];
+
+/// Role-group variant order for [allemandeMoveId] / [chainMoveId] split
+/// columns (issue #933): present-only — unlike swing (which appears in nearly
+/// every dance and so gets a fixed partner/neighbor baseline), most programs
+/// use zero or one allemande/chain role, so neither is a baseline here.
+/// `partner`/`neighbor` still come first when present, for the same
+/// left-to-right reading order as swing.
+const List<String> _roleVariantOrder = [
+  ...swingBaselineVariants,
+  ..._roleGroupPresentOnlyVariants,
 ];
 
 /// Hey length variants in header order (both present-only — no baseline).
 const List<String> _heyVariantOrder = ['half', 'full'];
 
-/// Maps a swing's `who` value (defaulting to the taxonomy default `partners`
-/// when unset) to its role-group variant.
-String _swingRoleVariant(Object? who) {
-  switch (who ?? 'partners') {
+/// Swing's `prefix` variants that get their own sub-column, in header order.
+/// `none` is NOT here — it folds into the bare role column (`swing:<role>`),
+/// unchanged from before issue #933's split, so every pre-existing
+/// `swing:<role>`-keyed assertion keeps testing exactly what it tested.
+const List<String> _swingPrefixVariantOrder = ['balance', 'meltdown'];
+
+/// Maps a dancer-set `who` value to its role-group variant, shared by swing,
+/// allemande, and chain's role split (issue #933 mirrors swing/hey's existing
+/// split mechanism onto allemande/chain). Callers pass the ALREADY-resolved
+/// effective value (taxonomy default / alias pin folded in via
+/// [Taxonomy.effectiveParams]) — this function does no defaulting of its own.
+String _roleVariant(Object? who) {
+  switch (who) {
     case 'partners':
       return 'partner';
     case 'neighbors':
@@ -142,12 +172,49 @@ String _heyLengthVariant(Object? length) {
   }
 }
 
-/// Compound column key for a swing of the given [who] role.
-String swingColumnKey(Object? who) => '$swingMoveId:${_swingRoleVariant(who)}';
+/// Normalizes a swing's `prefix` value to a split-column suffix, or `null` for
+/// `none` (folds into the bare role column). An unrecognized/missing value is
+/// treated as `none`, matching the taxonomy default.
+String? _swingPrefixVariant(Object? prefix) {
+  switch (prefix) {
+    case 'balance':
+      return 'balance';
+    case 'meltdown':
+      return 'meltdown';
+    default:
+      return null;
+  }
+}
+
+/// Compound column key for a swing of the given [who] role and [prefix]
+/// (`none`/`balance`/`meltdown`, defaulting to `none` when omitted or
+/// unrecognized — issue #933). A `none` prefix folds into the bare role
+/// column (`swing:<role>`); `balance`/`meltdown` widen it to
+/// `swing:<role>:<prefix>`. Defaults [who] to `partners` — the taxonomy's own
+/// default for `swing.who` — when omitted.
+String swingColumnKey(Object? who, [Object? prefix]) {
+  final role = _roleVariant(who ?? 'partners');
+  final prefixVariant = _swingPrefixVariant(prefix);
+  return prefixVariant == null
+      ? '$swingMoveId:$role'
+      : '$swingMoveId:$role:$prefixVariant';
+}
 
 /// Compound column key for a hey of the given [length].
 String heyColumnKey(Object? length) =>
     '$heyMoveId:${_heyLengthVariant(length)}';
+
+/// Compound column key for an allemande of the given [who] role (issue #933).
+/// Defaults to `neighbors` — the taxonomy's own default for `allemande.who`
+/// — when [who] is omitted.
+String allemandeColumnKey(Object? who) =>
+    '$allemandeMoveId:${_roleVariant(who ?? 'neighbors')}';
+
+/// Compound column key for a chain of the given [who] role (issue #933).
+/// Defaults to `role2s` — the taxonomy's own default for `chain.who` — when
+/// [who] is omitted.
+String chainColumnKey(Object? who) =>
+    '$chainMoveId:${_roleVariant(who ?? 'role2s')}';
 
 /// One column of the matrix: a move (or the collapsed custom bucket).
 @immutable
@@ -461,20 +528,31 @@ class ProgramMatrix {
   }
 }
 
-/// Column key for a [figure]: custom figures all map to [customMove]; `swing`
-/// and `hey` map to compound `<move>:<variant>` keys ([swingColumnKey] /
-/// [heyColumnKey]) so they split into per-role / per-length sub-columns; every
-/// other figure maps to its raw move id (aliases are intentionally NOT resolved
-/// here — a "see saw" column stays distinct from "do si do", and
-/// `meltdown_swing` keeps its own key rather than folding into a swing role
-/// column, matching how the renderer shows aliases under their own name).
-String columnKeyForFigure(Figure figure) {
+/// Column key for a [figure] under [taxonomy]: custom figures all map to
+/// [customMove]; `swing` maps to a compound `swing:<role>` key (widened to
+/// `swing:<role>:<prefix>` for a `balance`/`meltdown` prefix); `allemande` and
+/// `chain` map to `allemande:<role>` / `chain:<role>`; `hey` maps to
+/// `hey:<length>` (issue #933 extends the existing swing/hey split mechanism
+/// to allemande, chain, and swing's prefix). Every other figure maps to its
+/// raw move id — aliases are intentionally NOT resolved for a non-split
+/// target, so a "see saw" column stays distinct from "do si do" — EXCEPT an
+/// alias whose target move IS itself split, like `meltdown_swing` -> `swing`:
+/// reading [Taxonomy.effectiveParams] (which folds the alias's pinned params
+/// in) naturally routes it to `swing:<role>:meltdown` instead of a stray
+/// column of its own, with no special-case code needed here.
+String columnKeyForFigure(Figure figure, Taxonomy taxonomy) {
   if (figure.isCustom) return customMove;
-  switch (figure.move) {
+  final canonicalId = taxonomy.resolve(figure.move)?.id;
+  switch (canonicalId) {
     case swingMoveId:
-      return swingColumnKey(figure.params['who']);
+      final effective = taxonomy.effectiveParams(figure);
+      return swingColumnKey(effective['who'], effective['prefix']);
     case heyMoveId:
       return heyColumnKey(figure.params['length']);
+    case allemandeMoveId:
+      return allemandeColumnKey(taxonomy.effectiveParams(figure)['who']);
+    case chainMoveId:
+      return chainColumnKey(taxonomy.effectiveParams(figure)['who']);
     default:
       return figure.move;
   }
@@ -502,16 +580,31 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// [taxonomy] (defaults to [contraTaxonomy]) to order and classify columns.
 ///
 /// Column order: taxonomy canonical order (the [Taxonomy.moves] definition
-/// order) for known moves that appear, then any unknown move ids (sorted, for
-/// determinism), then a single trailing custom column when any custom figure is
-/// present. This is stable — it doesn't reshuffle as the program changes —
-/// and groups related moves the way the taxonomy authors intended.
+/// order) for known moves that appear, then any alias-only ids in taxonomy
+/// alias-declaration order (e.g. `see_saw`, `swat_the_flea` — an alias whose
+/// target move is itself split, like `meltdown_swing`, never reaches this
+/// bucket; see [columnKeyForFigure]), then any truly unknown move ids (sorted,
+/// for determinism), then a single trailing custom column when any custom
+/// figure is present. This is stable — it doesn't reshuffle as the program
+/// changes — and groups related moves the way the taxonomy authors intended.
 ///
-/// The `swing` and `hey` moves are split into sub-columns at their taxonomy
-/// position: swing into per-role columns (`partner`, `neighbor` always shown as
-/// a fixed baseline whenever the program has any dances, then `larks`, `robins`,
-/// `shadow`, `ones`, `twos`, `corners`, `same`, `other` present-only, in that
-/// order); hey into `half` then `full`, both present-only.
+/// `swing`, `allemande`, `chain`, and `hey` are split into sub-columns at
+/// their taxonomy position (issue #933): swing and allemande/chain split by
+/// role (`who`) into per-role columns (`larks`, `robins`, `shadow`, `ones`,
+/// `twos`, `corners`, `same`, `other`, in that order); swing additionally
+/// splits each role by `prefix` into a bare (`none`-prefix) column plus
+/// `balance`/`meltdown` sub-columns. `partner`/`neighbor`'s BARE column is a
+/// fixed baseline, shown whenever the program has any dances (even if no
+/// dance swings those roles plain); every other swing role's bare column,
+/// and every role's `balance`/`meltdown` sub-column regardless of role, is
+/// present-only — so a program with only a `larks` swing that is ALWAYS
+/// balance-prefixed shows `larks bal & swing` but no empty plain `larks
+/// swing` column beside it (matching the present-only convention `hey` and
+/// every non-baseline swing role already followed before this split). Only
+/// `partner`/`neighbor`'s bare column is ever shown without a corresponding
+/// present figure. Allemande/chain have no baseline at all, since most
+/// programs use zero or one role for either. Hey splits into `half` then
+/// `full`, both present-only.
 ///
 /// Presence is boolean (a repeated move counts once, matching CC's checklist
 /// semantics). Figure-less or deleted dances still produce a row (with an empty
@@ -564,7 +657,7 @@ ProgramMatrix buildProgramMatrix(
     final structure = dance.phraseStructure;
     var beat = 0;
     for (final figure in dance.figures) {
-      final key = columnKeyForFigure(figure);
+      final key = columnKeyForFigure(figure, tax);
       final effBeats = _effectiveBeats(tax, figure);
       rowMoves.add(key);
       if (key == customMove) {
@@ -589,7 +682,7 @@ ProgramMatrix buildProgramMatrix(
         title: dance.title,
         firstMoveId: dance.figures.isEmpty
             ? null
-            : columnKeyForFigure(dance.figures.first),
+            : columnKeyForFigure(dance.figures.first, tax),
         presentMoveIds: rowMoves,
         phraseLabelsByMove: phraseLabels,
         beatSpansByMove: beatSpans,
@@ -602,16 +695,30 @@ ProgramMatrix buildProgramMatrix(
   final columns = <MatrixColumn>[];
   final hasDances = dances.isNotEmpty;
 
-  // Known moves in taxonomy definition order. `swing` and `hey` expand into
-  // their split sub-columns (grouped, in variant order) in place of a single
-  // column; every other known move emits one column when present.
+  // Known moves in taxonomy definition order. `swing`, `allemande`, `chain`,
+  // and `hey` expand into their split sub-columns (grouped, in variant order)
+  // in place of a single column (issue #933); every other known move emits
+  // one column when present.
   for (final id in tax.moves.keys) {
     if (id == swingMoveId) {
+      // For EACH role variant: the bare (none-prefix) column is a fixed
+      // baseline ONLY for partner/neighbor (`hasDances`); every other role's
+      // bare column is present-only, keyed independently of its
+      // balance/meltdown sub-columns — so a role that's ALWAYS prefixed
+      // (e.g. only ever a `larks bal & swing`) shows just that sub-column,
+      // never an empty plain `larks swing` beside it (issue #933 code
+      // review: confirmed intentional, matching `hey`'s present-only
+      // convention, and locked in by a test).
       for (final variant in _swingVariantOrder) {
-        final present0 = present.remove('$swingMoveId:$variant');
         final baseline = swingBaselineVariants.contains(variant);
-        if (baseline ? hasDances : present0) {
+        final basePresent = present.remove('$swingMoveId:$variant');
+        if (baseline ? hasDances : basePresent) {
           columns.add(_splitColumn(swingMoveId, variant));
+        }
+        for (final prefixVariant in _swingPrefixVariantOrder) {
+          if (present.remove('$swingMoveId:$variant:$prefixVariant')) {
+            columns.add(_splitColumn(swingMoveId, '$variant:$prefixVariant'));
+          }
         }
       }
     } else if (id == heyMoveId) {
@@ -620,8 +727,36 @@ ProgramMatrix buildProgramMatrix(
           columns.add(_splitColumn(heyMoveId, variant));
         }
       }
+    } else if (id == allemandeMoveId) {
+      for (final variant in _roleVariantOrder) {
+        if (present.remove('$allemandeMoveId:$variant')) {
+          columns.add(_splitColumn(allemandeMoveId, variant));
+        }
+      }
+    } else if (id == chainMoveId) {
+      for (final variant in _roleVariantOrder) {
+        if (present.remove('$chainMoveId:$variant')) {
+          columns.add(_splitColumn(chainMoveId, variant));
+        }
+      }
     } else if (present.remove(id)) {
       columns.add(MatrixColumn(moveId: id, kind: MatrixColumnKind.known));
+    }
+  }
+
+  // Aliases whose TARGET move is not itself split (e.g. `see_saw` ->
+  // `do_si_do`, `swat_the_flea` -> `box_the_gnat`) keep their own column,
+  // distinct from their target's ([columnKeyForFigure] never resolves them) —
+  // but they ARE taxonomy entities, not unrecognized ids, so they're
+  // classified [MatrixColumnKind.known] (issue #933) rather than falling into
+  // the sorted-unknown bucket below, ordered here in taxonomy alias
+  // declaration order. An alias whose target IS split (`meltdown_swing` ->
+  // `swing`) never reaches this loop: [columnKeyForFigure] folds it into the
+  // target's split column via its pinned param, so its raw alias id is never
+  // added to `present`.
+  for (final alias in tax.aliases.values) {
+    if (present.remove(alias.id)) {
+      columns.add(MatrixColumn(moveId: alias.id, kind: MatrixColumnKind.known));
     }
   }
 
@@ -663,15 +798,22 @@ ProgramMatrix buildProgramMatrix(
 ///
 /// - custom → "Custom";
 /// - split → the parent move's dialect-aware name qualified by the variant:
-///   swing role columns read `<role> <swing>` ('partner swing', 'lark swing',
-///   …) — larks/robins route through [FigureRenderer.displayToken] so role
-///   dialects (Larks/Robins, Gents/Ladies, …) are honoured; hey columns read
-///   `<length> <hey>` ('half hey' / 'full hey');
-/// - known → dialect move substitution when present and side-independent,
-///   otherwise the move's canonical display name. Side-dependent substitutions
-///   (those using `%S`, which need a specific figure's shoulder/hand) can't be
-///   resolved at the column level, so they fall back to the canonical display
-///   name;
+///   swing/allemande/chain role columns read `<role> <move>` ('partner swing',
+///   'lark allemande', …) — larks/robins route through
+///   [FigureRenderer.displayToken] so role dialects (Larks/Robins,
+///   Gents/Ladies, …) are honoured; swing's `balance`/`meltdown` prefix
+///   widens the move word to a short HEADER-ONLY form (`bal & swing`,
+///   `meltdown swing` — issue #933); hey columns read `<length> <hey>`
+///   ('half hey' / 'full hey');
+/// - known → an ALIAS column (e.g. `see_saw`) is labelled under its OWN
+///   display name, never its target's — resolving through to the target
+///   would make two visually distinct figures share one header (issue #933).
+///   The dialect-substitution lookup keys off the CANONICAL move id either
+///   way (matching [FigureRenderer.displayMoveName]'s rule, since
+///   `dialect.moves` is keyed by canonical id, not alias id). Side-dependent
+///   substitutions (those using `%S`, which need a specific figure's
+///   shoulder/hand) can't be resolved at the column level, so they fall back
+///   to the display name;
 /// - unknown → the raw move id (nothing silently dropped).
 String matrixColumnLabel(
   MatrixColumn column,
@@ -682,11 +824,13 @@ String matrixColumnLabel(
   if (column.isSplit) return _splitColumnLabel(column, taxonomy, dialect);
   final def = taxonomy.resolve(column.moveId);
   if (def == null) return column.moveId;
-  final substitution = dialect.moves[column.moveId];
+  final alias = taxonomy.aliases[column.moveId];
+  final displayName = alias?.displayName ?? def.displayName;
+  final substitution = dialect.moves[def.id];
   if (substitution != null && !substitution.contains('%S')) {
     return substitution;
   }
-  return def.displayName;
+  return displayName;
 }
 
 /// Dialect-aware display word for a (taxonomy-known) [moveId] — the same
@@ -698,45 +842,84 @@ String _splitMoveWord(String moveId, Taxonomy taxonomy, Dialect dialect) {
   return taxonomy.resolve(moveId)?.displayName ?? moveId;
 }
 
+/// Dialect-aware role-group column label: `<role term> <moveWord>` (e.g.
+/// 'partner swing', 'lark allemande'), shared by swing/allemande/chain's role
+/// split (issue #933 mirrors swing's existing role split onto
+/// allemande/chain). Role columns honour the active dialect's role term
+/// (singular) for larks/robins; `same` reads 'same-role'; an unrecognized
+/// role (`other`) reads `<moveWord> (other)` rather than a role prefix, since
+/// there's no role term to show.
+String _roleColumnLabel(String role, String moveWord, Dialect dialect) {
+  switch (role) {
+    // Role columns honour the active dialect's role term (singular). `spec`
+    // is intentionally `null`: role1/role2 are in [roleTokens], so
+    // [FigureRenderer.displayToken] resolves them from the dialect's role
+    // term alone and never consults `spec`.
+    case 'larks':
+      return '${FigureRenderer.displayToken('role1', null, dialect)} '
+          '$moveWord';
+    case 'robins':
+      return '${FigureRenderer.displayToken('role2', null, dialect)} '
+          '$moveWord';
+    case 'partner':
+      return 'partner $moveWord';
+    case 'neighbor':
+      return 'neighbor $moveWord';
+    case 'shadow':
+      return 'shadow $moveWord';
+    case 'ones':
+      return 'ones $moveWord';
+    case 'twos':
+      return 'twos $moveWord';
+    case 'corners':
+      return 'corners $moveWord';
+    case 'same':
+      return 'same-role $moveWord';
+    default:
+      return '$moveWord (other)';
+  }
+}
+
 /// Header for a [MatrixColumnKind.split] column.
 String _splitColumnLabel(
   MatrixColumn column,
   Taxonomy taxonomy,
   Dialect dialect,
 ) {
-  final variant = column.variant;
-  if (column.baseMoveId == swingMoveId) {
-    final swing = _splitMoveWord(swingMoveId, taxonomy, dialect);
-    final whoSpec = taxonomy.resolve(swingMoveId)?.params['who'];
-    switch (variant) {
-      // Role columns honour the active dialect's role term (singular).
-      case 'larks':
-        return '${FigureRenderer.displayToken('role1', whoSpec, dialect)} '
-            '$swing';
-      case 'robins':
-        return '${FigureRenderer.displayToken('role2', whoSpec, dialect)} '
-            '$swing';
-      case 'partner':
-        return 'partner $swing';
-      case 'neighbor':
-        return 'neighbor $swing';
-      case 'shadow':
-        return 'shadow $swing';
-      case 'ones':
-        return 'ones $swing';
-      case 'twos':
-        return 'twos $swing';
-      case 'corners':
-        return 'corners $swing';
-      case 'same':
-        return 'same-role $swing';
-      default:
-        return '$swing (other)';
-    }
-  }
+  final variant = column.variant!;
   if (column.baseMoveId == heyMoveId) {
     // variant is 'half' / 'full'.
     return '$variant ${_splitMoveWord(heyMoveId, taxonomy, dialect)}';
   }
-  return column.moveId;
+  if (column.baseMoveId == allemandeMoveId) {
+    return _roleColumnLabel(
+      variant,
+      _splitMoveWord(allemandeMoveId, taxonomy, dialect),
+      dialect,
+    );
+  }
+  if (column.baseMoveId == chainMoveId) {
+    return _roleColumnLabel(
+      variant,
+      _splitMoveWord(chainMoveId, taxonomy, dialect),
+      dialect,
+    );
+  }
+  // swing: variant is `<role>` (prefix `none`) or `<role>:<prefix>` (issue
+  // #933's balance/meltdown prefix split). The prefix word here is a short
+  // HEADER-ONLY abbreviation ('bal &' for balance) distinct from the figure
+  // renderer's fuller wording ('balance and'/'balance &' — see
+  // `renderer.dart`'s `_renderPrefix`): the 64px column header has no room
+  // for the longer form (maintainer decision), so the two intentionally
+  // diverge rather than sharing one vocabulary.
+  final parts = variant.split(':');
+  final role = parts[0];
+  final prefix = parts.length > 1 ? parts[1] : null;
+  final swing = _splitMoveWord(swingMoveId, taxonomy, dialect);
+  final moveWord = switch (prefix) {
+    'balance' => 'bal & $swing',
+    'meltdown' => 'meltdown $swing',
+    _ => swing,
+  };
+  return _roleColumnLabel(role, moveWord, dialect);
 }
