@@ -48,10 +48,26 @@ Future<void> launchExternalUrl(BuildContext context, String url) async {
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched) reportFailure();
   } on PlatformException catch (e, s) {
-    logCaughtError(e, s, source: 'launch_external_url.launchExternalUrl');
+    // Type-only: a platform launch failure's message commonly embeds the
+    // full attempted URL (e.g. Android's ACTIVITY_NOT_FOUND intent dump
+    // includes the target `dat=<uri>`), and `CrashRedactor` deliberately
+    // never scrubs http/https URLs (see its own doc) so the log's scrubbed
+    // export could otherwise leak whatever URL/query string the user tapped
+    // (issue #963's redaction concern — same treatment as the online-import
+    // transport errors in `dance_list_screen.dart`/`import_review_screen.dart`).
+    logCaughtErrorTypeOnly(
+      e,
+      s,
+      source: 'launch_external_url.launchExternalUrl',
+    );
     reportFailure();
   } on Exception catch (e, s) {
-    logCaughtError(e, s, source: 'launch_external_url.launchExternalUrl');
+    // Same URL-leak concern as the PlatformException branch above.
+    logCaughtErrorTypeOnly(
+      e,
+      s,
+      source: 'launch_external_url.launchExternalUrl',
+    );
     reportFailure();
   }
 }

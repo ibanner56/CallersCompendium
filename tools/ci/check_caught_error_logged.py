@@ -475,7 +475,6 @@ def main() -> int:
         _fail(f"no Dart files found under {root / SEARCH_ROOT}")
 
     offenders: list[str] = []
-    site_count = 0
     for path in files:
         text = path.read_text(encoding="utf-8", errors="replace")
         if not (
@@ -486,7 +485,6 @@ def main() -> int:
         ):
             continue
         findings = find_unmarked(text)
-        site_count += len(findings)
         rel = path.relative_to(root)
         for line_no, kind, src in findings:
             offenders.append(f"{rel}:{line_no}: [{_KINDS[kind]}] {src}")
