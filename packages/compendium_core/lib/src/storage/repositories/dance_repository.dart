@@ -21,6 +21,7 @@ import '../../search/filter_compiler.dart';
 import '../../search/search_enrichment.dart';
 import '../../search/fts_query.dart';
 import '../../serialization/figure_codec.dart';
+import '../../taxonomy/param_types.dart';
 import '../../taxonomy/taxonomy.dart';
 import '../database.dart';
 import '../existence.dart';
@@ -155,7 +156,63 @@ class DanceRepository {
     return figure.copyWith(params: {...figure.params}..remove('hand'));
   }
 
-  /// Normalises a single figure's move id, recursing into meanwhile
+  /// Returns [dance] with the role-implied `hand` written into every `chain`
+  /// figure that names a `who` of `role1s`/`role2s` but stores no `hand` yet,
+  /// recursing into `meanwhile` sides. Returns the original [dance] unchanged
+  /// when nothing needs backfilling (avoiding an allocation, and letting the
+  /// caller skip the write entirely).
+  ///
+  /// Used by the one-time pass in
+  /// [CompendiumRepositories._backfillChainHandIfNeeded] (#976, taxonomy v28).
+  /// A chain with no stored `who` is deliberately left alone — see
+  /// [chainHandBackfillDoneKey]'s doc comment for why.
+  Dance backfillChainHandPublic(Dance dance) {
+    List<Figure>? backfilled;
+    final figures = dance.figures;
+    for (var i = 0; i < figures.length; i++) {
+      final f = figures[i];
+      final result = _backfillChainHand(f);
+      if (!identical(result, f) && backfilled == null) {
+        backfilled = figures.sublist(0, i);
+      }
+      backfilled?.add(result);
+    }
+    return backfilled != null ? dance.copyWith(figures: backfilled) : dance;
+  }
+
+  /// Backfills a single figure's `chain.hand`, recursing into `meanwhile`
+  /// sub-figures. Returns the original [figure] unchanged when nothing needs
+  /// backfilling.
+  Figure _backfillChainHand(Figure figure) {
+    if (figure.isMeanwhile) {
+      List<Figure>? subs;
+      final origSubs = figure.subFigures;
+      for (var i = 0; i < origSubs.length; i++) {
+        final sub = origSubs[i];
+        final result = _backfillChainHand(sub);
+        if (!identical(result, sub) && subs == null) {
+          subs = origSubs.sublist(0, i);
+        }
+        subs?.add(result);
+      }
+      if (subs == null) return figure;
+      // copyWith, not a bare Figure(...), so schemaVersion / customOrigin /
+      // assumedSubject / walkthroughOverride survive the one-time pass.
+      return figure.copyWith(
+        params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
+      );
+    }
+    if (figure.move != 'chain' || figure.params.containsKey('hand')) {
+      return figure;
+    }
+    final who = figure.params['who'];
+    if (who is! String) return figure;
+    final hand = chainHandForWho(who);
+    if (hand == null) return figure;
+    return figure.copyWith(params: {...figure.params, 'hand': hand});
+  }
+
+
   /// sub-figures. Returns the original [figure] unchanged if no sub-figures
   /// need re-routing (avoids an allocation when nothing moves).
   Figure _normaliseFigure(Figure figure) {

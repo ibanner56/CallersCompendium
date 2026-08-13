@@ -493,7 +493,14 @@ class CompendiumRepositories {
       // The last sweep's result is deliberately not assigned: nothing follows
       // it today. It still REPORTS, so that adding a sweep after it is a
       // one-line change rather than a change to the contract above.
-      await _emitGripAndSingleFileIntoCanonicalIfNeeded(
+      rebuiltThisCall = await _emitGripAndSingleFileIntoCanonicalIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
+      // The last sweep's result is deliberately not assigned: nothing
+      // follows it today. It still REPORTS, so that adding a sweep after it
+      // is a one-line change rather than a change to the contract above.
+      await _backfillChainHandIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
@@ -804,5 +811,76 @@ class CompendiumRepositories {
     // Reached only by running a rebuild (or having had one run earlier this
     // call), so a rebuild has always happened by this point.
     return true;
+  }
+
+  /// One-time backfill of `chain.hand` from the role-implied side (#976,
+  /// taxonomy v28). See [chainHandBackfillDoneKey]'s doc comment for the full
+  /// rationale; this pass mirrors
+  /// [_normaliseInversePairMoveIdsIfNeeded]'s shape (rewrite-count-gated
+  /// rebuild), not the taxonomy-version-owed shape of
+  /// [_stripStarPromenadeHandIfNeeded] / [_emitGripAndSingleFileIntoCanonicalIfNeeded]:
+  /// a chain's canonical text is byte-identical whether `hand` is the
+  /// `unspecified` sentinel or the concrete role-implied side (the renderer
+  /// silences either), so the derived index is stale only for the rows this
+  /// pass actually rewrites.
+  ///
+  /// Guarded by [chainHandBackfillDoneKey] so it runs at most once per
+  /// database. The marker is written AFTER the pass succeeds — an
+  /// interrupted pass retries on the next open.
+  ///
+  /// **Fresh install:** no chain figures exist yet, so the scan finds
+  /// nothing to update and writes the marker immediately. The pass is a
+  /// no-op.
+  ///
+  /// Returns whether a derived rebuild has happened during this call — i.e.
+  /// [alreadyRebuilt] OR this pass ran one — so the caller can thread the flag
+  /// into the next sweep.
+  Future<bool> _backfillChainHandIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [Variable.withString(chainHandBackfillDoneKey)],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    final allDances = await dances.listAll(includeDeleted: true);
+    var rewroteAny = false;
+    for (final dance in allDances) {
+      final backfilled = dances.backfillChainHandPublic(dance);
+      if (!identical(backfilled, dance)) {
+        rewroteAny = true;
+        // Rewrite only the figures_json column — nothing else about the
+        // dance changes, and a full _upsert would needlessly rebuild derived
+        // rows per dance (the bulk rebuild at the end is cheaper).
+        await db.customUpdate(
+          'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
+          'WHERE id = ?',
+          variables: [
+            Variable<String>(encodeFigures(backfilled.figures)),
+            Variable<String>(dance.id),
+          ],
+          updates: {db.dances},
+          updateKind: UpdateKind.update,
+        );
+      }
+    }
+
+    // A derived rebuild is needed only when this pass actually rewrote a row
+    // — a chain's canonical text is unaffected either way (§ above), so
+    // unlike the taxonomy-version-owed sweeps, "no rewrites" truly means "no
+    // staleness" here.
+    final rebuilt = !alreadyRebuilt && rewroteAny;
+    if (rebuilt) {
+      await runDerivedRebuild(onProgress: onProgress);
+    }
+
+    // Write the marker AFTER success — if the rebuild throws, the marker is
+    // not written and the next startup retries.
+    await _writeSweepMarker(chainHandBackfillDoneKey, '"done"');
+    return alreadyRebuilt || rebuilt;
   }
 }

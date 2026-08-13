@@ -509,8 +509,8 @@ FigureMatch? _slideAlongSet(String text) {
   return FigureMatch('slide_along_set', params: {'slide': dir}, note: s.note());
 }
 
-/// chainWords: `[<left|right> diagonal] <role1s|role2s>
-/// [<left|right>-hand] chain`. The leading diagonal qualifier renders only
+/// chainWords: `[<left|right> diagonal]`, `<role1s|role2s>`,
+/// `[<left|right>-hand]`, `chain`. The leading diagonal qualifier renders only
 /// for non-default values (real render: The Judge — `left diagonal ladles
 /// chain to shadow`) and maps to the `dir` param; the ubiquitous form is a
 /// bare `ladles chain`. The hand slot (v28, #976) sits between the subject

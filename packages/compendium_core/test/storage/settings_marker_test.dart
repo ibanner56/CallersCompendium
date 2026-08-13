@@ -170,6 +170,46 @@ void main() {
   });
 
   test(
+    'a tombstoned chain-hand-backfill marker does NOT skip the backfill',
+    () async {
+      // Same class of hazard as the star-promenade marker above, added later
+      // (#976, taxonomy v28): a marker wrongly read as present would leave a
+      // bare `role1s`/`role2s` chain imported before this release permanently
+      // missing its `hand` in structured search, even after a backup restore
+      // clears the marker to force a re-run.
+      final repos = _CountingRepositories(db, contraTaxonomy);
+      await repos.dances.create(
+        Dance(
+          id: 'd-chain',
+          title: 'Chain Dance',
+          figures: [
+            Figure(move: 'chain', params: {'who': 'role2s', 'beats': 8}),
+          ],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await tombstoneMarker(repos, chainHandBackfillDoneKey, 'done');
+      await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
+      await repos.settings.set(inversePairNormalisationDoneKey, 'done');
+      await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
+      await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
+
+      await repos.ensureMigrated();
+
+      final reloaded = await repos.dances.getById('d-chain');
+      expect(
+        reloaded!.figures.single.params['hand'],
+        'right',
+        reason:
+            'a tombstoned done-marker must not suppress the backfill, or the '
+            'bare role2s chain stays permanently un-searchable by hand',
+      );
+      expect(await repos.settings.get(chainHandBackfillDoneKey), 'done');
+    },
+  );
+
+  test(
     'a tombstoned rebuild-required marker is not treated as work owed',
     () async {
       // Opposite polarity to the three above: here *present* means "a rebuild is
@@ -181,6 +221,7 @@ void main() {
       await repos.settings.set(inversePairNormalisationDoneKey, 'done');
       await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
       await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
+      await repos.settings.set(chainHandBackfillDoneKey, 'done');
 
       await repos.ensureMigrated();
 
