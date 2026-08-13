@@ -242,7 +242,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     if (!_isPreview && _started && widget.danceId != oldWidget.danceId) {
       _loaded = false;
       _data = null;
-      unawaited(_subscribe());
+      _subscribe();
     }
   }
 
@@ -254,7 +254,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   Future<void> _start() async {
     await _seedCanonicalDefault();
     if (!mounted) return;
-    await _subscribe();
+    _subscribe();
   }
 
   /// Reads the saved default dance-detail rendering (ROADMAP G.6b) once per
@@ -294,10 +294,17 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   }
 
   /// Opens (or reopens) the live subscription for the current id.
-  Future<void> _subscribe() async {
+  ///
+  /// The previous subscription is replaced **synchronously** and cancelled
+  /// afterwards, rather than awaited first. Awaiting first leaves a window in
+  /// which two calls can both read the same `_dataSub`, both replace it, and
+  /// leak whichever assignment lost. Nothing reaches that window today — it
+  /// needs an id change while the preference seed is still pending — but the
+  /// ordering costs nothing and removes the case rather than relying on no
+  /// caller finding it.
+  void _subscribe() {
     final danceId = widget.danceId!;
-    await _dataSub?.cancel();
-    if (!mounted) return;
+    final previous = _dataSub;
     _subscribedId = danceId;
     _dataSub = DanceDetailData.watch(_repos, danceId).listen(
       (data) {
@@ -321,6 +328,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       },
       cancelOnError: false,
     );
+    unawaited(previous?.cancel());
   }
 
   @override
