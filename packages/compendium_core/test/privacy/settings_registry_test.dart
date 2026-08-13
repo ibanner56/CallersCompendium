@@ -51,70 +51,52 @@ void main() {
 
   test('classifySettingsKey resolves an exact match over a prefix', () {
     // No real key exhibits this today (enforced by the no-overlap test
-    // above), so this constructs a synthetic collision to prove the
-    // precedence rule itself, independent of what happens to be registered.
+    // above), so this registers a synthetic collision directly in the live
+    // maps and asserts through the production classifySettingsKey — not a
+    // local reimplementation of its resolution order, which would keep
+    // passing even if classifySettingsKey itself regressed to prefix-first.
     const prefix = 'synthetic_prefix:';
     const exactKey = 'synthetic_prefix:exact';
-    final withExactOverride =
-        Map<String, DataClassification>.of(settingsClassifications)
-          ..[exactKey] = const DataClassification(
-            term: DpvTerm.nonPersonal,
-            subject: DataSubject.none,
-            egress: EgressClass.shareable,
-          );
-    final withPrefix =
-        Map<String, DataClassification>.of(settingsPrefixClassifications)
-          ..[prefix] = const DataClassification(
-            term: DpvTerm.nonPersonal,
-            subject: DataSubject.none,
-            egress: EgressClass.deviceScoped,
-          );
+    settingsClassifications[exactKey] = const DataClassification(
+      term: DpvTerm.nonPersonal,
+      subject: DataSubject.none,
+      egress: EgressClass.shareable,
+    );
+    addTearDown(() => settingsClassifications.remove(exactKey));
+    settingsPrefixClassifications[prefix] = const DataClassification(
+      term: DpvTerm.nonPersonal,
+      subject: DataSubject.none,
+      egress: EgressClass.deviceScoped,
+    );
+    addTearDown(() => settingsPrefixClassifications.remove(prefix));
 
-    DataClassification? resolve(String key) {
-      final exact = withExactOverride[key];
-      if (exact != null) return exact;
-      String? bestPrefix;
-      for (final p in withPrefix.keys) {
-        if (!key.startsWith(p)) continue;
-        if (bestPrefix == null || p.length > bestPrefix.length) {
-          bestPrefix = p;
-        }
-      }
-      return bestPrefix == null ? null : withPrefix[bestPrefix];
-    }
-
-    expect(resolve(exactKey)!.egress, EgressClass.shareable);
+    expect(classifySettingsKey(exactKey)!.egress, EgressClass.shareable);
   });
 
   test('classifySettingsKey prefers the longest matching prefix', () {
     // Same rationale as above: no real prefix pair overlaps today, so this
-    // proves the tiebreak rule with a synthetic pair rather than asserting
-    // nothing (mutation guard: a "first match wins" implementation would
-    // pass this test only by accident of map iteration order, so the
-    // fixture below is built so the two orders disagree).
+    // registers a synthetic overlapping pair directly in the live registry
+    // and asserts through classifySettingsKey (mutation guard: a "first
+    // match wins" implementation would pass this test only by accident of
+    // map iteration order, so the two entries are inserted in the order
+    // that would fail under first-match).
     const shortPrefix = 'draft:';
     const longPrefix = 'draft:dance:';
     const key = 'draft:dance:42';
-    final registry = {
-      shortPrefix: const DataClassification(
-        term: DpvTerm.nonPersonal,
-        subject: DataSubject.none,
-        egress: EgressClass.shareable,
-      ),
-      longPrefix: const DataClassification(
-        term: DpvTerm.nonPersonal,
-        subject: DataSubject.none,
-        egress: EgressClass.deviceScoped,
-      ),
-    };
+    settingsPrefixClassifications[shortPrefix] = const DataClassification(
+      term: DpvTerm.nonPersonal,
+      subject: DataSubject.none,
+      egress: EgressClass.shareable,
+    );
+    addTearDown(() => settingsPrefixClassifications.remove(shortPrefix));
+    settingsPrefixClassifications[longPrefix] = const DataClassification(
+      term: DpvTerm.nonPersonal,
+      subject: DataSubject.none,
+      egress: EgressClass.deviceScoped,
+    );
+    addTearDown(() => settingsPrefixClassifications.remove(longPrefix));
 
-    String? bestPrefix;
-    for (final p in registry.keys) {
-      if (!key.startsWith(p)) continue;
-      if (bestPrefix == null || p.length > bestPrefix.length) bestPrefix = p;
-    }
-
-    expect(registry[bestPrefix]!.egress, EgressClass.deviceScoped);
+    expect(classifySettingsKey(key)!.egress, EgressClass.deviceScoped);
   });
 
   test('classifySettingsKey against the live registry: known keys', () {

@@ -73,13 +73,13 @@ void main() {
   /// Source roots to walk: `app/lib/src`, plus every `packages/*/lib/src`.
   ///
   /// The declaration-shape gap (`k…KeyPrefix`) is issue #923's headline defect;
-  /// this location widening closes a second, independently-documented blind
-  /// spot (`docs/design/sync.md`, on the unmerged `adr-device-sync` branch:
-  /// "the settings ratchet scans only `app/lib/src`, so if [a] client lives
-  /// elsewhere its keys are not covered"). No settings key is declared outside
-  /// `app/lib/src` today — verified by running this test's own walk before
-  /// widening it — but the walk should cover the shape of the risk, not just
-  /// today's instances of it.
+  /// this location widening closes a second blind spot in the same ratchet:
+  /// before this change it only scanned `app/lib/src`, so a settings key
+  /// declared in a `packages/*` library — for example, a shared class used by
+  /// a second client — would never be checked at all. No settings key is
+  /// declared outside `app/lib/src` today — verified by running this test's
+  /// own walk before widening it — but the walk should cover the shape of the
+  /// risk, not just today's instances of it.
   List<Directory> sourceRoots() {
     final appLibSrc = Directory('lib/src');
     expect(
