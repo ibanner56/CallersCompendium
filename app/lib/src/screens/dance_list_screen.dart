@@ -412,10 +412,15 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// detail pane, which is keyed on the *selection* and so never rebuilds for
   /// an edit (issue #768, gap 5) — reload too.
   ///
-  /// Reloading this list is the broadcast's job, not the caller's: a site that
-  /// both broadcasts and re-boots would load twice for one mutation (issue
-  /// #340). Falls back to a direct [_boot] in focused tests that mount no
-  /// scope.
+  /// A caller that mutates from here must not also re-boot: doing both would
+  /// load twice for one mutation (issue #340). Note the reason is **not** that
+  /// the broadcast reloads this list — it does not, and cannot, because this
+  /// list subscribes to no refresh *scope*. It does subscribe to
+  /// [CollectionData.watch], and that is what carries the write here. The
+  /// broadcast exists solely for the screens that are still imperative.
+  ///
+  /// Falls back to a direct [_boot] in focused tests that mount no scope, which
+  /// is the one path where the notifier's absence has to be compensated for.
   ///
   /// The broadcast deliberately does **not** depend on this widget's lifetime:
   /// it bumps the captured notifier rather than resolving one from `context`,
@@ -1917,9 +1922,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Future<void> _openNewDance() async {
-    // The editor bumps CollectionRefreshScope on save, which re-boots this list
-    // (and re-derives the author filter), so no explicit reload is needed here
-    // — doing both would double-load (issue #340).
+    // No explicit reload is needed here, and the reason is the stream rather
+    // than the broadcast: a save writes `dances`, which this list watches, so
+    // the row and the derived author filter arrive on their own. The editor
+    // also bumps `CollectionRefreshScope`, but that reaches the screens which
+    // are still imperative — not this one, which subscribes to no refresh
+    // scope. Reloading here as well would double-load (issue #340).
     final id = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const DanceEditorScreen()),
     );
@@ -2588,9 +2596,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
               // DanceDetailScreen pops with true when a dance is deleted
               // so the Collection can reload and remove the stale row.
               // The detail screen broadcasts the undo itself, for the
-              // unconverted screens — but NOT for this list, which has no
-              // subscription to reach: the restore is a write to `dances`, and
-              // the stream carries it here. So `onRestored` is a fallback for
+              // unconverted screens — but NOT for this list, which subscribes
+              // to no refresh scope: the restore is a write to `dances`, and
+              // this list's own stream carries it here. So `onRestored` is a fallback for
               // focused tests that mount no scope, not the primary path, and
               // reloading here as well would load twice (issue #340).
               final deleted = await Navigator.of(context).push<bool>(
