@@ -277,12 +277,19 @@ loudly. A cleverer pattern would have dropped both silently.
   under-reports and a non-greedy regex can run past a short declaration and
   capture a later one's field. The same question answered three ways gave 0, 5,
   and (walking balanced parens) the truth. Walk the delimiters.
-- **Figure fixtures are not validated against the taxonomy.** An invalid param
-  renders literally and the test still passes, so fixtures drift silently when a
-  move changes. Seven `meanwhile` fixtures went stale when `orbit` was split
-  into a first-class move (fixed in #745). When changing a move's params, grep
-  the suites for fixtures using that move and run
-  `contraTaxonomy.validateFigure()` over them.
+- **Figure fixtures are validated against the taxonomy — but only in CI.** An
+  invalid param renders literally and the test still passes, so a drifted
+  fixture is invisible to `dart test`: seven `meanwhile` fixtures went stale
+  when `orbit` was split into a first-class move (#697), unnoticed for days
+  until #745 fixed them by hand (#747). A ratchet now guards this —
+  `packages/compendium_core/tool/check_fixture_validity.dart`, run by
+  `_checks.yml` before the core suite — but `dart test` does **not** run it
+  over the real suites (its own unit test drives synthetic input). So a clean
+  local `dart test` will not catch a fixture you just invalidated; CI will, and
+  it reads as flakiness if you forget the local gate omits it. When you change a
+  move's params, run the ratchet yourself:
+
+      (cd packages/compendium_core && fvm dart run tool/check_fixture_validity.dart)
 
 ## Never `git stash` in a worktree
 
