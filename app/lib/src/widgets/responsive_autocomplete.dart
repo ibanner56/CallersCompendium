@@ -142,12 +142,22 @@ class _ResponsiveAutocompleteState<T extends Object>
   bool _sheetOpen = false;
   // Popping the sheet can restore focus to whatever previously held it (the
   // launcher field) *if* the sheet was opened via a genuine focus gain
-  // (Tab/AT traversal) — which would otherwise immediately re-trigger
-  // [_handleFocusChange] and reopen the sheet. Set right before the sheet
-  // closes, but only when it was actually opened that way (see
-  // `_openSheet`'s `openedViaFocus`), so a later, unrelated, genuine
-  // Tab/AT focus gain is never wrongly swallowed by a stale flag left over
-  // from a tap-driven open (which never focuses the launcher at all).
+  // (Tab/AT traversal) *and* closed by dismissal rather than a selection —
+  // which would otherwise immediately re-trigger [_handleFocusChange] and
+  // reopen the sheet. Set right before the sheet closes, but only for that
+  // dismissal case (see `_openSheet`'s `openedViaFocus` / `picked`), so a
+  // later, unrelated, genuine Tab/AT focus gain is never wrongly swallowed
+  // by a stale flag left over from a tap-driven open (which never focuses
+  // the launcher at all) or from a *selection's* own deliberate refocus
+  // (issue #894 — a caller that clears the field and calls
+  // `FocusNode.requestFocus()` after a pick, e.g. `name_picker.dart`'s
+  // `_AddAutocomplete`, would otherwise have that very request swallowed by
+  // the guard it just armed against itself). The flag also expires on the
+  // next frame (see `_openSheet`) rather than staying armed indefinitely:
+  // in the current layout the launcher is unmounted while the sheet is
+  // open, so the boomerang this guards against never actually arrives to
+  // consume it, and an unbounded flag would instead swallow a later,
+  // unrelated Tab/AT arrival.
   bool _ignoreNextFocusGain = false;
 
   TextEditingController get _controller {
@@ -220,7 +230,11 @@ class _ResponsiveAutocompleteState<T extends Object>
     // happens when that route pops. Recording this now (rather than
     // unconditionally arming the ignore-guard on close) avoids leaving a
     // stale `_ignoreNextFocusGain = true` around to wrongly swallow a
-    // completely unrelated, later, genuine Tab/AT focus arrival.
+    // completely unrelated, later, genuine Tab/AT focus arrival. Whether
+    // this open was a boomerang candidate at all is also gated below on
+    // `picked == null` — a selection's close is followed by the caller's
+    // *own* deliberate refocus, not a restoration, and arming here would
+    // swallow that instead (issue #894).
     final openedViaFocus = _focusNode.hasFocus;
     // Rebuilds the launcher out of the tree (see `build`'s narrow branch) so
     // the sheet's own field — built from the same [fieldViewBuilder] and
@@ -259,8 +273,25 @@ class _ResponsiveAutocompleteState<T extends Object>
     );
     if (!mounted) return;
     setState(() => _sheetOpen = false);
-    if (openedViaFocus) {
+    // A boomerang can only follow a DISMISSAL: a selection-driven close is
+    // followed by the caller's own deliberate `requestFocus()` (e.g.
+    // `name_picker.dart`'s clear-and-refocus-to-add-another), and arming
+    // here on every focus-driven open — regardless of how it closed — would
+    // swallow that request instead (issue #894, reported as the picker
+    // closing after every second tag/author addition). The flag also
+    // expires on the very next frame: in the current layout the launcher is
+    // unmounted while the sheet is open (see `build`'s narrow branch), so
+    // the boomerang this guards against never actually arrives to consume
+    // it here, and an unbounded flag would instead swallow a later,
+    // unrelated Tab/AT focus arrival (its own, separate defect — a
+    // keyboard/AT user who opens the picker by traversal and then dismisses
+    // it without picking would otherwise have to tab past the launcher
+    // twice to reopen it).
+    if (openedViaFocus && picked == null) {
       _ignoreNextFocusGain = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _ignoreNextFocusGain = false;
+      });
     }
     if (picked != null) {
       // Mirrors RawAutocomplete's own `_select`: write the picked option's
