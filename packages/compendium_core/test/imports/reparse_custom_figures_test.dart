@@ -260,8 +260,10 @@ void main() {
         expect(f.subFigures.map((s) => s.move), ['balance', 'swing']);
       });
 
-      test('upgrades an old ContraDB `while` whole-custom to a meanwhile '
-          'container (#591/#572)', () {
+      test('upgrades an old ContraDB `while` whole-custom to a single '
+          'structured `form_a_long_wave` (issue #945 defect B supersedes '
+          'the #591/#572 meanwhile treatment for this out-branch shape)',
+          () {
         final result = reparseImportGapFigures([
           importGap(
             'gentlespoons dance out while ladles dance in to a long wave '
@@ -272,10 +274,13 @@ void main() {
         expect(result.upgradedCount, 1);
         final f = result.figures.single;
         expect(f.isCustom, isFalse);
-        expect(f.isMeanwhile, isTrue);
+        expect(f.isMeanwhile, isFalse);
+        expect(f.move, 'form_a_long_wave');
+        expect(f.params['who'], 'role2s');
+        expect(f.params['in'], isTrue);
+        expect(f.params['out'], isTrue);
+        expect(f.params['balance'], isTrue);
         expect(f.params['beats'], 8);
-        expect(f.subFigures[0].isCustom, isTrue);
-        expect(f.subFigures[1].move, 'form_a_long_wave');
       });
 
       test('a `||` line that still degrades entirely to custom (7+ sides) '

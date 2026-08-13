@@ -1060,38 +1060,77 @@ void main() {
       expect(sides.every((s) => !s.params.containsKey('beats')), isTrue);
     });
 
-    test('dances/326 "Snake in the Garden" A2 — "while" fans into a '
-        'meanwhile container (one side structures, one stays custom)', () {
+    test('dances/326 "Snake in the Garden" A2 — issue #945 defect B: the '
+        '"out && in" form of form_a_long_wave now resolves as ONE figure '
+        'instead of fanning into a meanwhile container', () {
       // Exact rendered text from ContraDB dance #326 (A2, 8 beats).
+      // Post-scrub: gentlespoons → role1s, ladles → role2s. `who` (the role
+      // dancing IN, named second, after "while") is role2s; role1s is its
+      // invertPair partner, satisfying the role-swap guard.
       final f = parseContraDbFigureLine(
         'gentlespoons dance out while ladles dance in to a long wave in '
         'the center - balance the wave',
         beats: 8,
       );
       expect(f, isNotNull);
-      expect(f!.isMeanwhile, isTrue);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.move, 'form_a_long_wave');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['in'], isTrue);
+      expect(f.params['out'], isTrue);
+      expect(f.params['balance'], isTrue);
       expect(f.params['beats'], 8);
-      final sides = f.subFigures;
-      expect(sides, hasLength(2));
-      expect(sides[0].isCustom, isTrue);
-      expect(sides[0].params['text'], 'role1s dance out');
-      expect(sides[1].isCustom, isFalse);
-      expect(sides[1].move, 'form_a_long_wave');
     });
 
-    test('issue #585 (Rock Creek Reel A1) — "while" fans into a meanwhile '
-        'container', () {
+    test('issue #585 (Rock Creek Reel A1) — issue #945 defect B supersedes '
+        '#585\'s meanwhile treatment: the "out && in" form now resolves as '
+        'ONE structured figure', () {
+      // Post-scrub: larks → role1s, robins → role2s. `who` (the role dancing
+      // IN, named after "while") is role2s — critically NOT role1s, which
+      // would silently swap the roles (the role-swap hazard flagged in the
+      // issue #945 handoff).
       final f = parseContraDbFigureLine(
         'larks dance out while robins dance in to a long wave in the '
         'center - balance the wave',
         beats: 8,
       );
       expect(f, isNotNull);
-      expect(f!.isMeanwhile, isTrue);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.move, 'form_a_long_wave');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['in'], isTrue);
+      expect(f.params['out'], isTrue);
+      expect(f.params['balance'], isTrue);
       expect(f.params['beats'], 8);
-      expect(f.subFigures[0].isCustom, isTrue);
-      expect(f.subFigures[0].params['text'], 'role1s dance out');
-      expect(f.subFigures[1].move, 'form_a_long_wave');
+    });
+
+    test('issue #945 defect B guard — "gentlespoons dance out while '
+        'gentlespoons dance in ..." is not an invertPair, so the recognizer '
+        'declines and the line still fans into a meanwhile container', () {
+      // Falsification (§9, B2): removing the invertPair consistency check
+      // would let this over-claim and structure with swapped/wrong roles.
+      final f = parseContraDbFigureLine(
+        'gentlespoons dance out while gentlespoons dance in to a long wave '
+        'in the center - balance the wave',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isTrue);
+    });
+
+    test('issue #945 defect B — "out && !in" form: "<X> dance out & '
+        'balance" resolves to form_a_long_wave with who = invertPair(X)', () {
+      final f = parseContraDbFigureLine(
+        'role1s dance out & balance',
+        beats: 4,
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.move, 'form_a_long_wave');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['in'], isFalse);
+      expect(f.params['out'], isTrue);
+      expect(f.params['balance'], isTrue);
     });
 
     test('a note that swallowed the connective is treated like custom: the '
@@ -1158,6 +1197,97 @@ void main() {
 
     test('empty after scrubbing yields null (front-end-independent)', () {
       expect(parseContraDbFigureLine('   '), isNull);
+    });
+  });
+
+  group('issue #945 defect A — ordinal dancer-set tokens (ContraDB\'s '
+      'content-conditional `dialectForFigures` remap, verified against the '
+      'deployed bundle)', () {
+    test('unremapped "neighbors swing" is unaffected', () {
+      expect(_parse('neighbors swing').params['who'], 'neighbors');
+    });
+
+    test('"1st neighbors swing" (the remap sibling nobody reported) → '
+        'who=neighbors', () {
+      final f = _parse('1st neighbors swing');
+      expect(f.move, 'swing');
+      expect(f.params['who'], 'neighbors');
+    });
+
+    test('"2nd neighbors swing" → who=nextNeighbors', () {
+      expect(_parse('2nd neighbors swing').params['who'], 'nextNeighbors');
+    });
+
+    test('"3rd neighbors swing" → who=thirdNeighbors', () {
+      expect(_parse('3rd neighbors swing').params['who'], 'thirdNeighbors');
+    });
+
+    test('"4th neighbors swing" → who=fourthNeighbors', () {
+      expect(_parse('4th neighbors swing').params['who'], 'fourthNeighbors');
+    });
+
+    test('"1st shadows swing" → who=shadows', () {
+      expect(_parse('1st shadows swing').params['who'], 'shadows');
+    });
+
+    test('"2nd shadows swing" → who=secondShadows', () {
+      expect(_parse('2nd shadows swing').params['who'], 'secondShadows');
+    });
+
+    test('dance 3403 ("334") A1/A2 — real rendered lines that cascade to '
+        'custom today all structure once the ordinal tokens are known', () {
+      // Verbatim rendered text from contradb.com/dances/3403.
+      var f = _parse('1st neighbors balance & pull by right');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'pull_by_dancers');
+      expect(f.params['who'], 'neighbors');
+
+      f = _parse('2nd neighbors pull by left');
+      expect(f.isCustom, isFalse);
+      expect(f.params['who'], 'nextNeighbors');
+
+      f = _parse('3rd neighbors right hand balance & box the gnat');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'box_the_gnat');
+      expect(f.params['who'], 'thirdNeighbors');
+
+      f = _parse('1st neighbors swing');
+      expect(f.isCustom, isFalse);
+      expect(f.params['who'], 'neighbors');
+    });
+  });
+
+  group('issue #945 defect C — "trade by" structures as pass_by '
+      '(ContraDB-dialect note-tail preservation)', () {
+    test('"ladles trade by the left shoulder" (no tail) → pass_by', () {
+      final f = _parse('ladles trade by the left shoulder');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'pass_by');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['shoulder'], 'left');
+      expect(f.note, isNull);
+    });
+
+    test('Kettle Drum (dances/3364) B2 — the real line has a trailing tail '
+        'after the shoulder phrase; the ContraDB-dialect recognizer '
+        'preserves it as a note instead of declining the whole line', () {
+      // Verbatim rendered text from contradb.com/dances/3364 (the `<u>`
+      // progression marker around "ladles" is stripped before this stage).
+      final f = _parse('ladles trade by the left shoulder, catch left hands');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'pass_by');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['shoulder'], 'left');
+      expect(f.note, 'catch left hands');
+    });
+
+    test('truncating the tail (§9, C3) still passes — demonstrating the '
+        'tail hazard is real: a test written against the truncated line '
+        'would not have caught it', () {
+      expect(
+        _parse('ladles trade by the left shoulder').isCustom,
+        isFalse,
+      );
     });
   });
 }

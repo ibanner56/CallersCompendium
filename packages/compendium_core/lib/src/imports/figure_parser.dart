@@ -893,9 +893,10 @@ final List<_Recognizer> _recognizers = [
   _rollAway,
   _crossTrails,
   _figure8,
-  // "Men/Women/Neighbor trade" → pass_by (the pair change places). Excludes
-  // "trade by"/"trade the wave"/"trade the line" internally, so it cannot claim
-  // those unmodeled constructions.
+  // "Men/Women/Neighbor trade" and "trade by [the] left/right [shoulder]"
+  // (issue #945) → pass_by (the pair change places). Still excludes
+  // "trade the wave"/"trade the line" internally, which corpus evidence shows
+  // are distinct, unmodelled whole-wave/whole-line constructions.
   _tradePassBy,
   // "Men pass left" / "Women cross by right" → pass_by (who + shoulder). Placed
   // after the "pass …" family (_passTheOcean/_passThrough) and _crossTrails; it
@@ -2037,18 +2038,25 @@ _Match? _formLongWave(List<String> w) {
 /// Tier B: TCB writes "Men trade" / "Women trade" / "Neighbor trade" — a trade
 /// is a pass-by (the pair change places passing right shoulders), so it maps to
 /// `pass_by` with the stated `who` and the taxonomy's default right shoulder
-/// (an explicit "left/right [shoulder]" overrides). Distinct constructions that
-/// have NO taxonomy model are excluded up front so this never mis-claims them:
-/// "trade by", "trade the wave", "trade the line".
+/// (an explicit "left/right [shoulder]" overrides), and likewise "trade by
+/// [the] left/right [shoulder(s)]" (issue #945, defect C — the owner ruled
+/// this is the MWSD "Trade By" call and should structure; a corpus scan of
+/// ~24k dances found 709 `trade by` occurrences and zero instances of `trade
+/// by the` used any other way). `trade the wave` / `trade the line` remain
+/// excluded: corpus evidence supports them as distinct, unmodelled
+/// whole-wave/line constructions rather than a two-dancer pass-by.
 _Match? _tradePassBy(List<String> w) {
-  if (_hasPhrase(w, ['trade', 'by']) ||
-      _hasPhrase(w, ['trade', 'the', 'wave']) ||
+  if (_hasPhrase(w, ['trade', 'the', 'wave']) ||
       _hasPhrase(w, ['trade', 'the', 'line'])) {
     return null;
   }
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['trade'])) return null;
   final who2 = who ?? _takeDancer(w);
+  // "trade by" is consumed here (rather than folded into a shoulder phrase)
+  // because a leftover `by` with no side word (e.g. a bare "trade by") must
+  // still structure, matching the plain "trade" case above.
+  _consumePhrase(w, ['by']);
   final shoulder = _takeSide(w);
   _consumePhrase(w, ['shoulder']);
   _consumePhrase(w, ['shoulders']);
