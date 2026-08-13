@@ -994,8 +994,7 @@ void main() {
       ];
 
       final tops = [
-        for (final key in orderedKeys)
-          tester.getTopLeft(find.byKey(key)).dy,
+        for (final key in orderedKeys) tester.getTopLeft(find.byKey(key)).dy,
       ];
       for (var i = 1; i < tops.length; i++) {
         expect(
