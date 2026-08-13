@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:compendium_app/src/search/coalesce_trailing.dart';
 import 'package:compendium_app/src/search/collection_data.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;

@@ -11,7 +11,6 @@ import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
-import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/screens/collection_shell.dart';
@@ -71,16 +70,38 @@ void main() {
     updatedAt: now,
   );
 
-  /// Repositories whose settings reads are counted, so a test can assert how
-  /// many times a screen reloaded. [DanceDetailScreen.\_load] reads
-  /// [kDefaultDanceDetailRenderingKey] exactly once per load, which makes that
-  /// key an exact reload counter for the detail screen.
-  ({CompendiumRepositories repos, _CountingSettings settings}) countingRepos() {
+  /// Repositories whose detail-record loads are counted, so a test can assert
+  /// how many times the detail screen re-read its data.
+  ///
+  /// ## Why this counts a repository call and not a settings read
+  ///
+  /// It used to count reads of [kDefaultDanceDetailRenderingKey], on the
+  /// grounds that the detail screen's load read that key exactly once per load.
+  /// That stopped being true when the screen moved to a stream (issue #768):
+  /// the rendering preference is a per-mount seed now, not part of the record,
+  /// so the key is read **once per mount** no matter how many times the record
+  /// reloads.
+  ///
+  /// Two of the three ceilings below broke loudly when that happened. The third
+  /// — "a program-side write must not reload the detail screen" — kept passing,
+  /// because a counter pinned at 1 satisfies "did not increase" for free. That
+  /// is the failure worth designing against: breakage announces itself and
+  /// vacuity does not.
+  ///
+  /// [DanceDetailData.load] calls `dances.listIdsAndTitles()` exactly once, to
+  /// build its cross-reference linker, and nothing else on these screens calls
+  /// it — so it is an exact per-load marker. Counted by **overriding the
+  /// method**, not by matching SQL text in a `QueryInterceptor`: a substring
+  /// counter reads zero both when the load never ran and when the query stopped
+  /// looking like the string, and it would also count the Collection snapshot's
+  /// own loads in the split-pane test below, where both screens are mounted. An
+  /// override is compile-checked and belongs to one caller.
+  ({CompendiumRepositories repos, _CountingDances dances}) countingRepos() {
     final db = openWidgetTestDatabase();
-    final settings = _CountingSettings(db);
+    final dances = _CountingDances(db, contraTaxonomy);
     return (
-      repos: CompendiumRepositories(db, contraTaxonomy, settings: settings),
-      settings: settings,
+      repos: CompendiumRepositories(db, contraTaxonomy, dances: dances),
+      dances: dances,
     );
   }
 
@@ -981,84 +1002,85 @@ void main() {
 
       expect(
         offenders,
-        {'src/screens/dance_detail_screen.dart'},
+        <String>{},
         reason:
             'a widget that only broadcasts must use notifierOf; maybeOf '
             'registers a rebuild dependency and wakes it on every bump',
       );
     });
 
-    // The one subscription this PR deliberately does NOT remove. It is the last
-    // refresh-scope listener in the app, and it is load-bearing: this screen's
-    // dance fields still come from a one-shot load, so the channel is the only
-    // thing that makes an edit made elsewhere appear here.
-    testWidgets('the detail screen DOES still reload on a collection bump', (
-      tester,
-    ) async {
-      final repos = openTestRepos();
-      await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
-      final collectionRevision = await pump(
-        tester,
-        repos,
-        const DanceDetailScreen(danceId: 'd1'),
-      );
-      expect(find.text('Alpha'), findsWidgets);
+    // The inverse of the test this replaces, which asserted that the detail
+    // screen still reloaded on a bump — true while its record came from a
+    // one-shot load, and the reason the channel could not be retired.
+    //
+    // Both halves are needed and neither is decoration. On its own the negative
+    // is satisfied by a screen that has stopped updating altogether, which is
+    // the staleness this whole issue is about — so the positive is what
+    // distinguishes "no longer listens to the channel" from "no longer works".
+    testWidgets(
+      'the detail screen no longer reloads on a bump, and DOES reload on the '
+      'write itself',
+      (tester) async {
+        final repos = openTestRepos();
+        await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
+        final collectionRevision = await pump(
+          tester,
+          repos,
+          const DanceDetailScreen(danceId: 'd1'),
+        );
+        expect(find.text('Alpha'), findsWidgets);
 
-      // Written straight to the database, with no broadcast of its own: only
-      // the bump can carry it to this screen.
-      final stored = await repos.dances.getById('d1');
-      await repos.dances.update(
-        stored!.copyWith(title: 'Renamed', updatedAt: DateTime.utc(2026, 2)),
-      );
-      await tester.pumpAndSettle();
-      expect(
-        find.text('Renamed'),
-        findsNothing,
-        reason:
-            'precondition: the write alone must NOT reach this screen, '
-            'or the bump below would prove nothing',
-      );
+        // A bump with nothing written behind it. Nothing should change,
+        // because there is nothing to change to — but if the screen still
+        // listened, this is where it would re-read.
+        collectionRevision.value++;
+        await tester.pumpAndSettle();
+        expect(find.text('Alpha'), findsWidgets);
 
-      collectionRevision.value++;
-      await tester.pumpAndSettle();
+        // Now the write, with NO bump after it. This is the half that used to
+        // be the precondition for the opposite claim: the same edit that could
+        // not reach this screen on its own now does.
+        final stored = await repos.dances.getById('d1');
+        await repos.dances.update(
+          stored!.copyWith(title: 'Renamed', updatedAt: DateTime.utc(2026, 2)),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Renamed'), findsWidgets);
-    });
+        expect(
+          find.text('Renamed'),
+          findsWidgets,
+          reason: 'the write alone must reach this screen, with no broadcast',
+        );
+      },
+    );
   });
 
   testWidgets(
-    'issue #340 guard: a dances-and-programs write reloads the detail screen '
+    'issue #340 guard: an external dance write reloads the detail screen '
     'exactly once',
     (tester) async {
       final counted = countingRepos();
       await counted.repos.dances.create(dance(id: 'd1', title: 'Alpha'));
-      final collectionRevision = await pump(
-        tester,
-        counted.repos,
-        const DanceDetailScreen(danceId: 'd1'),
-      );
-      final loadsAfterFirstBuild = counted.settings.reads(
-        kDefaultDanceDetailRenderingKey,
-      );
-      expect(loadsAfterFirstBuild, 1);
+      await pump(tester, counted.repos, const DanceDetailScreen(danceId: 'd1'));
+      expect(counted.dances.loads, 1, reason: 'the initial load');
 
-      // A shared-bundle commit writes dances and programs. It used to bump two
-      // channels back to back in one synchronous block, and this test began as
-      // a coalescing guard; the detail screen then stopped subscribing to the
-      // programs channel (its one program-derived section watches the database
-      // itself, issue #768), and that channel has since been retired entirely.
+      // The ceiling this has always asserted: one user action reloads this
+      // screen once, not twice. What drives it has changed with the screen —
+      // it began as a coalescing guard over two refresh channels, became a
+      // single-bump guard when the programs channel was retired, and is now a
+      // database write, because the screen reads from a stream and a bump
+      // reaches it no longer (issue #768).
       //
-      // So one bump is now the whole signal, and what survives is the ceiling:
-      // a collection write reloads this screen once, not twice. The coalescer
-      // it originally exercised is still load-bearing for a same-channel burst
-      // — see `refresh_coalescer.dart` — which no test here covers.
-      collectionRevision.value++;
+      // One write is one commit, so the coalescer's leading edge emits it
+      // immediately and nothing trails it. Two loads here would mean the screen
+      // had acquired a second path to the same data.
+      await counted.repos.dances.update(
+        dance(id: 'd1', title: 'Alpha').copyWith(title: 'Renamed'),
+      );
       await tester.pumpAndSettle();
 
-      expect(
-        counted.settings.reads(kDefaultDanceDetailRenderingKey),
-        loadsAfterFirstBuild + 1,
-      );
+      expect(find.text('Renamed'), findsWidgets);
+      expect(counted.dances.loads, 2);
     },
   );
 
@@ -1069,9 +1091,7 @@ void main() {
       final counted = countingRepos();
       await counted.repos.dances.create(dance(id: 'd1', title: 'Alpha'));
       await pump(tester, counted.repos, const DanceDetailScreen(danceId: 'd1'));
-      final loadsAfterFirstBuild = counted.settings.reads(
-        kDefaultDanceDetailRenderingKey,
-      );
+      final loadsAfterFirstBuild = counted.dances.loads;
       expect(find.byKey(const ValueKey('calling-history-empty')), findsOne);
 
       // The whole point of converting this section: the write reaches the one
@@ -1088,26 +1108,46 @@ void main() {
 
       expect(callingHistoryRows(), findsOne);
       expect(
-        counted.settings.reads(kDefaultDanceDetailRenderingKey),
+        counted.dances.loads,
         loadsAfterFirstBuild,
         reason:
             'a program write must not reload the detail screen: nothing else '
             'on it is program-derived',
       );
+
+      // The negative above is "the counter did not move", which a dead counter
+      // satisfies for free — and this assertion used to be exactly that. It
+      // counted a settings read that the screen made once per load, until the
+      // screen stopped reading settings per load and pinned it at 1; the
+      // ceiling then held for a reason that had nothing to do with program
+      // writes. So show the counter CAN move, on the same screen, in the same
+      // test, with the only difference being which table was written.
+      await counted.repos.dances.update(
+        dance(id: 'd1', title: 'Alpha').copyWith(title: 'Renamed'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        counted.dances.loads,
+        loadsAfterFirstBuild + 1,
+        reason:
+            'a DANCE write must reload it — without this the negative above '
+            'passes against a counter that never moves',
+      );
     },
   );
 
   testWidgets(
-    'issue #340 guard: a batch across many dances reloads the detail pane once, '
-    'not once per dance',
+    'issue #340 guard: a batch across many dances reloads the detail pane a '
+    'bounded number of times, not once per dance',
     (tester) async {
       final counted = countingRepos();
       for (var i = 0; i < 5; i++) {
         await counted.repos.dances.create(dance(id: 'd$i', title: 'Dance $i'));
       }
       // Batch tagging writes one row at a time in a loop, unlike batch level
-      // (a single `setLevelForMany`), so it is the case where a broadcast could
-      // plausibly be written per item.
+      // (a single `setLevelForMany`), so it is the case where a reload could
+      // plausibly happen per item.
       // ignore: unused_result
       await counted.repos.tags.upsert(Tag(id: 't1', name: 'Gentle'));
       await pump(
@@ -1119,8 +1159,8 @@ void main() {
 
       await tester.tap(find.text('Dance 0').first);
       await tester.pumpAndSettle();
-      final before = counted.settings.reads(kDefaultDanceDetailRenderingKey);
-      expect(before, greaterThan(0));
+      final before = counted.dances.loads;
+      expect(before, greaterThan(0), reason: 'the pane loaded at all');
 
       await tester.tap(find.byKey(const ValueKey('batch-select')));
       await tester.pumpAndSettle();
@@ -1135,10 +1175,21 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
       await tester.pumpAndSettle();
 
-      // Five dances written, one broadcast, one reload.
+      // Five dances written in five transactions, so five wakes reach the
+      // stream. The bound is a *rate*, not a total: the coalescing window emits
+      // on the leading edge and flushes at most once per window thereafter, so
+      // a burst this size settles in two. Asserting exactly one would be
+      // asserting the trailing flush away, and the trailing flush is what
+      // guarantees the last write is not dropped.
+      //
+      // The claim being defended is the gap between 2 and 5 — one reload per
+      // dance written, for a pane showing one of them.
       expect(
-        counted.settings.reads(kDefaultDanceDetailRenderingKey),
-        before + 1,
+        counted.dances.loads - before,
+        lessThanOrEqualTo(2),
+        reason:
+            'a 5-dance batch must not reload this pane once per dance; '
+            'saw ${counted.dances.loads - before}',
       );
     },
   );
@@ -1148,19 +1199,24 @@ void main() {
 CompendiumRepositories openTestRepos() =>
     CompendiumRepositories(openWidgetTestDatabase(), contraTaxonomy);
 
-/// Counts settings reads by key, so a test can count screen reloads without
+/// Counts detail-record loads, so a test can count screen reloads without
 /// reaching inside the widget under test.
-class _CountingSettings extends SettingsRepository {
-  _CountingSettings(super.db);
+///
+/// [DanceDetailData.load] calls [listIdsAndTitles] exactly once per load, and
+/// nothing else mounted in these tests calls it at all — so [loads] is an exact
+/// count of "how many times the detail record was re-read". See `countingRepos`
+/// for why this is an override rather than a SQL-matching interceptor.
+class _CountingDances extends DanceRepository {
+  _CountingDances(super.db, super.taxonomy);
 
-  final Map<String, int> _reads = {};
-
-  int reads(String key) => _reads[key] ?? 0;
+  int loads = 0;
 
   @override
-  Future<Object?> get(String key) {
-    _reads.update(key, (v) => v + 1, ifAbsent: () => 1);
-    return super.get(key);
+  Future<List<({String id, String title})>> listIdsAndTitles({
+    bool includeDeleted = false,
+  }) {
+    loads++;
+    return super.listIdsAndTitles(includeDeleted: includeDeleted);
   }
 }
 
