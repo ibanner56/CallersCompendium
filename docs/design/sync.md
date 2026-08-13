@@ -491,11 +491,13 @@ it:
 | Deferred review items (`kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, `queued_at`) | `review_queue` | `deviceScoped` |
 | Records this device has published (`kind`, `record_id`) | `published_records` | `deviceScoped` |
 
-**All four are scoped to the store identity**, and `id_aliases` and
+**Three of the four are scoped to the store identity**, and `id_aliases` and
 `review_queue` are additionally scoped to the epoch and cleared with the
 baseline. Each records a conclusion drawn *about a particular store* — that two
 ids were merged, that a pair needs adjudicating — and neither conclusion survives
-a different store or a re-seeded one.
+a different store or a re-seeded one. `published_records` is the exception, for
+reasons given below: it records an event rather than a conclusion, and events do
+not stop having happened when the store changes.
 
 **`pending_deletions` survives an epoch reset, deliberately.** Scoping it to the
 epoch as well would be wrong in a way that silently discards user intent. Fresh
@@ -510,35 +512,77 @@ Retaining it across the reset closes that, and the round-six advertisement rule
 makes it safe: a pending-held record is uploaded **as a tombstone** on fresh
 attach exactly as it is advertised as one in steady state, so the deletion is
 re-published rather than reversed and the entity remains addressable for anything
-still citing it. On **detach** the table clears with the rest, because the user
-has left the store entirely.
+still citing it. On **detach** `pending_deletions` clears along with the baseline
+and the aliases, because the user has left the store entirely.
 
-Leaving these unscoped is wrong in the other direction, which is why the scoping
-is stated rather than left to the implementation: retained across a *detach*, a
-stale `pending_deletions` row would suppress an entity from the manifest of an
-unrelated store indefinitely, and a stale alias would silently redirect ids that
-mean nothing there.
+Leaving *those three* unscoped is wrong in the other direction, which is why the
+scoping is stated rather than left to the implementation: retained across a
+*detach*, a stale `pending_deletions` row would suppress an entity from the
+manifest of an unrelated store indefinitely, and a stale alias would silently
+redirect ids that mean nothing there. `published_records` is the deliberate
+exception and is argued for separately below — the distinction is whether the
+row means anything once the store is gone.
 
-**`published_records` takes the same lifecycle, and for a reason worth spelling
-out.** The hard-delete forfeiture rule asks a question the baseline cannot
-answer. A baseline entry advances only where a peer was observed carrying this
-device's hash, so it records *agreement*; forfeiture turns on *exposure*, which
-begins one step earlier, when the manifest is `PUT`. Using the baseline would
-leave a one-pass window in which a record is fetchable by every peer while the
-check still says "never published" — and a hard delete inside that window is the
-resurrection loop the rule exists to prevent, since the peer that downloaded it
-keeps republishing a row this device can no longer tombstone.
+**`published_records` does not take that lifecycle, and the reason is worth
+spelling out, because the intuitive reading is wrong.** The hard-delete
+forfeiture rule asks a question the baseline cannot answer. A baseline entry
+advances only where a peer was observed carrying this device's hash, so it
+records *agreement*; forfeiture turns on *exposure*, which begins one step
+earlier, when the manifest is `PUT`. Using the baseline would leave a one-pass
+window in which a record is fetchable by every peer while the check still says
+"never published" — and a hard delete inside that window is the resurrection
+loop the rule exists to prevent, since the peer that downloaded it keeps
+republishing a row this device can no longer tombstone.
 
 So it is its own marker, written before the `PUT` rather than after it: a crash
-between the two then over-marks, costing an unnecessary tombstone, instead of
-under-marking and costing the guarantee. It survives an epoch reset because an
-expired store un-publishes nothing — the peers that already downloaded a record
-still hold it live, and that liveness is the whole hazard. It clears on detach
-because re-attach is a union that deletes nothing, so a hard delete made while
-detached loses to the union rather than looping. Stale entries after a restore
-are inert and need no revalidation: the marker is consulted only when deleting
-the record it names, so one naming a record the restore removed is never read,
-and one naming a record the restore brought back is still correct.
+between the two over-marks instead of under-marking. Those are not equivalent
+mistakes, and the asymmetry is the whole design of this table. An under-mark
+loses the guarantee silently; an over-mark leaves a tombstone where an undone
+import should have left nothing, which is a real cost — it is precisely what
+`VenueRepository.hardDelete`'s exemption exists to avoid — but a visible and
+recoverable one.
+
+**The first draft cleared it on detach, and that was wrong.** The reasoning was
+that re-attach is a union which deletes nothing, so a hard delete made while
+detached "loses to the union rather than looping". That is true about the *loop*
+and silent about the *outcome*. Walk it: A publishes R and marks it; A detaches,
+clearing the marker; A's import undo hard-deletes R, which the check now permits
+because R reads as never published, so **no tombstone is written**; A re-attaches
+and unions against peer B, which still holds R live. R is downloaded back. The
+user's deletion is reversed, with nothing to report it — the shape of #903,
+reached through the detach path rather than the undo path.
+
+What makes it wrong is not that the rule was insufficiently cautious. It is that
+**detach does not un-publish anything.** Detach forgets the sync ID locally and
+leaves this device's manifest on the server; there is no `DELETE
+/v1/manifests/{self}`, and a blob stays reachable while any manifest for its
+store references it. So the marker's claim — these bytes left this device and
+peers can still fetch them — remains literally true after a detach. Clearing it
+records a falsehood, and every consequence follows from that one error.
+
+The correction is that `published_records` is **not store-scoped state at all**,
+which is why the analogy to `pending_deletions` misled. The other three tables
+hold conclusions *about a store*: which ids were merged there, which pairs need
+adjudicating there, which deletions are owed there. All of those stop meaning
+anything when the store does. This one holds a physical event — bytes left the
+device — and an event does not stop having happened. It is monotonic: written
+once, never cleared by an epoch reset, a detach or a restore.
+
+That also settles retirement, which `id_aliases` gets and this deliberately does
+not. An alias retires once no current peer manifest lists the losing id; that
+bound is unavailable here, because *this device's own manifest* is one of the
+manifests keeping the record reachable and it outlives the detach. The failure
+modes decide the rest: a wrongly-retired alias skips one record and reports it,
+whereas a wrongly-retired marker silently resurrects a deletion. Permanence is
+therefore required rather than merely tolerated, and the cost is small enough to
+state plainly — one `(kind, record_id)` pair per record ever published, less
+than the baseline entry that already exists for the same record, so an entry is
+kept even after its record is tombstoned and purged.
+
+Stale entries after a restore are inert and need no revalidation for the same
+reason they need no clearing: the marker is consulted only when deleting the
+record it names, so one naming a record the restore removed is never read, and
+one naming a record the restore brought back is still correct.
 
 Every row is per-installation protocol state, meaningless on another device, and
 adding them means a schema change **beyond the sync migration** — which the
@@ -3473,7 +3517,8 @@ must say this plainly rather than implying sync is opaque to us.
   *and* on device B from the same pair and assert they select the **same
   survivor**. Mutation-proved by replacing the tie-break with "keep the local
   row" — the naive implementation — and watching both devices keep their own id.
-  This is the guard that would have caught R3-1; a one-sided test passes happily
+  This is the guard that would have caught the non-convergent tie-break before
+  it reached review; a one-sided test passes happily
   against the non-convergent implementation.
 - **Inbound references to the losing UUID are remapped** — apply a batch
   containing a dance whose `authorIds` cite the *losing* choreographer id, in
@@ -3532,6 +3577,23 @@ must say this plainly rather than implying sync is opaque to us.
   republishes it on every pass afterwards. The window is narrow, which is the
   point — it is a one-pass version of the hole the forfeiture rule exists to
   close, and it reopens without anyone misreading the rule.
+- **Detach and re-attach does not reverse a completed deletion** — publish a
+  record, detach, hard-delete it locally, then re-attach against a peer that
+  still holds it live; assert the deletion stands. Mutation-proved by clearing
+  `published_records` on detach, which is what the first draft of this rule
+  specified: the forfeiture check then reads "never published", the row is
+  removed with no tombstone, and the re-attach union — having nothing local to
+  compare against — downloads the peer's live copy back. Worth its own test
+  rather than folding into the bullet above, because that one exercises the
+  crash-timing window and passes happily against a detach that clears.
+- **Reconciliation carries the publication marker onto the survivor** — mark a
+  pre-existing record as published, reconcile a just-imported record onto it
+  such that the *imported* id survives, then hard-delete the survivor via the
+  import's undo while a peer still advertises the losing id. Assert a tombstone
+  is written. Mutation-proved by remapping `id_aliases` without remapping the
+  marker: the survivor reads as never published, the hard delete proceeds, and
+  the peer's next manifest reintroduces the record through the alias. The union
+  direction matters — a marker on *either* id must mark the survivor.
 - **Only a deliberate edit resurrects** — editing an entity while its tombstone
   is pending cancels the tombstone and republishes; merely continuing to
   reference it does not. Both halves asserted, since the mechanism is only sound

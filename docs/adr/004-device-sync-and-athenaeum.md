@@ -986,6 +986,15 @@ makes self-hosting materially harder, which constraint 4 forbids.
   user's deletion — and is uploaded as a tombstone on fresh attach, exactly as it
   is advertised as one in steady state.
 
+  A fourth table, `published_records`, records which records this device has
+  published, so that the surviving hard-delete paths can fall back to a
+  tombstone rather than removing a row a peer still holds live. It is
+  `deviceScoped` and beyond the sync migration like the others, but it is
+  **not** scoped to the store and is never cleared: it records that bytes left
+  this device, which a detach does not undo — detach forgets the sync ID
+  locally and leaves this device's manifest on the server, keeping the record
+  downloadable by every peer.
+
   A device holding a deletion pending advertises the entity as a **tombstone**
   rather than omitting it. Omitting it stops the resurrection but leaves the
   manifest referentially incomplete — the device still advertises the dances that

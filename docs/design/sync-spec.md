@@ -159,20 +159,46 @@ MUST be classified in the PR that creates it or the coverage ratchet fails.
 `tombstone_blob` is `shareable` because it is record content that is
 re-transmitted, not device bookkeeping.
 
-**Lifecycle.** All are scoped to the store identity. `id_aliases` and
-`review_queue` clear with the baseline. `pending_deletions` MUST survive an
-epoch reset and MUST clear on detach; after a restore its rows MUST be
-revalidated against the restored data.
+**Lifecycle.** All are scoped to the store identity except `published_records`,
+which is treated separately below. `id_aliases` and `review_queue` clear with
+the baseline. `pending_deletions` MUST survive an epoch reset and MUST clear on
+detach; after a restore its rows MUST be revalidated against the restored data.
 
-`published_records` is required only of clients taking §3.1's forfeiture route,
-and shares `pending_deletions`' lifecycle: it MUST survive an epoch reset and
-MUST clear on detach. It cannot live in the baseline, which clears on epoch
-reset — an expired store un-publishes nothing, because the peers that already
-downloaded a record still hold it live, and that liveness is exactly what
-forfeiture guards against. Detach differs: re-attach is a union that performs no
-deletion (§6.2), so a hard delete made while detached loses to the union rather
-than resurrecting on every pass. Its rows need no revalidation after a restore:
-a row naming a record the restore removed is never read.
+`published_records` is required only of clients taking §3.1's forfeiture route.
+It is **not** store-scoped bookkeeping and does **not** share
+`pending_deletions`' lifecycle: it MUST NOT be cleared on an epoch reset, on
+detach, or on restore. It is monotonic — an entry is written and never removed.
+
+It records an irreversible physical event, that a record's bytes left this
+device, and no local action can make that false. An epoch reset un-publishes
+nothing: the peers that already downloaded a record still hold it live, and that
+liveness is exactly what forfeiture guards against. **Detach un-publishes
+nothing either**, and it is worth being precise about why, because a
+store-scoped reading is the intuitive one. Detach forgets the sync ID *locally*
+(§6.2 step 3); it does not `DELETE /v1/manifests/{self}`, so this device's
+manifest remains on the server, and by §7.3 a blob is reachable while any
+manifest for its store references it. The record therefore stays downloadable by
+every peer for as long as the store lives, and a re-attach — which is a union
+that deletes nothing (§6.2) — restores it against a device that kept no
+tombstone. Clearing on detach would convert "the deletion sticks" into "the
+deletion silently reverts", which is the defect this rule exists to prevent.
+
+Restore needs no revalidation for the same reason it needs no clearing: the
+marker's only consumer is the forfeiture check at hard-delete time, so a row
+naming a record the restore removed is never read, and one naming a record the
+restore brought back is still correct.
+
+**No retirement rule, deliberately.** `id_aliases` retires on a content bound —
+no current peer manifest lists the losing id (§6.6) — and that bound is not
+available here. This device's own manifest is one of the manifests keeping the
+record reachable, and it survives detach; retiring against peer manifests alone
+would ignore it. The failure modes are also asymmetric, which is what settles
+it: a wrongly-retired alias skips and reports one record, while a
+wrongly-retired marker silently resurrects a deletion. Growth is bounded by the
+number of records ever published rather than by activity — a
+`(kind, record_id)` pair per record, smaller than the baseline entry that
+already exists for each — so an entry MUST be retained even after its record is
+tombstoned and purged.
 
 `review_queue` requires a new review surface: `import_review_screen.dart`
 reviews dances only. A generic keep-both-or-merge list suffices; no per-kind
@@ -451,8 +477,16 @@ Every settings key Device Sync introduces is `deviceScoped` and MUST NOT sync.
 7. Apply in one transaction (§6.7). Rebuild derived indexes.
 8. `PUT /v1/manifests/{self}`. A client relying on §3.1's forfeiture rule MUST
    record every record the manifest names in `published_records` **before**
-   issuing the request, so that a crash between the two over-marks rather than
-   under-marks.
+   issuing the request. A crash between the two then over-marks rather than
+   under-marks, and those costs are not equivalent: an under-mark forfeits the
+   guarantee, while an over-mark makes a later hard delete of that record fall
+   back to a tombstone. The over-mark is not free — a tombstone left behind by
+   an undone import is exactly what §3.1's `hardDelete` exemption exists to
+   avoid — but it is recoverable and visible, where the under-mark is neither.
+   This step is the only point at which a record becomes exposed: §6.2 performs
+   no manifest `PUT`, and by §7.3 a blob is unreachable until some manifest
+   references it, so the blobs uploaded at attach step 4 create no window ahead
+   of the first mark.
 9. Store the new baseline. A record's entry advances **only** where a peer's
    manifest was observed to carry this device's current content hash.
 
@@ -595,6 +629,15 @@ references **and** to every inbound record in the same batch, and persisted in
 `id_aliases`. Lookups MUST chase the chain to a fixed point; superseded entries
 are rewritten in place. An alias is retired once no current peer manifest lists
 the losing id.
+
+`published_records` is a local reference to a record id, so it is remapped like
+any other — and because it is a set, the remap is a **union**: a marker on
+either id marks the survivor, and a marker is never dropped. Dropping the losing
+id's marker would reopen §3.1's forfeiture hole by a different route. A
+pre-existing published record can lose reconciliation to a just-imported one,
+after which the import's undo hard-deletes the survivor; peers still holding the
+losing id re-advertise it, the alias maps it onto the survivor, and the record
+returns against a device that kept no tombstone.
 
 Rewriting a reference changes a dance's serialised content without touching its
 row, so it MUST bump that record's `updated_at` and re-upload it (I1).
@@ -939,7 +982,12 @@ A referenced entity cannot be tombstoned away. Purge refuses to cascade off live
 records. An epoch reset does not discard a pending deletion. A published record
 tombstones instead of hard-deleting (mutation: evaluate forfeiture against the
 baseline, which answers "never published" for a record `PUT` in the pass that no
-peer has confirmed yet).
+peer has confirmed yet). A detach-and-re-attach does not reverse a completed
+deletion (mutation: clear `published_records` on detach — the hard delete then
+proceeds without a tombstone and the peer's live copy is downloaded back).
+Reconciliation carries the publication marker onto the survivor (mutation:
+remap without it, then hard-delete the survivor while a peer still advertises
+the losing id).
 
 **Attach and restore.** Epoch mismatch → fresh attach, never deletion. Union and
 silent merge. An equal-`updatedAt` fresh-attach tie is reported rather than
