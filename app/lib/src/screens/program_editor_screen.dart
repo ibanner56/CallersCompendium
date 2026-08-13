@@ -12,7 +12,6 @@ import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/matrix_collision_mode_scope.dart';
-import '../data/programs_refresh_scope.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
@@ -857,10 +856,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   _slots = slots;
                 });
                 // A mark-performed stamp changes the Collection's "called N
-                // times" badge and any mounted dance detail's calling history
-                // (issue #768, gap 3); this screen has already applied the
-                // change to its own state.
-                ProgramsRefreshScope.bump(context);
+                // times" badge and any mounted dance detail's calling history.
+                // Both watch `program_slots` directly now, so the write is the
+                // whole notification (issue #768).
                 return;
               } on Exception catch (_) {
                 // Fall through to keep the change in the working slots.
@@ -1206,11 +1204,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _dirty = false;
         _slots = slots;
       });
-      // Broadcast the committed save (issue #768). Deliberately here and not in
-      // the debounced autosave (`_saveDraft`), which fires on every slot drag —
-      // broadcasting from there would re-boot every subscriber per edit, which
-      // is the thrash issue #340 warns against.
-      ProgramsRefreshScope.bump(context);
       final messenger = ScaffoldMessenger.of(context);
       if (widget.isEmbedded) {
         messenger.showSnackBar(
@@ -1246,8 +1239,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     messenger.showSnackBar(
       SnackBar(content: Text(l10n.programsDuplicatedSnack(copy.title))),
     );
-    // The copy carries the same dance slots, so every derived count moved.
-    ProgramsRefreshScope.bump(context);
+    // The copy carries the same dance slots, so every derived count moved —
+    // the views of those counts watch the tables themselves (issue #768).
     if (widget.isEmbedded) {
       widget.onNavigateTo?.call(copy.id);
     } else {
@@ -1274,19 +1267,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
-    // Captured before the route pops, so undo can still broadcast.
-    final programsRefresh = ProgramsRefreshScope.notifierOf(context);
     showUndoSnackBar(
       messenger,
       message: l10n.programsDeletedSnack(title),
       undoLabel: l10n.commonUndo,
       accessibleNavigation: accessibleNavigation,
       onUndo: () async {
+        // The restore is the notification: every view of a program watches
+        // `programs` itself (issue #768), including this undo's callers, which
+        // is why nothing has to be captured before the route pops any more.
         await _repos.programs.restore(source.id, at: DateTime.now().toUtc());
-        programsRefresh?.value++;
       },
     );
-    programsRefresh?.value++;
     if (widget.isEmbedded) {
       widget.onDeleted?.call();
     } else {

@@ -5,12 +5,17 @@ import 'package:flutter/foundation.dart';
 /// Collapses several refresh broadcasts that arrive in the same synchronous
 /// block into a single reload.
 ///
-/// A write that touches both dances and programs — a shared-bundle import, for
-/// instance — bumps `CollectionRefreshScope` and `ProgramsRefreshScope` one
-/// after the other, and both notifiers fire synchronously. Any view listening
-/// to more than one bump in a single block would otherwise reload once per
-/// bump; this keeps it at one reload per user action, which is the constraint
+/// A single user action can bump `CollectionRefreshScope` more than once in one
+/// synchronous block — a batch edit committing several dances, for instance —
+/// and the notifier fires synchronously each time. A listener would otherwise
+/// reload once per bump; this keeps it at one reload per action, the constraint
 /// issue #340 records: fixing a stale view must not produce a thrashing one.
+///
+/// It used to collapse *two channels* as well, when a dances-and-programs write
+/// bumped `ProgramsRefreshScope` immediately after. That scope was retired once
+/// every program view became stream-driven (issue #768), so only the
+/// same-channel burst remains — and the coalescer is still load-bearing for it,
+/// as `program_summary_screen.dart` records for the stream-side equivalent.
 ///
 /// `ProgramSummaryScreen` is the remaining both-channels subscriber: it renders
 /// program data and the dances inside it, so it listens to each. The two

@@ -160,13 +160,17 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// showing while the wide layout's detail pane is showing it — the pane is
   /// keyed on the *selection*, so it never rebuilds for an edit.
   ///
-  /// There is deliberately no `ProgramsRefreshScope` subscription here any
-  /// more. The only program-derived thing this screen renders is the
-  /// **Calling history** section, which now watches the database itself
-  /// ([CallingHistorySection]); keeping the listener as well would reload the
-  /// whole screen on top of that section's own emit — one write, two rebuilds,
-  /// which is issue #340's failure. The scope itself stays for the screens not
-  /// yet converted.
+  /// The only program-derived thing this screen renders is the **Calling
+  /// history** section, which watches the database itself
+  /// ([CallingHistorySection]); a program-side listener here as well would
+  /// reload the whole screen on top of that section's own emit — one write,
+  /// two rebuilds, issue #340's failure. `ProgramsRefreshScope` has since been
+  /// retired outright for want of any subscriber.
+  ///
+  /// **This is the last remaining refresh-scope subscription in the app.** The
+  /// dance fields above still come from a one-shot [_load], so this channel is
+  /// the only thing that makes an edit made elsewhere appear here; it retires
+  /// when this screen's own data moves to a stream, and not before.
   ValueListenable<int>? _collectionRefresh;
 
   /// Collapses several collection bumps arriving in the same synchronous block
