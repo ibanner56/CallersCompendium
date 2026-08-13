@@ -329,6 +329,37 @@ void main() {
       expect(colOf(matrix, 'swing:neighbor:meltdown'), isNonNegative);
     });
 
+    test(
+      'a NON-baseline role (larks) that is ALWAYS balance-prefixed shows '
+      'ONLY the prefixed sub-column — no empty plain `swing:larks` column '
+      'beside it (code review: the bare column is present-only for every '
+      'non-baseline role, exactly like every other present-only column in '
+      'this matrix — hey, allemande, chain — not a fixed baseline; only '
+      'partner/neighbor get an unconditional bare column)',
+      () {
+        final matrix = buildProgramMatrix([
+          dance('d1', 'A', [swingWithPrefix('role1s', 'balance')]),
+        ]);
+        expect(colOf(matrix, 'swing:larks:balance'), isNonNegative);
+        expect(ids(matrix), isNot(contains('swing:larks')));
+      },
+    );
+
+    test(
+      'once a role ALSO has a plain swing, its bare column appears '
+      'alongside the prefixed one (present-only, keyed independently)',
+      () {
+        final matrix = buildProgramMatrix([
+          dance('d1', 'A', [
+            swing('role1s'),
+            swingWithPrefix('role1s', 'balance'),
+          ]),
+        ]);
+        expect(colOf(matrix, 'swing:larks'), isNonNegative);
+        expect(colOf(matrix, 'swing:larks:balance'), isNonNegative);
+      },
+    );
+
     test('the `meltdown_swing` ALIAS folds into the same swing:<role>:meltdown '
         'column as an explicit prefix=meltdown swing (issue #933) — not its '
         'own stray column', () {

@@ -468,11 +468,18 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// their taxonomy position (issue #933): swing and allemande/chain split by
 /// role (`who`) into per-role columns (`larks`, `robins`, `shadow`, `ones`,
 /// `twos`, `corners`, `same`, `other`, in that order); swing additionally
-/// splits each role by `prefix` into a bare column plus present-only
-/// `balance`/`meltdown` sub-columns. `partner`/`neighbor` are a fixed
-/// baseline for swing ONLY, shown whenever the program has any dances (even
-/// if no dance swings those roles) — allemande/chain have no baseline, since
-/// most programs use zero or one role for either. Hey splits into `half` then
+/// splits each role by `prefix` into a bare (`none`-prefix) column plus
+/// `balance`/`meltdown` sub-columns. `partner`/`neighbor`'s BARE column is a
+/// fixed baseline, shown whenever the program has any dances (even if no
+/// dance swings those roles plain); every other swing role's bare column,
+/// and every role's `balance`/`meltdown` sub-column regardless of role, is
+/// present-only — so a program with only a `larks` swing that is ALWAYS
+/// balance-prefixed shows `larks bal & swing` but no empty plain `larks
+/// swing` column beside it (matching the present-only convention `hey` and
+/// every non-baseline swing role already followed before this split). Only
+/// `partner`/`neighbor`'s bare column is ever shown without a corresponding
+/// present figure. Allemande/chain have no baseline at all, since most
+/// programs use zero or one role for either. Hey splits into `half` then
 /// `full`, both present-only.
 ///
 /// Presence is boolean (a repeated move counts once, matching CC's checklist
@@ -560,6 +567,14 @@ ProgramMatrix buildProgramMatrix(
   // one column when present.
   for (final id in tax.moves.keys) {
     if (id == swingMoveId) {
+      // For EACH role variant: the bare (none-prefix) column is a fixed
+      // baseline ONLY for partner/neighbor (`hasDances`); every other role's
+      // bare column is present-only, keyed independently of its
+      // balance/meltdown sub-columns — so a role that's ALWAYS prefixed
+      // (e.g. only ever a `larks bal & swing`) shows just that sub-column,
+      // never an empty plain `larks swing` beside it (issue #933 code
+      // review: confirmed intentional, matching `hey`'s present-only
+      // convention, and locked in by a test).
       for (final variant in _swingVariantOrder) {
         final baseline = swingBaselineVariants.contains(variant);
         final basePresent = present.remove('$swingMoveId:$variant');
