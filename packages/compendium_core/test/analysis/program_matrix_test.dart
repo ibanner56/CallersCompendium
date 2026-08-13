@@ -1030,9 +1030,9 @@ void main() {
           Figure(move: 'do_si_do', params: {'beats': 48}),
           allemande('role2s'),
         ]),
-      ]);
-      expect(m.isPhraseCollision(0, colOfMove(m, 'allemande:larks')), isFalse);
-      expect(m.isPhraseCollision(1, colOfMove(m, 'allemande:robins')), isFalse);
+      ], collisionMode: MatrixCollisionMode.phrase);
+      expect(m.isCollision(0, colOfMove(m, 'allemande:larks')), isFalse);
+      expect(m.isCollision(1, colOfMove(m, 'allemande:robins')), isFalse);
     });
 
     test('two lark allemandes in the SAME phrase of adjacent dances DO still '
@@ -1047,10 +1047,10 @@ void main() {
           Figure(move: 'do_si_do', params: {'beats': 48}),
           allemande('role1s'),
         ]),
-      ]);
+      ], collisionMode: MatrixCollisionMode.phrase);
       final c = colOfMove(m, 'allemande:larks');
-      expect(m.isPhraseCollision(0, c), isTrue);
-      expect(m.isPhraseCollision(1, c), isTrue);
+      expect(m.isCollision(0, c), isTrue);
+      expect(m.isCollision(1, c), isTrue);
     });
 
     test('a plain swing and a balance-prefixed swing of the SAME role, in the '
@@ -1065,12 +1065,9 @@ void main() {
           Figure(move: 'do_si_do', params: {'beats': 48}),
           swingWithPrefix('partners', 'balance'),
         ]),
-      ]);
-      expect(m.isPhraseCollision(0, colOfMove(m, 'swing:partner')), isFalse);
-      expect(
-        m.isPhraseCollision(1, colOfMove(m, 'swing:partner:balance')),
-        isFalse,
-      );
+      ], collisionMode: MatrixCollisionMode.phrase);
+      expect(m.isCollision(0, colOfMove(m, 'swing:partner')), isFalse);
+      expect(m.isCollision(1, colOfMove(m, 'swing:partner:balance')), isFalse);
     });
 
     test('two balance-prefixed partner swings in the SAME phrase of adjacent '
@@ -1084,10 +1081,10 @@ void main() {
           Figure(move: 'do_si_do', params: {'beats': 48}),
           swingWithPrefix('partners', 'balance'),
         ]),
-      ]);
+      ], collisionMode: MatrixCollisionMode.phrase);
       final c = colOfMove(m, 'swing:partner:balance');
-      expect(m.isPhraseCollision(0, c), isTrue);
-      expect(m.isPhraseCollision(1, c), isTrue);
+      expect(m.isCollision(0, c), isTrue);
+      expect(m.isCollision(1, c), isTrue);
     });
 
     test('the collapsed custom column never collides', () {
