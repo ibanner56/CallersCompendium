@@ -25,10 +25,13 @@ import 'plaintext_program_import.dart';
 /// and which of them stop the chain versus advance to the next source.
 ///
 /// Anything that exhausts every source preserves the sub-issue #312 note-slot
-/// fallback and returns the line unchanged, except that a line more than one
-/// source found several exact-title hits for (and no source ever resolved
+/// fallback and returns the line unchanged, except that a line **any** source
+/// found several exact-title hits for (and no source ever resolved
 /// confidently) carries those hits in [ParsedProgramLine.onlineCandidates] so
 /// the caller can offer a review step instead of a plain note (issue #943).
+/// This does not require more than one source to be ambiguous: a title that
+/// is ambiguous on Caller's Box and simply misses on ContraDB still carries
+/// Caller's Box's candidates.
 ///
 /// Non-`unmatched` lines (local `matched` / `ambiguous`) pass through untouched:
 /// online resolution only fills the gap where the local collection had nothing.

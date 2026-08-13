@@ -68,10 +68,12 @@ class ParsedProgramLine {
   /// ambiguous line fell back to a note.
   final int matchCount;
 
-  /// Whether this matched line was resolved by importing a dance from The
-  /// Caller's Box (rather than an existing local match). Only ever true when
-  /// [resolution] is [PlaintextLineResolution.matched]; drives the preview's
-  /// "Imported from Caller's Box" label.
+  /// Whether this matched line was resolved by importing a dance from an
+  /// online source — The Caller's Box or, since issue #943, ContraDB —
+  /// rather than an existing local match. Only ever true when [resolution] is
+  /// [PlaintextLineResolution.matched]; drives the preview's generic
+  /// "Imported online" label (deliberately source-neutral: issue #943's
+  /// ruling 3 says not to attribute which source in this step).
   final bool importedOnline;
 
   /// Online candidates no source could resolve confidently (issue #943): more

@@ -27,10 +27,12 @@ import 'import_review_screen.dart';
 ///
 /// The "Resolve unmatched online" action tries The Caller's Box first (#313),
 /// then falls back to ContraDB (#943) for any title Caller's Box could not
-/// resolve confidently. A title more than one source found several exact-title
-/// hits for (and neither source ever resolved confidently) is offered to the
-/// user via [ImportReviewScreen] rather than silently degrading to a note —
-/// see [_resolveOnline].
+/// resolve confidently. A title **any** source found several exact-title hits
+/// for (and no source ever resolved confidently) is offered to the user via
+/// [ImportReviewScreen] rather than silently degrading to a note — see
+/// [_resolveOnline]. This does not require both sources to be ambiguous: a
+/// title that is ambiguous on Caller's Box and simply misses on ContraDB
+/// still gets offered.
 ///
 /// Pushed as a route; pops with the created program's id on success (null if the
 /// user backs out), mirroring [ProgramEditorScreen]. Commit shows an undo
