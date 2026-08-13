@@ -405,6 +405,27 @@ void main() {
       );
     });
 
+    test('a negative window is inert, which is the half that holds in release', () {
+      // The assert above is a DEBUG-only guarantee — asserts are stripped in
+      // release — so on its own it would protect exactly the builds that never
+      // ship, leaving production with the silent failure it warns about.
+      //
+      // Asserted on the predicate rather than through `bind`, because in a test
+      // run the assert fires first and the identity path for a negative window
+      // is unreachable there. A test written through `bind` could only ever be
+      // skipped, and a skipped guard proves nothing.
+      expect(
+        CoalesceTrailing.isInert(const Duration(milliseconds: -1)),
+        isTrue,
+      );
+      expect(CoalesceTrailing.isInert(Duration.zero), isTrue);
+      expect(
+        CoalesceTrailing.isInert(const Duration(milliseconds: 1)),
+        isFalse,
+        reason: 'a real window must NOT be treated as inert',
+      );
+    });
+
     test('Duration.zero really is inert, not merely small', () async {
       // The paired positive: zero is a legitimate argument, not an error.
       //

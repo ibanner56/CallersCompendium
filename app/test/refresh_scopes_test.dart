@@ -98,6 +98,7 @@ void main() {
   /// override is compile-checked and belongs to one caller.
   ({CompendiumRepositories repos, _CountingDances dances}) countingRepos() {
     final db = openWidgetTestDatabase();
+    addTearDown(db.close);
     final dances = _CountingDances(db, contraTaxonomy);
     return (
       repos: CompendiumRepositories(db, contraTaxonomy, dances: dances),

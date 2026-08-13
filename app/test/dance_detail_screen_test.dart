@@ -1995,6 +1995,7 @@ void main() {
       addTearDown(resetCaughtErrorLogForTesting);
 
       final db = openWidgetTestDatabase();
+      addTearDown(db.close);
       final dances = _FailingDances(db, contraTaxonomy)..failNext = true;
       final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
       await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
@@ -2021,6 +2022,7 @@ void main() {
       // A failed one-shot future stayed failed until something forced a
       // reload; the subscription survives its own error.
       final db = openWidgetTestDatabase();
+      addTearDown(db.close);
       final dances = _FailingDances(db, contraTaxonomy)..failNext = true;
       final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
       await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));

@@ -37,7 +37,7 @@ StreamTransformerBase<T, T> debugCoalesceTrailing<T>(Duration window) =>
 /// shared default would be a number no caller had checked — so each states its
 /// own and shows its working.
 ///
-/// ## `Duration.zero` short-circuits to an identity transformer
+/// ## A non-positive window short-circuits to an identity transformer
 ///
 /// A zero window means "coalesce nothing", and without a short-circuit it does
 /// **not** deliver that. `Timer(Duration.zero, …)` is still a real timer: the
@@ -50,7 +50,12 @@ StreamTransformerBase<T, T> debugCoalesceTrailing<T>(Duration window) =>
 /// it as the disabled control arm against which a real window is measured. Such
 /// a control was quietly doing some coalescing of its own.
 ///
-/// So zero returns the source stream untouched. The two figures that justify
+/// So a zero — or negative — window returns the source stream untouched. A
+/// negative one is a programmer error and the `assert` in [bind] says so, but
+/// asserts are stripped in release, so the release behaviour has to be defined
+/// rather than merely disapproved of.
+///
+/// The two figures that justify
 /// the detail screen's window were re-measured under both implementations and
 /// are identical (`1 vs 2` for a burst written one transaction at a time,
 /// `1 vs 1` for one issued all at once), so this changes no conclusion already
@@ -61,24 +66,46 @@ class CoalesceTrailing<T> extends StreamTransformerBase<T, T> {
 
   final Duration window;
 
+  /// Whether [window] makes this transformer a pass-through.
+  ///
+  /// A named predicate rather than an inline comparison so the **release**
+  /// half of the negative-window contract is testable. The `assert` in [bind]
+  /// fires first in debug, which is where tests run, so the identity path for a
+  /// negative window cannot be observed through [bind] at all — a test for it
+  /// could only ever be skipped, and a guard that never runs is
+  /// indistinguishable from one that does nothing.
+  static bool isInert(Duration window) => window <= Duration.zero;
+
   @override
   Stream<T> bind(Stream<T> stream) {
-    // A negative window is meaningless, and — this is the point — it fails
-    // *silently*: `Timer` does not reject a negative duration, it fires as soon
-    // as possible, so every event trips the trailing flush immediately.
+    // A negative window is meaningless, and the interesting part is what
+    // happens without a guard: `Timer` does not reject a negative duration, it
+    // constructs fine and fires as soon as possible (verified, not assumed —
+    // "Timer throws on a negative duration" is the intuitive reason to check
+    // for this and it is false). So the failure is silent.
     //
-    // Stated from what `Timer` actually does, verified rather than assumed: a
-    // negative-duration timer constructs without throwing and fires within a
-    // millisecond. "Timer throws on a negative duration" is the intuitive
-    // reason for this guard and it is false; the guard is here because nothing
-    // throws.
+    // Two mechanisms, because they hold in different build modes and neither
+    // covers the other:
+    //
+    // * the `assert` catches it in debug and in tests, where a programmer error
+    //   should be loud and immediate;
+    // * folding it into the zero case below is what holds in **release**, where
+    //   asserts are stripped. Without that, the guard would protect exactly the
+    //   builds that never ship.
+    //
+    // Deliberately not an `ArgumentError`. The consequence of no coalescing is
+    // extra reloads, never a wrong result — every emit carries a complete
+    // snapshot — so throwing in production would convert a performance
+    // degradation into a crashed screen. Defined-and-inert is the proportionate
+    // release behaviour; the assert is what makes it findable before then.
     assert(
       !window.isNegative,
       'a coalescing window cannot be negative (got $window): Timer would '
       'accept it and fire immediately, silently disabling coalescing',
     );
-    // See the doc above: without this, zero is not inert.
-    if (window == Duration.zero) return stream;
+    // See the doc above for zero; a negative window joins it rather than
+    // reaching the timers below.
+    if (isInert(window)) return stream;
     late StreamController<T> controller;
     StreamSubscription<T>? subscription;
     Timer? timer;
