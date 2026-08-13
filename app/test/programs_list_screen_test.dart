@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/drift.dart'
+    show UpdateKind, Variable, driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -265,10 +266,10 @@ void main() {
       tester,
     ) async {
       // Narrower, and the reason the repository declares `program_slots`
-      // explicitly: this write changes what the row renders while leaving the
-      // `programs` row it belongs to untouched. A read set inferred from the
-      // outer query alone would leave the count stale here and nowhere else,
-      // which is the kind of partial staleness nobody reports as a bug.
+      // explicitly: a write that changes what the row renders while leaving the
+      // `programs` row untouched. A read set inferred from the outer query
+      // alone would leave the count stale here and nowhere else, which is the
+      // kind of partial staleness nobody reports as a bug.
       final repos = openTestRepositories();
       for (final id in ['d1', 'd2']) {
         await repos.dances.create(
@@ -289,15 +290,29 @@ void main() {
       );
       expect(before.program.slots, hasLength(1));
 
-      await repos.programs.update(
-        _program(
-          id: 'p1',
-          title: 'Friday',
-          slots: [
-            ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
-            ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
-          ],
-        ),
+      // The slot goes in on its own, touching ONE table.
+      // `repos.programs.update` would rewrite the parent `programs` row in the
+      // same transaction, and that write alone would wake the stream — so the
+      // test would pass with `program_slots` absent from the declared set,
+      // asserting the transaction's shape instead of the declaration. An
+      // earlier version of this test did exactly that, and its comment claimed
+      // the opposite.
+      //
+      // `customUpdate` with an explicit `updates:` rather than
+      // `customStatement`, because a bare statement is invisible to drift's
+      // watchers (#932, #940) and this would then fail for the write's reason
+      // rather than the stream's.
+      await repos.db.customUpdate(
+        'INSERT INTO ${repos.db.programSlots.actualTableName} '
+        '(id, program_id, position, dance_id) VALUES (?, ?, ?, ?)',
+        variables: [
+          Variable<String>('s2'),
+          Variable<String>('p1'),
+          Variable<int>(1),
+          Variable<String>('d2'),
+        ],
+        updates: {repos.db.programSlots},
+        updateKind: UpdateKind.insert,
       );
       await tester.pumpAndSettle();
 

@@ -323,6 +323,18 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     // The broadcast is for everything else that renders this program's slots
     // (issue #768, gap 4) — this list does not listen to it.
     _broadcastProgramChange();
+    // Captured NOW, while the context is live, because the undo callback runs
+    // after it may not be. `notifierOf` exists for exactly this — it resolves
+    // the notifier *without* registering a dependency, so it is safe to hold
+    // across the pop; `bump(context)` would have to read a defunct context.
+    //
+    // The previous shape guarded the bump with `if (mounted)`, which is not a
+    // fix but a silencer: it made the unsafe read unreachable by making the
+    // broadcast not happen at all. A user who navigates away before pressing
+    // Undo would restore the program and notify nobody, which is the staleness
+    // this whole issue is about — reintroduced in the one callback documented
+    // as outliving its screen.
+    final programsRefresh = ProgramsRefreshScope.notifierOf(context);
     showUndoSnackBar(
       ScaffoldMessenger.of(context),
       key: const ValueKey('program-deleted-snackbar'),
@@ -331,11 +343,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.restore(program.id, at: DateTime.now().toUtc());
-        // The broadcast must not depend on this screen's lifetime — an undo
-        // snackbar outlives its host by design, and `mounted` is false once it
-        // is gone. This list needs no reload of its own: the restore is a write
-        // and the stream carries it.
-        if (mounted) _broadcastProgramChange();
+        // No `mounted` check and no context read: the notifier was captured
+        // above. This list needs no reload of its own either way — the restore
+        // is a write and the stream carries it.
+        programsRefresh?.value++;
       },
     );
   }
