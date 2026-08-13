@@ -2700,6 +2700,14 @@
   "@programsMarkPerformedMenu": {
     "x-sourceSha256": "50ceee1072dddf05fe4f81185b982a3dbf0020e22947700185d9efbd7c525c30"
   },
+  "programsCreateDanceFromNoteMenu": "Tanz daraus erstellen",
+  "@programsCreateDanceFromNoteMenu": {
+    "x-sourceSha256": "130c7632db6a305f4db35123196b1f1e31db894531359658d03bea133395d2de"
+  },
+  "programsCreatedDanceFromNoteAnnounce": "„{title}“ wurde erstellt und mit diesem Programmpunkt verknüpft.",
+  "@programsCreatedDanceFromNoteAnnounce": {
+    "x-sourceSha256": "185833d5023bc165f402233bb842bdddfa040302b96dd8692065efbcf62617ea"
+  },
   "programsRemoveSlotMenu": "Slot entfernen",
   "@programsRemoveSlotMenu": {
     "x-sourceSha256": "8c09755dcb48871f0812510a1114daad3de22a88e43c00ea8e40cb81d4e698a5"

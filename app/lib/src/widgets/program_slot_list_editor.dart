@@ -29,6 +29,7 @@ class ProgramSlotListEditor extends StatefulWidget {
     required this.onReorder,
     required this.onSlotChanged,
     required this.onRemove,
+    required this.onCreateDance,
   });
 
   /// Slots in position order.
@@ -58,6 +59,12 @@ class ProgramSlotListEditor extends StatefulWidget {
 
   /// Remove the slot at [index].
   final void Function(int index) onRemove;
+
+  /// Create a new dance seeded from the note-slot at [index] and convert that
+  /// slot to reference it (issue #881). Only offered on the slot's "…" menu
+  /// for a note slot (no `danceId`) that isn't the structural break and whose
+  /// text isn't blank — see [_SlotTile.build]'s gating.
+  final void Function(int index) onCreateDance;
 
   @override
   State<ProgramSlotListEditor> createState() => _ProgramSlotListEditorState();
@@ -220,6 +227,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   onToggleAlt: () => _toggleAlt(i),
                   onTogglePerformed: () => _togglePerformed(i),
                   onRemove: () => _remove(i),
+                  onCreateDance: () => widget.onCreateDance(i),
                 ),
             ],
           )
@@ -256,6 +264,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   onToggleAlt: () => _toggleAlt(i),
                   onTogglePerformed: () => _togglePerformed(i),
                   onRemove: () => _remove(i),
+                  onCreateDance: () => widget.onCreateDance(i),
                 ),
                 if (slots[i].id != _cutSlotId)
                   _PasteButton(
@@ -381,6 +390,7 @@ class _SlotTile extends StatelessWidget {
     required this.onToggleAlt,
     required this.onTogglePerformed,
     required this.onRemove,
+    required this.onCreateDance,
   });
 
   final int index;
@@ -411,6 +421,17 @@ class _SlotTile extends StatelessWidget {
   final VoidCallback onToggleAlt;
   final VoidCallback onTogglePerformed;
   final VoidCallback onRemove;
+
+  /// Create a dance from this slot's note text (issue #881). Only meaningful
+  /// when [_showCreateDance] gates the menu item in.
+  final VoidCallback onCreateDance;
+
+  /// Whether to offer "create a dance from this" on the "…" menu: only for a
+  /// note slot (no [ProgramSlot.danceId]) that isn't the structural break
+  /// token and whose text isn't blank — a break has nothing to seed a title
+  /// from, and a blank note has nothing either.
+  bool get _showCreateDance =>
+      !isDanceSlot && !slot.isBreak && (slot.text?.trim().isNotEmpty ?? false);
 
   @override
   Widget build(BuildContext context) {
@@ -607,6 +628,8 @@ class _SlotTile extends StatelessWidget {
                           onToggleAlt();
                         case 'performed':
                           onTogglePerformed();
+                        case 'create_dance':
+                          onCreateDance();
                         case 'remove':
                           onRemove();
                       }
@@ -644,6 +667,16 @@ class _SlotTile extends StatelessWidget {
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
+                      if (_showCreateDance)
+                        PopupMenuItem(
+                          key: const ValueKey('slot-menu-create-dance'),
+                          value: 'create_dance',
+                          child: ListTile(
+                            leading: const Icon(Icons.library_music_outlined),
+                            title: Text(l10n.programsCreateDanceFromNoteMenu),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
                       PopupMenuItem(
                         value: 'remove',
                         child: ListTile(

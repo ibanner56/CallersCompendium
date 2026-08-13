@@ -34,10 +34,15 @@ import 'settings/settings_keys.dart';
 /// reference-data caches, inline shared-entity create/edit dialogs, load
 /// orchestration, save/delete, and the app-bar/undo-redo/save chrome.
 class DanceEditorScreen extends StatefulWidget {
-  const DanceEditorScreen({super.key, this.danceId});
+  const DanceEditorScreen({super.key, this.danceId, this.initialTitle});
 
   /// The dance being edited, or `null` to create a new dance.
   final String? danceId;
+
+  /// A title to seed a new dance's title field with (issue #881), e.g. when
+  /// converting a program note slot to a dance. Ignored when [danceId] is
+  /// non-null.
+  final String? initialTitle;
 
   bool get isNew => danceId == null;
 
@@ -120,6 +125,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         repositories: _repos,
         danceId: widget.danceId,
         dialect: newDialect,
+        initialTitle: widget.initialTitle,
       );
       _controller.addListener(_onControllerChanged);
       _load();

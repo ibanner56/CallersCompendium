@@ -2549,6 +2549,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsMarkPerformedMenu => 'Als aufgeführt markieren';
 
   @override
+  String get programsCreateDanceFromNoteMenu => 'Tanz daraus erstellen';
+
+  @override
+  String programsCreatedDanceFromNoteAnnounce(String title) {
+    return '„$title“ wurde erstellt und mit diesem Programmpunkt verknüpft.';
+  }
+
+  @override
   String get programsRemoveSlotMenu => 'Slot entfernen';
 
   @override

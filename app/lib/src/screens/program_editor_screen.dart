@@ -31,6 +31,7 @@ import '../utils/safe_name.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/collection_picker.dart';
 import '../widgets/venue_picker.dart';
+import 'dance_editor_screen.dart';
 import 'perform_program_screen.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_matrix_table.dart';
@@ -718,17 +719,36 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       slots[i].position == i ? slots[i] : slots[i].copyWith(position: i),
   ];
 
-  String? _titleForDance(String danceId) => _data?.dancesById[danceId]?.title;
+  /// Dances created via "create a dance from this" (issue #881) during this
+  /// screen's lifetime, keyed by id.
+  ///
+  /// [_data] is a *live but debounced* snapshot: [CollectionData.watch]
+  /// coalesces on a short trailing window and then re-`load()`s the whole
+  /// collection, so a dance created moments ago is briefly absent from
+  /// `_data.dancesById`. Every dance lookup in this screen goes through
+  /// [_danceById] rather than `_data` directly, so the slot row, the export
+  /// menu, and the matrix tab all resolve a just-created dance immediately
+  /// instead of rendering the deleted-dance placeholder until the snapshot
+  /// catches up.
+  final Map<String, Dance> _createdDances = {};
+
+  /// Resolves [danceId] to a [Dance]: the live [_data] snapshot first, then
+  /// [_createdDances] as a fallback for a dance the snapshot hasn't caught up
+  /// to yet. Returns null only when neither has it (a genuinely unavailable —
+  /// e.g. soft-deleted — dance).
+  Dance? _danceById(String danceId) =>
+      _data?.dancesById[danceId] ?? _createdDances[danceId];
+
+  String? _titleForDance(String danceId) => _danceById(danceId)?.title;
 
   /// Resolves a dance's formation for the slot editor's redundant accent +
   /// formation text (issue #270). Null when the dance is unavailable.
   Formation? _formationForDance(String danceId) =>
-      _data?.dancesById[danceId]?.formation;
+      _danceById(danceId)?.formation;
 
   /// Resolves a dance's mixer flag for the slot editor (issue #732).
   /// Returns false when the dance is unavailable.
-  bool _mixerForDance(String danceId) =>
-      _data?.dancesById[danceId]?.mixer ?? false;
+  bool _mixerForDance(String danceId) => _danceById(danceId)?.mixer ?? false;
 
   /// Shared renderer for the large-print Perform view (mirrors the dance
   /// detail / single-dance Perform screens).
@@ -949,6 +969,66 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _dirty = true;
     });
     _scheduleAutosave();
+  }
+
+  /// Opens the dance editor seeded from the note-slot at [index]'s text
+  /// (issue #881's "create a dance from this" menu action), and — if a dance
+  /// was saved — converts that slot to reference it. The note text is always
+  /// discarded on conversion (Isaac decided: it only ever stood in for the
+  /// missing dance). Cancelling the editor (a null pop) leaves the slot
+  /// exactly as it was, still a note.
+  ///
+  /// Re-derives the slot's current index by id after the `await`, in case the
+  /// list changed while the editor was open (reordered, cut, or removed) — an
+  /// index captured before an `await` cannot be trusted afterward.
+  Future<void> _createDanceFromSlot(int index) async {
+    if (index < 0 || index >= _slots.length) return;
+    final slot = _slots[index];
+    final noteText = slot.text;
+    if (slot.danceId != null || noteText == null) return;
+    final seedTitle = danceTitleFromSlotNote(noteText);
+
+    final newId = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(
+        builder: (_) => DanceEditorScreen(initialTitle: seedTitle),
+      ),
+    );
+    if (newId == null || !mounted) return;
+
+    final currentIndex = _slots.indexWhere((s) => s.id == slot.id);
+    if (currentIndex == -1) return; // the slot was removed while we were away
+
+    // Populate the created-dance overlay immediately: CollectionData.watch's
+    // coalesced snapshot hasn't necessarily caught up to the new dance yet
+    // (see _createdDances' doc comment), so every dance lookup in this
+    // screen resolves it right away instead of showing the deleted-dance
+    // placeholder.
+    final dance = await _repos.dances.getById(newId);
+    if (dance != null) _createdDances[newId] = dance;
+    if (!mounted) return;
+
+    final current = _slots[currentIndex];
+    // Rebuild rather than `copyWith`: `copyWith` cannot clear `text` (only
+    // guestCaller/plannedMinutes/performedAt have clear flags — see
+    // ProgramSlot.copyWith), and the note is always cleared on conversion.
+    final updated = ProgramSlot(
+      id: current.id,
+      position: current.position,
+      danceId: newId,
+      isAlt: current.isAlt,
+      guestCaller: current.guestCaller,
+      plannedMinutes: current.plannedMinutes,
+      performedAt: current.performedAt,
+    );
+    _updateSlot(currentIndex, updated);
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      l10n.programsCreatedDanceFromNoteAnnounce(dance?.title ?? seedTitle),
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
+    );
   }
 
   Future<void> _markAllPerformed() async {
@@ -1260,7 +1340,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 program: _draftProgram!,
                 titleFor: _titleForDance,
                 venuesById: _exportVenuesById,
-                danceFor: (id) => _data?.dancesById[id],
+                danceFor: _danceById,
                 choreographerFor: (id) => _data?.choreographersById[id],
               ),
             if (!widget.isNew && _existing != null) ...[
@@ -1397,7 +1477,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         continue;
       }
       final dance =
-          data.dancesById[danceId] ??
+          _danceById(danceId) ??
           Dance(
             id: danceId,
             title: l10n.programsDeletedDanceFallback,
@@ -1568,6 +1648,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             onReorder: _reorderSlot,
             onSlotChanged: _updateSlot,
             onRemove: _removeSlot,
+            onCreateDance: _createDanceFromSlot,
           ),
           const SizedBox(height: 80),
         ],

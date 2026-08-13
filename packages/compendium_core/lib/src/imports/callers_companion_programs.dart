@@ -6,6 +6,7 @@ import '../model/provenance.dart';
 import '../util/text_sanitizer.dart';
 import '../util/uuid.dart';
 import 'callers_companion_usr_archive.dart';
+import 'program_slot_note.dart';
 import 'structured_draft.dart';
 
 /// The result of [buildCcPrograms]: the built [Program]s plus the non-fatal
@@ -72,8 +73,8 @@ CcProgramsResult buildCcPrograms(
           // a placeholder text note rather than dropping it silently.
           text =
               cleanBreakText ??
-              'Dance not imported (Caller\'s Companion dance '
-                  '#${item.danceRecordId})';
+              "$kUnresolvedDanceMarkerPrefix"
+                  "Caller's Companion dance #${item.danceRecordId})";
           issues.add(
             ImportIssue(
               severity: ImportIssueSeverity.warning,

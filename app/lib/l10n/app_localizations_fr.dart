@@ -2553,6 +2553,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programsMarkPerformedMenu => 'Marquer comme joué';
 
   @override
+  String get programsCreateDanceFromNoteMenu =>
+      'Créer une danse à partir de ceci';
+
+  @override
+  String programsCreatedDanceFromNoteAnnounce(String title) {
+    return '$title créée et liée à cet emplacement.';
+  }
+
+  @override
   String get programsRemoveSlotMenu => 'Supprimer le créneau';
 
   @override

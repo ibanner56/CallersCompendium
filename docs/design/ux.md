@@ -78,7 +78,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   same filter panel as Collection.
 - Slots: dance slots + free-text slots (break, waltz, announcements); **ALT
   flag** renders as an indented alternate under its primary (color + icon +
-  text, never color alone).
+  text, never color alone). A free-text slot's overflow menu offers **create a
+  dance from this**, opening the dance editor pre-filled from the note and
+  linking the slot to the saved dance (issue #881).
 - Reorder: drag + non-drag alternative; slot notes inline.
 - **Matrix view** tab: figures × dances grid computed from structured data
   (moves as columns, per-dance presence + program-debut and dance-first-figure

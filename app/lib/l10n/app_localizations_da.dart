@@ -2526,6 +2526,14 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsMarkPerformedMenu => 'Markér som fremført';
 
   @override
+  String get programsCreateDanceFromNoteMenu => 'Opret en dans ud fra dette';
+
+  @override
+  String programsCreatedDanceFromNoteAnnounce(String title) {
+    return 'Oprettede $title og knyttede denne plads til den.';
+  }
+
+  @override
   String get programsRemoveSlotMenu => 'Fjern slot';
 
   @override

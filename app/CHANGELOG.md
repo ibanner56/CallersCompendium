@@ -13,6 +13,11 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- A note slot in the program builder (e.g. one left behind when a title-list
+  import couldn't find a matching dance) can now be turned into a real dance
+  in place: its overflow menu offers **Create a dance from this**, which opens
+  the dance editor pre-filled from the note and links the slot to the new
+  dance once you save. (#881)
 - **Both the Collection and Programs lists now offer a "Last used" option** for
   their default sort in Settings ▸ Defaults, alongside the existing fixed
   choices. With "Last used" selected, the sort key **and** direction you pick
