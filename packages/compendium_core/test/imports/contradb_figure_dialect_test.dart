@@ -1120,10 +1120,7 @@ void main() {
 
     test('issue #945 defect B — "out && !in" form: "<X> dance out & '
         'balance" resolves to form_a_long_wave with who = invertPair(X)', () {
-      final f = parseContraDbFigureLine(
-        'role1s dance out & balance',
-        beats: 4,
-      );
+      final f = parseContraDbFigureLine('role1s dance out & balance', beats: 4);
       expect(f, isNotNull);
       expect(f!.isMeanwhile, isFalse);
       expect(f.move, 'form_a_long_wave');
@@ -1284,10 +1281,7 @@ void main() {
     test('truncating the tail (§9, C3) still passes — demonstrating the '
         'tail hazard is real: a test written against the truncated line '
         'would not have caught it', () {
-      expect(
-        _parse('ladles trade by the left shoulder').isCustom,
-        isFalse,
-      );
+      expect(_parse('ladles trade by the left shoulder').isCustom, isFalse);
     });
   });
 }

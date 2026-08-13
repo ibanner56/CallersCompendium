@@ -74,14 +74,16 @@ void main() {
       expect(f.params['shoulder'], 'left');
     });
 
-    test('"Men trade by right" → pass_by who=role1s shoulder=right (issue '
-        '#945, the high-value corpus case: 674+ occurrences of this shape)',
-        () {
-      final f = _parse('Men trade by right');
-      expect(f!.move, 'pass_by');
-      expect(f.params['who'], 'role1s');
-      expect(f.params['shoulder'], 'right');
-    });
+    test(
+      '"Men trade by right" → pass_by who=role1s shoulder=right (issue '
+      '#945, the high-value corpus case: 674+ occurrences of this shape)',
+      () {
+        final f = _parse('Men trade by right');
+        expect(f!.move, 'pass_by');
+        expect(f.params['who'], 'role1s');
+        expect(f.params['shoulder'], 'right');
+      },
+    );
 
     test('"trade the wave" stays custom', () {
       expect(_parse('Trade the wave')!.isCustom, isTrue);

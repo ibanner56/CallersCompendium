@@ -1579,11 +1579,7 @@ FigureMatch? _formALongWave(String text) {
           s.eatPhrase('dance in to a long wave in the center')) {
         final params = <String, Object?>{'who': who, 'in': true, 'out': true};
         params['balance'] = s.eat('-') && s.eatPhrase('balance the wave');
-        return FigureMatch(
-          'form_a_long_wave',
-          params: params,
-          note: s.note(),
-        );
+        return FigureMatch('form_a_long_wave', params: params, note: s.note());
       }
     }
     s.reset(start);

@@ -262,8 +262,7 @@ void main() {
 
       test('upgrades an old ContraDB `while` whole-custom to a single '
           'structured `form_a_long_wave` (issue #945 defect B supersedes '
-          'the #591/#572 meanwhile treatment for this out-branch shape)',
-          () {
+          'the #591/#572 meanwhile treatment for this out-branch shape)', () {
         final result = reparseImportGapFigures([
           importGap(
             'gentlespoons dance out while ladles dance in to a long wave '
