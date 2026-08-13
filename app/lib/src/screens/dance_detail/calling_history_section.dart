@@ -209,20 +209,45 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
     // programs all carry free text links no venue, so the catalogue cannot
     // change what it renders and is not read however dirty the cache is.
     //
-    // The flag is cleared only when a read actually happens, so skipping here
-    // does not lose the signal — a later emit whose records do link a venue
-    // still re-reads.
+    // The flag is cleared only when a read *succeeds* — not merely when one is
+    // attempted — so neither skipping here nor a throwing read loses the
+    // signal: a later emit whose records do link a venue still re-reads.
+    // ("A read happens" and "a read succeeds" differing is what the review
+    // finding on this method was about; see the note inside the `try`.)
     final linksAnyVenue = history.records.any((r) => r.venueId != null);
     final hasUnresolved = history.records.any(
       (r) => r.venueId != null && !_venuesById.containsKey(r.venueId),
     );
     if (linksAnyVenue && (hasUnresolved || _venuesDirty)) {
-      _venuesDirty = false;
       try {
         final venues = await widget.repositories.venues.listAll();
         _venuesById = {for (final v in venues) v.id: v};
+        // Cleared only on success. Raised in review as a lost-retry bug if
+        // cleared up front; it is not one, and the reason is worth writing
+        // down because it is a coupling between two methods rather than a
+        // property of either.
+        //
+        // Clearing eagerly would be **behaviourally identical**: the flag is
+        // re-armed by the subscription on *every* emit after the first, so a
+        // failed read cannot strand it — the next emit sets it again. And when
+        // no next emit arrives, both orderings leave the label stale, because
+        // this method only runs on an emit at all. Verified by mutation: with
+        // the eager clear restored and a transient failure confirmed injected,
+        // the retry test still passes.
+        //
+        // It is written this way anyway, so that the correctness of the error
+        // path does not depend on the re-arming happening in a different
+        // method. A future change that armed the flag only on a venue-table
+        // update — a reasonable optimisation — would make the eager clear a
+        // real bug, silently.
+        //
+        // Safe to write after an `await` because `asyncMap` holds the
+        // subscription until this future completes, so no second emit can
+        // interleave and set the flag between the read and the clear.
+        _venuesDirty = false;
       } catch (_) {
-        // Keep whatever the cache holds; rows fall back to free text.
+        // Keep whatever the cache holds; rows fall back to free text, and
+        // `_venuesDirty` stays set so the next emit retries.
       }
     }
     return history;

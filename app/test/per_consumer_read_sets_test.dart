@@ -1,5 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' as drift;
 import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -252,6 +254,80 @@ void main() {
     });
   });
 
+  group('a failed catalogue read is retried', () {
+    testWidgets('a rename survives a transient venues read failure', (
+      tester,
+    ) async {
+      // Prompted by a review finding on #966 (the dirty flag being cleared
+      // before the read that consumes it). **That finding does not hold** —
+      // clearing eagerly is behaviourally identical, because the subscription
+      // re-arms the flag on every emit — and this test does NOT discriminate
+      // the two orderings. Stated plainly because a test named for a hazard it
+      // cannot detect is worse than no test.
+      //
+      // What it does guard is the property the review made visible and nothing
+      // else covered: a transient failure of the venue catalogue read is
+      // **recovered from**, rather than leaving the section permanently stale.
+      // Mutating out the dirty-flag retry entirely (`hasUnresolved` alone)
+      // turns this red.
+      final failer = _FailOneVenuesSelect();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(NativeDatabase.memory().interceptWith(failer)),
+        contraTaxonomy,
+      );
+      addTearDown(repos.db.close);
+
+      await repos.dances.create(
+        Dance(id: 'd1', title: 'Petronella', createdAt: now, updatedAt: now),
+      );
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+      await repos.programs.create(
+        program(
+          venue: 'ignored free text',
+          venueId: 'v1',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+
+      await pump(
+        tester,
+        repos,
+        Scaffold(
+          body: SingleChildScrollView(
+            child: CallingHistorySection(
+              repositories: repos,
+              danceId: 'd1',
+              performedOnly: false,
+              trackAllCallers: true,
+              onOpenProgram: (_) {},
+            ),
+          ),
+        ),
+      );
+      expect(find.textContaining('Grange Hall'), findsOneWidget);
+
+      // The rename's own emit re-reads the catalogue, and that read fails.
+      failer.arm();
+      await renameVenue(tester, repos, 'The Grange');
+      expect(
+        failer.fired,
+        isTrue,
+        reason: 'the transient failure must actually have been injected',
+      );
+
+      // Any later emit — here, a second unrelated program write — must retry.
+      // With the flag cleared eagerly it never would, because a rename leaves
+      // every id resolvable.
+      await repos.programs.create(
+        program(id: 'p2', title: 'Second', venue: 'free text only'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('The Grange'), findsOneWidget);
+      expect(find.textContaining('Grange Hall'), findsNothing);
+    });
+  });
+
   group('the read set stays the consumer\'s', () {
     // A plain `test`, not `testWidgets`: the claim is about which tables a
     // stream watches, which is a repository property with no widget in it. It
@@ -299,4 +375,37 @@ void main() {
       );
     });
   });
+}
+
+/// Fails exactly one `venues` select once armed, then delegates normally.
+///
+/// Models a transient read failure (a teardown race, a locked database) rather
+/// than a permanent one: the point is that the *recovery* happens, which a
+/// permanently-failing store could not distinguish from never retrying.
+class _FailOneVenuesSelect extends drift.QueryInterceptor {
+  bool _armed = false;
+  bool _fired = false;
+
+  /// Whether the injected failure actually happened.
+  bool get fired => _fired;
+
+  void arm() => _armed = true;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) async {
+    // drift quotes table names: `SELECT * FROM "venues" WHERE ...`. The first
+    // version of this matched `FROM venues` unquoted, never fired, and the
+    // test passed against BOTH the fix and its mutant — a green that measured
+    // nothing. Hence `fired`, asserted below: an injection that silently fails
+    // to inject is indistinguishable from behaviour that survived it.
+    if (_armed && !_fired && statement.contains('FROM "venues"')) {
+      _fired = true;
+      throw Exception('injected transient venues read failure');
+    }
+    return executor.runSelect(statement, args);
+  }
 }
