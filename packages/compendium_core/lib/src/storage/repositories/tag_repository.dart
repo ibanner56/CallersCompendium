@@ -92,6 +92,24 @@ class TagRepository {
     return rows.map(_toModel).toList();
   }
 
+  /// [listAll] as a live stream: the current tags immediately, then again after
+  /// every write that changes them (issue #768).
+  ///
+  /// Uses the query builder rather than a sentinel `customSelect` with an
+  /// explicit `readsFrom`, because [listAll] is a single `select(tags)` with no
+  /// Dart fan-out — drift infers `{tags}`, which is the whole read set. See
+  /// `VenueRepository.watchAll` for why that differs from the program list, and
+  /// for what would invalidate it.
+  ///
+  /// Note this covers colour edits as well as add/remove: a colour lives in the
+  /// tag row, so `upsert` touches this table and a subscriber hears about it.
+  Stream<List<Tag>> watchAll() =>
+      (_db.select(_db.tags)
+            ..where((t) => t.deletedAt.isNull())
+            ..orderBy([(t) => OrderingTerm(expression: t.name)]))
+          .watch()
+          .map((rows) => rows.map(_toModel).toList());
+
   /// Tombstones the tag. Its `dance_tags` rows are deliberately **left in
   /// place**: hard delete used to clear them by FK cascade, but doing that here
   /// would mean a revived tag came back untagged, silently losing every

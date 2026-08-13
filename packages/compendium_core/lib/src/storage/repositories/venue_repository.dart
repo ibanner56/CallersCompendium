@@ -77,6 +77,35 @@ class VenueRepository {
     return rows.map(_toModel).toList();
   }
 
+  /// [listAll] as a live stream: the current catalogue immediately, then again
+  /// after every write that changes it (issue #768).
+  ///
+  /// ## Why the query builder here, and not a sentinel `customSelect`
+  ///
+  /// `ProgramRepository.watchAll` states its `readsFrom` set by hand because
+  /// `ProgramRepository.listAll` is not one query — it selects, then fans out
+  /// in Dart to child tables that drift never sees, so an inferred set would be
+  /// silently too narrow.
+  ///
+  /// [listAll] above has no such fan-out: one `select(venues)`, then `map` over
+  /// rows already in memory. drift therefore infers exactly `{venues}`, which
+  /// is exactly right, and hand-writing it would add a second place for the
+  /// same fact to live. The distinction is worth stating because the two shapes
+  /// are indistinguishable at the call site — both are `listAll()`.
+  ///
+  /// **What would invalidate this:** giving [listAll] any per-row read — a
+  /// venue's programs, say. The inferred set would not grow to match, and this
+  /// stream would go stale for that data with nothing to indicate it. Add the
+  /// table to an explicit `readsFrom` at that point, as the program list does.
+  Stream<List<Venue>> watchAll() =>
+      (_db.select(_db.venues)
+            ..where((t) => t.deletedAt.isNull())
+            ..orderBy([
+              (t) => OrderingTerm(expression: t.name.collate(Collate.noCase)),
+            ]))
+          .watch()
+          .map((rows) => rows.map(_toModel).toList());
+
   /// Loads just the set of existing venue ids in a **single** query (only the
   /// `id` column is read — no full-model mapping). This is the batch-safe input
   /// for bulk writers (archive restore/import) that must validate many
