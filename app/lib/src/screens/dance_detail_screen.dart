@@ -314,12 +314,30 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           _loaded = true;
         });
       },
-      // `cancelOnError: false`, so a failed load does not tear down the
-      // subscription: the next write re-runs it. The rendering matches what
-      // a failed one-shot load produced — the not-found body — but it now
-      // recovers on its own rather than persisting until something else
-      // forced a reload.
-      onError: (Object _) {
+      // A stream error means the record could not be re-read — a failing query,
+      // a database closed under us. Rendered exactly as a failed one-shot load
+      // was: the not-found body. That is deliberately unchanged (the previous
+      // `FutureBuilder` never read `snapshot.error`, so an error and an absent
+      // dance already looked alike here), but it is precisely why this has to
+      // be logged rather than discarded: on screen the two are
+      // indistinguishable, so "the dance won't open" arrives as a bug report
+      // with nothing behind it unless the failure reaches the diagnostic log
+      // (issue #963).
+      //
+      // `logCaughtError` rather than the type-only variant: this is our own
+      // local database, not untrusted network or parse content being echoed
+      // back, which is the case that variant exists for.
+      //
+      // `cancelOnError: false`, so a failure does not tear down the
+      // subscription — the next write re-runs the load and the screen recovers
+      // on its own, where a failed one-shot future stayed failed until
+      // something forced a reload.
+      onError: (Object error, StackTrace stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'dance_detail_screen._subscribe',
+        );
         if (!mounted || _subscribedId != danceId) return;
         setState(() {
           _data = null;
