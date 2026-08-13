@@ -281,7 +281,7 @@ loudly. A cleverer pattern would have dropped both silently.
   invalid param renders literally and the test still passes, so a drifted
   fixture is invisible to `dart test`: seven `meanwhile` fixtures went stale
   when `orbit` was split into a first-class move (#697), unnoticed for days
-  until #745 fixed them by hand (#747). A ratchet now guards this —
+  until #745 fixed them by hand (issue #747). A ratchet now guards this —
   `packages/compendium_core/tool/check_fixture_validity.dart`, run by
   `_checks.yml` before the core suite — but `dart test` does **not** run it
   over the real suites (its own unit test drives synthetic input). So a clean
