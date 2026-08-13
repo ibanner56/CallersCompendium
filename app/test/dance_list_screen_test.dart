@@ -584,7 +584,7 @@ void main() {
   );
 
   testWidgets(
-    'issue #768 guard: a batch level change reloads the collection once via '
+    'issue #768 guard: a batch rating change reloads the collection once via '
     'the stream, not a second time via _boot',
     (tester) async {
       final counted = countingRepos();
@@ -598,18 +598,18 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('batch-checkbox-d1')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('batch-set-level')));
+      await tester.tap(find.byKey(const ValueKey('batch-more')));
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('batch-level-option-intermediate')),
-      );
+      await tester.tap(find.byKey(const ValueKey('batch-set-rating')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('batch-level-confirm')));
+      await tester.tap(find.byKey(const ValueKey('batch-rating-option-4')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-rating-confirm')));
       await tester.pumpAndSettle();
 
       expect(
-        (await counted.repos.dances.getById('d1'))!.level,
-        DanceLevel.intermediate,
+        (await counted.repos.dances.getById('d1'))!.rating,
+        4,
       );
       expect(
         counted.dances.loads,
