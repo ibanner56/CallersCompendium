@@ -87,15 +87,31 @@ class DanceDetailData {
   ///
   /// A subscriber that maps each wake to an async load also pauses the source
   /// while that load runs, and drift collapses the updates that arrive during
-  /// the pause into a single re-run on resume. So for a burst whose writes are
-  /// slower than one load — the shape a widget test produces — the bound holds
-  /// with the window set to zero. `dance_detail_data_watch_test.dart` measures
-  /// both, precisely so this constant is not credited with a bound that
-  /// backpressure was already providing.
+  /// the pause into a single re-run on resume. So backpressure supplies a bound
+  /// of its own, before this constant does anything.
   ///
-  /// The window is what covers the other shape: writes arriving faster than a
-  /// load completes, where the collapse-on-resume yields one re-run *per
-  /// resume* and the leading-edge window yields one per window.
+  /// The figures, for a 10-write burst on in-memory sqlite in a debug build,
+  /// stated as numbers so that deleting this window is a decision about a known
+  /// cost rather than about a description:
+  ///
+  /// | burst shape | window | no window |
+  /// |---|---|---|
+  /// | writes awaited one at a time — the batch-tag loop's shape | **1** | **2** |
+  /// | writes issued together (`Future.wait`) | 1 | 1 |
+  ///
+  /// So what this constant buys, on the shape the app actually produces, is the
+  /// difference between one re-read and two — not between one and ten. Ten was
+  /// the intuition it was nearly justified with, and it is wrong: backpressure
+  /// had already collapsed the burst to two before the window saw it.
+  ///
+  /// The second row is the reason the first is not stated more strongly.
+  /// Concurrent writes commit close enough together that drift dispatches them
+  /// as one update, so there is nothing left for a window to collapse. A window
+  /// cannot beat a burst the database has already merged.
+  ///
+  /// `dance_detail_data_watch_test.dart` asserts the first row as a strict
+  /// inequality, so removing the transformer fails a test rather than quietly
+  /// leaving these figures equal.
   ///
   /// Both directions of error, since an unexplained constant invites deletion:
   ///

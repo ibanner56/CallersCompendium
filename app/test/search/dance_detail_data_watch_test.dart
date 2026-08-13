@@ -161,19 +161,18 @@ void main() {
     });
   });
 
-  test('the coalescing window is what bounds a burst faster than a load', () async {
-    // Measured rather than asserted, because the obvious red-run for the
-    // window does NOT go red on its own: a subscriber that maps each wake to an
-    // async load pauses the source while the load runs, and drift collapses the
-    // updates arriving during that pause into one re-run on resume. For a burst
-    // whose writes are slower than a load, that backpressure alone holds the
-    // bound with the window set to zero — so a test that only checked "the
-    // batch did not leak" would credit this constant with a bound it was not
-    // providing.
+  test('the coalescing window reduces re-reads for a sequentially-written '
+      'burst', () async {
+    // The obvious red-run for a coalescing window — "delete it and watch the
+    // batch leak" — does NOT go red here, and that is the finding this test
+    // exists to pin. A subscriber that maps each wake to an async load pauses
+    // the source while the load runs, and drift collapses the updates arriving
+    // during that pause into one re-run on resume. Backpressure therefore
+    // supplies a bound before the window does anything, and a test that only
+    // checked "the batch did not leak" would credit the window with it.
     //
-    // This pins the difference the window actually makes, on the shape where
-    // backpressure is not enough: writes issued without awaiting each other, so
-    // several land inside a single window.
+    // So what is asserted is the DIFFERENCE, on the shape the app actually
+    // produces: batch tagging awaits each dance's write in turn.
     final windowed = await _burst(
       repos: openTestRepositories(),
       writes: 10,
@@ -185,24 +184,54 @@ void main() {
       coalesce: Duration.zero,
     );
 
-    // Both are far below the 10 writes, so backpressure is doing most of the
-    // work — but the window is not decoration either, and this is the
-    // difference it makes. Measured repeatedly at 1 vs 2 on in-memory sqlite in
-    // a debug build.
+    // Measured repeatedly at 1 vs 2 on in-memory sqlite in a debug build — so
+    // the window's contribution is one re-read against two, not one against
+    // ten. `DanceDetailData.coalesceWindow` records both figures.
     //
-    // Strict, so removing the transformer fails this test rather than leaving a
-    // constant nothing checks. If it ever becomes flaky the honest fix is to
-    // widen the burst, not to relax the comparison to `<=` — which would pass
-    // for a window that does nothing at all.
+    // Strict, so removing the transformer fails this test rather than leaving
+    // a constant nothing checks. If it ever becomes flaky the honest fix is to
+    // widen the burst, not to relax this to `<=` — which would pass for a
+    // window that does nothing at all.
     expect(
       windowed,
       lessThan(unwindowed),
       reason:
-          'the coalescing window must reduce re-reads for a burst spaced '
-          'closer than the window. Saw windowed=$windowed '
+          'the coalescing window must reduce re-reads for a burst written '
+          'one transaction at a time. Saw windowed=$windowed '
           'unwindowed=$unwindowed',
     );
   });
+
+  test(
+    'a burst the database already merged leaves the window nothing to do',
+    () async {
+      // The other half of the same finding, and the reason the assertion above
+      // is not stated more strongly. Writes issued together commit close enough
+      // that drift dispatches them as a single update, so there is no burst left
+      // for a window to collapse — it cannot beat a merge the database already
+      // performed.
+      //
+      // Asserted rather than skipped, because the tempting generalisation from
+      // the test above is "a tighter burst needs the window more", and that is
+      // backwards.
+      final windowed = await _tightBurst(
+        repos: openTestRepositories(),
+        coalesce: DanceDetailData.coalesceWindow,
+      );
+      final unwindowed = await _tightBurst(
+        repos: openTestRepositories(),
+        coalesce: Duration.zero,
+      );
+
+      expect(
+        windowed,
+        unwindowed,
+        reason:
+            'concurrent writes arrive as one update either way. Saw '
+            'windowed=$windowed unwindowed=$unwindowed',
+      );
+    },
+  );
 }
 
 /// Subscribes, writes [writes] other dances one transaction at a time, and
