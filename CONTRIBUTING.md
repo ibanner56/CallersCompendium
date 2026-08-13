@@ -71,7 +71,11 @@ an unclassified column or settings key. When you add one:
 
 - Add an entry to `fieldClassifications` (database columns, keyed
   `table.column` with the SQL names) or `settingsClassifications` (settings
-  keys).
+  keys declared as an exact constant, `const String kSomethingKey = ...`).
+  A settings key built at runtime from a prefix (`editor_draft:<id>`) is
+  declared as `const String kSomethingKeyPrefix = ...` instead, and classified
+  in `settingsPrefixClassifications` — the ratchet matches both declaration
+  shapes.
 - Say **why** in the entry's `note` when the call is not obvious. A reviewer
   should never have to guess why a personal-data field is `shareable`.
 - Regenerate the catalogue:

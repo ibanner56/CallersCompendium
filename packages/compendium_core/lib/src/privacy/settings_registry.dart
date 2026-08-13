@@ -136,3 +136,61 @@ final Map<String, DataClassification> settingsClassifications = {
   'update_dismissed_version': _installState,
   'backup_reminder_cadence': _preference,
 };
+
+/// Classification for settings keys that are *built at runtime* from a known
+/// prefix rather than declared as an exact `const String`, keyed by the
+/// literal prefix string.
+///
+/// Some settings-table keys can't be named as exact [settingsClassifications]
+/// entries because they're constructed per-entity — `editor_draft:<danceId>`,
+/// `program_editor_draft:<programId>` — so the exact-string map can never hold
+/// an entry for them (issue #923). This is the registry's prefix-keyed
+/// sibling: [classifySettingsKey] resolves a runtime key against both maps,
+/// exact match first, longest matching prefix second.
+final Map<String, DataClassification> settingsPrefixClassifications = {
+  // Unsaved, in-progress dance/program-editor autosave drafts. Deliberately
+  // `deviceScoped`, not `deviceLocal`: `app/lib/src/data/backup_service.dart`
+  // excludes both prefixes from backups with the reasoning "must never travel
+  // in a backup", and `deviceLocal` explicitly permits travel in a local
+  // backup file the user controls — so `deviceLocal` would license the one
+  // thing this data must never do. `deviceScoped` (never transmitted by any
+  // route) is the classification that actually matches the existing backup
+  // exclusion. Maintainer-ruled on issue #923 (2026-08-13 comment).
+  'editor_draft:': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.deviceScoped,
+    note:
+        'Transient dance-editor autosave draft, keyed per dance '
+        '(editor_draft:<id>). Unsaved user-authored choreography text that '
+        'must never leave this device by any route, including a local '
+        'backup file — see backup_service.dart.',
+  ),
+  'program_editor_draft:': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.deviceScoped,
+    note:
+        'Transient program-editor autosave draft, keyed per program '
+        '(program_editor_draft:<id>). Same rationale as editor_draft:.',
+  ),
+};
+
+/// Resolves a settings-table [key] to its classification: an exact
+/// [settingsClassifications] entry if one exists, otherwise the
+/// **longest** matching prefix in [settingsPrefixClassifications] (so a
+/// future narrower prefix can't be shadowed by a broader one), otherwise
+/// `null`.
+DataClassification? classifySettingsKey(String key) {
+  final exact = settingsClassifications[key];
+  if (exact != null) return exact;
+
+  String? bestPrefix;
+  for (final prefix in settingsPrefixClassifications.keys) {
+    if (!key.startsWith(prefix)) continue;
+    if (bestPrefix == null || prefix.length > bestPrefix.length) {
+      bestPrefix = prefix;
+    }
+  }
+  return bestPrefix == null ? null : settingsPrefixClassifications[bestPrefix];
+}

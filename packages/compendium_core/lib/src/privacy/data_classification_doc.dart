@@ -73,7 +73,24 @@ String renderFieldCatalogue() {
       'actually travels.',
     )
     ..writeln()
-    ..write(_renderSettingsTable(settingsClassifications));
+    ..write(_renderSettingsTable(settingsClassifications))
+    ..writeln()
+    ..writeln('### Settings key prefixes')
+    ..writeln()
+    ..writeln(
+      'Some settings-table keys are built at runtime from a per-entity '
+      'suffix rather than declared as an exact key (`editor_draft:<id>`), so '
+      'they cannot appear in the table above. Each prefix below classifies '
+      'every key it matches; `classifySettingsKey` resolves the longest '
+      'matching prefix.',
+    )
+    ..writeln()
+    ..write(
+      _renderSettingsTable(
+        settingsPrefixClassifications,
+        keyHeader: 'Key prefix',
+      ),
+    );
 
   return buffer.toString().trimRight();
 }
@@ -124,12 +141,20 @@ String _renderTable(
   return buffer.toString();
 }
 
-String _renderSettingsTable(Map<String, DataClassification> entries) {
+String _renderSettingsTable(
+  Map<String, DataClassification> entries, {
+  String keyHeader = 'Key',
+}) {
   final keys = entries.keys.toList()..sort();
   final buffer = StringBuffer()
-    ..writeln(_summary(entries, 'settings keys'))
+    ..writeln(
+      _summary(
+        entries,
+        keyHeader == 'Key' ? 'settings keys' : 'settings key prefixes',
+      ),
+    )
     ..writeln()
-    ..writeln('| Key | Category | Subject | Egress | Why |')
+    ..writeln('| $keyHeader | Category | Subject | Egress | Why |')
     ..writeln('| --- | --- | --- | --- | --- |');
 
   for (final key in keys) {

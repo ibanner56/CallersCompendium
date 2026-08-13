@@ -29,7 +29,11 @@ column, and CI will stop you.
 
 1. Add the column as usual.
 2. Add an entry to `fieldClassifications`, keyed `table.column` using the **SQL**
-   names.
+   names. For a settings key built at runtime from a prefix rather than
+   declared as an exact `const String kSomethingKey`, add the prefix to
+   `settingsPrefixClassifications` instead (see `kDanceEditorDraftKeyPrefix`
+   for the pattern) — `classifySettingsKey` resolves the longest matching
+   prefix.
 3. Pick the three axes (below). If it is a close call, say why in the `note` —
    a reviewer should never have to guess why a personal-data field is
    `shareable`.
@@ -180,7 +184,9 @@ tell an approved decision from an assumed one.
 - **Settings values are classified at the column, not the key.** `settings` is a
   key/value store, so `settings.value_json` is marked device-local at this layer
   to make a blanket sync of the settings table impossible by accident. Per-key
-  classification is a separate registry in the app package.
+  classification is a separate registry in `packages/compendium_core`
+  (`settings_registry.dart`), covering both keys declared as an exact constant
+  and keys built at runtime from a declared prefix (`editor_draft:<id>`).
 - **The catalogue classifies storage, not display.** A field marked
   `deviceLocal` can still be rendered on screen, printed, or copied by the user.
   This is a transmission boundary, not an access-control system.
@@ -433,5 +439,16 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `verbose_figure_rendering` | `dpv:NonPersonalData` | app user | shareable |  |
 | `walkthrough_snippets` | `dpv:NonPersonalData` | app user | shareable |  |
 | `window_frame` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+
+### Settings key prefixes
+
+Some settings-table keys are built at runtime from a per-entity suffix rather than declared as an exact key (`editor_draft:<id>`), so they cannot appear in the table above. Each prefix below classifies every key it matches; `classifySettingsKey` resolves the longest matching prefix.
+
+**2 settings key prefixes**: 2 device-scoped. 0 personal data by category.
+
+| Key prefix | Category | Subject | Egress | Why |
+| --- | --- | --- | --- | --- |
+| `editor_draft:` | `dpv:NonPersonalData` | app user | device-scoped | Transient dance-editor autosave draft, keyed per dance (editor_draft:<id>). Unsaved user-authored choreography text that must never leave this device by any route, including a local backup file — see backup_service.dart. |
+| `program_editor_draft:` | `dpv:NonPersonalData` | app user | device-scoped | Transient program-editor autosave draft, keyed per program (program_editor_draft:<id>). Same rationale as editor_draft:. |
 
 <!-- END GENERATED: field-catalogue -->
