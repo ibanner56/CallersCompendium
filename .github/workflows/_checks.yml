@@ -199,6 +199,32 @@ jobs:
       # as build failures so the CI gate matches the repo's own standard and can
       # never silently regress below it.
       - run: flutter analyze --fatal-infos
+      # app/lib/l10n's AppLocalizations sources are GENERATED from the ARB files
+      # by `flutter gen-l10n` and committed. No other gate in this job compares
+      # the committed output against a fresh regeneration, and the generated Dart
+      # is deliberately authored to stay format- and analyze-clean (see
+      # app/l10n.yaml), so an ARB edit committed WITHOUT re-running gen-l10n
+      # sails past format, analyze, the arb_translate gates and the coverage
+      # check: each of those validates an INPUT to gen-l10n, none its committed
+      # OUTPUT. That gap shipped real work as English to five locales in #924
+      # (fixed in #929) and is issue #930. `flutter pub get` above even
+      # regenerates lib/l10n into the working tree, so the drift is present but
+      # invisible until something diffs it. Regenerate and fail on any
+      # difference. NOTE: a pass means the committed Dart matches TODAY'S
+      # generator for the current ARBs, NOT that the strings are translated
+      # correctly (that is the arb_translate/coverage gates' job). Remove this
+      # and ARB->generated drift becomes undetectable again.
+      - name: Guard committed localizations against ARB drift (#930)
+        working-directory: app
+        run: |
+          flutter gen-l10n
+          if [ -n "$(git status --porcelain -- lib/l10n)" ]; then
+            echo "::error::Committed localizations are out of date with the ARB files."
+            echo "Run 'flutter gen-l10n' in app/ and commit the regenerated files under lib/l10n."
+            git --no-pager status --porcelain -- lib/l10n
+            git --no-pager diff -- lib/l10n
+            exit 1
+          fi
       # ADR-001: the domain core must stay free of Flutter. Resolution/dependency
       # based guard (replaces a brittle grep that false-positived on comments):
       #   1. no Flutter package is reachable in compendium_core's resolved
