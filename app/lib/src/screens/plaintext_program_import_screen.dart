@@ -116,10 +116,10 @@ class _PlaintextProgramImportScreenState
         _collection = collection;
         _loadError = null;
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
       logCaughtError(
         error,
-        StackTrace.current,
+        stackTrace,
         source: 'plaintext_program_import_screen._load',
       );
       if (mounted) setState(() => _loadError = error);

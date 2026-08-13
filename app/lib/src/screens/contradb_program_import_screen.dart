@@ -325,11 +325,11 @@ class _ContraDbProgramImportScreenState
         _indexLoading = false;
         _searchResults = filterProgramIndex(entries, _searchController.text);
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
       logCaughtError(
         error,
-        StackTrace.current,
+        stackTrace,
         source: 'contradb_program_import_screen._loadIndex',
       );
       setState(() {

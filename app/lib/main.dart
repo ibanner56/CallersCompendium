@@ -490,14 +490,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
     final String validated;
     try {
       validated = extractSharedContraDbProgramUrl(raw);
-    } on UrlFetchException catch (e) {
+    } on UrlFetchException catch (e, stackTrace) {
       // UrlFetchException is log-safe by construction (typed reason + status/
       // timeout fields only, never a URL or raw prose — see
       // `import_io.dart`'s `UrlFetchException` doc), so it's always logged
       // here regardless of whether there's a mounted surface to also show it
       // on (issue #963 — this was the reported failure path: a caught error
       // that reached a snackbar but never the diagnostic log).
-      logCaughtError(e, StackTrace.current, source: 'main._handleIncomingUrl');
+      logCaughtError(e, stackTrace, source: 'main._handleIncomingUrl');
       if (!mounted) return;
       // Localize the curated, URL-free failure reason. Use the navigator's
       // context (under MaterialApp's Localizations); if it isn't available yet

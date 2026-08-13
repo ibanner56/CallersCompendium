@@ -454,12 +454,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
       );
       if (!mounted) return;
       _watchCollectionData(callerFilter);
-    } catch (error) {
-      logCaughtError(
-        error,
-        StackTrace.current,
-        source: 'dance_list_screen._boot',
-      );
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'dance_list_screen._boot');
       if (mounted) setState(() => _loadError = error);
     }
   }
@@ -476,10 +472,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
     unawaited(_dataSub?.cancel());
     _dataSub = CollectionData.watch(_repos, callerFilter: callerFilter).listen(
       _onCollectionData,
-      onError: (Object error) {
+      onError: (Object error, StackTrace stackTrace) {
         logCaughtError(
           error,
-          StackTrace.current,
+          stackTrace,
           source: 'dance_list_screen._watchCollectionData',
         );
         if (mounted) setState(() => _loadError = error);
@@ -742,13 +738,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ];
         _searching = false;
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted || seq != _searchSeq) return;
-      logCaughtError(
-        error,
-        StackTrace.current,
-        source: 'dance_list_screen._runSearch',
-      );
+      logCaughtError(error, stackTrace, source: 'dance_list_screen._runSearch');
       setState(() {
         _searchError = error;
         // Clear stale results so the live count matches the error state rather
@@ -891,11 +883,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _onlineResults = results;
         _onlineSearching = false;
       });
-    } on UrlFetchException catch (error) {
+    } on UrlFetchException catch (error, stackTrace) {
       if (!mounted || seq != _onlineSeq) return;
       logCaughtError(
         error,
-        StackTrace.current,
+        stackTrace,
         source: 'dance_list_screen._runOnlineSearch',
       );
       setState(() {
@@ -953,10 +945,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
     OnlinePreview preview;
     try {
       preview = await _online.loadPreview(_repos, result);
-    } on UrlFetchException catch (error) {
+    } on UrlFetchException catch (error, stackTrace) {
       logCaughtError(
         error,
-        StackTrace.current,
+        stackTrace,
         source: 'dance_list_screen._pushOnlinePreview',
       );
       if (mounted) navigator.pop();
@@ -1103,10 +1095,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
           ),
         );
       }
-    } on UrlFetchException catch (error) {
+    } on UrlFetchException catch (error, stackTrace) {
       logCaughtError(
         error,
-        StackTrace.current,
+        stackTrace,
         source: 'dance_list_screen._importOnline',
       );
       if (!mounted) return;

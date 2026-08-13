@@ -65,12 +65,8 @@ class _TagColorsScreenState extends State<TagColorsScreen> {
           _loadError = null;
         });
       },
-      onError: (Object e) {
-        logCaughtError(
-          e,
-          StackTrace.current,
-          source: 'tag_colors_screen._subscribe',
-        );
+      onError: (Object e, StackTrace stackTrace) {
+        logCaughtError(e, stackTrace, source: 'tag_colors_screen._subscribe');
         if (!mounted) return;
         setState(() {
           _loadError = e;

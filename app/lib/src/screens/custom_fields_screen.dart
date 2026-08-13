@@ -76,10 +76,10 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
           _loadError = null;
         });
       },
-      onError: (Object e) {
+      onError: (Object e, StackTrace stackTrace) {
         logCaughtError(
           e,
-          StackTrace.current,
+          stackTrace,
           source: 'custom_fields_screen._subscribe',
         );
         if (!mounted) return;

@@ -442,9 +442,9 @@ def test_real_tree_is_clean() -> None:
 def test_masking() -> None:
     print("masking:")
     check(
-        "string contents are blanked, length preserved",
-        mask_source("f('a{b}');") == "f(' a b ');"[: len("f('a{b}');")]
-        or len(mask_source("f('a{b}');")) == len("f('a{b}');"),
+        "string contents (and delimiters) are blanked, length preserved",
+        mask_source("f('a{b}');") == "f(      );",
+        repr(mask_source("f('a{b}');")),
     )
     check(
         "comment is blanked to end of line",

@@ -164,10 +164,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         .asyncMap(_withVenues)
         .listen(
           _onPrograms,
-          onError: (Object error) {
+          onError: (Object error, StackTrace stackTrace) {
             logCaughtError(
               error,
-              StackTrace.current,
+              stackTrace,
               source: 'programs_list_screen._subscribe',
             );
             if (mounted) setState(() => _loadError = error);

@@ -452,14 +452,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       // provenance so this import is recorded as file/paste (uri == null).
       // _onPasteChanged fires synchronously and updates _cachedPickedBundle.
       _sourceUri = null;
-    } on ImportFileTooLargeException catch (e) {
+    } on ImportFileTooLargeException catch (e, stackTrace) {
       // Untrusted input rejected before it was read into memory — tell the user
       // plainly (accessible SnackBar) and leave the input untouched.
-      logCaughtError(
-        e,
-        StackTrace.current,
-        source: 'import_review_screen._chooseFile',
-      );
+      logCaughtError(e, stackTrace, source: 'import_review_screen._chooseFile');
       messenger.showSnackBar(
         SnackBar(
           key: const ValueKey('import-file-too-large'),
@@ -485,10 +481,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       final bytes = await picker();
       if (!mounted || bytes == null) return;
       setState(() => _payloadBytes = bytes);
-    } on ImportFileTooLargeException catch (e) {
+    } on ImportFileTooLargeException catch (e, stackTrace) {
       logCaughtError(
         e,
-        StackTrace.current,
+        stackTrace,
         source: 'import_review_screen._chooseUsrFile',
       );
       messenger.showSnackBar(
@@ -511,10 +507,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final String target;
     try {
       target = _selected.urlBuilder?.call(input) ?? input;
-    } on UrlFetchException catch (e) {
+    } on UrlFetchException catch (e, stackTrace) {
       logCaughtError(
         e,
-        StackTrace.current,
+        stackTrace,
         source: 'import_review_screen._fetchFromUrl.buildUrl',
       );
       setState(() => _fetchError = importErrorMessage(l10n, e));
@@ -533,11 +529,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // the human URL/id the user typed.
         _sourceUri = target;
       });
-    } on UrlFetchException catch (e) {
+    } on UrlFetchException catch (e, stackTrace) {
       if (!mounted) return;
       logCaughtError(
         e,
-        StackTrace.current,
+        stackTrace,
         source: 'import_review_screen._fetchFromUrl.fetch',
       );
       setState(() => _fetchError = importErrorMessage(l10n, e));
@@ -645,11 +641,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       );
       if (!mounted) return;
       await _adoptBatch(resolution.batch, titleList: resolution);
-    } on TitleListTooLargeException catch (e) {
+    } on TitleListTooLargeException catch (e, stackTrace) {
       if (!mounted) return;
       logCaughtError(
         e,
-        StackTrace.current,
+        stackTrace,
         source: 'import_review_screen._planTitleList',
       );
       setState(() {

@@ -343,7 +343,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             }
             if (mounted) _refreshCoalescer.request();
           },
-          onError: (Object error) {
+          onError: (Object error, StackTrace stackTrace) {
             if (!first.isCompleted) {
               _pendingFirst = null;
               first.completeError(error);
@@ -354,7 +354,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             // render stale data indefinitely.
             logCaughtError(
               error,
-              StackTrace.current,
+              stackTrace,
               source: 'program_summary_screen._watchCollectionData',
             );
             if (mounted) setState(() => _error = error);
