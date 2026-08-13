@@ -1430,6 +1430,24 @@ abstract class AppLocalizations {
   /// **'Browse, edit, and delete your reusable venue records.'**
   String get settingsGeneralManageVenuesSubtitle;
 
+  /// General settings section header for program-building preferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs'**
+  String get settingsGeneralProgramsHeader;
+
+  /// Title of the General settings toggle controlling the programming matrix's same-figure collision check (issue #962).
+  ///
+  /// In en, this message translates to:
+  /// **'Flag exact beat overlap only'**
+  String get settingsGeneralMatrixExactCollisionTitle;
+
+  /// Subtitle explaining the exact-beat-overlap matrix collision toggle and what turning it off restores.
+  ///
+  /// In en, this message translates to:
+  /// **'In the programming matrix, only flag a repeated move between two back-to-back dances when its beats actually overlap — not just when it lands in the same named phrase (A1, A2, B1, B2…). Turn off to flag any repeat in the same phrase, even if the beats themselves don’t overlap.'**
+  String get settingsGeneralMatrixExactCollisionSubtitle;
+
   /// General settings section header for performance-mode display preferences.
   ///
   /// In en, this message translates to:
@@ -4164,6 +4182,18 @@ abstract class AppLocalizations {
   /// **'Mark performed'**
   String get programsMarkPerformedMenu;
 
+  /// Overflow menu item on a note slot that opens the dance editor, pre-filled from the note, and links this slot to the new dance once saved (issue #881).
+  ///
+  /// In en, this message translates to:
+  /// **'Create a dance from this'**
+  String get programsCreateDanceFromNoteMenu;
+
+  /// Accessibility announcement after creating a dance from a note slot and converting the slot to reference it (issue #881).
+  ///
+  /// In en, this message translates to:
+  /// **'Created {title} and linked this slot to it.'**
+  String programsCreatedDanceFromNoteAnnounce(String title);
+
   /// Overflow menu item to remove a slot from the program.
   ///
   /// In en, this message translates to:
@@ -4187,6 +4217,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit dance slot'**
   String get programsEditDanceSlotTitle;
+
+  /// Caption above the current dance's title in the slot edit dialog (issue #964).
+  ///
+  /// In en, this message translates to:
+  /// **'Dance'**
+  String get programsCurrentDanceLabel;
+
+  /// Button in the slot edit dialog that opens the picker to swap the slot's dance in place (issue #964).
+  ///
+  /// In en, this message translates to:
+  /// **'Replace…'**
+  String get programsReplaceDanceButton;
+
+  /// Title of the bottom sheet for picking a replacement dance for a program slot (issue #964).
+  ///
+  /// In en, this message translates to:
+  /// **'Replace dance'**
+  String get programsReplaceDanceSheetTitle;
+
+  /// Screen-reader announcement after picking a replacement dance in the slot edit dialog (issue #964).
+  ///
+  /// In en, this message translates to:
+  /// **'Replaced with {title}.'**
+  String programsReplacedDanceAnnounce(String title);
 
   /// Title of the dialog for editing a free-text (note) program slot.
   ///
@@ -4290,10 +4344,10 @@ abstract class AppLocalizations {
   /// **'{dance}, formation: {label}'**
   String programsMatrixFormationSemantic(String dance, String label);
 
-  /// Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use collides with a strictly-adjacent dance (same figure in the same phrase), is the move's program debut, and/or the dance's opening figure.
+  /// Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use collides with a strictly-adjacent dance, is the move's program debut, and/or the dance's opening figure. The collision placeholder is 'phrase' (starts in the same named phrase, issue #582's original rule), 'beats' (its beat span actually overlaps, issue #962's default), or 'other' (no collision) depending on the matrix's active collision-detection mode.
   ///
   /// In en, this message translates to:
-  /// **'{dance}, {move}: {present, select, no{not present} other{present{collision, select, yes{, repeats in the same phrase as an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance\'s first figure} other{}}}}'**
+  /// **'{dance}, {move}: {present, select, no{not present} other{present{collision, select, phrase{, repeats in the same phrase as an adjacent dance} beats{, shares beats with an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance\'s first figure} other{}}}}'**
   String programsMatrixCellSemantic(
     String dance,
     String move,
@@ -4373,11 +4427,17 @@ abstract class AppLocalizations {
   /// **'Present'**
   String get programsMatrixLegendPresent;
 
-  /// Matrix legend label for the alert marker: the move repeats in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance in the program.
+  /// Matrix legend label for the alert marker when the 'flag exact beat overlap only' setting is off: the move merely starts in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance in the program (issue #582's original behaviour).
   ///
   /// In en, this message translates to:
   /// **'Same phrase as adjacent dance'**
   String get programsMatrixLegendCollision;
+
+  /// Matrix legend label for the alert marker when the 'flag exact beat overlap only' setting is on (the default, issue #962): the move's beat span actually overlaps a strictly-adjacent dance's occurrence, not merely the same named phrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Shares beats with an adjacent dance'**
+  String get programsMatrixLegendCollisionBeats;
 
   /// Title of the matrix empty state shown when no dance has structured figures.
   ///
@@ -5144,11 +5204,17 @@ abstract class AppLocalizations {
   /// **'Present'**
   String get exportMatrixLegendPresent;
 
-  /// Legend entry on the programming-matrix PDF for the alert marker: a move repeating in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance.
+  /// Legend entry on the programming-matrix PDF for the alert marker when the 'flag exact beat overlap only' setting is off: a move merely starting in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance (issue #582's original behaviour).
   ///
   /// In en, this message translates to:
   /// **'Same phrase as adjacent dance'**
   String get exportMatrixLegendCollision;
+
+  /// Legend entry on the programming-matrix PDF for the alert marker when the 'flag exact beat overlap only' setting is on (the default, issue #962): a move whose beat span actually overlaps a strictly-adjacent dance's occurrence.
+  ///
+  /// In en, this message translates to:
+  /// **'Shares beats with an adjacent dance'**
+  String get exportMatrixLegendCollisionBeats;
 
   /// Caption on the programming-matrix PDF noting how many free-text slots (breaks, notes) were left out because the matrix shows dances only.
   ///
@@ -8074,6 +8140,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Added {title}'**
   String collectionPickerAddedTooltip(String title);
+
+  /// Screen-reader label for a picker row when the picker is in replace mode (issue #964) — tapping the row replaces a program slot's dance rather than adding a new slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace with {title}'**
+  String collectionPickerReplaceSemantic(String title);
+
+  /// Tooltip for a picker row's tap target when the picker is in replace mode (issue #964).
+  ///
+  /// In en, this message translates to:
+  /// **'Replace with {title}'**
+  String collectionPickerReplaceTooltip(String title);
 
   /// Screen-reader label for the persistent in-program marker shown on a picker row when the dance already appears in the program being built (#796). Not a button — it is a status indicator.
   ///

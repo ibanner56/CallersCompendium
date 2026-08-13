@@ -84,6 +84,12 @@ final Map<String, DataClassification> settingsClassifications = {
   'soft_delete_retention_days': _preference,
   'venue_entity_mode': _preference,
   'collection_tile_visible_fields': _preference,
+  // Whether the programming matrix flags a same-figure repeat between
+  // strictly-adjacent dances by exact beat overlap (on, the default) or by
+  // merely sharing a named phrase (off, the original #582 behaviour) —
+  // issue #962. A working preference, same as every other display/behaviour
+  // toggle above.
+  'matrix_exact_beat_collision': _preference,
 
   // -- Programs and performance --------------------------------------------
   'default_program_band': const DataClassification(

@@ -120,6 +120,100 @@ void main() {
     expect(controller.titleController.text, isEmpty);
   });
 
+  group('initialTitle seed (issue #881 program-slot "create a dance")', () {
+    test('seeds a new dance\'s title field', () async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: null,
+        dialect: Dialect.larksRobins,
+        initialTitle: 'Petronella',
+      );
+      addTearDown(controller.dispose);
+      await controller.load(dance: null, fieldDefs: const []);
+
+      expect(controller.titleController.text, 'Petronella');
+    });
+
+    test('an empty seed leaves the title field empty', () async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: null,
+        dialect: Dialect.larksRobins,
+        initialTitle: '',
+      );
+      addTearDown(controller.dispose);
+      await controller.load(dance: null, fieldDefs: const []);
+
+      expect(controller.titleController.text, isEmpty);
+    });
+
+    test('is ignored when editing an EXISTING dance', () async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      // ignore: unused_result
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Real Title'));
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+        initialTitle: 'Should Not Apply',
+      );
+      addTearDown(controller.dispose);
+      await controller.load(
+        dance: await repos.dances.getById('d1'),
+        fieldDefs: const [],
+      );
+
+      expect(controller.titleController.text, 'Real Title');
+    });
+
+    test(
+      'a restored autosave draft overrides the seed (draft precedence)',
+      () async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+
+        // Stage a pending draft under the shared new-dance draft key, exactly
+        // as a prior abandoned new-dance session would have left it.
+        final seeded = DanceEditorController(
+          repositories: repos,
+          danceId: null,
+          dialect: Dialect.larksRobins,
+        );
+        await seeded.load(dance: null, fieldDefs: const []);
+        seeded.titleController.text = 'Old Draft Title';
+        seeded.onTextEdited();
+        await draftPersisted(repos, 'editor_draft:new');
+        seeded.dispose();
+
+        final controller = DanceEditorController(
+          repositories: repos,
+          danceId: null,
+          dialect: Dialect.larksRobins,
+          initialTitle: 'New Seed Title',
+        );
+        addTearDown(controller.dispose);
+        await controller.load(dance: null, fieldDefs: const []);
+
+        // Before the restore prompt resolves, the seed is what's showing —
+        // this is the pre-existing shared-key hazard the plan calls out,
+        // not something this change fixes.
+        expect(controller.titleController.text, 'New Seed Title');
+        expect(controller.pendingDraft, isNotNull);
+
+        final draft = controller.pendingDraft!;
+        controller.clearPendingDraft();
+        controller.applyRestoredDraft(draft);
+
+        expect(controller.titleController.text, 'Old Draft Title');
+      },
+    );
+  });
+
   test(
     'editing schedules a debounced autosave draft that clearDraft removes',
     () async {

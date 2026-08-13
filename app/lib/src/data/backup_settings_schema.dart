@@ -75,6 +75,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kSetListColorCodingKey,
     kUpdateAutoCheckKey,
     kUpdateBetaChannelKey,
+    kMatrixExactBeatCollisionKey,
   ])
     key: _isBool,
 

@@ -29,6 +29,8 @@ class ProgramSlotListEditor extends StatefulWidget {
     required this.onReorder,
     required this.onSlotChanged,
     required this.onRemove,
+    required this.onCreateDance,
+    this.onPickReplacementDance,
   });
 
   /// Slots in position order.
@@ -58,6 +60,22 @@ class ProgramSlotListEditor extends StatefulWidget {
 
   /// Remove the slot at [index].
   final void Function(int index) onRemove;
+
+  /// Create a new dance seeded from the note-slot at [index] and convert that
+  /// slot to reference it (issue #881). Only offered on the slot's "…" menu
+  /// for a note slot (no `danceId`) that isn't the structural break and whose
+  /// text isn't blank — see [_SlotTile.build]'s gating.
+  final void Function(int index) onCreateDance;
+
+  /// Opens the host's dance picker and resolves to the id of the dance the
+  /// user picked, or `null` if they dismissed it without picking one
+  /// (issue #964). Passed straight through to the slot edit dialog, whose
+  /// "Replace…" **button** (not the whole dance row) is omitted when this is
+  /// `null` — a host with no picker to offer (e.g. a future embedding without
+  /// `CollectionData`) need not supply it. The pick is held in the dialog's
+  /// own state and only committed if the dialog's Save is tapped afterward, so
+  /// Cancel discards it like every other in-dialog edit.
+  final Future<String?> Function()? onPickReplacementDance;
 
   @override
   State<ProgramSlotListEditor> createState() => _ProgramSlotListEditorState();
@@ -220,6 +238,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   onToggleAlt: () => _toggleAlt(i),
                   onTogglePerformed: () => _togglePerformed(i),
                   onRemove: () => _remove(i),
+                  onCreateDance: () => widget.onCreateDance(i),
                 ),
             ],
           )
@@ -256,6 +275,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   onToggleAlt: () => _toggleAlt(i),
                   onTogglePerformed: () => _togglePerformed(i),
                   onRemove: () => _remove(i),
+                  onCreateDance: () => widget.onCreateDance(i),
                 ),
                 if (slots[i].id != _cutSlotId)
                   _PasteButton(
@@ -353,7 +373,11 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     final slot = widget.slots[index];
     final result = await showDialog<ProgramSlot>(
       context: context,
-      builder: (_) => _SlotEditDialog(slot: slot),
+      builder: (_) => _SlotEditDialog(
+        slot: slot,
+        danceTitle: widget.danceTitles,
+        onPickReplacementDance: widget.onPickReplacementDance,
+      ),
     );
     if (result != null && mounted) widget.onSlotChanged(index, result);
   }
@@ -381,6 +405,7 @@ class _SlotTile extends StatelessWidget {
     required this.onToggleAlt,
     required this.onTogglePerformed,
     required this.onRemove,
+    required this.onCreateDance,
   });
 
   final int index;
@@ -411,6 +436,17 @@ class _SlotTile extends StatelessWidget {
   final VoidCallback onToggleAlt;
   final VoidCallback onTogglePerformed;
   final VoidCallback onRemove;
+
+  /// Create a dance from this slot's note text (issue #881). Only meaningful
+  /// when [_showCreateDance] gates the menu item in.
+  final VoidCallback onCreateDance;
+
+  /// Whether to offer "create a dance from this" on the "…" menu: only for a
+  /// note slot (no [ProgramSlot.danceId]) that isn't the structural break
+  /// token and whose text isn't blank — a break has nothing to seed a title
+  /// from, and a blank note has nothing either.
+  bool get _showCreateDance =>
+      !isDanceSlot && !slot.isBreak && (slot.text?.trim().isNotEmpty ?? false);
 
   @override
   Widget build(BuildContext context) {
@@ -607,6 +643,8 @@ class _SlotTile extends StatelessWidget {
                           onToggleAlt();
                         case 'performed':
                           onTogglePerformed();
+                        case 'create_dance':
+                          onCreateDance();
                         case 'remove':
                           onRemove();
                       }
@@ -644,6 +682,16 @@ class _SlotTile extends StatelessWidget {
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
+                      if (_showCreateDance)
+                        PopupMenuItem(
+                          key: const ValueKey('slot-menu-create-dance'),
+                          value: 'create_dance',
+                          child: ListTile(
+                            leading: const Icon(Icons.library_music_outlined),
+                            title: Text(l10n.programsCreateDanceFromNoteMenu),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
                       PopupMenuItem(
                         value: 'remove',
                         child: ListTile(
@@ -693,12 +741,28 @@ class _PasteButton extends StatelessWidget {
   }
 }
 
-/// Dialog to edit a slot's per-slot note, guest caller, planned minutes, and
-/// alt flag. Returns the updated [ProgramSlot] (or null if cancelled).
+/// Dialog to edit a slot's dance (via in-place replacement, issue #964), and
+/// its per-slot note, guest caller, planned minutes, and alt flag. Returns the
+/// updated [ProgramSlot] (or null if cancelled).
 class _SlotEditDialog extends StatefulWidget {
-  const _SlotEditDialog({required this.slot});
+  const _SlotEditDialog({
+    required this.slot,
+    this.danceTitle,
+    this.onPickReplacementDance,
+  });
 
   final ProgramSlot slot;
+
+  /// Resolves a dance id to its display title; passed straight through from
+  /// [ProgramSlotListEditor.danceTitles]. Used both for the slot's original
+  /// dance and, after a pick, the replacement — [ProgramEditorScreen]'s
+  /// resolver routes through its `_createdDances` overlay, so a dance created
+  /// moments ago (issue #881) resolves immediately rather than showing the
+  /// deleted-dance placeholder.
+  final String? Function(String danceId)? danceTitle;
+
+  /// See [ProgramSlotListEditor.onPickReplacementDance].
+  final Future<String?> Function()? onPickReplacementDance;
 
   @override
   State<_SlotEditDialog> createState() => _SlotEditDialogState();
@@ -715,6 +779,11 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
     text: widget.slot.plannedMinutes?.toString() ?? '',
   );
   late bool _isAlt = widget.slot.isAlt;
+
+  /// The slot's dance id, possibly replaced by [_pickReplacement]. Held in
+  /// local state (not committed to the caller) until [_save] — cancelling the
+  /// dialog discards a pick exactly like every other edit here.
+  late String? _danceId = widget.slot.danceId;
   String? _minutesError;
   String? _noteError;
 
@@ -726,6 +795,26 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
     _guest.dispose();
     _minutes.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickReplacement() async {
+    final pick = widget.onPickReplacementDance;
+    if (pick == null) return;
+    final picked = await pick();
+    if (picked == null || !mounted) return;
+    setState(() => _danceId = picked);
+    final l10n = AppLocalizations.of(context);
+    // Same fallback the visible row uses (below, in build) for a dance id
+    // that resolves to nothing — keeps the announcement and the on-screen
+    // title consistent if the picked dance becomes unavailable between the
+    // pick and this frame.
+    final title =
+        widget.danceTitle?.call(picked) ?? l10n.programsDeletedDanceFallback;
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      l10n.programsReplacedDanceAnnounce(title),
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
+    );
   }
 
   void _save() {
@@ -754,7 +843,7 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
     final updated = ProgramSlot(
       id: widget.slot.id,
       position: widget.slot.position,
-      danceId: widget.slot.danceId,
+      danceId: _danceId,
       text: noteText.isEmpty ? null : noteText,
       isAlt: _isAlt,
       guestCaller: guestText.isEmpty ? null : guestText,
@@ -767,6 +856,7 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final danceId = _danceId;
     return AlertDialog(
       title: Text(
         _isDanceSlot
@@ -777,6 +867,17 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (_isDanceSlot && danceId != null) ...[
+              _ReplaceDanceRow(
+                title:
+                    widget.danceTitle?.call(danceId) ??
+                    l10n.programsDeletedDanceFallback,
+                onPickReplacementDance: widget.onPickReplacementDance == null
+                    ? null
+                    : _pickReplacement,
+              ),
+              const SizedBox(height: 12),
+            ],
             TextField(
               key: const ValueKey('slot-edit-note'),
               controller: _note,
@@ -841,6 +942,48 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
           key: const ValueKey('slot-edit-save'),
           onPressed: _save,
           child: Text(l10n.commonDone),
+        ),
+      ],
+    );
+  }
+}
+
+/// The current dance's title + a "Replace…" affordance (issue #964), shown
+/// only for a dance slot. The row itself (title) always renders when this
+/// widget is built (its host, `_SlotEditDialog`, is the one gating on
+/// `_isDanceSlot`); only the Replace **button** is omitted when the host
+/// offers no picker ([onPickReplacementDance] null), rather than rendering it
+/// disabled.
+class _ReplaceDanceRow extends StatelessWidget {
+  const _ReplaceDanceRow({required this.title, this.onPickReplacementDance});
+
+  final String title;
+  final VoidCallback? onPickReplacementDance;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.programsCurrentDanceLabel,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        Row(
+          children: [
+            Expanded(child: Text(title, style: theme.textTheme.bodyLarge)),
+            if (onPickReplacementDance != null)
+              TextButton.icon(
+                key: const ValueKey('slot-edit-replace-dance'),
+                onPressed: onPickReplacementDance,
+                icon: const Icon(Icons.swap_horiz, size: 18),
+                label: Text(l10n.programsReplaceDanceButton),
+              ),
+          ],
         ),
       ],
     );

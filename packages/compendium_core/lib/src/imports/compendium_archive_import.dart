@@ -11,6 +11,7 @@ import '../util/uuid.dart';
 import 'dedupe.dart';
 import 'generic_json_adapter.dart';
 import 'import_pipeline.dart';
+import 'program_slot_note.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
 import 'venue_dedupe.dart';
@@ -79,7 +80,7 @@ ArchiveProgramsResult buildArchivePrograms(
           // keep the slot as a placeholder note rather than dropping it, and
           // always surface which reference failed — appended to any existing
           // note so the missing id is never silently lost.
-          final marker = 'Dance not imported (${slot.danceId})';
+          final marker = '$kUnresolvedDanceMarkerPrefix${slot.danceId})';
           text = (text == null || text.trim().isEmpty)
               ? marker
               : '$text\n\n$marker';

@@ -431,6 +431,19 @@ class ProgramRepository {
     _db.programProvenance,
   };
 
+  /// [_programListTables] plus `venues`, for callers that render a venue label
+  /// beside the list (issue #944).
+  ///
+  /// A separate getter rather than a mutated one: the caller states what it
+  /// renders, and both sets stay readable as a list of tables with a reason
+  /// each. See `CompendiumRepositories.watchCollectionSources` for the same
+  /// choice made at the Collection seam, and for why widening the shared set
+  /// instead would trade this staleness for issue #340's churn.
+  Set<ResultSetImplementation<dynamic, dynamic>> get _programListWithVenues => {
+    ..._programListTables,
+    _db.venues,
+  };
+
   /// [listAll] as a live stream: emits the current list immediately, then again
   /// after every write that could change it.
   ///
@@ -455,8 +468,22 @@ class ProgramRepository {
   ///
   /// `program_repository_watch_test.dart` pins this: it asserts a slot-only
   /// edit re-emits, which is exactly the assertion the builder version fails.
-  Stream<List<Program>> watchAll({bool includeDeleted = false}) => _db
-      .customSelect('SELECT 1', readsFrom: _programListTables)
+  Stream<List<Program>> watchAll({
+    bool includeDeleted = false,
+    bool includeVenues = false,
+  }) => _db
+      .customSelect(
+        // Distinct SQL per read set, deliberately: drift keys its stream cache
+        // on (sql, variables) and ignores `readsFrom`, so two sentinels reading
+        // `SELECT 1` with different declared tables become one stream and the
+        // later subscriber inherits the earlier one's set. The full account is
+        // on `CompendiumRepositories.watchCollectionSources`, whose sentinel
+        // this one would otherwise collide with.
+        includeVenues
+            ? '/* program list +venues */ SELECT 1'
+            : '/* program list */ SELECT 1',
+        readsFrom: includeVenues ? _programListWithVenues : _programListTables,
+      )
       .watch()
       .asyncMap((_) => listAll(includeDeleted: includeDeleted));
 
@@ -569,14 +596,24 @@ class ProgramRepository {
   ///
   /// `venues` is deliberately NOT here: none of these queries reads it. The
   /// venue *label* shown against a history row is resolved app-side from the
-  /// venue catalogue, so a venue rename does not re-emit. That is a known
-  /// boundary rather than an oversight — no venue-editing path refreshes these
-  /// views today either — and it is the reason [watchCallingHistoryForDance]
-  /// spells out which derived values may ride this stream.
+  /// venue catalogue, so this set alone cannot re-emit on a venue rename —
+  /// see [_programDerivedWithVenues], which callers rendering that label use
+  /// instead (issue #944).
   Set<ResultSetImplementation<dynamic, dynamic>> get _programDerivedTables => {
     _db.programSlots,
     _db.programs,
   };
+
+  /// [_programDerivedTables] plus `venues`, for callers that render a venue
+  /// label beside the history (issue #944).
+  ///
+  /// **Watching the table is necessary and not sufficient here.** The label is
+  /// resolved app-side from a cached catalogue, so the subscriber must also
+  /// invalidate that cache on emit — a read set can make a consumer re-run, it
+  /// cannot make the consumer re-read something it believes it already knows.
+  /// `calling_history_section.dart` carries the other half.
+  Set<ResultSetImplementation<dynamic, dynamic>>
+  get _programDerivedWithVenues => {..._programDerivedTables, _db.venues};
 
   /// Maps dance id → the most recent `performedAt` timestamp across every
   /// slot of every non-deleted program, for dances that have actually been
@@ -736,7 +773,11 @@ class ProgramRepository {
     String danceId, {
     required bool performedOnly,
     required String? caller,
+    bool includeVenues = false,
   }) => _db.customSelect(
+    // Marker first: this query has two read sets, and drift's stream cache
+    // would otherwise treat both as one stream. See `watchCollectionSources`.
+    '${includeVenues ? '/* +venues */ ' : ''}'
     'SELECT program_slots.id AS slot_id, programs.id AS program_id, '
     'programs.title AS program_title, '
     'programs.event_date AS event_date, programs.venue AS venue, '
@@ -753,7 +794,9 @@ class ProgramRepository {
     'program_slots.performed_at, programs.event_date, programs.updated_at'
     ') DESC, programs.id',
     variables: [Variable<String>(danceId), ..._callerVariables(caller)],
-    readsFrom: _programDerivedTables,
+    readsFrom: includeVenues
+        ? _programDerivedWithVenues
+        : _programDerivedTables,
   );
 
   List<DanceCallingRecord> _callingHistoryFromRows(List<QueryRow> rows) => [
@@ -826,6 +869,12 @@ class ProgramRepository {
       danceId,
       performedOnly: performedOnly,
       caller: caller,
+      // The section renders a venue label per row, resolved app-side, so it
+      // must re-emit when a venue changes (issue #944). The one-shot
+      // `callingHistoryForDance` above does not opt in: it has no subscriber
+      // to notify, and widening its declared set would state a dependency the
+      // read does not have.
+      includeVenues: true,
     ).watch().asyncMap((List<QueryRow> rows) async {
       final records = _callingHistoryFromRows(rows);
       // The programs to compute stats over are already in these rows, so the

@@ -769,6 +769,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsGeneralManageVenuesSubtitle => '再利用可能な会場レコードを閲覧、編集、削除します。';
 
   @override
+  String get settingsGeneralProgramsHeader => 'プログラム';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionTitle => '拍の正確な重なりのみをフラグ';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionSubtitle =>
+      'プログラムマトリクスでは、連続する2つのダンス間で繰り返される動きは、拍が実際に重なる場合のみフラグが立ちます。同じ名前のフレーズ（A1、A2、B1、B2…）に含まれるだけではフラグは立ちません。オフにすると、拍自体が重ならなくても、同じフレーズ内の繰り返しがすべてフラグとして表示されます。';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'パフォーマンス';
 
   @override
@@ -2455,6 +2465,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsMarkPerformedMenu => '実施済みとしてマーク';
 
   @override
+  String get programsCreateDanceFromNoteMenu => 'これからダンスを作成';
+
+  @override
+  String programsCreatedDanceFromNoteAnnounce(String title) {
+    return '$titleを作成し、このスロットにリンクしました。';
+  }
+
+  @override
   String get programsRemoveSlotMenu => 'スロットを削除';
 
   @override
@@ -2465,6 +2483,20 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsEditDanceSlotTitle => 'ダンススロットを編集';
+
+  @override
+  String get programsCurrentDanceLabel => 'ダンス';
+
+  @override
+  String get programsReplaceDanceButton => '置き換え…';
+
+  @override
+  String get programsReplaceDanceSheetTitle => 'ダンスを置き換え';
+
+  @override
+  String programsReplacedDanceAnnounce(String title) {
+    return '$titleに置き換えました。';
+  }
 
   @override
   String get programsEditNoteTitle => 'ノートを編集';
@@ -2570,7 +2602,8 @@ class AppLocalizationsJa extends AppLocalizations {
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'yes': '、隣接するダンスと同じフレーズで繰り返される',
+      'phrase': '、隣接するダンスと同じフレーズで繰り返される',
+      'beats': '、隣接するダンスと拍が重なる',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -2650,6 +2683,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsMatrixLegendCollision => '隣接ダンスと同じフレーズ';
+
+  @override
+  String get programsMatrixLegendCollisionBeats => '隣接ダンスと拍が重なる';
 
   @override
   String get programsMatrixEmptyTitle => 'まだ構造化されたフィギュアがありません';
@@ -3119,6 +3155,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get exportMatrixLegendCollision => '隣接ダンスと同じフレーズ';
+
+  @override
+  String get exportMatrixLegendCollisionBeats => '隣接ダンスと拍が重なる';
 
   @override
   String exportMatrixOmittedCaption(int count) {
@@ -5100,6 +5139,16 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String collectionPickerAddedTooltip(String title) {
     return '$titleを追加しました';
+  }
+
+  @override
+  String collectionPickerReplaceSemantic(String title) {
+    return '$titleに置き換え';
+  }
+
+  @override
+  String collectionPickerReplaceTooltip(String title) {
+    return '$titleに置き換え';
   }
 
   @override

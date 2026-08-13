@@ -47,6 +47,7 @@ Future<void> _pump(WidgetTester tester, {bool? colorCoding}) async {
     onReorder: (_, _) {},
     onSlotChanged: (_, _) {},
     onRemove: (_) {},
+    onCreateDance: (_) {},
   );
   if (colorCoding != null) {
     editor = SetListColorCodingScope(
@@ -82,6 +83,7 @@ Future<void> _pumpWithMixer(WidgetTester tester, {bool? colorCoding}) async {
     onReorder: (_, _) {},
     onSlotChanged: (_, _) {},
     onRemove: (_) {},
+    onCreateDance: (_) {},
   );
   if (colorCoding != null) {
     editor = SetListColorCodingScope(

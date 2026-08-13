@@ -792,6 +792,17 @@ class AppLocalizationsDa extends AppLocalizations {
       'Gennemse, rediger og slet dine genanvendelige spillestedsposter.';
 
   @override
+  String get settingsGeneralProgramsHeader => 'Programmer';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionTitle =>
+      'Markér kun nøjagtigt overlappende slag';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionSubtitle =>
+      'I programmeringsmatrixen markeres en gentaget figur mellem to danse i træk kun, når dens slag rent faktisk overlapper — ikke blot når den falder i samme navngivne frase (A1, A2, B1, B2…). Slå fra for at markere enhver gentagelse i samme frase, selv hvis slagene ikke overlapper.';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Performance';
 
   @override
@@ -2526,6 +2537,14 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsMarkPerformedMenu => 'Markér som fremført';
 
   @override
+  String get programsCreateDanceFromNoteMenu => 'Opret en dans ud fra dette';
+
+  @override
+  String programsCreatedDanceFromNoteAnnounce(String title) {
+    return 'Oprettede $title og knyttede denne plads til den.';
+  }
+
+  @override
   String get programsRemoveSlotMenu => 'Fjern slot';
 
   @override
@@ -2537,6 +2556,20 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsEditDanceSlotTitle => 'Rediger dans-slot';
+
+  @override
+  String get programsCurrentDanceLabel => 'Dans';
+
+  @override
+  String get programsReplaceDanceButton => 'Erstat…';
+
+  @override
+  String get programsReplaceDanceSheetTitle => 'Erstat dans';
+
+  @override
+  String programsReplacedDanceAnnounce(String title) {
+    return 'Erstattet med $title.';
+  }
 
   @override
   String get programsEditNoteTitle => 'Rediger note';
@@ -2645,7 +2678,8 @@ class AppLocalizationsDa extends AppLocalizations {
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'yes': ', gentages i samme frase som en nabodans',
+      'phrase': ', gentages i samme frase som en nabodans',
+      'beats': ', deler slag med en nabodans',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -2725,6 +2759,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsMatrixLegendCollision => 'Samme frase som nabodans';
+
+  @override
+  String get programsMatrixLegendCollisionBeats => 'Deler slag med nabodans';
 
   @override
   String get programsMatrixEmptyTitle => 'Ingen strukturerede figurer endnu';
@@ -3208,6 +3245,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get exportMatrixLegendCollision => 'Samme frase som nabodans';
+
+  @override
+  String get exportMatrixLegendCollisionBeats => 'Deler slag med nabodans';
 
   @override
   String exportMatrixOmittedCaption(int count) {
@@ -5274,6 +5314,16 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String collectionPickerAddedTooltip(String title) {
     return 'Tilføjede $title';
+  }
+
+  @override
+  String collectionPickerReplaceSemantic(String title) {
+    return 'Erstat med $title';
+  }
+
+  @override
+  String collectionPickerReplaceTooltip(String title) {
+    return 'Erstat med $title';
   }
 
   @override

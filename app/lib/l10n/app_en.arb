@@ -1019,6 +1019,18 @@
   "@settingsGeneralManageVenuesSubtitle": {
     "description": "Subtitle for the row that opens the reusable venue manager."
   },
+  "settingsGeneralProgramsHeader": "Programs",
+  "@settingsGeneralProgramsHeader": {
+    "description": "General settings section header for program-building preferences."
+  },
+  "settingsGeneralMatrixExactCollisionTitle": "Flag exact beat overlap only",
+  "@settingsGeneralMatrixExactCollisionTitle": {
+    "description": "Title of the General settings toggle controlling the programming matrix's same-figure collision check (issue #962)."
+  },
+  "settingsGeneralMatrixExactCollisionSubtitle": "In the programming matrix, only flag a repeated move between two back-to-back dances when its beats actually overlap — not just when it lands in the same named phrase (A1, A2, B1, B2…). Turn off to flag any repeat in the same phrase, even if the beats themselves don’t overlap.",
+  "@settingsGeneralMatrixExactCollisionSubtitle": {
+    "description": "Subtitle explaining the exact-beat-overlap matrix collision toggle and what turning it off restores."
+  },
   "settingsGeneralPerformanceHeader": "Performance",
   "@settingsGeneralPerformanceHeader": {
     "description": "General settings section header for performance-mode display preferences."
@@ -3391,6 +3403,20 @@
   "@programsMarkPerformedMenu": {
     "description": "Overflow menu item to mark a slot as performed."
   },
+  "programsCreateDanceFromNoteMenu": "Create a dance from this",
+  "@programsCreateDanceFromNoteMenu": {
+    "description": "Overflow menu item on a note slot that opens the dance editor, pre-filled from the note, and links this slot to the new dance once saved (issue #881)."
+  },
+  "programsCreatedDanceFromNoteAnnounce": "Created {title} and linked this slot to it.",
+  "@programsCreatedDanceFromNoteAnnounce": {
+    "description": "Accessibility announcement after creating a dance from a note slot and converting the slot to reference it (issue #881).",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Petronella"
+      }
+    }
+  },
   "programsRemoveSlotMenu": "Remove slot",
   "@programsRemoveSlotMenu": {
     "description": "Overflow menu item to remove a slot from the program."
@@ -3406,6 +3432,28 @@
   "programsEditDanceSlotTitle": "Edit dance slot",
   "@programsEditDanceSlotTitle": {
     "description": "Title of the dialog for editing a dance program slot."
+  },
+  "programsCurrentDanceLabel": "Dance",
+  "@programsCurrentDanceLabel": {
+    "description": "Caption above the current dance's title in the slot edit dialog (issue #964)."
+  },
+  "programsReplaceDanceButton": "Replace…",
+  "@programsReplaceDanceButton": {
+    "description": "Button in the slot edit dialog that opens the picker to swap the slot's dance in place (issue #964)."
+  },
+  "programsReplaceDanceSheetTitle": "Replace dance",
+  "@programsReplaceDanceSheetTitle": {
+    "description": "Title of the bottom sheet for picking a replacement dance for a program slot (issue #964)."
+  },
+  "programsReplacedDanceAnnounce": "Replaced with {title}.",
+  "@programsReplacedDanceAnnounce": {
+    "description": "Screen-reader announcement after picking a replacement dance in the slot edit dialog (issue #964).",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
   },
   "programsEditNoteTitle": "Edit note",
   "@programsEditNoteTitle": {
@@ -3533,9 +3581,9 @@
       }
     }
   },
-  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{not present} other{present{collision, select, yes{, repeats in the same phrase as an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance's first figure} other{}}}}",
+  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{not present} other{present{collision, select, phrase{, repeats in the same phrase as an adjacent dance} beats{, shares beats with an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance's first figure} other{}}}}",
   "@programsMatrixCellSemantic": {
-    "description": "Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use collides with a strictly-adjacent dance (same figure in the same phrase), is the move's program debut, and/or the dance's opening figure.",
+    "description": "Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use collides with a strictly-adjacent dance, is the move's program debut, and/or the dance's opening figure. The collision placeholder is 'phrase' (starts in the same named phrase, issue #582's original rule), 'beats' (its beat span actually overlaps, issue #962's default), or 'other' (no collision) depending on the matrix's active collision-detection mode.",
     "placeholders": {
       "dance": {
         "type": "String",
@@ -3551,7 +3599,7 @@
       },
       "collision": {
         "type": "String",
-        "example": "yes"
+        "example": "beats"
       },
       "debut": {
         "type": "String",
@@ -3647,7 +3695,11 @@
   },
   "programsMatrixLegendCollision": "Same phrase as adjacent dance",
   "@programsMatrixLegendCollision": {
-    "description": "Matrix legend label for the alert marker: the move repeats in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance in the program."
+    "description": "Matrix legend label for the alert marker when the 'flag exact beat overlap only' setting is off: the move merely starts in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance in the program (issue #582's original behaviour)."
+  },
+  "programsMatrixLegendCollisionBeats": "Shares beats with an adjacent dance",
+  "@programsMatrixLegendCollisionBeats": {
+    "description": "Matrix legend label for the alert marker when the 'flag exact beat overlap only' setting is on (the default, issue #962): the move's beat span actually overlaps a strictly-adjacent dance's occurrence, not merely the same named phrase."
   },
   "programsMatrixEmptyTitle": "No structured figures yet",
   "@programsMatrixEmptyTitle": {
@@ -4296,7 +4348,11 @@
   },
   "exportMatrixLegendCollision": "Same phrase as adjacent dance",
   "@exportMatrixLegendCollision": {
-    "description": "Legend entry on the programming-matrix PDF for the alert marker: a move repeating in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance."
+    "description": "Legend entry on the programming-matrix PDF for the alert marker when the 'flag exact beat overlap only' setting is off: a move merely starting in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance (issue #582's original behaviour)."
+  },
+  "exportMatrixLegendCollisionBeats": "Shares beats with an adjacent dance",
+  "@exportMatrixLegendCollisionBeats": {
+    "description": "Legend entry on the programming-matrix PDF for the alert marker when the 'flag exact beat overlap only' setting is on (the default, issue #962): a move whose beat span actually overlaps a strictly-adjacent dance's occurrence."
   },
   "exportMatrixOmittedCaption": "{count, plural, =1{1 free-text slot (breaks, notes) omitted — the matrix shows dances only.} other{{count} free-text slots (breaks, notes) omitted — the matrix shows dances only.}}",
   "@exportMatrixOmittedCaption": {
@@ -7053,6 +7109,24 @@
   "collectionPickerAddedTooltip": "Added {title}",
   "@collectionPickerAddedTooltip": {
     "description": "Tooltip for the picker's add button during the brief confirmation that follows a tap, while it shows a check instead of a plus (#796). The button stays active — a dance may legitimately be added to a program more than once — so this reports what just happened rather than disabling the action.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "collectionPickerReplaceSemantic": "Replace with {title}",
+  "@collectionPickerReplaceSemantic": {
+    "description": "Screen-reader label for a picker row when the picker is in replace mode (issue #964) — tapping the row replaces a program slot's dance rather than adding a new slot.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "collectionPickerReplaceTooltip": "Replace with {title}",
+  "@collectionPickerReplaceTooltip": {
+    "description": "Tooltip for a picker row's tap target when the picker is in replace mode (issue #964).",
     "placeholders": {
       "title": {
         "type": "String"

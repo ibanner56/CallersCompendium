@@ -21,6 +21,7 @@ import '../../data/soft_delete_retention.dart';
 import '../../data/sort_ignore_articles_scope.dart';
 import '../../data/verbose_figure_rendering_scope.dart';
 import '../../data/decimal_turns_scope.dart';
+import '../../data/matrix_collision_mode_scope.dart';
 import '../../data/venue_entity_mode_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
@@ -487,6 +488,15 @@ class _GeneralSectionState extends State<GeneralSection> {
     await repos.settings.set(kVenueEntityModeKey, value);
   }
 
+  Future<void> _onMatrixExactBeatCollisionChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern: flip the live notifier so an
+    // open program's Matrix tab re-evaluates its same-figure collision check
+    // immediately (issue #962), then persist in the background.
+    MatrixCollisionModeScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kMatrixExactBeatCollisionKey, value);
+  }
+
   @override
   Widget build(BuildContext context) {
     _ensureAutoSizeLoaded(context);
@@ -510,6 +520,8 @@ class _GeneralSectionState extends State<GeneralSection> {
       venueEntityMode: VenueEntityModeScope.of(context),
       onVenueEntityModeChanged: _onVenueEntityModeChanged,
       onManageVenues: _onManageVenues,
+      matrixExactBeatCollision: MatrixCollisionModeScope.of(context),
+      onMatrixExactBeatCollisionChanged: _onMatrixExactBeatCollisionChanged,
       autoSizePerform: _autoSizePerform ?? true,
       onAutoSizeChanged: _onAutoSizeChanged,
       softDeleteRetentionDays:
@@ -551,6 +563,8 @@ class _GeneralView extends StatelessWidget {
     required this.venueEntityMode,
     required this.onVenueEntityModeChanged,
     required this.onManageVenues,
+    required this.matrixExactBeatCollision,
+    required this.onMatrixExactBeatCollisionChanged,
     required this.autoSizePerform,
     required this.onAutoSizeChanged,
     required this.softDeleteRetentionDays,
@@ -583,6 +597,12 @@ class _GeneralView extends StatelessWidget {
 
   /// Opens the venue manager screen.
   final Future<void> Function() onManageVenues;
+
+  /// The Programs "flag exact beat overlap only" matrix-collision toggle
+  /// (issue #962). On by default.
+  final bool matrixExactBeatCollision;
+  final ValueChanged<bool> onMatrixExactBeatCollisionChanged;
+
   final bool autoSizePerform;
   final ValueChanged<bool> onAutoSizeChanged;
 
@@ -637,6 +657,15 @@ class _GeneralView extends StatelessWidget {
           subtitle: Text(l10n.settingsGeneralManageVenuesSubtitle),
           trailing: const Icon(Icons.chevron_right),
           onTap: onManageVenues,
+        ),
+        SectionHeader(title: l10n.settingsGeneralProgramsHeader),
+        SwitchListTile(
+          key: const ValueKey('general-matrix-exact-beat-collision'),
+          value: matrixExactBeatCollision,
+          onChanged: onMatrixExactBeatCollisionChanged,
+          title: Text(l10n.settingsGeneralMatrixExactCollisionTitle),
+          subtitle: Text(l10n.settingsGeneralMatrixExactCollisionSubtitle),
+          isThreeLine: true,
         ),
         SectionHeader(title: l10n.settingsGeneralPerformanceHeader),
         SwitchListTile(

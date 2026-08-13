@@ -49,7 +49,9 @@ line**, and you get a live preview before anything is saved:
 
 Press **Import** to create the program; an **Undo** option appears in case you
 change your mind. You can then open the program and tidy up any notes — for
-example, searching your collection to link a dance the paste couldn't find.
+example, searching your collection to link a dance the paste couldn't find, or
+using a note slot's **…** menu to create a new dance from it directly (see
+"Kinds of slots" below).
 
 **Fill the gaps from The Caller's Box.** If some lines didn't match anything in
 your collection, the preview shows a **Resolve unmatched online** button. It
@@ -119,7 +121,11 @@ A program is made of three kinds of slots:
 
 - **Dance slots** — dances pulled from your [collection](./glossary.md#collection).
 - **Free-text slots** — for the things between dances: a break, a waltz,
-  announcements.
+  announcements. A free-text slot with real text in it also offers **Create a
+  dance from this** on its **…** menu, which opens the dance editor pre-filled
+  with that text as the title; saving links the slot to the new dance in one
+  step, so a note left behind by an import that couldn't find a match doesn't
+  need a separate trip through the collection to fix.
 - **[Alts](./glossary.md#alt)** — an alternate dance you might call instead
   of the one above it. An alt appears indented under its primary and is marked
   with an icon and text (never color alone), so it is always clear which dance is
@@ -127,7 +133,11 @@ A program is made of three kinds of slots:
 
 Each slot can also carry a **note**, a **guest caller**, and a **planned length**
 in minutes — useful both for pacing the evening and for the timing display in
-[Perform mode](./perform.md#keep-time-through-the-evening).
+[Perform mode](./perform.md#keep-time-through-the-evening). A dance slot's
+**…** menu also offers **Edit slot**, whose dialog includes a **Replace…**
+button for swapping the dance in place — keeping the note, guest caller,
+planned length, and mark-performed status exactly as they were — instead of
+adding the new dance, dragging it into position, and deleting the old one.
 
 To reorder slots, use the **drag handle** or the **move up / move down** buttons.
 Both do the same job, so you are never forced to drag.
@@ -179,15 +189,19 @@ Here is how to read it:
   | Star | **Introduced here** | The first dance (top to bottom) whose choreography uses that move, wherever it falls in that dance |
   | Flag | **Dance's first figure** | The move that dance opens with |
   | Check | **Present** | The move appears in that dance |
-  | Alert | **Same phrase as adjacent dance** | See below |
+  | Alert | **Shares beats with an adjacent dance** (or **Same phrase as adjacent dance**, if you turn the setting below off) | See below |
 
-- **The alert marker** replaces the check when a move lands in the **same phrase**
-  (A1, A2, B1, B2…) in **two dances that run back-to-back** in the program — for
-  example a partner balance & swing in B1 of one dance and again in B1 of the very
-  next dance. Adjacent repeats like this can make two dances feel samey on the
-  floor, so the matrix flags them for you to notice and, if you like, reconsider.
-  Only the two colliding cells are flagged; a repeat that is not in neighbouring
-  dances, or lands in a different phrase, is left alone.
+- **The alert marker** replaces the check when a move's beats actually **overlap**
+  in **two dances that run back-to-back** in the program — for example a partner
+  balance & swing that lands on the exact same beats in one dance and again in the
+  very next dance. Adjacent repeats like this can make two dances feel samey on
+  the floor, so the matrix flags them for you to notice and, if you like,
+  reconsider. Only the two colliding cells are flagged; a repeat that is not in
+  neighbouring dances, or whose beats don't actually overlap, is left alone. If
+  you'd rather flag any repeat that merely lands in the same **named phrase**
+  (A1, A2, B1, B2…) — even when the beats themselves don't overlap, which is how
+  the matrix used to behave — turn off **Flag exact beat overlap only** in
+  **Settings ▸ General ▸ Programs**.
 - **Headers stay pinned** as you scroll, so you never lose track of which row or
   column you are looking at.
 - **Hide a column you do not need** using the eye icon in its header. The icon is
@@ -220,8 +234,9 @@ A few practical notes:
   menu, and it is unavailable while the matrix is empty. The PDF is landscape and
   carries its own legend — where the screen uses icons, the printed page uses the
   marks `★` (introduced here), `▸` (dance's first figure), `✓` (present), and `‼`
-  (same phrase as adjacent dance). Columns you have hidden on screen still print:
-  the export always covers the full matrix. See
+  (shares beats with an adjacent dance, or same phrase as adjacent dance if
+  you've turned the setting off). Columns you have hidden on screen still
+  print: the export always covers the full matrix. See
   [Share, print & export](./sharing.md#print-the-programming-matrix).
 
 ## Print, export, and email a program

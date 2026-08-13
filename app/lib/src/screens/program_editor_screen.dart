@@ -11,6 +11,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/matrix_collision_mode_scope.dart';
 import '../data/programs_refresh_scope.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
@@ -31,6 +32,7 @@ import '../utils/safe_name.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/collection_picker.dart';
 import '../widgets/venue_picker.dart';
+import 'dance_editor_screen.dart';
 import 'perform_program_screen.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_matrix_table.dart';
@@ -189,6 +191,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   Dialect _dialect = Dialect.larksRobins;
 
+  /// The Programs "flag exact beat overlap only" matrix-collision setting
+  /// (issue #962), read unconditionally in [didChangeDependencies] every
+  /// build so a live toggle updates the Matrix tab immediately — mirroring
+  /// the #948 fix for [_trackHistoryForAllCallers] below (a value read only
+  /// once behind a first-load guard never re-reads on a later scope change).
+  bool _matrixExactBeatCollision = true;
+
   /// Always-on search enrichment for the embedded [CollectionPicker], built
   /// from the union of every saved dialect (presets + custom) so the picker's
   /// search resolves saved-dialect vocabulary regardless of the active dialect
@@ -218,6 +227,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final scope = context
         .dependOnInheritedWidgetOfExactType<ActiveDialectScope>();
     if (scope?.notifier != null) _dialect = scope!.notifier!.value;
+
+    // Read unconditionally so a live toggle of the setting updates the Matrix
+    // tab immediately (the #948 lesson — see the field doc comment).
+    _matrixExactBeatCollision = MatrixCollisionModeScope.of(context);
 
     // Build the always-on enrichment from the union of every saved dialect
     // (presets + custom). Registers a rebuild dependency on the library so a
@@ -356,41 +369,63 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _replaceSubscription();
     _pendingFirst = first;
     _subscribedTrackAllCallers = _trackHistoryForAllCallers;
-    _dataSub = CollectionData.watch(_repos, callerFilter: callerFilter).listen(
-      (data) {
-        _latestData = data;
-        if (!first.isCompleted) {
-          _pendingFirst = null;
-          first.complete(data);
-          return;
-        }
-        if (mounted) setState(() => _data = data);
-      },
-      onError: (Object error) {
-        if (!first.isCompleted) {
-          _pendingFirst = null;
-          first.completeError(error);
-          return;
-        }
-        // A LATER failure keeps the picker on its last good data rather than
-        // blanking it: this is reference data beside an editor holding unsaved
-        // work, so an empty picker would be worse than a slightly stale one.
-        // Deliberately not silent — it surfaces through the screen's own error
-        // state only if nothing has loaded yet, which the branch above covers.
-      },
-      onDone: () {
-        // The source can end without ever emitting — the database closed while
-        // this screen was opening, which happens in teardown. Completing the
-        // future is what stops `_load` awaiting forever; the error routes to
-        // the screen's existing load-failure branch.
-        if (!first.isCompleted) {
-          _pendingFirst = null;
-          first.completeError(
-            StateError('collection stream closed before its first value'),
-          );
-        }
-      },
-    );
+    _dataSub =
+        CollectionData.watch(
+          _repos,
+          callerFilter: callerFilter,
+          // The editor renders the linked venue's name in simple mode's
+          // read-only fallback, from a table `CollectionData` does not carry
+          // (issue #944).
+          watchVenues: true,
+        ).listen(
+          (data) {
+            _latestData = data;
+            if (!first.isCompleted) {
+              _pendingFirst = null;
+              first.complete(data);
+              return;
+            }
+            if (mounted) setState(() => _data = data);
+            // Re-resolve the linked venue on every later emit (issue #944).
+            //
+            // Opting into `watchVenues` is necessary and not sufficient: it makes
+            // the stream fire on a venue write, but `_linkedVenue` is populated by
+            // `_load`, which runs once per editor. Without this the rename would
+            // wake the picker and leave the label beside it showing the old name —
+            // a *partially* refreshed screen, which is harder to notice than one
+            // that never updates.
+            //
+            // `_refreshLinkedVenue` already drops a result whose id no longer
+            // matches `_venueId`, so a rename landing while the user is changing
+            // the link cannot resurrect the old selection.
+            final linkedId = _venueId;
+            if (linkedId != null) unawaited(_refreshLinkedVenue(linkedId));
+          },
+          onError: (Object error) {
+            if (!first.isCompleted) {
+              _pendingFirst = null;
+              first.completeError(error);
+              return;
+            }
+            // A LATER failure keeps the picker on its last good data rather than
+            // blanking it: this is reference data beside an editor holding unsaved
+            // work, so an empty picker would be worse than a slightly stale one.
+            // Deliberately not silent — it surfaces through the screen's own error
+            // state only if nothing has loaded yet, which the branch above covers.
+          },
+          onDone: () {
+            // The source can end without ever emitting — the database closed while
+            // this screen was opening, which happens in teardown. Completing the
+            // future is what stops `_load` awaiting forever; the error routes to
+            // the screen's existing load-failure branch.
+            if (!first.isCompleted) {
+              _pendingFirst = null;
+              first.completeError(
+                StateError('collection stream closed before its first value'),
+              );
+            }
+          },
+        );
     return first.future;
   }
 
@@ -718,17 +753,36 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       slots[i].position == i ? slots[i] : slots[i].copyWith(position: i),
   ];
 
-  String? _titleForDance(String danceId) => _data?.dancesById[danceId]?.title;
+  /// Dances created via "create a dance from this" (issue #881) during this
+  /// screen's lifetime, keyed by id.
+  ///
+  /// [_data] is a *live but debounced* snapshot: [CollectionData.watch]
+  /// coalesces on a short trailing window and then re-`load()`s the whole
+  /// collection, so a dance created moments ago is briefly absent from
+  /// `_data.dancesById`. Every dance lookup in this screen goes through
+  /// [_danceById] rather than `_data` directly, so the slot row, the export
+  /// menu, and the matrix tab all resolve a just-created dance immediately
+  /// instead of rendering the deleted-dance placeholder until the snapshot
+  /// catches up.
+  final Map<String, Dance> _createdDances = {};
+
+  /// Resolves [danceId] to a [Dance]: the live [_data] snapshot first, then
+  /// [_createdDances] as a fallback for a dance the snapshot hasn't caught up
+  /// to yet. Returns null only when neither has it (a genuinely unavailable —
+  /// e.g. soft-deleted — dance).
+  Dance? _danceById(String danceId) =>
+      _data?.dancesById[danceId] ?? _createdDances[danceId];
+
+  String? _titleForDance(String danceId) => _danceById(danceId)?.title;
 
   /// Resolves a dance's formation for the slot editor's redundant accent +
   /// formation text (issue #270). Null when the dance is unavailable.
   Formation? _formationForDance(String danceId) =>
-      _data?.dancesById[danceId]?.formation;
+      _danceById(danceId)?.formation;
 
   /// Resolves a dance's mixer flag for the slot editor (issue #732).
   /// Returns false when the dance is unavailable.
-  bool _mixerForDance(String danceId) =>
-      _data?.dancesById[danceId]?.mixer ?? false;
+  bool _mixerForDance(String danceId) => _danceById(danceId)?.mixer ?? false;
 
   /// Shared renderer for the large-print Perform view (mirrors the dance
   /// detail / single-dance Perform screens).
@@ -949,6 +1003,66 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _dirty = true;
     });
     _scheduleAutosave();
+  }
+
+  /// Opens the dance editor seeded from the note-slot at [index]'s text
+  /// (issue #881's "create a dance from this" menu action), and — if a dance
+  /// was saved — converts that slot to reference it. The note text is always
+  /// discarded on conversion (Isaac decided: it only ever stood in for the
+  /// missing dance). Cancelling the editor (a null pop) leaves the slot
+  /// exactly as it was, still a note.
+  ///
+  /// Re-derives the slot's current index by id after the `await`, in case the
+  /// list changed while the editor was open (reordered, cut, or removed) — an
+  /// index captured before an `await` cannot be trusted afterward.
+  Future<void> _createDanceFromSlot(int index) async {
+    if (index < 0 || index >= _slots.length) return;
+    final slot = _slots[index];
+    final noteText = slot.text;
+    if (slot.danceId != null || noteText == null) return;
+    final seedTitle = danceTitleFromSlotNote(noteText);
+
+    final newId = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(
+        builder: (_) => DanceEditorScreen(initialTitle: seedTitle),
+      ),
+    );
+    if (newId == null || !mounted) return;
+
+    final currentIndex = _slots.indexWhere((s) => s.id == slot.id);
+    if (currentIndex == -1) return; // the slot was removed while we were away
+
+    // Populate the created-dance overlay immediately: CollectionData.watch's
+    // coalesced snapshot hasn't necessarily caught up to the new dance yet
+    // (see _createdDances' doc comment), so every dance lookup in this
+    // screen resolves it right away instead of showing the deleted-dance
+    // placeholder.
+    final dance = await _repos.dances.getById(newId);
+    if (dance != null) _createdDances[newId] = dance;
+    if (!mounted) return;
+
+    final current = _slots[currentIndex];
+    // Rebuild rather than `copyWith`: `copyWith` cannot clear `text` (only
+    // guestCaller/plannedMinutes/performedAt have clear flags — see
+    // ProgramSlot.copyWith), and the note is always cleared on conversion.
+    final updated = ProgramSlot(
+      id: current.id,
+      position: current.position,
+      danceId: newId,
+      isAlt: current.isAlt,
+      guestCaller: current.guestCaller,
+      plannedMinutes: current.plannedMinutes,
+      performedAt: current.performedAt,
+    );
+    _updateSlot(currentIndex, updated);
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      l10n.programsCreatedDanceFromNoteAnnounce(dance?.title ?? seedTitle),
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
+    );
   }
 
   Future<void> _markAllPerformed() async {
@@ -1260,7 +1374,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 program: _draftProgram!,
                 titleFor: _titleForDance,
                 venuesById: _exportVenuesById,
-                danceFor: (id) => _data?.dancesById[id],
+                danceFor: _danceById,
                 choreographerFor: (id) => _data?.choreographersById[id],
               ),
             if (!widget.isNew && _existing != null) ...[
@@ -1397,7 +1511,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         continue;
       }
       final dance =
-          data.dancesById[danceId] ??
+          _danceById(danceId) ??
           Dance(
             id: danceId,
             title: l10n.programsDeletedDanceFallback,
@@ -1413,6 +1527,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       rows,
       taxonomy: data.taxonomy,
       halves: rowHalves,
+      collisionMode: _matrixExactBeatCollision
+          ? MatrixCollisionMode.exactBeats
+          : MatrixCollisionMode.phrase,
     );
 
     return Column(
@@ -1568,6 +1685,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             onReorder: _reorderSlot,
             onSlotChanged: _updateSlot,
             onRemove: _removeSlot,
+            onCreateDance: _createDanceFromSlot,
+            onPickReplacementDance: _data == null
+                ? null
+                : _pickReplacementDance,
           ),
           const SizedBox(height: 80),
         ],
@@ -1619,6 +1740,73 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                       addedDanceCounts: counts,
                       // Keep the sheet open so callers can add several dances.
                       onAddDance: _addDanceSlot,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Opens a picker sheet that resolves to the id of the dance the user
+  /// tapped, or `null` if they closed it without picking one (issue #964).
+  /// Passed to [ProgramSlotListEditor.onPickReplacementDance], which the slot
+  /// edit dialog calls from its own [AlertDialog] — there is no nested
+  /// [Navigator] anywhere under `app/lib` (verified: `grep -rln "Navigator("
+  /// app/lib` returns no hits), so this sheet lands on the same root stack,
+  /// on top of the open dialog, exactly like [PerformAdjustSheet] already
+  /// nests its own insert-a-dance sheet inside its enclosing sheet.
+  ///
+  /// Unlike [_openPickerSheet] this pops on the **first** tap: replacing a
+  /// slot's dance is a single choice, not an open-ended add session.
+  Future<String?> _pickReplacementDance() async {
+    final data = _data;
+    if (data == null) return null;
+    final l10n = AppLocalizations.of(context);
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.85,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const SizedBox(width: 16),
+                    Text(
+                      l10n.programsReplaceDanceSheetTitle,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      key: const ValueKey('replace-picker-sheet-close'),
+                      tooltip: l10n.commonClose,
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: ValueListenableBuilder<Map<String, int>>(
+                    valueListenable: _pickerCounts,
+                    builder: (context, counts, _) => CollectionPicker(
+                      key: const ValueKey('replace-picker'),
+                      data: data,
+                      dialect: _dialect,
+                      enrichment: _enrichment,
+                      scrollController: scrollController,
+                      addedDanceCounts: counts,
+                      rowAction: PickerRowAction.replace,
+                      onAddDance: (danceId) =>
+                          Navigator.of(sheetContext).pop(danceId),
                     ),
                   ),
                 ),

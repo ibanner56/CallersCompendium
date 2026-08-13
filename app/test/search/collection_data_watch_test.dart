@@ -39,7 +39,14 @@ class _ParkFirstWatchQuery extends drift.QueryInterceptor {
   ) async {
     // `watchCollectionSources`'s sentinel; parking it stops the snapshot being
     // assembled at all.
-    if (_armed && !didPark && statement.trim() == 'SELECT 1') {
+    //
+    // Matched by its marker comment rather than by the whole statement: the
+    // sentinel's SQL text now varies per read set on purpose (issue #944 — see
+    // `watchCollectionSources`, where the marker is what keeps drift's stream
+    // cache from merging two different read sets into one stream). An exact
+    // `== 'SELECT 1'` compare silently stopped matching when that landed, so
+    // this parks on the substring that identifies the query instead.
+    if (_armed && !didPark && statement.contains('/* collection sources')) {
       didPark = true;
       await _gate.future;
     }

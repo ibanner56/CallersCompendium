@@ -806,6 +806,17 @@ class AppLocalizationsFr extends AppLocalizations {
       'Parcourez, modifiez et supprimez vos fiches de lieu réutilisables.';
 
   @override
+  String get settingsGeneralProgramsHeader => 'Programmes';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionTitle =>
+      'Signaler uniquement un chevauchement exact des temps';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionSubtitle =>
+      'Dans la matrice de programmation, ne signaler une figure répétée entre deux danses consécutives que lorsque ses temps se chevauchent réellement — pas seulement lorsqu\'elle tombe dans la même phrase nommée (A1, A2, B1, B2…). Désactivez pour signaler toute répétition dans la même phrase, même si les temps eux-mêmes ne se chevauchent pas.';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Performance';
 
   @override
@@ -2553,6 +2564,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programsMarkPerformedMenu => 'Marquer comme joué';
 
   @override
+  String get programsCreateDanceFromNoteMenu =>
+      'Créer une danse à partir de ceci';
+
+  @override
+  String programsCreatedDanceFromNoteAnnounce(String title) {
+    return '$title créée et liée à cet emplacement.';
+  }
+
+  @override
   String get programsRemoveSlotMenu => 'Supprimer le créneau';
 
   @override
@@ -2564,6 +2584,20 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsEditDanceSlotTitle => 'Modifier le créneau de danse';
+
+  @override
+  String get programsCurrentDanceLabel => 'Danse';
+
+  @override
+  String get programsReplaceDanceButton => 'Remplacer…';
+
+  @override
+  String get programsReplaceDanceSheetTitle => 'Remplacer la danse';
+
+  @override
+  String programsReplacedDanceAnnounce(String title) {
+    return 'Remplacé par $title.';
+  }
 
   @override
   String get programsEditNoteTitle => 'Modifier la note';
@@ -2676,7 +2710,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'yes': ', se répète dans la même phrase qu\'une danse voisine',
+      'phrase': ', se répète dans la même phrase qu\'une danse voisine',
+      'beats': ', partage des temps avec une danse voisine',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -2757,6 +2792,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get programsMatrixLegendCollision =>
       'Même phrase qu\'une danse voisine';
+
+  @override
+  String get programsMatrixLegendCollisionBeats =>
+      'Partage des temps avec une danse voisine';
 
   @override
   String get programsMatrixEmptyTitle => 'Pas encore de figures structurées';
@@ -3245,6 +3284,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get exportMatrixLegendCollision => 'Même phrase qu\'une danse voisine';
+
+  @override
+  String get exportMatrixLegendCollisionBeats =>
+      'Partage des temps avec une danse voisine';
 
   @override
   String exportMatrixOmittedCaption(int count) {
@@ -5343,6 +5386,16 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String collectionPickerAddedTooltip(String title) {
     return '$title ajoutée';
+  }
+
+  @override
+  String collectionPickerReplaceSemantic(String title) {
+    return 'Remplacer par $title';
+  }
+
+  @override
+  String collectionPickerReplaceTooltip(String title) {
+    return 'Remplacer par $title';
   }
 
   @override

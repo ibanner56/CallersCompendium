@@ -880,6 +880,18 @@
   "@settingsGeneralManageVenuesSubtitle": {
     "x-sourceSha256": "b908fb342897dfbf4a729c24b2246ea63e50ed835b5040f8d92f4d695bd271b8"
   },
+  "settingsGeneralProgramsHeader": "Programma's",
+  "@settingsGeneralProgramsHeader": {
+    "x-sourceSha256": "b6747064b2a6dd95ce21899cbfa4a60ed8980b4819014b7a4fce0d849a599fb2"
+  },
+  "settingsGeneralMatrixExactCollisionTitle": "Alleen exacte overlap van beats markeren",
+  "@settingsGeneralMatrixExactCollisionTitle": {
+    "x-sourceSha256": "6877e4a9153aed977728160cf1cccaf58f10d5b1500280fb8c9c0343213f1a2e"
+  },
+  "settingsGeneralMatrixExactCollisionSubtitle": "In de programmeringsmatrix wordt een herhaalde figuur tussen twee opeenvolgende dansen alleen gemarkeerd als de beats daadwerkelijk overlappen — niet alleen wanneer deze in dezelfde benoemde frase (A1, A2, B1, B2…) valt. Zet uit om elke herhaling in dezelfde frase te markeren, ook als de beats zelf niet overlappen.",
+  "@settingsGeneralMatrixExactCollisionSubtitle": {
+    "x-sourceSha256": "d433fe862ddd3dc1f28811aa7a4fdf16562e53f4ad6e664bb57d18586a978c77"
+  },
   "settingsGeneralPerformanceHeader": "Uitvoering",
   "@settingsGeneralPerformanceHeader": {
     "x-sourceSha256": "442aded87a55aa8c8f7d5ff0c30228150d4b1cb8756e4be138d615ca4708fc26"
@@ -2700,6 +2712,14 @@
   "@programsMarkPerformedMenu": {
     "x-sourceSha256": "50ceee1072dddf05fe4f81185b982a3dbf0020e22947700185d9efbd7c525c30"
   },
+  "programsCreateDanceFromNoteMenu": "Maak hier een dans van",
+  "@programsCreateDanceFromNoteMenu": {
+    "x-sourceSha256": "130c7632db6a305f4db35123196b1f1e31db894531359658d03bea133395d2de"
+  },
+  "programsCreatedDanceFromNoteAnnounce": "{title} aangemaakt en aan deze plek gekoppeld.",
+  "@programsCreatedDanceFromNoteAnnounce": {
+    "x-sourceSha256": "185833d5023bc165f402233bb842bdddfa040302b96dd8692065efbcf62617ea"
+  },
   "programsRemoveSlotMenu": "Slot verwijderen",
   "@programsRemoveSlotMenu": {
     "x-sourceSha256": "8c09755dcb48871f0812510a1114daad3de22a88e43c00ea8e40cb81d4e698a5"
@@ -2715,6 +2735,22 @@
   "programsEditDanceSlotTitle": "Dansslot bewerken",
   "@programsEditDanceSlotTitle": {
     "x-sourceSha256": "e43b72ebed0bf394c380361f216bf2939805be4c91f1c1354c5c54d7f126155e"
+  },
+  "programsCurrentDanceLabel": "Dans",
+  "@programsCurrentDanceLabel": {
+    "x-sourceSha256": "23d2d73543f9d7d92ac704296e5ee744037f5f4c938e21abf2c17002c4e9ba71"
+  },
+  "programsReplaceDanceButton": "Vervangen…",
+  "@programsReplaceDanceButton": {
+    "x-sourceSha256": "b4c0296774b90f9321ed926ebec00f646da5ed48bb096011d8740ea9c1bfdb94"
+  },
+  "programsReplaceDanceSheetTitle": "Dans vervangen",
+  "@programsReplaceDanceSheetTitle": {
+    "x-sourceSha256": "a58cf6cfa84cb9a9d99787953b4a08d557db63e60733835726fdcd861f69ea5f"
+  },
+  "programsReplacedDanceAnnounce": "Vervangen door {title}.",
+  "@programsReplacedDanceAnnounce": {
+    "x-sourceSha256": "81545740acf5aaf40fd7913f9073161ce69bb1beaf05c089d1d7f10e2d530891"
   },
   "programsEditNoteTitle": "Noot bewerken",
   "@programsEditNoteTitle": {
@@ -2784,9 +2820,9 @@
   "@programsMatrixFormationSemantic": {
     "x-sourceSha256": "3a3521ba348685d92642d35cb5148b4a48ad0ff7c15c4f3a1af88de6e895e2a2"
   },
-  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{niet aanwezig} other{aanwezig{collision, select, yes{, herhaalt in dezelfde frase als een aangrenzende dans} other{}}{debut, select, yes{, hier geïntroduceerd} other{}}{first, select, yes{, eerste figuur van de dans} other{}}}}",
+  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{niet aanwezig} other{aanwezig{collision, select, phrase{, herhaalt in dezelfde frase als een aangrenzende dans} beats{, deelt beats met een aangrenzende dans} other{}}{debut, select, yes{, hier geïntroduceerd} other{}}{first, select, yes{, eerste figuur van de dans} other{}}}}",
   "@programsMatrixCellSemantic": {
-    "x-sourceSha256": "9db9e695931294c9780a41459c426bbbe020cbcc5c18201dfcbc098eb9f9fa06"
+    "x-sourceSha256": "1f5b065b58ffef684670949c662ec681d2533f3887cf067de3b6235cb5892d00"
   },
   "programsMatrixChipQualifiedTitle": "{alt, select, yes{{half, select, first{{title} (alternatieve dans, eerste helft)} second{{title} (alternatieve dans, tweede helft)} other{{title} (alternatieve dans)}}} other{{half, select, first{{title} (eerste helft)} second{{title} (tweede helft)} other{{title}}}}}",
   "@programsMatrixChipQualifiedTitle": {
@@ -2835,6 +2871,10 @@
   "programsMatrixLegendCollision": "Zelfde frase als aangrenzende dans",
   "@programsMatrixLegendCollision": {
     "x-sourceSha256": "936bb9f875e0fa8ffd95ab55900d21e20214b1c419e4146b2ea566633a4c78b6"
+  },
+  "programsMatrixLegendCollisionBeats": "Deelt beats met aangrenzende dans",
+  "@programsMatrixLegendCollisionBeats": {
+    "x-sourceSha256": "0a365ce270024cc558afcc42e8145ea39eac9b4782a421d840c23c22c66eafb4"
   },
   "programsMatrixEmptyTitle": "Nog geen gestructureerde figuren",
   "@programsMatrixEmptyTitle": {
@@ -3339,6 +3379,10 @@
   "exportMatrixLegendCollision": "Zelfde frase als aangrenzende dans",
   "@exportMatrixLegendCollision": {
     "x-sourceSha256": "936bb9f875e0fa8ffd95ab55900d21e20214b1c419e4146b2ea566633a4c78b6"
+  },
+  "exportMatrixLegendCollisionBeats": "Deelt beats met aangrenzende dans",
+  "@exportMatrixLegendCollisionBeats": {
+    "x-sourceSha256": "0a365ce270024cc558afcc42e8145ea39eac9b4782a421d840c23c22c66eafb4"
   },
   "exportMatrixOmittedCaption": "{count, plural, =1{1 vrije-tekstslot} other{{count} vrije-tekstslots}} (pauzes, noten) weggelaten — de matrix toont alleen dansen.",
   "@exportMatrixOmittedCaption": {
@@ -5279,6 +5323,14 @@
   "collectionPickerAddedTooltip": "{title} toegevoegd",
   "@collectionPickerAddedTooltip": {
     "x-sourceSha256": "bd54be65ac53f59330b61ab0c531aaf980a42419312b19aae1448368389d785b"
+  },
+  "collectionPickerReplaceSemantic": "Vervangen door {title}",
+  "@collectionPickerReplaceSemantic": {
+    "x-sourceSha256": "0516003afeb88a71af6af6be66d7713cf7fceb973d3c4ac0cb4bf6a34bc5c5da"
+  },
+  "collectionPickerReplaceTooltip": "Vervangen door {title}",
+  "@collectionPickerReplaceTooltip": {
+    "x-sourceSha256": "0516003afeb88a71af6af6be66d7713cf7fceb973d3c4ac0cb4bf6a34bc5c5da"
   },
   "collectionPickerInProgramSemantic": "{title} staat al in het programma",
   "@collectionPickerInProgramSemantic": {

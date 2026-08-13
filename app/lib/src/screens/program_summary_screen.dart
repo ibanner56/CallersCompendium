@@ -323,39 +323,48 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     _replaceSubscription();
     _pendingFirst = first;
     _subCallerFilter = callerFilter;
-    _dataSub = CollectionData.watch(_repos, callerFilter: callerFilter).listen(
-      (data) {
-        _latestData = data;
-        if (!first.isCompleted) {
-          _pendingFirst = null;
-          first.complete(data);
-          return;
-        }
-        if (mounted) _refreshCoalescer.request();
-      },
-      onError: (Object error) {
-        if (!first.isCompleted) {
-          _pendingFirst = null;
-          first.completeError(error);
-          return;
-        }
-        // Unlike the program EDITOR, this pane can show an error and holds no
-        // unsaved work, so a failed refresh is surfaced rather than left to
-        // render stale data indefinitely.
-        if (mounted) setState(() => _error = error);
-      },
-      onDone: () {
-        // The source can end without ever emitting — the database closed while
-        // this pane was opening. Completing the future is what stops `_load`
-        // awaiting forever; the error routes to its existing catch.
-        if (!first.isCompleted) {
-          _pendingFirst = null;
-          first.completeError(
-            StateError('collection stream closed before its first value'),
-          );
-        }
-      },
-    );
+    _dataSub =
+        CollectionData.watch(
+          _repos,
+          callerFilter: callerFilter,
+          // This pane renders the program's venue label, which is resolved from
+          // a table `CollectionData` does not carry (issue #944). Opting in is
+          // what makes a venue rename reach `_venuesById` below; the Collection
+          // list renders no venue and deliberately does not opt in.
+          watchVenues: true,
+        ).listen(
+          (data) {
+            _latestData = data;
+            if (!first.isCompleted) {
+              _pendingFirst = null;
+              first.complete(data);
+              return;
+            }
+            if (mounted) _refreshCoalescer.request();
+          },
+          onError: (Object error) {
+            if (!first.isCompleted) {
+              _pendingFirst = null;
+              first.completeError(error);
+              return;
+            }
+            // Unlike the program EDITOR, this pane can show an error and holds no
+            // unsaved work, so a failed refresh is surfaced rather than left to
+            // render stale data indefinitely.
+            if (mounted) setState(() => _error = error);
+          },
+          onDone: () {
+            // The source can end without ever emitting — the database closed while
+            // this pane was opening. Completing the future is what stops `_load`
+            // awaiting forever; the error routes to its existing catch.
+            if (!first.isCompleted) {
+              _pendingFirst = null;
+              first.completeError(
+                StateError('collection stream closed before its first value'),
+              );
+            }
+          },
+        );
     return first.future;
   }
 

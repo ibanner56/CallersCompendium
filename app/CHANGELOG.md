@@ -13,6 +13,17 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Replace a program slot's dance in place, from the "Edit dance slot"
+  dialog.** Previously the only way to swap a dance was to add the
+  replacement, drag it into position, and delete the old one; the dialog now
+  offers a **Replace…** button that opens the dance picker and swaps the
+  slot's dance, keeping its caller note, guest caller, planned minutes, alt
+  flag, and mark-performed status exactly as they were. (#964)
+- A note slot in the program builder (e.g. one left behind when a title-list
+  import couldn't find a matching dance) can now be turned into a real dance
+  in place: its overflow menu offers **Create a dance from this**, which opens
+  the dance editor pre-filled from the note and links the slot to the new
+  dance once you save. (#881)
 - **Both the Collection and Programs lists now offer a "Last used" option** for
   their default sort in Settings ▸ Defaults, alongside the existing fixed
   choices. With "Last used" selected, the sort key **and** direction you pick
@@ -38,6 +49,25 @@ each release so store builds and tags can be traced back to an entry.
   previously flagged e.g. a lark allemande next to a robin allemande, or a
   plain swing next to a balance-and-swing, as the same figure repeating.
   (#933)
+- **New Settings ▸ General ▸ Programs setting: "Flag exact beat overlap
+  only."** Controls how the programming matrix's alert marker decides that a
+  repeated move in two back-to-back dances is worth a second look — see
+  **Changed** below for what the new default does differently. Turning it off
+  restores the matrix's previous same-phrase behavior. (#962)
+
+### Changed
+
+- **The programming matrix's same-figure alert now defaults to flagging exact
+  beat overlap, not merely the same named phrase.** Previously, a move
+  repeating in two back-to-back dances was flagged whenever it merely
+  *started* in the same phrase bucket (A1, A2, B1, B2…) — even when the two
+  occurrences' beats didn't actually overlap (e.g. one dance's balance at
+  beats 32–39 and the next dance's at beats 40–47, both in bucket B1 but never
+  overlapping). The matrix — and its PDF export, which always uses the same
+  legend — now flags a repeat only when the beats genuinely overlap between
+  the two dances. This changes what existing programs' matrices flag; turn
+  off the new "Flag exact beat overlap only" setting in Settings ▸ General ▸
+  Programs to restore the previous same-phrase behavior. (#962)
 
 ### Fixed
 
@@ -45,11 +75,21 @@ each release so store builds and tags can be traced back to an entry.
   (900px) no longer resets the list's current sort, search text, filters, or
   scroll position. Previously the list was rebuilt from scratch on that
   transition, discarding all of it. (#895)
+- **Renaming or deleting a venue now updates every place its name is shown.**
+  The programs list, a program's summary, the program editor's linked-venue
+  note, and a dance's calling history all kept showing the old name until you
+  navigated away and back — the venue manager itself updated, but nothing that
+  merely *displayed* a venue did. (#944)
 - The tag and author/choreographer picker on phones no longer closes after
   every other addition. Adding entries in a row now keeps the picker open
   each time until you save or close it yourself. Fixes an issue where a
   keyboard/screen-reader user who dismissed the picker without picking
   anything also had to navigate past the field twice to reopen it. (#894)
+- Settings ▸ Defaults ▸ Dance-authoring defaults now renders in the order
+  documented in the user guide. Two prior feature additions had each inserted
+  a new tile near the top of the list instead of at its documented
+  position — most visibly, splitting **Free-text entry** from **Figure
+  shorthands**, which are contextually dependent. (#942)
 
 ## [0.1.0] - 2026-08-12
 

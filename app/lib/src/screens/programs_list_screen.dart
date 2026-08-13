@@ -60,6 +60,26 @@ class ProgramsListScreen extends StatefulWidget {
 
 class _ProgramsListScreenState extends State<ProgramsListScreen> {
   late CompendiumRepositories _repos;
+
+  /// Whether one-time setup has run. **This is a contract between two changes
+  /// that arrived from opposite directions, and neither states it alone.**
+  ///
+  /// The subscription is opened exactly once per [State] — issue #768, so that
+  /// a rebuild neither drops nor duplicates it. Issue #895 then gave
+  /// [ProgramsShell] a [GlobalKey] so this State *survives* being reparented
+  /// across the 900 px breakpoint (`programs_shell.dart:44`), which is what
+  /// preserves the sort and scroll position through a rotation.
+  ///
+  /// Together those mean: **a rotation must not re-open the subscription.** It
+  /// does not today, because a reparented Element is moved rather than
+  /// destroyed — `deactivate` then `activate`, never `dispose` — so this flag
+  /// stays true and the only cancel paths ([dispose] and `_resubscribe`, which
+  /// immediately re-opens) are unreachable from a breakpoint crossing.
+  ///
+  /// What would falsify it: moving the subscription to `initState` and dropping
+  /// the flag (correct before #895, a leak after it), or overriding
+  /// `deactivate` to cancel — which would leave `_started` true with no stream,
+  /// i.e. a list that silently stops updating after the first rotation.
   bool _started = false;
 
   List<Program>? _programs;
@@ -120,7 +140,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   /// same defect as the wrong class name this replaces.
   void _subscribe() {
     _programsSub = _repos.programs
-        .watchAll()
+        // This list renders a venue label per row, resolved from a table
+        // `listAll` does not read, so the stream must be told (issue #944).
+        // The Collection list makes the opposite choice at its own seam: it
+        // renders no venue and deliberately does not opt in.
+        .watchAll(includeVenues: true)
         // `asyncMap`, not a handler that awaits inside `listen`.
         //
         // Resolving venue labels is asynchronous, and `listen` does not
@@ -150,10 +174,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   /// The catalogue is read only when a program actually links one;
   /// [ProgramListTile] falls back to `Program.venue` with an empty map.
   ///
-  /// This read is NOT part of the watched set, so a venue rename does not
-  /// re-emit and the label here stays stale until some other write does
-  /// (issue #944). Stated because an unstated boundary is indistinguishable
-  /// from a missing table in `readsFrom`.
+  /// This read IS covered by the watched set (issue #944): the subscription
+  /// opts into `venues`, so a rename re-emits and this re-reads. It stays a
+  /// separate query rather than part of `listAll`, because a program's venue is
+  /// a label resolved beside the row, not a column of it.
   Future<({List<Program> programs, Map<String, Venue> venuesById})> _withVenues(
     List<Program> programs,
   ) async {

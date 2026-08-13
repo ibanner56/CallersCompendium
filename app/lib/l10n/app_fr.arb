@@ -880,6 +880,18 @@
   "@settingsGeneralManageVenuesSubtitle": {
     "x-sourceSha256": "b908fb342897dfbf4a729c24b2246ea63e50ed835b5040f8d92f4d695bd271b8"
   },
+  "settingsGeneralProgramsHeader": "Programmes",
+  "@settingsGeneralProgramsHeader": {
+    "x-sourceSha256": "b6747064b2a6dd95ce21899cbfa4a60ed8980b4819014b7a4fce0d849a599fb2"
+  },
+  "settingsGeneralMatrixExactCollisionTitle": "Signaler uniquement un chevauchement exact des temps",
+  "@settingsGeneralMatrixExactCollisionTitle": {
+    "x-sourceSha256": "6877e4a9153aed977728160cf1cccaf58f10d5b1500280fb8c9c0343213f1a2e"
+  },
+  "settingsGeneralMatrixExactCollisionSubtitle": "Dans la matrice de programmation, ne signaler une figure répétée entre deux danses consécutives que lorsque ses temps se chevauchent réellement — pas seulement lorsqu'elle tombe dans la même phrase nommée (A1, A2, B1, B2…). Désactivez pour signaler toute répétition dans la même phrase, même si les temps eux-mêmes ne se chevauchent pas.",
+  "@settingsGeneralMatrixExactCollisionSubtitle": {
+    "x-sourceSha256": "d433fe862ddd3dc1f28811aa7a4fdf16562e53f4ad6e664bb57d18586a978c77"
+  },
   "settingsGeneralPerformanceHeader": "Performance",
   "@settingsGeneralPerformanceHeader": {
     "x-sourceSha256": "442aded87a55aa8c8f7d5ff0c30228150d4b1cb8756e4be138d615ca4708fc26"
@@ -2700,6 +2712,14 @@
   "@programsMarkPerformedMenu": {
     "x-sourceSha256": "50ceee1072dddf05fe4f81185b982a3dbf0020e22947700185d9efbd7c525c30"
   },
+  "programsCreateDanceFromNoteMenu": "Créer une danse à partir de ceci",
+  "@programsCreateDanceFromNoteMenu": {
+    "x-sourceSha256": "130c7632db6a305f4db35123196b1f1e31db894531359658d03bea133395d2de"
+  },
+  "programsCreatedDanceFromNoteAnnounce": "{title} créée et liée à cet emplacement.",
+  "@programsCreatedDanceFromNoteAnnounce": {
+    "x-sourceSha256": "185833d5023bc165f402233bb842bdddfa040302b96dd8692065efbcf62617ea"
+  },
   "programsRemoveSlotMenu": "Supprimer le créneau",
   "@programsRemoveSlotMenu": {
     "x-sourceSha256": "8c09755dcb48871f0812510a1114daad3de22a88e43c00ea8e40cb81d4e698a5"
@@ -2715,6 +2735,22 @@
   "programsEditDanceSlotTitle": "Modifier le créneau de danse",
   "@programsEditDanceSlotTitle": {
     "x-sourceSha256": "e43b72ebed0bf394c380361f216bf2939805be4c91f1c1354c5c54d7f126155e"
+  },
+  "programsCurrentDanceLabel": "Danse",
+  "@programsCurrentDanceLabel": {
+    "x-sourceSha256": "23d2d73543f9d7d92ac704296e5ee744037f5f4c938e21abf2c17002c4e9ba71"
+  },
+  "programsReplaceDanceButton": "Remplacer…",
+  "@programsReplaceDanceButton": {
+    "x-sourceSha256": "b4c0296774b90f9321ed926ebec00f646da5ed48bb096011d8740ea9c1bfdb94"
+  },
+  "programsReplaceDanceSheetTitle": "Remplacer la danse",
+  "@programsReplaceDanceSheetTitle": {
+    "x-sourceSha256": "a58cf6cfa84cb9a9d99787953b4a08d557db63e60733835726fdcd861f69ea5f"
+  },
+  "programsReplacedDanceAnnounce": "Remplacé par {title}.",
+  "@programsReplacedDanceAnnounce": {
+    "x-sourceSha256": "81545740acf5aaf40fd7913f9073161ce69bb1beaf05c089d1d7f10e2d530891"
   },
   "programsEditNoteTitle": "Modifier la note",
   "@programsEditNoteTitle": {
@@ -2784,9 +2820,9 @@
   "@programsMatrixFormationSemantic": {
     "x-sourceSha256": "3a3521ba348685d92642d35cb5148b4a48ad0ff7c15c4f3a1af88de6e895e2a2"
   },
-  "programsMatrixCellSemantic": "{dance}, {move} : {present, select, no{absent} other{présent{collision, select, yes{, se répète dans la même phrase qu'une danse voisine} other{}}{debut, select, yes{, introduit ici} other{}}{first, select, yes{, première figure de la danse} other{}}}}",
+  "programsMatrixCellSemantic": "{dance}, {move} : {present, select, no{absent} other{présent{collision, select, phrase{, se répète dans la même phrase qu'une danse voisine} beats{, partage des temps avec une danse voisine} other{}}{debut, select, yes{, introduit ici} other{}}{first, select, yes{, première figure de la danse} other{}}}}",
   "@programsMatrixCellSemantic": {
-    "x-sourceSha256": "9db9e695931294c9780a41459c426bbbe020cbcc5c18201dfcbc098eb9f9fa06"
+    "x-sourceSha256": "1f5b065b58ffef684670949c662ec681d2533f3887cf067de3b6235cb5892d00"
   },
   "programsMatrixChipQualifiedTitle": "{alt, select, yes{{half, select, first{{title} (danse alternative, première partie)} second{{title} (danse alternative, deuxième partie)} other{{title} (danse alternative)}}} other{{half, select, first{{title} (première partie)} second{{title} (deuxième partie)} other{{title}}}}}",
   "@programsMatrixChipQualifiedTitle": {
@@ -2835,6 +2871,10 @@
   "programsMatrixLegendCollision": "Même phrase qu'une danse voisine",
   "@programsMatrixLegendCollision": {
     "x-sourceSha256": "936bb9f875e0fa8ffd95ab55900d21e20214b1c419e4146b2ea566633a4c78b6"
+  },
+  "programsMatrixLegendCollisionBeats": "Partage des temps avec une danse voisine",
+  "@programsMatrixLegendCollisionBeats": {
+    "x-sourceSha256": "0a365ce270024cc558afcc42e8145ea39eac9b4782a421d840c23c22c66eafb4"
   },
   "programsMatrixEmptyTitle": "Pas encore de figures structurées",
   "@programsMatrixEmptyTitle": {
@@ -3339,6 +3379,10 @@
   "exportMatrixLegendCollision": "Même phrase qu'une danse voisine",
   "@exportMatrixLegendCollision": {
     "x-sourceSha256": "936bb9f875e0fa8ffd95ab55900d21e20214b1c419e4146b2ea566633a4c78b6"
+  },
+  "exportMatrixLegendCollisionBeats": "Partage des temps avec une danse voisine",
+  "@exportMatrixLegendCollisionBeats": {
+    "x-sourceSha256": "0a365ce270024cc558afcc42e8145ea39eac9b4782a421d840c23c22c66eafb4"
   },
   "exportMatrixOmittedCaption": "{count, plural, =1{1 créneau texte libre} other{{count} créneaux texte libre}} (pauses, notes) omis — la matrice affiche uniquement les danses.",
   "@exportMatrixOmittedCaption": {
@@ -5279,6 +5323,14 @@
   "collectionPickerAddedTooltip": "{title} ajoutée",
   "@collectionPickerAddedTooltip": {
     "x-sourceSha256": "bd54be65ac53f59330b61ab0c531aaf980a42419312b19aae1448368389d785b"
+  },
+  "collectionPickerReplaceSemantic": "Remplacer par {title}",
+  "@collectionPickerReplaceSemantic": {
+    "x-sourceSha256": "0516003afeb88a71af6af6be66d7713cf7fceb973d3c4ac0cb4bf6a34bc5c5da"
+  },
+  "collectionPickerReplaceTooltip": "Remplacer par {title}",
+  "@collectionPickerReplaceTooltip": {
+    "x-sourceSha256": "0516003afeb88a71af6af6be66d7713cf7fceb973d3c4ac0cb4bf6a34bc5c5da"
   },
   "collectionPickerInProgramSemantic": "{title} est déjà dans le programme",
   "@collectionPickerInProgramSemantic": {

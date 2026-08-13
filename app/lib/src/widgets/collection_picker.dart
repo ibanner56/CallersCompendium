@@ -33,6 +33,7 @@ class CollectionPicker extends StatefulWidget {
     required this.onAddDance,
     this.addedDanceCounts = const {},
     this.scrollController,
+    this.rowAction = PickerRowAction.add,
   });
 
   /// Preloaded collection vocabulary/dances (loaded once by the builder and
@@ -63,9 +64,22 @@ class CollectionPicker extends StatefulWidget {
   /// list scrolling coordinate correctly.
   final ScrollController? scrollController;
 
+  /// What tapping a row does, purely for the row's tooltip/semantic label/icon
+  /// (issue #964). [onAddDance] fires identically either way — this only
+  /// changes what the row *says* it does, so a host whose tap target replaces
+  /// rather than adds a slot's dance doesn't mislabel the action for assistive
+  /// technology (WCAG 4.1.2). Defaults to [PickerRowAction.add], matching every
+  /// existing consumer.
+  final PickerRowAction rowAction;
+
   @override
   State<CollectionPicker> createState() => _CollectionPickerState();
 }
+
+/// What a [CollectionPicker] row's tap target does, driving its tooltip,
+/// semantic label and icon (issue #964). Never changes [CollectionPicker]'s
+/// behaviour — [CollectionPicker.onAddDance] fires the same way regardless.
+enum PickerRowAction { add, replace }
 
 class _CollectionPickerState extends State<CollectionPicker> {
   static const Duration _debounce = Duration(milliseconds: 250);
@@ -449,7 +463,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
         // thing twice.
         return Semantics(
           button: true,
-          label: l10n.collectionPickerAddSemantic(entry.dance.title),
+          label: widget.rowAction == PickerRowAction.replace
+              ? l10n.collectionPickerReplaceSemantic(entry.dance.title)
+              : l10n.collectionPickerAddSemantic(entry.dance.title),
           child: Stack(
             children: [
               DanceListTile(
@@ -497,7 +513,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
                 right: 8,
                 child: IconButton(
                   key: ValueKey('picker-add-${entry.dance.id}'),
-                  tooltip: confirming
+                  tooltip: widget.rowAction == PickerRowAction.replace
+                      ? l10n.collectionPickerReplaceTooltip(entry.dance.title)
+                      : confirming
                       ? l10n.collectionPickerAddedTooltip(entry.dance.title)
                       : l10n.collectionPickerAddTooltip(entry.dance.title),
                   // Both this button and the persistent marker above use
@@ -506,7 +524,11 @@ class _CollectionPickerState extends State<CollectionPicker> {
                   // button stays enabled throughout — a dance may legitimately
                   // appear in a program more than once.
                   icon: Icon(
-                    confirming ? Icons.check_circle : Icons.add_circle_outline,
+                    widget.rowAction == PickerRowAction.replace
+                        ? Icons.swap_horiz
+                        : confirming
+                        ? Icons.check_circle
+                        : Icons.add_circle_outline,
                   ),
                   onPressed: () => _handleAdd(entry.dance.id),
                 ),

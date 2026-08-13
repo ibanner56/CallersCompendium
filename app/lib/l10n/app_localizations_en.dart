@@ -787,6 +787,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Browse, edit, and delete your reusable venue records.';
 
   @override
+  String get settingsGeneralProgramsHeader => 'Programs';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionTitle =>
+      'Flag exact beat overlap only';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionSubtitle =>
+      'In the programming matrix, only flag a repeated move between two back-to-back dances when its beats actually overlap — not just when it lands in the same named phrase (A1, A2, B1, B2…). Turn off to flag any repeat in the same phrase, even if the beats themselves don’t overlap.';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Performance';
 
   @override
@@ -2515,6 +2526,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsMarkPerformedMenu => 'Mark performed';
 
   @override
+  String get programsCreateDanceFromNoteMenu => 'Create a dance from this';
+
+  @override
+  String programsCreatedDanceFromNoteAnnounce(String title) {
+    return 'Created $title and linked this slot to it.';
+  }
+
+  @override
   String get programsRemoveSlotMenu => 'Remove slot';
 
   @override
@@ -2525,6 +2544,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsEditDanceSlotTitle => 'Edit dance slot';
+
+  @override
+  String get programsCurrentDanceLabel => 'Dance';
+
+  @override
+  String get programsReplaceDanceButton => 'Replace…';
+
+  @override
+  String get programsReplaceDanceSheetTitle => 'Replace dance';
+
+  @override
+  String programsReplacedDanceAnnounce(String title) {
+    return 'Replaced with $title.';
+  }
 
   @override
   String get programsEditNoteTitle => 'Edit note';
@@ -2636,7 +2669,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'yes': ', repeats in the same phrase as an adjacent dance',
+      'phrase': ', repeats in the same phrase as an adjacent dance',
+      'beats': ', shares beats with an adjacent dance',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -2716,6 +2750,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsMatrixLegendCollision => 'Same phrase as adjacent dance';
+
+  @override
+  String get programsMatrixLegendCollisionBeats =>
+      'Shares beats with an adjacent dance';
 
   @override
   String get programsMatrixEmptyTitle => 'No structured figures yet';
@@ -3199,6 +3237,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportMatrixLegendCollision => 'Same phrase as adjacent dance';
+
+  @override
+  String get exportMatrixLegendCollisionBeats =>
+      'Shares beats with an adjacent dance';
 
   @override
   String exportMatrixOmittedCaption(int count) {
@@ -5263,6 +5305,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String collectionPickerAddedTooltip(String title) {
     return 'Added $title';
+  }
+
+  @override
+  String collectionPickerReplaceSemantic(String title) {
+    return 'Replace with $title';
+  }
+
+  @override
+  String collectionPickerReplaceTooltip(String title) {
+    return 'Replace with $title';
   }
 
   @override
