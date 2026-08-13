@@ -210,7 +210,9 @@ symlink you can point your editor/PATH at — see the FVM docs.)
 2. Make your change. Domain logic (taxonomy, dialect, storage, imports) belongs
    in `packages/compendium_core/` and must stay Flutter-free; the UI lives in
    `app/`.
-3. Run the checks CI enforces, from the repo root:
+3. Run the fast local checks, from the repo root. **These are a high-signal
+   subset of what CI enforces, not the whole of it** — a clean run here does not
+   guarantee a green CI:
 
    ```sh
    fvm dart format .                                   # format (CI fails on diffs)
@@ -218,6 +220,20 @@ symlink you can point your editor/PATH at — see the FVM docs.)
    (cd packages/compendium_core && fvm dart test)      # core unit tests
    (cd app && fvm flutter test)                        # app / widget tests
    ```
+
+   The authoritative list of what gates a PR is
+   [`.github/workflows/_checks.yml`](.github/workflows/_checks.yml); it runs many
+   more steps than these four, and you should run the one that covers your change
+   from there. The one that most often bites without a local equivalent is the
+   figure-fixture ratchet: `dart test` does not run it over the real suites, so
+   an invalidated fixture passes locally and fails only in CI — where it looks
+   like flakiness rather than a missing local step.
+
+   ```sh
+   (cd packages/compendium_core && fvm dart run tool/check_fixture_validity.dart)
+   ```
+
+   That is one example, not an exhaustive list; consult `_checks.yml` for the rest.
 
 4. Open a PR; it must pass CI (build, tests, lint, formatting) before review.
 
