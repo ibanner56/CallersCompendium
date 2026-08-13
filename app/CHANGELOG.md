@@ -48,6 +48,11 @@ each release so store builds and tags can be traced back to an entry.
   each time until you save or close it yourself. Fixes an issue where a
   keyboard/screen-reader user who dismissed the picker without picking
   anything also had to navigate past the field twice to reopen it. (#894)
+- Settings ▸ Defaults ▸ Dance-authoring defaults now renders in the order
+  documented in the user guide. Two prior feature additions had each inserted
+  a new tile near the top of the list instead of at its documented
+  position — most visibly, splitting **Free-text entry** from **Figure
+  shorthands**, which are contextually dependent. (#942)
 
 ## [0.1.0] - 2026-08-12
 
