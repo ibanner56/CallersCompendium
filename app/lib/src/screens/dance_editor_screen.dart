@@ -9,6 +9,7 @@ import '../data/collection_refresh_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../data/shorthand_mappings_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/choreographer_details_dialog.dart';
@@ -181,6 +182,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           await _repos.settings.get(kDefaultMoveParamOverridesKey),
         );
       } catch (_) {
+        // diagnostics: silent — per-move param defaults read failed; falls back to empty map.
         _moveParamDefaults = {};
       }
 
@@ -190,6 +192,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         final stored = await _repos.settings.get(kFreeTextEntryKey);
         _freeTextEntry = stored is bool ? stored : false;
       } catch (_) {
+        // diagnostics: silent — free-text entry toggle read failed; falls back to off (structured behaviour).
         _freeTextEntry = false;
       }
 
@@ -207,7 +210,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           (_) => _maybeShowRestoreDialog(),
         );
       }
-    } catch (error) {
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'dance_editor_screen._load');
       if (mounted) setState(() => _loadError = error);
     }
   }
@@ -238,6 +242,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         Navigator.of(context).pop(dance.id);
       }
     } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'dance_editor_screen._save');
       if (kDebugMode) {
         debugPrint('Could not save dance: $error\n$stackTrace');
       }

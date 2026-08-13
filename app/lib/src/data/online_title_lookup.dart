@@ -117,6 +117,7 @@ Future<OnlineTitleLookupResult> lookupUniqueExactTitle(
       OnlineSearchQuery(title: title, requireFigures: requireFigures),
     );
   } on Exception catch (_) {
+    // diagnostics: silent — fetch failure surfaced via OnlineTitleMiss(fetchError) to callers
     return const OnlineTitleMiss(OnlineTitleLookupFailure.fetchError);
   }
   if (rows.isEmpty) {

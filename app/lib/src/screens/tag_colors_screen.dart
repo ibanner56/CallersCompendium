@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/color_edit_dialog.dart';
 import '../widgets/section_header.dart';
@@ -65,6 +66,11 @@ class _TagColorsScreenState extends State<TagColorsScreen> {
         });
       },
       onError: (Object e) {
+        logCaughtError(
+          e,
+          StackTrace.current,
+          source: 'tag_colors_screen._subscribe',
+        );
         if (!mounted) return;
         setState(() {
           _loadError = e;
@@ -90,7 +96,8 @@ class _TagColorsScreenState extends State<TagColorsScreen> {
       // always identical to updated.id.
       // ignore: unused_result
       await _repos.tags.upsert(updated);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'tag_colors_screen._setColor');
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.settingsTagColoursSaveError)),

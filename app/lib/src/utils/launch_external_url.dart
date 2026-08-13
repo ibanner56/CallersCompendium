@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../diagnostics/error_log.dart';
 
 /// Parses [url] into a launchable `Uri`, returning `null` unless it is a
 /// non-empty, well-formed **http/https** URL. Guards the UI so we never render
@@ -46,9 +47,11 @@ Future<void> launchExternalUrl(BuildContext context, String url) async {
   try {
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched) reportFailure();
-  } on PlatformException {
+  } on PlatformException catch (e, s) {
+    logCaughtError(e, s, source: 'launch_external_url.launchExternalUrl');
     reportFailure();
-  } on Exception {
+  } on Exception catch (e, s) {
+    logCaughtError(e, s, source: 'launch_external_url.launchExternalUrl');
     reportFailure();
   }
 }

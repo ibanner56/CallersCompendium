@@ -187,12 +187,16 @@ Future<DownloadOutcome> downloadArtifact(
         uri,
       ).timeout(kUpdateDownloadTimeout);
     } on TimeoutException {
+      // diagnostics: silent — returns DownloadOutcome to the update-layer
+      // caller, not UI.
       return DownloadOutcome.networkError('connection timed out');
     } on _RedirectException catch (e) {
+      // diagnostics: silent — redirect policy violation; returns DownloadOutcome to update-layer caller, not UI.
       return e.refusedHost
           ? DownloadOutcome.refusedHost(e.message)
           : DownloadOutcome.networkError(e.message);
     } on Object catch (e) {
+      // diagnostics: silent — HTTP request failed (network/redirect error); returns DownloadOutcome to update-layer caller, not UI.
       return DownloadOutcome.networkError(e.toString());
     }
 
@@ -243,6 +247,7 @@ Future<DownloadOutcome> downloadArtifact(
       await destination.create(exclusive: true);
       createdDestination = true;
     } on Object catch (e) {
+      // diagnostics: silent — destination file creation failed; returns DownloadOutcome to update-layer caller, not UI.
       return DownloadOutcome.networkError(
         'could not create destination file securely: $e',
       );
@@ -294,6 +299,8 @@ Future<DownloadOutcome> downloadArtifact(
         );
       },
       onError: (Object e) {
+        // diagnostics: silent — returns DownloadOutcome to the update-layer
+        // caller, not UI.
         if (!done.isCompleted) {
           done.complete(DownloadOutcome.networkError(e.toString()));
         }
@@ -328,6 +335,7 @@ Future<DownloadOutcome> downloadArtifact(
       await sink.flush();
       await sink.close();
     } on Object catch (e) {
+      // diagnostics: silent — sink flush/close failed; returns DownloadOutcome to update-layer caller, not UI.
       succeeded = false;
       if (outcome.isSuccess) {
         return DownloadOutcome.networkError(
@@ -344,14 +352,16 @@ Future<DownloadOutcome> downloadArtifact(
       try {
         await sink.close();
       } on Object {
-        // ignore
+        // diagnostics: silent — ignore; the download's real outcome (success
+        // or failure) is already determined above.
       }
     }
     if (!succeeded && createdDestination) {
       try {
         if (await destination.exists()) await destination.delete();
       } on Object {
-        // Best-effort cleanup; never mask the real outcome with a delete error.
+        // diagnostics: silent — best-effort cleanup; never mask the real
+        // outcome with a delete error.
       }
     }
     if (ownClient) effectiveClient.close();

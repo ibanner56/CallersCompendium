@@ -252,6 +252,7 @@ BackupReadResult decodeBackup(String json) {
   try {
     root = jsonDecode(json);
   } on FormatException catch (e) {
+    // diagnostics: silent — top-level JSON parse failed; returns fatal read result to caller.
     return BackupReadResult(
       document: _emptyDoc(),
       errors: [
@@ -319,6 +320,7 @@ BackupReadResult decodeBackup(String json) {
     try {
       inner = jsonDecode(rawPayload);
     } on FormatException catch (e) {
+      // diagnostics: silent — envelope payload JSON parse failed; returns fatal read result to caller.
       return BackupReadResult(
         document: _emptyDoc(),
         errors: [
@@ -477,6 +479,7 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
                 Dialect.fromJson(entry.cast<String, Object?>()),
               );
             } on Object catch (e) {
+              // diagnostics: silent — custom dialect parse failed; partial-record skip, error recorded in ArchiveError list.
               errors.add(
                 ArchiveError(
                   kind: ArchiveErrorKind.read,
@@ -506,6 +509,7 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
                 CustomTheme.fromJson(entry.cast<String, Object?>()),
               );
             } on Object catch (e) {
+              // diagnostics: silent — custom theme parse failed; partial-record skip, error recorded in ArchiveError list.
               errors.add(
                 ArchiveError(
                   kind: ArchiveErrorKind.read,

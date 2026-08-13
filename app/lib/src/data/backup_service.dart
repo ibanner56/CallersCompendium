@@ -277,6 +277,7 @@ class BackupService {
     try {
       await _applyAppSettings(doc, warnings);
     } on Exception catch (e, st) {
+      // diagnostics: silent — settings-apply failed; outcome returned to caller (general_section._onRestoreBackup) which handles user surface.
       if (kDebugMode) {
         debugPrint('Restore: settings-apply failed after core commit: $e\n$st');
       }
@@ -336,6 +337,7 @@ class BackupService {
     try {
       await _applyAppSettings(read.document, warnings);
     } on Exception catch (e, st) {
+      // diagnostics: silent — settings-apply retry failed; outcome returned to caller (general_section._retrySettingsRestore) which handles user surface.
       if (kDebugMode) {
         debugPrint('Restore: settings-apply retry failed: $e\n$st');
       }
@@ -430,7 +432,8 @@ class BackupService {
           try {
             result.add(Dialect.fromJson(entry.cast<String, Object?>()));
           } on Object {
-            // Skip a corrupt entry rather than losing the whole library.
+            // diagnostics: silent — skip a corrupt entry rather than losing
+            // the whole library.
           }
         }
       }
@@ -446,7 +449,8 @@ class BackupService {
           try {
             result.add(CustomTheme.fromJson(entry.cast<String, Object?>()));
           } on Object {
-            // Skip a corrupt entry rather than losing every theme.
+            // diagnostics: silent — skip a corrupt entry rather than losing
+            // every theme.
           }
         }
       }

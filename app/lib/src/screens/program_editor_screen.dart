@@ -20,6 +20,7 @@ import '../data/calling_history_caller_filter.dart';
 import '../data/validation_issue_labels.dart';
 import '../data/venue_entity_mode_scope.dart';
 import '../data/venue_label.dart';
+import '../diagnostics/error_log.dart';
 
 import '../editor/program_editor_draft_codec.dart';
 import '../export/export_labels_l10n.dart';
@@ -292,12 +293,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       if (!mounted) return;
       setState(() => _data = _latestData ?? data);
     } on _SupersededLoad {
-      // A newer re-subscribe replaced this one; it owns `_data` now.
+      // diagnostics: silent — a newer re-subscribe replaced this one; it owns
+      // `_data` now. Not a failure, just a superseded race loser.
       return;
     } catch (_) {
-      // Keep the last good picker data rather than blanking it, matching the
-      // stream's own later-failure policy: this is reference data beside an
-      // editor holding unsaved work.
+      // diagnostics: silent — keep last good picker data beside unsaved work; blanking it would be worse than stale.
     }
   }
 
@@ -403,15 +403,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           },
           onError: (Object error) {
             if (!first.isCompleted) {
+              // diagnostics: silent — propagates via `first.completeError`, which
+              // `_resubscribePicker`'s `catch` (logged there) or `_load`'s `catch`
+              // (also logged) receives, depending on which call opened this
+              // subscription; not logged twice for the same failure.
               _pendingFirst = null;
               first.completeError(error);
               return;
             }
-            // A LATER failure keeps the picker on its last good data rather than
-            // blanking it: this is reference data beside an editor holding unsaved
-            // work, so an empty picker would be worse than a slightly stale one.
-            // Deliberately not silent — it surfaces through the screen's own error
-            // state only if nothing has loaded yet, which the branch above covers.
+            // diagnostics: silent — a LATER failure keeps the picker on its last
+            // good data rather than blanking it: this is reference data beside an
+            // editor holding unsaved work, so an empty picker would be worse than
+            // a slightly stale one. Only a first-load failure (branch above) is
+            // logged, via wherever it propagates to.
           },
           onDone: () {
             // The source can end without ever emitting — the database closed while
@@ -486,11 +490,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // setState so the editor is fully built before any dialog appears.
       await _maybeStageDraft();
     } on _SupersededLoad {
-      // Superseded before a snapshot arrived; the load that replaced this one
-      // owns `_loaded`/`_loadError`. Returning leaves the editor on its
-      // loading state for that load to clear.
+      // diagnostics: silent — superseded before a snapshot arrived; the load
+      // that replaced this one owns `_loaded`/`_loadError`. Returning leaves
+      // the editor on its loading state for that load to clear.
       return;
-    } catch (error) {
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'program_editor_screen._load');
       if (mounted) {
         setState(() {
           _loadError = error;
@@ -526,7 +531,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final value = stored is String ? stored.trim() : '';
       if (value.isNotEmpty) controller.text = value;
     } catch (_) {
-      // Leave the field blank if this default can't be read.
+      // diagnostics: silent — default field value read failed; leaves the field blank.
     }
   }
 
@@ -610,8 +615,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final encoded = encodeProgramDraft(_captureDraft());
       await _repos.settings.set(_draftKey, encoded);
     } catch (_) {
-      // A draft write failure must never disrupt editing, nor permanently
-      // stall the save chain for later autosaves; the next edit retries.
+      // diagnostics: silent — draft write failed; must never stall editing or permanently block later autosaves.
     }
   }
 
@@ -629,7 +633,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     try {
       await _repos.settings.remove(_draftKey, permanent: true);
     } catch (_) {
-      // Best-effort cleanup; a failure here is non-fatal.
+      // diagnostics: silent — draft removal best-effort; non-fatal.
     }
   }
 
@@ -644,7 +648,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         draft = decodeProgramDraft(await _repos.settings.get(_draftKey));
       }
     } catch (_) {
-      // Corrupt / unrecognised draft version — silently discard.
+      // diagnostics: silent — corrupt/unrecognised draft version; discard rather than fail the editor load.
       await _clearDraft();
       draft = null;
     }
@@ -806,6 +810,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         updatedAt: now,
       );
     } catch (_) {
+      // diagnostics: silent — Program construction failed (empty slots or invalid state); returns null to caller.
       return null;
     }
   }
@@ -863,7 +868,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 ProgramsRefreshScope.bump(context);
                 return;
               } on Exception catch (_) {
-                // Fall through to keep the change in the working slots.
+                // diagnostics: silent — slot mark-performed stamp failed; keeps working state.
               }
             }
             if (!mounted) return;
@@ -1129,6 +1134,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         slots: _renumber(_slots),
       );
     } catch (_) {
+      // diagnostics: silent — ProgramEdit construction failed (invalid field combination); returns null, blocking _save.
       return null;
     }
   }
@@ -1220,7 +1226,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       } else {
         Navigator.of(context).pop(id);
       }
-    } catch (error) {
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'program_editor_screen._save');
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(

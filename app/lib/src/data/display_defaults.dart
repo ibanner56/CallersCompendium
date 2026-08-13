@@ -273,7 +273,7 @@ List<Figure> danceFiguresTemplateFromStored(Object? stored) {
     try {
       return decodeFigures(stored);
     } catch (_) {
-      // Empty / malformed JSON ⇒ fall back to the default template.
+      // diagnostics: silent — empty/malformed JSON falls back to the default template
     }
   }
   return defaultNewDanceFigureTemplate();
@@ -303,6 +303,7 @@ Map<String, Map<String, Object?>> moveParamOverridesFromStored(Object? stored) {
   try {
     decoded = jsonDecode(stored);
   } catch (_) {
+    // diagnostics: silent — malformed JSON falls back to an empty override map
     return result;
   }
   if (decoded is! Map) return result;

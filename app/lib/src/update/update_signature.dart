@@ -80,8 +80,8 @@ Future<bool> verifyManifestSignatureWith(
     publicKeyBytes = base64.decode(trimmedKey);
     signatureBytes = base64.decode(trimmedSig);
   } on FormatException {
-    // A pinned key or signature that is not valid base64 is malformed input at
-    // the trust boundary => refuse.
+    // diagnostics: silent — a pinned key or signature that is not valid base64 is malformed input;
+    // fails closed (returns false) at the trust boundary
     return false;
   }
 
@@ -100,7 +100,7 @@ Future<bool> verifyManifestSignatureWith(
     final signature = Signature(signatureBytes, publicKey: publicKey);
     return await algorithm.verify(manifestBytes, signature: signature);
   } on Object {
-    // Any unexpected verification error fails closed rather than surfacing.
+    // diagnostics: silent — unexpected verification error from the crypto library; fails closed
     return false;
   }
 }

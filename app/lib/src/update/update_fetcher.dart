@@ -74,6 +74,8 @@ Future<List<int>?> fetchUpdateManifest(
     if (bytes == null || _isBlank(bytes)) return null;
     return bytes;
   } on TimeoutException {
+    // diagnostics: silent — a transport timeout is a silent no-op per the
+    // privacy contract just below; never surfaced as an error.
     return null;
   } on Object {
     // Any transport failure (offline, DNS, TLS) is a silent no-op per the
@@ -107,6 +109,8 @@ Future<List<int>?> _readBoundedBody(
   if (response.statusCode < 200 || response.statusCode >= 300) {
     // Drain (and thereby cancel) the body so the connection is freed; ignore
     // any error draining a failed response.
+    // diagnostics: silent — draining a response we're discarding anyway; the
+    // failure (non-2xx status) is already conveyed by the `null` return.
     unawaited(response.stream.drain<void>().catchError((Object _) {}));
     return null;
   }
@@ -246,8 +250,12 @@ Future<String?> fetchUpdateManifestSignature(
     if (body.trim().isEmpty) return null;
     return body;
   } on TimeoutException {
+    // diagnostics: silent — same privacy-contract silent no-op as the
+    // manifest fetcher above.
     return null;
   } on Object {
+    // diagnostics: silent — same privacy-contract silent no-op as the
+    // manifest fetcher above.
     return null;
   } finally {
     if (ownClient) effectiveClient.close();

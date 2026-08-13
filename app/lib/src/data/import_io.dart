@@ -588,13 +588,16 @@ Future<String> fetchImportUrl(String url, {http.Client? client}) async {
       effectiveClient,
     ).timeout(importFetchTimeout);
   } on UrlFetchException {
+    // diagnostics: silent — converts to UrlFetchException and rethrows; logged at the UI boundary
     rethrow;
   } on TimeoutException {
+    // diagnostics: silent — converts to UrlFetchException(timeout) and rethrows; logged at the UI boundary
     throw UrlFetchException(
       UrlFetchFailureReason.timeout,
       timeoutSeconds: importFetchTimeout.inSeconds,
     );
   } on Object {
+    // diagnostics: silent — converts to UrlFetchException(unreachable) and rethrows;
     // Never interpolate the error/URL here: it could leak the pasted URL or
     // embedded credentials into a user-facing message.
     throw const UrlFetchException(UrlFetchFailureReason.unreachable);
@@ -1043,13 +1046,16 @@ Future<String> fetchCallersBoxSearch(String url, {http.Client? client}) async {
       effectiveClient,
     ).timeout(importFetchTimeout);
   } on UrlFetchException {
+    // diagnostics: silent — converts to UrlFetchException and rethrows; logged at the UI boundary
     rethrow;
   } on TimeoutException {
+    // diagnostics: silent — converts to UrlFetchException(searchTimeout) and rethrows; logged at the UI boundary
     throw UrlFetchException(
       UrlFetchFailureReason.searchTimeout,
       timeoutSeconds: importFetchTimeout.inSeconds,
     );
   } on Object {
+    // diagnostics: silent — converts to UrlFetchException(callersBoxUnreachable) and rethrows;
     // Never interpolate the error/URL here (see fetchImportUrl).
     throw const UrlFetchException(UrlFetchFailureReason.callersBoxUnreachable);
   } finally {
@@ -1503,13 +1509,16 @@ Future<String> fetchContraDbSearch(String query, {http.Client? client}) async {
       effectiveClient,
     ).timeout(importFetchTimeout);
   } on UrlFetchException {
+    // diagnostics: silent — converts to UrlFetchException and rethrows; logged at the UI boundary
     rethrow;
   } on TimeoutException {
+    // diagnostics: silent — converts to UrlFetchException(searchTimeout) and rethrows; logged at the UI boundary
     throw UrlFetchException(
       UrlFetchFailureReason.searchTimeout,
       timeoutSeconds: importFetchTimeout.inSeconds,
     );
   } on Object {
+    // diagnostics: silent — converts to UrlFetchException(contraDbUnreachable) and rethrows;
     // Never interpolate the error here: keep ContraDB's failure message generic
     // and free of internal detail (matching the other guarded fetchers).
     throw const UrlFetchException(UrlFetchFailureReason.contraDbUnreachable);

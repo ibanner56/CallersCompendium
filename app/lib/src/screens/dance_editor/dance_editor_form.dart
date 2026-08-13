@@ -223,6 +223,8 @@ class DanceEditorForm extends StatelessWidget {
                       PhraseStructure.parse(value ?? '');
                       return null;
                     } on FormatException catch (e) {
+                      // diagnostics: silent — FormatException is the expected signal from PhraseStructure.parse
+                      // for invalid user input; this is intentional validation control flow, not an unexpected error
                       return phraseStructureErrorMessage(l10n, e);
                     }
                   },

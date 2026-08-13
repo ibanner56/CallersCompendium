@@ -82,6 +82,7 @@ Future<List<ImportRecordPlan>> _previewAmbiguousCandidates(
       final preview = await service.loadPreview(repos, row, now: now);
       plans.add(preview.plan);
     } on Exception {
+      // diagnostics: silent — preview failure for one candidate; skip it and continue with remaining candidates
       continue;
     }
   }

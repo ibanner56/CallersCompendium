@@ -102,6 +102,43 @@ two lines is also checked. The hard `DELETE` (which has no `deleted_at IS NULL`
 and is intentionally correct) is excluded by name in the script rather than by
 narrowing the detection pattern.
 
+### Caught errors must reach the diagnostic log (or say why not)
+
+Every `catch (...)`, `on Type { ... }`, `.catchError(...)`, and `onError:`
+callback in `app/lib` must either call `logCaughtError`/`logCaughtErrorTypeOnly`
+(`app/lib/src/diagnostics/error_log.dart`) or carry a
+`// diagnostics: silent — <reason>` comment. This is enforced by
+`tools/ci/check_caught_error_logged.py` and its test
+`test_check_caught_error_logged.py`, wired into `_checks.yml`.
+
+The invariant exists because the on-device diagnostic log used to have exactly
+four writers — three global handlers plus one manual call site — so any error a
+screen caught and turned into a snackbar or inline error state was invisible to
+it (issue #963). A beta user reporting a failed import found nothing to export,
+because the failure was never logged in the first place, not because export was
+broken.
+
+Use `logCaughtErrorTypeOnly` instead of `logCaughtError` at a site that already
+treats its caught error as unsafe to surface verbatim (look for existing
+comments mentioning CWE-209 or "never surface the raw error") — it records only
+the error's runtime type, never its message, so a raw network/parse failure or
+unredacted pasted content can't reach an export labelled "scrubbed" through a
+second, unreviewed path. Most sites should use `logCaughtError`; treat
+type-only logging as the exception, not the default.
+
+A catch that wraps a low-level error into a different typed exception and
+rethrows is not swallowing anything — annotate it `diagnostics: silent —
+converts to <Type> and rethrows; logged at the UI boundary that ultimately
+catches it` rather than logging twice for the same user-visible failure.
+
+Like the settings-marker ratchet above, this walks balanced parens/braces over
+a masked copy of the source rather than matching on lines, so a multi-line
+catch body or a stray brace inside a string can't mis-count. Its `catch`/
+`on Type { }` detection is exact; its `.catchError`/`onError:` detection walks
+to the first unnested comma or closing bracket, which is correct for every
+shape in this codebase today but is a narrower guarantee — see the script's own
+docstring before assuming it can't be fooled by an unusual call shape.
+
 ### Architecture decisions
 Non-trivial, hard-to-reverse choices are recorded as ADRs in
 [docs/adr/](docs/adr/) using [the template](docs/adr/template.md). Propose one

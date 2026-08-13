@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/display_defaults.dart';
 import '../data/programs_refresh_scope.dart';
 import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../search/program_sort.dart';
 import '../search/program_sort_labels.dart';
 import '../utils/confirm_delete.dart';
@@ -164,6 +165,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         .listen(
           _onPrograms,
           onError: (Object error) {
+            logCaughtError(
+              error,
+              StackTrace.current,
+              source: 'programs_list_screen._subscribe',
+            );
             if (mounted) setState(() => _loadError = error);
           },
         );
@@ -222,6 +228,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         ProgramSort.title,
       );
     } catch (_) {
+      // diagnostics: silent — sort default setting read failed; returns early to built-in default (title, ascending).
       return;
     }
     if (!mounted || _sortUserSet) return;
@@ -240,6 +247,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         direction =
             sortDirectionFromName(storedDirection) ?? sort.defaultDirection;
       } catch (_) {
+        // diagnostics: silent — last-used sort/direction read failed; returns early to built-in default.
         return;
       }
       if (!mounted || _sortUserSet) return;

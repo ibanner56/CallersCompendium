@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../screens/venue_editor_sheet.dart';
 import 'responsive_autocomplete.dart';
 
@@ -88,6 +89,7 @@ class _VenuePickerState extends State<VenuePicker> {
         if (kDebugMode) {
           debugPrint('Could not load venues: $error\n$stackTrace');
         }
+        logCaughtError(error, stackTrace, source: 'venue_picker._subscribe');
         // Settle any pending create so `_createNew` cannot await forever; it
         // notifies the parent regardless, which is better than stranding the
         // venue the user just made.

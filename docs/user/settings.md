@@ -329,9 +329,10 @@ you use the app is ever sent.
 ## Diagnostics
 
 When something goes wrong, the app writes a short technical note to a log on your
-own device. **It is never sent anywhere — there is no telemetry.** The
-**Diagnostics** section is where you read that log, hand a copy to a bug report,
-or wipe it.
+own device — not just outright crashes, but also errors you see reported on
+screen (like a failed import). **It is never sent anywhere — there is no
+telemetry.** The **Diagnostics** section is where you read that log, hand a
+copy to a bug report, or wipe it.
 
 ### Recent entries
 

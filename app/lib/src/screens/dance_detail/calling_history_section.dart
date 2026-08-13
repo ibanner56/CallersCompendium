@@ -246,8 +246,9 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
         // interleave and set the flag between the read and the clear.
         _venuesDirty = false;
       } catch (_) {
-        // Keep whatever the cache holds; rows fall back to free text, and
-        // `_venuesDirty` stays set so the next emit retries.
+        // diagnostics: silent — venue resolution failed; keeps whatever the
+        // cache holds so rows fall back to free text, and `_venuesDirty`
+        // stays set so the next emit retries.
       }
     }
     return history;

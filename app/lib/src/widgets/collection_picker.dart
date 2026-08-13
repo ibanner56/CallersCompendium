@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 
 import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
@@ -191,7 +192,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
         ];
         _searching = false;
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'collection_picker._runSearch');
       if (!mounted || seq != _searchSeq) return;
       setState(() {
         _searchError = error;

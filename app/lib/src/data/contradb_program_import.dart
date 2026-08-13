@@ -164,7 +164,9 @@ Future<ResolvedContraDbActivity> _resolveDance(
       );
     }
   } on Exception catch (_) {
-    // Scrape/import failure (e.g. an unpublished dance) → try the fallback.
+    // diagnostics: silent — scrape/import failure (e.g. an unpublished dance)
+    // degrades to the Caller's Box fallback and ultimately a note slot;
+    // surfaced via ResolvedContraDbActivity to the program import screen.
   }
 
   // (b) Caller's Box fallback by title (#313 confident unique-exact rule).

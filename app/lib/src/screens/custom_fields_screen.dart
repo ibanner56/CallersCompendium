@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
 import 'settings/settings_keys.dart';
 
 /// Localized label for a [CustomFieldType]. Mirrors the app-side enum-label
@@ -76,6 +77,11 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
         });
       },
       onError: (Object e) {
+        logCaughtError(
+          e,
+          StackTrace.current,
+          source: 'custom_fields_screen._subscribe',
+        );
         if (!mounted) return;
         setState(() {
           _loadError = e;
@@ -214,6 +220,7 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
       await _repos.customFieldDefs.delete(def.id);
       // No reload: the delete tombstones the row and the stream re-emits.
     } on StateError catch (e, st) {
+      logCaughtError(e, st, source: 'custom_fields_screen._delete');
       if (!mounted) return;
       // The repo throws StateError when values still exist on dances. Log the
       // raw error for diagnostics only (CWE-209: never surface it in the UI);
@@ -437,7 +444,8 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
         shareable: _shareable,
       );
       Navigator.of(context).pop(def);
-    } on ArgumentError catch (e) {
+    } on ArgumentError catch (e, stackTrace) {
+      logCaughtError(e, stackTrace, source: 'custom_fields_screen._save');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.message.toString())));

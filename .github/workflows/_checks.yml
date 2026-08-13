@@ -44,6 +44,18 @@ jobs:
         run: python3 tools/ci/test_check_debug_print.py
       - name: Guard debugPrint call sites (must be kDebugMode-guarded)
         run: python3 tools/ci/check_debug_print.py
+      # Ratchet: every caught, user-facing error must reach the on-device
+      # diagnostic log (or explicitly say why not). Before issue #963, the
+      # crash log had exactly four writers — three global handlers plus one
+      # manual call site — so any error a screen caught and turned into a
+      # snackbar/inline error state was invisible to it, undermining the log's
+      # purpose as a field-diagnosis tool. The baseline is clean (every catch/
+      # catchError/onError in app/lib was read and classified by hand), so
+      # this hard-fails with no allowlist. See tools/ci/check_caught_error_logged.py.
+      - name: Test the caught-error-logged ratchet
+        run: python3 tools/ci/test_check_caught_error_logged.py
+      - name: Guard caught errors (must log via logCaughtError or be marked silent)
+        run: python3 tools/ci/check_caught_error_logged.py
       # Every raw SELECT from settings WHERE key must filter deleted_at IS NULL.
       # The invariant is load-bearing: repositories.dart performs a deliberate
       # hard DELETE and justifies it in prose by asserting that every raw read

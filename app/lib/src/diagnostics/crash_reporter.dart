@@ -13,9 +13,14 @@ import 'crash_log_store.dart';
 /// `main.dart` and tests can inject a real [CrashReporter] or a fake without
 /// pulling in file I/O.
 abstract class CrashLogSink {
-  /// Records [error] (with optional [stack]) as having been caught by [source]
-  /// (e.g. `FlutterError.onError`, `PlatformDispatcher.onError`,
-  /// `runZonedGuarded`, `integrity-probe`).
+  /// Records [error] (with optional [stack]) as having been caught by
+  /// [source]. `source` is a free-form string identifying the call site: the
+  /// three global handlers below (`FlutterError.onError`,
+  /// `PlatformDispatcher.onError`, `runZonedGuarded`) and the startup
+  /// integrity probe use their own names; every caught, user-facing error
+  /// elsewhere in the app routes through `error_log.dart`'s `logCaughtError`/
+  /// `logCaughtErrorTypeOnly`, tagged `<file-stem>.<method>` (issue #963) — see
+  /// that file for why a scoped/`InheritedWidget` lookup couldn't do this job.
   void record(Object error, StackTrace? stack, {required String source});
 }
 
@@ -50,6 +55,9 @@ class CrashReporter implements CrashLogSink {
     try {
       return '${Platform.operatingSystem} ${Platform.operatingSystemVersion}';
     } catch (_) {
+      // diagnostics: silent — this IS a diagnostics helper (platform string
+      // for the record itself); falling back rather than logging avoids
+      // recursing into the very reporter being built.
       return 'unknown';
     }
   }
@@ -87,6 +95,10 @@ class CrashReporter implements CrashLogSink {
       final record = buildRecord(error, stack, source: source);
       await store.append(record);
     } catch (e, s) {
+      // diagnostics: silent — this IS the append guard inside the crash
+      // reporter itself; logging a persist failure through the same reporter
+      // would recurse. `onAppendError` is the deliberate escape hatch for
+      // tests to observe this otherwise-swallowed failure.
       onAppendError?.call(e, s);
       if (kDebugMode) debugPrint('Crash log record failed: $e');
     }
