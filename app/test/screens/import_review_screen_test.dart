@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
-import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
@@ -1994,9 +1993,8 @@ void main() {
     // Mounts the review screen for a shared [bundle], pushed on top of a home
     // scaffold (mirroring main.dart's `_navigatorKey.push`) so the post-commit
     // Undo snackbar — which rides the app-level ScaffoldMessenger and outlives
-    // the popped review route — stays reachable, and returns the refresh
-    // notifier so a test can assert it is bumped.
-    Future<ValueNotifier<int>> pumpShared(
+    // the popped review route — stays reachable.
+    Future<void> pumpShared(
       WidgetTester tester,
       CompendiumRepositories repos,
       SharedBundleImport bundle, {
@@ -2004,16 +2002,12 @@ void main() {
     }) async {
       await tester.binding.setSurfaceSize(const Size(1000, 1600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
-      final refresh = ValueNotifier<int>(0);
-      addTearDown(refresh.dispose);
       await tester.pumpWidget(
         MaterialApp(
           localizationsDelegates: testLocalizationsDelegates,
           supportedLocales: testSupportedLocales,
-          builder: (context, child) => RepositoriesScope(
-            repositories: repos,
-            child: CollectionRefreshScope(revision: refresh, child: child!),
-          ),
+          builder: (context, child) =>
+              RepositoriesScope(repositories: repos, child: child!),
           home: Builder(
             builder: (context) => Scaffold(
               body: Center(
@@ -2043,7 +2037,6 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('open-review')));
       await tester.pumpAndSettle();
-      return refresh;
     }
 
     testWidgets(
@@ -2076,11 +2069,7 @@ void main() {
         final repos = openTestRepositories();
         addTearDown(repos.db.close);
 
-        final refresh = await pumpShared(
-          tester,
-          repos,
-          bundleFor(danceProgramVenueArchive()),
-        );
+        await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
 
         await tester.tap(find.byKey(const ValueKey('import-commit-button')));
         await tester.pumpAndSettle();
@@ -2090,7 +2079,6 @@ void main() {
         expect(dances.map((d) => d.title), contains('Shared Reel'));
         expect(await repos.programs.listAll(), hasLength(1));
         expect(await repos.venues.listAll(), hasLength(1));
-        expect(refresh.value, greaterThan(0));
 
         // Share-target path uses the transient snackbar, NOT the manual-import
         // result dialog.
@@ -2455,8 +2443,6 @@ void main() {
         );
         addTearDown(repos.db.close);
         var closed = 0;
-        final refresh = ValueNotifier<int>(0);
-        addTearDown(refresh.dispose);
         await tester.binding.setSurfaceSize(const Size(1000, 1600));
         addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -2469,18 +2455,15 @@ void main() {
             supportedLocales: testSupportedLocales,
             home: RepositoriesScope(
               repositories: repos,
-              child: CollectionRefreshScope(
-                revision: refresh,
-                child: ImportReviewScreen(
-                  sources: [
-                    ImportSource(
-                      kind: ImportSourceKind.genericJson,
-                      adapterFactory: GenericJsonAdapter.new,
-                    ),
-                  ],
-                  sharedBundle: bundleFor(danceProgramVenueArchive()),
-                  onClose: () => closed++,
-                ),
+              child: ImportReviewScreen(
+                sources: [
+                  ImportSource(
+                    kind: ImportSourceKind.genericJson,
+                    adapterFactory: GenericJsonAdapter.new,
+                  ),
+                ],
+                sharedBundle: bundleFor(danceProgramVenueArchive()),
+                onClose: () => closed++,
               ),
             ),
           ),
@@ -2504,16 +2487,14 @@ void main() {
         expect(closeButton().onPressed, isNull);
         expect(closed, 0);
 
-        // Release the gate: the commit finishes, the data lands, the post-commit
-        // onClose fires exactly once, and the live collection is refreshed —
-        // nothing stranded.
+        // Release the gate: the commit finishes, the data lands, and onClose
+        // fires exactly once — nothing stranded.
         commitGate.complete();
         await tester.pumpAndSettle();
         expect(await repos.dances.listAll(), hasLength(1));
         expect(await repos.programs.listAll(), hasLength(1));
         expect(await repos.venues.listAll(), hasLength(1));
         expect(closed, 1);
-        expect(refresh.value, greaterThan(0));
       },
     );
   });
@@ -2572,23 +2553,19 @@ void main() {
     // pushed on top of a home scaffold (mirroring main.dart's navigator push)
     // so the post-commit Undo snackbar — which rides the app-level
     // ScaffoldMessenger and outlives the popped review route — stays reachable.
-    Future<ValueNotifier<int>> pumpWithPicker(
+    Future<void> pumpWithPicker(
       WidgetTester tester,
       CompendiumRepositories repos,
       String payload,
     ) async {
       await tester.binding.setSurfaceSize(const Size(1000, 1600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
-      final refresh = ValueNotifier<int>(0);
-      addTearDown(refresh.dispose);
       await tester.pumpWidget(
         MaterialApp(
           localizationsDelegates: testLocalizationsDelegates,
           supportedLocales: testSupportedLocales,
-          builder: (context, child) => RepositoriesScope(
-            repositories: repos,
-            child: CollectionRefreshScope(revision: refresh, child: child!),
-          ),
+          builder: (context, child) =>
+              RepositoriesScope(repositories: repos, child: child!),
           home: Builder(
             builder: (context) => Scaffold(
               body: Center(
@@ -2617,7 +2594,6 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('open-review')));
       await tester.pumpAndSettle();
-      return refresh;
     }
 
     testWidgets(
@@ -2629,7 +2605,7 @@ void main() {
         final archive = pickerArchive();
         final payload = encodeArchive(archive);
 
-        final refresh = await pumpWithPicker(tester, repos, payload);
+        await pumpWithPicker(tester, repos, payload);
 
         // Drive through the picker → plan → review flow.
         await _toReview(tester);
@@ -2651,7 +2627,6 @@ void main() {
         expect(dances.map((d) => d.title), contains('Picker Reel'));
         expect(await repos.programs.listAll(), hasLength(1));
         expect(await repos.venues.listAll(), hasLength(1));
-        expect(refresh.value, greaterThan(0));
 
         // Archive-importer path uses the transient snackbar (not the result
         // dialog).

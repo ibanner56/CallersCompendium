@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
-import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/collection_shell.dart';
@@ -71,20 +70,13 @@ Future<void> _pumpShell(
   });
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
   addTearDown(notifier.dispose);
-  final refresh = ValueNotifier<int>(0);
-  addTearDown(refresh.dispose);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(
-          notifier: notifier,
-          // Mirror main.dart: import commit/undo bumps this so the live list
-          // reloads. Optional in focused tests, required for the import flow.
-          child: CollectionRefreshScope(revision: refresh, child: child!),
-        ),
+        child: ActiveDialectScope(notifier: notifier, child: child!),
       ),
       home: CollectionShell(
         importPicker: importPicker,
@@ -551,7 +543,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Import view closed and the committed dance now shows in the live list
-      // (CollectionRefreshScope drove the reload).
+      // (the Collection stream drove the reload).
       expect(find.byType(ImportReviewScreen), findsNothing);
       expect(find.text('Imported Reel'), findsOneWidget);
 

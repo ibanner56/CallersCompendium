@@ -33,7 +33,7 @@ class CollectionTagFilterRequest {
 /// A tag chip calls [filterByTag]; the running [AppShell] switches to the
 /// Collection destination (and pops any pushed detail route), and the live
 /// `DanceListScreen` applies a single-tag filter — both by listening to this
-/// controller. Mirrors the notifier pattern used by `CollectionRefreshScope`.
+/// controller.
 class CollectionFilterController extends ChangeNotifier {
   CollectionTagFilterRequest? _pending;
   int _seq = 0;
@@ -54,8 +54,7 @@ class CollectionFilterController extends ChangeNotifier {
 /// Provided in `main.dart` **above the root [Navigator]** (in
 /// `MaterialApp.builder`), so it is reachable both from the Collection screen
 /// kept alive in the shell's `IndexedStack` and from a `DanceDetailScreen`
-/// pushed as a route on the root navigator — mirroring how
-/// `CollectionRefreshScope` is wired.
+/// pushed as a route on the root navigator.
 ///
 /// Optional by design: [maybeOf] returns `null` in focused widget tests that
 /// don't mount it (and in the online-preview detail view, where filtering the

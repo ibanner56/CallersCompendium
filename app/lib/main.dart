@@ -15,7 +15,6 @@ import 'src/data/archive_intake_labels.dart';
 import 'src/data/archive_intake_service.dart';
 import 'src/data/backup_controller_scope.dart';
 import 'src/data/collection_filter_scope.dart';
-import 'src/data/collection_refresh_scope.dart';
 import 'src/data/collection_tile_fields_scope.dart';
 import 'src/data/confirm_before_delete_scope.dart';
 import 'src/data/custom_themes_controller.dart';
@@ -308,15 +307,6 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// live when it changes. Loaded (and validated against
   /// [AppLocalizations.supportedLocales]) in [_loadPreferences].
   final ValueNotifier<Locale?> _localeNotifier = ValueNotifier(null);
-
-  /// App-level "the collection changed, reload it" signal (ROADMAP 6.3).
-  /// Bumped by the import review flow (reached from Settings), the dance
-  /// editor and the batch paths. It used to say the Collection *list* re-boots
-  /// on it, and later that one screen still did; every view that renders dance
-  /// data watches the database itself now, so nothing in the app subscribes to
-  /// this signal. It is still broadcast — see [CollectionRefreshScope], whose
-  /// doc carries the full account, the one non-app caller, and the consequence.
-  final ValueNotifier<int> _collectionRefreshNotifier = ValueNotifier(0);
 
   /// App-level "tap a tag → show the Collection filtered to it" coordinator
   /// (issue #414). Provided via [CollectionFilterScope] above the root
@@ -912,7 +902,6 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _dateFormatNotifier.dispose();
     _firstDayOfWeekNotifier.dispose();
     _localeNotifier.dispose();
-    _collectionRefreshNotifier.dispose();
     _derivedRebuildProgress.dispose();
     _collectionFilterController.dispose();
     _customThemes.dispose();
@@ -1298,17 +1287,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                                           child: BackupControllerScope(
                                                             onRestored:
                                                                 reloadFromSettings,
-                                                            child: CollectionRefreshScope(
-                                                              revision:
-                                                                  _collectionRefreshNotifier,
-                                                              child: CollectionFilterScope(
-                                                                controller:
-                                                                    _collectionFilterController,
-                                                                child: VenueEntityModeScope(
-                                                                  notifier:
-                                                                      _venueEntityModeNotifier,
-                                                                  child: child!,
-                                                                ),
+                                                            child: CollectionFilterScope(
+                                                              controller:
+                                                                  _collectionFilterController,
+                                                              child: VenueEntityModeScope(
+                                                                notifier:
+                                                                    _venueEntityModeNotifier,
+                                                                child: child!,
                                                               ),
                                                             ),
                                                           ),

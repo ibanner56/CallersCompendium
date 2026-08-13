@@ -161,10 +161,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// Collapses a burst of refresh requests into a single [_load].
   ///
   /// It no longer collapses "the two bumps a dance+program write emits" — this
-  /// pane stopped subscribing to `CollectionRefreshScope` (and to the since
-  /// retired `ProgramsRefreshScope`) when it moved to the stream (#768), and the
-  /// shell's `refreshTrigger` went with the rest of that plumbing. **One source
-  /// reaches it now: [CollectionData.watch].**
+  /// pane moved to the stream (#768), and the shell's `refreshTrigger` went
+  /// with the rest of that plumbing. **One source reaches it now:
+  /// [CollectionData.watch].**
   ///
   /// A single source does not make it redundant, which is why it survives
   /// rather than retiring with the subscriptions. `CollectionData.watch`

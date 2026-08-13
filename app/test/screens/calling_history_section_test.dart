@@ -49,7 +49,7 @@ void main() {
       MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
-        // Deliberately no CollectionRefreshScope / ProgramsRefreshScope: the
+        // Deliberately no app-level refresh scopes: the
         // section must stay correct without any broadcast channel at all.
         home: Scaffold(
           body: SingleChildScrollView(

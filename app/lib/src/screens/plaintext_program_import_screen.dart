@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/callersbox_online.dart';
-import '../data/collection_refresh_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
@@ -226,9 +225,6 @@ class _PlaintextProgramImportScreenState
 
     final l10n = AppLocalizations.of(context);
     final linked = resolved.where((l) => l.importedOnline).length;
-    // Any dances resolved online are now in the collection (their authors
-    // too), so ask the live Collection view to reload (#340).
-    if (linked > 0) CollectionRefreshScope.bump(context);
     final remaining = resolved
         .where((l) => l.resolution == PlaintextLineResolution.unmatched)
         .length;

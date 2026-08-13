@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
-import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
@@ -52,7 +51,6 @@ Future<void> _pumpScreen(
   WidgetTester tester,
   CompendiumRepositories repos, {
   Dialect? activeDialect,
-  ValueNotifier<int>? collectionRefresh,
   bool sortIgnoreArticles = true,
 }) async {
   // A tall surface so the search bar, filter/advanced panels and results are
@@ -84,12 +82,7 @@ Future<void> _pumpScreen(
               notifier: notifier,
               child: SortIgnoreArticlesScope(
                 notifier: sortIgnoreArticlesNotifier,
-                child: collectionRefresh == null
-                    ? child!
-                    : CollectionRefreshScope(
-                        revision: collectionRefresh,
-                        child: child!,
-                      ),
+                child: child!,
               ),
             ),
           ),
@@ -140,6 +133,16 @@ Future<void> _addPhraseMove(
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
+  ({CompendiumRepositories repos, _CountingDances dances}) countingRepos() {
+    final db = openWidgetTestDatabase();
+    addTearDown(db.close);
+    final dances = _CountingDances(db, contraTaxonomy);
+    return (
+      repos: CompendiumRepositories(db, contraTaxonomy, dances: dances),
+      dances: dances,
+    );
+  }
 
   testWidgets('shows a loading skeleton before data resolves', (tester) async {
     final repos = openTestRepositories();
@@ -505,8 +508,8 @@ void main() {
 
   testWidgets(
     'issue #340: a dance added externally with a new author appears — and the '
-    'new author joins the filter — after CollectionRefreshScope fires, without '
-    'a manual reload',
+    'new author joins the filter — from the collection stream, without a '
+    'manual reload',
     (tester) async {
       final repos = openTestRepositories();
       // ignore: unused_result
@@ -517,9 +520,7 @@ void main() {
         _dance(id: 'd1', title: 'Chase the Squirrel', authorIds: const ['c1']),
       );
 
-      final collectionRefresh = ValueNotifier<int>(0);
-      addTearDown(collectionRefresh.dispose);
-      await _pumpScreen(tester, repos, collectionRefresh: collectionRefresh);
+      await _pumpScreen(tester, repos);
       await tester.pumpAndSettle();
 
       // Baseline: only the seeded dance and its author are present.
@@ -546,7 +547,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Simulate an import: a new dance by a brand-new author lands in the
-      // collection out-of-band, then the app-level signal fires.
+      // collection out-of-band.
       // ignore: unused_result
       await repos.choreographers.upsert(
         Choreographer(id: 'c2', name: 'Grace Hopper'),
@@ -554,11 +555,10 @@ void main() {
       await repos.dances.create(
         _dance(id: 'd2', title: 'Petronella', authorIds: const ['c2']),
       );
-      collectionRefresh.value++;
       await tester.pumpAndSettle();
 
-      // The list re-booted: the imported dance shows and the count updated,
-      // with no navigation or manual reload.
+      // The stream delivered the imported dance and updated the count, with no
+      // navigation or manual reload.
       expect(find.text('Petronella'), findsOneWidget);
       expect(find.text('2 dances'), findsOneWidget);
 
@@ -580,6 +580,41 @@ void main() {
       expect(find.text('Petronella'), findsOneWidget);
       expect(find.text('Chase the Squirrel'), findsNothing);
       expect(find.text('1 dance'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'issue #768 guard: a batch rating change reloads the collection once via '
+    'the stream, not a second time through a manual reload path',
+    (tester) async {
+      final counted = countingRepos();
+      await counted.repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+      await _pumpScreen(tester, counted.repos);
+      await tester.pumpAndSettle();
+
+      expect(counted.dances.loads, 1, reason: 'initial CollectionData.load');
+
+      await tester.tap(find.byKey(const ValueKey('batch-select')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-checkbox-d1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-more')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-set-rating')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-rating-option-4')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-rating-confirm')));
+      await tester.pumpAndSettle();
+
+      expect((await counted.repos.dances.getById('d1'))!.rating, 4);
+      expect(
+        counted.dances.loads,
+        2,
+        reason:
+            'one write must trigger one reload from CollectionData.watch, with '
+            'no extra manual reload on top of the stream',
+      );
     },
   );
 
@@ -1492,4 +1527,16 @@ void main() {
       expect(find.bySemanticsLabel('Other, 1 dance'), findsOneWidget);
     });
   });
+}
+
+class _CountingDances extends DanceRepository {
+  _CountingDances(super.db, super.taxonomy);
+
+  int loads = 0;
+
+  @override
+  Future<List<Dance>> listAll({bool includeDeleted = false}) {
+    loads++;
+    return super.listAll(includeDeleted: includeDeleted);
+  }
 }

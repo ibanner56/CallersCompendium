@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
-import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
@@ -56,7 +55,6 @@ Future<void> _pumpEditor(
   CompendiumRepositories repos, {
   String? danceId,
   ThemeData? theme,
-  ValueNotifier<int>? collectionRefresh,
 }) async {
   // Tall surface so the full editor form (which grew with the walkthrough
   // field, #370) lays out without the trailing controls falling beyond a
@@ -71,18 +69,10 @@ Future<void> _pumpEditor(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       theme: theme,
-      builder: (context, child) {
-        final scoped = collectionRefresh == null
-            ? child!
-            : CollectionRefreshScope(
-                revision: collectionRefresh,
-                child: child!,
-              );
-        return RepositoriesScope(
-          repositories: repos,
-          child: ActiveDialectScope(notifier: notifier, child: scoped),
-        );
-      },
+      builder: (context, child) => RepositoriesScope(
+        repositories: repos,
+        child: ActiveDialectScope(notifier: notifier, child: child!),
+      ),
       home: Scaffold(
         body: Builder(
           builder: (context) => TextButton(
@@ -199,29 +189,6 @@ void main() {
     // Returned to the launching route.
     expect(find.byKey(const ValueKey('open-editor')), findsOneWidget);
   });
-
-  testWidgets(
-    'issue #340: saving signals the collection to refresh (a new author must '
-    'reach the live author filter)',
-    (tester) async {
-      final repos = openTestRepositories();
-      final collectionRefresh = ValueNotifier<int>(0);
-      addTearDown(collectionRefresh.dispose);
-      await _pumpEditor(tester, repos, collectionRefresh: collectionRefresh);
-
-      await tester.enterText(
-        find.byKey(const ValueKey('title-field')),
-        'My New Dance',
-      );
-      expect(collectionRefresh.value, 0);
-
-      await tester.tap(find.byKey(const ValueKey('save-dance')));
-      await tester.pumpAndSettle();
-
-      expect(await repos.dances.listAll(), hasLength(1));
-      expect(collectionRefresh.value, greaterThan(0));
-    },
-  );
 
   testWidgets('edit existing: title round-trips', (tester) async {
     final repos = openTestRepositories();

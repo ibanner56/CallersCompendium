@@ -5,17 +5,11 @@ import 'package:flutter/foundation.dart';
 /// Collapses several refresh broadcasts that arrive in the same synchronous
 /// block into a single reload.
 ///
-/// A single user action can bump `CollectionRefreshScope` more than once in one
-/// synchronous block — a batch edit committing several dances, for instance —
-/// and the notifier fires synchronously each time. A listener would otherwise
-/// reload once per bump; this keeps it at one reload per action, the constraint
-/// issue #340 records: fixing a stale view must not produce a thrashing one.
-///
-/// It was built for a listener on two refresh channels, collapsing the pair of
-/// bumps a dances-and-programs write emitted. Both of those channels have since
-/// lost their subscribers to the reactive conversion (issue #768), so what it
-/// collapses now is a burst from a single source — which is still worth
-/// collapsing, and is why this survives rather than retiring with them.
+/// A single user action can request several reloads in one synchronous block —
+/// a batch edit touching several dances, for instance. A caller would otherwise
+/// reload once per request; this keeps it at one reload per action, the
+/// constraint issue #340 records: fixing a stale view must not produce a
+/// thrashing one.
 ///
 /// Deliberately not a list of which screens use it. That list was wrong twice
 /// while the conversion was in progress, in both directions, and a consumer
