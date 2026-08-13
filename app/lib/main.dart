@@ -313,9 +313,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// Bumped by the import review flow (reached from Settings), the dance
   /// editor and the batch paths. It used to say the Collection *list* re-boots
   /// on it, and later that one screen still did; every view that renders dance
-  /// data watches the database itself now, so this signal currently reaches no
-  /// subscriber. It is still broadcast — see [CollectionRefreshScope], whose
-  /// doc carries the full account and the consequence.
+  /// data watches the database itself now, so nothing in the app subscribes to
+  /// this signal. It is still broadcast — see [CollectionRefreshScope], whose
+  /// doc carries the full account, the one non-app caller, and the consequence.
   final ValueNotifier<int> _collectionRefreshNotifier = ValueNotifier(0);
 
   /// App-level "tap a tag → show the Collection filtered to it" coordinator

@@ -1006,7 +1006,9 @@ void main() {
         <String>{},
         reason:
             'a widget that only broadcasts must use notifierOf; maybeOf '
-            'registers a rebuild dependency and wakes it on every bump',
+            'registers a rebuild dependency and wakes it on every bump. '
+            'Scope is app/lib deliberately: maybeOf still has one caller, the '
+            'test above, which is what keeps the negative checkable',
       );
     });
 

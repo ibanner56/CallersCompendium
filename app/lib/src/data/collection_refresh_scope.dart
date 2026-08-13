@@ -8,14 +8,20 @@ import 'package:flutter/widgets.dart';
 /// while the Collection tab is kept alive in an `IndexedStack`, the dance
 /// editor, the re-parse batch, and the Collection list's own batch operations.
 ///
-/// **Nothing subscribes any more, and the channel still has bumpers.** Those
-/// are two separate facts and the pairing is the point: a bump is not an error
-/// or a leak, it is a broadcast that currently reaches nobody. Each view that
-/// used to reload from it now watches the database directly, the last of them
-/// being the dance detail screen (issue #768). [maybeOf] — the only resolver
-/// that registers a rebuild dependency, and therefore the only way to
-/// subscribe — has no callers; `refresh_scopes_test.dart` holds that as a
-/// ratchet rather than as a claim here.
+/// **Nothing in the app subscribes any more, and the channel still has
+/// bumpers.** Those are two separate facts and the pairing is the point: a bump
+/// is not an error or a leak, it is a broadcast that currently reaches nobody.
+/// Each view that used to reload from it now watches the database directly, the
+/// last of them being the dance detail screen (issue #768).
+///
+/// Stated as "nothing in the app" rather than "nothing at all", because
+/// [maybeOf] — the only resolver that registers a rebuild dependency, and
+/// therefore the only way to subscribe — does still have one caller: the test
+/// that proves it registers that dependency, without which the ratchet below
+/// would be asserting a negative nothing could distinguish from a broken
+/// resolver. The ratchet in `refresh_scopes_test.dart` scans `app/lib`, so
+/// `app/lib` is the scope of the claim it enforces, and this sentence matches
+/// it deliberately.
 ///
 /// So this channel is now removable, and removing it is its own step. What
 /// makes it so is precisely the above: while a subscriber existed, deleting it
@@ -83,11 +89,28 @@ class CollectionRefreshScope extends InheritedNotifier<ValueNotifier<int>> {
 
   /// The revision notifier, **registering a rebuild dependency**.
   ///
-  /// The only resolver here that subscribes, and it currently has no callers —
-  /// every view that renders dance data watches the database instead. Kept
-  /// rather than deleted because it is what the removal step above will act on,
-  /// and because its behavioural difference from [notifierOf] is the thing that
-  /// makes "no subscribers" checkable rather than assumed.
+  /// The only resolver here that subscribes, and no widget in `app/lib` calls
+  /// it — every view that renders dance data watches the database instead.
+  ///
+  /// It is not uncalled, and the distinction matters to whoever deletes this
+  /// class. `CollectionRefreshScope.maybeOf(` appears **twice** outside this
+  /// file, both in `refresh_scopes_test.dart`, and they are not the same kind
+  /// of thing:
+  ///
+  /// * one real call, in the test asserting that this resolver registers a
+  ///   rebuild dependency where [notifierOf] does not;
+  /// * one **string literal**, inside the source ratchet that scans `app/lib`
+  ///   for callers — so a grep reports two hits where there is one caller, and
+  ///   the second cannot be removed without disabling the ratchet.
+  ///
+  /// Deleting this method therefore removes that test's subject, and with it
+  /// the only thing making "nothing in `app/lib` subscribes" a checked claim
+  /// rather than an assumed one. That is the precondition the removal step
+  /// depends on, so the removal has to replace it rather than simply inherit
+  /// it.
+  ///
+  /// Kept for that reason rather than deleted here: it is what the removal step
+  /// will act on, and it is what makes the removal's precondition verifiable.
   ///
   /// Anything that merely bumps wants [notifierOf] instead: depending on this
   /// scope in order to broadcast on it means being rebuilt by every other
