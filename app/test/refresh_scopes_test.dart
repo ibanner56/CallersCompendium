@@ -928,24 +928,29 @@ void main() {
     // Exactly one widget may register a dependency, and it is the one that
     // genuinely listens.
     test('only the screen that listens resolves the scope with maybeOf', () {
-      final offenders = <String>[];
+      // A `Set` of separator-normalised paths: `listSync` order is not
+      // specified and `file.path` is `\`-separated on Windows, either of which
+      // would fail this ratchet on correct code. A ratchet that fails for
+      // reasons unrelated to its claim gets edited reflexively, and then it is
+      // inert while still reading green.
+      final offenders = <String>{};
       final lib = Directory('lib');
       for (final file in lib.listSync(recursive: true).whereType<File>()) {
-        if (!file.path.endsWith('.dart')) continue;
-        if (file.path.endsWith('collection_refresh_scope.dart')) continue;
-        final lines = file.readAsLinesSync();
-        for (var i = 0; i < lines.length; i++) {
-          if (lines[i].contains('CollectionRefreshScope.maybeOf(')) {
+        final path = file.path.replaceAll(r'\', '/');
+        if (!path.endsWith('.dart')) continue;
+        if (path.endsWith('collection_refresh_scope.dart')) continue;
+        for (final line in file.readAsLinesSync()) {
+          if (line.contains('CollectionRefreshScope.maybeOf(')) {
             // The FILE, not the line: pinning a line number would make this
-            // ratchet fail on any unrelated edit above the call — noise that
-            // trains people to update the expectation without reading it.
-            offenders.add(file.path);
+            // ratchet fail on any unrelated edit above the call — the same
+            // reflexive-edit failure as above, from a different direction.
+            offenders.add(path);
           }
         }
       }
       expect(
         offenders,
-        ['lib/src/screens/dance_detail_screen.dart'],
+        {'lib/src/screens/dance_detail_screen.dart'},
         reason:
             'a widget that only broadcasts must use notifierOf; maybeOf '
             'registers a rebuild dependency and wakes it on every bump',
