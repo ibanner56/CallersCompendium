@@ -347,9 +347,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     // rather than dropping the caller straight into the edit builder. Mirrors
     // the dance side's narrow list → [DanceDetailScreen] flow; Edit lives
     // behind the summary. Every way the summary can mutate the program (edit /
-    // duplicate / delete / mark performed) now broadcasts, so this list has
-    // already reloaded by the time the route pops; the direct reload is the
-    // fallback for focused tests that mount no scope (issue #768).
+    // duplicate / delete / mark performed) is a write to `programs` /
+    // `program_slots`, which this list watches — so it has already updated by
+    // the time the route pops, with no broadcast involved and no reload of its
+    // own to perform (issue #768).
     await Navigator.of(context).push<String>(
       MaterialPageRoute<String>(
         builder: (_) => ProgramSummaryScreen(programId: id),
@@ -420,9 +421,9 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () async {
         await _repos.programs.restore(program.id, at: DateTime.now().toUtc());
-        // No `mounted` check and no context read: the notifier was captured
-        // above. This list needs no reload of its own either way — the restore
-        // is a write and the stream carries it.
+        // No `mounted` check and no context read, and nothing captured above
+        // to bump: the restore is a write and the stream carries it, to this
+        // list and to every other view of the program.
       },
     );
   }

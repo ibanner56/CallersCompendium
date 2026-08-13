@@ -1201,10 +1201,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // Capture the refresh notifier now: the snackbar (and its Undo) outlives
     // this screen once we pop back to the shell, so the async Undo callback
     // can't read it from this (by then defunct) context.
-    // `notifierOf` on both: these are captured to be bumped from the Undo
-    // callback, never read, so a rebuild dependency on either channel is pure
-    // over-firing — and this screen is itself a bumper of both, so it was
-    // rebuilding itself on its own writes.
+    // `notifierOf`, not `maybeOf`: this is captured to be bumped from the Undo
+    // callback and never read, so a rebuild dependency on the channel is pure
+    // over-firing — and this screen is itself a bumper, so it was rebuilding
+    // itself on its own writes. Only the Collection channel is captured now;
+    // the programs half of this undo reaches its views by their own streams.
     final refresh = CollectionRefreshScope.notifierOf(context);
     final importedDances = result.danceSession.records
         .where((r) => r.succeeded && r.action != CommitAction.skip)

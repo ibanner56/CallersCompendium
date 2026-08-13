@@ -730,9 +730,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       ),
     );
     // Mark-all-performed is exactly the write that made the Collection's
-    // "called N times" badge stale (issue #768, gap 3), so this broadcasts
-    // rather than refreshing only the Programs side. The local refreshes are
-    // the unscoped fallback; running both would load this pane twice.
+    // "called N times" badge stale (issue #768, gap 3). It used to broadcast
+    // for that reason; the badge and the calling history watch `program_slots`
+    // themselves now, so the write reaches them unaided and this pane's own
+    // stream re-emits for it.
   }
 
   /// Builds the read-only, ordered set list. Primaries are numbered 1..n and

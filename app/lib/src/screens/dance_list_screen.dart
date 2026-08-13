@@ -2535,11 +2535,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
           : () async {
               // DanceDetailScreen pops with true when a dance is deleted
               // so the Collection can reload and remove the stale row.
-              // The detail screen now broadcasts the undo itself, which
-              // re-boots this list through its CollectionRefreshScope
-              // subscription — so onRestored is the *fallback* for focused
-              // tests that mount no scope, not the primary path. Reloading in
-              // both would load twice for one undo (issue #340).
+              // The detail screen broadcasts the undo itself, for the
+              // unconverted screens — but NOT for this list, which has no
+              // subscription to reach: the restore is a write to `dances`, and
+              // the stream carries it here. So `onRestored` is a fallback for
+              // focused tests that mount no scope, not the primary path, and
+              // reloading here as well would load twice (issue #340).
               final deleted = await Navigator.of(context).push<bool>(
                 MaterialPageRoute(
                   builder: (_) => DanceDetailScreen(
