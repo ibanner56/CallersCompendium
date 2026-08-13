@@ -123,6 +123,41 @@ def test_marked_forms() -> None:
     )
 
     check(
+        "nested generics in `on Type<...> { }` are matched to the true closing "
+        "brace, not the first `>` — a suppressed Copilot review finding on "
+        "PR #970 questioned whether the non-greedy `<...>` group could stop "
+        "early on nested angle brackets; it cannot, because `{` is excluded "
+        "from the group's character class so only the TRUE final `>` can be "
+        "followed by `\\s*\\{`, and Python backtracks the non-greedy group "
+        "forward until that holds",
+        unmarked_lines(
+            "void f() {\n"
+            "  try {\n"
+            "    g();\n"
+            "  } on Result<Map<String, List<int>>> {\n"
+            "    // diagnostics: silent — nested-generic catch clause\n"
+            "  }\n"
+            "}\n"
+        )
+        == [],
+    )
+
+    check(
+        "nested generics in `on Type<...> { }` are still reported when unmarked "
+        "(proves the match above isn't vacuously accepting everything)",
+        unmarked_lines(
+            "void f() {\n"
+            "  try {\n"
+            "    g();\n"
+            "  } on Result<Map<String, List<int>>> {\n"
+            "    handle();\n"
+            "  }\n"
+            "}\n"
+        )
+        == [4],
+    )
+
+    check(
         ".catchError logs",
         unmarked_lines(
             "void f() {\n"

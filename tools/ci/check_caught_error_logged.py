@@ -23,6 +23,18 @@ Every catch clause, ``.catchError(...)`` call, and ``onError:`` callback in
   a reason — the marker's presence is checked, not its prose, so the *reason*
   is a code-review concern, not this ratchet's).
 
+**Exception — not every `onError:` is a checkable site.** ``onError`` is also a
+plain ``Color`` field name on Flutter's ``ColorScheme``/palette-mapping
+constructors (Material's "on-error" text/icon colour role), and a bare
+tear-off or member-access value (``onError: controller.addError``,
+``onError: e.on``) has no function body to put a marker in. ``onError:`` is
+therefore only a checkable site when its value is an inline function literal
+— ``(params) { … }`` or ``(params) => …`` — see [_onerror_is_callback]. A
+non-function-literal ``onError:`` value is silently exempt from this
+docstring's "must contain" claim above, by design, not by omission: this was
+found and fixed as a real false positive against
+``app/lib/src/theme/color_schemes.dart`` while building this ratchet.
+
 The baseline is **clean** as of the PR that added this ratchet: every site in
 ``app/lib`` was read and classified by hand. There is deliberately no allowlist
 — a future unmarked catch fails the build, the same way an unguarded
@@ -63,6 +75,17 @@ _CATCH_RE = re.compile(r"\bcatch\s*\(")
 # Requires a generic-aware, brace-terminated type name; the caller additionally
 # checks this is preceded by `}` (closing a `try`/prior `on`/`catch` block) so
 # an unrelated `on` identifier elsewhere can't match.
+#
+# The `<...>` group is non-greedy (`*?`) but still correctly spans NESTED
+# generics (`on Foo<Bar<Baz>> { ... }`, `on Result<Map<String, int>> { ... }`)
+# because `{` is excluded from the character class: Dart type-parameter lists
+# never contain `{`, so the only place `\s*\{` can match is right after the
+# TRUE final `>`, and Python's `re` backtracks the non-greedy group forward
+# until that constraint is satisfiable — it does not stop at the first `>` it
+# meets. Verified directly (not just reasoned about) against
+# `on Foo<T extends Comparable<T>> { }`,
+# `on Result<Map<String, List<int>>> { }`, and deeper nesting; see
+# `test_check_caught_error_logged.py`'s `nested generics` case.
 _ON_BLOCK_RE = re.compile(r"\bon\s+[A-Za-z_][\w.]*(?:\s*<[^{;()]*?>)?\s*\{")
 _CATCHERROR_RE = re.compile(r"\.catchError\s*\(")
 _ONERROR_RE = re.compile(r"\bonError\s*:")
