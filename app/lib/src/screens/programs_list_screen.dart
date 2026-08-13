@@ -118,9 +118,15 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   /// Opens the subscription. Deliberately not awaiting a first value the way
   /// the Collection panes do: this list has nothing to sequence after it, so
   /// there is no pending future for an abandonment path to orphan — the hazard
-  /// `ProgramSummaryScreen._replaceSubscription` exists to close cannot arise
-  /// here, and adding a completer to mirror it would create the hazard rather
-  /// than guard against it.
+  /// that `_replaceSubscription`, in the program summary **pane**
+  /// (`program_summary_screen.dart`), exists to close cannot arise here, and
+  /// adding a completer to mirror it would create the hazard rather than guard
+  /// against it.
+  ///
+  /// Named in prose rather than as a `[...]` reference because it is a private
+  /// member of a private `State` class in another library, so a dartdoc link
+  /// cannot resolve to it — and a link that silently resolves to nothing is the
+  /// same defect as the wrong class name this replaces.
   void _subscribe() {
     _programsSub = _repos.programs
         .watchAll()
