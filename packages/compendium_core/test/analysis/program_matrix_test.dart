@@ -1030,7 +1030,7 @@ void main() {
           Figure(move: 'do_si_do', params: {'beats': 48}),
           allemande('role2s'),
         ]),
-      ]);
+      ], collisionMode: MatrixCollisionMode.phrase);
       expect(m.isCollision(0, colOfMove(m, 'allemande:larks')), isFalse);
       expect(m.isCollision(1, colOfMove(m, 'allemande:robins')), isFalse);
     });
@@ -1047,7 +1047,7 @@ void main() {
           Figure(move: 'do_si_do', params: {'beats': 48}),
           allemande('role1s'),
         ]),
-      ]);
+      ], collisionMode: MatrixCollisionMode.phrase);
       final c = colOfMove(m, 'allemande:larks');
       expect(m.isCollision(0, c), isTrue);
       expect(m.isCollision(1, c), isTrue);
@@ -1065,7 +1065,7 @@ void main() {
           Figure(move: 'do_si_do', params: {'beats': 48}),
           swingWithPrefix('partners', 'balance'),
         ]),
-      ]);
+      ], collisionMode: MatrixCollisionMode.phrase);
       expect(m.isCollision(0, colOfMove(m, 'swing:partner')), isFalse);
       expect(m.isCollision(1, colOfMove(m, 'swing:partner:balance')), isFalse);
     });
@@ -1081,7 +1081,7 @@ void main() {
           Figure(move: 'do_si_do', params: {'beats': 48}),
           swingWithPrefix('partners', 'balance'),
         ]),
-      ]);
+      ], collisionMode: MatrixCollisionMode.phrase);
       final c = colOfMove(m, 'swing:partner:balance');
       expect(m.isCollision(0, c), isTrue);
       expect(m.isCollision(1, c), isTrue);
