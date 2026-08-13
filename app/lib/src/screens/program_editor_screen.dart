@@ -11,6 +11,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/matrix_collision_mode_scope.dart';
 import '../data/programs_refresh_scope.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
@@ -189,6 +190,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   Dialect _dialect = Dialect.larksRobins;
 
+  /// The Programs "flag exact beat overlap only" matrix-collision setting
+  /// (issue #962), read unconditionally in [didChangeDependencies] every
+  /// build so a live toggle updates the Matrix tab immediately — mirroring
+  /// the #948 fix for [_trackHistoryForAllCallers] below (a value read only
+  /// once behind a first-load guard never re-reads on a later scope change).
+  bool _matrixExactBeatCollision = true;
+
   /// Always-on search enrichment for the embedded [CollectionPicker], built
   /// from the union of every saved dialect (presets + custom) so the picker's
   /// search resolves saved-dialect vocabulary regardless of the active dialect
@@ -218,6 +226,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final scope = context
         .dependOnInheritedWidgetOfExactType<ActiveDialectScope>();
     if (scope?.notifier != null) _dialect = scope!.notifier!.value;
+
+    // Read unconditionally so a live toggle of the setting updates the Matrix
+    // tab immediately (the #948 lesson — see the field doc comment).
+    _matrixExactBeatCollision = MatrixCollisionModeScope.of(context);
 
     // Build the always-on enrichment from the union of every saved dialect
     // (presets + custom). Registers a rebuild dependency on the library so a
@@ -1413,6 +1425,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       rows,
       taxonomy: data.taxonomy,
       halves: rowHalves,
+      collisionMode: _matrixExactBeatCollision
+          ? MatrixCollisionMode.exactBeats
+          : MatrixCollisionMode.phrase,
     );
 
     return Column(

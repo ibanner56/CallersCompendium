@@ -68,6 +68,17 @@ text). See [Programs](./programs.md) for how the venue field behaves in each mod
 and [Share, print & export](./sharing.md#what-stays-private) for how venue contact
 details are handled when you export.
 
+### Programs
+
+- **Flag exact beat overlap only** (on by default) — controls how the
+  [programming matrix](./programs.md#check-your-evening-with-the-matrix)'s alert
+  marker decides that a move repeating in two back-to-back dances is worth a
+  second look. On (the default), only a move whose beats actually **overlap**
+  between the two dances is flagged. Off, any move that merely lands in the same
+  **named phrase** (A1, A2, B1, B2…) is flagged, even if its beats don't overlap
+  at all — this was the matrix's original behavior. The screen legend and the
+  printed PDF legend always agree with whichever mode is on.
+
 ### Performance
 
 - **Auto-size Perform cards** (on) — scales each card so it fits the screen in

@@ -880,6 +880,18 @@
   "@settingsGeneralManageVenuesSubtitle": {
     "x-sourceSha256": "b908fb342897dfbf4a729c24b2246ea63e50ed835b5040f8d92f4d695bd271b8"
   },
+  "settingsGeneralProgramsHeader": "Programmes",
+  "@settingsGeneralProgramsHeader": {
+    "x-sourceSha256": "b6747064b2a6dd95ce21899cbfa4a60ed8980b4819014b7a4fce0d849a599fb2"
+  },
+  "settingsGeneralMatrixExactCollisionTitle": "Signaler uniquement un chevauchement exact des temps",
+  "@settingsGeneralMatrixExactCollisionTitle": {
+    "x-sourceSha256": "6877e4a9153aed977728160cf1cccaf58f10d5b1500280fb8c9c0343213f1a2e"
+  },
+  "settingsGeneralMatrixExactCollisionSubtitle": "Dans la matrice de programmation, ne signaler une figure répétée entre deux danses consécutives que lorsque ses temps se chevauchent réellement — pas seulement lorsqu'elle tombe dans la même phrase nommée (A1, A2, B1, B2…). Désactivez pour signaler toute répétition dans la même phrase, même si les temps eux-mêmes ne se chevauchent pas.",
+  "@settingsGeneralMatrixExactCollisionSubtitle": {
+    "x-sourceSha256": "d433fe862ddd3dc1f28811aa7a4fdf16562e53f4ad6e664bb57d18586a978c77"
+  },
   "settingsGeneralPerformanceHeader": "Performance",
   "@settingsGeneralPerformanceHeader": {
     "x-sourceSha256": "442aded87a55aa8c8f7d5ff0c30228150d4b1cb8756e4be138d615ca4708fc26"
@@ -2784,9 +2796,9 @@
   "@programsMatrixFormationSemantic": {
     "x-sourceSha256": "3a3521ba348685d92642d35cb5148b4a48ad0ff7c15c4f3a1af88de6e895e2a2"
   },
-  "programsMatrixCellSemantic": "{dance}, {move} : {present, select, no{absent} other{présent{collision, select, yes{, se répète dans la même phrase qu'une danse voisine} other{}}{debut, select, yes{, introduit ici} other{}}{first, select, yes{, première figure de la danse} other{}}}}",
+  "programsMatrixCellSemantic": "{dance}, {move} : {present, select, no{absent} other{présent{collision, select, phrase{, se répète dans la même phrase qu'une danse voisine} beats{, partage des temps avec une danse voisine} other{}}{debut, select, yes{, introduit ici} other{}}{first, select, yes{, première figure de la danse} other{}}}}",
   "@programsMatrixCellSemantic": {
-    "x-sourceSha256": "9db9e695931294c9780a41459c426bbbe020cbcc5c18201dfcbc098eb9f9fa06"
+    "x-sourceSha256": "1f5b065b58ffef684670949c662ec681d2533f3887cf067de3b6235cb5892d00"
   },
   "programsMatrixChipQualifiedTitle": "{alt, select, yes{{half, select, first{{title} (danse alternative, première partie)} second{{title} (danse alternative, deuxième partie)} other{{title} (danse alternative)}}} other{{half, select, first{{title} (première partie)} second{{title} (deuxième partie)} other{{title}}}}}",
   "@programsMatrixChipQualifiedTitle": {
@@ -2835,6 +2847,10 @@
   "programsMatrixLegendCollision": "Même phrase qu'une danse voisine",
   "@programsMatrixLegendCollision": {
     "x-sourceSha256": "936bb9f875e0fa8ffd95ab55900d21e20214b1c419e4146b2ea566633a4c78b6"
+  },
+  "programsMatrixLegendCollisionBeats": "Mêmes temps qu'une danse voisine",
+  "@programsMatrixLegendCollisionBeats": {
+    "x-sourceSha256": "85f973012d1d4aa241ce86591a971b2af20ec44c1eca0f73d964a996df028eb3"
   },
   "programsMatrixEmptyTitle": "Pas encore de figures structurées",
   "@programsMatrixEmptyTitle": {
@@ -3339,6 +3355,10 @@
   "exportMatrixLegendCollision": "Même phrase qu'une danse voisine",
   "@exportMatrixLegendCollision": {
     "x-sourceSha256": "936bb9f875e0fa8ffd95ab55900d21e20214b1c419e4146b2ea566633a4c78b6"
+  },
+  "exportMatrixLegendCollisionBeats": "Mêmes temps qu'une danse voisine",
+  "@exportMatrixLegendCollisionBeats": {
+    "x-sourceSha256": "85f973012d1d4aa241ce86591a971b2af20ec44c1eca0f73d964a996df028eb3"
   },
   "exportMatrixOmittedCaption": "{count, plural, =1{1 créneau texte libre} other{{count} créneaux texte libre}} (pauses, notes) omis — la matrice affiche uniquement les danses.",
   "@exportMatrixOmittedCaption": {

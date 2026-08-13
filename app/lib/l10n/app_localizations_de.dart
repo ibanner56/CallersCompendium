@@ -800,6 +800,17 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wiederverwendbare Veranstaltungsort-Einträge durchsuchen, bearbeiten und löschen.';
 
   @override
+  String get settingsGeneralProgramsHeader => 'Programme';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionTitle =>
+      'Nur exakte Taktüberschneidung markieren';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionSubtitle =>
+      'In der Programmiermatrix wird eine wiederholte Figur zwischen zwei aufeinanderfolgenden Tänzen nur markiert, wenn sich ihre Takte tatsächlich überschneiden — nicht schon, wenn sie in dieselbe benannte Phrase (A1, A2, B1, B2…) fällt. Schalte dies aus, um jede Wiederholung in derselben Phrase zu markieren, selbst wenn sich die Takte selbst nicht überschneiden.';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Leistung';
 
   @override
@@ -2668,7 +2679,8 @@ class AppLocalizationsDe extends AppLocalizations {
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'yes': ', wiederholt sich in derselben Phrase wie ein Nachbartanz',
+      'phrase': ', wiederholt sich in derselben Phrase wie ein Nachbartanz',
+      'beats': ', teilt Takte mit einem Nachbartanz',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -2748,6 +2760,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programsMatrixLegendCollision => 'Gleiche Phrase wie Nachbartanz';
+
+  @override
+  String get programsMatrixLegendCollisionBeats =>
+      'Gleiche Takte wie Nachbartanz';
 
   @override
   String get programsMatrixEmptyTitle => 'Noch keine strukturierten Figuren';
@@ -3238,6 +3254,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get exportMatrixLegendCollision => 'Gleiche Phrase wie Nachbartanz';
+
+  @override
+  String get exportMatrixLegendCollisionBeats =>
+      'Gleiche Takte wie Nachbartanz';
 
   @override
   String exportMatrixOmittedCaption(int count) {

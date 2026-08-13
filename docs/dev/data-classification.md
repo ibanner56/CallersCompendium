@@ -374,7 +374,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**54 settings keys**: 46 shareable, 8 device-scoped. 2 personal data by category.
+**55 settings keys**: 47 shareable, 8 device-scoped. 2 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -413,6 +413,7 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `last_used_collection_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_used_program_sort` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_used_program_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
+| `matrix_exact_beat_collision` | `dpv:NonPersonalData` | app user | shareable |  |
 | `perform_canonical_view` | `dpv:NonPersonalData` | app user | shareable |  |
 | `perform_stage_mode` | `dpv:NonPersonalData` | app user | shareable |  |
 | `perform_text_scale` | `dpv:NonPersonalData` | app user | device-scoped | Tuned to the screen it was set on. A scale chosen for a phone held at arm's length is wrong on a laptop driving a projector. |

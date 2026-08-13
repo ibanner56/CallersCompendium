@@ -164,7 +164,7 @@ void main() {
     expect(find.text('Introduced here'), findsOneWidget);
     expect(find.text("Dance's first figure"), findsOneWidget);
     expect(find.text('Present'), findsOneWidget);
-    expect(find.text('Same phrase as adjacent dance'), findsOneWidget);
+    expect(find.text('Same beats as adjacent dance'), findsOneWidget);
     // A opens with a neighbor swing → the neighbor split column is both its
     // program debut and its first figure; the partner baseline is not present.
     expect(
@@ -504,36 +504,37 @@ void main() {
       // ...and the per-dance table semantics are preserved on each chip. A
       // opens with the swing (its debut + first figure); B opens with it too
       // but the swing already debuted in A, so B carries the dance-first flag.
-      // Both dances open with the partner swing in the same phrase (A1), so
-      // that move is also a same-figure-same-phrase collision (#582).
+      // Both dances open with the partner swing at the identical beat span
+      // (A1), so that move also collides under the default exact-beat mode
+      // (#962; formerly phrase mode, #582).
       expect(
         find.bySemanticsLabel(
-          "A, formation: Duple improper, partner swing: present, repeats in "
-          "the same phrase as an adjacent dance, introduced here, dance's "
+          "A, formation: Duple improper, partner swing: present, shares "
+          "beats with an adjacent dance, introduced here, dance's "
           "first figure",
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          "B, formation: Duple improper, partner swing: present, repeats in "
-          "the same phrase as an adjacent dance, dance's first figure",
+          "B, formation: Duple improper, partner swing: present, shares "
+          "beats with an adjacent dance, dance's first figure",
         ),
         findsOneWidget,
       );
       // balance debuts in A (mid-dance, phrase A2) and is a plain repeat in B —
-      // also in A2 in both dances, so it collides too.
+      // also at the same beat span in both dances, so it collides too.
       expect(
         find.bySemanticsLabel(
-          'A, formation: Duple improper, balance: present, repeats in the '
-          'same phrase as an adjacent dance, introduced here',
+          'A, formation: Duple improper, balance: present, shares beats '
+          'with an adjacent dance, introduced here',
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          'B, formation: Duple improper, balance: present, repeats in the '
-          'same phrase as an adjacent dance',
+          'B, formation: Duple improper, balance: present, shares beats '
+          'with an adjacent dance',
         ),
         findsOneWidget,
       );
@@ -628,19 +629,20 @@ void main() {
       // into the compact chip's semantics and shown with the alt_route icon. A
       // opens the swing (its debut + first figure); Alt Dance opens it too but
       // after the debut, so it carries only the dance-first flag. Both open the
-      // partner swing in the same phrase (A1), so it also collides (#582).
+      // partner swing at the identical beat span (A1), so it also collides
+      // under the default exact-beat mode (#962; formerly phrase mode, #582).
       expect(
         find.bySemanticsLabel(
           "Alt Dance (alternate dance), formation: Duple improper, partner "
-          "swing: present, repeats in the same phrase as an adjacent dance, "
+          "swing: present, shares beats with an adjacent dance, "
           "dance's first figure",
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          "A, formation: Duple improper, partner swing: present, repeats in "
-          "the same phrase as an adjacent dance, introduced here, dance's "
+          "A, formation: Duple improper, partner swing: present, shares "
+          "beats with an adjacent dance, introduced here, dance's "
           "first figure",
         ),
         findsOneWidget,
@@ -668,16 +670,16 @@ void main() {
       // chip's semantics, regardless of the visual shortcut.
       expect(
         find.bySemanticsLabel(
-          "A, formation: Becket (CW), partner swing: present, repeats in "
-          "the same phrase as an adjacent dance, introduced here, dance's "
+          "A, formation: Becket (CW), partner swing: present, shares "
+          "beats with an adjacent dance, introduced here, dance's "
           "first figure",
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          "B, formation: Duple improper, partner swing: present, repeats "
-          "in the same phrase as an adjacent dance, dance's first figure",
+          "B, formation: Duple improper, partner swing: present, shares "
+          "beats with an adjacent dance, dance's first figure",
         ),
         findsOneWidget,
       );
@@ -785,12 +787,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Both dances open with the partner swing in the same phrase (A1), so it
-      // is also a same-figure-same-phrase collision (#582).
+      // Both dances open with the partner swing at the identical beat span
+      // (A1), so it also collides under the default exact-beat mode (#962;
+      // formerly phrase mode, #582).
       expect(
         find.bySemanticsLabel(
           "A (first half), formation: Duple improper, partner swing: "
-          "present, repeats in the same phrase as an adjacent dance, "
+          "present, shares beats with an adjacent dance, "
           "introduced here, dance's first figure",
         ),
         findsOneWidget,
@@ -798,7 +801,7 @@ void main() {
       expect(
         find.bySemanticsLabel(
           "B (second half), formation: Duple improper, partner swing: "
-          "present, repeats in the same phrase as an adjacent dance, "
+          "present, shares beats with an adjacent dance, "
           "dance's first figure",
         ),
         findsOneWidget,
@@ -806,9 +809,15 @@ void main() {
     });
   });
 
-  group('same-figure-same-phrase collision glyph (#582)', () {
+  group('same-figure collision glyph (#582; exact-beat default per #962)', () {
     // Steer a move into a phrase by padding the beats ahead of it (default
-    // 4x16 structure: A1 0-15, A2 16-31, B1 32-47, B2 48-63).
+    // 4x16 structure: A1 0-15, A2 16-31, B1 32-47, B2 48-63). Every scenario
+    // below gives the move an IDENTICAL beat span in both dances, so it
+    // collides under the default exact-beat-overlap mode too (#962) — these
+    // tests exercise the widget's collision-glyph rendering, not which
+    // MatrixCollisionMode fired. A dedicated phrase-mode test below pins the
+    // other ICU arm ("repeats in the same phrase…") for a case that collides
+    // ONLY under MatrixCollisionMode.phrase.
     Figure fig(String id, int beats) => invalidTestFigure(
       move: id,
       params: {'beats': beats},
@@ -832,19 +841,63 @@ void main() {
       // d1's balance is also its program debut for that move.
       expect(
         find.bySemanticsLabel(
-          'A, balance: present, repeats in the same phrase as an adjacent '
+          'A, balance: present, shares beats with an adjacent '
           'dance, introduced here',
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          'B, balance: present, repeats in the same phrase as an adjacent '
+          'B, balance: present, shares beats with an adjacent '
           'dance',
         ),
         findsOneWidget,
       );
     });
+
+    testWidgets(
+      'flags both cells under phrase mode when a move starts in the same '
+      'phrase but does NOT beat-overlap (issue #962)',
+      (tester) async {
+        // balance spans [32,40) in d1 and [40,48) in d2 — both land in the B1
+        // bucket (32-47) but their beat spans never overlap. This is #962's
+        // motivating example: the default (exact-beat) mode must NOT flag it,
+        // while phrase mode (opt-in) still does.
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              body: ProgramMatrixTable(
+                matrix: buildProgramMatrix([
+                  dance('d1', 'A', [fig('do_si_do', 32), fig('balance', 8)]),
+                  dance('d2', 'B', [fig('do_si_do', 40), fig('balance', 8)]),
+                ], collisionMode: MatrixCollisionMode.phrase),
+                taxonomy: contraTaxonomy,
+                dialect: Dialect.canonical,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.report), findsWidgets);
+        expect(
+          find.bySemanticsLabel(
+            'A, balance: present, repeats in the same phrase as an adjacent '
+            'dance, introduced here',
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.bySemanticsLabel(
+            'B, balance: present, repeats in the same phrase as an adjacent '
+            'dance',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets('does not flag the same move in a different phrase', (
       tester,
@@ -862,14 +915,14 @@ void main() {
       // The only release_alert icon is the legend key — no cell collides.
       expect(
         find.bySemanticsLabel(
-          'A, balance: present, repeats in the same phrase as an adjacent '
+          'A, balance: present, shares beats with an adjacent '
           'dance, introduced here',
         ),
         findsNothing,
       );
       expect(
         find.bySemanticsLabel(
-          'B, balance: present, repeats in the same phrase as an adjacent '
+          'B, balance: present, shares beats with an adjacent '
           'dance',
         ),
         findsNothing,
@@ -909,15 +962,15 @@ void main() {
       expect(find.byIcon(Icons.report), findsWidgets);
       expect(
         find.bySemanticsLabel(
-          'A, formation: Duple improper, balance: present, repeats in the '
-          'same phrase as an adjacent dance, introduced here',
+          'A, formation: Duple improper, balance: present, shares beats '
+          'with an adjacent dance, introduced here',
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          'B, formation: Duple improper, balance: present, repeats in the '
-          'same phrase as an adjacent dance',
+          'B, formation: Duple improper, balance: present, shares beats '
+          'with an adjacent dance',
         ),
         findsOneWidget,
       );

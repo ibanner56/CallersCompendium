@@ -51,6 +51,7 @@ ProgramMatrixExportLabels programMatrixExportLabels(AppLocalizations l10n) =>
       legendDebut: l10n.exportMatrixLegendDebut,
       legendFirst: l10n.exportMatrixLegendFirst,
       legendPresent: l10n.exportMatrixLegendPresent,
-      legendCollision: l10n.exportMatrixLegendCollision,
+      legendCollisionBeats: l10n.exportMatrixLegendCollisionBeats,
+      legendCollisionPhrase: l10n.exportMatrixLegendCollision,
       omittedCaption: l10n.exportMatrixOmittedCaption,
     );

@@ -179,15 +179,19 @@ Here is how to read it:
   | Star | **Introduced here** | The first dance (top to bottom) whose choreography uses that move, wherever it falls in that dance |
   | Flag | **Dance's first figure** | The move that dance opens with |
   | Check | **Present** | The move appears in that dance |
-  | Alert | **Same phrase as adjacent dance** | See below |
+  | Alert | **Same beats as adjacent dance** (or **Same phrase as adjacent dance**, if you turn the setting below off) | See below |
 
-- **The alert marker** replaces the check when a move lands in the **same phrase**
-  (A1, A2, B1, B2…) in **two dances that run back-to-back** in the program — for
-  example a partner balance & swing in B1 of one dance and again in B1 of the very
-  next dance. Adjacent repeats like this can make two dances feel samey on the
-  floor, so the matrix flags them for you to notice and, if you like, reconsider.
-  Only the two colliding cells are flagged; a repeat that is not in neighbouring
-  dances, or lands in a different phrase, is left alone.
+- **The alert marker** replaces the check when a move's beats actually **overlap**
+  in **two dances that run back-to-back** in the program — for example a partner
+  balance & swing that lands on the exact same beats in one dance and again in the
+  very next dance. Adjacent repeats like this can make two dances feel samey on
+  the floor, so the matrix flags them for you to notice and, if you like,
+  reconsider. Only the two colliding cells are flagged; a repeat that is not in
+  neighbouring dances, or whose beats don't actually overlap, is left alone. If
+  you'd rather flag any repeat that merely lands in the same **named phrase**
+  (A1, A2, B1, B2…) — even when the beats themselves don't overlap, which is how
+  the matrix used to behave — turn off **Flag exact beat overlap only** in
+  **Settings ▸ General ▸ Programs**.
 - **Headers stay pinned** as you scroll, so you never lose track of which row or
   column you are looking at.
 - **Hide a column you do not need** using the eye icon in its header. The icon is
@@ -218,7 +222,8 @@ A few practical notes:
   menu, and it is unavailable while the matrix is empty. The PDF is landscape and
   carries its own legend — where the screen uses icons, the printed page uses the
   marks `★` (introduced here), `▸` (dance's first figure), `✓` (present), and `‼`
-  (same phrase as adjacent dance). Columns you have hidden on screen still print:
+  (same beats as adjacent dance, or same phrase as adjacent dance if you've
+  turned the setting off). Columns you have hidden on screen still print:
   the export always covers the full matrix. See
   [Share, print & export](./sharing.md#print-the-programming-matrix).
 

@@ -110,22 +110,23 @@ void main() {
       expect(bytes, isNotEmpty);
     });
 
-    test('builds a matrix that carries a same-phrase collision marker', () async {
+    test('builds a matrix that carries a same-figure collision marker', () async {
       Figure fig(String id, int beats) => invalidTestFigure(
         move: id,
         params: {'beats': beats},
         reason:
             'callers pass arbitrary move ids, including ones outside the taxonomy, to drive matrix column discovery',
       );
-      // balance lands in B1 (beat 32) in two strictly-adjacent dances, so its
-      // cells are same-figure-same-phrase collisions — the alert marker path.
+      // balance lands at the identical beat span (32-47) in two
+      // strictly-adjacent dances, so its cells collide under either
+      // MatrixCollisionMode — the alert marker path.
       final matrix = buildProgramMatrix([
         dance('d1', 'Opener', [fig('do_si_do', 32), fig('balance', 16)]),
         dance('d2', 'Second', [fig('circle_left', 32), fig('balance', 16)]),
       ]);
       final balance = matrix.columns.indexWhere((c) => c.moveId == 'balance');
-      expect(matrix.isPhraseCollision(0, balance), isTrue);
-      expect(matrix.isPhraseCollision(1, balance), isTrue);
+      expect(matrix.isCollision(0, balance), isTrue);
+      expect(matrix.isCollision(1, balance), isTrue);
 
       final bytes = await buildProgramMatrixPdf(
         matrix,
@@ -136,6 +137,37 @@ void main() {
 
       expect(bytes, isNotEmpty);
     });
+
+    test(
+      'the printed legend caption matches the matrix collisionMode (#962)',
+      () async {
+        // Same dances as above but built in phrase mode: the collision still
+        // fires (they share the phrase B1), but the printed legend must say
+        // "phrase", not "beats" — the two are independently selectable and
+        // must never disagree with what the alert marker actually means.
+        Figure fig(String id, int beats) => invalidTestFigure(
+          move: id,
+          params: {'beats': beats},
+          reason:
+              'callers pass arbitrary move ids, including ones outside the taxonomy, to drive matrix column discovery',
+        );
+        final phraseMatrix = buildProgramMatrix([
+          dance('d1', 'Opener', [fig('do_si_do', 32), fig('balance', 16)]),
+          dance('d2', 'Second', [fig('circle_left', 32), fig('balance', 16)]),
+        ], collisionMode: MatrixCollisionMode.phrase);
+        expect(phraseMatrix.collisionMode, MatrixCollisionMode.phrase);
+
+        final bytes = await buildProgramMatrixPdf(
+          phraseMatrix,
+          taxonomy: contraTaxonomy,
+          dialect: Dialect.canonical,
+          programTitle: 'Collision program',
+          labels: const ProgramMatrixExportLabels(),
+        );
+
+        expect(bytes, isNotEmpty);
+      },
+    );
 
     group('formation column (#663)', () {
       test('defaults to an English fallback formation label', () async {

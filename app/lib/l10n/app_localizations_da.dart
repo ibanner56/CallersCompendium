@@ -792,6 +792,17 @@ class AppLocalizationsDa extends AppLocalizations {
       'Gennemse, rediger og slet dine genanvendelige spillestedsposter.';
 
   @override
+  String get settingsGeneralProgramsHeader => 'Programmer';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionTitle =>
+      'Markér kun nøjagtigt overlappende slag';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionSubtitle =>
+      'I programmeringsmatrixen markeres en gentaget figur mellem to danse i træk kun, når dens slag rent faktisk overlapper — ikke blot når den falder i samme navngivne frase (A1, A2, B1, B2…). Slå fra for at markere enhver gentagelse i samme frase, selv hvis slagene ikke overlapper.';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Performance';
 
   @override
@@ -2645,7 +2656,8 @@ class AppLocalizationsDa extends AppLocalizations {
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'yes': ', gentages i samme frase som en nabodans',
+      'phrase': ', gentages i samme frase som en nabodans',
+      'beats': ', deler slag med en nabodans',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -2725,6 +2737,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsMatrixLegendCollision => 'Samme frase som nabodans';
+
+  @override
+  String get programsMatrixLegendCollisionBeats => 'Samme slag som nabodans';
 
   @override
   String get programsMatrixEmptyTitle => 'Ingen strukturerede figurer endnu';
@@ -3208,6 +3223,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get exportMatrixLegendCollision => 'Samme frase som nabodans';
+
+  @override
+  String get exportMatrixLegendCollisionBeats => 'Samme slag som nabodans';
 
   @override
   String exportMatrixOmittedCaption(int count) {

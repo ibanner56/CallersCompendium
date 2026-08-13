@@ -83,3 +83,12 @@ const String kCustomFieldSharingDisclosureKey =
 /// name strings; absent/unset means all fields are visible, so existing users
 /// see no change until they adjust the preference.
 const String kCollectionTileVisibleFieldsKey = 'collection_tile_visible_fields';
+
+/// Key used to persist the Programs "flag exact beat overlap only" setting
+/// (issue #962). Stored as a `bool`; **unset means on** (`true`) — the product
+/// default this issue changed the matrix's same-figure collision check to. A
+/// dance's programming matrix flags a same-figure collision with a
+/// strictly-adjacent dance only when the move's beat SPAN actually overlaps,
+/// rather than merely starting in the same named phrase (A1/A2/B1/B2…). When
+/// `false`, the matrix falls back to the original (#582) phrase-bucket check.
+const String kMatrixExactBeatCollisionKey = 'matrix_exact_beat_collision';

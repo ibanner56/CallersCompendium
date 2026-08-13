@@ -22,7 +22,13 @@ Future<void> _pumpGeneral(
   WidgetTester tester,
   CompendiumRepositories repos,
 ) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 1200));
+  // Tall enough that every General toggle renders without scrolling — a
+  // ListView only builds children within its viewport + cache extent, so a
+  // short surface can leave a lower toggle (e.g. general-decimal-turns)
+  // unbuilt and `ensureVisible` unable to find it at all (issue #962 added
+  // the Programs section above these toggles, pushing them further down).
+  // Matches the convention already used by settings_screen_test.dart.
+  await tester.binding.setSurfaceSize(const Size(1200, 2600));
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
