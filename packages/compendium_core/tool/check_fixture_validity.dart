@@ -4,7 +4,7 @@
 /// Run from the repository root:
 ///
 /// ```sh
-/// (cd packages/compendium_core && dart run tool/check_fixture_validity.dart)
+/// (cd packages/compendium_core && fvm dart run tool/check_fixture_validity.dart)
 /// ```
 ///
 /// ## The gap this closes
