@@ -881,27 +881,6 @@ class _DefaultsView extends StatelessWidget {
         ),
         Builder(
           builder: (context) {
-            final aggressiveBeatsUpdate = AggressiveBeatsUpdateScope.of(
-              context,
-            );
-            return SwitchListTile(
-              key: const ValueKey('defaults-aggressive-beats-update'),
-              value: aggressiveBeatsUpdate,
-              onChanged: (value) async {
-                AggressiveBeatsUpdateScope.notifierOf(context).value = value;
-                final repos = RepositoriesScope.of(context);
-                await repos.settings.set(kAggressiveBeatsUpdateKey, value);
-              },
-              title: Text(l10n.settingsDefaultsAggressiveBeatsUpdateTitle),
-              subtitle: Text(
-                l10n.settingsDefaultsAggressiveBeatsUpdateSubtitle,
-              ),
-              isThreeLine: true,
-            );
-          },
-        ),
-        Builder(
-          builder: (context) {
             final controller = ShorthandMappingsScope.maybeOf(context);
             if (controller == null) return const SizedBox.shrink();
             final count = controller.mappings.length;
@@ -922,28 +901,6 @@ class _DefaultsView extends StatelessWidget {
                       ),
                     )
                   : null,
-            );
-          },
-        ),
-        Builder(
-          builder: (context) {
-            final controller = WalkthroughSnippetLibraryScope.maybeOf(context);
-            if (controller == null) return const SizedBox.shrink();
-            final count = controller.library.length;
-            return ListTile(
-              key: const ValueKey('defaults-walkthrough-snippets'),
-              title: Text(l10n.settingsWalkthroughSnippetsTitle),
-              subtitle: Text(
-                count == 0
-                    ? l10n.settingsWalkthroughSnippetsSubtitle
-                    : l10n.settingsWalkthroughSnippetsCount(count),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const WalkthroughSnippetsScreen(),
-                ),
-              ),
             );
           },
         ),
@@ -1089,6 +1046,49 @@ class _DefaultsView extends StatelessWidget {
             onRemoveMoveDefault: onRemoveMoveDefault,
             onMoveParamOverrideChanged: onMoveParamOverrideChanged,
           ),
+        ),
+        Builder(
+          builder: (context) {
+            final aggressiveBeatsUpdate = AggressiveBeatsUpdateScope.of(
+              context,
+            );
+            return SwitchListTile(
+              key: const ValueKey('defaults-aggressive-beats-update'),
+              value: aggressiveBeatsUpdate,
+              onChanged: (value) async {
+                AggressiveBeatsUpdateScope.notifierOf(context).value = value;
+                final repos = RepositoriesScope.of(context);
+                await repos.settings.set(kAggressiveBeatsUpdateKey, value);
+              },
+              title: Text(l10n.settingsDefaultsAggressiveBeatsUpdateTitle),
+              subtitle: Text(
+                l10n.settingsDefaultsAggressiveBeatsUpdateSubtitle,
+              ),
+              isThreeLine: true,
+            );
+          },
+        ),
+        Builder(
+          builder: (context) {
+            final controller = WalkthroughSnippetLibraryScope.maybeOf(context);
+            if (controller == null) return const SizedBox.shrink();
+            final count = controller.library.length;
+            return ListTile(
+              key: const ValueKey('defaults-walkthrough-snippets'),
+              title: Text(l10n.settingsWalkthroughSnippetsTitle),
+              subtitle: Text(
+                count == 0
+                    ? l10n.settingsWalkthroughSnippetsSubtitle
+                    : l10n.settingsWalkthroughSnippetsCount(count),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const WalkthroughSnippetsScreen(),
+                ),
+              ),
+            );
+          },
         ),
       ],
     );
