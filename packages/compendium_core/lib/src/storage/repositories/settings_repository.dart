@@ -21,6 +21,37 @@ import '../existence.dart';
 /// clears with raw SQL rather than through this class. Those stay hard deletes,
 /// and the raw reads filter tombstones, so a marker can neither be resurrected
 /// nor read back as still-set after it is cleared.
+///
+/// ## Before making `settings` a watched source (issue #768)
+///
+/// Nothing streams this table today. When something does, the obvious shape —
+/// one stream over `settings`, feeding a screen that re-reads its preferences —
+/// **self-triggers**, and the app already contains the writer that does it: the
+/// program editor autosaves its in-progress draft into this table on a **500 ms
+/// debounce while the user types**. A watcher on the whole table therefore wakes
+/// twice a second during editing, and every wake reloads whatever that screen
+/// derives from settings — the over-firing failure of issue #340, arrived at
+/// from the opposite direction to the staleness #768 is about.
+///
+/// Deliberately described by behaviour rather than by the symbols that
+/// implement it. This package does not depend on the app, so any private
+/// identifier named here is one nothing in this repository can check: it would
+/// not break a build when renamed, and a stale symbol makes a warning read as
+/// out of date even while the hazard it describes is still live.
+///
+/// The two failures share one cause: a watched set chosen by *table* rather
+/// than by what the consumer actually reads. So the fix is not to debounce the
+/// stream — that trades a fast wrong answer for a slow one — but to scope the
+/// subscription to the keys a consumer depends on, or to keep transient
+/// per-screen state out of `settings` entirely. Whichever is chosen, the draft
+/// key is the case to test against, because it is the highest-frequency writer
+/// here by a wide margin.
+///
+/// The migration-sweep writes in `CompendiumRepositories` are already visible
+/// to watchers (#768), so they need no further work — but they are also, by
+/// design, the only writes to this table that fire during startup, which is
+/// exactly when a new watcher is most likely to be attached and least likely to
+/// be observed misbehaving.
 class SettingsRepository {
   SettingsRepository(this._db);
 
