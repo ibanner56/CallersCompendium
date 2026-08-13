@@ -262,7 +262,13 @@ Future<int> _burst({
 }
 
 /// As [_burst], but the writes are issued together rather than awaited one at a
-/// time, so several land inside one coalescing window.
+/// time.
+///
+/// Deliberately does **not** claim they "land inside one coalescing window".
+/// That was the intuition this helper was written on, and measuring it showed
+/// the opposite: writes issued together commit close enough that drift
+/// dispatches them as a single update, so the window is handed one event and
+/// has nothing to collapse.
 Future<int> _tightBurst({
   required CompendiumRepositories repos,
   required Duration coalesce,
