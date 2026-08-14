@@ -2367,8 +2367,18 @@ void main() {
     testWidgets(
       'a held title, undo stack and figure survive an unrelated tag write',
       (tester) async {
+        // Opened against an EXISTING dance (not a new one): the mutation this
+        // test must catch — re-running the one-shot `_load()` on a stream
+        // emission — only clobbers something observable when there is a
+        // stored value to clobber the edit back to. A brand-new dance's
+        // `_load()` does not touch `titleController.text` when no seed title
+        // is set, so it would pass against that mutation for the wrong
+        // reason (nothing to overwrite, not "the overwrite was prevented").
         final repos = openTestRepositories();
-        await _pumpEditor(tester, repos);
+        await repos.dances.create(
+          _dance(id: 'd1', title: 'Original Title'),
+        );
+        await _pumpEditor(tester, repos, danceId: 'd1');
 
         await tester.enterText(
           find.byKey(const ValueKey('title-field')),
@@ -2391,11 +2401,12 @@ void main() {
         await repos.tags.upsert(Tag(id: 't-unrelated', name: 'unrelated-tag'));
         await tester.pumpAndSettle();
 
-        // Negative: the draft is untouched. `DanceEditorController.load` would
-        // reset the title field to empty (a new dance's default) if a stream
-        // emission naively re-seeded the controller — the mutation this test
-        // is written to catch.
+        // Negative: the draft is untouched. Re-running `_load()` from a
+        // stream emission (the mutation this test is written to catch) would
+        // re-fetch the STORED dance and reset the title field back to
+        // 'Original Title', clobbering the unsaved edit.
         expect(find.text('My Working Title'), findsOneWidget);
+        expect(find.text('Original Title'), findsNothing);
         expect(
           tester
               .widget<IconButton>(find.byKey(const ValueKey('undo-button')))
@@ -2421,8 +2432,8 @@ void main() {
         // Save still works: the draft was never disturbed.
         await tester.tap(find.byKey(const ValueKey('save-dance')));
         await tester.pumpAndSettle();
-        final saved = (await repos.dances.listAll()).single;
-        expect(saved.title, 'My Working Title');
+        final saved = await repos.dances.getById('d1');
+        expect(saved!.title, 'My Working Title');
       },
     );
   });
