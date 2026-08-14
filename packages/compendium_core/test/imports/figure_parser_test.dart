@@ -1027,6 +1027,69 @@ void main() {
       expect(f.note, 'to partner');
     });
 
+    group('chain hand — the "do a" construction (#976)', () {
+      test('"Men do a right-hand ladies chain to partner" structures with '
+          'who=role1s, hand=right, and the note', () {
+        // Guards the "do a" branch: reverting it leaves "do", "a",
+        // "right-hand", "role2s" (the idiom role word), "chain" as leftover
+        // tokens after the plain-chain consumption fails, so the whole line
+        // falls through to custom.
+        final f = _parseLine('Men do a right-hand ladies chain to partner');
+        expect(f!.isCustom, isFalse);
+        expect(f.move, 'chain');
+        expect(f.params['who'], 'role1s');
+        expect(f.params['hand'], 'right');
+        expect(f.note, 'to partner');
+      });
+
+      test('a stated hand beats the idiom role word: "Women do a left-hand '
+          'gents chain"', () {
+        // Guards that the actor (who) wins, and the stated hand is used
+        // as-is even though it contradicts the idiom role word ("gents" ==
+        // role1s, whose implied side is "left" — here it happens to agree,
+        // so also cover the genuinely CONTRADICTING case below).
+        final f = _parseLine('Women do a left-hand gents chain');
+        expect(f!.isCustom, isFalse);
+        expect(f.move, 'chain');
+        expect(f.params['who'], 'role2s');
+        expect(f.params['hand'], 'left');
+      });
+
+      test('a stated hand that CONTRADICTS the idiom role word still wins: '
+          '"Men do a left-hand ladies chain"', () {
+        // Guards against making the role word win over the stated hand
+        // (the mutation the plan calls out): "ladies" implies "right", but
+        // the stated "left-hand" must survive unchanged.
+        final f = _parseLine('Men do a left-hand ladies chain');
+        expect(f!.isCustom, isFalse);
+        expect(f.move, 'chain');
+        expect(f.params['who'], 'role1s');
+        expect(f.params['hand'], 'left');
+      });
+
+      test('"ones do a right-hand ladies chain" stays custom (who domain '
+          'guard)', () {
+        // Guards the role1s/role2s domain check at the end of _chain:
+        // "ones" is a valid actor elsewhere but outside chain's who domain,
+        // so dropping this guard would let it structure with a coerced who.
+        final f = _parseLine('ones do a right-hand ladies chain');
+        expect(f!.isCustom, isTrue);
+      });
+    });
+
+    test('a bare role-less "Ladies chain" line (default subject) gets no '
+        'stored hand — the taxonomy default fills it at read time', () {
+      // Guards #976 §6.1.3: populating `hand` from effectiveParams['who']
+      // (the taxonomy default) instead of a role token actually read from
+      // the source would be fabrication. "Ladies chain" DOES name a role
+      // ("Ladies" -> role2s), so this exercises a genuinely role-less line.
+      final f = _parseLine('chain');
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'chain');
+      expect(f.params.containsKey('who'), isFalse);
+      expect(f.params.containsKey('hand'), isFalse);
+    });
+
     // 2. The custom fallback keeps the original parenthetical annotation
     //    (stripping is for RECOGNITION only, so nothing is lost).
     test('unrecognized line keeps its parenthetical annotation in custom '
