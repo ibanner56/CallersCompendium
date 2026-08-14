@@ -490,9 +490,6 @@ class CompendiumRepositories {
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
-      // The last sweep's result is deliberately not assigned: nothing follows
-      // it today. It still REPORTS, so that adding a sweep after it is a
-      // one-line change rather than a change to the contract above.
       rebuiltThisCall = await _emitGripAndSingleFileIntoCanonicalIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,

@@ -584,20 +584,27 @@ import 'taxonomy.dart';
 ///     which would read as a different figure and tokenizes for FTS as one
 ///     word instead of two.
 ///
-///     **Backfill IS owed, and it is unconditional on rewrite count.**
-///     Structured search reads only stored `params_json`
-///     (`database.dart:783-784`), so a chain imported before this release and
-///     an identical one imported after it must both carry an explicit `hand`
-///     or search results depend on import date. A one-time sweep, modelled on
-///     `_normaliseInversePairMoveIdsIfNeeded`, backfills `hand` on every
-///     stored `chain` whose `who` is `role1s`/`role2s` and whose `hand` is
-///     absent, using [chainHandForWho] — leaving a chain with no stored `who`
-///     alone, for the same role-word-scoping reason above. It rewrites
-///     `figures_json`, then runs `runDerivedRebuild` (owed because
-///     `params_json` goes stale, not because a canonical key is persisted —
-///     none is), then writes its settings marker, in that order so an
-///     interrupted pass retries on the next open. New settings key classified
-///     in `privacy/settings_registry.dart` in the same PR.
+///     **Backfill IS owed, but the derived rebuild is gated on rewrite
+///     count, not unconditional.** Structured search reads only stored
+///     `params_json` (`database.dart:783-784`), so a chain imported before
+///     this release and an identical one imported after it must both carry
+///     an explicit `hand` or search results depend on import date. A
+///     one-time sweep, modelled on `_normaliseInversePairMoveIdsIfNeeded`,
+///     backfills `hand` on every stored `chain` whose `who` is
+///     `role1s`/`role2s` and whose `hand` is absent, using [chainHandForWho]
+///     — leaving a chain with no stored `who` alone, for the same
+///     role-word-scoping reason above. It rewrites `figures_json`, then runs
+///     `runDerivedRebuild` ONLY if a row was actually rewritten (unlike the
+///     taxonomy-version-owed sweeps above, whose rebuild is unconditional):
+///     the renderer's canonical/FTS text is byte-identical whether `hand` is
+///     the sentinel or the role-implied side, so a database with no
+///     un-backfilled chains has nothing stale to rebuild. It then writes its
+///     settings marker, in that order so an interrupted pass retries on the
+///     next open. This is a database-internal migration marker, not
+///     user-authored preference data — like its sibling sweep-marker keys
+///     above, it carries no entry in `privacy/settings_registry.dart`; the
+///     column-level `deviceLocal` classification on `settings.value_json`
+///     already keeps it from traveling.
 ///
 ///     **No DB schema bump.** `hand` rides the existing `figures_json` codec.
 const int contraTaxonomyVersion = 28;
