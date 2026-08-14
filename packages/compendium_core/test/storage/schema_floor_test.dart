@@ -47,9 +47,9 @@ void main() {
   });
 
   test('the floor is the schema version of the oldest supported release', () {
-    // v0.1.0-beta.2 shipped schema v11 and is the oldest supported release.
-    // beta.1 shipped v10, so a beta.1 database is deliberately below the floor.
-    expect(kMinSupportedSchemaVersion, 11);
+    // v0.1.0-beta.6 shipped schema v20 and is the oldest supported release.
+    // beta.5 shipped v15, so a beta.5 database is deliberately below the floor.
+    expect(kMinSupportedSchemaVersion, 20);
     expect(
       kMinSupportedSchemaVersion,
       lessThanOrEqualTo(kCompendiumSchemaVersion),
@@ -58,7 +58,7 @@ void main() {
   });
 
   group('a database below the floor is refused', () {
-    for (final version in const [1, 5, 10]) {
+    for (final version in const [1, 10, 15, 19]) {
       test('v$version fails to open', () async {
         final db = CompendiumDatabase(
           NativeDatabase(File(_databaseStampedAt(dir, version))),
@@ -85,9 +85,12 @@ void main() {
       });
     }
 
-    test('v10 is refused even though it is only one below the floor', () async {
-      // The boundary is the interesting case: beta.1 shipped v10, so this is
-      // the version a real (if unlikely) user could be on.
+    test('v19 is refused even though it is only one below the floor', () async {
+      // The boundary is the interesting case: v19 was never released as a
+      // beta version itself (it existed only as an interim schema during
+      // beta.6's development, which shipped v20 directly) — but the floor is
+      // exact, so it must still be refused, just as an actually-shipped
+      // boundary version would be.
       final path = _databaseStampedAt(dir, kMinSupportedSchemaVersion - 1);
       final db = CompendiumDatabase(NativeDatabase(File(path)));
 

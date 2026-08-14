@@ -7,16 +7,16 @@
 //
 //     dart run test/storage/fixtures/generate_v21_fixture.dart
 //
-// Ordering trap (same shape as `generate_v13_fixture.dart`): the current code is
-// already at schema v22, so opening a fresh `CompendiumDatabase` creates the v22
-// shape — `dance_figures.group_idx` already present, and already populated by the
-// indexer. Seeding at v22 and then stamping `user_version = 21` would leave the
-// column in place, so the v21 -> v22 `addColumn(groupIdx)` step would fail with
-// "duplicate column name". So we seed realistic data at the current schema and
-// then *strip back to the v21 shape* with raw SQL before stamping:
+// Ordering trap: the current code is already at schema v22, so opening a fresh
+// `CompendiumDatabase` creates the v22 shape — `dance_figures.group_idx` already
+// present, and already populated by the indexer. Seeding at v22 and then
+// stamping `user_version = 21` would leave the column in place, so the
+// v21 -> v22 `addColumn(groupIdx)` step would fail with "duplicate column
+// name". So we seed realistic data at the current schema and then *strip back
+// to the v21 shape* with raw SQL before stamping:
 //   * ALTER TABLE dance_figures DROP COLUMN group_idx  — remove the v22-only
-//     column (SQLite >= 3.35; the bundled sqlite3 is 3.53+). No index references
-//     it, so no DROP INDEX is needed first (unlike v13's venue_id).
+//     column (SQLite >= 3.35; the bundled sqlite3 is 3.53+). No index
+//     references it, so no DROP INDEX is needed first.
 //   * PRAGMA user_version = 21.
 //
 // The seeded data is chosen so the rebuild is *observable*: a dance whose

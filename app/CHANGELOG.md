@@ -76,6 +76,17 @@ each release so store builds and tags can be traced back to an entry.
   offline — nothing is sent anywhere unless you explicitly export it from
   Settings ▸ Diagnostics. (#963)
 
+### Removed
+
+- **Support for collections last opened by beta.5 or earlier.** Caller's
+  Compendium will no longer open a collection file that old; it stops rather
+  than upgrading it halfway, which would leave the file quietly incomplete.
+  Every tester is on beta.6 or later, so in practice no collection is
+  affected. If you do still have a pre-beta.6 file, open it once with beta.6
+  — or any later release you already have — and it will be upgraded normally,
+  after which this release can open it. (This raises the floor set in the
+  previous release, which retired support for beta.1-or-earlier collections.)
+
 ### Fixed
 
 - **A dance's detail view now updates while you are looking at it.** Editing a
