@@ -212,7 +212,6 @@ class DanceRepository {
     return figure.copyWith(params: {...figure.params, 'hand': hand});
   }
 
-
   /// sub-figures. Returns the original [figure] unchanged if no sub-figures
   /// need re-routing (avoids an allocation when nothing moves).
   Figure _normaliseFigure(Figure figure) {

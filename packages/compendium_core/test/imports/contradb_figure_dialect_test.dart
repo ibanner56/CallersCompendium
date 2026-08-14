@@ -70,8 +70,7 @@ void main() {
         expect(f.params['hand'], 'left');
       });
 
-      test('gentlespoons right-hand chain → chain{who:role1s, hand:right}',
-          () {
+      test('gentlespoons right-hand chain → chain{who:role1s, hand:right}', () {
         final f = _parse('gentlespoons right-hand chain');
         expect(f.isCustom, isFalse);
         expect(f.move, 'chain');
@@ -87,11 +86,13 @@ void main() {
         expect(f.params['hand'], 'right');
       });
 
-      test('a bare gentlespoons chain populates the role-implied side: left',
-          () {
-        final f = _parse('gentlespoons chain');
-        expect(f.params['hand'], 'left');
-      });
+      test(
+        'a bare gentlespoons chain populates the role-implied side: left',
+        () {
+          final f = _parse('gentlespoons chain');
+          expect(f.params['hand'], 'left');
+        },
+      );
 
       test('*-hand chain stays custom (ContraDB wildcard, no precedent '
           'recognizer accepts it)', () {

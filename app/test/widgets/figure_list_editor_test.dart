@@ -319,24 +319,21 @@ void main() {
   });
 
   group('chain hand seeding (#976)', () {
-    testWidgets(
-      'selecting the chain move seeds the role-implied hand, not '
-      'unspecified',
-      (tester) async {
-        final drafts = <FigureDraft>[FigureDraft()];
-        await _pump(tester, drafts);
-        await _selectMove(tester, 0, 'chain', 'chain');
+    testWidgets('selecting the chain move seeds the role-implied hand, not '
+        'unspecified', (tester) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(tester, drafts);
+      await _selectMove(tester, 0, 'chain', 'chain');
 
-        // Guards against seeding only in the `who` change branch (a first
-        // draft's design, #976 §6.1): a freshly created chain (default
-        // who=role2s) must store the concrete role-implied hand, not
-        // ParamVocab.unspecified, so it matches an imported bare "ladies
-        // chain" byte-for-byte.
-        expect(drafts.single.move, 'chain');
-        expect(drafts.single.params['who'], 'role2s');
-        expect(drafts.single.params['hand'], 'right');
-      },
-    );
+      // Guards against seeding only in the `who` change branch (a first
+      // draft's design, #976 §6.1): a freshly created chain (default
+      // who=role2s) must store the concrete role-implied hand, not
+      // ParamVocab.unspecified, so it matches an imported bare "ladies
+      // chain" byte-for-byte.
+      expect(drafts.single.move, 'chain');
+      expect(drafts.single.params['who'], 'role2s');
+      expect(drafts.single.params['hand'], 'right');
+    });
 
     testWidgets('changing chain.who rewrites the role-implied hand', (
       tester,

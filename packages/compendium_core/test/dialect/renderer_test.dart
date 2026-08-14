@@ -1328,79 +1328,76 @@ void main() {
             // chain.hand's choices would make this render "unspecified"
             // instead of silencing.
             expect(renderer.render(Figure(move: 'chain'), d), 'role2s chain');
-            expect(renderer.renderCanonical(Figure(move: 'chain')), 'role2s chain across');
+            expect(
+              renderer.renderCanonical(Figure(move: 'chain')),
+              'role2s chain across',
+            );
           },
         );
-        test(
-          'a role-implied hand renders identically to an unstated hand '
-          '(canonical too) — the newly-imported byte-identity guard',
-          () {
-            // Guards against making the silencing display-only: a bare
-            // "ladies chain" imported today must produce the same
-            // canonical/FTS text as an identical dance imported before
-            // this release, or dedupe/search would diverge by import date.
-            final withHand = Figure(
-              move: 'chain',
-              params: {'who': 'role2s', 'hand': 'right'},
-            );
-            final withoutHand = Figure(move: 'chain', params: {'who': 'role2s'});
-            expect(renderer.render(withHand, d), renderer.render(withoutHand, d));
-            expect(
-              renderer.renderCanonical(withHand),
-              renderer.renderCanonical(withoutHand),
-            );
-            expect(renderer.render(withHand, d), 'role2s chain');
-            expect(renderer.renderCanonical(withHand), 'role2s chain across');
+        test('a role-implied hand renders identically to an unstated hand '
+            '(canonical too) — the newly-imported byte-identity guard', () {
+          // Guards against making the silencing display-only: a bare
+          // "ladies chain" imported today must produce the same
+          // canonical/FTS text as an identical dance imported before
+          // this release, or dedupe/search would diverge by import date.
+          final withHand = Figure(
+            move: 'chain',
+            params: {'who': 'role2s', 'hand': 'right'},
+          );
+          final withoutHand = Figure(move: 'chain', params: {'who': 'role2s'});
+          expect(renderer.render(withHand, d), renderer.render(withoutHand, d));
+          expect(
+            renderer.renderCanonical(withHand),
+            renderer.renderCanonical(withoutHand),
+          );
+          expect(renderer.render(withHand, d), 'role2s chain');
+          expect(renderer.renderCanonical(withHand), 'role2s chain across');
 
-            final role1Hand = Figure(
-              move: 'chain',
-              params: {'who': 'role1s', 'hand': 'left'},
-            );
-            final role1NoHand = Figure(move: 'chain', params: {'who': 'role1s'});
-            expect(renderer.render(role1Hand, d), renderer.render(role1NoHand, d));
-            expect(renderer.render(role1Hand, d), 'role1s chain');
-          },
-        );
-        test(
-          'silencing is role-relative, not spec-default-relative: a '
-          'deliberate right-hand gents chain still renders',
-          () {
-            // Guards against reusing the _silencedDefaultParams shape
-            // (which compares against the spec default): role1s's implied
-            // side is "left", so a stated "right" must survive even
-            // though "right" is chain.hand's spec default value.
-            final deliberateRightForRole1 = Figure(
-              move: 'chain',
-              params: {'who': 'role1s', 'hand': 'right'},
-            );
-            expect(
-              renderer.render(deliberateRightForRole1, d),
-              'role1s right-hand chain',
-            );
-            expect(
-              renderer.renderCanonical(deliberateRightForRole1),
-              'role1s right-hand chain across',
-            );
-          },
-        );
-        test(
-          'a contradicting hand is hyphenated and sits before the move, '
-          'not after it and not bare',
-          () {
-            // Guards template order/wording: ContraDB's chainWords is
-            // words(sdiag, swho, thand, smove) — hand before move — and
-            // emits shand + "-hand", not a bare side.
-            final leftForRole2 = Figure(
-              move: 'chain',
-              params: {'who': 'role2s', 'hand': 'left'},
-            );
-            expect(renderer.render(leftForRole2, d), 'role2s left-hand chain');
-            expect(
-              renderer.renderCanonical(leftForRole2),
-              'role2s left-hand chain across',
-            );
-          },
-        );
+          final role1Hand = Figure(
+            move: 'chain',
+            params: {'who': 'role1s', 'hand': 'left'},
+          );
+          final role1NoHand = Figure(move: 'chain', params: {'who': 'role1s'});
+          expect(
+            renderer.render(role1Hand, d),
+            renderer.render(role1NoHand, d),
+          );
+          expect(renderer.render(role1Hand, d), 'role1s chain');
+        });
+        test('silencing is role-relative, not spec-default-relative: a '
+            'deliberate right-hand gents chain still renders', () {
+          // Guards against reusing the _silencedDefaultParams shape
+          // (which compares against the spec default): role1s's implied
+          // side is "left", so a stated "right" must survive even
+          // though "right" is chain.hand's spec default value.
+          final deliberateRightForRole1 = Figure(
+            move: 'chain',
+            params: {'who': 'role1s', 'hand': 'right'},
+          );
+          expect(
+            renderer.render(deliberateRightForRole1, d),
+            'role1s right-hand chain',
+          );
+          expect(
+            renderer.renderCanonical(deliberateRightForRole1),
+            'role1s right-hand chain across',
+          );
+        });
+        test('a contradicting hand is hyphenated and sits before the move, '
+            'not after it and not bare', () {
+          // Guards template order/wording: ContraDB's chainWords is
+          // words(sdiag, swho, thand, smove) — hand before move — and
+          // emits shand + "-hand", not a bare side.
+          final leftForRole2 = Figure(
+            move: 'chain',
+            params: {'who': 'role2s', 'hand': 'left'},
+          );
+          expect(renderer.render(leftForRole2, d), 'role2s left-hand chain');
+          expect(
+            renderer.renderCanonical(leftForRole2),
+            'role2s left-hand chain across',
+          );
+        });
       });
       test('promenade drops the default "across"', () {
         expect(
