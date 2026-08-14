@@ -58,6 +58,51 @@ void main() {
       expect(f.params['who'], 'role2s');
     });
 
+    group('chain hand (#976)', () {
+      test('ladles left-hand chain → chain{who:role2s, hand:left}', () {
+        // Guards the <side>-hand consumption: reverting it leaves "left-hand"
+        // as an unconsumed token and s.eat('chain') fails, so the whole line
+        // falls through to custom.
+        final f = _parse('ladles left-hand chain');
+        expect(f.isCustom, isFalse);
+        expect(f.move, 'chain');
+        expect(f.params['who'], 'role2s');
+        expect(f.params['hand'], 'left');
+      });
+
+      test('gentlespoons right-hand chain → chain{who:role1s, hand:right}',
+          () {
+        final f = _parse('gentlespoons right-hand chain');
+        expect(f.isCustom, isFalse);
+        expect(f.move, 'chain');
+        expect(f.params['who'], 'role1s');
+        expect(f.params['hand'], 'right');
+      });
+
+      test('a bare ladles chain populates the role-implied side: right', () {
+        // Guards the role-implied population: dropping it would leave
+        // `hand` unset (reading as ParamVocab.unspecified at render time)
+        // instead of the side the role word already states.
+        final f = _parse('ladles chain');
+        expect(f.params['hand'], 'right');
+      });
+
+      test('a bare gentlespoons chain populates the role-implied side: left',
+          () {
+        final f = _parse('gentlespoons chain');
+        expect(f.params['hand'], 'left');
+      });
+
+      test('*-hand chain stays custom (ContraDB wildcard, no precedent '
+          'recognizer accepts it)', () {
+        // Guards against accepting "*" as a side: no ContraDB recognizer in
+        // this dialect handles the wildcard hand today (_leftRight already
+        // declines bare "*"), so chain must not be the first exception.
+        final f = _parse('ladles *-hand chain');
+        expect(f.isCustom, isTrue);
+      });
+    });
+
     test('circle left 3 places', () {
       final f = _parse('circle left 3 places');
       expect(f.move, 'circle');
