@@ -2527,46 +2527,45 @@ void main() {
       expect(find.text('Could not load the dance.'), findsOneWidget);
     });
 
-    testWidgets(
-      'a subsequent write recovers the editor after a stream error',
-      (tester) async {
-        final failer = _FailOneChoreographersSelect();
-        final repos = CompendiumRepositories(
-          openWidgetTestDatabase(NativeDatabase.memory().interceptWith(failer)),
-          contraTaxonomy,
-        );
-        addTearDown(repos.db.close);
+    testWidgets('a subsequent write recovers the editor after a stream error', (
+      tester,
+    ) async {
+      final failer = _FailOneChoreographersSelect();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(NativeDatabase.memory().interceptWith(failer)),
+        contraTaxonomy,
+      );
+      addTearDown(repos.db.close);
 
-        failer.arm();
-        await _pumpEditor(tester, repos);
-        await tester.pumpAndSettle();
+      failer.arm();
+      await _pumpEditor(tester, repos);
+      await tester.pumpAndSettle();
 
-        expect(
-          failer.fired,
-          isTrue,
-          reason: 'the injected failure must actually have fired',
-        );
-        expect(find.text('Could not load the dance.'), findsOneWidget);
+      expect(
+        failer.fired,
+        isTrue,
+        reason: 'the injected failure must actually have fired',
+      );
+      expect(find.text('Could not load the dance.'), findsOneWidget);
 
-        // A new write triggers reference-data stream re-emission, which
-        // now succeeds because failer only failed one select.
-        await repos.choreographers.upsert(
-          Choreographer(id: 'c1', name: 'Gene Hubert'),
-        );
-        await tester.pumpAndSettle();
+      // A new write triggers reference-data stream re-emission, which
+      // now succeeds because failer only failed one select.
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Gene Hubert'),
+      );
+      await tester.pumpAndSettle();
 
-        expect(
-          find.text('Could not load the dance.'),
-          findsNothing,
-          reason: 'successful stream emission must clear _loadError',
-        );
-        expect(
-          find.byKey(const ValueKey('save-dance')),
-          findsOneWidget,
-          reason: 'the editor UI must be restored on recovery',
-        );
-      },
-    );
+      expect(
+        find.text('Could not load the dance.'),
+        findsNothing,
+        reason: 'successful stream emission must clear _loadError',
+      );
+      expect(
+        find.byKey(const ValueKey('save-dance')),
+        findsOneWidget,
+        reason: 'the editor UI must be restored on recovery',
+      );
+    });
   });
 }
 
