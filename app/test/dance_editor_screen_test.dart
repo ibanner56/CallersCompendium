@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -2317,4 +2319,237 @@ void main() {
       );
     });
   });
+
+  group('live reference data (issue #768, PR 9)', () {
+    testWidgets(
+      'a choreographer/tag/dance/source written elsewhere appears without '
+      'reopening the editor',
+      (tester) async {
+        final repos = openTestRepositories();
+        await _pumpEditor(tester, repos);
+
+        // ignore: unused_result
+        await repos.choreographers.upsert(
+          Choreographer(id: 'c1', name: 'Gene Hubert'),
+        );
+        // ignore: unused_result
+        await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
+        await repos.publishedSources.upsert(
+          PublishedSource(id: 's1', title: 'Zesty Contras'),
+        );
+        await repos.dances.create(
+          _dance(id: 'd-other', title: 'Petronella Twirl'),
+        );
+        await tester.pumpAndSettle();
+
+        // Author picker: option only exists if the choreographer cache was
+        // re-read after the write above (the editor never queried it itself).
+        await tester.enterText(
+          find.byKey(const ValueKey('author-input')),
+          'Gene',
+        );
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('author-option-c1')), findsOneWidget);
+
+        // Tag picker (Tier 2 — must expand "More details" first).
+        await _expandMoreDetails(tester);
+        await tester.enterText(
+          find.byKey(const ValueKey('tag-input')),
+          'flowy',
+        );
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('tag-option-t1')), findsOneWidget);
+      },
+    );
+  });
+
+  group('the draft survives a reference-data reload (issue #768, PR 9)', () {
+    testWidgets(
+      'a held title, undo stack and figure survive an unrelated tag write',
+      (tester) async {
+        final repos = openTestRepositories();
+        await _pumpEditor(tester, repos);
+
+        await tester.enterText(
+          find.byKey(const ValueKey('title-field')),
+          'My Working Title',
+        );
+        // Past the undo-push debounce (mirrors editor_autosave_undo_test.dart),
+        // so the draft is recorded as dirty before the write below.
+        await tester.pump(const Duration(milliseconds: 600));
+        expect(
+          tester
+              .widget<IconButton>(find.byKey(const ValueKey('undo-button')))
+              .onPressed,
+          isNotNull,
+          reason: 'typing must register as a dirty draft before the write',
+        );
+
+        // An unrelated write the reference-data stream must wake for — but
+        // must not route into the draft.
+        // ignore: unused_result
+        await repos.tags.upsert(Tag(id: 't-unrelated', name: 'unrelated-tag'));
+        await tester.pumpAndSettle();
+
+        // Negative: the draft is untouched. `DanceEditorController.load` would
+        // reset the title field to empty (a new dance's default) if a stream
+        // emission naively re-seeded the controller — the mutation this test
+        // is written to catch.
+        expect(find.text('My Working Title'), findsOneWidget);
+        expect(
+          tester
+              .widget<IconButton>(find.byKey(const ValueKey('undo-button')))
+              .onPressed,
+          isNotNull,
+          reason: 'the undo stack must survive the reload',
+        );
+
+        // Positive control: the write did reach the screen, so the negatives
+        // above are evidence the reload is scoped correctly rather than
+        // evidence that nothing happened.
+        await _expandMoreDetails(tester);
+        await tester.enterText(
+          find.byKey(const ValueKey('tag-input')),
+          'unrelated',
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('tag-option-t-unrelated')),
+          findsOneWidget,
+        );
+
+        // Save still works: the draft was never disturbed.
+        await tester.tap(find.byKey(const ValueKey('save-dance')));
+        await tester.pumpAndSettle();
+        final saved = (await repos.dances.listAll()).single;
+        expect(saved.title, 'My Working Title');
+      },
+    );
+  });
+
+  group('bounded reload count (issue #768, PR 9)', () {
+    testWidgets(
+      'a program write does not reload; a burst of dance-source writes '
+      'coalesces',
+      (tester) async {
+        final db = openWidgetTestDatabase();
+        addTearDown(db.close);
+        final counting = _CountingDanceRepository(db, contraTaxonomy);
+        final repos = CompendiumRepositories(
+          db,
+          contraTaxonomy,
+          dances: counting,
+        );
+        await _pumpEditor(tester, repos);
+        await tester.pumpAndSettle();
+        final afterInitialLoad = counting.listAllCalls;
+        expect(afterInitialLoad, greaterThan(0));
+
+        // A program write does not touch the editor's read set at all.
+        await repos.programs.create(
+          Program(
+            id: 'p1',
+            title: 'Autumn Ball',
+            status: ProgramStatus.draft,
+            slots: const [],
+            createdAt: _now,
+            updatedAt: _now,
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          counting.listAllCalls,
+          afterInitialLoad,
+          reason:
+              'the editor renders nothing program-derived, so a program '
+              'write must not reload it',
+        );
+
+        // A burst of writes to OTHER dances (the shape a batch-tag loop
+        // produces) must coalesce rather than reload once per write.
+        for (var i = 0; i < 10; i++) {
+          await repos.dances.create(
+            Dance(id: 'burst$i', title: 'Burst $i', createdAt: _now, updatedAt: _now),
+          );
+        }
+        await tester.pumpAndSettle();
+
+        // Paired positive: the counter can move at all, so the bound below is
+        // evidence about coalescing and not about a dead subscription.
+        expect(
+          counting.listAllCalls,
+          greaterThan(afterInitialLoad),
+          reason: 'without this, the bound below would pass for a dead reload',
+        );
+        expect(
+          counting.listAllCalls - afterInitialLoad,
+          lessThan(10),
+          reason: 'a 10-write burst must not produce one reload per write',
+        );
+      },
+    );
+  });
+
+  group('a reference-data load error is surfaced (issue #768, PR 9)', () {
+    testWidgets('a failed choreographer read renders the load-error message', (
+      tester,
+    ) async {
+      final failer = _FailOneChoreographersSelect();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(NativeDatabase.memory().interceptWith(failer)),
+        contraTaxonomy,
+      );
+      addTearDown(repos.db.close);
+
+      failer.arm();
+      await _pumpEditor(tester, repos);
+      await tester.pumpAndSettle();
+
+      expect(
+        failer.fired,
+        isTrue,
+        reason: 'the injected failure must actually have fired',
+      );
+      expect(find.text('Could not load the dance.'), findsOneWidget);
+    });
+  });
+}
+
+/// A [DanceRepository] that counts [listAll] calls, so a test can assert a
+/// bound on how many times the reference-data stream re-read rather than only
+/// observing its rendered effect.
+class _CountingDanceRepository extends DanceRepository {
+  _CountingDanceRepository(super.db, super.taxonomy);
+
+  int listAllCalls = 0;
+
+  @override
+  Future<List<Dance>> listAll({bool includeDeleted = false}) {
+    listAllCalls++;
+    return super.listAll(includeDeleted: includeDeleted);
+  }
+}
+
+/// Fails exactly one `choreographers` select once armed, then delegates
+/// normally. Mirrors `_FailOneVenuesSelect` in `per_consumer_read_sets_test.dart`.
+class _FailOneChoreographersSelect extends drift.QueryInterceptor {
+  bool _armed = false;
+  bool _fired = false;
+
+  bool get fired => _fired;
+
+  void arm() => _armed = true;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) async {
+    if (_armed && !_fired && statement.contains('FROM "choreographers"')) {
+      _fired = true;
+      throw Exception('injected transient choreographers read failure');
+    }
+    return executor.runSelect(statement, args);
+  }
 }

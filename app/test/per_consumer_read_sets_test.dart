@@ -14,6 +14,8 @@ import 'package:compendium_app/src/screens/dance_detail/calling_history_section.
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
+import 'package:compendium_app/src/search/dance_detail_data.dart';
+import 'package:compendium_app/src/search/dance_editor_reference_data.dart';
 
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
@@ -461,6 +463,116 @@ void main() {
           );
         },
       );
+    }
+  });
+
+  group('DanceEditorReferenceData and DanceDetailData share one drift stream '
+      '(issue #768, PR 9)', () {
+    // Both types watch `CompendiumRepositories.watchDanceSources()` directly —
+    // deliberately, since PR 9's editor read set is entry-for-entry identical
+    // to that sentinel's (see `dance_editor_reference_data.dart`). Drift keys
+    // its query stream cache by `(sql, variables)` and ignores `readsFrom`, so
+    // two subscribers reading the same SQL text are, correctly, one stream
+    // here — there is no second sentinel to collide. What must still be
+    // guarded is the property a narrower sentinel would need to preserve: each
+    // subscriber wakes for a write to the shared set and neither wakes for a
+    // program write, in EITHER subscription order. A single order passes
+    // deterministically against half of a future collision (the `readsFrom`
+    // hazard `wakesForProgramWrite` above already guards for the two
+    // dance/collection sentinels) — see that helper's doc for why order is a
+    // parameter and not a default.
+    Future<({int editor, int detail})> wakesFor({
+      required bool editorFirst,
+      required void Function(CompendiumRepositories repos) write,
+    }) async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      await repos.dances.create(
+        Dance(id: 'd1', title: 'Alpha', createdAt: now, updatedAt: now),
+      );
+
+      var editor = 0;
+      var detail = 0;
+      late StreamSubscription<void> first;
+      late StreamSubscription<void> second;
+      if (editorFirst) {
+        first = DanceEditorReferenceData.watch(repos).listen((_) => editor++);
+        second = DanceDetailData.watch(repos, 'd1').listen((_) => detail++);
+      } else {
+        first = DanceDetailData.watch(repos, 'd1').listen((_) => detail++);
+        second = DanceEditorReferenceData.watch(
+          repos,
+        ).listen((_) => editor++);
+      }
+      addTearDown(first.cancel);
+      addTearDown(second.cancel);
+
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      final editorBefore = editor;
+      final detailBefore = detail;
+
+      write(repos);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      return (
+        editor: editor - editorBefore,
+        detail: detail - detailBefore,
+      );
+    }
+
+    for (final editorFirst in [true, false]) {
+      final label = editorFirst ? 'editor sentinel first' : 'detail sentinel first';
+
+      test('a choreographer write wakes both ($label)', () async {
+        final wakes = await wakesFor(
+          editorFirst: editorFirst,
+          write: (repos) => repos.choreographers.upsert(
+            Choreographer(id: 'c1', name: 'Gene Hubert'),
+          ),
+        );
+
+        expect(
+          wakes.editor,
+          greaterThan(0),
+          reason: 'the editor watches choreographers',
+        );
+        expect(
+          wakes.detail,
+          greaterThan(0),
+          reason: 'the detail screen watches choreographers too',
+        );
+      });
+
+      test('a program write wakes neither ($label)', () async {
+        final wakes = await wakesFor(
+          editorFirst: editorFirst,
+          write: (repos) => repos.programs.create(
+            Program(
+              id: 'p1',
+              title: 'Autumn Ball',
+              status: ProgramStatus.draft,
+              slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+              createdAt: now,
+              updatedAt: now,
+            ),
+          ),
+        );
+
+        expect(
+          wakes.editor,
+          0,
+          reason:
+              'the editor renders nothing program-derived, so a program '
+              'write must not wake it',
+        );
+        expect(
+          wakes.detail,
+          0,
+          reason:
+              'the detail screen watches the same sentinel and must decline '
+              'the same write',
+        );
+      });
     }
   });
 }
