@@ -825,6 +825,24 @@ class CompendiumRepositories {
   /// database. The marker is written AFTER the pass succeeds — an
   /// interrupted pass retries on the next open.
   ///
+  /// **Crash safety across the rewrite/rebuild split:** the row rewrites
+  /// below are idempotent (a dance already carrying the role-implied hand
+  /// scans as unchanged), which is what makes a bare retry safe for the
+  /// rewrites themselves — but NOT sufficient on its own for the rebuild
+  /// that must follow them. If a first attempt commits every `figures_json`
+  /// rewrite and is then interrupted before the derived rebuild below runs
+  /// (or [runDerivedRebuild] throws), a naive retry would rescan, find every
+  /// hand already backfilled, compute `rewroteAny = false`, skip the
+  /// rebuild, and write the done marker anyway — permanently leaving
+  /// `dance_figures`/`dance_fts` stale for the rows the first attempt
+  /// rewrote. To close that gap, the rewrite loop and a durable
+  /// [derivedRebuildRequiredKey] write are committed together in one
+  /// transaction: either both land, or neither does. If the process dies
+  /// anywhere after that transaction commits, [derivedRebuildRequiredKey] is
+  /// still set, so the NEXT call's unconditional check at the top of
+  /// [_runMigration] (which runs before this sweep) performs the owed
+  /// rebuild regardless of what this sweep's own rescan finds.
+  ///
   /// **Fresh install:** no chain figures exist yet, so the scan finds
   /// nothing to update and writes the marker immediately. The pass is a
   /// no-op.
@@ -846,25 +864,36 @@ class CompendiumRepositories {
 
     final allDances = await dances.listAll(includeDeleted: true);
     var rewroteAny = false;
-    for (final dance in allDances) {
-      final backfilled = dances.backfillChainHandPublic(dance);
-      if (!identical(backfilled, dance)) {
-        rewroteAny = true;
-        // Rewrite only the figures_json column — nothing else about the
-        // dance changes, and a full _upsert would needlessly rebuild derived
-        // rows per dance (the bulk rebuild at the end is cheaper).
-        await db.customUpdate(
-          'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
-          'WHERE id = ?',
-          variables: [
-            Variable<String>(encodeFigures(backfilled.figures)),
-            Variable<String>(dance.id),
-          ],
-          updates: {db.dances},
-          updateKind: UpdateKind.update,
-        );
+    await db.transaction(() async {
+      for (final dance in allDances) {
+        final backfilled = dances.backfillChainHandPublic(dance);
+        if (!identical(backfilled, dance)) {
+          rewroteAny = true;
+          // Rewrite only the figures_json column — nothing else about the
+          // dance changes, and a full _upsert would needlessly rebuild
+          // derived rows per dance (the bulk rebuild at the end is
+          // cheaper).
+          await db.customUpdate(
+            'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
+            'WHERE id = ?',
+            variables: [
+              Variable<String>(encodeFigures(backfilled.figures)),
+              Variable<String>(dance.id),
+            ],
+            updates: {db.dances},
+            updateKind: UpdateKind.update,
+          );
+        }
       }
-    }
+      if (rewroteAny) {
+        // Committed in the SAME transaction as the rewrites above (see the
+        // crash-safety note): if the process dies before the rebuild below
+        // completes, this durable flag survives and forces the owed rebuild
+        // on the next open, even though a retry's own rescan would find
+        // nothing left to rewrite.
+        await _writeSweepMarker(derivedRebuildRequiredKey, 'true');
+      }
+    });
 
     // A derived rebuild is needed whenever THIS pass rewrote a row —
     // regardless of whether an earlier sweep in the same call already
@@ -878,6 +907,16 @@ class CompendiumRepositories {
     final rebuilt = rewroteAny;
     if (rebuilt) {
       await runDerivedRebuild(onProgress: onProgress);
+      // The rebuild [derivedRebuildRequiredKey] guarded against has now
+      // completed, so clear it — otherwise the next call's unconditional
+      // top-of-[_runMigration] check would redo a rebuild that is no longer
+      // owed.
+      await db.customUpdate(
+        'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
+        variables: [Variable<String>(derivedRebuildRequiredKey)],
+        updates: {db.settings},
+        updateKind: UpdateKind.delete,
+      );
     }
 
     // Write the marker AFTER success — if the rebuild throws, the marker is

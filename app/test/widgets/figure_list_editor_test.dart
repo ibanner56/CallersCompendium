@@ -376,28 +376,25 @@ void main() {
       },
     );
 
-    testWidgets(
-      "a saved per-move default that itself sets chain.hand isn't "
-      'clobbered by role-implied seeding',
-      (tester) async {
-        final drafts = <FigureDraft>[FigureDraft()];
-        await _pump(
-          tester,
-          drafts,
-          moveParamDefaults: {
-            'chain': {'hand': 'left'},
-          },
-        );
-        await _selectMove(tester, 0, 'chain', 'chain');
+    testWidgets("a saved per-move default that itself sets chain.hand isn't "
+        'clobbered by role-implied seeding', (tester) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'chain': {'hand': 'left'},
+        },
+      );
+      await _selectMove(tester, 0, 'chain', 'chain');
 
-        // who stays at the taxonomy default (role2s, implying "right"), but
-        // the user's saved default explicitly wants "left" — a deliberately
-        // contradictory, hyphenated chain. Re-seeding after the overlay
-        // would silently discard this saved override.
-        expect(drafts.single.params['who'], 'role2s');
-        expect(drafts.single.params['hand'], 'left');
-      },
-    );
+      // who stays at the taxonomy default (role2s, implying "right"), but
+      // the user's saved default explicitly wants "left" — a deliberately
+      // contradictory, hyphenated chain. Re-seeding after the overlay
+      // would silently discard this saved override.
+      expect(drafts.single.params['who'], 'role2s');
+      expect(drafts.single.params['hand'], 'left');
+    });
   });
 
   testWidgets('a manually-set beats value survives a non-move param change', (

@@ -1341,21 +1341,18 @@ void main() {
             );
           },
         );
-        test(
-          "chain.hand's spec genuinely declares the unspecified sentinel "
-          'both as a choice and as the default',
-          () {
-            // Falsifies the claim the test above can only describe, not
-            // enforce: rendering never reads `ParamSpec.choices`, so a
-            // regression that dropped `ParamVocab.unspecified` from
-            // chain.hand's `choices` (or changed its `defaultValue`) would
-            // leave every render-level assertion above green. This test
-            // reads the spec directly instead.
-            final handSpec = contraTaxonomy.resolve('chain')!.params['hand']!;
-            expect(handSpec.choices, contains(ParamVocab.unspecified));
-            expect(handSpec.defaultValue, ParamVocab.unspecified);
-          },
-        );
+        test("chain.hand's spec genuinely declares the unspecified sentinel "
+            'both as a choice and as the default', () {
+          // Falsifies the claim the test above can only describe, not
+          // enforce: rendering never reads `ParamSpec.choices`, so a
+          // regression that dropped `ParamVocab.unspecified` from
+          // chain.hand's `choices` (or changed its `defaultValue`) would
+          // leave every render-level assertion above green. This test
+          // reads the spec directly instead.
+          final handSpec = contraTaxonomy.resolve('chain')!.params['hand']!;
+          expect(handSpec.choices, contains(ParamVocab.unspecified));
+          expect(handSpec.defaultValue, ParamVocab.unspecified);
+        });
         test('a role-implied hand renders identically to an unstated hand '
             '(canonical too) — the newly-imported byte-identity guard', () {
           // Guards against making the silencing display-only: a bare
