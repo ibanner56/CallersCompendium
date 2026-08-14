@@ -120,6 +120,16 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// [didChangeDependencies] alongside [_load] and cancelled in [dispose].
   StreamSubscription<DanceEditorReferenceData>? _refDataSub;
 
+  /// Resolves once the subscription above has delivered its first event
+  /// (data or error). [_load] awaits this so the caches above are already
+  /// populated — or the failure already surfaced via [_loadError] — before
+  /// its first "loaded" render, rather than issuing a second, independent
+  /// read of the same tables that would race the subscription's for no
+  /// benefit (see [_subscribeReferenceData]'s doc). Completed defensively in
+  /// [dispose] too, so a widget disposed before the first event arrives does
+  /// not leave [_load]'s continuation suspended forever.
+  final Completer<void> _initialReferenceDataReady = Completer<void>();
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -164,11 +174,16 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// choreographers, tags, all dances and published sources, re-read whenever
   /// a write touches any of them.
   ///
-  /// Started once, alongside [_load], rather than awaited before it: the two
-  /// read disjoint state ([_load] seeds the working draft via [_controller];
-  /// this only ever updates the picker/lookup caches above) so there is no
-  /// ordering hazard in running them concurrently, and gating the reference
-  /// caches on [_load]'s completion would delay live updates for no reason.
+  /// Started once, alongside [_load], which awaits
+  /// [_initialReferenceDataReady] (completed below, on this subscription's
+  /// first event) before proceeding to [DanceEditorController.load] — so the
+  /// caches above are populated (or the failure already known) before the
+  /// screen's first "loaded" render, without [_load] issuing its own,
+  /// independent read of the same tables. A second, unsynchronized read would
+  /// race this one for no benefit and, worse, could let the two disagree
+  /// about whether the initial read failed (see the recovery discussion
+  /// below) — one clean source of truth for the initial snapshot, reused for
+  /// every later update too, avoids that.
   ///
   /// **Never touches [_controller].** Reassigning `fieldDefs` or re-running
   /// [DanceEditorController.load] from a stream emission would duplicate
@@ -191,22 +206,38 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// lost — but it is a UX regression, not a null bug, so it should be
   /// bounded in size the same way `_load` is if this class of failure ever
   /// turns out to be reachable mid-edit. `cancelOnError: false` so a
-  /// subsequent write can still recover the subscription.
+  /// subsequent write can still recover the subscription — including when the
+  /// *first* event was the failure: `_controller.load` still runs (once
+  /// [_initialReferenceDataReady] completes, error or not), so the screen
+  /// isn't stuck showing a spinner while a later successful emission clears
+  /// `_loadError` out from under it.
   void _subscribeReferenceData() {
+    var isFirstEvent = true;
+    void completeInitialReadyOnce() {
+      if (isFirstEvent) {
+        isFirstEvent = false;
+        if (!_initialReferenceDataReady.isCompleted) {
+          _initialReferenceDataReady.complete();
+        }
+      }
+    }
+
     _refDataSub = DanceEditorReferenceData.watch(_repos).listen(
       (data) {
-        if (!mounted) return;
-        setState(() {
-          _loadError = null;
-          _choreographers = data.choreographers;
-          _tags = data.tags;
-          _allDances = data.dances;
-          _publishedSources = data.publishedSources;
-          _choreographerNames = data.choreographerNames;
-          _tagNames = data.tagNames;
-          _danceNamesById = data.danceNamesById;
-          _sourcesById = data.sourcesById;
-        });
+        if (mounted) {
+          setState(() {
+            _loadError = null;
+            _choreographers = data.choreographers;
+            _tags = data.tags;
+            _allDances = data.dances;
+            _publishedSources = data.publishedSources;
+            _choreographerNames = data.choreographerNames;
+            _tagNames = data.tagNames;
+            _danceNamesById = data.danceNamesById;
+            _sourcesById = data.sourcesById;
+          });
+        }
+        completeInitialReadyOnce();
       },
       onError: (Object error, StackTrace stackTrace) {
         logCaughtError(
@@ -214,8 +245,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           stackTrace,
           source: 'dance_editor_screen._subscribeReferenceData',
         );
-        if (!mounted) return;
-        setState(() => _loadError = error);
+        if (mounted) setState(() => _loadError = error);
+        completeInitialReadyOnce();
       },
       cancelOnError: false,
     );
@@ -227,6 +258,13 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       _controller.removeListener(_onControllerChanged);
       _controller.dispose();
     }
+    // Unblocks a still-suspended `_load()` continuation if the widget is
+    // disposed before the subscription's first event ever arrives (e.g. the
+    // route is popped mid-load): completing with no data is safe because
+    // `_load()` checks `mounted` again after the await.
+    if (!_initialReferenceDataReady.isCompleted) {
+      _initialReferenceDataReady.complete();
+    }
     unawaited(_refDataSub?.cancel());
     super.dispose();
   }
@@ -234,13 +272,24 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   Future<void> _load() async {
     try {
       // `fieldDefs` and `dance` seed [_controller] below and are read once,
-      // here — not from [_subscribeReferenceData]'s stream. Reference-data
-      // caches (choreographers/tags/dances/published sources) are populated
-      // by that subscription instead; see its doc for why they are split out.
-      final fieldDefs = await _repos.customFieldDefs.listAll();
-      final dance = widget.danceId == null
+      // here — not from [_subscribeReferenceData]'s stream; see that method's
+      // doc for why they stay one-shot draft-adjacent state.
+      final fieldDefsFuture = _repos.customFieldDefs.listAll();
+      final danceFuture = widget.danceId == null
           ? null
-          : await _repos.dances.getById(widget.danceId!);
+          : _repos.dances.getById(widget.danceId!);
+
+      // Wait for [_subscribeReferenceData]'s first event (data or error)
+      // before continuing to [DanceEditorController.load] below, so the
+      // reference-data caches are already populated — or the failure is
+      // already known via [_loadError] — by the time the screen's first
+      // "loaded" render happens. See that method's doc for why this awaits
+      // the *subscription's* read rather than issuing a second, independent
+      // one of the same tables.
+      await _initialReferenceDataReady.future;
+
+      final fieldDefs = await fieldDefsFuture;
+      final dance = danceFuture == null ? null : await danceFuture;
 
       // Load the per-move insert-time param overrides (ROADMAP DD.3). Applies
       // to ANY dance (new or existing) — per-move defaults are about inserting

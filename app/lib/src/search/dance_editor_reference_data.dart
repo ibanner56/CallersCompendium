@@ -63,12 +63,16 @@ class DanceEditorReferenceData {
   /// A live [DanceEditorReferenceData], re-read whenever anything the editor's
   /// reference data is built from changes (issue #768). Reuses
   /// [CompendiumRepositories.watchDanceSources] rather than a dedicated
-  /// sentinel: the editor's read set — choreographers, tags, dances, published
-  /// sources — is entry-for-entry identical to that method's declared set
-  /// (including its omission of `programs`/`program_slots`, since the editor
-  /// renders nothing program-derived, and `venues`, since a dance record
-  /// carries none). A second sentinel reading the same table set would add a
-  /// new `StreamKey` collision surface for no additional coverage.
+  /// sentinel: the editor's *streamed* read set — choreographers, tags,
+  /// dances, published sources — is a strict subset of that method's declared
+  /// set (which also includes `customFieldDefs`, since it is shared with the
+  /// dance-detail sentinel; the editor still wakes on a custom-field-def
+  /// write, it just does not re-read them — see `DanceEditorScreen._load` for
+  /// why field defs are loaded once instead). It also omits
+  /// `programs`/`program_slots`, since the editor renders nothing
+  /// program-derived, and `venues`, since a dance record carries none. A
+  /// second sentinel reading the same table set would add a new `StreamKey`
+  /// collision surface for no additional coverage.
   ///
   /// Emits an initial value immediately, so a subscriber renders without
   /// waiting for a write.
