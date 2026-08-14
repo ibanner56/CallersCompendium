@@ -1,37 +1,37 @@
 {
   "manifestSchemaVersion": 1,
   "channel": "beta",
-  "version": "0.1.0-beta.7",
-  "releaseNotesUrl": "https://github.com/ibanner56/CallersCompendium/releases/tag/v0.1.0-beta.7",
-  "pubDate": "2026-08-12T19:16:25Z",
+  "version": "0.1.0-beta.8",
+  "releaseNotesUrl": "https://github.com/ibanner56/CallersCompendium/releases/tag/v0.1.0-beta.8",
+  "pubDate": "2026-08-14T15:09:40Z",
   "artifacts": [
     {
       "platform": "android",
       "arch": "universal",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.1.0-beta.7/CallersCompendium-0.1.0-beta.7-android-universal.apk",
-      "sha256": "89f0c68183d5c22635d49df90eddb2da3bcb93bef5753f149a1ebb70e082aaf1",
-      "size": 89118553
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.1.0-beta.8/CallersCompendium-0.1.0-beta.8-android-universal.apk",
+      "sha256": "43f22a51038ab41a30aa599a620c5659bad670ff8d8340b395f7801b659d3543",
+      "size": 89316093
     },
     {
       "platform": "linux",
       "arch": "x64",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.1.0-beta.7/CallersCompendium-0.1.0-beta.7-linux-x64.AppImage",
-      "sha256": "6c9795167182ea98e16fd450e517ac129fca82c9e29d6dea3beae72ae371bf08",
-      "size": 19032568
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.1.0-beta.8/CallersCompendium-0.1.0-beta.8-linux-x64.AppImage",
+      "sha256": "87e34457d43fcc8b7950a050626836f47c04960d66195388f692b6f7593ff539",
+      "size": 19061240
     },
     {
       "platform": "macos",
       "arch": "universal",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.1.0-beta.7/CallersCompendium-0.1.0-beta.7-macos-universal.dmg",
-      "sha256": "723d0eb7333fbc05f4d1c19098ff8451a2eecdd00466dbb2c804e106acb9c550",
-      "size": 34717983
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.1.0-beta.8/CallersCompendium-0.1.0-beta.8-macos-universal.dmg",
+      "sha256": "5840202bf72444890567d76a70df53e2337df9b0c7566778280613576f28d484",
+      "size": 34241490
     },
     {
       "platform": "windows",
       "arch": "x64",
-      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.1.0-beta.7/CallersCompendium-0.1.0-beta.7-windows-x64.exe",
-      "sha256": "f81250e8170e3ab9645fed28c55f5440572d61efbab073a63f9e0d91e37b92aa",
-      "size": 17619542
+      "url": "https://github.com/ibanner56/CallersCompendium/releases/download/v0.1.0-beta.8/CallersCompendium-0.1.0-beta.8-windows-x64.exe",
+      "sha256": "0ef8d1e6c0a4f780a05484e1d6198f71e023a3f9eb053c2b2c8d10de27aa0a42",
+      "size": 17636858
     }
   ]
 }
