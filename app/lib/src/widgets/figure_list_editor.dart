@@ -1020,10 +1020,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // default (DD.3) is a user-configured value, so _applyMoveParamDefaults
     // re-marks beats as touched when it applies one.
     widget.draft.beatsTouched = false;
-    // #976: seed the role-implied hand BEFORE applying a saved per-move
-    // default, so a user's saved `hand` override still wins.
-    _seedChainHand(moveId, widget.draft.params);
+    // #976: apply a saved per-move default FIRST — it may itself override
+    // `who` (defaults are sparse per-param diffs, `display_defaults.dart`),
+    // and seeding hand from the PRE-override `who` would then store a hand
+    // for a role the default just replaced. Seed the role-implied hand
+    // afterward, from the now-final `who` — unless the saved default itself
+    // named an explicit `hand`, which must win.
     _applyMoveParamDefaults(moveId);
+    final chainOverrides = widget.moveParamDefaults?[moveId];
+    if (chainOverrides == null || !chainOverrides.containsKey('hand')) {
+      _seedChainHand(moveId, widget.draft.params);
+    }
     _showMoreOptions = false;
     widget.onChanged();
   }
@@ -2225,10 +2232,17 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     draft.assumedSubject = false;
     draft.customOrigin = CustomOrigin.userEntered;
     draft.beatsTouched = false;
-    // #976: seed the role-implied hand BEFORE applying a saved per-move
-    // default, so a user's saved `hand` override still wins.
-    _seedChainHand(moveId, draft.params);
+    // #976: apply a saved per-move default FIRST — it may itself override
+    // `who` (defaults are sparse per-param diffs, `display_defaults.dart`),
+    // and seeding hand from the PRE-override `who` would then store a hand
+    // for a role the default just replaced. Seed the role-implied hand
+    // afterward, from the now-final `who` — unless the saved default itself
+    // named an explicit `hand`, which must win.
     _applyMoveParamDefaults(moveId);
+    final chainOverrides = widget.moveParamDefaults?[moveId];
+    if (chainOverrides == null || !chainOverrides.containsKey('hand')) {
+      _seedChainHand(moveId, draft.params);
+    }
     widget.onChanged();
   }
 

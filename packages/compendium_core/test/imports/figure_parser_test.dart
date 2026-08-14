@@ -1080,12 +1080,12 @@ void main() {
       });
     });
 
-    test('a bare role-less "Ladies chain" line (default subject) gets no '
+    test('a bare role-less "chain" line (default subject) gets no '
         'stored hand — the taxonomy default fills it at read time', () {
       // Guards #976 §6.1.3: populating `hand` from effectiveParams['who']
       // (the taxonomy default) instead of a role token actually read from
-      // the source would be fabrication. "Ladies chain" DOES name a role
-      // ("Ladies" -> role2s), so this exercises a genuinely role-less line.
+      // the source would be fabrication. The bare word "chain" names no
+      // role at all, so this exercises a genuinely role-less line.
       final f = _parseLine('chain');
       expect(f!.isCustom, isFalse);
       expect(f.move, 'chain');

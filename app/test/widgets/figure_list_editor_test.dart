@@ -351,6 +351,53 @@ void main() {
       expect(drafts.single.params['who'], 'role1s');
       expect(drafts.single.params['hand'], 'left');
     });
+
+    testWidgets(
+      'a saved per-move default overriding chain.who reseeds hand from the '
+      'NEW who, not the pre-override one',
+      (tester) async {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(
+          tester,
+          drafts,
+          moveParamDefaults: {
+            'chain': {'who': 'role1s'},
+          },
+        );
+        await _selectMove(tester, 0, 'chain', 'chain');
+
+        // Guards the seed/overlay ORDER: the taxonomy default seeds
+        // who=role2s (hand=right) before the saved default overrides who to
+        // role1s. Seeding hand from the pre-override who would store
+        // who=role1s with the WRONG hand="right" (role1s implies "left") —
+        // a self-contradictory figure that could never come from an import.
+        expect(drafts.single.params['who'], 'role1s');
+        expect(drafts.single.params['hand'], 'left');
+      },
+    );
+
+    testWidgets(
+      "a saved per-move default that itself sets chain.hand isn't "
+      'clobbered by role-implied seeding',
+      (tester) async {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(
+          tester,
+          drafts,
+          moveParamDefaults: {
+            'chain': {'hand': 'left'},
+          },
+        );
+        await _selectMove(tester, 0, 'chain', 'chain');
+
+        // who stays at the taxonomy default (role2s, implying "right"), but
+        // the user's saved default explicitly wants "left" — a deliberately
+        // contradictory, hyphenated chain. Re-seeding after the overlay
+        // would silently discard this saved override.
+        expect(drafts.single.params['who'], 'role2s');
+        expect(drafts.single.params['hand'], 'left');
+      },
+    );
   });
 
   testWidgets('a manually-set beats value survives a non-move param change', (

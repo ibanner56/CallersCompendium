@@ -866,11 +866,16 @@ class CompendiumRepositories {
       }
     }
 
-    // A derived rebuild is needed only when this pass actually rewrote a row
-    // — a chain's canonical text is unaffected either way (§ above), so
-    // unlike the taxonomy-version-owed sweeps, "no rewrites" truly means "no
-    // staleness" here.
-    final rebuilt = !alreadyRebuilt && rewroteAny;
+    // A derived rebuild is needed whenever THIS pass rewrote a row —
+    // regardless of whether an earlier sweep in the same call already
+    // rebuilt, because that rebuild ran against the OLD figures_json, before
+    // this pass's writes. Unlike the taxonomy-version-owed sweeps above,
+    // "no rewrites" truly does mean "no staleness" here (a chain's canonical
+    // text is unaffected either way, § above), so this is `rewroteAny` alone
+    // — not `!alreadyRebuilt || rewroteAny` as in
+    // [_normaliseInversePairMoveIdsIfNeeded], whose first disjunct exists for
+    // a reason (a canonical-key change) that doesn't apply here.
+    final rebuilt = rewroteAny;
     if (rebuilt) {
       await runDerivedRebuild(onProgress: onProgress);
     }

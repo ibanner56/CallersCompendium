@@ -217,6 +217,57 @@ void main() {
     },
   );
 
+  test(
+    'the chain-hand backfill still rebuilds when an EARLIER sweep already '
+    'triggered one this call (#976)',
+    () async {
+      // The hazard: _backfillChainHandIfNeeded ran
+      // `!alreadyRebuilt && rewroteAny` in an earlier draft, so when some
+      // OTHER sweep (section-label recompute here) already rebuilt earlier
+      // in the SAME ensureMigrated call, the chain backfill's own rewrite
+      // was silently un-rebuilt — that earlier rebuild ran against the OLD
+      // figures_json, before this pass's write. A bare
+      // `rebuildAttempts > 0` assertion (as in the sibling test above)
+      // cannot see this: the section-label sweep alone already makes it
+      // true. Count attempts instead: exactly one for the section-label
+      // sweep, and a SECOND, independent one for the chain backfill's own
+      // rewrite.
+      final repos = _CountingRepositories(db, contraTaxonomy);
+      await repos.dances.create(
+        Dance(
+          id: 'd-chain-both-owed',
+          title: 'Chain Dance',
+          figures: [
+            Figure(move: 'chain', params: {'who': 'role2s', 'beats': 8}),
+          ],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      // Force the section-label recompute to run (and rebuild) first...
+      await tombstoneMarker(repos, sectionRuleVersionKey, kSectionRuleVersion);
+      // ...while the chain backfill ALSO has real work to do.
+      await tombstoneMarker(repos, chainHandBackfillDoneKey, 'done');
+      await repos.settings.set(inversePairNormalisationDoneKey, 'done');
+      await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
+      await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
+
+      await repos.ensureMigrated();
+
+      final reloaded = await repos.dances.getById('d-chain-both-owed');
+      expect(reloaded!.figures.single.params['hand'], 'right');
+      expect(
+        repos.rebuildAttempts,
+        2,
+        reason:
+            'the section-label sweep rebuilds once; the chain backfill '
+            "rewrote a row too, and that row's staleness isn't covered by "
+            "a rebuild that ran before the backfill's own write existed — "
+            'it must trigger its own, independent rebuild',
+      );
+    },
+  );
+
   test('the chain-hand backfill leaves a role-less chain untouched (#976 '
       '§6.1.3)', () async {
     // The role→side reading is decoding what the role word already
