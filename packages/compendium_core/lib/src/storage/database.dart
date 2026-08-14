@@ -850,4 +850,3 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     return rows.length == 1 && rows.first.data.values.first == 'ok';
   }
 }
-
