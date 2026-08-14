@@ -483,7 +483,7 @@ void main() {
     // parameter and not a default.
     Future<({int editor, int detail})> wakesFor({
       required bool editorFirst,
-      required void Function(CompendiumRepositories repos) write,
+      required Future<void> Function(CompendiumRepositories repos) write,
     }) async {
       final repos = openTestRepositories();
       addTearDown(repos.db.close);
@@ -509,7 +509,7 @@ void main() {
       final editorBefore = editor;
       final detailBefore = detail;
 
-      write(repos);
+      await write(repos);
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       return (editor: editor - editorBefore, detail: detail - detailBefore);
@@ -523,9 +523,11 @@ void main() {
       test('a choreographer write wakes both ($label)', () async {
         final wakes = await wakesFor(
           editorFirst: editorFirst,
-          write: (repos) => repos.choreographers.upsert(
-            Choreographer(id: 'c1', name: 'Gene Hubert'),
-          ),
+          write: (repos) async {
+            await repos.choreographers.upsert(
+              Choreographer(id: 'c1', name: 'Gene Hubert'),
+            );
+          },
         );
 
         expect(
@@ -543,16 +545,18 @@ void main() {
       test('a program write wakes neither ($label)', () async {
         final wakes = await wakesFor(
           editorFirst: editorFirst,
-          write: (repos) => repos.programs.create(
-            Program(
-              id: 'p1',
-              title: 'Autumn Ball',
-              status: ProgramStatus.draft,
-              slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
-              createdAt: now,
-              updatedAt: now,
-            ),
-          ),
+          write: (repos) async {
+            await repos.programs.create(
+              Program(
+                id: 'p1',
+                title: 'Autumn Ball',
+                status: ProgramStatus.draft,
+                slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+          },
         );
 
         expect(

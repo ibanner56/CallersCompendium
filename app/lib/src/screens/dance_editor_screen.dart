@@ -197,6 +197,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       (data) {
         if (!mounted) return;
         setState(() {
+          _loadError = null;
           _choreographers = data.choreographers;
           _tags = data.tags;
           _allDances = data.dances;
