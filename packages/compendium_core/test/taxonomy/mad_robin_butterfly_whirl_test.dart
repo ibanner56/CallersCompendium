@@ -37,7 +37,7 @@ void main() {
       parseFigureLines(rawText, beats: beats, frontEnd: tcbFigureFrontEnd);
 
   group('taxonomy', () {
-    test('contraTaxonomyVersion is 28', () {
+    test('contraTaxonomyVersion is 29', () {
       expect(contraTaxonomyVersion, 29);
       expect(tax.version, 28);
     });

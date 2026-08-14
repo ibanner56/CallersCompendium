@@ -26,7 +26,7 @@ void main() {
       parseFigureLines(rawText, beats: beats, frontEnd: tcbFigureFrontEnd);
 
   group('taxonomy — the v23 move', () {
-    test('contraTaxonomyVersion is 28', () {
+    test('contraTaxonomyVersion is 29', () {
       expect(contraTaxonomyVersion, 29);
       expect(tax.version, 28);
     });

@@ -44,7 +44,7 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('Part 1 — balance.hand param', () {
-    test('contraTaxonomyVersion is 28', () {
+    test('contraTaxonomyVersion is 29', () {
       expect(contraTaxonomyVersion, 29);
       expect(tax.version, 28);
     });
