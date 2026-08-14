@@ -73,38 +73,45 @@ feature list, screenshots). Keep that aligned each release — see the
 [release runbook](../docs/dev/releasing.md#keeping-the-landing-page-aligned)
 and the [release checklist](../docs/dev/release-checklist.md).
 
-## Adding real screenshots
+## Updating screenshots
 
-The Screenshots section currently uses styled placeholder frames. To swap in
-real captures:
+The Screenshots section uses real captures stored in `assets/`. The current
+assets are:
 
-1. **Capture** on each target surface (source of truth — a real build of the
+| File | Surface |
+|------|---------|
+| `assets/laptop-collection-view.png` | Desktop – collection browser |
+| `assets/ipad-performance-view.jpeg` | Tablet – performance mode |
+| `assets/phone-program-editor.png` | Phone – program editor |
+
+To replace or add a screenshot:
+
+1. **Capture** on the target surface (source of truth — a real build of the
    tagged commit):
-   - **Desktop (Linux/macOS/Windows):** run the app, use the OS screenshot tool
+   - **Desktop (Linux/macOS/Windows):** use the OS screenshot tool
      (macOS `⇧⌘4`, Windows `Win+Shift+S`, GNOME `PrtSc`). Aim for a clean window
      at a generous size.
    - **Android:** device/emulator power+volume-down, or `adb exec-out screencap -p > shot.png`.
    - **iOS/iPadOS:** simulator `⌘S` (saves to Desktop) or device side+volume-up.
-   - Prefer capturing: the **collection browser**, **performance mode**, and the
-     **program editor** (the three placeholder slots), but any representative
-     views are welcome.
 2. **Optimize & normalize:** export/downscale to a sensible width (≈1600px max),
-   compress (PNG or WebP), and keep a roughly 4:3 frame to match the layout.
-   Name them by view, e.g. `collection-desktop.webp`, `perform-tablet.webp`,
-   `program-phone.webp`, and drop them in `assets/`.
-3. **Wire them in:** in `index.html`, replace each
-   `<div class="shot-frame placeholder" role="img" aria-label="…">…</div>` with a
-   real image:
+   compress (PNG or WebP), and drop the file in `assets/`.
+3. **Wire it in:** in `index.html`, each screenshot is a `<figure class="shot">`
+   containing a `<div class="shot-frame">` (add `contain` for portrait/phone
+   shots) with a badge and the `<img>`:
 
    ```html
-   <img class="shot-frame" src="assets/collection-desktop.webp"
-        width="1600" height="1200" loading="lazy"
-        alt="The collection browser showing a searchable list of dances with structured figures." />
+   <figure class="shot">
+     <div class="shot-frame">
+       <span class="shot-badge">Desktop</span>
+       <img src="assets/laptop-collection-view.png" loading="lazy"
+            alt="The collection browser on desktop, showing a searchable list of dances" />
+     </div>
+     <figcaption>Browse and search your collection</figcaption>
+   </figure>
    ```
 
    Write a **descriptive `alt`** for each (accessibility matters — it's a value of
-   the app itself), and remove the trailing "Real screenshots are on the way…"
-   note once all three are replaced.
+   the app itself).
 
 ## Local preview
 
