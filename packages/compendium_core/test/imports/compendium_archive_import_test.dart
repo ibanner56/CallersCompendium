@@ -959,45 +959,21 @@ void main() {
     );
 
     test(
-      'a first-time weak-key venue from a *different* bundle still '
-      'fresh-mints (no provenance match)',
+      'local-only venue with no provenance row is never matched by an '
+      'incoming bundle id (no false provenance-match)',
       () async {
-        // Two bundles carry a name-only venue with the *same original id*: the
-        // first stamps provenance for 'orig-v1', the second has a different
-        // archive JSON (different exportedAt) and no prior provenance lookup can
-        // rescue it. The second bundle's venue is minted fresh, avoiding a false
-        // merge between two distinct halls that happen to share a name.
+        // A locally-created venue (not imported from any bundle) has no
+        // venue_provenance row. An incoming bundle that happens to carry the
+        // same id string must NOT provenance-match it — the lookup is
+        // keyed on rows that actually exist in venue_provenance, and a
+        // locally-minted venue has none. The importer fresh-mints a new
+        // venue for the bundle, leaving the local one untouched.
         //
-        // In practice "different bundle" == different exportedAt / bytes, but for
-        // this test it suffices that the first import's provenance was stamped
-        // with the result of sequentialIds('first') so the second call starts
-        // from a clean sequentialIds state.
-        final archive = bundleWithVenue(
-          programVenueId: 'orig-v1',
-          venues: [Venue(id: 'orig-v1', name: 'Town Hall')],
-        );
-        // Import first bundle.
-        await importer.import(
-          encodeArchive(archive),
-          archive,
-          now: now,
-          newId: sequentialIds('first'),
-          newSlotId: sequentialIds('firstslot'),
-        );
-
-        // Import a *distinct* bundle (same archive shape but treated as a
-        // different logical bundle — provenance lookup is keyed on the local
-        // minted id of the first import, which is not 'orig-v1', so the second
-        // import's 'orig-v1' has no provenance row yet and fresh-mints).
-        // We simulate a "different sender" by using a new archive bytes string
-        // that happens to carry the same venue id: the importer can only find a
-        // provenance row if one was already written for this externalId in a
-        // prior import on this device.
-        //
-        // Here both imports use the same archive object so they would share the
-        // same externalId 'orig-v1'. Re-importing the SAME bundle DOES dedupe
-        // (previous test). What we verify here is that an existing *local-only*
-        // venue (not imported — no provenance) is never provenance-matched.
+        // This guards the "id collision by coincidence" hazard: a bundle
+        // from an external sender might carry an id that matches a local
+        // UUID by chance (unlikely) or, more critically, a malicious bundle
+        // might replay a known local id to attempt a provenance shortcut.
+        // Neither can fire without an actual provenance row in the DB.
         final localVenue = Venue(id: 'local-hall', name: 'Local Hall');
         await venues.upsert(localVenue);
         // That local venue has no provenance row, so a bundle arriving with

@@ -874,6 +874,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // for every bundle imported after this migration.
         await m.createTable(venueProvenance);
       }
+    },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
       if (details.wasCreated) return;
