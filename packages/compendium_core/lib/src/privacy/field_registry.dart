@@ -428,6 +428,13 @@ final Map<String, DataClassification> fieldClassifications = {
   'program_provenance.permission': _choreography,
   'program_provenance.license': _choreography,
   'program_provenance.source_version': _choreography,
+  'venue_provenance.venue_id': _key,
+  'venue_provenance.source': _choreography,
+  'venue_provenance.external_id': _choreography,
+  'venue_provenance.imported_at': _recordStamp,
+  'venue_provenance.permission': _choreography,
+  'venue_provenance.license': _choreography,
+  'venue_provenance.source_version': _choreography,
 
   // ------------------------------------------------------- settings, cache --
   'settings.key': const DataClassification(

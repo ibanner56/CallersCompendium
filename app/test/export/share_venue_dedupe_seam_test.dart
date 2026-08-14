@@ -9,12 +9,22 @@
 /// result would dedupe. The question "does a *redacted* venue still dedupe?"
 /// was asked by nothing, so a full green suite said nothing about it.
 ///
-/// **What these tests pin down is a known, accepted limitation, not a
-/// desirable behaviour.** Redacting the postal address (issue #853 — the
-/// address block is classified `EgressClass.deviceLocal`) removes both of the
-/// locating fields [venueFingerprint] requires, so a shared venue can no longer
-/// produce a key and cross-import venue dedupe (issue #456) does not apply to
-/// bundles. Re-importing the same bundle mints another venue record.
+/// **What these tests pin down is a known, accepted limitation of the
+/// *content-fingerprint* dedupe path, not a desirable behaviour.** Redacting
+/// the postal address (issue #853 — the address block is classified
+/// `EgressClass.deviceLocal`) removes both of the locating fields
+/// [venueFingerprint] requires, so a shared venue can no longer produce a key
+/// and cross-import venue dedupe (issue #456) does not apply to bundles *for
+/// this path*.
+///
+/// Issue #899 adds a complementary **provenance-based path** that works for
+/// re-imports of shared bundles: each freshly-minted venue receives a
+/// `(source, externalId)` provenance stamp keyed on its bundle-original id,
+/// so a re-import recognises it by exact match rather than by content. These
+/// tests remain load-bearing for the fingerprint path: they ensure that only
+/// the exact-match path fires for shared bundles and that the fingerprint gate
+/// is never accidentally re-keyed on weaker content fields (which would risk
+/// false merges).
 ///
 /// They exist so that the tradeoff is **visible and load-bearing** rather than
 /// rediscovered: if anyone later re-keys the fingerprint on fields that still
@@ -105,11 +115,14 @@ void main() {
         canDedupe,
         isFalse,
         reason:
-            'Documents the accepted limitation: no bundled venue can produce '
-            'a fingerprint, so the importer never preloads its dedupe index '
-            'and a re-imported bundle mints a duplicate venue. If this ever '
-            'goes true, the fingerprint was re-keyed — revisit the '
-            'false-merge tradeoff and the docs that describe this.',
+            'Documents the accepted limitation of the content-fingerprint path: '
+            'no bundled venue can produce a fingerprint, so the importer never '
+            'preloads its fingerprint index for a first-time import of this '
+            'bundle. Note: a *re*-import of the same bundle will dedupe by '
+            'provenance (issue #899) rather than by fingerprint — this test '
+            'only covers the fingerprint gate. If this ever goes true, the '
+            'fingerprint was re-keyed — revisit the false-merge tradeoff and '
+            'the docs that describe this.',
       );
     });
   });

@@ -1124,6 +1124,95 @@ void main() {
       );
     });
   });
+
+  group('v25 -> v26 upgrade (issue #899 venue provenance for dedupe)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v26_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v25 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          await packageRootPath(),
+          'test',
+          'storage',
+          'fixtures',
+          'v25.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      await db.customSelect('SELECT 1').get();
+      final version =
+          await db.customSelect('PRAGMA user_version').map((r) => r.data).get();
+      expect(version.first.values.first, kCompendiumSchemaVersion);
+    });
+
+    test('creates the venue_provenance table', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      await db.customSelect('SELECT 1').get();
+      final tables = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type='table' "
+            "AND name='venue_provenance'",
+          )
+          .get();
+      expect(tables, hasLength(1), reason: 'venue_provenance must exist');
+    });
+
+    test('existing venue data survives the migration', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      addTearDown(db.close);
+      final venue = await repos.venues.getById('venue-v25');
+      expect(venue, isNotNull);
+      expect(venue!.name, 'Migration Hall v25');
+    });
+
+    test('venue_provenance starts empty (no back-fill)', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      await db.customSelect('SELECT 1').get();
+      final rows = await db
+          .customSelect('SELECT COUNT(*) AS c FROM venue_provenance')
+          .map((r) => r.read<int>('c'))
+          .get();
+      expect(
+        rows.first,
+        0,
+        reason: 'v25->v26 migration must not back-fill venue_provenance',
+      );
+    });
+
+    test('no derived rebuild is scheduled by the v25->v26 migration', () async {
+      // A new table with no figure data — the index is untouched.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      final settings = await db
+          .customSelect(
+            "SELECT value_json FROM settings "
+            "WHERE key = '$derivedRebuildRequiredKey'",
+          )
+          .get();
+      final hasRebuildMarker =
+          settings.isNotEmpty &&
+          settings.first.read<String>('value_json') == 'true';
+      expect(
+        hasRebuildMarker,
+        isFalse,
+        reason: 'v25->v26 migration must not schedule a derived rebuild',
+      );
+    });
+  });
 }
 
 /// A [CompendiumRepositories] whose derived-index rebuild throws on its first
