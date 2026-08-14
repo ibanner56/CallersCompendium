@@ -524,6 +524,7 @@ void main() {
         final wakes = await wakesFor(
           editorFirst: editorFirst,
           write: (repos) async {
+            // ignore: unused_result
             await repos.choreographers.upsert(
               Choreographer(id: 'c1', name: 'Gene Hubert'),
             );

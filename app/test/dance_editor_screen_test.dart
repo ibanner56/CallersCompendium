@@ -2550,6 +2550,7 @@ void main() {
 
       // A new write triggers reference-data stream re-emission, which
       // now succeeds because failer only failed one select.
+      // ignore: unused_result
       await repos.choreographers.upsert(
         Choreographer(id: 'c1', name: 'Gene Hubert'),
       );
