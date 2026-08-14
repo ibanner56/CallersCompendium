@@ -108,7 +108,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     root = args.root
-    if not (root / "AGENTS.md").exists() and not (root / ".github").exists():
+    # `.github/` is the landmark: a missing AGENTS.md is a real budget failure
+    # (reported by check() below), not a sign of being run from the wrong
+    # directory, so it must not short-circuit here.
+    if not (root / ".github").exists():
         print(f"::error::{root} does not look like the repository root")
         return 2
 

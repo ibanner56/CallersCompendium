@@ -109,6 +109,14 @@ def test_missing_root_guide_fails() -> None:
         assert "missing" in result.stdout
 
 
+def test_a_directory_that_is_not_the_repository_root_exits_two() -> None:
+    # Distinct from a missing AGENTS.md, which is a genuine budget failure (1):
+    # being run from the wrong directory is an environment problem (2).
+    with tempfile.TemporaryDirectory() as tmp:
+        result = run(Path(tmp))
+        assert result.returncode == 2, result.stdout + result.stderr
+
+
 def test_this_repository_is_within_budget() -> None:
     repo = HERE.parent.parent
     result = run(repo)

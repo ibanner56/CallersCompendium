@@ -367,6 +367,26 @@ def test_environment_failure_exits_two_rather_than_reporting_a_gate_failure() ->
     assert printed and printed[0].startswith("SKIP review:")
 
 
+def test_an_unanswerable_gate_does_not_hide_the_answerable_ones() -> None:
+    # Reproduces the failure mode where `gh` is missing for one gate's endpoint:
+    # returning early left the remaining gates silent, so a run that could have
+    # reported a real thread failure printed nothing about it.
+    class PartlyBroken:
+        def rest(self, path: str, *, paginate: bool = False) -> Any:
+            raise gates.GateError("the `gh` CLI is not installed")
+
+        def graphql(self, query: str) -> Any:
+            return threads_payload([{"isResolved": False}], 1, False)
+
+    printed: list[str] = []
+    code = gates.run_gates(
+        PartlyBroken(), 1, ["review", "threads"], [], out=printed.append
+    )
+    assert code == 2, printed
+    assert any(line.startswith("SKIP review:") for line in printed), printed
+    assert any(line.startswith("FAIL threads:") for line in printed), printed
+
+
 def test_cli_requires_explicit_closes_intent() -> None:
     code = gates.main(["closes", "1", "--repo", "o/r"])
     assert code == 2

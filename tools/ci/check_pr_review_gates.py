@@ -23,12 +23,17 @@ hand-rolled versions read as PASS when they should have failed:
                 close -- a branch name or a sentence like "does not close #887"
                 can create a link on its own.
 ``all``         All of the above. Every gate runs even when an earlier one
-                fails, so one invocation reports the whole picture rather than
-                costing a round trip per gate.
+                fails or is unanswerable, so one invocation reports the whole
+                picture rather than costing a round trip per gate.
 
-Output is one line per gate: ``PASS <gate>: <evidence>`` or
-``FAIL <gate>: <what is wrong>``. A red run should cost a few hundred tokens to
+Output is one line per gate: ``PASS <gate>: <evidence>``,
+``FAIL <gate>: <what is wrong>``, or ``SKIP <gate>: <why it is unanswerable>``.
+A red run should cost a few hundred tokens to
 act on, not a few thousand to read.
+
+Exit codes: 0 all gates pass, 1 at least one gate failed, 2 at least one gate
+could not be answered (bad input, or ``gh`` missing or unauthenticated). 2
+dominates 1, so an environment problem never reads as a clean run.
 
 Requires the ``gh`` CLI, authenticated. Network access is confined to
 ``GitHubFetcher``; the gate logic is pure and is exercised offline by
@@ -374,6 +379,7 @@ def run_gates(
     out: Callable[[str], None] = print,
 ) -> int:
     failed = 0
+    errored = 0
     for name in names:
         gate = GATES[name]
         try:
@@ -381,14 +387,20 @@ def run_gates(
                 gate(fetcher, pr, intended) if name == "closes" else gate(fetcher, pr)
             )
         except GateError as exc:
+            # One unanswerable gate must not hide the answers to the others:
+            # record it and keep going, but let its exit code dominate so an
+            # environment failure never reads as a clean run.
             out(f"SKIP {name}: {exc}")
-            return 2
+            errored += 1
+            continue
         head, *rest = lines or ["(no detail)"]
         out(f"{'PASS' if ok else 'FAIL'} {name}: {head}")
         for line in rest:
             out(line)
         if not ok:
             failed += 1
+    if errored:
+        return 2
     return 1 if failed else 0
 
 
