@@ -287,6 +287,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       // the *subscription's* read rather than issuing a second, independent
       // one of the same tables.
       await _initialReferenceDataReady.future;
+      if (!mounted) return;
 
       final fieldDefs = await fieldDefsFuture;
       final dance = danceFuture == null ? null : await danceFuture;
