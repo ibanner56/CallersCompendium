@@ -170,6 +170,239 @@ void main() {
   });
 
   test(
+    'a tombstoned chain-hand-backfill marker does NOT skip the backfill',
+    () async {
+      // Same class of hazard as the star-promenade marker above, added later
+      // (#976, taxonomy v28): a marker wrongly read as present would leave a
+      // bare `role1s`/`role2s` chain imported before this release permanently
+      // missing its `hand` in structured search, even after a backup restore
+      // clears the marker to force a re-run.
+      final repos = _CountingRepositories(db, contraTaxonomy);
+      await repos.dances.create(
+        Dance(
+          id: 'd-chain',
+          title: 'Chain Dance',
+          figures: [
+            Figure(move: 'chain', params: {'who': 'role2s', 'beats': 8}),
+          ],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await tombstoneMarker(repos, chainHandBackfillDoneKey, 'done');
+      await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
+      await repos.settings.set(inversePairNormalisationDoneKey, 'done');
+      await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
+      await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
+
+      await repos.ensureMigrated();
+
+      final reloaded = await repos.dances.getById('d-chain');
+      expect(
+        reloaded!.figures.single.params['hand'],
+        'right',
+        reason:
+            'a tombstoned done-marker must not suppress the backfill, or the '
+            'bare role2s chain stays permanently un-searchable by hand',
+      );
+      expect(await repos.settings.get(chainHandBackfillDoneKey), 'done');
+      expect(
+        repos.rebuildAttempts,
+        greaterThan(0),
+        reason:
+            'the backfill rewrites figures_json, which stales the derived '
+            'params_json projection (danceIdsWithFigure queries exactly '
+            'move+params_json), so a rebuild is owed on that ground alone',
+      );
+    },
+  );
+
+  test('the chain-hand backfill still rebuilds when an EARLIER sweep already '
+      'triggered one this call (#976)', () async {
+    // The hazard: _backfillChainHandIfNeeded ran
+    // `!alreadyRebuilt && rewroteAny` in an earlier draft, so when some
+    // OTHER sweep (section-label recompute here) already rebuilt earlier
+    // in the SAME ensureMigrated call, the chain backfill's own rewrite
+    // was silently un-rebuilt — that earlier rebuild ran against the OLD
+    // figures_json, before this pass's write. A bare
+    // `rebuildAttempts > 0` assertion (as in the sibling test above)
+    // cannot see this: the section-label sweep alone already makes it
+    // true. Count attempts instead: exactly one for the section-label
+    // sweep, and a SECOND, independent one for the chain backfill's own
+    // rewrite.
+    final repos = _CountingRepositories(db, contraTaxonomy);
+    await repos.dances.create(
+      Dance(
+        id: 'd-chain-both-owed',
+        title: 'Chain Dance',
+        figures: [
+          Figure(move: 'chain', params: {'who': 'role2s', 'beats': 8}),
+        ],
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      ),
+    );
+    // Force the section-label recompute to run (and rebuild) first...
+    await tombstoneMarker(repos, sectionRuleVersionKey, kSectionRuleVersion);
+    // ...while the chain backfill ALSO has real work to do.
+    await tombstoneMarker(repos, chainHandBackfillDoneKey, 'done');
+    await repos.settings.set(inversePairNormalisationDoneKey, 'done');
+    await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
+    await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
+
+    await repos.ensureMigrated();
+
+    final reloaded = await repos.dances.getById('d-chain-both-owed');
+    expect(reloaded!.figures.single.params['hand'], 'right');
+    expect(
+      repos.rebuildAttempts,
+      2,
+      reason:
+          'the section-label sweep rebuilds once; the chain backfill '
+          "rewrote a row too, and that row's staleness isn't covered by "
+          "a rebuild that ran before the backfill's own write existed — "
+          'it must trigger its own, independent rebuild',
+    );
+  });
+
+  test('the chain-hand backfill leaves a role-less chain untouched (#976 '
+      '§6.1.3)', () async {
+    // The role→side reading is decoding what the role word already
+    // states (#976 §6.1.2) — it is NOT valid for a chain whose `who` is
+    // unset, because there the effective `who` comes from the taxonomy
+    // DEFAULT, not from anything the source said. Populating `hand` there
+    // would derive it from OUR default rather than the data.
+    final repos = _CountingRepositories(db, contraTaxonomy);
+    await repos.dances.create(
+      Dance(
+        id: 'd-chain-roleless',
+        title: 'Roleless Chain Dance',
+        figures: [
+          Figure(move: 'chain', params: {'beats': 8}),
+        ],
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      ),
+    );
+    await tombstoneMarker(repos, chainHandBackfillDoneKey, 'done');
+    await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
+    await repos.settings.set(inversePairNormalisationDoneKey, 'done');
+    await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
+    await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
+
+    await repos.ensureMigrated();
+
+    final reloaded = await repos.dances.getById('d-chain-roleless');
+    expect(
+      reloaded!.figures.single.params.containsKey('hand'),
+      isFalse,
+      reason:
+          'a chain with no stored who has no role word to decode a hand '
+          'from, so the backfill must leave it alone',
+    );
+  });
+
+  test('the chain-hand backfill still rebuilds after an interrupted first '
+      'attempt, even though the retry finds nothing left to rewrite (#976 '
+      'review)', () async {
+    // The hazard: rewriting figures_json is idempotent (a retry rescans and
+    // finds an already-backfilled row unchanged), which makes a bare retry
+    // SAFE for the rewrite step but not sufficient for the rebuild that
+    // must follow it. If the rewrite commits and the process is then
+    // interrupted before the derived rebuild runs, a naive retry computes
+    // `rewroteAny = false` (every hand is already backfilled) and skips
+    // the rebuild entirely — permanently leaving `dance_figures` stale for
+    // the row the first attempt rewrote, even though the "done" marker
+    // gets written. `derivedRebuildRequiredKey`, committed in the SAME
+    // transaction as the rewrite, is what closes this gap: it survives the
+    // interruption and forces the owed rebuild on the very next call,
+    // before the backfill sweep's own (now-empty) rescan even runs.
+    final repos = _ThrowOnceRebuildRepositories(db, contraTaxonomy);
+    await repos.dances.create(
+      Dance(
+        id: 'd-chain-interrupted',
+        title: 'Interrupted Chain Dance',
+        figures: [
+          Figure(move: 'chain', params: {'who': 'role2s', 'beats': 8}),
+        ],
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      ),
+    );
+    await tombstoneMarker(repos, chainHandBackfillDoneKey, 'done');
+    await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
+    await repos.settings.set(inversePairNormalisationDoneKey, 'done');
+    await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
+    await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
+
+    // First attempt: the row rewrite (and the durable
+    // derivedRebuildRequiredKey write alongside it) commits, then the
+    // rebuild itself throws, simulating an interruption right after the
+    // rewrite lands.
+    await expectLater(repos.ensureMigrated(), throwsA(isA<StateError>()));
+    expect(repos.rebuildAttempts, 1);
+
+    // The rewrite committed despite the thrown rebuild — a raw read
+    // (bypassing the repository's own read-time default-fill) proves the
+    // row itself, not just the taxonomy default, now carries the hand.
+    final rawParams = await db
+        .customSelect(
+          "SELECT figures_json FROM dances WHERE id = 'd-chain-interrupted'",
+        )
+        .getSingle();
+    expect(
+      rawParams.read<String>('figures_json'),
+      contains('"hand":"right"'),
+      reason: 'the rewrite must have committed before the rebuild threw',
+    );
+
+    // The durable flag survives the failure, so a second call can find the
+    // owed rebuild even though its own rescan will see nothing left to
+    // rewrite.
+    final requiredMarker = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [Variable.withString(derivedRebuildRequiredKey)],
+        )
+        .get();
+    expect(
+      requiredMarker,
+      isNotEmpty,
+      reason:
+          'derivedRebuildRequiredKey must survive the interrupted rebuild '
+          'so the next call still knows one is owed',
+    );
+
+    // Second call: the backfill's own rescan now finds nothing to rewrite,
+    // but the top-of-_runMigration check for derivedRebuildRequiredKey
+    // must still force a rebuild.
+    await repos.ensureMigrated();
+    expect(
+      repos.rebuildAttempts,
+      2,
+      reason:
+          'a retry that finds nothing left to rewrite must still perform '
+          'the rebuild the interrupted first attempt owed — a bug here '
+          'would leave dance_figures/dance_fts permanently stale for the '
+          'row the first attempt rewrote',
+    );
+
+    final searchHit = await repos.dances.danceIdsWithFigure(
+      'chain',
+      paramKey: 'hand',
+      paramJsonValue: '"right"',
+    );
+    expect(
+      searchHit,
+      contains('d-chain-interrupted'),
+      reason:
+          'the derived dance_figures projection must reflect the '
+          "backfilled hand, not the pre-rewrite row the FIRST attempt's "
+          'rebuild would have indexed had it not been interrupted first',
+    );
+  });
+
+  test(
     'a tombstoned rebuild-required marker is not treated as work owed',
     () async {
       // Opposite polarity to the three above: here *present* means "a rebuild is
@@ -181,6 +414,7 @@ void main() {
       await repos.settings.set(inversePairNormalisationDoneKey, 'done');
       await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
       await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
+      await repos.settings.set(chainHandBackfillDoneKey, 'done');
 
       await repos.ensureMigrated();
 
@@ -193,6 +427,27 @@ void main() {
       );
     },
   );
+}
+
+/// A [CompendiumRepositories] whose derived-index rebuild throws on its
+/// first invocation and succeeds thereafter, simulating a process
+/// interruption right after a sweep's row rewrites commit but before its
+/// rebuild completes.
+class _ThrowOnceRebuildRepositories extends CompendiumRepositories {
+  _ThrowOnceRebuildRepositories(super.db, super.taxonomy);
+
+  int rebuildAttempts = 0;
+
+  @override
+  Future<void> runDerivedRebuild({
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    rebuildAttempts++;
+    if (rebuildAttempts == 1) {
+      throw StateError('injected rebuild failure');
+    }
+    await super.runDerivedRebuild(onProgress: onProgress);
+  }
 }
 
 /// Counts [runDerivedRebuild] calls without interfering with the real rebuild.

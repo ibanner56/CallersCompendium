@@ -190,6 +190,31 @@ abstract final class ParamVocab {
 /// figure) — this never fabricates a pair.
 String? invertPairDancerSet(String who) => ParamVocab.pairInverse[who];
 
+/// The hand a `chain.who` value implies, mirroring ContraDB's `chainChange`
+/// (`app/javascript/libfigure/figure.js` @master, `:256-263`): `role2s`
+/// (ladles) take right hands, `role1s` (gentlespoons) take left hands. `null`
+/// for any other `who` (`ones`/`twos`/a single-dancer identity/unset) — those
+/// have no implied hand, so a caller must not populate one for them (issue
+/// #976 §6.1.3: populating a hand with no role word actually read would
+/// derive it from our default rather than from the source).
+///
+/// The single source of truth for this mapping, shared by every write/read
+/// site that must agree on it: both `_selectMove` implementations and
+/// `_applyNonBeatsParamChange` in `figure_list_editor.dart`, the ContraDB and
+/// shared-recognizer `_chain` parsers, the one-time backfill sweep, and the
+/// canonical/display silencing rule in `renderer.dart`. Kept here (not in
+/// `contra_taxonomy.dart`) because the app-layer editor needs it too.
+String? chainHandForWho(String who) {
+  switch (who) {
+    case 'role2s':
+      return 'right';
+    case 'role1s':
+      return 'left';
+    default:
+      return null;
+  }
+}
+
 /// Specification of one named move parameter: kind, default, and (for
 /// [ParamKind.choice], or to narrow dancer kinds) an explicit value domain.
 @immutable

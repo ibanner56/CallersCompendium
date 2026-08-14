@@ -541,7 +541,73 @@ import 'taxonomy.dart';
 ///     `contraTaxonomyVersion` bump is a documentary marker; it does NOT
 ///     trigger the rebuild (nothing reads `Taxonomy.version` at runtime —
 ///     see v26 note above).
-const int contraTaxonomyVersion = 27;
+/// v28 (#976): `chain` gains a fourth param, `hand`
+///     (`ParamKind.handedness`, default `ParamVocab.unspecified`, via
+///     `_handOrUnspecified`), matching ContraDB's `by_right_hand`
+///     (`figure.js:281-291`). `renderTemplate` becomes
+///     `'{who} {hand} {move} {dir}'` — hand BEFORE move, matching ContraDB's
+///     `chainWords` order (`words(sdiag, swho, thand, smove)`) and the live
+///     render ("ladles left-hand chain"); an earlier `{who} {move} {hand}
+///     {dir}` draft was wrong and would have read "ladies chain left across".
+///
+///     **Role→side table.** [chainHandForWho] (`param_types.dart`) is the
+///     single source of truth for `role2s`→`right`, `role1s`→`left`, mirroring
+///     ContraDB's `chainChange` (`figure.js:256-263`). It is consulted at six
+///     write/read sites so none can drift: the ContraDB and shared-recognizer
+///     `_chain` parsers, both `_selectMove` implementations and the `who`
+///     branch of `_applyNonBeatsParamChange` in `figure_list_editor.dart`, and
+///     the one-time backfill sweep below. It is NOT baked into `chain.hand`'s
+///     taxonomy default — see the param's own doc comment for why.
+///
+///     **Role-word scoping (#976 §6.1.3).** A hand is populated only at a
+///     site that actually read a role word from the source (or, in the
+///     editor, from a user-edited `who`). A bare, role-less `chain` — where
+///     `who` is left unset so the taxonomy default applies at read time
+///     (`figure_parser.dart`'s domain guard) — gets no hand. Populating one
+///     there would derive it from our default rather than the source, which
+///     is the fabrication the surrounding code already refuses elsewhere.
+///
+///     **Silencing, on BOTH display and canonical.** A `hand` that agrees with
+///     the role-implied side renders nothing (`renderer.dart`'s
+///     template-expansion loop, keyed on `chain`/`hand` — NOT
+///     `_silencedDefaultParams`, whose single slot for `chain` already holds
+///     `dir` and which compares against the *spec* default rather than a
+///     sibling param). Applying this to canonical text too is a deliberate,
+///     narrow exception to the repo's usual "canonical never silences" habit:
+///     the value being silenced is implied by the role word ALREADY in the
+///     text, so omitting it removes nothing a search could want, and it is
+///     what keeps an imported `ladles chain`'s FTS/dedupe text byte-identical
+///     to the same dance imported before this release. A hand that
+///     CONTRADICTS the role reading (a deliberate `role2s`+`left` chain)
+///     still renders, hyphenated: `left-hand`/`right-hand` (matching
+///     ContraDB's `shand + "-hand"`, `figure.js:275`) — not a bare `left`,
+///     which would read as a different figure and tokenizes for FTS as one
+///     word instead of two.
+///
+///     **Backfill IS owed, but the derived rebuild is gated on rewrite
+///     count, not unconditional.** Structured search reads only stored
+///     `params_json` (`database.dart:783-784`), so a chain imported before
+///     this release and an identical one imported after it must both carry
+///     an explicit `hand` or search results depend on import date. A
+///     one-time sweep, modelled on `_normaliseInversePairMoveIdsIfNeeded`,
+///     backfills `hand` on every stored `chain` whose `who` is
+///     `role1s`/`role2s` and whose `hand` is absent, using [chainHandForWho]
+///     — leaving a chain with no stored `who` alone, for the same
+///     role-word-scoping reason above. It rewrites `figures_json`, then runs
+///     `runDerivedRebuild` ONLY if a row was actually rewritten (unlike the
+///     taxonomy-version-owed sweeps above, whose rebuild is unconditional):
+///     the renderer's canonical/FTS text is byte-identical whether `hand` is
+///     the sentinel or the role-implied side, so a database with no
+///     un-backfilled chains has nothing stale to rebuild. It then writes its
+///     settings marker, in that order so an interrupted pass retries on the
+///     next open. This is a database-internal migration marker, not
+///     user-authored preference data — like its sibling sweep-marker keys
+///     above, it carries no entry in `privacy/settings_registry.dart`; the
+///     column-level `deviceLocal` classification on `settings.value_json`
+///     already keeps it from traveling.
+///
+///     **No DB schema bump.** `hand` rides the existing `figures_json` codec.
+const int contraTaxonomyVersion = 28;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -893,10 +959,36 @@ final Taxonomy contraTaxonomy = Taxonomy(
           defaultValue: 'role2s',
           choices: ['role1s', 'role2s'],
         ),
+        // v28 (#976): ContraDB's `by_right_hand` (`figure.js:281-291`) is a
+        // fourth param we never modelled, so a stated hand — including one
+        // that CONTRADICTS the implicit role reading (`women do a left-hand
+        // ladies chain`) — fell all the way to `custom`. Defaults to
+        // `unspecified`, not the role-implied side: a role-conditional
+        // taxonomy default would be a stored value that goes stale the moment
+        // `who` is edited afterward (no equivalent of ContraDB's
+        // `chainChange`, `figure.js:256-263`, exists at the taxonomy layer).
+        // The role-implied side is instead written explicitly, by
+        // [chainHandForWho], at every write site that actually reads a role
+        // word: both parsers, the editor's `_selectMove` (×2) and its `who`
+        // reaction in `_applyNonBeatsParamChange`, and the one-time backfill
+        // sweep — never here. `unspecified` remains the taxonomy default only
+        // so pre-release figures (and any bare, role-less chain — #976
+        // §6.1.3) keep a defined effective value.
+        'hand': ParamSpec(
+          ParamKind.handedness,
+          defaultValue: ParamVocab.unspecified,
+          choices: _handOrUnspecified,
+        ),
         'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{who} {move} {dir}',
+      // Hand precedes move, matching ContraDB's `chainWords`
+      // (`words(sdiag, swho, thand, smove)`, `figure.js:266-278`) and the live
+      // render ("ladles left-hand chain") — NOT `{who} {move} {hand} {dir}`,
+      // which would read "ladies chain left across". `dir`'s position is
+      // unchanged; ContraDB puts the diagonal first, but matching that would
+      // reword all displayed diagonal chains for an unrelated reason.
+      renderTemplate: '{who} {hand} {move} {dir}',
       goodBeats: [8],
     ),
     // v23: The Caller's Box's standalone courtesy turn. ContraDB models this

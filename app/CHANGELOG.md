@@ -13,6 +13,16 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **`chain` now carries a `hand` param** (left/right), matching ContraDB's
+  model. Importing "ladles left-hand chain" (ContraDB's own rendering) or
+  "Men do a right-hand ladies chain to partner" (TCB-style phrasing) no
+  longer falls back to a custom figure; a hand that agrees with the
+  chaining role's implicit side (ladies → right, gents → left) renders
+  silently, exactly as before, while a stated hand that contradicts the
+  role still renders, hyphenated. Existing chains stored before this
+  release are updated in place on first launch so structured search
+  (Advanced ▸ has figure ▸ chain ▸ hand) finds them too, regardless of
+  when they were imported. (#976)
 - **Replace a program slot's dance in place, from the "Edit dance slot"
   dialog.** Previously the only way to swap a dance was to add the
   replacement, drag it into position, and delete the old one; the dialog now

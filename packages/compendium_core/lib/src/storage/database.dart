@@ -153,6 +153,31 @@ const String starPromenadeHandRemovalDoneKey =
 const String gripSingleFileCanonicalInclusionDoneKey =
     '__grip_single_file_canonical_inclusion_done__';
 
+/// Settings key for the one-time `chain.hand` role-implied backfill (#976,
+/// taxonomy v28). Written after a successful pass so it runs at most once per
+/// database.
+///
+/// For every stored `chain` figure that names a `who` of `role1s`/`role2s`
+/// but stores no `hand`, the pass writes the role-implied side
+/// (`chainHandForWho`) so structured search (`danceIdsWithFigure`, which
+/// queries `move` + stored `params_json` — NOT `Taxonomy.effectiveParams`,
+/// per `database.dart`'s own contract below) finds a bare `ladies chain`
+/// imported before this release exactly like one imported after it. A chain
+/// with no stored `who` is deliberately left alone: its role is unknown, so
+/// any hand written for it would come from the taxonomy default rather than
+/// the source (see the taxonomy's `chain.hand` doc comment).
+///
+/// Unlike the taxonomy-version-owed sweeps above (grip/singleFile,
+/// star_promenade.hand), this pass's rebuild is owed strictly by ROW COUNT,
+/// matching `_normaliseInversePairMoveIdsIfNeeded`: a bare chain's canonical
+/// text is unaffected either way (the renderer already silences the
+/// role-implied `hand`, whether it is the `unspecified` sentinel pre-backfill
+/// or the concrete side post-backfill — see `renderer.dart`'s chain-hand
+/// silencing block), so the derived index goes stale only for the rows this
+/// pass actually rewrites (`params_json`'s stored `hand`), never
+/// unconditionally.
+const String chainHandBackfillDoneKey = '__chain_hand_backfill_done__';
+
 /// The current on-disk schema version of [CompendiumDatabase].
 ///
 /// Exposed as a top-level constant (in addition to the [CompendiumDatabase.

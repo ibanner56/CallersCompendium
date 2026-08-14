@@ -1313,6 +1313,115 @@ void main() {
           'role2s chain along',
         );
       });
+      group('chain hand (#976)', () {
+        // The role1s/role2s -> left/right table, cited to ContraDB
+        // figure.js:256-263 chainChange. Silencing hides the hand exactly
+        // when it agrees with the role word already in the text; a hand
+        // that contradicts the role word must still render, hyphenated,
+        // and before the move name (figure.js:266-278, live-curled
+        // wording confirmed against contradb.com/dances/2107).
+        test(
+          'a pre-existing chain with no stored hand renders byte-identically '
+          '(canonical too)',
+          () {
+            // Guards the "absent key" branch of the silencing check
+            // (`rawHand is! String`, `renderer.dart`): a chain stored before
+            // this release has no `hand` key at all (not even the
+            // `unspecified` sentinel), and that absence must silence
+            // identically to an explicit sentinel, on BOTH paths — this is
+            // what keeps import-date irrelevant to a bare `role2s chain`'s
+            // FTS/dedupe text. A direct assertion on the spec itself (the
+            // sentinel is a real choice, and IS the default) lives in the
+            // taxonomy test below, since rendering does not consult
+            // `ParamSpec.choices` at all.
+            expect(renderer.render(Figure(move: 'chain'), d), 'role2s chain');
+            expect(
+              renderer.renderCanonical(Figure(move: 'chain')),
+              'role2s chain across',
+            );
+          },
+        );
+        test("chain.hand's spec genuinely declares the unspecified sentinel "
+            'both as a choice and as the default', () {
+          // Falsifies the claim the test above can only describe, not
+          // enforce: rendering never reads `ParamSpec.choices`, so a
+          // regression that dropped `ParamVocab.unspecified` from
+          // chain.hand's `choices` (or changed its `defaultValue`) would
+          // leave every render-level assertion above green. This test
+          // reads the spec directly instead.
+          final handSpec = contraTaxonomy.resolve('chain')!.params['hand']!;
+          expect(handSpec.choices, contains(ParamVocab.unspecified));
+          expect(handSpec.defaultValue, ParamVocab.unspecified);
+        });
+        test('a role-implied hand renders identically to an unstated hand '
+            '(canonical too) — the newly-imported byte-identity guard', () {
+          // Guards against making the silencing display-only: a bare
+          // "ladies chain" imported today must produce the same
+          // canonical/FTS text as an identical dance imported before
+          // this release, or dedupe/search would diverge by import date.
+          final withHand = Figure(
+            move: 'chain',
+            params: {'who': 'role2s', 'hand': 'right'},
+          );
+          final withoutHand = Figure(move: 'chain', params: {'who': 'role2s'});
+          expect(renderer.render(withHand, d), renderer.render(withoutHand, d));
+          expect(
+            renderer.renderCanonical(withHand),
+            renderer.renderCanonical(withoutHand),
+          );
+          expect(renderer.render(withHand, d), 'role2s chain');
+          expect(renderer.renderCanonical(withHand), 'role2s chain across');
+
+          final role1Hand = Figure(
+            move: 'chain',
+            params: {'who': 'role1s', 'hand': 'left'},
+          );
+          final role1NoHand = Figure(move: 'chain', params: {'who': 'role1s'});
+          expect(
+            renderer.render(role1Hand, d),
+            renderer.render(role1NoHand, d),
+          );
+          expect(renderer.render(role1Hand, d), 'role1s chain');
+        });
+        test('silencing is role-relative, not spec-default-relative: a '
+            'deliberate right-hand gents chain still renders', () {
+          // Guards against reusing the _silencedDefaultParams shape, which
+          // compares a stored value against the param's fixed SPEC default
+          // (`unspecified` for chain.hand) rather than a sibling param:
+          // role1s's implied side is "left", so a stated "right" contradicts
+          // it and must survive — together with the role2s/"right" case
+          // above (which DOES silence), this pins down that the comparison
+          // is against the per-figure role-implied side, not any fixed
+          // value.
+          final deliberateRightForRole1 = Figure(
+            move: 'chain',
+            params: {'who': 'role1s', 'hand': 'right'},
+          );
+          expect(
+            renderer.render(deliberateRightForRole1, d),
+            'role1s right-hand chain',
+          );
+          expect(
+            renderer.renderCanonical(deliberateRightForRole1),
+            'role1s right-hand chain across',
+          );
+        });
+        test('a contradicting hand is hyphenated and sits before the move, '
+            'not after it and not bare', () {
+          // Guards template order/wording: ContraDB's chainWords is
+          // words(sdiag, swho, thand, smove) — hand before move — and
+          // emits shand + "-hand", not a bare side.
+          final leftForRole2 = Figure(
+            move: 'chain',
+            params: {'who': 'role2s', 'hand': 'left'},
+          );
+          expect(renderer.render(leftForRole2, d), 'role2s left-hand chain');
+          expect(
+            renderer.renderCanonical(leftForRole2),
+            'role2s left-hand chain across',
+          );
+        });
+      });
       test('promenade drops the default "across"', () {
         expect(
           renderer.render(Figure(move: 'promenade'), d),

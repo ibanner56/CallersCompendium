@@ -67,6 +67,7 @@
           "move": "chain",
           "params": {
             "who": "role2s",
+            "hand": "right",
             "beats": 8
           }
         },

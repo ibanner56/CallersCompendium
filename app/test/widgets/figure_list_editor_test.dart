@@ -318,6 +318,85 @@ void main() {
     expect(drafts.single.beatsTouched, isFalse);
   });
 
+  group('chain hand seeding (#976)', () {
+    testWidgets('selecting the chain move seeds the role-implied hand, not '
+        'unspecified', (tester) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(tester, drafts);
+      await _selectMove(tester, 0, 'chain', 'chain');
+
+      // Guards against seeding only in the `who` change branch (a first
+      // draft's design, #976 §6.1): a freshly created chain (default
+      // who=role2s) must store the concrete role-implied hand, not
+      // ParamVocab.unspecified, so it matches an imported bare "ladies
+      // chain" byte-for-byte.
+      expect(drafts.single.move, 'chain');
+      expect(drafts.single.params['who'], 'role2s');
+      expect(drafts.single.params['hand'], 'right');
+    });
+
+    testWidgets('changing chain.who rewrites the role-implied hand', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(tester, drafts);
+      await _selectMove(tester, 0, 'chain', 'chain');
+      expect(drafts.single.params['who'], 'role2s');
+      expect(drafts.single.params['hand'], 'right');
+
+      // Guards the cross-param reaction in _applyNonBeatsParamChange:
+      // deleting it would leave the stale "right" surviving a flip to
+      // who=role1s, and "right" is not role1s's implied side.
+      await _selectDropdownOption(tester, 'figure-0-who', 'larks');
+      expect(drafts.single.params['who'], 'role1s');
+      expect(drafts.single.params['hand'], 'left');
+    });
+
+    testWidgets(
+      'a saved per-move default overriding chain.who reseeds hand from the '
+      'NEW who, not the pre-override one',
+      (tester) async {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(
+          tester,
+          drafts,
+          moveParamDefaults: {
+            'chain': {'who': 'role1s'},
+          },
+        );
+        await _selectMove(tester, 0, 'chain', 'chain');
+
+        // Guards the seed/overlay ORDER: the taxonomy default seeds
+        // who=role2s (hand=right) before the saved default overrides who to
+        // role1s. Seeding hand from the pre-override who would store
+        // who=role1s with the WRONG hand="right" (role1s implies "left") —
+        // a self-contradictory figure that could never come from an import.
+        expect(drafts.single.params['who'], 'role1s');
+        expect(drafts.single.params['hand'], 'left');
+      },
+    );
+
+    testWidgets("a saved per-move default that itself sets chain.hand isn't "
+        'clobbered by role-implied seeding', (tester) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'chain': {'hand': 'left'},
+        },
+      );
+      await _selectMove(tester, 0, 'chain', 'chain');
+
+      // who stays at the taxonomy default (role2s, implying "right"), but
+      // the user's saved default explicitly wants "left" — a deliberately
+      // contradictory, hyphenated chain. Re-seeding after the overlay
+      // would silently discard this saved override.
+      expect(drafts.single.params['who'], 'role2s');
+      expect(drafts.single.params['hand'], 'left');
+    });
+  });
+
   testWidgets('a manually-set beats value survives a non-move param change', (
     tester,
   ) async {
@@ -2043,11 +2122,13 @@ void main() {
   testWidgets('3 or fewer params render inline with no disclosure', (
     tester,
   ) async {
-    // chain has 3 params (who, dir, beats) — all inline, no disclosure.
+    // star_promenade has 3 params (who, turn, beats) — all inline, no
+    // disclosure. (chain gained a 4th param, `hand`, in #976, so it no
+    // longer demonstrates the ≤3 case this test is about.)
     final drafts = <FigureDraft>[
       FigureDraft(
-        move: 'chain',
-        params: {'who': 'role2s', 'dir': 'across', 'beats': 8},
+        move: 'star_promenade',
+        params: {'who': 'role1s', 'turn': 0.5, 'beats': 4},
       ),
     ];
     await _pump(tester, drafts);

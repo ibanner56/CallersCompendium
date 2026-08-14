@@ -661,6 +661,48 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   changes, and a stored `hand` is inert the moment the MoveDef stops declaring
   it.
 
+- **v28 (`chain.hand`, issue #976):** `chain` gains a fourth param, `hand`
+  (`ParamKind.handedness`, `defaultValue: ParamVocab.unspecified`), matching
+  ContraDB's `by_right_hand` (`figure.js:288-293`). The role→side table is
+  fixed by ContraDB's `chainChange` (`figure.js:256-263`): `role1s` (gents)
+  implies `left`, `role2s` (ladies) implies `right` — one small named
+  helper, `chainHandForWho`, shared by every write site so they cannot drift.
+
+  `renderTemplate` is `'{who} {hand} {move} {dir}'` — hand **before** the move
+  name, matching ContraDB's `chainWords` order and the live render ("ladles
+  left-hand chain"); an earlier `'{who} {move} {hand} {dir}'` draft was wrong
+  on both counts. A hand that equals the role-implied side is silenced on
+  **both** the display and canonical paths (a deliberate exception to the
+  repo's usual "canonical never silences" habit, since the value silenced is
+  implied by the role word already in the text); one that contradicts it
+  renders hyphenated (`left-hand`/`right-hand`), matching ContraDB's
+  `shand + "-hand"`. This cannot go through `_silencedDefaultParams` — that
+  map compares against the *spec* default, not a sibling param, and `chain`'s
+  one slot there already holds `dir`.
+
+  The hand is populated explicitly at every write site (both parsers, both
+  editor `_selectMove` implementations, the editor's `who`-edit reaction, and
+  the one-time backfill sweep below) — never left to the sentinel default
+  alone — so a chain written by any path stores the same explicit hand a
+  role word implies. It is populated ONLY when a role token (`role1s`/
+  `role2s`) was actually read from the source; a chain with no named role
+  keeps `hand` unset, so the taxonomy default fills it at read time instead
+  of fabricating a hand from OUR default rather than the data.
+
+  Every chain stored before this release is byte-identical: the sentinel
+  default renders as the empty string on both paths (the existing mechanism
+  already used by `mad_robin`/`butterfly_whirl`), so no DB migration is
+  strictly needed for rendering. Structured search reads stored params,
+  though, and an absent `hand` key never matches a `hand` facet — so a
+  one-time `chainHandBackfillDoneKey` sweep (modeled on
+  `_normaliseInversePairMoveIdsIfNeeded`) rewrites every stored `chain` figure
+  that names `role1s`/`role2s` but stores no `hand` yet, leaving a role-less
+  chain alone. Unlike the v25/v26 sweeps, this rebuild is gated on whether the
+  pass actually rewrote a row (`rewroteAny`), not unconditional — a chain's
+  canonical/FTS text is unaffected by the taxonomy change alone (the silencing
+  rule hides the sentinel and the role-implied side identically), so only
+  `params_json` goes stale, and only for rows the sweep rewrites.
+
 
 **The full ContraDB v1 contra move set is now modeled** (all five 2.4a slices
 landed). Exactly one new engine type was required across the whole build-out —

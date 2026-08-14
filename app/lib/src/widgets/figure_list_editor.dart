@@ -937,6 +937,21 @@ class _FigureDraftCard extends StatefulWidget {
   State<_FigureDraftCard> createState() => _FigureDraftCardState();
 }
 
+/// v28 (#976): seeds `chain`'s implicit hand from its role (`who`), mirroring
+/// ContraDB's own `chainChange` (`figure.js:256-263`) so a chain created or
+/// edited in the editor stores the SAME explicit hand as one parsed from
+/// import text (`contradb_figure_dialect.dart` / `figure_parser.dart`),
+/// rather than diverging on `unspecified` until a user happens to touch
+/// `who` (#976 §6.1 — the divergence a first draft of this fix missed). A
+/// no-op for any other move or an unrecognized `who`.
+void _seedChainHand(String moveId, Map<String, Object?> params) {
+  if (moveId != 'chain') return;
+  final who = params['who'];
+  if (who is! String) return;
+  final hand = chainHandForWho(who);
+  if (hand != null) params['hand'] = hand;
+}
+
 class _FigureDraftCardState extends State<_FigureDraftCard> {
   /// Whether the on-demand note field is revealed. Existing notes are always
   /// shown (never hide existing content); an empty note starts hidden behind
@@ -1005,7 +1020,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // default (DD.3) is a user-configured value, so _applyMoveParamDefaults
     // re-marks beats as touched when it applies one.
     widget.draft.beatsTouched = false;
+    // #976: apply a saved per-move default FIRST — it may itself override
+    // `who` (defaults are sparse per-param diffs, `display_defaults.dart`),
+    // and seeding hand from the PRE-override `who` would then store a hand
+    // for a role the default just replaced. Seed the role-implied hand
+    // afterward, from the now-final `who` — unless the saved default itself
+    // named an explicit `hand`, which must win.
     _applyMoveParamDefaults(moveId);
+    final chainOverrides = widget.moveParamDefaults?[moveId];
+    if (chainOverrides == null || !chainOverrides.containsKey('hand')) {
+      _seedChainHand(moveId, widget.draft.params);
+    }
     _showMoreOptions = false;
     widget.onChanged();
   }
@@ -1096,8 +1121,14 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       final partial = value == 'lessThanHalf' || value == 'betweenHalfAndFull';
       if (!partial) draft.params.remove('meetTarget');
     }
+    // #976: a `who` edit on a chain rewrites its role-implied hand, mirroring
+    // ContraDB's `chainChange` (figure.js:256-263) — an explicit hand set for
+    // the OLD role must not silently survive onto the new one.
     final oldDefault = _canonicalBeats(draft.params);
     draft.params[key] = value;
+    if (draft.move == 'chain' && key == 'who') {
+      _seedChainHand('chain', draft.params);
+    }
     final newDefault = _canonicalBeats(draft.params);
     if (newDefault == null) return;
     if (draft.beatsTouched) {
@@ -2201,7 +2232,17 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     draft.assumedSubject = false;
     draft.customOrigin = CustomOrigin.userEntered;
     draft.beatsTouched = false;
+    // #976: apply a saved per-move default FIRST — it may itself override
+    // `who` (defaults are sparse per-param diffs, `display_defaults.dart`),
+    // and seeding hand from the PRE-override `who` would then store a hand
+    // for a role the default just replaced. Seed the role-implied hand
+    // afterward, from the now-final `who` — unless the saved default itself
+    // named an explicit `hand`, which must win.
     _applyMoveParamDefaults(moveId);
+    final chainOverrides = widget.moveParamDefaults?[moveId];
+    if (chainOverrides == null || !chainOverrides.containsKey('hand')) {
+      _seedChainHand(moveId, draft.params);
+    }
     widget.onChanged();
   }
 
@@ -2369,6 +2410,13 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
             onChanged: (v) {
               if (entry.key == 'who') draft.assumedSubject = false;
               draft.params[entry.key] = v;
+              // #976: a `who` edit on a chain rewrites its role-implied
+              // hand, mirroring ContraDB's `chainChange` (figure.js:256-263)
+              // — an explicit hand set for the OLD role must not silently
+              // survive onto the new one.
+              if (draft.move == 'chain' && entry.key == 'who') {
+                _seedChainHand('chain', draft.params);
+              }
               widget.onChanged();
             },
           ),

@@ -93,6 +93,7 @@ export 'src/storage/database.dart'
         sectionRuleVersionKey,
         starPromenadeHandRemovalDoneKey,
         gripSingleFileCanonicalInclusionDoneKey,
+        chainHandBackfillDoneKey,
         kSectionRuleVersion,
         kCompendiumSchemaVersion,
         kMinSupportedSchemaVersion;
