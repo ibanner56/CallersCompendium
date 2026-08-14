@@ -824,16 +824,18 @@ String? _starGrip(_Scan s) {
 /// single-file promenade travels the WHOLE major set, not a per-couple
 /// relationship) sets `singleFile` and defaults `who` to `everyone`; real
 /// render: Strange New Worlds #3107 — `single file promenade along major set
-/// to new neightbors`. Everything after `promenade` in that case is left as
-/// the verbatim note rather than probed for `dir`: "along major set …" is a
-/// descriptive tail, not the plain `across`/`along` direction token, so
-/// forcing it through `_direction` would silently swallow the "major set to
-/// new neighbors" detail. EXCEPTION (issue #749): a bare `along` direction
-/// token immediately after `promenade` IS consumed (matching the ordinary
-/// promenade path), so that the ContraDB source text `single file promenade
-/// along ...` stores `dir: 'along'` explicitly and the canonical key
-/// reflects the stated direction. The rest of the tail remains in the note.
-/// The ordinary (non-single-file) form is unchanged.
+/// to new neightbors`.
+///
+/// Issue #749: a bare `along`/`across` direction token immediately after
+/// `promenade` IS consumed in the single-file branch, so `dir` is captured
+/// from the source text; the rest of the tail was left as the note.
+///
+/// Issue #921 (taxonomy v29): the destination tail is now structured. After
+/// consuming `[dir]`, the recognizer consumes an optional "major set"
+/// descriptor and then a "to [new|the same] {subject}" clause, storing the
+/// result as `destination`. "new neighbors" (ContraDB source phrasing for the
+/// next couple) maps to `nextNeighbors`. An unrecognised tail is still stored
+/// verbatim as the note. The ordinary (non-single-file) form is unchanged.
 FigureMatch? _promenade(String text) {
   final s = _Scan(text);
   var singleFile = false;
@@ -850,12 +852,22 @@ FigureMatch? _promenade(String text) {
   if (singleFile) {
     params['singleFile'] = true;
     // Consume a bare direction token (`along` or `across`) immediately after
-    // `promenade` so `dir` is captured from the source text. The descriptive
-    // tail ("major set to new neighbors" etc.) is left as the note.
+    // `promenade` so `dir` is captured from the source text.
     final dir = _direction(s.peek());
     if (dir != null) {
       s.take();
       params['dir'] = dir;
+    }
+    // Consume the destination tail (issue #921):
+    //   optional "major set" descriptor (e.g. "along major set to …")
+    //   then "to [new|the same] {subject}"
+    final preDest = s.pos;
+    s.eatPhrase('major set');
+    final dest = _promenadeDestination(s);
+    if (dest != null) {
+      params['destination'] = dest;
+    } else {
+      s.reset(preDest); // restore if we couldn't parse a destination
     }
   } else {
     final dir = _direction(s.peek());
@@ -865,6 +877,51 @@ FigureMatch? _promenade(String text) {
     }
   }
   return FigureMatch('promenade', params: params, note: s.note());
+}
+
+/// Consumes a "to [new|the same] {subject}" destination clause for the
+/// single-file promenade tail (issue #921, taxonomy v29) and returns the
+/// corresponding dancer-set token, or null if no clause is present.
+///
+/// ContraDB source-text conventions handled:
+/// - `to new neighbors` / `to new neightbors` → `nextNeighbors`
+/// - `to new neighbors at home` → `nextNeighbors` (consumes "at home" too)
+/// - `to the same {subject}` → the matched subject token
+/// - `to {subject}` → the matched subject token
+///
+/// On null: the scanner position is unchanged so the caller's save/reset can
+/// leave the tail in the note without double-advancing.
+String? _promenadeDestination(_Scan s) {
+  final save = s.pos;
+  if (!s.eat('to')) return null;
+
+  // "to new …" — ContraDB says "new neighbors" for the next couple.
+  // "new" always means `nextNeighbors` regardless of the exact noun form
+  // (including typo "neightbors"). Consume the noun if it parses; if not,
+  // consume one raw token so it does not land in the note.
+  if (s.eat('new')) {
+    if (_subject(s) == null) s.take(); // discard noun (even typos)
+    s.eatPhrase('at home'); // consume optional "at home" suffix
+    return 'nextNeighbors';
+  }
+
+  // "to the same {subject}" — maps to the subject directly.
+  final theSave = s.pos;
+  if (s.eat('the')) {
+    if (s.eat('same')) {
+      final who = _subject(s);
+      if (who != null) return who;
+    }
+    // "the" consumed but "same" or subject didn't follow — restore.
+    s.reset(theSave);
+  }
+
+  // "to {subject}" — general case.
+  final who = _subject(s);
+  if (who != null) return who;
+
+  s.reset(save);
+  return null;
 }
 
 /// boxTheGnatWords: `<who> [<hand> hand balance &] box the gnat`. ContraDB

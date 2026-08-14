@@ -22,7 +22,7 @@ void main() {
   final renderer = FigureRenderer(tax);
 
   test('contraTaxonomyVersion is 28', () {
-    expect(contraTaxonomyVersion, 28);
+    expect(contraTaxonomyVersion, 29);
     expect(tax.version, 28);
   });
 

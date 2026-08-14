@@ -11,6 +11,17 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
+### Added
+
+- **`promenade.destination`** — single-file promenade figures can now carry a
+  structured destination param (e.g. "to next neighbors", "to neighbors"). The
+  ContraDB importer recognises `to new neighbors`, `to the same neighbors`, and
+  `to {dancer-set}` tails; these are stored as `destination` instead of the
+  figure note. The param uses the existing dancer-set vocabulary
+  (`nextNeighbors`, `neighbors`, `partners`, …) and defaults to `unspecified`
+  (= "not stated"), so existing figures are unaffected. Destinations appear in
+  display, search, and filter. (taxonomy v29, issue #921)
+
 ## [0.1.0] - 2026-08-14
 
 Flutter build: `0.1.0+1`.

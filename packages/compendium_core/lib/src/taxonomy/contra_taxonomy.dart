@@ -607,7 +607,37 @@ import 'taxonomy.dart';
 ///     already keeps it from traveling.
 ///
 ///     **No DB schema bump.** `hand` rides the existing `figures_json` codec.
-const int contraTaxonomyVersion = 28;
+/// v29 (#921): `promenade.destination` — a new `ParamKind.dancerSet` param
+///     (default `ParamVocab.unspecified`) that captures the destination of a
+///     single-file promenade. ContraDB source texts like `single file promenade
+///     along major set to new neighbors` previously stored the trailing phrase
+///     verbatim as the figure note; this bump promotes it to a structured param.
+///
+///     **Domain.** Reuses [ParamVocab.dancerSets] + the `unspecified` sentinel
+///     (`_dancerOrUnspecified`), per maintainer ruling (2026-08-14): no new
+///     ParamKind needed.
+///
+///     **Rendering.** The param is appended as `to {destination}` in both the
+///     display and canonical renders for `promenade.singleFile=true`, suppressed
+///     when the value is `unspecified`. The canonical form is:
+///       `single file promenade {dir} to {next neighbors}` — destination
+///       humanized via [_humanize] (e.g. `nextNeighbors` → "next neighbors").
+///
+///     **Import.** The ContraDB `_promenade` recognizer now consumes the
+///     destination tail — optional "major set", then "to [new/the same]
+///     {subject}" — and stores it as `destination`. "new neighbors" (ContraDB
+///     source phrasing) maps to `nextNeighbors`. An unrecognised tail is still
+///     stored as the note; a fully-consumed tail leaves no note.
+///
+///     **No derived rebuild.** `destination` defaults to `unspecified`, which
+///     the renderer silences; existing figures' canonical text is byte-stable.
+///     Structured search gains the param immediately for newly-imported figures.
+///     Free-text search likewise gains it (the destination now appears in
+///     `renderCanonical` / `dance_fts` for newly-imported figures).
+///
+///     **No DB schema bump.** `destination` rides the existing `figures_json`
+///     codec.
+const int contraTaxonomyVersion = 29;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -1149,6 +1179,17 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // canonical emits "single file promenade [dir]" with `who` dropped
         // (an importer artefact carrying no choreographic information).
         'singleFile': ParamSpec(ParamKind.flag, defaultValue: false),
+        // Issue #921 (taxonomy v29): destination of the single-file promenade —
+        // "to new neighbors" / "to the same neighbors" / etc. Reuses the
+        // dancerSet domain + unspecified sentinel. Only meaningful when
+        // `singleFile` is true; the ordinary promenade has no destination.
+        // Rendered as "to {destination}" appended to the singleFile display and
+        // canonical forms; unspecified (= "not stated") suppresses the clause.
+        'destination': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _dancerOrUnspecified,
+        ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {move} {dir}',

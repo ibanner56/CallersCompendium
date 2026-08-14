@@ -94,6 +94,13 @@ void main() {
       });
     });
 
+    test('contraTaxonomyVersion is 29', () {
+      // Guard: fails when the version is bumped without updating this test.
+      // Update this assertion (and add a new test group documenting the new
+      // version's changes) when bumping contraTaxonomyVersion.
+      expect(contraTaxonomyVersion, 29);
+    });
+
     test(
       'star renderCanonical includes grip clause (taxonomy v27, issue #749 Gap B)',
       () {
@@ -147,33 +154,78 @@ void main() {
       },
     );
 
-    test('promenade renderCanonical: "single file promenade {dir}" (v27)', () {
-      // Since v27, singleFile is canonical. `who` is dropped; `dir` always
-      // present (even the `across` default).
-      expect(
-        renderer.renderCanonical(
-          testFigure(move: 'promenade', params: {'singleFile': true}),
-        ),
-        'single file promenade across',
-      );
-      // Explicit `dir:'along'` (ContraDB import) included in canonical key.
-      expect(
-        renderer.renderCanonical(
-          testFigure(
-            move: 'promenade',
-            params: {'singleFile': true, 'dir': 'along'},
+    test(
+      'promenade renderCanonical: "single file promenade {dir}" (v27), with destination (v29)',
+      () {
+        // Since v27, singleFile is canonical. `who` is dropped; `dir` always
+        // present (even the `across` default).
+        expect(
+          renderer.renderCanonical(
+            testFigure(move: 'promenade', params: {'singleFile': true}),
           ),
-        ),
-        'single file promenade along',
-      );
-      // Default (singleFile=false) is unchanged.
-      expect(
-        renderer.renderCanonical(
-          testFigure(move: 'promenade', params: {'singleFile': false}),
-        ),
-        'partners promenade across',
-      );
-    });
+          'single file promenade across',
+        );
+        // Explicit `dir:'along'` (ContraDB import) included in canonical key.
+        expect(
+          renderer.renderCanonical(
+            testFigure(
+              move: 'promenade',
+              params: {'singleFile': true, 'dir': 'along'},
+            ),
+          ),
+          'single file promenade along',
+        );
+        // v29 (#921): destination appended when stated.
+        expect(
+          renderer.renderCanonical(
+            testFigure(
+              move: 'promenade',
+              params: {
+                'singleFile': true,
+                'dir': 'along',
+                'destination': 'nextNeighbors',
+              },
+            ),
+          ),
+          'single file promenade along to next neighbors',
+        );
+        // destination:neighbors
+        expect(
+          renderer.renderCanonical(
+            testFigure(
+              move: 'promenade',
+              params: {
+                'singleFile': true,
+                'dir': 'along',
+                'destination': 'neighbors',
+              },
+            ),
+          ),
+          'single file promenade along to neighbors',
+        );
+        // unspecified destination — same as no destination
+        expect(
+          renderer.renderCanonical(
+            testFigure(
+              move: 'promenade',
+              params: {
+                'singleFile': true,
+                'dir': 'along',
+                'destination': 'unspecified',
+              },
+            ),
+          ),
+          'single file promenade along',
+        );
+        // Default (singleFile=false) is unchanged.
+        expect(
+          renderer.renderCanonical(
+            testFigure(move: 'promenade', params: {'singleFile': false}),
+          ),
+          'partners promenade across',
+        );
+      },
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -257,6 +309,57 @@ void main() {
         final f = testFigure(move: 'promenade', params: {'singleFile': true});
         expect(renderer.renderSummary(f, d), 'single file promenade across');
       });
+
+      test(
+        'singleFile: true, destination:nextNeighbors — "single file promenade along to next neighbors"',
+        () {
+          final f = testFigure(
+            move: 'promenade',
+            params: {
+              'singleFile': true,
+              'dir': 'along',
+              'destination': 'nextNeighbors',
+            },
+          );
+          expect(
+            renderer.render(f, d),
+            'single file promenade along to next neighbors',
+          );
+        },
+      );
+
+      test(
+        'singleFile: true, destination:neighbors — "single file promenade along to neighbors"',
+        () {
+          final f = testFigure(
+            move: 'promenade',
+            params: {
+              'singleFile': true,
+              'dir': 'along',
+              'destination': 'neighbors',
+            },
+          );
+          expect(
+            renderer.render(f, d),
+            'single file promenade along to neighbors',
+          );
+        },
+      );
+
+      test(
+        'singleFile: true, destination:unspecified — no destination clause',
+        () {
+          final f = testFigure(
+            move: 'promenade',
+            params: {
+              'singleFile': true,
+              'dir': 'along',
+              'destination': 'unspecified',
+            },
+          );
+          expect(renderer.render(f, d), 'single file promenade along');
+        },
+      );
     });
 
     group('circle.singleFile — prefix form (issue #749 / #840, v27)', () {

@@ -38,7 +38,7 @@ void main() {
 
   group('taxonomy', () {
     test('contraTaxonomyVersion is 28', () {
-      expect(contraTaxonomyVersion, 28);
+      expect(contraTaxonomyVersion, 29);
       expect(tax.version, 28);
     });
 

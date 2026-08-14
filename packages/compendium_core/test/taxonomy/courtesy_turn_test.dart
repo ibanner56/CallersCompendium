@@ -27,7 +27,7 @@ void main() {
 
   group('taxonomy — the v23 move', () {
     test('contraTaxonomyVersion is 28', () {
-      expect(contraTaxonomyVersion, 28);
+      expect(contraTaxonomyVersion, 29);
       expect(tax.version, 28);
     });
 
