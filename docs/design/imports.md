@@ -3,6 +3,27 @@
 *Roadmap item 1.10 · v0.1 (2026-07-10). Covers the source-adapter framework
 (6.1) and per-source plans (6.2–6.6).*
 
+<!-- section-index -->
+> **Section index.** This document is ~73 KB — read the section you
+> need rather than the whole file. Line counts indicate size, not position;
+> follow the anchor. Keep this index current when you add or retitle a
+> section.
+
+- [Pipeline](#pipeline) — 21 lines
+- [Author resolution (resolve-or-create seam)](#author-resolution-resolve-or-create-seam) — 139 lines
+- [Sources](#sources) — 952 lines
+  - [1. CallersBox snapshot (6.2, 6.3) — primary](#1-callersbox-snapshot-62-63--primary) — 113 lines
+  - [2. Caller's Companion migration (6.5)](#2-callers-companion-migration-65) — 97 lines
+  - [3. ContraDB (6.4)](#3-contradb-64) — 33 lines
+  - [Compound-shorthand fan-out: grand right and left (#295)](#compound-shorthand-fan-out-grand-right-and-left-295) — 186 lines
+  - [4. Generic JSON (6.6)](#4-generic-json-66) — 5 lines
+  - [5. A list of titles (#823)](#5-a-list-of-titles-823) — 72 lines
+  - [Simultaneous-action fan-out (`meanwhile`) (#591/#572)](#simultaneous-action-fan-out-meanwhile-591572) — 59 lines
+  - [Shared free-text figure parser (cross-cutting)](#shared-free-text-figure-parser-cross-cutting) — 299 lines
+  - [Balance-a-wave lines (CallersBox, #295 / taxonomy v21)](#balance-a-wave-lines-callersbox-295--taxonomy-v21) — 86 lines
+- [Error handling & testing](#error-handling--testing) — 9 lines
+<!-- /section-index -->
+
 ## Pipeline
 
 Every import, regardless of source, flows through the same stages:
