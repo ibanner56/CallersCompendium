@@ -1,11 +1,7 @@
-import 'dart:convert';
-
 import 'package:drift/drift.dart';
 
 import '../model/enums.dart';
-import '../model/figure.dart' show kMaxMeanwhileDepth, meanwhileMove;
 import '../model/formation.dart';
-import '../taxonomy/param_types.dart';
 import 'tables.dart';
 
 part 'database.g.dart';
@@ -49,8 +45,11 @@ const List<String> searchIndexSql = [
 /// COUNT would full-scan the whole `programs` table on every guarded delete
 /// (O(total programs)); the index lets SQLite restrict the scan to just the
 /// matching references. Declared raw (like [searchIndexSql]) rather than as a
-/// drift-managed index, and applied in both `onCreate` and the `from < 14`
-/// upgrade step so fresh and migrated databases get it identically.
+/// drift-managed index. Originally applied in both `onCreate` and the v14
+/// upgrade step (so fresh and migrated databases got it identically); the
+/// upgrade step was retired along with v11-v19 when the floor was raised to
+/// v20 (every surviving database already has this index from its own history),
+/// so only `onCreate` still references it.
 const List<String> venueLookupIndexSql = [
   'CREATE INDEX IF NOT EXISTS programs_venue_id ON programs(venue_id)',
 ];
@@ -164,32 +163,33 @@ const int kCompendiumSchemaVersion = 25;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
-/// Schema versions below this were retired (#828): their `onUpgrade` steps,
-/// fixture databases and `drift_schemas/generated/` dumps have been deleted, so
-/// there is
-/// no migration path from such a file to head. `onUpgrade` refuses one
-/// explicitly rather than running only the surviving steps and silently
-/// producing a structurally wrong database.
+/// Schema versions below this were retired (#837, and again raised past v19):
+/// their `onUpgrade` steps, fixture databases and `drift_schemas/generated/`
+/// dumps have been deleted, so there is no migration path from such a file to
+/// head. `onUpgrade` refuses one explicitly rather than running only the
+/// surviving steps and silently producing a structurally wrong database.
 ///
 /// The value is the schema version shipped by the oldest *supported release*,
-/// `v0.1.0-beta.2` — not simply the oldest version whose code still exists.
-/// beta.1 shipped v10, so a database last opened by beta.1 is below the floor
-/// and will be refused; that is deliberate, on the basis that every tester is
-/// on beta.2 or later.
+/// `v0.1.0-beta.6` — not simply the oldest version whose code still exists.
+/// beta.5 shipped v15 (the last version below this floor ever shipped to a
+/// tester) and beta.6 shipped v20, so a database last opened by beta.5 or
+/// earlier is below the floor and will be refused; that is deliberate, on the
+/// basis that every tester is on beta.6 or later.
 ///
 /// Raising this is a user-visible change: databases below the new floor stop
 /// opening. It belongs in `app/CHANGELOG.md`, stated in user-facing terms, with
 /// the release whose schema version is being adopted named as the reason.
-const int kMinSupportedSchemaVersion = 11;
+const int kMinSupportedSchemaVersion = 20;
 
 /// The Caller's Compendium local database.
 ///
 /// Schema version history.
 ///
-/// **v1–v10 are RETIRED** (#828): they predate `v0.1.0-beta.2`, the oldest
+/// **v1–v19 are RETIRED** (#837, floor raised past v19 once every tester was
+/// confirmed on `v0.1.0-beta.6`): they predate `v0.1.0-beta.6`, the oldest
 /// supported release, so their migration steps, fixtures and schema dumps have
 /// been deleted and [kMinSupportedSchemaVersion] refuses a database stamped
-/// below v11. Their entries are kept below as history — they explain why later
+/// below v20. Their entries are kept below as history — they explain why later
 /// columns exist and are still referenced by the steps that survive — but there
 /// is no longer any code path that migrates from them.
 ///
@@ -577,227 +577,6 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           'or start from a fresh database.',
         );
       }
-      if (from < 12) {
-        // Issue #290: `form_an_ocean_wave` was removed from the taxonomy (v14),
-        // so rewrite every stored figure that references it onto the split moves
-        // — `pass_the_ocean` (passThru true, its default) or `form_a_short_wave`
-        // (passThru false), dropping `passThru` and keeping the rest. This is
-        // the SANCTIONED canonical-changing migration: rewriting `figures_json`
-        // changes those figures' derived `canonicalText`/FTS. Per-row and
-        // per-figure parse-never-throw: a blob or entry that can't be cleanly
-        // remapped is left byte-identical, falling through to the #358
-        // unknown-move path rather than being dropped/corrupted.
-        final rows = await customSelect(
-          'SELECT id, figures_json FROM dances',
-        ).get();
-        var rewroteAny = false;
-        for (final row in rows) {
-          final id = row.data['id'];
-          final figuresJson = row.data['figures_json'];
-          if (id is! String || figuresJson is! String) continue;
-          final rewritten = _rewriteOceanWaveFigures(figuresJson);
-          if (rewritten != null && rewritten != figuresJson) {
-            await customStatement(
-              'UPDATE dances SET figures_json = ? WHERE id = ?',
-              [rewritten, id],
-            );
-            rewroteAny = true;
-          }
-        }
-        // Only schedule a rebuild when a figure actually changed. v12's ONLY
-        // canonical-affecting change is this ocean-wave rewrite (the PR3/PR4
-        // display reworks are `!forCanonical`-gated and never touch
-        // `renderCanonical`), so a database that never held the legacy move
-        // already has correct derived text and needs no work. The rewritten
-        // figures' derived rows need the taxonomy/renderer, which
-        // `MigrationStrategy` can't reach, so durably record that a rebuild is
-        // owed (crash-safe) — `CompendiumRepositories.ensureMigrated()` then
-        // regenerates `dance_figures` + `dance_fts` from `figures_json`.
-        if (rewroteAny) {
-          await customStatement(
-            'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-            [derivedRebuildRequiredKey, 'true'],
-          );
-        }
-      }
-      if (from < 13) {
-        // Performance-only index on `dance_links(dance_id)`. `dance_links` is
-        // the one dance-child table not keyed by a `danceId`-leading composite
-        // PK, so before this every batched `dance_id IN (…)` link lookup in
-        // `DanceRepository.listAll` full-scanned the table (O(N²) as links grow
-        // with the collection). Pure DDL — no data touched, no derived rebuild.
-        await customStatement(danceLinksDanceIdIndexSql);
-      }
-      if (from < 14) {
-        // First-class venue entity. One brand-new table (`venues`) plus a
-        // single nullable soft-reference column `programs.venue_id`. Purely
-        // additive: existing programs get `venue_id` NULL and keep their
-        // free-text `venue` label (the two coexist non-destructively). `venues`
-        // does NOT feed the derived `dance_fts`/`dance_figures` indexes, and no
-        // data is back-filled, so — unlike the v9 step — NO derived rebuild is
-        // required and no rebuild marker is written. The `programs_venue_id`
-        // lookup index backs `VenueRepository.delete`'s reference-count guard
-        // (see [venueLookupIndexSql]); it is created here for upgraders and in
-        // `onCreate` for fresh databases.
-        await m.createTable(venues);
-        await m.addColumn(programs, programs.venueId);
-        for (final sql in venueLookupIndexSql) {
-          await customStatement(sql);
-        }
-      }
-      if (from < 15) {
-        // Dedicated per-dance walkthrough (issue #370). A single additive text
-        // column defaulting to `''`: existing rows get an empty walkthrough and
-        // stay valid. It is dance-scalar *content* (not figure text), so it does
-        // NOT feed the derived `dance_fts`/`dance_figures` indexes and NO
-        // derived rebuild is required.
-        await m.addColumn(dances, dances.walkthrough);
-      }
-      if (from < 16) {
-        // Performance-only index on `program_slots(dance_id)` (issue #627),
-        // mirroring the v13 `dance_links_dance_id` index. Pure DDL — no data
-        // touched, no derived rebuild.
-        await customStatement(programSlotsDanceIdIndexSql);
-      }
-      // v17 was a typed-prose canonicalization step (issue #613). It was
-      // REVERTED before ever shipping: role canonicalization is a word-boundary
-      // substitution over an always-on synonym set containing ordinary English
-      // and proper nouns (`man`, `men`, `lady`, `ladies`, `lark(s)`,
-      // `robin(s)`, ...), so run across long-form prose it corrupted dance
-      // titles, tune names and people's names ("Lady of the Lake" -> "role2 of
-      // the Lake"). No released build ever contained the step, so no database
-      // in the wild was rewritten and there is nothing to undo; the version
-      // number is retained as a no-op so the v18+ steps keep their numbering.
-      if (from < 18) {
-        // Issue #295: `allemande_orbit` was removed from the taxonomy (v19), so
-        // rewrite every stored figure that references it onto a `meanwhile`
-        // container [allemande{who, hand, turn=old inner}, orbit{who=invert(who),
-        // turn=direction derived from hand, amount=old outer}], carrying the
-        // fused figure's `beats` as the shared container total. This is the
-        // SANCTIONED canonical-changing migration (cf. v12): rewriting
-        // `figures_json` changes those figures' derived `canonicalText`/FTS.
-        // Per-row and per-figure parse-never-throw: a blob or entry that can't
-        // be cleanly remapped (a wildcard/absent `hand`, or a `who` with no
-        // pair-inverse) is left byte-identical, falling through to the #358
-        // unknown-move path rather than being dropped/corrupted.
-        final rows = await customSelect(
-          'SELECT id, figures_json FROM dances',
-        ).get();
-        var rewroteAny = false;
-        for (final row in rows) {
-          final id = row.data['id'];
-          final figuresJson = row.data['figures_json'];
-          if (id is! String || figuresJson is! String) continue;
-          final rewritten = _rewriteAllemandeOrbitFigures(figuresJson);
-          if (rewritten != null && rewritten != figuresJson) {
-            await customStatement(
-              'UPDATE dances SET figures_json = ? WHERE id = ?',
-              [rewritten, id],
-            );
-            rewroteAny = true;
-          }
-        }
-        // Only schedule a rebuild when a figure actually changed — a database
-        // that never held the fused move already has correct derived text. The
-        // rewritten figures' derived rows need the taxonomy/renderer, which
-        // `MigrationStrategy` can't reach, so durably record that a rebuild is
-        // owed (crash-safe); `CompendiumRepositories.ensureMigrated()` then
-        // regenerates `dance_figures` + `dance_fts` from `figures_json`.
-        if (rewroteAny) {
-          await customStatement(
-            'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-            [derivedRebuildRequiredKey, 'true'],
-          );
-        }
-      }
-      if (from < 19) {
-        // Issue #295: `form_a_short_wave` was RENAMED `form_short_waves` at
-        // taxonomy v21, so rewrite every stored figure that carries the old id
-        // — including sides nested inside a `meanwhile` container. Params are
-        // untouched; only the move id changes. Canonical/FTS text changes for
-        // those figures, so this is the SANCTIONED canonical-changing migration
-        // (cf. v12/v18) and schedules a derived rebuild, but only when a figure
-        // actually changed. Per-row and per-figure parse-never-throw: a
-        // malformed blob or entry is left byte-identical, falling through to
-        // the #358 unknown-move path rather than being dropped/corrupted.
-        final rows = await customSelect(
-          'SELECT id, figures_json FROM dances',
-        ).get();
-        var rewroteAny = false;
-        for (final row in rows) {
-          final id = row.data['id'];
-          final figuresJson = row.data['figures_json'];
-          if (id is! String || figuresJson is! String) continue;
-          final rewritten = _rewriteShortWaveRename(figuresJson);
-          if (rewritten != null && rewritten != figuresJson) {
-            await customStatement(
-              'UPDATE dances SET figures_json = ? WHERE id = ?',
-              [rewritten, id],
-            );
-            rewroteAny = true;
-          }
-        }
-        if (rewroteAny) {
-          await customStatement(
-            'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-            [derivedRebuildRequiredKey, 'true'],
-          );
-        }
-      }
-      if (from < 20) {
-        // Taxonomy v22: `gate` and `rotation_gate` are MERGED into one `gate`
-        // move, so rewrite every stored figure of BOTH onto it. This is a
-        // SANCTIONED derived-data-changing migration (cf. v12, v18, v19).
-        // Per-row and per-figure parse-never-throw: a blob or entry that can't
-        // be cleanly remapped is left byte-identical, falling through to the
-        // #358 unknown-move path rather than being dropped/corrupted.
-        //
-        // Runs AFTER the v19 rename above and is independent of it: that step
-        // only touches `form_a_short_wave` figures and this one only touches
-        // gates, so the order never matters — but the guard MUST be `< 20`, not
-        // `< 19`, or a database that already reached 19 through the rename
-        // would skip this step forever and keep referencing the retired
-        // `rotation_gate` id (see the entry-point tests in migration_test.dart).
-        final rows = await customSelect(
-          'SELECT id, figures_json FROM dances',
-        ).get();
-        var rewroteAny = false;
-        for (final row in rows) {
-          final id = row.data['id'];
-          final figuresJson = row.data['figures_json'];
-          if (id is! String || figuresJson is! String) continue;
-          final rewritten = _rewriteGateFigures(figuresJson);
-          if (rewritten != null && rewritten != figuresJson) {
-            await customStatement(
-              'UPDATE dances SET figures_json = ? WHERE id = ?',
-              [rewritten, id],
-            );
-            rewroteAny = true;
-          }
-        }
-        // Only schedule a rebuild when a figure actually changed — a database
-        // that held neither gate move (or held only already-explicit ones)
-        // already has correct derived rows.
-        //
-        // The rebuild is owed because `dance_figures` projects the move ID and
-        // `params_json`, NOT merely `canonical_text`. `danceIdsWithFigure`
-        // (dance_repository.dart) queries exactly `move` + `params_json`, so
-        // without a rebuild a search for `gate` would MISS every migrated
-        // figure while the retired `rotation_gate` id would still match — the
-        // structured-search index would disagree with what is actually stored.
-        // (The canonical/FTS text changes too, but that is the lesser half:
-        // a migration that changed only a figure's move id would still owe a
-        // rebuild.) Those derived rows need the taxonomy/renderer, which
-        // `MigrationStrategy` can't reach, so durably record that a rebuild is
-        // owed (crash-safe); `CompendiumRepositories.ensureMigrated()` then
-        // regenerates `dance_figures` + `dance_fts` from `figures_json`.
-        if (rewroteAny) {
-          await customStatement(
-            'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-            [derivedRebuildRequiredKey, 'true'],
-          );
-        }
-      }
 
       if (from < 21) {
         // Issues #781/#782: the first migration in this schema's history to
@@ -918,15 +697,17 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // ADD COLUMN, GUARDED — and the guard is load-bearing, not defensive
         // tidiness. `m.createTable` in a historical step builds the table from
         // *today's* Dart definition, not the definition that was current when
-        // that step was written. `venues` is created by the `from < 14` step
-        // above, so a database arriving from v11..v13 reaches this point with
+        // that step was written. `venues` used to be created by the `from < 14`
+        // step (v14, "first-class venue entity"; see the schema history above),
+        // which meant a database arriving from v11..v13 reached this point with
         // `venues` already carrying all three v25 columns, and an unguarded
-        // `addColumn` fails with "duplicate column name: updated_at" — taking
-        // down the whole upgrade for exactly the oldest databases the floor
-        // exists to keep supporting. (Every other table here is created in
-        // `onCreate`, or by a step below the floor whose code is gone, so only
-        // `venues` can currently reach that state; the check is written
-        // generically so a future table-creating step cannot reintroduce this.)
+        // `addColumn` would fail with "duplicate column name: updated_at". That
+        // exact `from` range is no longer reachable — v11..v19 were retired when
+        // the floor was raised to v20 (every database that can now reach
+        // `onUpgrade` already had `venues` created back when it was still on a
+        // pre-v25 build, so this specific hazard cannot recur) — but the guard is
+        // kept and written generically, not scoped to `venues`, so a future
+        // table-creating step cannot reintroduce the same class of failure.
         //
         // Skipping is correct rather than merely safe: a table created from
         // today's definition already has the column in its final shape, and
@@ -1070,414 +851,3 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   }
 }
 
-/// Rewrites `form_an_ocean_wave` figures in a `figures_json` string onto the
-/// issue #290 split moves for the schema-v12 migration. Returns the rewritten
-/// JSON, or `null` when nothing changed OR the blob can't be safely parsed as a
-/// figure array — in which case the caller leaves the stored `figures_json`
-/// byte-identical so any unmapped/malformed data falls through to the
-/// non-destructive unknown-move path (issue #358).
-///
-/// Operates on the raw decoded JSON (not the [Figure] model) so unknown keys,
-/// `note`, `progression`, and `schemaVersion` are preserved verbatim; only
-/// `move` and `params.passThru` change. Parse-never-throw at both the blob and
-/// the individual-figure level: a single unreadable entry is kept as-is rather
-/// than dropping it or aborting the whole row.
-String? _rewriteOceanWaveFigures(String figuresJson) {
-  final Object? decoded;
-  try {
-    decoded = jsonDecode(figuresJson);
-  } catch (_) {
-    return null; // malformed JSON: leave the row untouched.
-  }
-  if (decoded is! List) return null;
-  var changed = false;
-  final out = <Object?>[];
-  for (final entry in decoded) {
-    if (entry is! Map) {
-      out.add(entry); // preserve non-object entries verbatim.
-      continue;
-    }
-    try {
-      if (entry['move'] != 'form_an_ocean_wave') {
-        out.add(entry);
-        continue;
-      }
-      final figure = Map<String, Object?>.from(entry);
-      final rawParams = figure['params'];
-      final params = rawParams is Map
-          ? Map<String, Object?>.from(rawParams)
-          : <String, Object?>{};
-      // ContraDB's default is pass_through=true, which is "pass the ocean";
-      // only an explicit `false` selects the short wave. Any non-false value
-      // (including a missing param) maps to `pass_the_ocean`.
-      figure['move'] = params['passThru'] == false
-          ? 'form_a_short_wave'
-          : 'pass_the_ocean';
-      params.remove('passThru');
-      if (params.isEmpty) {
-        figure.remove('params'); // the codec omits an empty params map.
-      } else {
-        figure['params'] = params;
-      }
-      out.add(figure);
-      changed = true;
-    } catch (_) {
-      out.add(entry); // per-figure failure: keep the original entry intact.
-    }
-  }
-  if (!changed) return null;
-  return jsonEncode(out);
-}
-
-/// Rewrites `allemande_orbit` figures in a `figures_json` string onto the issue
-/// #295 `meanwhile[allemande, orbit]` container for the schema-v18 migration.
-/// Returns the rewritten JSON, or `null` when nothing changed OR the blob can't
-/// be parsed as a figure array — in which case the caller leaves the stored
-/// `figures_json` byte-identical so any unmapped/malformed data falls through
-/// to the non-destructive unknown-move path (issue #358).
-///
-/// Operates on the raw decoded JSON (not the [Figure] model) so unknown keys —
-/// `schemaVersion`, `note`, `progression`, `customOrigin`, `assumedSubject`,
-/// `walkthroughOverride` — are preserved verbatim on the container. Parse-
-/// never-throw at both the blob and the individual-figure level.
-///
-/// Decomposition (mirrors the retired renderer and the ContraDB combined
-/// handler): the fused `who` allemandes; the OTHER pair — `invert(who)` —
-/// orbits. The orbit direction is the OPPOSITE of the allemande hand
-/// (left → clockwise, right → counterclockwise). The fused defaults (`who`
-/// ones, `hand` left, `inner` 1.5, `outer` 0.5, `beats` 8) are applied
-/// EXPLICITLY when a param is absent, so the rewritten container renders
-/// identically regardless of the new moves' own (different) defaults. An entry
-/// whose `hand` has no clockwise/counterclockwise mapping (a wildcard or other
-/// non-left/right value) or whose `who` has no pair-inverse is kept byte-
-/// identical rather than dropped or fabricated.
-String? _rewriteAllemandeOrbitFigures(String figuresJson) {
-  final Object? decoded;
-  try {
-    decoded = jsonDecode(figuresJson);
-  } catch (_) {
-    return null; // malformed JSON: leave the row untouched.
-  }
-  if (decoded is! List) return null;
-  var changed = false;
-  final out = <Object?>[];
-  for (final entry in decoded) {
-    if (entry is! Map) {
-      out.add(entry); // preserve non-object entries verbatim.
-      continue;
-    }
-    try {
-      if (entry['move'] != 'allemande_orbit') {
-        out.add(entry);
-        continue;
-      }
-      final figure = Map<String, Object?>.from(entry);
-      final rawParams = figure['params'];
-      final params = rawParams is Map
-          ? Map<String, Object?>.from(rawParams)
-          : <String, Object?>{};
-
-      // Fused defaults applied when absent (see doc above).
-      final who = params['who'] is String ? params['who'] as String : 'ones';
-      final hand = params['hand'] is String ? params['hand'] as String : 'left';
-      final inner = params['inner'] is num ? params['inner'] : 1.5;
-      final outer = params['outer'] is num ? params['outer'] : 0.5;
-      final beats = params['beats'] is int ? params['beats'] as int : 8;
-
-      // Orbit direction is the OPPOSITE of the allemande hand. Bail (keep the
-      // entry as-is) on any hand we can't map, so no direction is fabricated.
-      final String direction;
-      if (hand == 'left') {
-        direction = 'clockwise';
-      } else if (hand == 'right') {
-        direction = 'counterclockwise';
-      } else {
-        out.add(entry);
-        continue;
-      }
-      // The orbiting pair is the OTHER pair. Bail on a `who` with no inverse.
-      final orbitWho = invertPairDancerSet(who);
-      if (orbitWho == null) {
-        out.add(entry);
-        continue;
-      }
-
-      out.add(<String, Object?>{
-        // Preserve every top-level key except the two we replace.
-        for (final e in figure.entries)
-          if (e.key != 'move' && e.key != 'params') e.key: e.value,
-        'move': 'meanwhile',
-        'params': <String, Object?>{
-          'beats': beats,
-          'figures': <Object?>[
-            <String, Object?>{
-              'schemaVersion': 1,
-              'move': 'allemande',
-              'params': <String, Object?>{
-                'who': who,
-                'hand': hand,
-                'turn': inner,
-              },
-            },
-            <String, Object?>{
-              'schemaVersion': 1,
-              'move': 'orbit',
-              'params': <String, Object?>{
-                'who': orbitWho,
-                'turn': direction,
-                'amount': outer,
-              },
-            },
-          ],
-        },
-      });
-      changed = true;
-    } catch (_) {
-      out.add(entry); // per-figure failure: keep the original entry intact.
-    }
-  }
-  if (!changed) return null;
-  return jsonEncode(out);
-}
-
-/// Rewrites `form_a_short_wave` figures in a `figures_json` string onto the
-/// issue #295 renamed move id `form_short_waves` for the schema-v19 migration.
-/// Returns the rewritten JSON, or `null` when nothing changed OR the blob can't
-/// be parsed as a figure array — in which case the caller leaves the stored
-/// `figures_json` byte-identical so any malformed data falls through to the
-/// non-destructive unknown-move path (issue #358).
-///
-/// A pure identity change: `params`, `note`, `progression`, `schemaVersion`,
-/// `customOrigin`, `assumedSubject`, `walkthroughOverride` and any unknown key
-/// are preserved verbatim. Sides nested inside a `meanwhile` container's
-/// `params.figures` are rewritten too — the schema-v18 step can itself produce
-/// such containers, and a `meanwhile` may legitimately hold a wave side.
-/// Parse-never-throw at the blob and the individual-figure level; the nested
-/// walk is depth-bounded by [kMaxMeanwhileDepth] so hostile stored data cannot
-/// exhaust the stack (OWASP).
-String? _rewriteShortWaveRename(String figuresJson) {
-  final Object? decoded;
-  try {
-    decoded = jsonDecode(figuresJson);
-  } catch (_) {
-    return null; // malformed JSON: leave the row untouched.
-  }
-  if (decoded is! List) return null;
-  var changed = false;
-
-  Object? rewriteEntry(Object? entry, int depth) {
-    if (entry is! Map || depth > kMaxMeanwhileDepth) return entry;
-    try {
-      final figure = Map<String, Object?>.from(entry);
-      var touched = false;
-      if (figure['move'] == 'form_a_short_wave') {
-        figure['move'] = 'form_short_waves';
-        touched = true;
-      }
-      final rawParams = figure['params'];
-      if (figure['move'] == meanwhileMove && rawParams is Map) {
-        final sides = rawParams['figures'];
-        if (sides is List) {
-          final rewrittenSides = [
-            for (final side in sides) rewriteEntry(side, depth + 1),
-          ];
-          if (!_identicalSides(sides, rewrittenSides)) {
-            figure['params'] = <String, Object?>{
-              ...Map<String, Object?>.from(rawParams),
-              'figures': rewrittenSides,
-            };
-            touched = true;
-          }
-        }
-      }
-      if (!touched) return entry;
-      changed = true;
-      return figure;
-    } catch (_) {
-      return entry; // per-figure failure: keep the original entry intact.
-    }
-  }
-
-  final out = [for (final entry in decoded) rewriteEntry(entry, 0)];
-  if (!changed) return null;
-  return jsonEncode(out);
-}
-
-/// Whether every element of [a] is the same instance as the matching element of
-/// [b] — i.e. the nested rewrite left the list untouched.
-bool _identicalSides(List<Object?> a, List<Object?> b) {
-  if (a.length != b.length) return false;
-  for (var i = 0; i < a.length; i++) {
-    if (!identical(a[i], b[i])) return false;
-  }
-  return true;
-}
-
-/// Rewrites stored `gate` and `rotation_gate` figures onto the MERGED `gate`
-/// move (taxonomy v22) for the schema-v20 migration. Returns the rewritten
-/// JSON, or `null` when nothing changed OR the blob can't be parsed as a figure
-/// array — in which case the caller leaves the stored `figures_json`
-/// byte-identical so any unmapped/malformed data falls through to the
-/// non-destructive unknown-move path (issue #358).
-///
-/// Operates on the raw decoded JSON (not the [Figure] model) so unknown keys —
-/// `schemaVersion`, `note`, `progression`, `customOrigin`, `assumedSubject`,
-/// `walkthroughOverride` — are preserved verbatim. Parse-never-throw at both the
-/// blob and the individual-figure level.
-///
-/// ## Mapping
-///
-/// **`rotation_gate` → `gate`.** Its `who` moves to **`pair`**, not `who`. The
-/// two mean different things: TCB's subject names the pairing you gate WITH,
-/// while ContraDB's `who` names the side that extends a hand and BACKS UP
-/// (libfigure `figure.js:844`; `chooser.js:114` shows ContraDB's subject domain
-/// cannot even hold `neighbors`/`partners`). Writing it to `who` would silently
-/// reinterpret every TCB-imported gate. `direction`, `turn` and `beats` carry
-/// over verbatim.
-///
-/// **`gate` → `gate`.** `who`, `whom`, `face` and `beats` carry over verbatim —
-/// `face` was already the ENDING facing (`figure.js:841` renders it after the
-/// literal words "to face"), which is exactly what the merged `face` means.
-///
-/// In BOTH cases the RETIRED move's own defaults are materialized EXPLICITLY
-/// for any param the stored figure omitted (`rotation_gate`: who `neighbors`,
-/// direction `counterclockwise`, turn `0.5`; `gate`: who `ones`, whom
-/// `neighbors`, face `up`), because the merged move defaults every slot to
-/// `unspecified` instead. Without this a figure that relied on an old default
-/// would silently lose it. `beats` is never materialized — it defaults to 8 on
-/// both the old and new moves, so leaving it absent preserves the beat total
-/// exactly.
-///
-/// Recurses into `meanwhile` containers' `params.figures`, since a TCB `||`
-/// line fans two gates into one container (e.g. "Partner gate clockwise 1/4 ||
-/// Partner gate clockwise 1/2"). Depth is bounded by the shared
-/// [kMaxMeanwhileDepth] — stored data is untrusted and a hand-edited blob
-/// could nest containers arbitrarily.
-String? _rewriteGateFigures(String figuresJson) {
-  final Object? decoded;
-  try {
-    decoded = jsonDecode(figuresJson);
-  } catch (_) {
-    return null; // malformed JSON: leave the row untouched.
-  }
-  if (decoded is! List) return null;
-  var changed = false;
-  final out = _rewriteGateList(decoded, 0, () => changed = true);
-  if (!changed) return null;
-  return jsonEncode(out);
-}
-
-List<Object?> _rewriteGateList(
-  List<Object?> figures,
-  int depth,
-  void Function() markChanged,
-) {
-  final out = <Object?>[];
-  for (final entry in figures) {
-    if (entry is! Map) {
-      out.add(entry); // preserve non-object entries verbatim.
-      continue;
-    }
-    try {
-      final move = entry['move'];
-      if (move == 'meanwhile') {
-        out.add(_rewriteGateContainer(entry, depth, markChanged));
-        continue;
-      }
-      if (move != 'gate' && move != 'rotation_gate') {
-        out.add(entry);
-        continue;
-      }
-      final rewritten = _rewriteGateFigure(entry, move as String);
-      if (rewritten == null) {
-        out.add(entry); // nothing to change: keep it byte-identical.
-        continue;
-      }
-      out.add(rewritten);
-      markChanged();
-    } catch (_) {
-      out.add(entry); // per-figure failure: keep the original entry intact.
-    }
-  }
-  return out;
-}
-
-/// Rewrites the sub-figures of a `meanwhile` container, preserving every other
-/// key (including the container's shared `beats`) verbatim. Past the depth cap
-/// the container is returned untouched rather than descended into.
-Object? _rewriteGateContainer(
-  Map<Object?, Object?> entry,
-  int depth,
-  void Function() markChanged,
-) {
-  if (depth >= kMaxMeanwhileDepth) return entry;
-  final rawParams = entry['params'];
-  if (rawParams is! Map) return entry;
-  final sides = rawParams['figures'];
-  if (sides is! List) return entry;
-  var innerChanged = false;
-  final rewrittenSides = _rewriteGateList(sides, depth + 1, () {
-    innerChanged = true;
-    markChanged();
-  });
-  if (!innerChanged) return entry;
-  return <String, Object?>{
-    for (final e in entry.entries)
-      if (e.key != 'params') '${e.key}': e.value,
-    'params': <String, Object?>{
-      for (final e in rawParams.entries)
-        if (e.key != 'figures') '${e.key}': e.value,
-      'figures': rewrittenSides,
-    },
-  };
-}
-
-/// The merged-move form of one legacy gate entry, or `null` when the entry is
-/// already exactly what the merged move stores (so the caller can leave it
-/// byte-identical and skip the derived rebuild).
-Map<String, Object?>? _rewriteGateFigure(
-  Map<Object?, Object?> entry,
-  String move,
-) {
-  final rawParams = entry['params'];
-  final params = rawParams is Map
-      ? Map<String, Object?>.from(rawParams)
-      : <String, Object?>{};
-
-  final Map<String, Object?> merged;
-  if (move == 'rotation_gate') {
-    merged = <String, Object?>{
-      // Retired `rotation_gate` defaults, materialized when absent.
-      'pair': params['who'] ?? 'neighbors',
-      'direction': params['direction'] ?? 'counterclockwise',
-      'turn': params['turn'] ?? 0.5,
-      // Every other stored param rides along untouched (`beats` above all —
-      // the beat total must survive the rewrite exactly).
-      for (final e in params.entries)
-        if (e.key != 'who' && e.key != 'direction' && e.key != 'turn')
-          e.key: e.value,
-    };
-  } else {
-    merged = <String, Object?>{
-      // Legacy ContraDB `gate` defaults, materialized when absent.
-      'who': params['who'] ?? 'ones',
-      'whom': params['whom'] ?? 'neighbors',
-      'face': params['face'] ?? 'up',
-      for (final e in params.entries)
-        if (e.key != 'who' && e.key != 'whom' && e.key != 'face')
-          e.key: e.value,
-    };
-    // A legacy `gate` that already spells out all three params is unchanged.
-    if (params.length == merged.length &&
-        merged.entries.every((e) => params.containsKey(e.key))) {
-      return null;
-    }
-  }
-  return <String, Object?>{
-    // Preserve every top-level key except the two we replace.
-    for (final e in entry.entries)
-      if (e.key != 'move' && e.key != 'params') '${e.key}': e.value,
-    'move': 'gate',
-    'params': merged,
-  };
-}
