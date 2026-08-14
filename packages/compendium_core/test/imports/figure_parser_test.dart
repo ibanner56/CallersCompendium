@@ -1042,12 +1042,12 @@ void main() {
         expect(f.note, 'to partner');
       });
 
-      test('a stated hand beats the idiom role word: "Women do a left-hand '
-          'gents chain"', () {
-        // Guards that the actor (who) wins, and the stated hand is used
-        // as-is even though it contradicts the idiom role word ("gents" ==
-        // role1s, whose implied side is "left" — here it happens to agree,
-        // so also cover the genuinely CONTRADICTING case below).
+      test('actor "Women" (role2s) with a non-contradicting stated hand: '
+          '"Women do a left-hand gents chain"', () {
+        // The actor is "Women" (role2s); the idiom role word here is
+        // "gents" (role1s, implied side "left"), which happens to agree
+        // with the stated hand. who=role2s comes from the ACTOR, not the
+        // idiom word.
         final f = _parseLine('Women do a left-hand gents chain');
         expect(f!.isCustom, isFalse);
         expect(f.move, 'chain');
@@ -1055,15 +1055,18 @@ void main() {
         expect(f.params['hand'], 'left');
       });
 
-      test('a stated hand that CONTRADICTS the idiom role word still wins: '
-          '"Men do a left-hand ladies chain"', () {
-        // Guards against making the role word win over the stated hand
-        // (the mutation the plan calls out): "ladies" implies "right", but
-        // the stated "left-hand" must survive unchanged.
-        final f = _parseLine('Men do a left-hand ladies chain');
+      test('a stated hand that CONTRADICTS the ACTOR\'s own implied side '
+          'still wins: "Women do a left-hand ladies chain" (real corpus '
+          'line, #976 §2.4)', () {
+        // Guards against making the actor's role-implied side win over the
+        // stated hand (the mutation the plan calls out): the actor "Women"
+        // is role2s, whose implied side is "right" — but the stated
+        // "left-hand" must survive unchanged, exactly as this real TCB
+        // corpus line requires.
+        final f = _parseLine('Women do a left-hand ladies chain');
         expect(f!.isCustom, isFalse);
         expect(f.move, 'chain');
-        expect(f.params['who'], 'role1s');
+        expect(f.params['who'], 'role2s');
         expect(f.params['hand'], 'left');
       });
 
