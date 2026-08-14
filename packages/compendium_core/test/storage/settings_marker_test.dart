@@ -206,6 +206,52 @@ void main() {
             'bare role2s chain stays permanently un-searchable by hand',
       );
       expect(await repos.settings.get(chainHandBackfillDoneKey), 'done');
+      expect(
+        repos.rebuildAttempts,
+        greaterThan(0),
+        reason:
+            'the backfill rewrites figures_json, which stales the derived '
+            'params_json projection (danceIdsWithFigure queries exactly '
+            'move+params_json), so a rebuild is owed on that ground alone',
+      );
+    },
+  );
+
+  test(
+    'the chain-hand backfill leaves a role-less chain untouched (#976 '
+    '§6.1.3)',
+    () async {
+      // The role→side reading is decoding what the role word already
+      // states (#976 §6.1.2) — it is NOT valid for a chain whose `who` is
+      // unset, because there the effective `who` comes from the taxonomy
+      // DEFAULT, not from anything the source said. Populating `hand` there
+      // would derive it from OUR default rather than the data.
+      final repos = _CountingRepositories(db, contraTaxonomy);
+      await repos.dances.create(
+        Dance(
+          id: 'd-chain-roleless',
+          title: 'Roleless Chain Dance',
+          figures: [Figure(move: 'chain', params: {'beats': 8})],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await tombstoneMarker(repos, chainHandBackfillDoneKey, 'done');
+      await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
+      await repos.settings.set(inversePairNormalisationDoneKey, 'done');
+      await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
+      await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
+
+      await repos.ensureMigrated();
+
+      final reloaded = await repos.dances.getById('d-chain-roleless');
+      expect(
+        reloaded!.figures.single.params.containsKey('hand'),
+        isFalse,
+        reason:
+            'a chain with no stored who has no role word to decode a hand '
+            'from, so the backfill must leave it alone',
+      );
     },
   );
 
