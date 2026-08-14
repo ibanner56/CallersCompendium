@@ -21,12 +21,8 @@ void main() {
 
   final now = DateTime.utc(2026, 1, 1);
 
-  Dance dance({required String id, required String title}) => Dance(
-    id: id,
-    title: title,
-    createdAt: now,
-    updatedAt: now,
-  );
+  Dance dance({required String id, required String title}) =>
+      Dance(id: id, title: title, createdAt: now, updatedAt: now);
 
   test('emits an initial reference set without waiting for a write', () async {
     final repos = openTestRepositories();
@@ -163,47 +159,41 @@ void main() {
     );
   });
 
-  test(
-    'a burst of writes to OTHER dances does not re-read once per write',
-    () {
-      // Mirrors DanceDetailData's #340 guard: a batch operation (e.g. batch
-      // tagging, which writes one dance per transaction in a loop) must not
-      // re-run this fan-out per row it touches.
-      return _burst(repos: openTestRepositories(), writes: 10).then((emits) {
-        expect(
-          emits,
-          lessThan(10),
-          reason: 'a 10-write burst must not produce one re-read per write',
-        );
-      });
-    },
-  );
-
-  test(
-    'the coalescing window reduces re-reads for a sequentially-written '
-    'burst',
-    () async {
-      final windowed = await _burst(
-        repos: openTestRepositories(),
-        writes: 10,
-        coalesce: DanceEditorReferenceData.coalesceWindow,
-      );
-      final unwindowed = await _burst(
-        repos: openTestRepositories(),
-        writes: 10,
-        coalesce: _noCoalescing,
-      );
-
+  test('a burst of writes to OTHER dances does not re-read once per write', () {
+    // Mirrors DanceDetailData's #340 guard: a batch operation (e.g. batch
+    // tagging, which writes one dance per transaction in a loop) must not
+    // re-run this fan-out per row it touches.
+    return _burst(repos: openTestRepositories(), writes: 10).then((emits) {
       expect(
-        windowed,
-        lessThan(unwindowed),
-        reason:
-            'the coalescing window must reduce re-reads for a burst written '
-            'one transaction at a time. Saw windowed=$windowed '
-            'unwindowed=$unwindowed',
+        emits,
+        lessThan(10),
+        reason: 'a 10-write burst must not produce one re-read per write',
       );
-    },
-  );
+    });
+  });
+
+  test('the coalescing window reduces re-reads for a sequentially-written '
+      'burst', () async {
+    final windowed = await _burst(
+      repos: openTestRepositories(),
+      writes: 10,
+      coalesce: DanceEditorReferenceData.coalesceWindow,
+    );
+    final unwindowed = await _burst(
+      repos: openTestRepositories(),
+      writes: 10,
+      coalesce: _noCoalescing,
+    );
+
+    expect(
+      windowed,
+      lessThan(unwindowed),
+      reason:
+          'the coalescing window must reduce re-reads for a burst written '
+          'one transaction at a time. Saw windowed=$windowed '
+          'unwindowed=$unwindowed',
+    );
+  });
 }
 
 /// Subscribes, writes [writes] other dances one transaction at a time, and

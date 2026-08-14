@@ -280,6 +280,14 @@ class CompendiumRepositories {
   /// Emits once whenever anything a **single dance's own record** is built from
   /// changes — the trigger for re-reading a hydrated dance (issue #768).
   ///
+  /// Also reused verbatim by `DanceEditorReferenceData` (the app's dance
+  /// editor screen, PR 9 of #768): its reference-data read set —
+  /// choreographers, tags, dances, published sources — is entry-for-entry
+  /// this method's declared set, so it shares this stream rather than
+  /// declaring a second sentinel with identical SQL (which would only add a
+  /// `StreamKey` collision surface, per the marker note below, for no
+  /// additional coverage).
+  ///
   /// A change signal, not the data, for the same reason as
   /// [watchCollectionSources]: the read it stands in for is a fan-out across
   /// several repositories with no single row set to hand back.

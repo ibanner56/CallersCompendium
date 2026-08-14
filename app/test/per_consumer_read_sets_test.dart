@@ -500,9 +500,7 @@ void main() {
         second = DanceDetailData.watch(repos, 'd1').listen((_) => detail++);
       } else {
         first = DanceDetailData.watch(repos, 'd1').listen((_) => detail++);
-        second = DanceEditorReferenceData.watch(
-          repos,
-        ).listen((_) => editor++);
+        second = DanceEditorReferenceData.watch(repos).listen((_) => editor++);
       }
       addTearDown(first.cancel);
       addTearDown(second.cancel);
@@ -514,14 +512,13 @@ void main() {
       write(repos);
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
-      return (
-        editor: editor - editorBefore,
-        detail: detail - detailBefore,
-      );
+      return (editor: editor - editorBefore, detail: detail - detailBefore);
     }
 
     for (final editorFirst in [true, false]) {
-      final label = editorFirst ? 'editor sentinel first' : 'detail sentinel first';
+      final label = editorFirst
+          ? 'editor sentinel first'
+          : 'detail sentinel first';
 
       test('a choreographer write wakes both ($label)', () async {
         final wakes = await wakesFor(

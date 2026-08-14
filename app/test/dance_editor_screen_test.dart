@@ -2375,9 +2375,7 @@ void main() {
         // is set, so it would pass against that mutation for the wrong
         // reason (nothing to overwrite, not "the overwrite was prevented").
         final repos = openTestRepositories();
-        await repos.dances.create(
-          _dance(id: 'd1', title: 'Original Title'),
-        );
+        await repos.dances.create(_dance(id: 'd1', title: 'Original Title'));
         await _pumpEditor(tester, repos, danceId: 'd1');
 
         await tester.enterText(
@@ -2480,7 +2478,12 @@ void main() {
         // produces) must coalesce rather than reload once per write.
         for (var i = 0; i < 10; i++) {
           await repos.dances.create(
-            Dance(id: 'burst$i', title: 'Burst $i', createdAt: _now, updatedAt: _now),
+            Dance(
+              id: 'burst$i',
+              title: 'Burst $i',
+              createdAt: _now,
+              updatedAt: _now,
+            ),
           );
         }
         await tester.pumpAndSettle();
