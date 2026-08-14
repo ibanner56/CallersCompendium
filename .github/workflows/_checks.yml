@@ -33,6 +33,26 @@ jobs:
       # a version drift fails fast. See tools/ci/check_app_version.py.
       - name: Guard app version single-source (kAppVersion == pubspec semver)
         run: python3 tools/ci/check_app_version.py
+      # Ratchet: the instruction text that is RESIDENT in every agent turn
+      # (AGENTS.md plus each path-scoped .github/instructions file) must stay
+      # within its byte budget. AGENTS.md grew 21.7x in three weeks — thirteen
+      # commits, each individually justified, none budgeted against — and the
+      # cost is paid per turn, per session. This makes an addition displace
+      # something rather than append to it. The same check also runs in
+      # docs-bundle-check.yml, because ci.yml skips entirely for Markdown-only
+      # changes and these are all Markdown files.
+      - name: Test the agent-context budget ratchet
+        run: python3 tools/ci/test_check_agent_context_budget.py
+      - name: Guard resident agent context (byte budget)
+        run: python3 tools/ci/check_agent_context_budget.py
+      # The merge-readiness gates (review freshness by reviewer identity,
+      # unresolved threads with totalCount, closing-issue intent, suppressed
+      # review findings) are a script rather than a procedure an agent has to
+      # remember. It only runs against a live PR, so what CI can gate is its
+      # logic — exercised offline against canned payloads, including the shapes
+      # that made the hand-rolled versions read as PASS.
+      - name: Test the merge-readiness gates
+        run: python3 tools/ci/test_check_pr_review_gates.py
       # Ratchet: no `debugPrint` may reach a release build unguarded. Debug
       # output here carries file paths, import URLs and user dance content, so
       # an unguarded call is an information leak — issue #617, cleaned up in
