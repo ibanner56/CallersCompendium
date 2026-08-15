@@ -76,27 +76,19 @@ design docs, roadmap status, and code comments.
 
 The app's privacy boundary is a registry, not prose:
 `packages/compendium_core/lib/src/privacy/`. Any new database column, settings
-key, or data-entry surface must be classified **in the same PR that introduces
-it**, or a ratchet fails the build.
+key, or data-entry surface must be classified on all three axes — category,
+data subject, egress — **in the same PR that introduces it**, or a ratchet fails
+the build.
 
-Three axes per field, and the third is the one to think about:
+The axis most often got wrong is the **subject**: venue contacts and
+choreographers never touch this app and cannot consent to a transfer they do not
+know about. Record **why** in the entry's `note` whenever the call is not
+self-evident — a classification with no stated reason is indistinguishable from
+a guess.
 
-- **Category** — a W3C DPV v2.3 term. Freely readable, so you can check your own
-  work against the source.
-- **Subject** — `none` / `appUser` / `thirdParty`. No published taxonomy supplies
-  this. Every one of them assumes the data subject is the person using the app,
-  and here it usually is not: venue contacts and choreographers never touch this
-  app and cannot consent to a transfer they do not know about.
-- **Egress** — `shareable` / `deviceLocal` / `deviceScoped` / `derived`.
-  `deviceLocal` and `deviceScoped` are not synonyms. The first is withheld
-  because of what it *contains* and may still move by a direct device-to-device
-  transfer; the second because of what it *means* on another device, and must
-  not travel by any route.
-
-Record **why** in the entry's `note` whenever the call is not self-evident. A
-classification with no stated reason is indistinguishable from a guess. Full
-rules load automatically when you touch the privacy paths:
-[.github/instructions/privacy-registry.instructions.md](.github/instructions/privacy-registry.instructions.md).
+How to choose each axis, and what separates `deviceLocal` from `deviceScoped`,
+is in `.github/instructions/privacy-registry.instructions.md`, which loads
+automatically for the privacy, storage and app-data paths.
 
 ## Tests must be shown to fail
 

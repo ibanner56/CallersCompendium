@@ -102,6 +102,14 @@ jobs:
       # tools/ci/check_schema_migration.py.
       - name: Test the schema-bump gate
         run: python3 tools/ci/test_check_schema_migration.py
+      # Likewise PR-only in ci.yml (it needs the base ref), so its logic is
+      # exercised here. This one guards the relocation of the taxonomy and
+      # schema version ledgers out of their Dart declarations and into
+      # docs/design/: without it a later bump can append its entry nowhere and
+      # the history stops recording, which is the one failure mode the move
+      # introduced. See tools/ci/check_version_history.py.
+      - name: Test the version-history gate
+        run: python3 tools/ci/test_check_version_history.py
       - name: Test the CHANGELOG promotion gate
         run: python3 tools/ci/test_check_changelog_promoted.py
       # Localization tooling: pure-stdlib, offline, and fast, so it runs before
