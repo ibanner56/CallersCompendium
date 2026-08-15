@@ -117,6 +117,13 @@ install notes follow.
   history** already worked this way and is unchanged; adding the dance to a
   program still updates that section alone rather than reloading the whole
   card. (#768)
+- **The dance editor's author, tag, related-dance and published-source pickers
+  now update while the editor is open**, the same way the read-only dance
+  detail view already does. A choreographer renamed, a tag added, or another
+  dance retitled elsewhere previously left the editor's pickers showing
+  stale options until you closed and reopened it; they now follow the
+  database directly. Nothing you are actively editing is affected — your
+  draft, undo history and autosave are untouched by this. (#768)
 - Rotating a tablet across the Collection/Programs split-pane breakpoint
   (900px) no longer resets the list's current sort, search text, filters, or
   scroll position. Previously the list was rebuilt from scratch on that
