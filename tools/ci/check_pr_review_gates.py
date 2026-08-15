@@ -38,9 +38,6 @@ dominates 1, so an environment problem never reads as a clean run.
 Requires the ``gh`` CLI, authenticated. Network access is confined to
 ``GitHubFetcher``; the gate logic is pure and is exercised offline by
 ``test_check_pr_review_gates.py``.
-
-Exit codes: 0 = all requested gates pass, 1 = a gate failed, 2 = bad input or
-the environment could not answer (missing ``gh``, no repository).
 """
 
 from __future__ import annotations
