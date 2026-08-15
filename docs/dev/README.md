@@ -18,6 +18,7 @@ rendering.
 | What does the data model look like? | [`docs/design/domain-model.md`](../design/domain-model.md), [`docs/design/storage.md`](../design/storage.md) |
 | How do imports work? | [`docs/design/imports.md`](../design/imports.md) (large; read the section index at its head) |
 | What is a figure, formally? | [`docs/design/figure-taxonomy.md`](../design/figure-taxonomy.md), [`docs/design/dialect.md`](../design/dialect.md) |
+| What changed in taxonomy vN / schema vN? | the version histories in [`figure-taxonomy.md`](../design/figure-taxonomy.md#taxonomy-version-history) and [`storage.md`](../design/storage.md#schema-version-history) — a bump appends its entry there in the same PR |
 | How does search work? | [`docs/design/search.md`](../design/search.md) |
 | What may a field do — can it be exported? | the registry: `packages/compendium_core/lib/src/privacy/field_registry.dart` |
 | How do I cut a release? | [`releasing.md`](releasing.md) (steps), [agents/releasing.md](agents/releasing.md) (hazards), [`release-checklist.md`](release-checklist.md) |

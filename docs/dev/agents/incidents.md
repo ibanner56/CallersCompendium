@@ -218,3 +218,51 @@ baseline: it would have produced a green build and a slow erosion of the
 rationale ledger, with no signal that the erosion was happening.
 
 Rule: [session-cost.md](session-cost.md#comment-weight).
+
+## The two comment blocks that were ledgers, not reasons
+
+The ranking above says what is actionable is placement, not volume — this is the
+first change made under it, and it is recorded because the *selection rule* is
+reusable and the obvious reading of the ranking ("start deleting at the top") is
+not.
+
+Scanning every hand-written `.dart` file for contiguous comment blocks over
+4 KiB found ten. Two dwarfed the rest and shared a property none of the others
+had:
+
+| Block | Before | After |
+| --- | --- | --- |
+| `contra_taxonomy.dart` — `contraTaxonomyVersion` log, v2–v28 | 81.3 KiB comment, 73% of file, 2,118 lines | 41.5 KiB, 59%, 1,530 lines |
+| `database.dart` — schema log, v1–v25 | 43.7 KiB comment, 86% of file, 877 lines | 25.9 KiB, 79%, 628 lines |
+
+40.7 KiB of the first sat on the single line `const int contraTaxonomyVersion =
+28;`. Both were append-only ledgers of decisions already shipped: they constrain
+nothing on the declaration they annotate, and they grow on every bump, so the
+cost of reading either file rose monotonically forever. Both moved **verbatim**
+to the design doc the code already cited, behind a one-line pointer. Repo-wide
+comment bytes fell 2,841.7 KiB → 2,784.1 KiB and both files left the top of the
+ranking.
+
+What did *not* move is the load-bearing half of the same comment: the four
+things a schema bump must ship, and the rule that a bump never rides a PATCH
+release, are still on `CompendiumDatabase`, because those constrain the line.
+Nor did the third-heaviest block (11.4 KiB on `repositories.dart`), every bullet
+of which names a table that must appear in the `readsFrom` set immediately below
+it. No comment anywhere was deleted.
+
+Relocating a ledger creates one new failure mode — a later bump appends its
+entry nowhere — so the move shipped with
+[`check_version_history.py`](../../../tools/ci/check_version_history.py), which
+fails a PR that moves either constant without adding an entry naming that
+version. It was proven red before green, and then against the naive
+implementation it exists to beat: a gate that asked only "did the doc change?"
+passes the realistic mistake (bump to v29 while editing the v28 entry), and five
+checks in `test_check_version_history.py` catch that mutant.
+
+Decided by the agent that ran the measurement, not by the maintainer, on the
+maintainer's instruction to reduce session cost in one PR. The alternative
+considered and rejected was leaving the ledgers inline and narrowing reads
+instead: it fixes nothing for the sessions that read the taxonomy whole, and the
+blocks would have kept growing.
+
+Rule: [session-cost.md](session-cost.md#worked-example-a-ledger-is-not-a-rationale).

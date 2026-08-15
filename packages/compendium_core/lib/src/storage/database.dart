@@ -473,8 +473,9 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // tidiness. `m.createTable` in a historical step builds the table from
         // *today's* Dart definition, not the definition that was current when
         // that step was written. `venues` used to be created by the `from < 14`
-        // step (v14, "first-class venue entity"; see the schema history above),
-        // which meant a database arriving from v11..v13 reached this point with
+        // step (v14, "first-class venue entity"; see the schema history in
+        // `docs/design/storage.md`), which meant a database arriving from
+        // v11..v13 reached this point with
         // `venues` already carrying all three v25 columns, and an unguarded
         // `addColumn` would fail with "duplicate column name: updated_at". That
         // exact `from` range is no longer reachable — v11..v19 were retired when

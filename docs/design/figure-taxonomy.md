@@ -6,7 +6,7 @@ community usage (aligned with The Caller's Box, e.g. "shoulder round" not
 "gypsy"/"gyre"). Canonical IDs are permanent; display names go through dialect.*
 
 <!-- section-index -->
-> **Section index.** This document is ~55 KB — read the section you
+> **Section index.** This document is ~95 KB — read the section you
 > need rather than the whole file. Line counts indicate size, not position;
 > follow the anchor. Keep this index current when you add or retitle a
 > section.
@@ -16,7 +16,7 @@ community usage (aligned with The Caller's Box, e.g. "shoulder round" not
 - [Move list v1 (~47)](#move-list-v1-47) — 29 lines
 - [Implementation status (v0.1 engine, roadmap 2.4)](#implementation-status-v01-engine-roadmap-24) — 657 lines
 - [Validation & rendering](#validation--rendering) — 69 lines
-- [Taxonomy version history](#taxonomy-version-history) — 616 lines
+- [Taxonomy version history](#taxonomy-version-history) — 618 lines
 - [Open questions (to resolve during implementation, with user input)](#open-questions-to-resolve-during-implementation-with-user-input) — 9 lines
 <!-- /section-index -->
 

@@ -132,6 +132,42 @@ Do not quote the tool's number as exact: it classifies lines by their first
 characters, so trailing comments are undercounted. Its purpose is to rank files
 against each other.
 
+### Worked example: a ledger is not a rationale
+
+The first pass under that ranking found the distinction worth reusing. Scanning
+every hand-written `.dart` file for contiguous comment blocks over 4 KiB turned
+up only ten, and the top two were the same species:
+
+```
+40.7 KiB  602 ln  taxonomy/contra_taxonomy.dart   -> one line: contraTaxonomyVersion = 28
+19.4 KiB  257 ln  storage/database.dart           -> the schema version log, v1..v25
+```
+
+Both were **append-only version ledgers**: a log of decisions already taken and
+already shipped. That is not a `because` clause protecting the line it sits on —
+nothing about either declaration is harder to change without the log — and it is
+the only kind of comment that grows without bound, since every future bump
+appends another entry that every future reader pays for. Both moved to the
+design doc the code already cited (`figure-taxonomy.md`, `storage.md`), verbatim,
+behind a one-line pointer. What *did* constrain the declaration stayed: the four
+things a schema bump must ship, and the rule that it never rides a PATCH
+release, are still on `CompendiumDatabase`.
+
+The third-heaviest block, 11.4 KiB on `repositories.dart`, was deliberately left
+alone by the same test — every bullet in it names a table that must appear in
+the `readsFrom` set below it, or a subscriber silently stops updating.
+
+Relocating a ledger creates exactly one new failure mode: a later bump appends
+its entry nowhere. Prefer a gate to a remembered rule, so the move shipped with
+`tools/ci/check_version_history.py`, which fails a PR that moves either constant
+without adding the matching entry. **Do not relocate a ledger without one** — a
+history that stops recording is worse than a history that is expensive to read.
+
+So the usable test is: *does this comment constrain the line it sits on, or does
+it record something already decided?* The first stays, however long. The second
+belongs in a document, with a gate keeping it fed.
+
+
 ## Measure, so this does not silently regress
 
 Track per-session input tokens against two numbers: the resident prompt size and
