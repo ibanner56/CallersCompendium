@@ -29,7 +29,7 @@ import shutil
 import subprocess
 import sys
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
 
@@ -49,7 +49,6 @@ class Step:
     # never as a pass: a step that silently no-ops is worse than one that fails.
     needs_binary: str | None = None
     needs_import: str | None = None
-    env: dict[str, str] = field(default_factory=dict)
 
 
 def py(*args: str) -> tuple[str, ...]:

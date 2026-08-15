@@ -7,7 +7,10 @@ checked by [`tools/ci/check_pr_review_gates.py`](../../../tools/ci/check_pr_revi
 python3 tools/ci/check_pr_review_gates.py all <PR_NUMBER> --closes <ISSUE>...
 ```
 
-It prints one line per gate and exits non-zero on the first failure. Read the
+It runs every gate even when one fails, so a single invocation reports the whole
+picture, and prints one line per gate. Exit codes: `0` all gates passed, `1` at
+least one gate failed, `2` at least one gate was unanswerable (a `SKIP` line —
+the environment could not answer, which is not the same as a pass). Read the
 reasoning below when a gate fails, or when you are checking by hand.
 
 ## The gates

@@ -90,9 +90,9 @@ class GitHubFetcher:
         except FileNotFoundError as exc:  # pragma: no cover - environment
             raise GateError("the `gh` CLI is not installed") from exc
         if result.returncode != 0:
-            raise GateError(
-                f"gh {' '.join(args)} failed: {result.stderr.strip().splitlines()[-1:] or ['(no output)']}"
-            )
+            lines = result.stderr.strip().splitlines()
+            detail = lines[-1] if lines else "(no output)"
+            raise GateError(f"gh {' '.join(args)} failed: {detail}")
         return result.stdout
 
     def rest(self, path: str, *, paginate: bool = False) -> Any:
