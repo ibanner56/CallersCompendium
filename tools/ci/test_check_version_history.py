@@ -91,9 +91,10 @@ class Repo:
         self._git("add", "-A")
         self._git("commit", "-qm", message)
 
-    def run(self, base: str, head: str = "HEAD") -> subprocess.CompletedProcess:
+    def run(self, *args: str) -> subprocess.CompletedProcess:
+        """Invoke the gate with exactly ``args``, so argument handling is testable."""
         return subprocess.run(
-            [sys.executable, str(SCRIPT), base, head],
+            [sys.executable, str(SCRIPT), *args],
             cwd=self.root,
             capture_output=True,
             text=True,
@@ -177,8 +178,16 @@ def main() -> int:
 
     @case("unresolvable base ref")
     def _(repo: Repo) -> None:
-        res = repo.run("no-such-ref")
+        res = repo.run("no-such-ref", "HEAD")
         # 2, not 1: a gate that could not look must not report either verdict.
+        check("exits 2", res.returncode == 2, f"exit={res.returncode}")
+
+    @case("head ref supplied but empty")
+    def _(repo: Repo) -> None:
+        # An unset CI variable, not a request for the default. Silently reading
+        # it as HEAD would check a different pair of commits than the caller
+        # asked for, which is the same class of mistake as an unresolvable ref.
+        res = repo.run("HEAD", "   ")
         check("exits 2", res.returncode == 2, f"exit={res.returncode}")
 
     # ---- the gate must stay QUIET -----------------------------------------
@@ -218,6 +227,17 @@ def main() -> int:
                 ["v1 (2026-07-10): initial schema."],
                 ["v25 (#898): device sync.", "v26 (#1000): adds a column."],
             ),
+        )
+        repo.commit("bump and log")
+        res = repo.run("HEAD~1")
+        check("exits 0", res.returncode == 0, res.stdout + res.stderr)
+
+    @case("head omitted defaults to HEAD")
+    def _(repo: Repo) -> None:
+        repo.write(TAXONOMY_SOURCE, taxonomy_source(29))
+        repo.write(
+            TAXONOMY_DOC,
+            taxonomy_doc("v28 (#976): chain hand.", "v29 (#1000): adds a move."),
         )
         repo.commit("bump and log")
         res = repo.run("HEAD~1")

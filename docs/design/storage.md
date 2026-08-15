@@ -157,7 +157,8 @@ below v20. Their entries are kept below as history — they explain why later
 columns exist and are still referenced by the steps that survive — but there
 is no longer any code path that migrates from them.
 
-- v1 (2026-07-10): initial schema — see `docs/design/storage.md`.
+- v1 (2026-07-10): initial schema — see ["Tables (abridged)"](#tables-abridged)
+  above.
 - v2 (2026-07-11): section-aware search (`docs/design/search.md`). Adds the
   nullable `dance_figures.section` column plus the `dance_figures_move_
   section` index (the `Then` self-join's `(dance_id, idx)` access is

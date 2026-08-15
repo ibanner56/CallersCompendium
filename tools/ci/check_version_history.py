@@ -181,7 +181,16 @@ def main(argv: list[str]) -> int:
     if len(argv) < 2 or not argv[1].strip():
         _fail("usage: check_version_history.py <base_ref> [head_ref]")
     base = argv[1].strip()
-    head = argv[2].strip() if len(argv) > 2 and argv[2].strip() else "HEAD"
+    # A head ref that is present but blank is an unset CI variable, not a
+    # request for the default: defaulting there would silently check a
+    # different pair of commits than the caller asked for. Absent is the
+    # default; present-and-empty is a usage error.
+    if len(argv) > 2:
+        if not argv[2].strip():
+            _fail("head ref was supplied but is empty; omit it to default to HEAD")
+        head = argv[2].strip()
+    else:
+        head = "HEAD"
 
     _require_commit(base)
     _require_commit(head)

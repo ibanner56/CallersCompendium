@@ -1114,8 +1114,8 @@ fails a PR that moves the constant without adding the matching entry.
     1/2 gate after a down-the-hall claimed "to face out of the set" when the
     answer is "up". A start-relative rule cannot produce an absolute
     cardinal without simulating the preceding choreography. See the
-    "Derived (computed-at-render) taxonomy values" section of
-    docs/design/figure-taxonomy.md, whose only exemplar this withdraws.
+    ["Derived (computed-at-render) taxonomy values"](#derived-computed-at-render-taxonomy-values--convention-withdrawn-v22)
+    section above, whose only exemplar this withdraws.
 
     Every param defaults to the `unspecified` sentinel (cf. v17/v20) so each
     source asserts only what it states; `turn` is the first
