@@ -71,6 +71,11 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_check_pr_review_gates.py"),),
     ),
     Step(
+        "comment-weight",
+        "the comment-weight reporter's own logic (the report itself is on demand)",
+        (py("tools/ci/test_report_comment_weight.py"),),
+    ),
+    Step(
         "app-version",
         "kAppVersion matches app/pubspec.yaml",
         (py("tools/ci/check_app_version.py"),),

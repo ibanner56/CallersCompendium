@@ -24,6 +24,7 @@ rendering.
 | How does localization work? | [`localization.md`](localization.md) |
 | What did users see change? | [`app/CHANGELOG.md`](../../app/CHANGELOG.md) |
 | What do users read? | [`docs/user/`](../user/) — mirrored into the app, see below |
+| Why is this session so expensive? | [agents/session-cost.md](agents/session-cost.md); `python3 tools/ci/report_comment_weight.py` for per-read comment bytes |
 
 ## Run the gates
 
@@ -67,6 +68,6 @@ comment line would be user-visible. Edit `docs/user/`, then run the tool with
 | Privacy registry | `packages/compendium_core/lib/src/privacy/` |
 | Schema and migrations | `packages/compendium_core/lib/src/storage/` |
 | UI | `app/lib/src/screens/`, `app/lib/src/widgets/` |
-| CI ratchets | `tools/ci/` (each `check_*.py` has a `test_check_*.py`) |
+| CI ratchets | `tools/ci/` (each `check_*.py` / `report_*.py` has a matching `test_*.py`) |
 | Release tooling | `tools/release/` |
 | Site rendering | `tools/site/` |

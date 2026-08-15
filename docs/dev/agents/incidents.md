@@ -183,3 +183,38 @@ denominator; the truth was two of four. The wrong number then carried the
 credibility of a correction. Re-derive from source rather than patching one term.
 
 Rule: [`AGENTS.md`](../../../AGENTS.md) — "Say who decided it".
+
+## The comments are 30% of the code, and cutting them is the wrong fix
+
+Measured across hand-written Dart (generated files excluded): comments are 16.9%
+of lines but **30% of bytes** — line counts understate them, because comment
+lines are dense prose and code lines are short. Eighty-two files (11.5%) carry
+more comment bytes than the entire 8 KiB resident budget;
+`callersbox_figure_dialect.dart` carries 93.5 KiB at 72% of the file, so one
+`view` of it costs roughly 12× every resident rule combined.
+
+The obvious conclusion — trim the comments — is wrong here, and the same
+measurement is what rules it out. Across `lib/`: 1,429 comment lines cite an
+issue number, 141 cite a design doc, 274 contain "because", 286 say
+"deliberately" or "intentionally"; against 45 `Returns the ...` restatements, 5
+`Creates a`, and no `// TODO` markers. The type case is `database.dart` (86% comment, 653
+comment lines around 194 of code), which records why the FTS5 table deviates
+from `docs/design/storage.md`, why only `(move, section)` is indexed, and why the
+v14 index survives in `onCreate` after the migration floor moved to v20. Delete
+that and the cost does not go away; it moves to the session that re-derives the
+reasoning, gets it wrong, and "fixes" the index.
+
+So the tool built for this
+([`report_comment_weight.py`](../../../tools/ci/report_comment_weight.py))
+reports and never fails a build, unlike the resident-context ratchet beside it.
+The asymmetry is the point: every session pays for `AGENTS.md`, so it earns a
+hard cap; only some sessions pay for a given file, and a cap there would create
+pressure to delete the `because` clauses. What is actionable is placement and
+read granularity, not volume.
+
+Decided by the agent that ran the measurement, not by the maintainer. The
+alternative considered and rejected was a byte cap per file with a grandfathered
+baseline: it would have produced a green build and a slow erosion of the
+rationale ledger, with no signal that the erosion was happening.
+
+Rule: [session-cost.md](session-cost.md#comment-weight).

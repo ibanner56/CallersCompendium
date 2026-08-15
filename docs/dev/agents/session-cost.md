@@ -92,6 +92,45 @@ current prompt size. `python3 tools/preflight.py` runs the same gates locally.
   the repo map.
 - The large design documents carry a section index at the top. Read the section,
   not the file.
+- **A source file is read once and then re-sent every remaining turn**, so
+  `view`-ing a whole file to reach one method is the same mistake as an
+  over-large resident prompt, at smaller scale. Prefer a targeted read.
+
+## Comment weight
+
+Comments cost nothing until a file is read, and then they cost like resident
+context: re-sent every remaining turn of the session.
+
+```sh
+python3 tools/ci/report_comment_weight.py          # summary + heaviest files
+```
+
+Measured at the time of writing: comments are ~30% of the bytes of hand-written
+Dart, and **82 files (11.5%) carry more comment bytes than the entire 8 KiB
+resident budget** — one of them 12× it, at 72% of the file.
+
+That is *not* an argument for shorter comments. The same measurement found 1,429
+comment lines citing an issue number, 141 citing a design doc, 286 saying
+"deliberately" or "intentionally", against 45 `Returns the ...` restatements and
+no `// TODO` markers. These comments are a rationale ledger; deleting one does not save the
+money, it defers it to the session that re-derives the reasoning, gets it wrong,
+and "fixes" the thing the comment was protecting.
+
+So the report is a **report**: it never fails a build, deliberately. A cap would
+create pressure to delete the `because` clauses, which is the one outcome worse
+than the cost. What the ranking is for:
+
+- **Ask whether a reader of this file needs all of it, here.** A decision that is
+  stable and cross-cutting can move to `docs/design/` behind a one-line pointer;
+  a decision that constrains a specific line stays inline. That cuts
+  bytes-per-read without losing a single "why".
+- **Treat a file that is mostly prose as a document.** At 77–86% comment, a file
+  is a design note wearing a `.dart` extension, and it is read whole every time
+  because it is read as code.
+
+Do not quote the tool's number as exact: it classifies lines by their first
+characters, so trailing comments are undercounted. Its purpose is to rank files
+against each other.
 
 ## Measure, so this does not silently regress
 
@@ -102,5 +141,6 @@ scoping, batching, and local gates). Without both numbers, a rise is
 uninterpretable and the usual response is to add another rule, which makes it
 worse.
 
-The budget ratchet prints the current resident total on every run, so the number
-is available from any CI log without instrumenting anything.
+The budget ratchet prints the current resident total on every run, and the
+comment-weight report prints the per-read total, so both numbers are available
+from any CI log without instrumenting anything.

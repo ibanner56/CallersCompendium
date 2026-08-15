@@ -11,8 +11,8 @@ budget, paid by every session that opens that file for any reason.
 bytes would create pressure to delete exactly the comments worth keeping: this
 repository's comments are overwhelmingly *why* rather than *what* (measured at
 the time of writing: 1,429 comment lines citing an issue number, 141 citing a
-design doc, 284 saying "deliberately" or "intentionally", against 45 `Returns
-the ...` restatements and zero TODOs). Deleting a rationale does not save the
+design doc, 286 saying "deliberately" or "intentionally", against 45 `Returns
+the ...` restatements and no `// TODO` markers). Deleting a rationale does not save the
 money, it defers it to the next session that re-derives the reasoning and gets
 it wrong. What is worth acting on is *placement*: a decision that is stable and
 cross-cutting can live in `docs/design/` behind a one-line pointer, so a session

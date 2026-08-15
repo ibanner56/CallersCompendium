@@ -53,6 +53,15 @@ jobs:
       # that made the hand-rolled versions read as PASS.
       - name: Test the merge-readiness gates
         run: python3 tools/ci/test_check_pr_review_gates.py
+      # Report (not a gate): comment bytes in hand-written Dart, printed so the
+      # number is in every CI log without instrumenting anything. Comments here
+      # are overwhelmingly rationale rather than restatement, so a cap would
+      # create pressure to delete exactly what is worth keeping — the actionable
+      # signal is placement, not volume. Only its own logic is gated.
+      - name: Test the comment-weight report
+        run: python3 tools/ci/test_report_comment_weight.py
+      - name: Report comment weight (informational)
+        run: python3 tools/ci/report_comment_weight.py --top 10
       # Ratchet: no `debugPrint` may reach a release build unguarded. Debug
       # output here carries file paths, import URLs and user dance content, so
       # an unguarded call is an information leak — issue #617, cleaned up in
