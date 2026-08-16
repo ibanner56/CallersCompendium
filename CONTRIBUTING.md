@@ -2,7 +2,12 @@
 
 Thanks for helping build a community-maintained tool for dance callers! The
 best starting point is the [roadmap](docs/ROADMAP.md) and the design docs in
-[docs/design/](docs/design/).
+[docs/design/](docs/design/). [docs/dev/README.md](docs/dev/README.md) maps
+which document answers which question — including which files are **generated**
+and must not be hand-edited.
+
+Working through an agent? [`AGENTS.md`](AGENTS.md) is the resident guide, and
+[docs/dev/agents/](docs/dev/agents/) holds the per-phase chapters it points at.
 
 ## Ground rules
 
@@ -251,9 +256,26 @@ symlink you can point your editor/PATH at — see the FVM docs.)
 2. Make your change. Domain logic (taxonomy, dialect, storage, imports) belongs
    in `packages/compendium_core/` and must stay Flutter-free; the UI lives in
    `app/`.
-3. Run the fast local checks, from the repo root. **These are a high-signal
-   subset of what CI enforces, not the whole of it** — a clean run here does not
-   guarantee a green CI:
+3. Run the gates locally, from the repo root:
+
+   ```sh
+   python3 tools/preflight.py          # every gate CI runs, one line each
+   python3 tools/preflight.py --fast   # Python gates only, no Dart/Flutter (seconds)
+   python3 tools/preflight.py --list   # what it runs, and why
+   ```
+
+   `preflight.py` mirrors [`.github/workflows/_checks.yml`](.github/workflows/_checks.yml),
+   which remains the authoritative list of what gates a PR. It exists because
+   several gates have no obvious local equivalent — the one that most often bites
+   is the figure-fixture ratchet: `dart test` does not run it over the real
+   suites, so an invalidated fixture passes locally and fails only in CI, where
+   it looks like flakiness rather than a missing local step. `preflight.py` runs
+   it.
+
+   It reports `skip` (with the reason) for any step whose toolchain is missing —
+   a step that silently no-ops would be worse than one that fails — so on a
+   checkout without FVM you still get the Python ratchets. To run the Dart and
+   Flutter steps by hand:
 
    ```sh
    fvm dart format .                                   # format (CI fails on diffs)
@@ -262,21 +284,19 @@ symlink you can point your editor/PATH at — see the FVM docs.)
    (cd app && fvm flutter test)                        # app / widget tests
    ```
 
-   The authoritative list of what gates a PR is
-   [`.github/workflows/_checks.yml`](.github/workflows/_checks.yml); it runs many
-   more steps than these four, and you should run the one that covers your change
-   from there. The one that most often bites without a local equivalent is the
-   figure-fixture ratchet: `dart test` does not run it over the real suites, so
-   an invalidated fixture passes locally and fails only in CI — where it looks
-   like flakiness rather than a missing local step.
+4. Open a PR; it must pass CI (build, tests, lint, formatting) before review.
+   Before merging, run the merge-readiness gates:
 
    ```sh
-   (cd packages/compendium_core && fvm dart run tool/check_fixture_validity.dart)
+   python3 tools/ci/check_pr_review_gates.py all <PR> --closes <ISSUE>...
    ```
 
-   That is one example, not an exhaustive list; consult `_checks.yml` for the rest.
-
-4. Open a PR; it must pass CI (build, tests, lint, formatting) before review.
+   which checks review freshness against the reviewer's own latest entry,
+   unresolved threads (with `totalCount`, so a truncated page is visible),
+   checks on the current head, and that the PR closes exactly the issues you
+   named — a branch name or a sentence containing a closing verb can create a
+   link on its own. See
+   [docs/dev/agents/merging.md](docs/dev/agents/merging.md).
 
 ## Running & viewing locally
 

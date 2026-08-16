@@ -1,3 +1,8 @@
+<!-- generated-by: packages/compendium_core/tool/generate_data_classification_doc.dart
+     source: packages/compendium_core/lib/src/privacy/field_registry.dart
+     The field-catalogue table below is generated; the surrounding prose is
+     hand-written. Read the registry, not this rendering. -->
+
 # Data classification catalogue
 
 Every field Caller's Compendium persists, classified by what kind of data it is,

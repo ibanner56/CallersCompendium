@@ -7,6 +7,31 @@ The Caller's Box (TCB) is the largest contra dance collection: **16,874 dances**
 2010) and **Michael Dyck** (code, search, hosting at ibiblio/UNC). Live since 2018.
 The web DB is extracted from Chris's personal desktop database, which is not public.
 
+<!-- section-index -->
+> **Section index.** This document is ~55 KB — read the section you
+> need rather than the whole file. Line counts indicate size, not position;
+> follow the anchor. Keep this index current when you add or retitle a
+> section.
+
+- [Key findings](#key-findings) — 13 lines
+- [Record format (JSON)](#record-format-json) — 30 lines
+- [Notation conventions (documented in Brief-glossary.htm / Glossary.htm)](#notation-conventions-documented-in-brief-glossaryhtm--glossaryhtm) — 300 lines
+  - [Compound figures — `(beats) Name:` with indented children](#compound-figures--beats-name-with-indented-children) — 26 lines
+  - [Grand right and left & flutterwheel — compound shorthands (2026-07-31, issue #295)](#grand-right-and-left--flutterwheel--compound-shorthands-2026-07-31-issue-295) — 174 lines
+  - [Residual variance to handle in the snapshot pipeline](#residual-variance-to-handle-in-the-snapshot-pipeline) — 6 lines
+  - [Figure-line sample: mad robin & butterfly whirl (2026-07-31, issue #295)](#figure-line-sample-mad-robin--butterfly-whirl-2026-07-31-issue-295) — 38 lines
+  - [Gate lines (surveyed 2026-07-31 over the full 24,107-dance mirror)](#gate-lines-surveyed-2026-07-31-over-the-full-24107-dance-mirror) — 36 lines
+- [Search capabilities (hints at internal schema)](#search-capabilities-hints-at-internal-schema) — 42 lines
+- [Permissions & rehosting (critical)](#permissions--rehosting-critical) — 523 lines
+  - [Wave-balance corpus census (2026-07-31, issue #295)](#wave-balance-corpus-census-2026-07-31-issue-295) — 66 lines
+  - [Figure-line census: courtesy turn (2026-07-31, taxonomy v23)](#figure-line-census-courtesy-turn-2026-07-31-taxonomy-v23) — 83 lines
+  - [Figure-line census: walk forward (2026-08-01, issue #733)](#figure-line-census-walk-forward-2026-08-01-issue-733) — 127 lines
+  - [Figure-line census: chain/promenade/right_left_through annotations](#figure-line-census-chainpromenaderight_left_through-annotations) — 75 lines
+  - [Figure-line census: the remaining annotation drop (2026-08-04, issue #744)](#figure-line-census-the-remaining-annotation-drop-2026-08-04-issue-744) — 150 lines
+- [Open questions](#open-questions) — 9 lines
+- [Coverage figures: correction (issue #769, 2026-08-04)](#coverage-figures-correction-issue-769-2026-08-04) — 39 lines
+<!-- /section-index -->
+
 ## Key findings
 
 1. **There is a per-dance JSON export**: `dance.php?id=NNNN&format=JSON` (since
