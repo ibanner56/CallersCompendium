@@ -298,6 +298,7 @@ query($owner: String!, $name: String!) {
       headRefName
       closingIssuesReferences(first: 100) {
         totalCount
+        pageInfo { hasNextPage endCursor }
         nodes { number }
       }
     }
@@ -313,7 +314,18 @@ def gate_closes(fetcher: Any, pr: int, intended: Iterable[int]) -> tuple[bool, l
     if pull is None:
         raise GateError(f"could not read closing references for PR #{pr}")
     refs = pull.get("closingIssuesReferences") or {}
-    actual = {n["number"] for n in (refs.get("nodes") or []) if "number" in n}
+    nodes = refs.get("nodes") or []
+    actual = {n["number"] for n in nodes if "number" in n}
+    total = refs.get("totalCount", len(nodes))
+    # A truncated page would make `actual` a subset, which reads as "closes
+    # fewer issues than intended" -- a false FAIL, or worse a false PASS when
+    # the dropped node was the unexpected one. Say so instead of comparing.
+    if bool(_dig(refs, "pageInfo", "hasNextPage")) or total > len(nodes):
+        return False, [
+            f"{total} closing reference(s) but only {len(nodes)} fetched -- page "
+            f"with after: \"{_dig(refs, 'pageInfo', 'endCursor')}\" before "
+            "concluding anything"
+        ]
     expected = set(intended)
 
     problems: list[str] = []

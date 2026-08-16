@@ -260,7 +260,7 @@ symlink you can point your editor/PATH at — see the FVM docs.)
 
    ```sh
    python3 tools/preflight.py          # every gate CI runs, one line each
-   python3 tools/preflight.py --fast   # pure-stdlib gates only (seconds)
+   python3 tools/preflight.py --fast   # Python gates only, no Dart/Flutter (seconds)
    python3 tools/preflight.py --list   # what it runs, and why
    ```
 

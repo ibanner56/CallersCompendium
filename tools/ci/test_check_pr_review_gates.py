@@ -282,14 +282,23 @@ def test_ci_passes_when_green_and_skipped_counts_as_green() -> None:
 # --------------------------------------------------------------------------- #
 
 
-def closes_payload(numbers: list[int], branch: str = "docs/agents-split") -> Any:
+def closes_payload(
+    numbers: list[int],
+    branch: str = "docs/agents-split",
+    total: int | None = None,
+    has_next: bool = False,
+) -> Any:
     return {
         "data": {
             "repository": {
                 "pullRequest": {
                     "headRefName": branch,
                     "closingIssuesReferences": {
-                        "totalCount": len(numbers),
+                        "totalCount": len(numbers) if total is None else total,
+                        "pageInfo": {
+                            "hasNextPage": has_next,
+                            "endCursor": "Y3Vyc29yOnYyOpHOAA",
+                        },
                         "nodes": [{"number": n} for n in numbers],
                     },
                 }
@@ -331,6 +340,21 @@ def test_closes_passes_when_nothing_is_closed_and_nothing_intended() -> None:
     fetcher = FakeFetcher({}, closes_payload([]))
     ok, lines = gates.gate_closes(fetcher, 1, [])
     assert ok, lines
+
+
+def test_truncated_closing_references_fail_rather_than_comparing_a_subset() -> None:
+    """A dropped node would read as "closes fewer than intended", or hide an
+    unintended link entirely -- neither may pass as an answer."""
+    fetcher = FakeFetcher({}, closes_payload([990], total=140, has_next=True))
+    ok, lines = gates.gate_closes(fetcher, 1, [990])
+    assert not ok, lines
+    assert "140" in lines[0] and "Y3Vyc29y" in lines[0]
+
+
+def test_closes_total_count_beyond_nodes_is_truncation_even_without_the_flag() -> None:
+    fetcher = FakeFetcher({}, closes_payload([990], total=9))
+    ok, _ = gates.gate_closes(fetcher, 1, [990])
+    assert not ok
 
 
 # --------------------------------------------------------------------------- #

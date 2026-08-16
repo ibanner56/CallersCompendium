@@ -12,7 +12,7 @@ Usage:
 
     python3 tools/preflight.py            # everything available in this checkout
     python3 tools/preflight.py --list     # what would run, and why
-    python3 tools/preflight.py --fast     # only the pure-stdlib gates (seconds)
+    python3 tools/preflight.py --fast     # only the Python gates, no Dart/Flutter (seconds)
     python3 tools/preflight.py --only privacy fixtures
 
 Output is one line per step. On failure the last few lines of that step's output
@@ -43,6 +43,9 @@ class Step:
     why: str
     commands: tuple[tuple[str, ...], ...]
     cwd: Path = ROOT
+    # True when the step needs no Dart/Flutter toolchain, so `--fast` can run
+    # it in seconds. Not the same as pure-stdlib: `release-tooling` is a fast
+    # step that needs the `cryptography` wheel, and reports SKIP without it.
     fast: bool = True
     # Executable that must be on PATH, or an import that must resolve, for this
     # step to mean anything. A missing one is reported as SKIP with the reason,
@@ -236,7 +239,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--fast",
         action="store_true",
-        help="only the pure-stdlib gates (skips the Dart/Flutter toolchain)",
+        help="only the Python gates (skips the Dart/Flutter toolchain)",
     )
     parser.add_argument(
         "--only",

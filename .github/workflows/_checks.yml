@@ -39,7 +39,7 @@ jobs:
       # commits, each individually justified, none budgeted against — and the
       # cost is paid per turn, per session. This makes an addition displace
       # something rather than append to it. The same check also runs in
-      # docs-bundle-check.yml, because ci.yml skips entirely for Markdown-only
+      # agent-context.yml, because ci.yml skips entirely for Markdown-only
       # changes and these are all Markdown files.
       - name: Test the agent-context budget ratchet
         run: python3 tools/ci/test_check_agent_context_budget.py
@@ -143,7 +143,8 @@ jobs:
         run: python3 tools/ci/test_check_arb_translation_coverage.py
       - name: Guard translation coverage (every locale fully translated)
         run: python3 tools/ci/check_arb_translation_coverage.py
-      # Supply-chain release tooling: pure-stdlib, offline, and fast, so it runs
+      # Supply-chain release tooling: Python, offline, and fast (its Ed25519
+      # verification needs the `cryptography` wheel, installed below), so it runs
       # before the (slower) Flutter setup and fails fast. These assert-based
       # suites cover SBOM generation, SHA256SUMS/update-manifest generation,
       # release-notes bodies, and — critically — that the Pages publish steps

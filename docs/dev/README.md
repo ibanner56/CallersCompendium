@@ -9,7 +9,7 @@ rendering.
 | Question | Read |
 | --- | --- |
 | What are the rules for working in this repo as an agent? | [`AGENTS.md`](../../AGENTS.md) (resident) and the chapters in [agents/](agents/) |
-| Why is my session so expensive? | [agents/session-cost.md](agents/session-cost.md) |
+| Why is my session so expensive? | [agents/session-cost.md](agents/session-cost.md); `python3 tools/ci/report_comment_weight.py` for per-read comment bytes |
 | How do I request/read a review, or merge safely? | [agents/code-review.md](agents/code-review.md), [agents/merging.md](agents/merging.md) |
 | Why does this rule exist? | [agents/incidents.md](agents/incidents.md) |
 | How do I contribute / set up the toolchain? | [`CONTRIBUTING.md`](../../CONTRIBUTING.md) |
@@ -25,13 +25,12 @@ rendering.
 | How does localization work? | [`localization.md`](localization.md) |
 | What did users see change? | [`app/CHANGELOG.md`](../../app/CHANGELOG.md) |
 | What do users read? | [`docs/user/`](../user/) — mirrored into the app, see below |
-| Why is this session so expensive? | [agents/session-cost.md](agents/session-cost.md); `python3 tools/ci/report_comment_weight.py` for per-read comment bytes |
 
 ## Run the gates
 
 ```sh
 python3 tools/preflight.py           # every gate CI runs, one line each
-python3 tools/preflight.py --fast    # pure-stdlib gates only, seconds
+python3 tools/preflight.py --fast    # Python gates only, no Dart/Flutter, seconds
 python3 tools/preflight.py --list    # what runs, and why
 ```
 
