@@ -98,5 +98,12 @@ which asks GitHub the same question directly:
 
 ```sh
 gh api graphql -f query='{repository(owner:"<owner>",name:"<repo>"){
-  pullRequest(number:<N>){closingIssuesReferences(first:10){nodes{number}}}}}'
+  pullRequest(number:<N>){closingIssuesReferences(first:100){
+    totalCount pageInfo{hasNextPage endCursor} nodes{number}}}}}'
 ```
+
+Ask for `totalCount` here for the same reason as the thread gate: a truncated
+page reads as "closes fewer issues than it does", and the link it dropped is
+exactly the unintended one you are looking for. If `hasNextPage` is true (or
+`totalCount` exceeds the nodes returned), page with `after: "<endCursor>"`
+before concluding anything.
