@@ -490,6 +490,11 @@ class VenueProvenance extends Table {
 
   @override
   Set<Column> get primaryKey => {venueId};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {source, externalId},
+  ];
 }
 
 /// Import provenance, one row per dance (at most).

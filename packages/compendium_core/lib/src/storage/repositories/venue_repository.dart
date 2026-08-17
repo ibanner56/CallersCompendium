@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../../model/enums.dart';
 import '../../model/provenance.dart';
 import '../../model/venue.dart';
 import '../database.dart';
@@ -104,9 +105,7 @@ class VenueRepository {
             .get();
     final ids = [for (final r in rows) r.id];
     final provByVenue = await _provenanceForMany(ids);
-    return [
-      for (final row in rows) _toModel(row, provByVenue[row.id]),
-    ];
+    return [for (final row in rows) _toModel(row, provByVenue[row.id])];
   }
 
   /// [listAll] as a live stream: the current catalogue immediately, then again

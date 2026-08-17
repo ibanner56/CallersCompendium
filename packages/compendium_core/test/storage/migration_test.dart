@@ -20,9 +20,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show Variable;
+import 'package:compendium_core/src/storage/database.dart'
+    show VenueProvenanceCompanion, VenuesCompanion;
+import 'package:drift/drift.dart' show Value, Variable;
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
+import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:test/test.dart';
 
 import '../test_package_root.dart';
@@ -1191,6 +1194,80 @@ void main() {
         0,
         reason: 'v25->v26 migration must not back-fill venue_provenance',
       );
+    });
+
+    test(
+      'venue_provenance enforces unique non-null source/external-id pairs',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        addTearDown(db.close);
+        await db.customSelect('SELECT 1').get();
+
+        Future<void> insertVenue(String id) {
+          return db
+              .into(db.venues)
+              .insert(VenuesCompanion.insert(id: id, name: id));
+        }
+
+        Future<void> insertVenueProvenance(String venueId, String? externalId) {
+          return db
+              .into(db.venueProvenance)
+              .insert(
+                VenueProvenanceCompanion.insert(
+                  venueId: venueId,
+                  source: ProvenanceSource.json,
+                  externalId: Value(externalId),
+                  importedAt: DateTime.utc(2026, 1, 1),
+                ),
+              );
+        }
+
+        await insertVenue('venue-a');
+        await insertVenue('venue-b');
+        await insertVenueProvenance('venue-a', 'shared-venue-1');
+
+        await expectLater(
+          insertVenueProvenance('venue-b', 'shared-venue-1'),
+          throwsA(isA<SqliteException>()),
+        );
+      },
+    );
+
+    test('venue_provenance still allows multiple null external ids', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      await db.customSelect('SELECT 1').get();
+
+      await db
+          .into(db.venues)
+          .insert(VenuesCompanion.insert(id: 'venue-a', name: 'venue-a'));
+      await db
+          .into(db.venues)
+          .insert(VenuesCompanion.insert(id: 'venue-b', name: 'venue-b'));
+
+      await db
+          .into(db.venueProvenance)
+          .insert(
+            VenueProvenanceCompanion.insert(
+              venueId: 'venue-a',
+              source: ProvenanceSource.json,
+              externalId: const Value(null),
+              importedAt: DateTime.utc(2026, 1, 1),
+            ),
+          );
+      await db
+          .into(db.venueProvenance)
+          .insert(
+            VenueProvenanceCompanion.insert(
+              venueId: 'venue-b',
+              source: ProvenanceSource.json,
+              externalId: const Value(null),
+              importedAt: DateTime.utc(2026, 1, 1),
+            ),
+          );
+
+      final rows = await db.select(db.venueProvenance).get();
+      expect(rows, hasLength(2));
     });
 
     test('no derived rebuild is scheduled by the v25->v26 migration', () async {

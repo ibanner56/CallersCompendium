@@ -2120,157 +2120,6 @@
     },
     {
       "id": 17,
-      "references": [],
-      "type": "table",
-      "data": {
-        "name": "dance_fts",
-        "was_declared_in_moor": true,
-        "columns": [
-          {
-            "name": "dance_id",
-            "getter_name": "danceId",
-            "moor_type": "string",
-            "nullable": true,
-            "customConstraints": "",
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": []
-          },
-          {
-            "name": "title",
-            "getter_name": "title",
-            "moor_type": "string",
-            "nullable": true,
-            "customConstraints": "",
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": []
-          },
-          {
-            "name": "authors",
-            "getter_name": "authors",
-            "moor_type": "string",
-            "nullable": true,
-            "customConstraints": "",
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": []
-          },
-          {
-            "name": "hook",
-            "getter_name": "hook",
-            "moor_type": "string",
-            "nullable": true,
-            "customConstraints": "",
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": []
-          },
-          {
-            "name": "notes",
-            "getter_name": "notes",
-            "moor_type": "string",
-            "nullable": true,
-            "customConstraints": "",
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": []
-          },
-          {
-            "name": "figures_text",
-            "getter_name": "figuresText",
-            "moor_type": "string",
-            "nullable": true,
-            "customConstraints": "",
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": []
-          },
-          {
-            "name": "custom_values",
-            "getter_name": "customValues",
-            "moor_type": "string",
-            "nullable": true,
-            "customConstraints": "",
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": []
-          },
-          {
-            "name": "sources",
-            "getter_name": "sources",
-            "moor_type": "string",
-            "nullable": true,
-            "customConstraints": "",
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": []
-          }
-        ],
-        "is_virtual": true,
-        "create_virtual_stmt": "CREATE VIRTUAL TABLE \"dance_fts\" USING fts5(dance_id UNINDEXED, title, authors, hook, notes, figures_text, custom_values, sources)",
-        "without_rowid": false,
-        "constraints": []
-      }
-    },
-    {
-      "id": 18,
-      "references": [
-        3
-      ],
-      "type": "index",
-      "data": {
-        "on": 3,
-        "name": "dance_figures_move_section",
-        "sql": "CREATE INDEX dance_figures_move_section ON dance_figures(move, section);",
-        "unique": false,
-        "columns": []
-      }
-    },
-    {
-      "id": 19,
-      "references": [
-        10
-      ],
-      "type": "index",
-      "data": {
-        "on": 10,
-        "name": "dance_links_dance_id",
-        "sql": "CREATE INDEX dance_links_dance_id ON dance_links(dance_id);",
-        "unique": false,
-        "columns": []
-      }
-    },
-    {
-      "id": 20,
-      "references": [
-        4
-      ],
-      "type": "index",
-      "data": {
-        "on": 4,
-        "name": "programs_venue_id",
-        "sql": "CREATE INDEX programs_venue_id ON programs(venue_id);",
-        "unique": false,
-        "columns": []
-      }
-    },
-    {
-      "id": 21,
-      "references": [
-        5
-      ],
-      "type": "index",
-      "data": {
-        "on": 5,
-        "name": "program_slots_dance_id",
-        "sql": "CREATE INDEX program_slots_dance_id ON program_slots(dance_id);",
-        "unique": false,
-        "columns": []
-      }
-    },
-    {
-      "id": 22,
       "references": [
         16
       ],
@@ -2365,11 +2214,169 @@
         "is_virtual": false,
         "without_rowid": false,
         "constraints": [
-          "PRIMARY KEY(venue_id)"
+          "PRIMARY KEY(venue_id)",
+          "UNIQUE(source, external_id)"
         ],
         "explicit_pk": [
           "venue_id"
+        ],
+        "unique_keys": [
+          [
+            "source",
+            "external_id"
+          ]
         ]
+      }
+    },
+    {
+      "id": 18,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "dance_fts",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "dance_id",
+            "getter_name": "danceId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "title",
+            "getter_name": "title",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "authors",
+            "getter_name": "authors",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "hook",
+            "getter_name": "hook",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "notes",
+            "getter_name": "notes",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "figures_text",
+            "getter_name": "figuresText",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "custom_values",
+            "getter_name": "customValues",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "sources",
+            "getter_name": "sources",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": true,
+        "create_virtual_stmt": "CREATE VIRTUAL TABLE \"dance_fts\" USING fts5(dance_id UNINDEXED, title, authors, hook, notes, figures_text, custom_values, sources)",
+        "without_rowid": false,
+        "constraints": []
+      }
+    },
+    {
+      "id": 19,
+      "references": [
+        3
+      ],
+      "type": "index",
+      "data": {
+        "on": 3,
+        "name": "dance_figures_move_section",
+        "sql": "CREATE INDEX dance_figures_move_section ON dance_figures(move, section);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 20,
+      "references": [
+        10
+      ],
+      "type": "index",
+      "data": {
+        "on": 10,
+        "name": "dance_links_dance_id",
+        "sql": "CREATE INDEX dance_links_dance_id ON dance_links(dance_id);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 21,
+      "references": [
+        4
+      ],
+      "type": "index",
+      "data": {
+        "on": 4,
+        "name": "programs_venue_id",
+        "sql": "CREATE INDEX programs_venue_id ON programs(venue_id);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 22,
+      "references": [
+        5
+      ],
+      "type": "index",
+      "data": {
+        "on": 5,
+        "name": "program_slots_dance_id",
+        "sql": "CREATE INDEX program_slots_dance_id ON program_slots(dance_id);",
+        "unique": false,
+        "columns": []
       }
     }
   ]

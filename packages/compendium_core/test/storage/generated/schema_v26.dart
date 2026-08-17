@@ -1962,6 +1962,107 @@ class Venues extends Table with TableInfo {
   bool get dontWriteConstraints => true;
 }
 
+class VenueProvenance extends Table with TableInfo {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  VenueProvenance(this.attachedDatabase, [this._alias]);
+  late final GeneratedColumn<String> venueId = GeneratedColumn<String>(
+    'venue_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES venues(id)ON DELETE CASCADE',
+  );
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<String> externalId = GeneratedColumn<String>(
+    'external_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<int> importedAt = GeneratedColumn<int>(
+    'imported_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<String> permission = GeneratedColumn<String>(
+    'permission',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> license = GeneratedColumn<String>(
+    'license',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> sourceVersion = GeneratedColumn<String>(
+    'source_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    venueId,
+    source,
+    externalId,
+    importedAt,
+    permission,
+    license,
+    sourceVersion,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'venue_provenance';
+  @override
+  Set<GeneratedColumn> get $primaryKey => {venueId};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {source, externalId},
+  ];
+  @override
+  Never map(Map<String, dynamic> data, {String? tablePrefix}) {
+    throw UnsupportedError('TableInfo.map in schema verification code');
+  }
+
+  @override
+  VenueProvenance createAlias(String alias) {
+    return VenueProvenance(attachedDatabase, alias);
+  }
+
+  @override
+  List<String> get customConstraints => const [
+    'PRIMARY KEY(venue_id)',
+    'UNIQUE(source, external_id)',
+  ];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
 class DanceFts extends Table with TableInfo, VirtualTableInfo {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -2062,101 +2163,6 @@ class DanceFts extends Table with TableInfo, VirtualTableInfo {
   @override
   String get moduleAndArgs =>
       'fts5(dance_id UNINDEXED, title, authors, hook, notes, figures_text, custom_values, sources)';
-}
-
-
-class VenueProvenance extends Table with TableInfo {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  VenueProvenance(this.attachedDatabase, [this._alias]);
-  late final GeneratedColumn<String> venueId = GeneratedColumn<String>(
-    'venue_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL REFERENCES venues(id)ON DELETE CASCADE',
-  );
-  late final GeneratedColumn<String> source = GeneratedColumn<String>(
-    'source',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  late final GeneratedColumn<String> externalId = GeneratedColumn<String>(
-    'external_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    $customConstraints: 'NULL',
-  );
-  late final GeneratedColumn<int> importedAt = GeneratedColumn<int>(
-    'imported_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  late final GeneratedColumn<String> permission = GeneratedColumn<String>(
-    'permission',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    $customConstraints: 'NULL',
-  );
-  late final GeneratedColumn<String> license = GeneratedColumn<String>(
-    'license',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    $customConstraints: 'NULL',
-  );
-  late final GeneratedColumn<String> sourceVersion = GeneratedColumn<String>(
-    'source_version',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    $customConstraints: 'NULL',
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    venueId,
-    source,
-    externalId,
-    importedAt,
-    permission,
-    license,
-    sourceVersion,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'venue_provenance';
-  @override
-  Set<GeneratedColumn> get $primaryKey => {venueId};
-  @override
-  Never map(Map<String, dynamic> data, {String? tablePrefix}) {
-    throw UnsupportedError('TableInfo.map in schema verification code');
-  }
-
-  @override
-  VenueProvenance createAlias(String alias) {
-    return VenueProvenance(attachedDatabase, alias);
-  }
-
-  @override
-  List<String> get customConstraints => const ['PRIMARY KEY(venue_id)'];
-  @override
-  bool get dontWriteConstraints => true;
 }
 
 class DatabaseAtV26 extends GeneratedDatabase {
