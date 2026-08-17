@@ -24,15 +24,14 @@ final RegExp _singleDancerShape = RegExp(r'^(ones|twos)(Role[12])$');
 /// move that adopts ContraDB's `words()` sentence structure verbatim, using the
 /// already-resolved effective [params] and the active [dialect]. Never invoked
 /// for the canonical render (which keeps expanding `renderTemplate`).
-typedef _DisplayBaseRenderer =
-    String Function(
-      FigureRenderer r,
-      MoveDef def,
-      Map<String, Object?> params,
-      Dialect dialect,
-      bool verbose,
-      bool decimals,
-    );
+typedef _DisplayBaseRenderer = String Function(
+  FigureRenderer r,
+  MoveDef def,
+  Map<String, Object?> params,
+  Dialect dialect,
+  bool verbose,
+  bool decimals,
+);
 
 /// Where a move's `balance` flag renders relative to the terse base line, per
 /// ContraDB `libfigure` word order. [leading] prepends the "balance &" prefix
@@ -1739,9 +1738,11 @@ class FigureRenderer {
         final dest = (_isUnspecified(destRaw) || destRaw == null)
             ? ''
             : 'to ${destRaw is String ? r._displayGroup(destRaw, dialect) : _displayScalar(destRaw)}';
-        return ['single file $move', dir, dest]
-            .where((s) => s.isNotEmpty)
-            .join(' ');
+        return [
+          'single file $move',
+          dir,
+          dest,
+        ].where((s) => s.isNotEmpty).join(' ');
       }
       final swho = r._subjectWho(params, dialect);
       // Re-apply the direction-silencing rule that the template-expansion path
