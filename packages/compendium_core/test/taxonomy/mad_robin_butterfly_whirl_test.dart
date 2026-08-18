@@ -39,7 +39,7 @@ void main() {
   group('taxonomy', () {
     test('contraTaxonomyVersion is 29', () {
       expect(contraTaxonomyVersion, 29);
-      expect(tax.version, 28);
+      expect(tax.version, 29);
     });
 
     test('mad_robin gains direction + whom, keeping who/turn/beats', () {
