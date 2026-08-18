@@ -19,7 +19,7 @@ import 'taxonomy.dart';
 /// It is kept there because it is a ledger of decisions already shipped: it
 /// constrains nothing on this line, and it grows on every bump, so readers of
 /// this file were paying for the whole history to reach one constant.
-const int contraTaxonomyVersion = 29;
+const int contraTaxonomyVersion = 30;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -563,17 +563,67 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'singleFile': ParamSpec(ParamKind.flag, defaultValue: false),
         // Issue #921 (taxonomy v29): destination of the single-file promenade —
         // "to new neighbors" / "to the same neighbors" / etc. Reuses the
-        // dancerSet domain + unspecified sentinel. Only meaningful when
-        // `singleFile` is true; the ordinary promenade has no destination.
-        // Rendered as "to {destination}" appended to the singleFile display and
-        // canonical forms; unspecified (= "not stated") suppresses the clause.
+        // dancerSet domain + unspecified sentinel.
+        //
+        // v30 (#989) re-gated this clause from `singleFile==true` to
+        // `dir != 'across'` — a promenade with an explicit rotation
+        // (`turn`, below) or a stated non-default direction can equally have a
+        // stated destination; `singleFile` is no longer the deciding factor.
+        // Owner ruling (2026-08-18): existing `singleFile==true, dir=='across'`
+        // figures that already carry a `destination` keep the stored param but
+        // lose the rendered clause — accepted knowingly, not a migration.
         'destination': ParamSpec(
           ParamKind.dancerSet,
           defaultValue: ParamVocab.unspecified,
           choices: _dancerOrUnspecified,
         ),
+        // v30 (#989): the rotation sense of the promenade. TCB and the
+        // maintainer's own worked examples state a `clockwise`/`counterclockwise`
+        // qualifier directly on ordinary (non-single-file) promenades — the
+        // corpus measurement is issue #771's (1,222/1,306 such lines decline to
+        // `custom` today for lack of this slot; #771 owns extending the parser
+        // to fill it, once this param exists for it to populate).
+        //
+        // ⚠️ Owner-decided default is the CONCRETE `'counterclockwise'`, not the
+        // `unspecified` sentinel `mad_robin.direction` / `butterfly_whirl.direction`
+        // use for the same [ParamKind.spinDirection] (`contra_taxonomy.dart`
+        // `_spinOrUnspecified`, v20 #295). #771's own "Decision requested"
+        // section asked for the sentinel default ("so existing figures render
+        // exactly as they do today … no migration"); **that ruling is
+        // SUPERSEDED by this owner decision (2026-08-18)**, made with the
+        // rebuild cost known and accepted ("this is beta, our users will
+        // survive"). Do not read #771's sentinel language as still binding.
+        //
+        // `choices` STILL lists the sentinel (`_spinOrUnspecified`) so a
+        // promenade whose `dir` is reset to `in`/`out`/`up`/`down` (where a
+        // rotation sense is meaningless — mirroring how `destination` is
+        // cleared alongside `singleFile`) can be driven back to "not stated"
+        // rather than stuck holding a default it never earned. This makes
+        // `promenade.turn` the FIRST param in the taxonomy to combine a
+        // concrete default with a sentinel-admitting `choices` list — every
+        // other sentinel-admitting param defaults TO the sentinel. The
+        // reconciliation comment in `figure_param_editors.dart` asserted that
+        // invariant; it has been corrected in the same PR that introduces this
+        // exception. The sentinel is reachable only via the automatic
+        // `dir`-driven reset in the editor, never via a user-facing Clear
+        // control (owner ruling) — see the Clear-button gating in
+        // `figure_param_editors.dart`.
+        'turn': ParamSpec(
+          ParamKind.spinDirection,
+          defaultValue: 'counterclockwise',
+          choices: _spinOrUnspecified,
+          allowManualClear: false,
+        ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
+      // `destination` and `turn` are NOT in this template — like `destination`
+      // since v29, `turn`'s rendering needs conditional silencing (silenced
+      // when `dir=='across' && turn=='counterclockwise'`, matching the
+      // "partner promenade" phrasing the maintainer's own examples use) that a
+      // flat `renderTemplate` cannot express. Both display and canonical
+      // render paths therefore build the full line in
+      // `_displayBaseRenderers['promenade']` / the `forCanonical` block in
+      // `renderer.dart`, not via this template's placeholder expansion.
       renderTemplate: '{who} {move} {dir}',
       goodBeats: [8],
     ),
@@ -1215,9 +1265,23 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // single-file circle, not the `promenade` move (no separate
         // `circle_left` id exists in this taxonomy; `turn` already covers
         // left/right). A canonical render token since taxonomy v27 (issue
-        // #749 / #840): display renders prefix "single file circle clockwise N
-        // places"; canonical emits "single file promenade clockwise N places
-        // (circle)" — the parenthetical retains "circle" in the FTS index.
+        // #749 / #840): display renders prefix "single file circle {left|right}
+        // N places"; canonical emits "single file promenade {left|right} N
+        // places (circle, {clockwise|counterclockwise})".
+        //
+        // v30 (#989): both paths used to substitute `left`→"clockwise" /
+        // `right`→"counterclockwise" so the rendered word matched contra
+        // convention (circling left travels clockwise) instead of the stored
+        // token. That substitution is REMOVED — `turn` now renders its raw
+        // `left`/`right` value like every other move's `turn`/`direction`
+        // param, for display consistency with the rest of the app. The spin
+        // word is NOT dropped: it moves into the canonical parenthetical
+        // (`(circle, clockwise)`), mirroring how "(circle)" alone already
+        // exists solely to keep "circle" a matchable FTS token — this widens
+        // that same device to also keep the TCB source's own wording
+        // ("single file promenade clockwise …") searchable, since the
+        // recognizer that stores `turn:'left'` for it lives at
+        // `callersbox_figure_dialect.dart:1316-1365`.
         'singleFile': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },

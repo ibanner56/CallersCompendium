@@ -1256,7 +1256,10 @@ void main() {
         'pass through along': Figure(move: 'pass_through'),
         'right left through across': Figure(move: 'right_left_through'),
         'role2s chain across': Figure(move: 'chain'),
-        'partners promenade across': Figure(move: 'promenade'),
+        // v30 (#989): canonical now always includes `turn` too (unless it's
+        // the `unspecified` sentinel), matching the pre-existing rule for
+        // `dir` — a concrete default is never silenced in canonical.
+        'partners promenade counterclockwise across': Figure(move: 'promenade'),
         'pull by along right': Figure(move: 'pull_by_direction'),
         'everyone down the hall forward': Figure(move: 'down_the_hall'),
         'everyone up the hall forward': Figure(move: 'up_the_hall'),

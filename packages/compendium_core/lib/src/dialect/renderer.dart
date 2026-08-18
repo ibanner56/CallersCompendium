@@ -300,39 +300,87 @@ class FigureRenderer {
         );
         return canonicalLine;
       }
-      if (def.id == 'promenade' && params['singleFile'] == true) {
-        // Canonical: "single file promenade {dir} [to {destination}]" —
-        // who DROPPED (importer artefact, no choreographic content), dir
-        // ALWAYS included (even at the `across` default) so the FTS index
-        // reflects the stated direction.
-        // destination (v29 #921): appended as "to {next neighbors}" etc.
-        // when not unspecified; absent when unspecified.
+      if (def.id == 'promenade') {
+        // Canonical (v30 #989): unlike display, canonical NEVER silences a
+        // concrete default — that is the whole point of this block (see the
+        // class comment above: "who ... across" stays even at the `across`
+        // default, so the FTS index reflects the stated direction). `turn`
+        // follows the same rule: it is suppressed ONLY at the `unspecified`
+        // sentinel (meaning "not stated" — the same suppression `destination`
+        // already gets), never merely for equalling its own default. This is
+        // why a plain, all-default promenade still renders "partners
+        // promenade across" (turn's default is a real value, not the
+        // sentinel, so it now ALSO appears: "partners promenade
+        // counterclockwise across").
+        //
+        // singleFile drops `who` (importer artefact, no choreographic
+        // content) — unchanged from v29 (#921).
+        //
+        // v30 (#989) re-gated the destination clause from `singleFile==true`
+        // to `dir != 'across'` (see the taxonomy doc comment on
+        // `promenade.destination`). A stored `destination` on a
+        // `dir=='across'` figure (reachable from pre-v30 singleFile+across
+        // imports) is KEPT but no longer rendered — an accepted, deliberate
+        // data-shape divergence, not a migration.
         final dirRaw = params['dir'];
         final dir = _displayScalar(dirRaw);
+        final turnRaw = params['turn'];
+        final turn = _isUnspecified(turnRaw) ? '' : _displayScalar(turnRaw);
         final destRaw = params['destination'];
-        final dest = (_isUnspecified(destRaw) || destRaw == null)
+        final dest = (dirRaw == 'across' || _isUnspecified(destRaw) || destRaw == null)
             ? ''
             : 'to ${_displayScalar(destRaw)}';
+        if (params['singleFile'] == true) {
+          return _collapseSpaces(
+            [
+              'single file promenade',
+              turn,
+              dir,
+              dest,
+            ].where((s) => s.isNotEmpty).join(' '),
+          );
+        }
+        final whoRaw = params['who'];
+        final who = _renderValue(
+          'who',
+          whoRaw,
+          def.params['who'],
+          Dialect.canonical,
+          verbose,
+          decimals,
+          true,
+        );
         return _collapseSpaces(
           [
-            'single file promenade',
+            who,
+            'promenade',
+            turn,
             dir,
             dest,
           ].where((s) => s.isNotEmpty).join(' '),
         );
       }
       if (def.id == 'circle' && params['singleFile'] == true) {
-        // Canonical: "single file promenade {clockwise|counterclockwise} {places}
-        // (circle)" — phrased as "promenade" to match TCB source text; the
-        // parenthetical "(circle)" retains "circle" in the FTS index so this
-        // figure is findable by "circle" searches. Clockwise = left (contra
-        // convention: circling left travels clockwise).
+        // Canonical: "single file promenade {left|right} {places} (circle,
+        // {clockwise|counterclockwise})" — phrased as "promenade" to match TCB
+        // source text; the parenthetical retains "circle" in the FTS index so
+        // this figure is findable by "circle" searches.
+        //
+        // v30 (#989): `turn` now renders its raw stored value (`left`/`right`)
+        // instead of being substituted to a spin word — but the spin word is
+        // NOT dropped from the index: it moves into the parenthetical
+        // (widened from "(circle)" to "(circle, clockwise)"), preserving the
+        // TCB source's own wording ("single file promenade clockwise …",
+        // `callersbox_figure_dialect.dart:1316-1365`) as a searchable token.
+        // Clockwise = left (contra convention: circling left travels
+        // clockwise).
         final turnRaw = params['turn'];
+        final turn = _displayScalar(turnRaw);
         final spinWord = turnRaw == 'left'
             ? 'clockwise'
             : turnRaw == 'right'
             ? 'counterclockwise'
-            : _displayScalar(turnRaw);
+            : turn; // tolerant-decode fallback
         final placesRaw = params['places'];
         final places = placesRaw is int
             ? _formatPlaces(placesRaw)
@@ -340,9 +388,9 @@ class FigureRenderer {
         return _collapseSpaces(
           [
             'single file promenade',
-            spinWord,
+            turn,
             places,
-            '(circle)',
+            spinWord.isEmpty ? '(circle)' : '(circle, $spinWord)',
           ].where((s) => s.isNotEmpty).join(' '),
         );
       }
@@ -1704,55 +1752,101 @@ class FigureRenderer {
         places,
       ].where((s) => s.isNotEmpty).join(' ');
     },
-    // `promenade.singleFile` (taxonomy v18 #634, updated v27 #749): a true
-    // single-file promenade (nose-to-tail around the major set) differs
-    // materially from the ordinary partnered promenade.
+    // `promenade.singleFile` (taxonomy v18 #634, updated v27 #749, v29 #921
+    // destination, v30 #989 turn):
     //
-    // DISPLAY (singleFile=true, since v27): "single file {move} {dir}" with
-    // `who` DROPPED (it carries `everyone`, an importer artefact conveying no
-    // choreographic information) and `dir` ALWAYS included (even when it
-    // equals the `across` default) — matching the canonical form so display
-    // and search stay aligned. "single file {move}" routes through
-    // `_renderMoveName` so Dialect.moves overrides apply uniformly.
+    // DISPLAY (singleFile=true): "single file {move} {turn} {dir} [to
+    // {destination}]" with `who` DROPPED (importer artefact carrying no
+    // choreographic information) and `dir` ALWAYS included (even the `across`
+    // default) — unchanged since v27. `turn` (v30) uses the same
+    // stated-vs-silenced rule as the non-singleFile branch below.
     //
-    // DISPLAY (singleFile=false): the base line reproduces the existing
-    // template expansion `{who} promenade {dir}` including the direction-
-    // silencing rule for the `across` default (ContraDB parity).
+    // DISPLAY (singleFile=false, v30 #989): `turn` and `dir` are jointly
+    // silenced ONLY at the pure-default combination (`dir=='across' &&
+    // turn=='counterclockwise'` — i.e. nothing meaningful was ever stated),
+    // reproducing the pre-v30 "partner promenade" baseline exactly. Any
+    // departure from that pure-default pair — a non-default `dir`, a
+    // non-default `turn`, OR a stated `destination` — shows BOTH tokens
+    // together, never just one alone. This is not an arbitrary choice: it is
+    // the unique rule consistent with all of the maintainer's own worked
+    // examples in #989 (verified case-by-case, recorded in the v30 docs
+    // entry):
+    //   - dir=across, turn=ccw (defaults): "partner promenade" (unchanged)
+    //   - dir=along, turn=ccw (only dir stated): "partner promenade along"
+    //     (unchanged — turn's concrete default stays silent when nothing
+    //     else is going on)
+    //   - dir=across, turn=cw (only turn stated): "neighbor promenade
+    //     clockwise across" — turn being non-default un-silences `across` too
+    //     (a bare "clockwise" alone doesn't say what's being turned across)
+    //   - dir=rightDiagonal, turn=ccw, destination=prevNeighbors: "partner
+    //     promenade counterclockwise right diagonal to prev neighbors" — a
+    //     stated destination un-silences turn even though it's the default,
+    //     because "to prev neighbors" alone doesn't say which way they travel
+    // This is a genuine, deliberate behavior change (not a display-only
+    // cosmetic tweak): a promenade that states ONLY a non-default `dir`
+    // (unaccompanied by any `turn` or `destination`) still omits the
+    // `counterclockwise` default per the second bullet — the taxonomy cannot
+    // distinguish "turn not stated" from "turn stated as its own default"
+    // because v30's default is concrete, not the sentinel (owner-decided
+    // tradeoff, see `contra_taxonomy.dart`).
     //
-    // CANONICAL: handled by the `if (forCanonical)` block in `_render` (not
-    // by this `_displayBaseRenderers` entry), which emits "single file
-    // promenade {dir}" — `who` dropped, `dir` always present. The two forms
-    // are asymmetric by design: the display path routes through this entry
-    // (which uses `_renderMoveName` for dialect-aware move names), while the
-    // canonical path uses the move id directly for stability.
+    // CANONICAL: handled by the `if (forCanonical)` block in `_render` (not by
+    // this entry). Canonical never silences a concrete default (existing
+    // invariant — `renderer_test.dart` "renderCanonical is unchanged"), so it
+    // always includes `dir` (unchanged since pre-v27) and now always includes
+    // `turn` too UNLESS `turn` is the `unspecified` sentinel (mirroring how
+    // `destination`'s sentinel already suppresses there) — never silenced for
+    // merely equalling its own default, unlike display.
     'promenade': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final dirRaw = params['dir'];
+      final turnRaw = params['turn'];
+      final dirDefault = def.params['dir']?.defaultValue;
+      final turnDefault = def.params['turn']?.defaultValue;
+      final destRaw = params['destination'];
+      // v30 (#989): destination rendering re-gated from `singleFile==true` to
+      // `dir != 'across'` (see the taxonomy doc comment on
+      // `promenade.destination`) — a stored `destination` on a
+      // `dir=='across'` figure keeps the param but no longer renders it.
+      final destStated =
+          dirRaw != 'across' && !(_isUnspecified(destRaw) || destRaw == null);
       if (params['singleFile'] == true) {
         // `who` is dropped (importer artefact; `everyone` has no
         // choreographic significance). `dir` always included (even `across`
         // default) so display matches what source stated and aligns with
-        // the canonical form.
-        final dirRaw = params['dir'];
+        // the canonical form. `turn` (v30): shown whenever non-default OR a
+        // destination is stated, same rule as the non-singleFile branch.
         final dir = _displayScalar(dirRaw);
-        // `destination` (v29 #921): append "to {destination}" when stated.
-        final destRaw = params['destination'];
-        final dest = (_isUnspecified(destRaw) || destRaw == null)
-            ? ''
-            : 'to ${destRaw is String ? r._displayGroup(destRaw, dialect) : _displayScalar(destRaw)}';
+        final showTurn = turnRaw != turnDefault || destStated;
+        final turn = showTurn ? _displayScalar(turnRaw) : '';
+        final dest = destStated
+            ? 'to ${destRaw is String ? r._displayGroup(destRaw, dialect) : _displayScalar(destRaw)}'
+            : '';
         return [
           'single file $move',
+          turn,
           dir,
           dest,
         ].where((s) => s.isNotEmpty).join(' ');
       }
       final swho = r._subjectWho(params, dialect);
-      // Re-apply the direction-silencing rule that the template-expansion path
-      // uses for promenade (ContraDB `stringParamSetDirectionSilencingDefault`
-      // 'across'): omit `dir` when it equals the taxonomy default.
-      final dirRaw = params['dir'];
-      final dirDefault = def.params['dir']?.defaultValue;
-      final dir = (dirRaw == dirDefault) ? '' : _displayScalar(dirRaw);
-      return [swho, move, dir].where((s) => s.isNotEmpty).join(' ');
+      // v30 (#989): `turn` shown iff it is non-default OR a destination is
+      // stated. `dir` shown iff `turn` is being shown (joint silencing — see
+      // the class comment above) OR `dir` itself is non-default.
+      final showTurn = turnRaw != turnDefault || destStated;
+      final turn = showTurn ? _displayScalar(turnRaw) : '';
+      final showDir = showTurn || dirRaw != dirDefault;
+      final dir = showDir ? _displayScalar(dirRaw) : '';
+      final dest = destStated
+          ? 'to ${destRaw is String ? r._displayGroup(destRaw, dialect) : _displayScalar(destRaw)}'
+          : '';
+      return [
+        swho,
+        move,
+        turn,
+        dir,
+        dest,
+      ].where((s) => s.isNotEmpty).join(' ');
     },
     // `circle.singleFile` (taxonomy v18 #634, reworded v27 #840): a single-
     // file circulation around the ring (ContraDB source: "promenade single file
@@ -1776,14 +1870,14 @@ class FigureRenderer {
           ? _formatPlaces(placesRaw)
           : _displayScalar(placesRaw);
       if (params['singleFile'] == true) {
-        // `turn` maps to spoken spin-direction words. Contra convention:
-        // "circle left" travels clockwise; "circle right" counterclockwise.
+        // v30 (#989): render `turn` raw (`left`/`right`) like every other
+        // move's turn/direction param, for consistency with the rest of the
+        // app — the clockwise/counterclockwise substitution that used to live
+        // here is REMOVED (see the taxonomy doc comment on `circle.singleFile`
+        // for why, and where the spin word moved to instead: the canonical
+        // parenthetical, not display).
         final turnRaw = params['turn'];
-        final spinWord = turnRaw == 'left'
-            ? 'clockwise'
-            : turnRaw == 'right'
-            ? 'counterclockwise'
-            : _displayScalar(turnRaw); // tolerant-decode fallback
+        final turn = _displayScalar(turnRaw);
         final move = r._renderMoveName(
           def.id,
           def.displayName,
@@ -1792,7 +1886,7 @@ class FigureRenderer {
         );
         return [
           'single file $move',
-          spinWord,
+          turn,
           places,
         ].where((s) => s.isNotEmpty).join(' ');
       }
