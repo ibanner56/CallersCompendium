@@ -19,7 +19,7 @@ import 'taxonomy.dart';
 /// It is kept there because it is a ledger of decisions already shipped: it
 /// constrains nothing on this line, and it grows on every bump, so readers of
 /// this file were paying for the whole history to reach one constant.
-const int contraTaxonomyVersion = 28;
+const int contraTaxonomyVersion = 29;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -561,6 +561,17 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // canonical emits "single file promenade [dir]" with `who` dropped
         // (an importer artefact carrying no choreographic information).
         'singleFile': ParamSpec(ParamKind.flag, defaultValue: false),
+        // Issue #921 (taxonomy v29): destination of the single-file promenade —
+        // "to new neighbors" / "to the same neighbors" / etc. Reuses the
+        // dancerSet domain + unspecified sentinel. Only meaningful when
+        // `singleFile` is true; the ordinary promenade has no destination.
+        // Rendered as "to {destination}" appended to the singleFile display and
+        // canonical forms; unspecified (= "not stated") suppresses the clause.
+        'destination': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _dancerOrUnspecified,
+        ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {move} {dir}',

@@ -16,7 +16,7 @@ community usage (aligned with The Caller's Box, e.g. "shoulder round" not
 - [Move list v1 (~47)](#move-list-v1-47) — 29 lines
 - [Implementation status (v0.1 engine, roadmap 2.4)](#implementation-status-v01-engine-roadmap-24) — 657 lines
 - [Validation & rendering](#validation--rendering) — 69 lines
-- [Taxonomy version history](#taxonomy-version-history) — 618 lines
+- [Taxonomy version history](#taxonomy-version-history) — 647 lines
 - [Open questions (to resolve during implementation, with user input)](#open-questions-to-resolve-during-implementation-with-user-input) — 9 lines
 <!-- /section-index -->
 
@@ -1445,6 +1445,36 @@ fails a PR that moves the constant without adding the matching entry.
     already keeps it from traveling.
 
     **No DB schema bump.** `hand` rides the existing `figures_json` codec.
+- v29 (#921): `promenade.destination` — a new `ParamKind.dancerSet` param
+    (default `ParamVocab.unspecified`) that captures the destination of a
+    single-file promenade. ContraDB source texts like `single file promenade
+    along major set to new neighbors` previously stored the trailing phrase
+    verbatim as the figure note; this bump promotes it to a structured param.
+
+    **Domain.** Reuses [ParamVocab.dancerSets] + the `unspecified` sentinel
+    (`_dancerOrUnspecified`), per maintainer ruling (2026-08-14): no new
+    ParamKind needed.
+
+    **Rendering.** The param is appended as `to {destination}` in both the
+    display and canonical renders for `promenade.singleFile=true`, suppressed
+    when the value is `unspecified`. The canonical form is:
+      `single file promenade {dir} to {next neighbors}` — destination
+      humanized via [_humanize] (e.g. `nextNeighbors` → "next neighbors").
+
+    **Import.** The ContraDB `_promenade` recognizer now consumes the
+    destination tail — optional "major set", then "to [new/the same]
+    {subject}" — and stores it as `destination`. "new neighbors" (ContraDB
+    source phrasing) maps to `nextNeighbors`. An unrecognised tail is still
+    stored as the note; a fully-consumed tail leaves no note.
+
+    **No derived rebuild.** `destination` defaults to `unspecified`, which
+    the renderer silences; existing figures' canonical text is byte-stable.
+    Structured search gains the param immediately for newly-imported figures.
+    Free-text search likewise gains it (the destination now appears in
+    `renderCanonical` / `dance_fts` for newly-imported figures).
+
+    **No DB schema bump.** `destination` rides the existing `figures_json`
+    codec.
 
 ## Open questions (to resolve during implementation, with user input)
 

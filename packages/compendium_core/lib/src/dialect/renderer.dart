@@ -301,13 +301,24 @@ class FigureRenderer {
         return canonicalLine;
       }
       if (def.id == 'promenade' && params['singleFile'] == true) {
-        // Canonical: "single file promenade {dir}" — who DROPPED (importer
-        // artefact, no choreographic content), dir ALWAYS included (even at
-        // the `across` default) so the FTS index reflects the stated direction.
+        // Canonical: "single file promenade {dir} [to {destination}]" —
+        // who DROPPED (importer artefact, no choreographic content), dir
+        // ALWAYS included (even at the `across` default) so the FTS index
+        // reflects the stated direction.
+        // destination (v29 #921): appended as "to {next neighbors}" etc.
+        // when not unspecified; absent when unspecified.
         final dirRaw = params['dir'];
         final dir = _displayScalar(dirRaw);
+        final destRaw = params['destination'];
+        final dest = (_isUnspecified(destRaw) || destRaw == null)
+            ? ''
+            : 'to ${_displayScalar(destRaw)}';
         return _collapseSpaces(
-          ['single file promenade', dir].where((s) => s.isNotEmpty).join(' '),
+          [
+            'single file promenade',
+            dir,
+            dest,
+          ].where((s) => s.isNotEmpty).join(' '),
         );
       }
       if (def.id == 'circle' && params['singleFile'] == true) {
@@ -1723,7 +1734,16 @@ class FigureRenderer {
         // the canonical form.
         final dirRaw = params['dir'];
         final dir = _displayScalar(dirRaw);
-        return ['single file $move', dir].where((s) => s.isNotEmpty).join(' ');
+        // `destination` (v29 #921): append "to {destination}" when stated.
+        final destRaw = params['destination'];
+        final dest = (_isUnspecified(destRaw) || destRaw == null)
+            ? ''
+            : 'to ${destRaw is String ? r._displayGroup(destRaw, dialect) : _displayScalar(destRaw)}';
+        return [
+          'single file $move',
+          dir,
+          dest,
+        ].where((s) => s.isNotEmpty).join(' ');
       }
       final swho = r._subjectWho(params, dialect);
       // Re-apply the direction-silencing rule that the template-expansion path
