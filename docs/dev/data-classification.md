@@ -212,7 +212,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**164 columns**: 130 shareable, 17 device-local, 17 derived. 24 personal data by category.
+**171 columns**: 137 shareable, 17 device-local, 17 derived. 24 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -355,6 +355,13 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `tags` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `tags` | `name` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `tags` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
+| `venue_provenance` | `external_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `venue_provenance` | `imported_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
+| `venue_provenance` | `license` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `venue_provenance` | `permission` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `venue_provenance` | `source` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `venue_provenance` | `source_version` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `venue_provenance` | `venue_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `venues` | `address1` | `pd:Street` | Contact → PhysicalAddress → Street | third party | **device-local** |  |
 | `venues` | `address2` | `pd:Street` | Contact → PhysicalAddress → Street | third party | **device-local** |  |
 | `venues` | `city` | `pd:City` | Contact → PhysicalAddress → City | third party | **device-local** |  |

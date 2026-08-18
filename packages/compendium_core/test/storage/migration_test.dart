@@ -25,7 +25,6 @@ import 'package:compendium_core/src/storage/database.dart'
 import 'package:drift/drift.dart' show Value, Variable;
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
-import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:test/test.dart';
 
 import '../test_package_root.dart';
@@ -862,7 +861,6 @@ void main() {
       addTearDown(db.close);
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 25);
     });
 
     test('adds all twenty columns across the eight syncable kinds', () async {
@@ -1154,8 +1152,10 @@ void main() {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       addTearDown(db.close);
       await db.customSelect('SELECT 1').get();
-      final version =
-          await db.customSelect('PRAGMA user_version').map((r) => r.data).get();
+      final version = await db
+          .customSelect('PRAGMA user_version')
+          .map((r) => r.data)
+          .get();
       expect(version.first.values.first, kCompendiumSchemaVersion);
     });
 

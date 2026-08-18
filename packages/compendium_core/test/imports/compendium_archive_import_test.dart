@@ -958,47 +958,44 @@ void main() {
       },
     );
 
-    test(
-      'local-only venue with no provenance row is never matched by an '
-      'incoming bundle id (no false provenance-match)',
-      () async {
-        // A locally-created venue (not imported from any bundle) has no
-        // venue_provenance row. An incoming bundle that happens to carry the
-        // same id string must NOT provenance-match it — the lookup is
-        // keyed on rows that actually exist in venue_provenance, and a
-        // locally-minted venue has none. The importer fresh-mints a new
-        // venue for the bundle, leaving the local one untouched.
-        //
-        // This guards the "id collision by coincidence" hazard: a bundle
-        // from an external sender might carry an id that matches a local
-        // UUID by chance (unlikely) or, more critically, a malicious bundle
-        // might replay a known local id to attempt a provenance shortcut.
-        // Neither can fire without an actual provenance row in the DB.
-        final localVenue = Venue(id: 'local-hall', name: 'Local Hall');
-        await venues.upsert(localVenue);
-        // That local venue has no provenance row, so a bundle arriving with
-        // externalId 'local-hall' must NOT match it.
-        final bundleWithLocalId = bundleWithVenue(
-          programVenueId: 'local-hall',
-          venues: [Venue(id: 'local-hall', name: 'Bundle Hall')],
-        );
-        final result = await importer.import(
-          encodeArchive(bundleWithLocalId),
-          bundleWithLocalId,
-          now: now.add(const Duration(days: 2)),
-          newId: sequentialIds('new'),
-          newSlotId: sequentialIds('newslot'),
-        );
-        // A new venue was minted (the local venue has no provenance, so no
-        // provenance match fires despite the id collision attempt).
-        expect(result.insertedVenueCount, 1);
-        final named = (await venues.listAll())
-            .where((v) => v.name == 'Bundle Hall')
-            .toList();
-        expect(named, hasLength(1));
-        expect(named.single.id, isNot('local-hall'));
-      },
-    );
+    test('local-only venue with no provenance row is never matched by an '
+        'incoming bundle id (no false provenance-match)', () async {
+      // A locally-created venue (not imported from any bundle) has no
+      // venue_provenance row. An incoming bundle that happens to carry the
+      // same id string must NOT provenance-match it — the lookup is
+      // keyed on rows that actually exist in venue_provenance, and a
+      // locally-minted venue has none. The importer fresh-mints a new
+      // venue for the bundle, leaving the local one untouched.
+      //
+      // This guards the "id collision by coincidence" hazard: a bundle
+      // from an external sender might carry an id that matches a local
+      // UUID by chance (unlikely) or, more critically, a malicious bundle
+      // might replay a known local id to attempt a provenance shortcut.
+      // Neither can fire without an actual provenance row in the DB.
+      final localVenue = Venue(id: 'local-hall', name: 'Local Hall');
+      await venues.upsert(localVenue);
+      // That local venue has no provenance row, so a bundle arriving with
+      // externalId 'local-hall' must NOT match it.
+      final bundleWithLocalId = bundleWithVenue(
+        programVenueId: 'local-hall',
+        venues: [Venue(id: 'local-hall', name: 'Bundle Hall')],
+      );
+      final result = await importer.import(
+        encodeArchive(bundleWithLocalId),
+        bundleWithLocalId,
+        now: now.add(const Duration(days: 2)),
+        newId: sequentialIds('new'),
+        newSlotId: sequentialIds('newslot'),
+      );
+      // A new venue was minted (the local venue has no provenance, so no
+      // provenance match fires despite the id collision attempt).
+      expect(result.insertedVenueCount, 1);
+      final named = (await venues.listAll())
+          .where((v) => v.name == 'Bundle Hall')
+          .toList();
+      expect(named, hasLength(1));
+      expect(named.single.id, isNot('local-hall'));
+    });
 
     test('dedupe never overwrites the matched venue\'s fields', () async {
       // The receiver already holds a venue; a later bundle carries a
@@ -1376,59 +1373,59 @@ void main() {
       expect(after.venueId, isNull, reason: 'v2 explicit clear honored');
     });
 
-    test(
-      're-importing a shared (address-redacted) bundle dedupes venue by '
-      'provenance (#899)',
-      () async {
-        // Regression guard for issue #899 / PR #882 accepted-limitation fix.
-        //
-        // Share bundles redact the postal address, so venueFingerprint returns
-        // null and the content-fingerprint path cannot fire. Before issue #899
-        // this meant every re-import of the same shared bundle minted a second
-        // venue record. The provenance-based path (introduced in #899) fires
-        // first: the first import stamps (source=json, externalId=orig-v1) on
-        // the minted venue, and the second import finds it by that exact key.
-        final sharedVenue = Venue(
-          id: 'orig-v1',
-          name: 'Guiding Star Grange',
-          // Address intentionally absent — simulates sanitizeVenueForShare().
-        );
-        final archive = bundleWithVenue(
-          programVenueId: 'orig-v1',
-          venues: [sharedVenue],
-        );
+    test('re-importing a shared (address-redacted) bundle dedupes venue by '
+        'provenance (#899)', () async {
+      // Regression guard for issue #899 / PR #882 accepted-limitation fix.
+      //
+      // Share bundles redact the postal address, so venueFingerprint returns
+      // null and the content-fingerprint path cannot fire. Before issue #899
+      // this meant every re-import of the same shared bundle minted a second
+      // venue record. The provenance-based path (introduced in #899) fires
+      // first: the first import stamps (source=json, externalId=orig-v1) on
+      // the minted venue, and the second import finds it by that exact key.
+      final sharedVenue = Venue(
+        id: 'orig-v1',
+        name: 'Guiding Star Grange',
+        // Address intentionally absent — simulates sanitizeVenueForShare().
+      );
+      final archive = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [sharedVenue],
+      );
 
-        // First import mints the venue.
-        final result1 = await importer.import(
-          encodeArchive(archive),
-          archive,
-          now: now,
-          newId: sequentialIds('first'),
-          newSlotId: sequentialIds('firstslot'),
-        );
-        expect(result1.insertedVenueCount, 1);
-        final mintedId = (await venues.listAll()).single.id;
+      // First import mints the venue.
+      final result1 = await importer.import(
+        encodeArchive(archive),
+        archive,
+        now: now,
+        newId: sequentialIds('first'),
+        newSlotId: sequentialIds('firstslot'),
+      );
+      expect(result1.insertedVenueCount, 1);
+      final mintedId = (await venues.listAll()).single.id;
 
-        // Second import (re-import of the same bundle) must dedupe by provenance,
-        // not mint a second row.
-        final result2 = await importer.import(
-          encodeArchive(archive),
-          archive,
-          now: now.add(const Duration(days: 1)),
-          newId: sequentialIds('second'),
-          newSlotId: sequentialIds('secondslot'),
-        );
+      // Second import (re-import of the same bundle) must dedupe by provenance,
+      // not mint a second row.
+      final result2 = await importer.import(
+        encodeArchive(archive),
+        archive,
+        now: now.add(const Duration(days: 1)),
+        newId: sequentialIds('second'),
+        newSlotId: sequentialIds('secondslot'),
+      );
 
-        expect(result2.insertedVenueCount, 0,
-            reason: 'provenance path fires; no new venue minted');
-        final allVenues = await venues.listAll();
-        expect(allVenues, hasLength(1));
-        expect(allVenues.single.id, mintedId);
+      expect(
+        result2.insertedVenueCount,
+        0,
+        reason: 'provenance path fires; no new venue minted',
+      );
+      final allVenues = await venues.listAll();
+      expect(allVenues, hasLength(1));
+      expect(allVenues.single.id, mintedId);
 
-        // The program still links to the single existing venue.
-        final prog = (await programs.listAll()).single;
-        expect(prog.venueId, mintedId);
-      },
-    );
+      // The program still links to the single existing venue.
+      final prog = (await programs.listAll()).single;
+      expect(prog.venueId, mintedId);
+    });
   });
 }

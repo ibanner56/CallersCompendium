@@ -58,8 +58,11 @@ void main() {
       // means one of two things, and they are worth telling apart: either a
       // taxonomy change quietly started owing a structural migration (the
       // hazard this test exists for), or an unrelated schema change landed and
-      // this number simply needs updating.
-      expect(kCompendiumSchemaVersion, 25);
+      // this number simply needs updating. Schema 26 (#899) is another
+      // instance of the latter: it added the venue_provenance table and
+      // touched no canonical key, so it bumped the schema and left the
+      // taxonomy alone.
+      expect(kCompendiumSchemaVersion, 26);
     });
 
     test('registers with the maintainer-ruled param set', () {
