@@ -327,7 +327,8 @@ class FigureRenderer {
         final turnRaw = params['turn'];
         final turn = _isUnspecified(turnRaw) ? '' : _displayScalar(turnRaw);
         final destRaw = params['destination'];
-        final dest = (dirRaw == 'across' || _isUnspecified(destRaw) || destRaw == null)
+        final dest =
+            (dirRaw == 'across' || _isUnspecified(destRaw) || destRaw == null)
             ? ''
             : 'to ${_displayScalar(destRaw)}';
         if (params['singleFile'] == true) {
@@ -1840,13 +1841,7 @@ class FigureRenderer {
       final dest = destStated
           ? 'to ${destRaw is String ? r._displayGroup(destRaw, dialect) : _displayScalar(destRaw)}'
           : '';
-      return [
-        swho,
-        move,
-        turn,
-        dir,
-        dest,
-      ].where((s) => s.isNotEmpty).join(' ');
+      return [swho, move, turn, dir, dest].where((s) => s.isNotEmpty).join(' ');
     },
     // `circle.singleFile` (taxonomy v18 #634, reworded v27 #840): a single-
     // file circulation around the ring (ContraDB source: "promenade single file

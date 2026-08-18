@@ -207,7 +207,6 @@ const String chainHandBackfillDoneKey = '__chain_hand_backfill_done__';
 const String promenadeTurnCircleWordingCanonicalRebuildDoneKey =
     '__promenade_turn_circle_wording_canonical_rebuild_done__';
 
-
 /// The current on-disk schema version of [CompendiumDatabase].
 ///
 /// Exposed as a top-level constant (in addition to the [CompendiumDatabase.
