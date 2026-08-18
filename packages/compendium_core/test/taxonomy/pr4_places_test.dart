@@ -230,6 +230,35 @@ void main() {
           ),
           'partners promenade counterclockwise across',
         );
+        // v30 (#989): the destination gate is `dir != 'across'`, decoupled
+        // from `singleFile` — an ORDINARY (non-singleFile) promenade with a
+        // non-default `dir` and a stated `destination` now renders the
+        // clause in canonical too, which the pre-v30 `singleFile==true` gate
+        // would have suppressed.
+        expect(
+          renderer.renderCanonical(
+            testFigure(
+              move: 'promenade',
+              params: {'dir': 'rightDiagonal', 'destination': 'prevNeighbors'},
+            ),
+          ),
+          'partners promenade counterclockwise right diagonal to prev '
+          'neighbors',
+        );
+        // The inverse: a `dir=='across'` (default) promenade with a stored
+        // `destination` does NOT render the clause, even though nothing
+        // about `singleFile` changed — the F9 case this re-gate must keep
+        // suppressing (a stored value that keeps the param but loses the
+        // clause, not a migration).
+        expect(
+          renderer.renderCanonical(
+            testFigure(
+              move: 'promenade',
+              params: {'destination': 'prevNeighbors'},
+            ),
+          ),
+          'partners promenade counterclockwise across',
+        );
       },
     );
   });
@@ -388,10 +417,7 @@ void main() {
           // — the clockwise/counterclockwise substitution this test used to
           // assert is REMOVED; the spin word now lives only in canonical's
           // parenthetical.
-          expect(
-            renderer.render(f, d),
-            'single file circle left 4 places',
-          );
+          expect(renderer.render(f, d), 'single file circle left 4 places');
         },
       );
 
@@ -408,10 +434,7 @@ void main() {
           move: 'circle',
           params: {'singleFile': true, 'turn': 'right'},
         );
-        expect(
-          renderer.render(f, d),
-          'single file circle right 4 places',
-        );
+        expect(renderer.render(f, d), 'single file circle right 4 places');
       });
 
       test('singleFile: true shows in renderSummary', () {
