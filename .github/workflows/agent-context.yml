@@ -1,0 +1,55 @@
+# Byte budget for the instruction text that is RESIDENT in every agent turn.
+#
+# `AGENTS.md` and each `.github/instructions/*.instructions.md` are injected into
+# an agent's prompt rather than read on demand, so their cost is
+# `bytes x turns x sessions`. `AGENTS.md` grew from 1,181 bytes to 25,589 in
+# three weeks over thirteen commits — every one a net addition, every one
+# individually justified, none budgeted against — which is why the growth was
+# invisible until someone measured the bill. The gate makes an addition displace
+# something rather than append to it.
+#
+# This lives in its own workflow, like docs-bundle-check.yml and for the same
+# reason: ci.yml (which calls _checks.yml, where this gate also runs) has
+# `paths-ignore: '**.md'` and so skips entirely for a Markdown-only change — and
+# every file this gate measures is Markdown. Without this workflow the gate
+# would be absent from exactly the PRs that can breach it.
+#
+# It is intentionally cheap (plain python3, no toolchain setup) and is not
+# marked a required status, so it never leaves a required check pending on an
+# unrelated PR.
+name: Agent context budget
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'AGENTS.md'
+      - '.github/instructions/**'
+      - 'tools/ci/check_agent_context_budget.py'
+      - 'tools/ci/test_check_agent_context_budget.py'
+      - '.github/workflows/agent-context.yml'
+  pull_request:
+    paths:
+      - 'AGENTS.md'
+      - '.github/instructions/**'
+      - 'tools/ci/check_agent_context_budget.py'
+      - 'tools/ci/test_check_agent_context_budget.py'
+      - '.github/workflows/agent-context.yml'
+
+# Least privilege: this check only reads the checked-out code.
+permissions:
+  contents: read
+
+jobs:
+  agent-context:
+    name: Resident agent context within budget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The ratchet's own suite runs first: it builds synthetic trees that are
+      # over budget and asserts the gate goes red, so a gate that has only ever
+      # been seen green is not mistaken for one that works.
+      - name: Test the agent-context budget ratchet
+        run: python3 tools/ci/test_check_agent_context_budget.py
+      - name: Guard resident agent context (byte budget)
+        run: python3 tools/ci/check_agent_context_budget.py

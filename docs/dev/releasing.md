@@ -24,6 +24,27 @@ This is the operator runbook for cutting a desktop release. It documents the
 > [ADR-002 §6](../adr/002-distribution-and-update-channels.md) for the full
 > per-platform signing table.
 
+<!-- section-index -->
+> **Section index.** This document is ~57 KB — read the section you
+> need rather than the whole file. Line counts indicate size, not position;
+> follow the anchor. Keep this index current when you add or retitle a
+> section.
+
+- [What the pipeline produces](#what-the-pipeline-produces) — 55 lines
+- [Safety model](#safety-model) — 15 lines
+- [Cutting a release](#cutting-a-release) — 161 lines
+- [CHANGELOG-driven release notes](#changelog-driven-release-notes) — 48 lines
+- [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 74 lines
+- [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages) — 124 lines
+- [Signing the update manifest (Ed25519, issue #431)](#signing-the-update-manifest-ed25519-issue-431) — 96 lines
+- [Landing page and user guides (GitHub Pages)](#landing-page-and-user-guides-github-pages) — 74 lines
+- [Dry run (no release created)](#dry-run-no-release-created) — 16 lines
+- [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized) — 85 lines
+- [Android (signed APK)](#android-signed-apk) — 143 lines
+- [iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api) — 125 lines
+- [Packaging tooling notes](#packaging-tooling-notes) — 24 lines
+<!-- /section-index -->
+
 ## What the pipeline produces
 
 On a pushed `v*` tag it builds three desktops and packages them under the
@@ -652,7 +673,7 @@ refresh anything the release changed:
   `docs/ROADMAP.md`).
 - **Features** — add/adjust cards for any newly shipped capability.
 - **Screenshots** — replace or add captures for changed UI (see
-  [`site/README.md`](../../site/README.md#adding-real-screenshots) for the capture
+  [`site/README.md`](../../site/README.md#updating-screenshots) for the capture
   procedure).
 - **Version fallbacks** — nothing to do. The hero version pill and the downloads
   version line are both **version-free placeholders** (`Latest beta`) that
