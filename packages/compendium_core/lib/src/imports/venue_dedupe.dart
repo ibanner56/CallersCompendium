@@ -68,13 +68,24 @@ String? _normalizeField(String? value) {
 /// accepts, so `venueFingerprint` returns `null` for any venue that arrived in
 /// a share bundle, `CompendiumArchiveImporter` never preloads its index, and
 /// **cross-import dedupe does not apply to shared bundles** — re-importing the
-/// same bundle mints another venue record.
+/// same bundle mints another venue record — *for this content-fingerprint path*.
 ///
-/// This is a known, accepted limitation rather than an oversight, and it is
-/// pinned by `app/test/export/share_venue_dedupe_seam_test.dart`. Dedupe still
-/// works for venues that reach the importer with their address intact (a
-/// Caller's Companion `.USR` import, a backup restore, or any local venue
-/// already in the collection).
+/// A complementary **provenance-based path** (issue #899) fills this gap:
+/// the importer stamps a `(source, externalId)` provenance on every
+/// freshly-minted venue (mirroring dance/program provenance), keyed on the
+/// bundle's original venue id. On re-import the exact-match lookup fires before
+/// this fingerprint is consulted, so re-importing the same shared bundle now
+/// dedupes correctly without needing the postal address. The two paths are
+/// checked in sequence: provenance-exact (no false merges, works for shared
+/// bundles) → content-fingerprint (works for new bundles without prior
+/// provenance, but requires an address).
+///
+/// This is a known, accepted limitation for the *fingerprint* path rather than
+/// an oversight, and it is pinned by `app/test/export/share_venue_dedupe_seam_test.dart`.
+/// Dedupe still works for venues that reach the importer with their address
+/// intact (a Caller's Companion `.USR` import, a backup restore, or any local
+/// venue already in the collection), as well as for re-imports of shared bundles
+/// that were imported after schema v26 (via the new provenance path).
 ///
 /// Re-keying on fields that *do* still travel (`name` + `website`/`eventName`)
 /// would restore dedupe for bundles, but it weakens the key: two distinct halls

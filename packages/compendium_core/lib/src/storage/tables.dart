@@ -469,6 +469,34 @@ class Venues extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Import provenance, one row per venue (at most). Mirrors [Provenance] (the
+/// dance provenance table) and [ProgramProvenance]; added in schema v26
+/// (issue #899) so re-importing the same bundle recognises a venue that was
+/// previously imported from the same source. Provenance-based dedupe is exact
+/// (`(source, external_id)` pair), which means it can operate on shared bundles
+/// where the postal address has been redacted and the content-fingerprint path
+/// ([venueFingerprint]) produces no key.
+@DataClassName('VenueProvenanceRow')
+class VenueProvenance extends Table {
+  TextColumn get venueId =>
+      text().references(Venues, #id, onDelete: KeyAction.cascade)();
+  TextColumn get source =>
+      text().map(const EnumNameConverter(ProvenanceSource.values))();
+  TextColumn get externalId => text().nullable()();
+  DateTimeColumn get importedAt => dateTime()();
+  TextColumn get permission => text().nullable()();
+  TextColumn get license => text().nullable()();
+  TextColumn get sourceVersion => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {venueId};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {source, externalId},
+  ];
+}
+
 /// Import provenance, one row per dance (at most).
 ///
 /// Carried a `raw_payload` column (the verbatim imported source record) until

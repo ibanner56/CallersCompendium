@@ -1,8 +1,11 @@
 import 'package:drift/drift.dart';
 
+import '../../model/enums.dart';
+import '../../model/provenance.dart';
 import '../../model/venue.dart';
 import '../database.dart';
 import '../existence.dart';
+import '../utc_datetime.dart';
 
 /// CRUD for [Venue] rows — the reusable venue entity many programs are held at.
 /// Mirrors `PublishedSourceRepository`: editing a venue's address/contacts/
@@ -56,6 +59,30 @@ class VenueRepository {
         key: v.id,
         at: now,
       );
+      // Provenance is a single dependent row keyed on the venue id: delete
+      // then (re)insert so an update refreshes it and a venue that lost its
+      // provenance drops the row. Mirrors ProgramRepository's provenance
+      // handling.
+      await (_db.delete(
+        _db.venueProvenance,
+      )..where((t) => t.venueId.equals(v.id))).go();
+      final prov = v.provenance;
+      if (prov != null) {
+        assertUtc(prov.importedAt, 'venue.provenance.importedAt');
+        await _db
+            .into(_db.venueProvenance)
+            .insert(
+              VenueProvenanceCompanion.insert(
+                venueId: v.id,
+                source: prov.source,
+                externalId: Value(prov.externalId),
+                importedAt: prov.importedAt,
+                permission: Value(prov.permission),
+                license: Value(prov.license),
+                sourceVersion: Value(prov.sourceVersion),
+              ),
+            );
+      }
     });
   }
 
@@ -63,7 +90,9 @@ class VenueRepository {
     final row = await (_db.select(
       _db.venues,
     )..where((t) => t.id.equals(id) & t.deletedAt.isNull())).getSingleOrNull();
-    return row == null ? null : _toModel(row);
+    if (row == null) return null;
+    final prov = await _provenanceFor(id);
+    return _toModel(row, prov);
   }
 
   Future<List<Venue>> listAll() async {
@@ -74,7 +103,9 @@ class VenueRepository {
                 (t) => OrderingTerm(expression: t.name.collate(Collate.noCase)),
               ]))
             .get();
-    return rows.map(_toModel).toList();
+    final ids = [for (final r in rows) r.id];
+    final provByVenue = await _provenanceForMany(ids);
+    return [for (final row in rows) _toModel(row, provByVenue[row.id])];
   }
 
   /// [listAll] as a live stream: the current catalogue immediately, then again
@@ -97,6 +128,11 @@ class VenueRepository {
   /// venue's programs, say. The inferred set would not grow to match, and this
   /// stream would go stale for that data with nothing to indicate it. Add the
   /// table to an explicit `readsFrom` at that point, as the program list does.
+  ///
+  /// **Provenance:** this stream does not include [Venue.provenance]. Venue
+  /// provenance never changes after an import (it is stamped once on mint), so
+  /// staleness is not a concern in practice. Callers that need provenance use
+  /// [listAll] or [getById] instead.
   Stream<List<Venue>> watchAll() =>
       (_db.select(_db.venues)
             ..where((t) => t.deletedAt.isNull())
@@ -104,7 +140,7 @@ class VenueRepository {
               (t) => OrderingTerm(expression: t.name.collate(Collate.noCase)),
             ]))
           .watch()
-          .map((rows) => rows.map(_toModel).toList());
+          .map((rows) => rows.map((r) => _toModel(r, null)).toList());
 
   /// Loads just the set of existing venue ids in a **single** query (only the
   /// `id` column is read — no full-model mapping). This is the batch-safe input
@@ -213,7 +249,7 @@ class VenueRepository {
     }
   }
 
-  Venue _toModel(VenueRow row) => Venue(
+  Venue _toModel(VenueRow row, Provenance? provenance) => Venue(
     id: row.id,
     name: row.name,
     address1: row.address1,
@@ -236,5 +272,66 @@ class VenueRepository {
     contact2Name: row.contact2Name,
     contact2Phone: row.contact2Phone,
     contact2Email: row.contact2Email,
+    provenance: provenance,
   );
+
+  Future<Provenance?> _provenanceFor(String venueId) async {
+    final row = await (_db.select(
+      _db.venueProvenance,
+    )..where((t) => t.venueId.equals(venueId))).getSingleOrNull();
+    return row == null ? null : _provenanceFromRow(row);
+  }
+
+  /// Batched sibling of [_provenanceFor]: resolves provenance for many venues
+  /// via `venue_provenance` queries keyed by `venueId IN (...)`, chunking [ids]
+  /// to stay within SQLite's bound-variable limit (see [_chunkIds]). Venues
+  /// without a provenance row are absent from the map. Used by [listAll] to
+  /// avoid the per-row [_provenanceFor] N+1 fan-out.
+  Future<Map<String, Provenance>> _provenanceForMany(
+    Iterable<String> ids,
+  ) async {
+    final idList = ids.toList();
+    if (idList.isEmpty) return const {};
+    final result = <String, Provenance>{};
+    for (final chunk in _chunkIds(idList)) {
+      final rows = await (_db.select(
+        _db.venueProvenance,
+      )..where((t) => t.venueId.isIn(chunk))).get();
+      for (final row in rows) {
+        result[row.venueId] = _provenanceFromRow(row);
+      }
+    }
+    return result;
+  }
+
+  Provenance _provenanceFromRow(VenueProvenanceRow row) {
+    return Provenance(
+      source: row.source,
+      externalId: row.externalId,
+      importedAt: asUtc(row.importedAt),
+      permission: row.permission,
+      license: row.license,
+      sourceVersion: row.sourceVersion,
+    );
+  }
+
+  /// Maps each existing venue's provenance external id → its venue id, for a
+  /// single [source]. Only rows whose `externalId` is non-null are included
+  /// (null-provenance venues never dedupe). Used by [CompendiumArchiveImporter]
+  /// to detect a re-import: a venue whose `(source, externalId)` key is already
+  /// present repoints incoming programs at the existing record instead of
+  /// minting a duplicate. Mirrors [ProgramRepository.externalIdToProgramId].
+  Future<Map<String, String>> externalIdToVenueId(
+    ProvenanceSource source,
+  ) async {
+    final rows = await (_db.select(
+      _db.venueProvenance,
+    )..where((t) => t.source.equalsValue(source))).get();
+    final map = <String, String>{};
+    for (final row in rows) {
+      final ext = row.externalId;
+      if (ext != null && ext.isNotEmpty) map[ext] = row.venueId;
+    }
+    return map;
+  }
 }

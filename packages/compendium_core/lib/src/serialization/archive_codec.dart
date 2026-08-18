@@ -267,6 +267,7 @@ Map<String, Object?> _venueToJson(Venue v) => {
   if (v.contact2Name != null) 'contact2Name': v.contact2Name,
   if (v.contact2Phone != null) 'contact2Phone': v.contact2Phone,
   if (v.contact2Email != null) 'contact2Email': v.contact2Email,
+  if (v.provenance != null) 'provenance': _provenanceToJson(v.provenance!),
 };
 
 // ---------------------------------------------------------------------------
@@ -926,6 +927,9 @@ Venue _venueFromJson(Map<String, Object?> m) {
     contact2Name: _strOrNull(m, 'contact2Name'),
     contact2Phone: _strOrNull(m, 'contact2Phone'),
     contact2Email: _strOrNull(m, 'contact2Email'),
+    provenance: m['provenance'] == null
+        ? null
+        : _provenanceFromJson(_asMap(m['provenance'], 'provenance')),
   );
 }
 

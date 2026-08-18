@@ -410,6 +410,18 @@ can still fire.
   stay hard, because a rollback must leave nothing to publish. No figure
   index is touched; no derived rebuild is required. Behaviour-preserving
   from the user's point of view: nothing reads `existence_at` yet.
+- v26 (issue #899): provenance-based venue dedupe for shared bundles. Adds
+  one brand-new table, `venue_provenance` (one row per imported venue,
+  keyed on the venue id, mirroring `provenance` and `program_provenance`).
+  The importer stamps provenance on every freshly-minted venue so that
+  re-importing the same bundle can recognise the venue by its exact
+  `(source, external_id)` pair even when the postal address block is absent
+  (it is redacted in shared bundles, making the content-fingerprint path
+  produce no key). Purely additive: `createTable`; no columns are added to
+  existing tables and no data is back-filled (existing imported venues have
+  no `venue_provenance` row and will not provenance-dedupe, but the new path
+  takes effect for every bundle imported after the upgrade). No figure index
+  is touched; no derived rebuild is required.
 
 ## The delete model
 

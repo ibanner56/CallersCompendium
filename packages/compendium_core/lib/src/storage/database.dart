@@ -184,7 +184,7 @@ const String chainHandBackfillDoneKey = '__chain_hand_backfill_done__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 25;
+const int kCompendiumSchemaVersion = 26;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -214,6 +214,19 @@ const int kMinSupportedSchemaVersion = 20;
 /// PR**; `tools/ci/check_version_history.py` fails the build otherwise. It is
 /// kept there because it is a ledger of decisions already shipped, and it grew
 /// on every bump; what constrains this declaration stays below.
+///
+/// - v26 (issue #899): provenance-based venue dedupe for shared bundles.
+///   Adds one brand-new table, `venue_provenance` (one row per imported venue,
+///   keyed on the venue id, mirroring `provenance` and `program_provenance`).
+///   The importer stamps provenance on every freshly-minted venue so that
+///   re-importing the same bundle can recognise the venue by its exact
+///   `(source, external_id)` pair even when the postal address block is absent
+///   (it is redacted in shared bundles, making the content-fingerprint path
+///   produce no key). Purely additive: `createTable`; no columns are added to
+///   existing tables and no data is back-filled (existing imported venues have
+///   no `venue_provenance` row and will not provenance-dedupe, but the new path
+///   takes effect for every bundle imported after the upgrade). No figure index
+///   is touched; no derived rebuild is required.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, (c) ship a test that
@@ -252,6 +265,7 @@ const int kMinSupportedSchemaVersion = 20;
     Settings,
     ProgramProvenance,
     Venues,
+    VenueProvenance,
   ],
 )
 class CompendiumDatabase extends _$CompendiumDatabase {
@@ -600,6 +614,16 @@ class CompendiumDatabase extends _$CompendiumDatabase {
             [t0],
           );
         }
+      }
+
+      if (from < 26) {
+        // Issue #899: provenance-based venue dedupe for shared bundles. Adds
+        // the `venue_provenance` table (one row per imported venue), mirroring
+        // `program_provenance`. Purely additive: no columns on existing tables,
+        // no back-fill, no derived rebuild. Existing imported venues have no
+        // row here and will not provenance-dedupe; the new path takes effect
+        // for every bundle imported after this migration.
+        await m.createTable(venueProvenance);
       }
     },
     beforeOpen: (details) async {

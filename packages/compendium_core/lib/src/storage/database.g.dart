@@ -10070,6 +10070,505 @@ class VenuesCompanion extends UpdateCompanion<VenueRow> {
   }
 }
 
+class $VenueProvenanceTable extends VenueProvenance
+    with TableInfo<$VenueProvenanceTable, VenueProvenanceRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VenueProvenanceTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _venueIdMeta = const VerificationMeta(
+    'venueId',
+  );
+  @override
+  late final GeneratedColumn<String> venueId = GeneratedColumn<String>(
+    'venue_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES venues (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<ProvenanceSource, String> source =
+      GeneratedColumn<String>(
+        'source',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<ProvenanceSource>($VenueProvenanceTable.$convertersource);
+  static const VerificationMeta _externalIdMeta = const VerificationMeta(
+    'externalId',
+  );
+  @override
+  late final GeneratedColumn<String> externalId = GeneratedColumn<String>(
+    'external_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _importedAtMeta = const VerificationMeta(
+    'importedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> importedAt = GeneratedColumn<DateTime>(
+    'imported_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _permissionMeta = const VerificationMeta(
+    'permission',
+  );
+  @override
+  late final GeneratedColumn<String> permission = GeneratedColumn<String>(
+    'permission',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _licenseMeta = const VerificationMeta(
+    'license',
+  );
+  @override
+  late final GeneratedColumn<String> license = GeneratedColumn<String>(
+    'license',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceVersionMeta = const VerificationMeta(
+    'sourceVersion',
+  );
+  @override
+  late final GeneratedColumn<String> sourceVersion = GeneratedColumn<String>(
+    'source_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    venueId,
+    source,
+    externalId,
+    importedAt,
+    permission,
+    license,
+    sourceVersion,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'venue_provenance';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<VenueProvenanceRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('venue_id')) {
+      context.handle(
+        _venueIdMeta,
+        venueId.isAcceptableOrUnknown(data['venue_id']!, _venueIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_venueIdMeta);
+    }
+    if (data.containsKey('external_id')) {
+      context.handle(
+        _externalIdMeta,
+        externalId.isAcceptableOrUnknown(data['external_id']!, _externalIdMeta),
+      );
+    }
+    if (data.containsKey('imported_at')) {
+      context.handle(
+        _importedAtMeta,
+        importedAt.isAcceptableOrUnknown(data['imported_at']!, _importedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_importedAtMeta);
+    }
+    if (data.containsKey('permission')) {
+      context.handle(
+        _permissionMeta,
+        permission.isAcceptableOrUnknown(data['permission']!, _permissionMeta),
+      );
+    }
+    if (data.containsKey('license')) {
+      context.handle(
+        _licenseMeta,
+        license.isAcceptableOrUnknown(data['license']!, _licenseMeta),
+      );
+    }
+    if (data.containsKey('source_version')) {
+      context.handle(
+        _sourceVersionMeta,
+        sourceVersion.isAcceptableOrUnknown(
+          data['source_version']!,
+          _sourceVersionMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {venueId};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {source, externalId},
+  ];
+  @override
+  VenueProvenanceRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return VenueProvenanceRow(
+      venueId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}venue_id'],
+      )!,
+      source: $VenueProvenanceTable.$convertersource.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}source'],
+        )!,
+      ),
+      externalId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}external_id'],
+      ),
+      importedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}imported_at'],
+      )!,
+      permission: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}permission'],
+      ),
+      license: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}license'],
+      ),
+      sourceVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_version'],
+      ),
+    );
+  }
+
+  @override
+  $VenueProvenanceTable createAlias(String alias) {
+    return $VenueProvenanceTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<ProvenanceSource, String, String> $convertersource =
+      const EnumNameConverter(ProvenanceSource.values);
+}
+
+class VenueProvenanceRow extends DataClass
+    implements Insertable<VenueProvenanceRow> {
+  final String venueId;
+  final ProvenanceSource source;
+  final String? externalId;
+  final DateTime importedAt;
+  final String? permission;
+  final String? license;
+  final String? sourceVersion;
+  const VenueProvenanceRow({
+    required this.venueId,
+    required this.source,
+    this.externalId,
+    required this.importedAt,
+    this.permission,
+    this.license,
+    this.sourceVersion,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['venue_id'] = Variable<String>(venueId);
+    {
+      map['source'] = Variable<String>(
+        $VenueProvenanceTable.$convertersource.toSql(source),
+      );
+    }
+    if (!nullToAbsent || externalId != null) {
+      map['external_id'] = Variable<String>(externalId);
+    }
+    map['imported_at'] = Variable<DateTime>(importedAt);
+    if (!nullToAbsent || permission != null) {
+      map['permission'] = Variable<String>(permission);
+    }
+    if (!nullToAbsent || license != null) {
+      map['license'] = Variable<String>(license);
+    }
+    if (!nullToAbsent || sourceVersion != null) {
+      map['source_version'] = Variable<String>(sourceVersion);
+    }
+    return map;
+  }
+
+  VenueProvenanceCompanion toCompanion(bool nullToAbsent) {
+    return VenueProvenanceCompanion(
+      venueId: Value(venueId),
+      source: Value(source),
+      externalId: externalId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(externalId),
+      importedAt: Value(importedAt),
+      permission: permission == null && nullToAbsent
+          ? const Value.absent()
+          : Value(permission),
+      license: license == null && nullToAbsent
+          ? const Value.absent()
+          : Value(license),
+      sourceVersion: sourceVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceVersion),
+    );
+  }
+
+  factory VenueProvenanceRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return VenueProvenanceRow(
+      venueId: serializer.fromJson<String>(json['venueId']),
+      source: $VenueProvenanceTable.$convertersource.fromJson(
+        serializer.fromJson<String>(json['source']),
+      ),
+      externalId: serializer.fromJson<String?>(json['externalId']),
+      importedAt: serializer.fromJson<DateTime>(json['importedAt']),
+      permission: serializer.fromJson<String?>(json['permission']),
+      license: serializer.fromJson<String?>(json['license']),
+      sourceVersion: serializer.fromJson<String?>(json['sourceVersion']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'venueId': serializer.toJson<String>(venueId),
+      'source': serializer.toJson<String>(
+        $VenueProvenanceTable.$convertersource.toJson(source),
+      ),
+      'externalId': serializer.toJson<String?>(externalId),
+      'importedAt': serializer.toJson<DateTime>(importedAt),
+      'permission': serializer.toJson<String?>(permission),
+      'license': serializer.toJson<String?>(license),
+      'sourceVersion': serializer.toJson<String?>(sourceVersion),
+    };
+  }
+
+  VenueProvenanceRow copyWith({
+    String? venueId,
+    ProvenanceSource? source,
+    Value<String?> externalId = const Value.absent(),
+    DateTime? importedAt,
+    Value<String?> permission = const Value.absent(),
+    Value<String?> license = const Value.absent(),
+    Value<String?> sourceVersion = const Value.absent(),
+  }) => VenueProvenanceRow(
+    venueId: venueId ?? this.venueId,
+    source: source ?? this.source,
+    externalId: externalId.present ? externalId.value : this.externalId,
+    importedAt: importedAt ?? this.importedAt,
+    permission: permission.present ? permission.value : this.permission,
+    license: license.present ? license.value : this.license,
+    sourceVersion: sourceVersion.present
+        ? sourceVersion.value
+        : this.sourceVersion,
+  );
+  VenueProvenanceRow copyWithCompanion(VenueProvenanceCompanion data) {
+    return VenueProvenanceRow(
+      venueId: data.venueId.present ? data.venueId.value : this.venueId,
+      source: data.source.present ? data.source.value : this.source,
+      externalId: data.externalId.present
+          ? data.externalId.value
+          : this.externalId,
+      importedAt: data.importedAt.present
+          ? data.importedAt.value
+          : this.importedAt,
+      permission: data.permission.present
+          ? data.permission.value
+          : this.permission,
+      license: data.license.present ? data.license.value : this.license,
+      sourceVersion: data.sourceVersion.present
+          ? data.sourceVersion.value
+          : this.sourceVersion,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VenueProvenanceRow(')
+          ..write('venueId: $venueId, ')
+          ..write('source: $source, ')
+          ..write('externalId: $externalId, ')
+          ..write('importedAt: $importedAt, ')
+          ..write('permission: $permission, ')
+          ..write('license: $license, ')
+          ..write('sourceVersion: $sourceVersion')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    venueId,
+    source,
+    externalId,
+    importedAt,
+    permission,
+    license,
+    sourceVersion,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is VenueProvenanceRow &&
+          other.venueId == this.venueId &&
+          other.source == this.source &&
+          other.externalId == this.externalId &&
+          other.importedAt == this.importedAt &&
+          other.permission == this.permission &&
+          other.license == this.license &&
+          other.sourceVersion == this.sourceVersion);
+}
+
+class VenueProvenanceCompanion extends UpdateCompanion<VenueProvenanceRow> {
+  final Value<String> venueId;
+  final Value<ProvenanceSource> source;
+  final Value<String?> externalId;
+  final Value<DateTime> importedAt;
+  final Value<String?> permission;
+  final Value<String?> license;
+  final Value<String?> sourceVersion;
+  final Value<int> rowid;
+  const VenueProvenanceCompanion({
+    this.venueId = const Value.absent(),
+    this.source = const Value.absent(),
+    this.externalId = const Value.absent(),
+    this.importedAt = const Value.absent(),
+    this.permission = const Value.absent(),
+    this.license = const Value.absent(),
+    this.sourceVersion = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  VenueProvenanceCompanion.insert({
+    required String venueId,
+    required ProvenanceSource source,
+    this.externalId = const Value.absent(),
+    required DateTime importedAt,
+    this.permission = const Value.absent(),
+    this.license = const Value.absent(),
+    this.sourceVersion = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : venueId = Value(venueId),
+       source = Value(source),
+       importedAt = Value(importedAt);
+  static Insertable<VenueProvenanceRow> custom({
+    Expression<String>? venueId,
+    Expression<String>? source,
+    Expression<String>? externalId,
+    Expression<DateTime>? importedAt,
+    Expression<String>? permission,
+    Expression<String>? license,
+    Expression<String>? sourceVersion,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (venueId != null) 'venue_id': venueId,
+      if (source != null) 'source': source,
+      if (externalId != null) 'external_id': externalId,
+      if (importedAt != null) 'imported_at': importedAt,
+      if (permission != null) 'permission': permission,
+      if (license != null) 'license': license,
+      if (sourceVersion != null) 'source_version': sourceVersion,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  VenueProvenanceCompanion copyWith({
+    Value<String>? venueId,
+    Value<ProvenanceSource>? source,
+    Value<String?>? externalId,
+    Value<DateTime>? importedAt,
+    Value<String?>? permission,
+    Value<String?>? license,
+    Value<String?>? sourceVersion,
+    Value<int>? rowid,
+  }) {
+    return VenueProvenanceCompanion(
+      venueId: venueId ?? this.venueId,
+      source: source ?? this.source,
+      externalId: externalId ?? this.externalId,
+      importedAt: importedAt ?? this.importedAt,
+      permission: permission ?? this.permission,
+      license: license ?? this.license,
+      sourceVersion: sourceVersion ?? this.sourceVersion,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (venueId.present) {
+      map['venue_id'] = Variable<String>(venueId.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(
+        $VenueProvenanceTable.$convertersource.toSql(source.value),
+      );
+    }
+    if (externalId.present) {
+      map['external_id'] = Variable<String>(externalId.value);
+    }
+    if (importedAt.present) {
+      map['imported_at'] = Variable<DateTime>(importedAt.value);
+    }
+    if (permission.present) {
+      map['permission'] = Variable<String>(permission.value);
+    }
+    if (license.present) {
+      map['license'] = Variable<String>(license.value);
+    }
+    if (sourceVersion.present) {
+      map['source_version'] = Variable<String>(sourceVersion.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VenueProvenanceCompanion(')
+          ..write('venueId: $venueId, ')
+          ..write('source: $source, ')
+          ..write('externalId: $externalId, ')
+          ..write('importedAt: $importedAt, ')
+          ..write('permission: $permission, ')
+          ..write('license: $license, ')
+          ..write('sourceVersion: $sourceVersion, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$CompendiumDatabase extends GeneratedDatabase {
   _$CompendiumDatabase(QueryExecutor e) : super(e);
   $CompendiumDatabaseManager get managers => $CompendiumDatabaseManager(this);
@@ -10096,6 +10595,9 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
   late final $ProgramProvenanceTable programProvenance =
       $ProgramProvenanceTable(this);
   late final $VenuesTable venues = $VenuesTable(this);
+  late final $VenueProvenanceTable venueProvenance = $VenueProvenanceTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10118,6 +10620,7 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
     settings,
     programProvenance,
     venues,
+    venueProvenance,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -10225,6 +10728,13 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('program_provenance', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'venues',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('venue_provenance', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -17688,6 +18198,32 @@ typedef $$VenuesTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
+final class $$VenuesTableReferences
+    extends BaseReferences<_$CompendiumDatabase, $VenuesTable, VenueRow> {
+  $$VenuesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$VenueProvenanceTable, List<VenueProvenanceRow>>
+  _venueProvenanceRefsTable(_$CompendiumDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.venueProvenance,
+        aliasName: 'venues__id__venue_provenance__venue_id',
+      );
+
+  $$VenueProvenanceTableProcessedTableManager get venueProvenanceRefs {
+    final manager = $$VenueProvenanceTableTableManager(
+      $_db,
+      $_db.venueProvenance,
+    ).filter((f) => f.venueId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _venueProvenanceRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
 class $$VenuesTableFilterComposer
     extends Composer<_$CompendiumDatabase, $VenuesTable> {
   $$VenuesTableFilterComposer({
@@ -17821,6 +18357,31 @@ class $$VenuesTableFilterComposer
     column: $table.existenceAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> venueProvenanceRefs(
+    Expression<bool> Function($$VenueProvenanceTableFilterComposer f) f,
+  ) {
+    final $$VenueProvenanceTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.venueProvenance,
+      getReferencedColumn: (t) => t.venueId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VenueProvenanceTableFilterComposer(
+            $db: $db,
+            $table: $db.venueProvenance,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$VenuesTableOrderingComposer
@@ -18059,6 +18620,31 @@ class $$VenuesTableAnnotationComposer
     column: $table.existenceAt,
     builder: (column) => column,
   );
+
+  Expression<T> venueProvenanceRefs<T extends Object>(
+    Expression<T> Function($$VenueProvenanceTableAnnotationComposer a) f,
+  ) {
+    final $$VenueProvenanceTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.venueProvenance,
+      getReferencedColumn: (t) => t.venueId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VenueProvenanceTableAnnotationComposer(
+            $db: $db,
+            $table: $db.venueProvenance,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$VenuesTableTableManager
@@ -18072,12 +18658,9 @@ class $$VenuesTableTableManager
           $$VenuesTableAnnotationComposer,
           $$VenuesTableCreateCompanionBuilder,
           $$VenuesTableUpdateCompanionBuilder,
-          (
-            VenueRow,
-            BaseReferences<_$CompendiumDatabase, $VenuesTable, VenueRow>,
-          ),
+          (VenueRow, $$VenuesTableReferences),
           VenueRow,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool venueProvenanceRefs})
         > {
   $$VenuesTableTableManager(_$CompendiumDatabase db, $VenuesTable table)
     : super(
@@ -18203,9 +18786,42 @@ class $$VenuesTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) =>
+                    (e.readTable(table), $$VenuesTableReferences(db, table, e)),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({venueProvenanceRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (venueProvenanceRefs) db.venueProvenance,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (venueProvenanceRefs)
+                    await $_getPrefetchedData<
+                      VenueRow,
+                      $VenuesTable,
+                      VenueProvenanceRow
+                    >(
+                      currentTable: table,
+                      referencedTable: $$VenuesTableReferences
+                          ._venueProvenanceRefsTable(db),
+                      managerFromTypedResult: (p0) => $$VenuesTableReferences(
+                        db,
+                        table,
+                        p0,
+                      ).venueProvenanceRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.venueId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -18220,9 +18836,386 @@ typedef $$VenuesTableProcessedTableManager =
       $$VenuesTableAnnotationComposer,
       $$VenuesTableCreateCompanionBuilder,
       $$VenuesTableUpdateCompanionBuilder,
-      (VenueRow, BaseReferences<_$CompendiumDatabase, $VenuesTable, VenueRow>),
+      (VenueRow, $$VenuesTableReferences),
       VenueRow,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool venueProvenanceRefs})
+    >;
+typedef $$VenueProvenanceTableCreateCompanionBuilder =
+    VenueProvenanceCompanion Function({
+      required String venueId,
+      required ProvenanceSource source,
+      Value<String?> externalId,
+      required DateTime importedAt,
+      Value<String?> permission,
+      Value<String?> license,
+      Value<String?> sourceVersion,
+      Value<int> rowid,
+    });
+typedef $$VenueProvenanceTableUpdateCompanionBuilder =
+    VenueProvenanceCompanion Function({
+      Value<String> venueId,
+      Value<ProvenanceSource> source,
+      Value<String?> externalId,
+      Value<DateTime> importedAt,
+      Value<String?> permission,
+      Value<String?> license,
+      Value<String?> sourceVersion,
+      Value<int> rowid,
+    });
+
+final class $$VenueProvenanceTableReferences
+    extends
+        BaseReferences<
+          _$CompendiumDatabase,
+          $VenueProvenanceTable,
+          VenueProvenanceRow
+        > {
+  $$VenueProvenanceTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $VenuesTable _venueIdTable(_$CompendiumDatabase db) =>
+      db.venues.createAlias('venue_provenance__venue_id__venues__id');
+
+  $$VenuesTableProcessedTableManager get venueId {
+    final $_column = $_itemColumn<String>('venue_id')!;
+
+    final manager = $$VenuesTableTableManager(
+      $_db,
+      $_db.venues,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_venueIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$VenueProvenanceTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $VenueProvenanceTable> {
+  $$VenueProvenanceTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnWithTypeConverterFilters<ProvenanceSource, ProvenanceSource, String>
+  get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get externalId => $composableBuilder(
+    column: $table.externalId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get importedAt => $composableBuilder(
+    column: $table.importedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get permission => $composableBuilder(
+    column: $table.permission,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get license => $composableBuilder(
+    column: $table.license,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceVersion => $composableBuilder(
+    column: $table.sourceVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$VenuesTableFilterComposer get venueId {
+    final $$VenuesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.venueId,
+      referencedTable: $db.venues,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VenuesTableFilterComposer(
+            $db: $db,
+            $table: $db.venues,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$VenueProvenanceTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $VenueProvenanceTable> {
+  $$VenueProvenanceTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get externalId => $composableBuilder(
+    column: $table.externalId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get importedAt => $composableBuilder(
+    column: $table.importedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get permission => $composableBuilder(
+    column: $table.permission,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get license => $composableBuilder(
+    column: $table.license,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceVersion => $composableBuilder(
+    column: $table.sourceVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$VenuesTableOrderingComposer get venueId {
+    final $$VenuesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.venueId,
+      referencedTable: $db.venues,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VenuesTableOrderingComposer(
+            $db: $db,
+            $table: $db.venues,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$VenueProvenanceTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $VenueProvenanceTable> {
+  $$VenueProvenanceTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumnWithTypeConverter<ProvenanceSource, String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get externalId => $composableBuilder(
+    column: $table.externalId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get importedAt => $composableBuilder(
+    column: $table.importedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get permission => $composableBuilder(
+    column: $table.permission,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get license =>
+      $composableBuilder(column: $table.license, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceVersion => $composableBuilder(
+    column: $table.sourceVersion,
+    builder: (column) => column,
+  );
+
+  $$VenuesTableAnnotationComposer get venueId {
+    final $$VenuesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.venueId,
+      referencedTable: $db.venues,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$VenuesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.venues,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$VenueProvenanceTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $VenueProvenanceTable,
+          VenueProvenanceRow,
+          $$VenueProvenanceTableFilterComposer,
+          $$VenueProvenanceTableOrderingComposer,
+          $$VenueProvenanceTableAnnotationComposer,
+          $$VenueProvenanceTableCreateCompanionBuilder,
+          $$VenueProvenanceTableUpdateCompanionBuilder,
+          (VenueProvenanceRow, $$VenueProvenanceTableReferences),
+          VenueProvenanceRow,
+          PrefetchHooks Function({bool venueId})
+        > {
+  $$VenueProvenanceTableTableManager(
+    _$CompendiumDatabase db,
+    $VenueProvenanceTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$VenueProvenanceTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$VenueProvenanceTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$VenueProvenanceTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> venueId = const Value.absent(),
+                Value<ProvenanceSource> source = const Value.absent(),
+                Value<String?> externalId = const Value.absent(),
+                Value<DateTime> importedAt = const Value.absent(),
+                Value<String?> permission = const Value.absent(),
+                Value<String?> license = const Value.absent(),
+                Value<String?> sourceVersion = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => VenueProvenanceCompanion(
+                venueId: venueId,
+                source: source,
+                externalId: externalId,
+                importedAt: importedAt,
+                permission: permission,
+                license: license,
+                sourceVersion: sourceVersion,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String venueId,
+                required ProvenanceSource source,
+                Value<String?> externalId = const Value.absent(),
+                required DateTime importedAt,
+                Value<String?> permission = const Value.absent(),
+                Value<String?> license = const Value.absent(),
+                Value<String?> sourceVersion = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => VenueProvenanceCompanion.insert(
+                venueId: venueId,
+                source: source,
+                externalId: externalId,
+                importedAt: importedAt,
+                permission: permission,
+                license: license,
+                sourceVersion: sourceVersion,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$VenueProvenanceTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({venueId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (venueId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.venueId,
+                                referencedTable:
+                                    $$VenueProvenanceTableReferences
+                                        ._venueIdTable(db),
+                                referencedColumn:
+                                    $$VenueProvenanceTableReferences
+                                        ._venueIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$VenueProvenanceTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $VenueProvenanceTable,
+      VenueProvenanceRow,
+      $$VenueProvenanceTableFilterComposer,
+      $$VenueProvenanceTableOrderingComposer,
+      $$VenueProvenanceTableAnnotationComposer,
+      $$VenueProvenanceTableCreateCompanionBuilder,
+      $$VenueProvenanceTableUpdateCompanionBuilder,
+      (VenueProvenanceRow, $$VenueProvenanceTableReferences),
+      VenueProvenanceRow,
+      PrefetchHooks Function({bool venueId})
     >;
 
 class $CompendiumDatabaseManager {
@@ -18261,4 +19254,6 @@ class $CompendiumDatabaseManager {
       $$ProgramProvenanceTableTableManager(_db, _db.programProvenance);
   $$VenuesTableTableManager get venues =>
       $$VenuesTableTableManager(_db, _db.venues);
+  $$VenueProvenanceTableTableManager get venueProvenance =>
+      $$VenueProvenanceTableTableManager(_db, _db.venueProvenance);
 }

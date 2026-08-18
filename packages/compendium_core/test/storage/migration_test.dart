@@ -20,7 +20,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show Variable;
+import 'package:compendium_core/src/storage/database.dart'
+    show VenueProvenanceCompanion, VenuesCompanion;
+import 'package:drift/drift.dart' show Value, Variable;
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
@@ -859,7 +861,6 @@ void main() {
       addTearDown(db.close);
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 25);
     });
 
     test('adds all twenty columns across the eight syncable kinds', () async {
@@ -1121,6 +1122,171 @@ void main() {
         hasRebuildMarker,
         isFalse,
         reason: 'v24->v25 migration must not schedule a derived rebuild',
+      );
+    });
+  });
+
+  group('v25 -> v26 upgrade (issue #899 venue provenance for dedupe)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v26_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v25 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          await packageRootPath(),
+          'test',
+          'storage',
+          'fixtures',
+          'v25.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      await db.customSelect('SELECT 1').get();
+      final version = await db
+          .customSelect('PRAGMA user_version')
+          .map((r) => r.data)
+          .get();
+      expect(version.first.values.first, kCompendiumSchemaVersion);
+    });
+
+    test('creates the venue_provenance table', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      await db.customSelect('SELECT 1').get();
+      final tables = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type='table' "
+            "AND name='venue_provenance'",
+          )
+          .get();
+      expect(tables, hasLength(1), reason: 'venue_provenance must exist');
+    });
+
+    test('existing venue data survives the migration', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      addTearDown(db.close);
+      final venue = await repos.venues.getById('venue-v25');
+      expect(venue, isNotNull);
+      expect(venue!.name, 'Migration Hall v25');
+    });
+
+    test('venue_provenance starts empty (no back-fill)', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      await db.customSelect('SELECT 1').get();
+      final rows = await db
+          .customSelect('SELECT COUNT(*) AS c FROM venue_provenance')
+          .map((r) => r.read<int>('c'))
+          .get();
+      expect(
+        rows.first,
+        0,
+        reason: 'v25->v26 migration must not back-fill venue_provenance',
+      );
+    });
+
+    test(
+      'venue_provenance enforces unique non-null source/external-id pairs',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        addTearDown(db.close);
+        await db.customSelect('SELECT 1').get();
+
+        Future<void> insertVenue(String id) {
+          return db
+              .into(db.venues)
+              .insert(VenuesCompanion.insert(id: id, name: id));
+        }
+
+        Future<void> insertVenueProvenance(String venueId, String? externalId) {
+          return db
+              .into(db.venueProvenance)
+              .insert(
+                VenueProvenanceCompanion.insert(
+                  venueId: venueId,
+                  source: ProvenanceSource.json,
+                  externalId: Value(externalId),
+                  importedAt: DateTime.utc(2026, 1, 1),
+                ),
+              );
+        }
+
+        await insertVenue('venue-a');
+        await insertVenue('venue-b');
+        await insertVenueProvenance('venue-a', 'shared-venue-1');
+
+        await expectLater(
+          insertVenueProvenance('venue-b', 'shared-venue-1'),
+          throwsA(isA<SqliteException>()),
+        );
+      },
+    );
+
+    test('venue_provenance still allows multiple null external ids', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      await db.customSelect('SELECT 1').get();
+
+      await db
+          .into(db.venues)
+          .insert(VenuesCompanion.insert(id: 'venue-a', name: 'venue-a'));
+      await db
+          .into(db.venues)
+          .insert(VenuesCompanion.insert(id: 'venue-b', name: 'venue-b'));
+
+      await db
+          .into(db.venueProvenance)
+          .insert(
+            VenueProvenanceCompanion.insert(
+              venueId: 'venue-a',
+              source: ProvenanceSource.json,
+              externalId: const Value(null),
+              importedAt: DateTime.utc(2026, 1, 1),
+            ),
+          );
+      await db
+          .into(db.venueProvenance)
+          .insert(
+            VenueProvenanceCompanion.insert(
+              venueId: 'venue-b',
+              source: ProvenanceSource.json,
+              externalId: const Value(null),
+              importedAt: DateTime.utc(2026, 1, 1),
+            ),
+          );
+
+      final rows = await db.select(db.venueProvenance).get();
+      expect(rows, hasLength(2));
+    });
+
+    test('no derived rebuild is scheduled by the v25->v26 migration', () async {
+      // A new table with no figure data — the index is untouched.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      final settings = await db
+          .customSelect(
+            "SELECT value_json FROM settings "
+            "WHERE key = '$derivedRebuildRequiredKey'",
+          )
+          .get();
+      final hasRebuildMarker =
+          settings.isNotEmpty &&
+          settings.first.read<String>('value_json') == 'true';
+      expect(
+        hasRebuildMarker,
+        isFalse,
+        reason: 'v25->v26 migration must not schedule a derived rebuild',
       );
     });
   });
