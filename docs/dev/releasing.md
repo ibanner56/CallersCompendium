@@ -714,15 +714,16 @@ gh workflow run release.yml
 When `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
 `AZURE_SIGNING_ACCOUNT_NAME`, and `AZURE_CERT_PROFILE_NAME` are configured as
 repository variables, the Windows matrix leg authenticates through the federated
-managed identity using GitHub OIDC. It signs every `.exe` and `.dll` in the
+Entra application/service principal using GitHub OIDC. It signs every `.exe` and
+`.dll` in the
 Flutter release bundle before creating the portable ZIP, then signs the generated
 Inno Setup installer. The signing endpoint is the WUS2 Azure Trusted Signing
 endpoint (`https://wus2.codesigning.azure.net/`).
 
 The variables must be paired with an Azure federated credential for the
-`ibanner56/CallersCompendium` release workflow and the managed identity must have
-the Artifact Signing Certificate Profile Signer role. If any variable is absent,
-the Windows leg intentionally produces the existing unsigned artifacts.
+`ibanner56/CallersCompendium` release workflow and the service principal must
+have the Artifact Signing Certificate Profile Signer role. If any variable is
+absent, the Windows leg intentionally produces the existing unsigned artifacts.
 
 ## macOS (Developer ID signed + notarized)
 

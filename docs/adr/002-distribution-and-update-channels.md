@@ -270,7 +270,8 @@ Program (**$99/yr**). (Flutter: *Build and release a macOS app*.)
 > [docs/dev/releasing.md](../dev/releasing.md#macos-developer-id-signed--notarized).
 
 > **Windows Trusted Signing is implemented (gated on repository variables).**
-> The release workflow uses GitHub OIDC with the configured managed identity,
+> The release workflow uses GitHub OIDC with the configured federated Entra
+> application/service principal,
 > signs the Windows bundle and generated installer in WUS2, and retains the
 > unsigned fallback when the variables are absent. See
 > [docs/dev/releasing.md](../dev/releasing.md#windows-azure-trusted-signing).
