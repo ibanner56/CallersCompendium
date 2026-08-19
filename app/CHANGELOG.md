@@ -13,7 +13,7 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Changed
 
-- **Windows release artifacts are now Azure Trusted Signed** when the release
+- **Windows release artifacts are now signed via Azure Trusted Signing** when the release
   workflow's repository variables are configured: the portable bundle binaries
   and generated installer are signed through the WUS2 endpoint. Releases retain
   an unsigned fallback when that configuration is absent.
