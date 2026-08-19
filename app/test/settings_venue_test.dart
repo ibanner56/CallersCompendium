@@ -15,7 +15,7 @@ import 'package:compendium_app/src/screens/venue_manager_screen.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 
-Future<ValueNotifier<bool>> _pumpGeneral(
+Future<ValueNotifier<bool>> _pumpProgram(
   WidgetTester tester,
   CompendiumRepositories repos, {
   bool initialMode = false,
@@ -55,7 +55,7 @@ Future<ValueNotifier<bool>> _pumpGeneral(
   );
   await tester.pumpAndSettle();
 
-  await tester.tap(find.byKey(const ValueKey('settings-nav-general')));
+  await tester.tap(find.byKey(const ValueKey('settings-nav-program')));
   await tester.pumpAndSettle();
   return venueMode;
 }
@@ -68,7 +68,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
-    await _pumpGeneral(tester, repos);
+    await _pumpProgram(tester, repos);
 
     final toggle = find.byKey(const ValueKey('general-venue-entity-mode'));
     expect(toggle, findsOneWidget);
@@ -80,7 +80,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
-    final notifier = await _pumpGeneral(tester, repos);
+    final notifier = await _pumpProgram(tester, repos);
 
     await tester.tap(find.byKey(const ValueKey('general-venue-entity-mode')));
     await tester.pumpAndSettle();
@@ -99,7 +99,7 @@ void main() {
 
   testWidgets('manage venues row opens the venue manager', (tester) async {
     final repos = openTestRepositories();
-    await _pumpGeneral(tester, repos);
+    await _pumpProgram(tester, repos);
 
     await tester.tap(find.byKey(const ValueKey('general-manage-venues')));
     await tester.pumpAndSettle();

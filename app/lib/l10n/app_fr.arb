@@ -152,6 +152,10 @@
   "@settingsGeneralTitle": {
     "x-sourceSha256": "c910d474dcd724bff83ddedeb06bf1eceaf9fb3af7c76bb282be057f36e6dffa"
   },
+  "settingsProgramTitle": "Programme",
+  "@settingsProgramTitle": {
+    "x-sourceSha256": "90920d93e2c7e6323a947c6edb0e31a9702002e329af32a67fea53f221983cb0"
+  },
   "settingsAppearanceTitle": "Apparence",
   "@settingsAppearanceTitle": {
     "x-sourceSha256": "3907fa7f80722a6fc58cd8c1bd30abf7638095d6774f183b6e831b7093957d1b"

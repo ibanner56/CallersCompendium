@@ -200,6 +200,10 @@
   "@settingsGeneralTitle": {
     "description": "Settings section navigation title (sidebar/app bar) for general app preferences: backup, restore, import, performance."
   },
+  "settingsProgramTitle": "Program",
+  "@settingsProgramTitle": {
+    "description": "Settings section navigation title (sidebar/app bar) for program-related preferences: venues, the programming matrix, Perform mode, and calling history."
+  },
   "settingsAppearanceTitle": "Appearance",
   "@settingsAppearanceTitle": {
     "description": "Settings section navigation title (sidebar/app bar) for visual appearance: theme, colours, easter eggs."

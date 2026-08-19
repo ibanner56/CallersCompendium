@@ -14,10 +14,10 @@ import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 
-/// Pumps the [SettingsScreen] (General is opened explicitly) with the scopes
+/// Pumps the [SettingsScreen] (Program is opened explicitly) with the scopes
 /// it depends on, including a [MatrixCollisionModeScope] seeded from
 /// [initialExactBeatCollision] (issue #962).
-Future<ValueNotifier<bool>> _pumpGeneral(
+Future<ValueNotifier<bool>> _pumpProgram(
   WidgetTester tester,
   CompendiumRepositories repos, {
   bool initialExactBeatCollision = true,
@@ -60,7 +60,7 @@ Future<ValueNotifier<bool>> _pumpGeneral(
   );
   await tester.pumpAndSettle();
 
-  await tester.tap(find.byKey(const ValueKey('settings-nav-general')));
+  await tester.tap(find.byKey(const ValueKey('settings-nav-program')));
   await tester.pumpAndSettle();
   await tester.scrollUntilVisible(
     find.byKey(const ValueKey('general-matrix-exact-beat-collision')),
@@ -77,7 +77,7 @@ void main() {
 
   testWidgets('matrix exact-beat-collision toggle defaults on', (tester) async {
     final repos = openTestRepositories();
-    await _pumpGeneral(tester, repos);
+    await _pumpProgram(tester, repos);
 
     final toggle = find.byKey(
       const ValueKey('general-matrix-exact-beat-collision'),
@@ -88,7 +88,7 @@ void main() {
 
   testWidgets('reflects an initial off value from the scope', (tester) async {
     final repos = openTestRepositories();
-    await _pumpGeneral(tester, repos, initialExactBeatCollision: false);
+    await _pumpProgram(tester, repos, initialExactBeatCollision: false);
 
     final toggle = find.byKey(
       const ValueKey('general-matrix-exact-beat-collision'),
@@ -100,7 +100,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
-    final notifier = await _pumpGeneral(tester, repos);
+    final notifier = await _pumpProgram(tester, repos);
 
     await tester.tap(
       find.byKey(const ValueKey('general-matrix-exact-beat-collision')),
