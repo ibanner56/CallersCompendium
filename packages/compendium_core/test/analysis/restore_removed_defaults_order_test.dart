@@ -13,12 +13,6 @@ void main() {
       );
       expect(order.take(3), ['swing:partner', 'hey:full', 'do_si_do']);
       expect(order.sublist(3).toSet(), {'param:aaa', 'compound:bbb'});
-      // Every custom comes after every built-in.
-      final firstCustom = order.indexWhere((id) => id.startsWith('param:'));
-      expect(
-        order.take(firstCustom),
-        everyElement(isNot(startsWith('param:'))),
-      );
     });
 
     test(
