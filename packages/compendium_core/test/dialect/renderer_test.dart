@@ -1455,7 +1455,7 @@ void main() {
               move: 'promenade',
               params: {
                 'dir': 'along',
-                'destination': 'next neighbors',
+                'destination': 'nextNeighbors',
                 'turn': 'clockwise',
               },
             ),
