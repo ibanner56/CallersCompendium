@@ -1762,20 +1762,18 @@ class FigureRenderer {
     // default) — unchanged since v27. `turn` (v30) uses the same
     // stated-vs-silenced rule as the non-singleFile branch below.
     //
-    // DISPLAY (singleFile=false, v30 #989): `turn` and `dir` are jointly
-    // silenced ONLY at the pure-default combination (`dir=='across' &&
-    // turn=='counterclockwise'` — i.e. nothing meaningful was ever stated),
-    // reproducing the pre-v30 "partner promenade" baseline exactly. Any
-    // departure from that pure-default pair — a non-default `dir`, a
-    // non-default `turn`, OR a stated `destination` — shows BOTH tokens
-    // together, never just one alone. This is not an arbitrary choice: it is
-    // the unique rule consistent with all of the maintainer's own worked
-    // examples in #989 (verified case-by-case, recorded in the v30 docs
-    // entry):
+    // DISPLAY (singleFile=false, v30 #989): the pure-default combination
+    // (`dir=='across' && turn=='counterclockwise'`) silences both tokens.
+    // A non-default `turn` or a stated `destination` shows both tokens. The
+    // `along` direction also shows the concrete default turn, while other
+    // non-default directions show only the direction when the turn remains
+    // at its default. These cases preserve the implemented v30 behavior:
     //   - dir=across, turn=ccw (defaults): "partner promenade" (unchanged)
-    //   - dir=along, turn=ccw (only dir stated): "partner promenade along"
-    //     (unchanged — turn's concrete default stays silent when nothing
-    //     else is going on)
+    //   - dir=along, turn=ccw (only dir stated): "partner promenade
+    //     counterclockwise along" (the `along` exception shows the default)
+    //   - dir=rightDiagonal, turn=ccw (only dir stated): "partner promenade
+    //     right diagonal" (other non-default directions leave the default
+    //     turn silent)
     //   - dir=across, turn=cw (only turn stated): "neighbor promenade
     //     clockwise across" — turn being non-default un-silences `across` too
     //     (a bare "clockwise" alone doesn't say what's being turned across)
@@ -1783,13 +1781,12 @@ class FigureRenderer {
     //     promenade counterclockwise right diagonal to prev neighbors" — a
     //     stated destination un-silences turn even though it's the default,
     //     because "to prev neighbors" alone doesn't say which way they travel
-    // This is a genuine, deliberate behavior change (not a display-only
-    // cosmetic tweak): a promenade that states ONLY a non-default `dir`
-    // (unaccompanied by any `turn` or `destination`) still omits the
-    // `counterclockwise` default per the second bullet — the taxonomy cannot
-    // distinguish "turn not stated" from "turn stated as its own default"
-    // because v30's default is concrete, not the sentinel (owner-decided
-    // tradeoff, see `contra_taxonomy.dart`).
+    // The `along` exception is intentional: the taxonomy cannot distinguish
+    // "turn not stated" from "turn stated as its own default" because v30's
+    // default is concrete, not the sentinel (see `contra_taxonomy.dart`).
+    // Other non-default directions therefore keep the default turn silent
+    // unless a non-default turn or destination supplies the additional
+    // statement.
     //
     // CANONICAL: handled by the `if (forCanonical)` block in `_render` (not by
     // this entry). Canonical never silences a concrete default (existing
@@ -1815,8 +1812,9 @@ class FigureRenderer {
         // `who` is dropped (importer artefact; `everyone` has no
         // choreographic significance). `dir` always included (even `across`
         // default) so display matches what source stated and aligns with
-        // the canonical form. `turn` (v30): shown whenever non-default OR a
-        // destination is stated, same rule as the non-singleFile branch.
+        // the canonical form. `turn` (v30): shown whenever non-default or a
+        // destination is stated. Unlike the non-singleFile branch, `dir=='along'`
+        // does not add a separate default-turn exception here.
         final dir = _displayScalar(dirRaw);
         final showTurn =
             !_isUnspecified(turnRaw) && (turnRaw != turnDefault || destStated);
@@ -1832,9 +1830,10 @@ class FigureRenderer {
         ].where((s) => s.isNotEmpty).join(' ');
       }
       final swho = r._subjectWho(params, dialect);
-      // v30 (#989): `turn` shown iff it is non-default OR a destination is
-      // stated. `dir` shown iff `turn` is being shown (joint silencing — see
-      // the class comment above) OR `dir` itself is non-default.
+      // v30 (#989): `turn` shown iff it is non-default, a destination is
+      // stated, or the non-default `along` direction is selected. `dir` is
+      // shown iff `turn` is being shown (joint silencing — see the class
+      // comment above) OR `dir` itself is non-default.
       final showTurn =
           !_isUnspecified(turnRaw) &&
           (turnRaw != turnDefault || destStated || dirRaw == 'along');
