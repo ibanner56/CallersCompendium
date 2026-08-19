@@ -10,9 +10,10 @@ This is the operator runbook for cutting a desktop release. It documents the
 > [`store-submission/`](store-submission/README.md).
 
 > **Scope of this wave.** Desktop builds are **free** — no paid accounts. The
-> **Linux** (`tar.gz`/AppImage) and **Windows** (installer/`zip`) artifacts are
-> **UNSIGNED**: until Windows Authenticode lands, Windows users bypass the
-> SmartScreen prompt manually ("More info → Run anyway"). **macOS is the
+> **Linux** (`tar.gz`/AppImage) artifacts are **UNSIGNED**. Windows
+> (installer/`zip`) artifacts use Azure Trusted Signing when the five
+> `AZURE_*` repository variables are configured; otherwise Windows users bypass
+> the SmartScreen prompt manually ("More info → Run anyway"). **macOS is the
 > desktop exception:** the release pipeline **Developer ID-signs and notarizes**
 > the `.app`/`.dmg`/`.zip` (hardened runtime + `notarytool` + stapled ticket)
 > once the maintainer adds the Apple secrets — see
@@ -708,10 +709,26 @@ gh workflow run release.yml
 > workflow from the tagged commit and produces a **draft** (never public);
 > delete the draft release and the tag afterward.
 
+## Windows (Azure Trusted Signing)
+
+When `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
+`AZURE_SIGNING_ACCOUNT_NAME`, and `AZURE_CERT_PROFILE_NAME` are configured as
+repository variables, the Windows matrix leg authenticates through the federated
+Entra application/service principal using GitHub OIDC. It signs every `.exe` and
+`.dll` in the
+Flutter release bundle before creating the portable ZIP, then signs the generated
+Inno Setup installer. The signing endpoint is the WUS2 Azure Trusted Signing
+endpoint (`https://wus2.codesigning.azure.net/`).
+
+The variables must be paired with an Azure federated credential for the
+`ibanner56/CallersCompendium` release workflow and the service principal must
+have the Artifact Signing Certificate Profile Signer role. If any variable is
+absent, the Windows leg intentionally produces the existing unsigned artifacts.
+
 ## macOS (Developer ID signed + notarized)
 
-Unlike the Linux and Windows desktop artifacts (which are **unsigned** — users
-bypass the OS prompt manually), the macOS `.app`/`.dmg`/`.zip` are
+Unlike the Linux desktop artifacts (which are **unsigned** — Linux users follow
+the platform-specific install guidance), the macOS `.app`/`.dmg`/`.zip` are
 **Developer ID-signed and notarized** so Gatekeeper opens them without a
 right-click workaround. This is the ADR-002 §6 direct-distribution (non-App
 Store) path: a **Developer ID Application** certificate + Apple's **`notarytool`**

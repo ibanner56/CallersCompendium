@@ -133,15 +133,16 @@ It runs on both iPhone and iPad.
 
 ## The first-time security warning, explained
 
-The **Windows** and **Linux** builds aren't code-signed yet, so the first time
-you open the app your operating system may show a caution. Nothing is wrong with
-the download — signing is a step planned for a later release. (The **macOS**
-build is signed and notarized, so it opens normally, and **iOS** comes through
-TestFlight, which needs no workaround.) Here's how to get past the prompt where
-it appears.
+The **Linux** build is not code-signed. Linux generally doesn't show a signing prompt, but you may need to mark the AppImage as runnable.
+Windows release artifacts are signed via Azure Trusted Signing when the `AZURE_*`
+repository variables are configured; an unsigned fallback may still show
+SmartScreen. Nothing is wrong with the download. (The **macOS** build is signed
+and notarized, so it opens normally, and **iOS** comes through TestFlight, which
+needs no workaround.) Here's how to get past the prompt where it appears.
 
-- **Windows (SmartScreen).** On the blue **Windows protected your PC** prompt,
-  choose **More info**, then choose **Run anyway**.
+- **Windows (unsigned fallback).** If the release was built without the Azure
+  signing variables, on the blue **Windows protected your PC** prompt choose
+  **More info**, then choose **Run anyway**.
 - **Linux.** There's no signing prompt to bypass. Just make sure the AppImage is
   marked as runnable (see [Install on Linux](#install-on-linux)), or use the
   `tar.gz` archive instead.

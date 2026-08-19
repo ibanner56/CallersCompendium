@@ -60,8 +60,10 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  Developer ID-signed + notarized when the `APPLE_*` secrets are configured (the
  sign/notarize/staple + `codesign`/`spctl` verify steps ran on **that tag's**
  release run); without the secrets the macOS leg is a clean UNSIGNED build.
- **Windows and Linux are still UNSIGNED** (expected) — note that explicitly so
- testers aren't surprised by SmartScreen/Gatekeeper warnings.
+ **Windows is signed via Azure Trusted Signing when its five `AZURE_*` repository variables
+ are configured; otherwise it remains UNSIGNED. Linux remains UNSIGNED** —
+ confirm the actual tag run's Windows signing and installer-signing steps, and
+ note any expected SmartScreen warning for an unsigned fallback.
 - [ ] iOS build is SIGNED + uploaded to TestFlight — on the **actual tag push**
  (which archives + signs the App Store `.ipa` via automatic signing and runs
  `xcrun altool --upload-app` because `APPLE_API_KEY_P8` / `APPLE_API_KEY_ID` /
