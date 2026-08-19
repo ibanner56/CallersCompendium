@@ -1818,7 +1818,8 @@ class FigureRenderer {
         // the canonical form. `turn` (v30): shown whenever non-default OR a
         // destination is stated, same rule as the non-singleFile branch.
         final dir = _displayScalar(dirRaw);
-        final showTurn = turnRaw != turnDefault || destStated;
+        final showTurn =
+            !_isUnspecified(turnRaw) && (turnRaw != turnDefault || destStated);
         final turn = showTurn ? _displayScalar(turnRaw) : '';
         final dest = destStated
             ? 'to ${destRaw is String ? r._displayGroup(destRaw, dialect) : _displayScalar(destRaw)}'
