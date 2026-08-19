@@ -128,6 +128,24 @@ details are handled when you export.
   at all — this was the matrix's original behavior. The screen legend and the
   printed PDF legend always agree with whichever mode is on.
 
+- **Matrix columns** — opens a dedicated editor for the columns of the
+  [programming matrix](./programs.md#check-your-evening-with-the-matrix). These
+  changes are saved and apply to **every** program, both on screen and in the
+  printed PDF — distinct from the per-session eye icon in a matrix's own header,
+  which only hides a column until you reopen that program. In the editor you can:
+  - **Reorder** columns by dragging the handle on the left of each row.
+  - **Rename** a column with a name that suits your callers; leave the field
+    empty to fall back to the built-in name (shown as a hint).
+  - **Remove** a column you never use, or **restore** one you removed earlier —
+    removed columns stay listed here (struck through) so you can always bring
+    them back.
+  - **Restore removed columns** brings back everything you removed and returns the
+    built-in columns to their original order, while keeping your renames and any
+    custom columns.
+  - **Restore defaults** clears every customisation and returns the matrix to how
+    it ships. Because it discards your renames and custom columns, it asks you to
+    confirm first.
+
 ### Performance
 
 - **Auto-size Perform cards** (on) — scales each card so it fits the screen in

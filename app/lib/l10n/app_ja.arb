@@ -896,6 +896,62 @@
   "@settingsGeneralMatrixExactCollisionSubtitle": {
     "x-sourceSha256": "d433fe862ddd3dc1f28811aa7a4fdf16562e53f4ad6e664bb57d18586a978c77"
   },
+  "settingsMatrixColumnsHeader": "マトリクスの列",
+  "@settingsMatrixColumnsHeader": {
+    "x-sourceSha256": "97677d73528538ac01a2289458bc8a0e7a0fd937d5306437fc4b6cd98b617f94"
+  },
+  "settingsMatrixColumnsSubtitle": "プログラミングマトリクスに表示される列を並べ替え、名前変更、または削除します。変更はすべてのプログラムに適用されます。",
+  "@settingsMatrixColumnsSubtitle": {
+    "x-sourceSha256": "a923fcb0980209c9171fbe9fee4cf1f3a2c4f704731a92a6237411706b6bd13c"
+  },
+  "settingsMatrixColumnsDragToReorder": "ドラッグして{label}列を並べ替え",
+  "@settingsMatrixColumnsDragToReorder": {
+    "x-sourceSha256": "aceb3d0609969f6a6e7761ea093479f243ff773b14b3f77dcbcea13058e0e65a"
+  },
+  "settingsMatrixColumnsRenamedBadge": "名前変更済み",
+  "@settingsMatrixColumnsRenamedBadge": {
+    "x-sourceSha256": "05487af3f074b4f31e4f9a1ec75044ab182f037a7978e1a8909c42103fb1297a"
+  },
+  "settingsMatrixColumnsRenameTooltip": "列の名前を変更",
+  "@settingsMatrixColumnsRenameTooltip": {
+    "x-sourceSha256": "330f94268dd0a326453ae56726f8bc033e009ab65666d89525644a1ad26c5fb9"
+  },
+  "settingsMatrixColumnsRemoveTooltip": "列を削除",
+  "@settingsMatrixColumnsRemoveTooltip": {
+    "x-sourceSha256": "9807a23d19fdf7b2ba48b6b66d5f996444a8ab2e758b5453e1c36e6da99a986d"
+  },
+  "settingsMatrixColumnsRestoreTooltip": "列を復元",
+  "@settingsMatrixColumnsRestoreTooltip": {
+    "x-sourceSha256": "be8579c76881431d6c6e493b9dddd1167329f5cf41a5d8a470cea08bb4d62276"
+  },
+  "settingsMatrixColumnsRenameTitle": "列の名前を変更",
+  "@settingsMatrixColumnsRenameTitle": {
+    "x-sourceSha256": "330f94268dd0a326453ae56726f8bc033e009ab65666d89525644a1ad26c5fb9"
+  },
+  "settingsMatrixColumnsRenameLabel": "列ラベル",
+  "@settingsMatrixColumnsRenameLabel": {
+    "x-sourceSha256": "7036f73df7286849ba4ad7069dcc66653dd0bcf15e642946563ca594794b9556"
+  },
+  "settingsMatrixColumnsResetRemoved": "削除した既定の列を復元",
+  "@settingsMatrixColumnsResetRemoved": {
+    "x-sourceSha256": "7b33347d9e7e2310530f20572077f6d2b1d2a68d6de07ca9de5e047f107adccd"
+  },
+  "settingsMatrixColumnsResetTrue": "初期設定に戻す",
+  "@settingsMatrixColumnsResetTrue": {
+    "x-sourceSha256": "5aba6c3ba8da3b9750d7f6995fc9a6c899ac2154d6f0be1122096e0d2177898d"
+  },
+  "settingsMatrixColumnsResetTrueTitle": "初期設定に戻しますか？",
+  "@settingsMatrixColumnsResetTrueTitle": {
+    "x-sourceSha256": "15fb3312e204eb0368c4577ca1190fa4c9ee69c8cf06bcc25c8ed162b80297aa"
+  },
+  "settingsMatrixColumnsResetTrueBody": "列の並べ替え、名前変更、削除（カスタム列を含む）をすべて消去し、マトリクスを既定の列に戻します。この操作は元に戻せません。",
+  "@settingsMatrixColumnsResetTrueBody": {
+    "x-sourceSha256": "0fe78ad2546c3d2d324e4da409b7775c33e3fb619ba1ad1fa62ff3c168ab58da"
+  },
+  "settingsMatrixColumnsResetTrueConfirm": "既定に戻す",
+  "@settingsMatrixColumnsResetTrueConfirm": {
+    "x-sourceSha256": "602f8e637002a585092d04310da6f16cba500d1940e4201239bb56e00314137a"
+  },
   "settingsGeneralPerformanceHeader": "パフォーマンス",
   "@settingsGeneralPerformanceHeader": {
     "x-sourceSha256": "442aded87a55aa8c8f7d5ff0c30228150d4b1cb8756e4be138d615ca4708fc26"

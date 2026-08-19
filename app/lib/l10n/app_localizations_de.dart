@@ -814,6 +814,56 @@ class AppLocalizationsDe extends AppLocalizations {
       'In der Programmiermatrix wird eine wiederholte Figur zwischen zwei aufeinanderfolgenden Tänzen nur markiert, wenn sich ihre Takte tatsächlich überschneiden — nicht schon, wenn sie in dieselbe benannte Phrase (A1, A2, B1, B2…) fällt. Schalte dies aus, um jede Wiederholung in derselben Phrase zu markieren, selbst wenn sich die Takte selbst nicht überschneiden.';
 
   @override
+  String get settingsMatrixColumnsHeader => 'Matrixspalten';
+
+  @override
+  String get settingsMatrixColumnsSubtitle =>
+      'Ordnen Sie die Spalten der Programmiermatrix neu an, benennen Sie sie um oder entfernen Sie sie. Änderungen gelten für jedes Programm.';
+
+  @override
+  String settingsMatrixColumnsDragToReorder(String label) {
+    return 'Ziehen, um Spalte $label neu anzuordnen';
+  }
+
+  @override
+  String get settingsMatrixColumnsRenamedBadge => 'Umbenannt';
+
+  @override
+  String get settingsMatrixColumnsRenameTooltip => 'Spalte umbenennen';
+
+  @override
+  String get settingsMatrixColumnsRemoveTooltip => 'Spalte entfernen';
+
+  @override
+  String get settingsMatrixColumnsRestoreTooltip => 'Spalte wiederherstellen';
+
+  @override
+  String get settingsMatrixColumnsRenameTitle => 'Spalte umbenennen';
+
+  @override
+  String get settingsMatrixColumnsRenameLabel => 'Spaltenbezeichnung';
+
+  @override
+  String get settingsMatrixColumnsResetRemoved =>
+      'Entfernte Standardspalten wiederherstellen';
+
+  @override
+  String get settingsMatrixColumnsResetTrue =>
+      'Echte Standardeinstellungen wiederherstellen';
+
+  @override
+  String get settingsMatrixColumnsResetTrueTitle =>
+      'Echte Standardeinstellungen wiederherstellen?';
+
+  @override
+  String get settingsMatrixColumnsResetTrueBody =>
+      'Dadurch werden alle Umsortierungen, Umbenennungen und Entfernungen von Spalten – einschließlich benutzerdefinierter Spalten – gelöscht und die Matrix wird auf ihre Standardspalten zurückgesetzt. Dies kann nicht rückgängig gemacht werden.';
+
+  @override
+  String get settingsMatrixColumnsResetTrueConfirm =>
+      'Standard wiederherstellen';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Leistung';
 
   @override

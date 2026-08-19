@@ -805,6 +805,55 @@ class AppLocalizationsNl extends AppLocalizations {
       'In de programmeringsmatrix wordt een herhaalde figuur tussen twee opeenvolgende dansen alleen gemarkeerd als de beats daadwerkelijk overlappen — niet alleen wanneer deze in dezelfde benoemde frase (A1, A2, B1, B2…) valt. Zet uit om elke herhaling in dezelfde frase te markeren, ook als de beats zelf niet overlappen.';
 
   @override
+  String get settingsMatrixColumnsHeader => 'Matrixkolommen';
+
+  @override
+  String get settingsMatrixColumnsSubtitle =>
+      'Herschik, hernoem of verwijder de kolommen in de programmamatrix. Wijzigingen gelden voor elk programma.';
+
+  @override
+  String settingsMatrixColumnsDragToReorder(String label) {
+    return 'Sleep om kolom $label te herschikken';
+  }
+
+  @override
+  String get settingsMatrixColumnsRenamedBadge => 'Hernoemd';
+
+  @override
+  String get settingsMatrixColumnsRenameTooltip => 'Kolom hernoemen';
+
+  @override
+  String get settingsMatrixColumnsRemoveTooltip => 'Kolom verwijderen';
+
+  @override
+  String get settingsMatrixColumnsRestoreTooltip => 'Kolom herstellen';
+
+  @override
+  String get settingsMatrixColumnsRenameTitle => 'Kolom hernoemen';
+
+  @override
+  String get settingsMatrixColumnsRenameLabel => 'Kolomlabel';
+
+  @override
+  String get settingsMatrixColumnsResetRemoved =>
+      'Verwijderde standaardkolommen herstellen';
+
+  @override
+  String get settingsMatrixColumnsResetTrue =>
+      'Oorspronkelijke standaard herstellen';
+
+  @override
+  String get settingsMatrixColumnsResetTrueTitle =>
+      'Oorspronkelijke standaard herstellen?';
+
+  @override
+  String get settingsMatrixColumnsResetTrueBody =>
+      'Hiermee worden alle herschikkingen, hernoemingen en verwijderingen van kolommen gewist — inclusief eventuele aangepaste kolommen — en keert de matrix terug naar de standaardkolommen. Dit kan niet ongedaan worden gemaakt.';
+
+  @override
+  String get settingsMatrixColumnsResetTrueConfirm => 'Standaard herstellen';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Uitvoering';
 
   @override

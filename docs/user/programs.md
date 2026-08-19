@@ -212,6 +212,15 @@ Here is how to read it:
   beside the PDF button — it is available only while something is hidden. The
   pinned **Formation** column cannot be hidden, since it is part of each dance's
   identity rather than a move.
+- **Reorder, rename, or remove columns for good** in
+  **Settings ▸ Program ▸ Matrix columns**. Unlike the per-session eye icon above,
+  changes there are saved and apply to **every** program, on screen and in the
+  printed PDF: drag a column to a new position, give it a name that suits your
+  callers, or remove one you never use. Removed columns can be brought back at any
+  time, and two reset controls restore the built-in columns or wipe every
+  customisation. See
+  [Settings ▸ Program ▸ Programs](./settings.md#programs) for the
+  full walkthrough.
 
 The matrix shows **presence, not counts** — whether a move is in a dance, not how
 many times, and not the order the moves come in. That is exactly what you want

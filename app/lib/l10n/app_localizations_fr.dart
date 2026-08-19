@@ -820,6 +820,56 @@ class AppLocalizationsFr extends AppLocalizations {
       'Dans la matrice de programmation, ne signaler une figure répétée entre deux danses consécutives que lorsque ses temps se chevauchent réellement — pas seulement lorsqu\'elle tombe dans la même phrase nommée (A1, A2, B1, B2…). Désactivez pour signaler toute répétition dans la même phrase, même si les temps eux-mêmes ne se chevauchent pas.';
 
   @override
+  String get settingsMatrixColumnsHeader => 'Colonnes de la matrice';
+
+  @override
+  String get settingsMatrixColumnsSubtitle =>
+      'Réorganisez, renommez ou supprimez les colonnes affichées dans la matrice de programmation. Les modifications s\'appliquent à tous les programmes.';
+
+  @override
+  String settingsMatrixColumnsDragToReorder(String label) {
+    return 'Faire glisser pour réorganiser la colonne $label';
+  }
+
+  @override
+  String get settingsMatrixColumnsRenamedBadge => 'Renommée';
+
+  @override
+  String get settingsMatrixColumnsRenameTooltip => 'Renommer la colonne';
+
+  @override
+  String get settingsMatrixColumnsRemoveTooltip => 'Supprimer la colonne';
+
+  @override
+  String get settingsMatrixColumnsRestoreTooltip => 'Restaurer la colonne';
+
+  @override
+  String get settingsMatrixColumnsRenameTitle => 'Renommer la colonne';
+
+  @override
+  String get settingsMatrixColumnsRenameLabel => 'Libellé de la colonne';
+
+  @override
+  String get settingsMatrixColumnsResetRemoved =>
+      'Restaurer les colonnes supprimées par défaut';
+
+  @override
+  String get settingsMatrixColumnsResetTrue =>
+      'Restaurer les valeurs par défaut d\'origine';
+
+  @override
+  String get settingsMatrixColumnsResetTrueTitle =>
+      'Restaurer les valeurs par défaut d\'origine ?';
+
+  @override
+  String get settingsMatrixColumnsResetTrueBody =>
+      'Cela efface toutes les réorganisations, renommages et suppressions de colonnes — y compris les colonnes personnalisées — et rétablit les colonnes par défaut de la matrice. Cette action est irréversible.';
+
+  @override
+  String get settingsMatrixColumnsResetTrueConfirm =>
+      'Restaurer les valeurs par défaut';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Performance';
 
   @override

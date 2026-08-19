@@ -22,6 +22,13 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Edit the program-matrix columns** — a new **Settings → Program → Matrix
+  columns** editor lets you reorder, rename, and remove the matrix's built-in
+  columns app-wide. Changes apply live on screen and in the PDF export. Removed
+  columns stay listed so you can restore them, and two reset controls bring back
+  removed columns (keeping your renames) or restore the shipped defaults behind a
+  confirm. (issue #935)
+
 - **Configurable program-matrix columns (foundation)** — the program matrix can
   now honour an app-wide column configuration: built-in columns can be hidden,
   reordered, and renamed, applied live wherever the matrix is shown (on-screen
