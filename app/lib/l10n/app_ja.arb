@@ -932,9 +932,9 @@
   "@settingsMatrixColumnsRenameLabel": {
     "x-sourceSha256": "7036f73df7286849ba4ad7069dcc66653dd0bcf15e642946563ca594794b9556"
   },
-  "settingsMatrixColumnsResetRemoved": "削除した既定の列を復元",
+  "settingsMatrixColumnsResetRemoved": "削除した列を復元",
   "@settingsMatrixColumnsResetRemoved": {
-    "x-sourceSha256": "7b33347d9e7e2310530f20572077f6d2b1d2a68d6de07ca9de5e047f107adccd"
+    "x-sourceSha256": "eef52a509d4369d8a2dbd005139538ccfda5c3f1c1e7768e1db5e608e866845c"
   },
   "settingsMatrixColumnsResetTrue": "すべての既定値に戻す",
   "@settingsMatrixColumnsResetTrue": {

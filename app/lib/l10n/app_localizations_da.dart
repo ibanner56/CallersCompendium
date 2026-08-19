@@ -836,8 +836,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsMatrixColumnsRenameLabel => 'Kolonneetiket';
 
   @override
-  String get settingsMatrixColumnsResetRemoved =>
-      'Gendan fjernede standardkolonner';
+  String get settingsMatrixColumnsResetRemoved => 'Gendan fjernede kolonner';
 
   @override
   String get settingsMatrixColumnsResetTrue => 'Gendan alle standarder';

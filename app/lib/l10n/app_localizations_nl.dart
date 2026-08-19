@@ -836,7 +836,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsMatrixColumnsResetRemoved =>
-      'Verwijderde standaardkolommen herstellen';
+      'Verwijderde kolommen herstellen';
 
   @override
   String get settingsMatrixColumnsResetTrue =>

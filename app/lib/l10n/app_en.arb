@@ -1077,9 +1077,9 @@
   "@settingsMatrixColumnsRenameLabel": {
     "description": "Label for the text field in the matrix-column rename dialog; leaving it empty restores the default label."
   },
-  "settingsMatrixColumnsResetRemoved": "Restore removed defaults",
+  "settingsMatrixColumnsResetRemoved": "Restore removed columns",
   "@settingsMatrixColumnsResetRemoved": {
-    "description": "Button that un-hides removed built-in columns and restores their default order, keeping renames and custom columns."
+    "description": "Button that restores removed built-in columns and restores their default order, keeping renames and custom columns."
   },
   "settingsMatrixColumnsResetTrue": "Restore all defaults",
   "@settingsMatrixColumnsResetTrue": {

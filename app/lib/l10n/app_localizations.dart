@@ -1508,10 +1508,10 @@ abstract class AppLocalizations {
   /// **'Column label'**
   String get settingsMatrixColumnsRenameLabel;
 
-  /// Button that un-hides removed built-in columns and restores their default order, keeping renames and custom columns.
+  /// Button that restores removed built-in columns and restores their default order, keeping renames and custom columns.
   ///
   /// In en, this message translates to:
-  /// **'Restore removed defaults'**
+  /// **'Restore removed columns'**
   String get settingsMatrixColumnsResetRemoved;
 
   /// Button that clears all matrix-column customisation back to the app defaults.

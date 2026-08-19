@@ -845,7 +845,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsMatrixColumnsResetRemoved =>
-      'Entfernte Standardspalten wiederherstellen';
+      'Entfernte Spalten wiederherstellen';
 
   @override
   String get settingsMatrixColumnsResetTrue =>

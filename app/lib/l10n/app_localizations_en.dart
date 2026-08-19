@@ -831,7 +831,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsMatrixColumnsRenameLabel => 'Column label';
 
   @override
-  String get settingsMatrixColumnsResetRemoved => 'Restore removed defaults';
+  String get settingsMatrixColumnsResetRemoved => 'Restore removed columns';
 
   @override
   String get settingsMatrixColumnsResetTrue => 'Restore all defaults';

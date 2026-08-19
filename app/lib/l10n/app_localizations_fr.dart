@@ -851,7 +851,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsMatrixColumnsResetRemoved =>
-      'Restaurer les colonnes supprimées par défaut';
+      'Restaurer les colonnes supprimées';
 
   @override
   String get settingsMatrixColumnsResetTrue =>

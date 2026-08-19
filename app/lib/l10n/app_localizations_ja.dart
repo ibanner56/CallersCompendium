@@ -812,7 +812,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsMatrixColumnsRenameLabel => '列ラベル';
 
   @override
-  String get settingsMatrixColumnsResetRemoved => '削除した既定の列を復元';
+  String get settingsMatrixColumnsResetRemoved => '削除した列を復元';
 
   @override
   String get settingsMatrixColumnsResetTrue => 'すべての既定値に戻す';
