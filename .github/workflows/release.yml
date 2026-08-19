@@ -179,6 +179,37 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # Windows signing gate, mirroring the Android/macOS/iOS gates below. Read the 
+      # Azure configuration variables via `env:` here and export a plain step output
+      # (`signing=configured|missing`) that the Windows build/package steps below
+      # gate on. When the variables are absent (not yet configured by the
+      # maintainer) the Windows leg is a clean no-op: it stages UNSIGNED binaries
+      # and still succeeds. `mkdir -p dist` keeps the shared "List/Upload" steps
+      # happy on that skip path.
+      - name: Determine Windows signing availability
+        if: matrix.platform == 'windows'
+        id: windows_signing
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_SIGNING_ACCOUNT_NAME: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME }}
+          AZURE_CERT_PROFILE_NAME: ${{ vars.AZURE_CERT_PROFILE_NAME }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          if [ -n "${AZURE_CLIENT_ID:-}" ] \
+            && [ -n "${AZURE_TENANT_ID:-}" ] \
+            && [ -n "${AZURE_SUBSCRIPTION_ID:-}" ] \
+            && [ -n "${AZURE_SIGNING_ACCOUNT_NAME:-}" ] \
+            && [ -n "${AZURE_CERT_PROFILE_NAME:-}" ]; then
+            echo "signing=configured" >> "$GITHUB_OUTPUT"
+            echo "Windows Azure Artifact Signing secrets configured; signing the Windows binaries."
+          else
+            echo "signing=missing" >> "$GITHUB_OUTPUT"
+            echo "::notice::Windows Azure signing not configured; producing UNSIGNED Windows artifacts (unchanged from today)."
+          fi
+
       # Android signing gate. `secrets` context is NOT allowed in a step-level
       # `if:`, so read the keystore secret via `env:` here and export a plain
       # step output (`signing=configured|missing`) that the android build/package
@@ -907,6 +938,23 @@ jobs:
         if: matrix.platform == 'windows'
         working-directory: app
         run: flutter build windows --release
+
+      - name: Azure Login
+        if: matrix.platform == 'windows' && steps.windows_signing.outputs.signing == 'configured'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign Windows binaries with Azure Artifact Signing
+        if: matrix.platform == 'windows' && steps.windows_signing.outputs.signing == 'configured'
+        uses: Azure/artifact-signing-action@v1
+        with:
+          current-tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          protected-item-name: ${{ vars.AZURE_CERT_PROFILE_NAME }}
+          trusted-signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME }}
+          files-to-sign: app/build/windows/x64/runner/Release/compendium_app.exe
 
       - name: Package Windows (zip + installer)
         if: matrix.platform == 'windows'
