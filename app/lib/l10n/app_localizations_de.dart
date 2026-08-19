@@ -849,11 +849,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsMatrixColumnsResetTrue =>
-      'Echte Standardeinstellungen wiederherstellen';
+      'Alle Standardeinstellungen wiederherstellen';
 
   @override
   String get settingsMatrixColumnsResetTrueTitle =>
-      'Echte Standardeinstellungen wiederherstellen?';
+      'Alle Standardeinstellungen wiederherstellen?';
 
   @override
   String get settingsMatrixColumnsResetTrueBody =>

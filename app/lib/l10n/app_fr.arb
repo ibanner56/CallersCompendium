@@ -936,13 +936,13 @@
   "@settingsMatrixColumnsResetRemoved": {
     "x-sourceSha256": "7b33347d9e7e2310530f20572077f6d2b1d2a68d6de07ca9de5e047f107adccd"
   },
-  "settingsMatrixColumnsResetTrue": "Restaurer les valeurs par défaut d'origine",
+  "settingsMatrixColumnsResetTrue": "Restaurer toutes les valeurs par défaut",
   "@settingsMatrixColumnsResetTrue": {
-    "x-sourceSha256": "5aba6c3ba8da3b9750d7f6995fc9a6c899ac2154d6f0be1122096e0d2177898d"
+    "x-sourceSha256": "852b18700e935563af668b8706259da2dea54c90c4012f6843c22d1005033c52"
   },
-  "settingsMatrixColumnsResetTrueTitle": "Restaurer les valeurs par défaut d'origine ?",
+  "settingsMatrixColumnsResetTrueTitle": "Restaurer toutes les valeurs par défaut ?",
   "@settingsMatrixColumnsResetTrueTitle": {
-    "x-sourceSha256": "15fb3312e204eb0368c4577ca1190fa4c9ee69c8cf06bcc25c8ed162b80297aa"
+    "x-sourceSha256": "bf5c00240e2ff9d8ea793e0681b7a1813f0ec874c4e0d10c61b682599509545b"
   },
   "settingsMatrixColumnsResetTrueBody": "Cela efface toutes les réorganisations, renommages et suppressions de colonnes — y compris les colonnes personnalisées — et rétablit les colonnes par défaut de la matrice. Cette action est irréversible.",
   "@settingsMatrixColumnsResetTrueBody": {

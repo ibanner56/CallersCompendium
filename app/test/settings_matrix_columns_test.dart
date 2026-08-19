@@ -178,7 +178,7 @@ void main() {
       expect(config.order, [...catalogIds, 'param:z']);
     });
 
-    testWidgets('restore true defaults asks to confirm, then empties config', (
+    testWidgets('restore all defaults asks to confirm, then empties config', (
       tester,
     ) async {
       const initial = MatrixColumnConfig(hidden: {'do_si_do'});

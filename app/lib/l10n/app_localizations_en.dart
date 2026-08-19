@@ -834,10 +834,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsMatrixColumnsResetRemoved => 'Restore removed defaults';
 
   @override
-  String get settingsMatrixColumnsResetTrue => 'Restore true defaults';
+  String get settingsMatrixColumnsResetTrue => 'Restore all defaults';
 
   @override
-  String get settingsMatrixColumnsResetTrueTitle => 'Restore true defaults?';
+  String get settingsMatrixColumnsResetTrueTitle => 'Restore all defaults?';
 
   @override
   String get settingsMatrixColumnsResetTrueBody =>

@@ -143,7 +143,7 @@ class MatrixColumnEditor extends StatelessWidget {
     );
   }
 
-  /// D4: restore true defaults — replace the whole config with the empty
+  /// D4: restore all defaults — replace the whole config with the empty
   /// (today's) config. Destructive, so the caller gates it behind a confirm.
   void _restoreTrueDefaults() => onConfigChanged(MatrixColumnConfig.empty);
 

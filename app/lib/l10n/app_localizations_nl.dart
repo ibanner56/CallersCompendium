@@ -840,11 +840,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsMatrixColumnsResetTrue =>
-      'Oorspronkelijke standaard herstellen';
+      'Alle standaardinstellingen herstellen';
 
   @override
   String get settingsMatrixColumnsResetTrueTitle =>
-      'Oorspronkelijke standaard herstellen?';
+      'Alle standaardinstellingen herstellen?';
 
   @override
   String get settingsMatrixColumnsResetTrueBody =>

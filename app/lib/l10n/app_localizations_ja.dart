@@ -815,10 +815,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsMatrixColumnsResetRemoved => '削除した既定の列を復元';
 
   @override
-  String get settingsMatrixColumnsResetTrue => '初期設定に戻す';
+  String get settingsMatrixColumnsResetTrue => 'すべての既定値に戻す';
 
   @override
-  String get settingsMatrixColumnsResetTrueTitle => '初期設定に戻しますか？';
+  String get settingsMatrixColumnsResetTrueTitle => 'すべての既定値に戻しますか？';
 
   @override
   String get settingsMatrixColumnsResetTrueBody =>

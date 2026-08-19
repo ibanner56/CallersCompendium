@@ -840,11 +840,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Gendan fjernede standardkolonner';
 
   @override
-  String get settingsMatrixColumnsResetTrue => 'Gendan oprindelige standarder';
+  String get settingsMatrixColumnsResetTrue => 'Gendan alle standarder';
 
   @override
-  String get settingsMatrixColumnsResetTrueTitle =>
-      'Gendan oprindelige standarder?';
+  String get settingsMatrixColumnsResetTrueTitle => 'Gendan alle standarder?';
 
   @override
   String get settingsMatrixColumnsResetTrueBody =>

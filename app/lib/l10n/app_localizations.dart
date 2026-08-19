@@ -1517,22 +1517,22 @@ abstract class AppLocalizations {
   /// Button that clears all matrix-column customisation back to the app defaults.
   ///
   /// In en, this message translates to:
-  /// **'Restore true defaults'**
+  /// **'Restore all defaults'**
   String get settingsMatrixColumnsResetTrue;
 
-  /// Title of the confirmation dialog for restoring the matrix columns to true defaults.
+  /// Title of the confirmation dialog for restoring all matrix-column defaults.
   ///
   /// In en, this message translates to:
-  /// **'Restore true defaults?'**
+  /// **'Restore all defaults?'**
   String get settingsMatrixColumnsResetTrueTitle;
 
-  /// Body of the confirmation dialog warning that restoring true defaults discards all customisation.
+  /// Body of the confirmation dialog warning that restoring all defaults discards all customisation.
   ///
   /// In en, this message translates to:
   /// **'This clears every column reorder, rename, and removal — including any custom columns — and returns the matrix to its default columns. This can\'t be undone.'**
   String get settingsMatrixColumnsResetTrueBody;
 
-  /// Confirm button in the restore-true-defaults dialog.
+  /// Confirm button in the restore-all-defaults dialog.
   ///
   /// In en, this message translates to:
   /// **'Restore defaults'**

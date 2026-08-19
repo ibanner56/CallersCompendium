@@ -855,11 +855,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsMatrixColumnsResetTrue =>
-      'Restaurer les valeurs par défaut d\'origine';
+      'Restaurer toutes les valeurs par défaut';
 
   @override
   String get settingsMatrixColumnsResetTrueTitle =>
-      'Restaurer les valeurs par défaut d\'origine ?';
+      'Restaurer toutes les valeurs par défaut ?';
 
   @override
   String get settingsMatrixColumnsResetTrueBody =>

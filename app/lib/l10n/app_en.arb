@@ -1081,21 +1081,21 @@
   "@settingsMatrixColumnsResetRemoved": {
     "description": "Button that un-hides removed built-in columns and restores their default order, keeping renames and custom columns."
   },
-  "settingsMatrixColumnsResetTrue": "Restore true defaults",
+  "settingsMatrixColumnsResetTrue": "Restore all defaults",
   "@settingsMatrixColumnsResetTrue": {
     "description": "Button that clears all matrix-column customisation back to the app defaults."
   },
-  "settingsMatrixColumnsResetTrueTitle": "Restore true defaults?",
+  "settingsMatrixColumnsResetTrueTitle": "Restore all defaults?",
   "@settingsMatrixColumnsResetTrueTitle": {
-    "description": "Title of the confirmation dialog for restoring the matrix columns to true defaults."
+    "description": "Title of the confirmation dialog for restoring all matrix-column defaults."
   },
   "settingsMatrixColumnsResetTrueBody": "This clears every column reorder, rename, and removal — including any custom columns — and returns the matrix to its default columns. This can't be undone.",
   "@settingsMatrixColumnsResetTrueBody": {
-    "description": "Body of the confirmation dialog warning that restoring true defaults discards all customisation."
+    "description": "Body of the confirmation dialog warning that restoring all defaults discards all customisation."
   },
   "settingsMatrixColumnsResetTrueConfirm": "Restore defaults",
   "@settingsMatrixColumnsResetTrueConfirm": {
-    "description": "Confirm button in the restore-true-defaults dialog."
+    "description": "Confirm button in the restore-all-defaults dialog."
   },
   "settingsGeneralPerformanceHeader": "Performance",
   "@settingsGeneralPerformanceHeader": {
