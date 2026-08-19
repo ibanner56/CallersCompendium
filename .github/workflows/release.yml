@@ -1031,6 +1031,7 @@ jobs:
       # happy on that skip path.
       - name: Determine Windows signing availability
         id: windows_signing
+        shell: bash
         env:
           AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
           AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
@@ -1166,6 +1167,7 @@ jobs:
           files: ${{ github.workspace }}\dist\CallersCompendium-${{ needs.meta.outputs.version }}-windows-x64.exe
 
       - name: List packaged artifacts
+        shell: bash
         run: ls -l dist
 
       - name: Upload packaged artifacts
