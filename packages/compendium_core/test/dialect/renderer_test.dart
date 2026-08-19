@@ -1431,13 +1431,37 @@ void main() {
           'partner promenade',
         );
       });
-      test('promenade keeps a non-default direction', () {
+      test('promenade keeps a non-default direction and gains '
+          'the default turn "counterclockwise"', () {
         expect(
           renderer.render(
             Figure(move: 'promenade', params: {'dir': 'along'}),
             d,
           ),
-          'partner promenade along',
+          'partner promenade counterclockwise along',
+        );
+      });
+      test('promenade keeps a non-default direction and drops '
+          'turn for directions without turns', () {
+        expect(
+          renderer.render(Figure(move: 'promenade', params: {'dir': 'up'}), d),
+          'partner promenade up',
+        );
+      });
+      test('promenade gains target when set', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'promenade',
+              params: {
+                'dir': 'along',
+                'destination': 'next neighbors',
+                'turn': 'clockwise',
+              },
+            ),
+            d,
+          ),
+          'partner promenade clockwise along to next neighbors',
         );
       });
       test('pull_by_direction drops the default "along"', () {
