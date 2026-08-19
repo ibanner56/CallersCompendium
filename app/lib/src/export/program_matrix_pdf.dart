@@ -70,6 +70,7 @@ Future<Uint8List> buildProgramMatrixPdf(
   pw.ThemeData? theme,
   pw.Font? markerFont,
   String Function(Formation formation)? formatFormation,
+  MatrixColumnConfig config = MatrixColumnConfig.empty,
 }) async {
   final fmtDate = formatDate ?? _isoDate;
   final fmtFormation = formatFormation ?? _englishFormationLabel;
@@ -114,6 +115,7 @@ Future<Uint8List> buildProgramMatrixPdf(
             labels,
             resolvedMarkerFont,
             fmtFormation,
+            config,
           ),
         ],
         if (omittedFreeTextCount > 0) ...[
@@ -137,9 +139,11 @@ pw.Widget _matrixTable(
   ProgramMatrixExportLabels labels,
   pw.Font markerFont,
   String Function(Formation formation) fmtFormation,
+  MatrixColumnConfig config,
 ) {
   final columnLabels = [
-    for (final c in matrix.columns) matrixColumnLabel(c, taxonomy, dialect),
+    for (final c in matrix.columns)
+      matrixColumnLabel(c, taxonomy, dialect, config: config),
   ];
 
   final headerStyle = pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold);

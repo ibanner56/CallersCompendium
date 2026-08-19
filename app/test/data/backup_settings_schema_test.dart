@@ -1,6 +1,9 @@
 import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart'
     show kAggressiveBeatsUpdateKey;
 import 'package:compendium_app/src/data/backup_settings_schema.dart';
+import 'package:compendium_app/src/screens/settings/settings_keys.dart'
+    show kProgramMatrixColumnsKey;
+import 'package:compendium_core/compendium_core.dart' show MatrixColumnConfig;
 import 'package:compendium_app/src/data/soft_delete_retention.dart'
     show kSoftDeleteRetentionKey;
 import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart'
@@ -114,6 +117,45 @@ void main() {
       expect(
         validateBackupSettingValue(kShorthandMappingsKey, <String, int>{
           'a': 1,
+        }),
+        isFalse,
+      );
+    });
+
+    test('program-matrix column config (#935): only a codec-parseable Map', () {
+      // A valid config Map round-trips through the codec and is accepted.
+      final valid = const MatrixColumnConfig(
+        hidden: {'do_si_do'},
+        renames: {'do_si_do': 'Dosido'},
+      ).toJson();
+      expect(
+        validateBackupSettingValue(kProgramMatrixColumnsKey, valid),
+        isTrue,
+      );
+      // An empty Map is a valid (default) config.
+      expect(
+        validateBackupSettingValue(
+          kProgramMatrixColumnsKey,
+          <String, Object?>{},
+        ),
+        isTrue,
+      );
+      // Non-Map values are rejected outright.
+      expect(
+        validateBackupSettingValue(kProgramMatrixColumnsKey, 'nope'),
+        isFalse,
+      );
+      expect(
+        validateBackupSettingValue(kProgramMatrixColumnsKey, <Object?>[]),
+        isFalse,
+      );
+      // A Map the codec rejects (mis-namespaced custom id) is dropped rather
+      // than reaching the throwing decode path at restore.
+      expect(
+        validateBackupSettingValue(kProgramMatrixColumnsKey, {
+          'parameterized': [
+            {'id': 'swing', 'baseMove': 'swing'},
+          ],
         }),
         isFalse,
       );

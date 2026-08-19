@@ -46,6 +46,7 @@ import '../model/formation.dart';
 import '../model/phrase_structure.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/taxonomy.dart';
+import 'matrix_column_config.dart';
 
 /// What kind of move a [MatrixColumn] represents, so the UI can label and
 /// order it appropriately.
@@ -71,6 +72,19 @@ enum MatrixColumnKind {
   /// the parent move and the variant are carried in [MatrixColumn.baseMoveId]
   /// / [MatrixColumn.variant] so the label function can render the header.
   split,
+
+  /// A user-defined [ParameterizedColumn] (issue #935) — a specific figure
+  /// captured with priority over the built-in columns (Phase 4). Its
+  /// [MatrixColumn.moveId] is the opaque `param:<uuid>` id; it has no built-in
+  /// label, so [matrixColumnLabel] renders its header from
+  /// [MatrixColumnConfig.renames]. Defined in Phase 2; routing is Phase 4.
+  parameterized,
+
+  /// A user-defined [CompoundColumn] (issue #935) — a contiguous figure
+  /// sequence flagged per dance (Phase 5). Its [MatrixColumn.moveId] is the
+  /// opaque `compound:<uuid>` id, labelled from
+  /// [MatrixColumnConfig.renames]. Defined in Phase 2; matching is Phase 5.
+  compound,
 }
 
 /// The parent move id for [swingColumnKey]-style split columns.
@@ -623,11 +637,25 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// to [MatrixCollisionMode.exactBeats] — the callers deriving the on-screen
 /// matrix and its PDF export both read this from the "flag exact beat overlap
 /// only" setting.
+///
+/// [config] applies the app-wide [MatrixColumnConfig] (issue #935) to the
+/// **display** of built-in columns only: columns whose id is in
+/// [MatrixColumnConfig.hidden] are dropped from [ProgramMatrix.columns], and the
+/// surviving columns are reordered by [MatrixColumnConfig.order] (listed ids
+/// first, in that order; unlisted ids keep their natural derived order after).
+/// Presence, program-debut, collision, and first-figure analysis are computed
+/// over **every** column and are untouched — hiding and reordering are a
+/// render-layer transform over the same analysis. [MatrixColumnConfig.renames]
+/// is a label-only override applied by [matrixColumnLabel], not here. The
+/// parameterized/compound lists do not affect routing in this phase.
+/// [config] defaults to [MatrixColumnConfig.empty], which reproduces the matrix
+/// exactly as it built before this config existed.
 ProgramMatrix buildProgramMatrix(
   List<Dance> dances, {
   Taxonomy? taxonomy,
   List<ProgramHalf?>? halves,
   MatrixCollisionMode collisionMode = MatrixCollisionMode.exactBeats,
+  MatrixColumnConfig config = MatrixColumnConfig.empty,
 }) {
   final tax = taxonomy ?? contraTaxonomy;
   if (halves != null && halves.length != dances.length) {
@@ -784,12 +812,53 @@ ProgramMatrix buildProgramMatrix(
     }
   }
 
+  // Apply the app-wide column config to DISPLAY only (issue #935): hide, then
+  // reorder. Analysis maps above are built over every column and stay intact.
+  final displayColumns = _applyColumnConfig(columns, config);
+
   return ProgramMatrix(
-    columns: columns,
+    columns: displayColumns,
     rows: rows,
     programDebutRowByMove: programDebutRowByMove,
     collisionMode: collisionMode,
   );
+}
+
+/// Applies [config]'s [MatrixColumnConfig.hidden] and [MatrixColumnConfig.order]
+/// to a built column list, returning the columns to display. Hidden ids are
+/// dropped; the rest are ordered by their id's position in
+/// [MatrixColumnConfig.order], with ids absent from `order` keeping their
+/// original relative order **after** the listed ones (a stable partition —
+/// never `List.sort`, which is not guaranteed stable). Ids in `order`/`hidden`
+/// that aren't present in [columns] are inert. Returns [columns] unchanged for
+/// the empty (default) config — today's behaviour, no allocation on the hot path.
+List<MatrixColumn> _applyColumnConfig(
+  List<MatrixColumn> columns,
+  MatrixColumnConfig config,
+) {
+  if (config.isEmpty) return columns;
+
+  final visible = config.hidden.isEmpty
+      ? columns
+      : [
+          for (final c in columns)
+            if (!config.hidden.contains(c.moveId)) c,
+        ];
+
+  if (config.order.isEmpty) return visible;
+
+  final orderIndex = <String, int>{};
+  for (var i = 0; i < config.order.length; i++) {
+    orderIndex.putIfAbsent(config.order[i], () => i);
+  }
+
+  final listed = <MatrixColumn>[];
+  final unlisted = <MatrixColumn>[];
+  for (final c in visible) {
+    (orderIndex.containsKey(c.moveId) ? listed : unlisted).add(c);
+  }
+  listed.sort((a, b) => orderIndex[a.moveId]!.compareTo(orderIndex[b.moveId]!));
+  return [...listed, ...unlisted];
 }
 
 /// Human label for a matrix [column] under [dialect], routed through the same
@@ -814,12 +883,36 @@ ProgramMatrix buildProgramMatrix(
 ///   substitutions (those using `%S`, which need a specific figure's
 ///   shoulder/hand) can't be resolved at the column level, so they fall back
 ///   to the display name;
-/// - unknown → the raw move id (nothing silently dropped).
+/// - unknown → the raw move id (nothing silently dropped);
+/// - parameterized / compound → the user-defined header from
+///   [MatrixColumnConfig.renames] (Phase 4/5 columns have no built-in label),
+///   falling back to the raw id if none is set.
+///
+/// [config] supplies renames (issue #935): a [MatrixColumnConfig.renames] entry
+/// for [column]'s id **overrides** every default above, so a caller can rename
+/// any column — built-in or custom — with one code path. Defaults to
+/// [MatrixColumnConfig.empty] so existing callers and tests are unaffected.
 String matrixColumnLabel(
   MatrixColumn column,
   Taxonomy taxonomy,
-  Dialect dialect,
-) {
+  Dialect dialect, {
+  MatrixColumnConfig config = MatrixColumnConfig.empty,
+}) {
+  final rename = config.renames[column.moveId];
+  if (rename != null) return rename;
+  switch (column.kind) {
+    case MatrixColumnKind.parameterized:
+    case MatrixColumnKind.compound:
+      // No built-in label; a header comes only from renames (handled above).
+      // Fall back to the raw id so nothing renders blank before Phase 3's UI
+      // guarantees a label.
+      return column.moveId;
+    case MatrixColumnKind.custom:
+    case MatrixColumnKind.split:
+    case MatrixColumnKind.known:
+    case MatrixColumnKind.unknown:
+      break;
+  }
   if (column.isCustom) return 'Custom';
   if (column.isSplit) return _splitColumnLabel(column, taxonomy, dialect);
   final def = taxonomy.resolve(column.moveId);
@@ -922,4 +1015,68 @@ String _splitColumnLabel(
     _ => swing,
   };
   return _roleColumnLabel(role, moveWord, dialect);
+}
+
+/// The parent move ids that [buildProgramMatrix] expands into split columns.
+const Set<String> _splitParentMoveIds = {
+  swingMoveId,
+  heyMoveId,
+  allemandeMoveId,
+  chainMoveId,
+};
+
+/// Every **possible** built-in matrix column under [taxonomy], in the same
+/// order [buildProgramMatrix] would emit them if every move were present
+/// (issue #935). This is the enumeration Phase 3's column editor lists and
+/// Phase 4/5 match against — the built-in matrix is present-only and derived at
+/// build time, so there is no stored structure to read the configurable columns
+/// from; this reconstructs the full set.
+///
+/// Emits, in order: for each move in [Taxonomy.moves] definition order, either
+/// its split sub-columns (swing: every role, each as a bare column plus its
+/// `balance`/`meltdown` sub-columns; hey: `half`/`full`; allemande/chain: every
+/// role) or a single [MatrixColumnKind.known] column; then each alias whose
+/// target move is **not** itself split (a split-target alias folds into the
+/// target's split column and never gets its own — see [columnKeyForFigure]);
+/// then the single trailing [customMove] bucket. The emitted [MatrixColumn.moveId]
+/// strings are exactly the ids used as column keys elsewhere (`swing:partner`,
+/// `swing:partner:balance`, `hey:full`, `do_si_do`, `customMove`, …), so a
+/// config keyed by them lines up with a built matrix's columns.
+List<MatrixColumn> builtInColumnCatalog(Taxonomy taxonomy) {
+  final columns = <MatrixColumn>[];
+  for (final id in taxonomy.moves.keys) {
+    if (id == swingMoveId) {
+      for (final variant in _swingVariantOrder) {
+        columns.add(_splitColumn(swingMoveId, variant));
+        for (final prefixVariant in _swingPrefixVariantOrder) {
+          columns.add(_splitColumn(swingMoveId, '$variant:$prefixVariant'));
+        }
+      }
+    } else if (id == heyMoveId) {
+      for (final variant in _heyVariantOrder) {
+        columns.add(_splitColumn(heyMoveId, variant));
+      }
+    } else if (id == allemandeMoveId) {
+      for (final variant in _roleVariantOrder) {
+        columns.add(_splitColumn(allemandeMoveId, variant));
+      }
+    } else if (id == chainMoveId) {
+      for (final variant in _roleVariantOrder) {
+        columns.add(_splitColumn(chainMoveId, variant));
+      }
+    } else {
+      columns.add(MatrixColumn(moveId: id, kind: MatrixColumnKind.known));
+    }
+  }
+
+  for (final alias in taxonomy.aliases.values) {
+    final targetId = taxonomy.resolve(alias.id)?.id;
+    if (targetId != null && _splitParentMoveIds.contains(targetId)) continue;
+    columns.add(MatrixColumn(moveId: alias.id, kind: MatrixColumnKind.known));
+  }
+
+  columns.add(
+    const MatrixColumn(moveId: customMove, kind: MatrixColumnKind.custom),
+  );
+  return columns;
 }

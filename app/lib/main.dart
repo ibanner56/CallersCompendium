@@ -39,6 +39,7 @@ import 'src/data/require_performed_for_history_scope.dart';
 import 'src/data/track_history_for_all_callers_scope.dart';
 import 'src/data/seed_service.dart';
 import 'src/data/matrix_collision_mode_scope.dart';
+import 'src/data/program_matrix_column_config_scope.dart';
 import 'src/data/set_list_color_coding_scope.dart';
 import 'src/data/shorthand_mappings_controller.dart';
 import 'src/data/shorthand_mappings_scope.dart';
@@ -64,6 +65,7 @@ import 'src/screens/settings_screen.dart'
         kColourDanceThemeKey,
         kCollectionTileVisibleFieldsKey,
         kMatrixExactBeatCollisionKey,
+        kProgramMatrixColumnsKey,
         kRequirePerformedForHistoryKey,
         kSortIgnoreArticlesKey,
         kTrackHistoryForAllCallersKey,
@@ -295,6 +297,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<bool> _matrixExactBeatCollisionNotifier = ValueNotifier(
     true,
   );
+  final ValueNotifier<MatrixColumnConfig> _programMatrixColumnsNotifier =
+      ValueNotifier(MatrixColumnConfig.empty);
   final ValueNotifier<DateFormatSetting> _dateFormatNotifier = ValueNotifier(
     DateFormatSetting.system,
   );
@@ -800,6 +804,19 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (matrixExactBeatCollision is bool) {
       _matrixExactBeatCollisionNotifier.value = matrixExactBeatCollision;
     }
+    // Load the app-wide program-matrix column configuration (issue #935),
+    // defaulting to the empty config (today's default matrix) when unset. The
+    // codec tolerates a stored blob with dangling built-in ids; a malformed
+    // blob (via a hand-edited DB, say) falls back to empty via tryDecode rather
+    // than throwing during startup.
+    final programMatrixColumns = await _appData.repositories.settings
+        .get(kProgramMatrixColumnsKey)
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the empty (default) config below.
+    _programMatrixColumnsNotifier.value =
+        MatrixColumnConfig.tryDecode(programMatrixColumns) ??
+        MatrixColumnConfig.empty;
     // Load the regional-format preference (ROADMAP G.8), defaulting to System
     // when unset. Defensive: a read failure or garbage token resolves to the
     // safe System default via the resolver. For the custom variant (#584) the
@@ -899,6 +916,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _colourDanceThemeNotifier.dispose();
     _setListColorCodingNotifier.dispose();
     _matrixExactBeatCollisionNotifier.dispose();
+    _programMatrixColumnsNotifier.dispose();
     _dateFormatNotifier.dispose();
     _firstDayOfWeekNotifier.dispose();
     _localeNotifier.dispose();
@@ -1275,25 +1293,29 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                                   child: MatrixCollisionModeScope(
                                                     notifier:
                                                         _matrixExactBeatCollisionNotifier,
-                                                    child: DateFormatScope(
+                                                    child: ProgramMatrixColumnConfigScope(
                                                       notifier:
-                                                          _dateFormatNotifier,
-                                                      child: FirstDayOfWeekScope(
+                                                          _programMatrixColumnsNotifier,
+                                                      child: DateFormatScope(
                                                         notifier:
-                                                            _firstDayOfWeekNotifier,
-                                                        child: LocaleScope(
+                                                            _dateFormatNotifier,
+                                                        child: FirstDayOfWeekScope(
                                                           notifier:
-                                                              _localeNotifier,
-                                                          child: BackupControllerScope(
-                                                            onRestored:
-                                                                reloadFromSettings,
-                                                            child: CollectionFilterScope(
-                                                              controller:
-                                                                  _collectionFilterController,
-                                                              child: VenueEntityModeScope(
-                                                                notifier:
-                                                                    _venueEntityModeNotifier,
-                                                                child: child!,
+                                                              _firstDayOfWeekNotifier,
+                                                          child: LocaleScope(
+                                                            notifier:
+                                                                _localeNotifier,
+                                                            child: BackupControllerScope(
+                                                              onRestored:
+                                                                  reloadFromSettings,
+                                                              child: CollectionFilterScope(
+                                                                controller:
+                                                                    _collectionFilterController,
+                                                                child: VenueEntityModeScope(
+                                                                  notifier:
+                                                                      _venueEntityModeNotifier,
+                                                                  child: child!,
+                                                                ),
                                                               ),
                                                             ),
                                                           ),

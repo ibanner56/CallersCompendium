@@ -28,6 +28,7 @@ class ProgramMatrixTable extends StatefulWidget {
     required this.matrix,
     required this.taxonomy,
     required this.dialect,
+    this.config = MatrixColumnConfig.empty,
     this.omittedFreeTextCount = 0,
     this.altDanceIds = const {},
     this.hiddenColumns = const {},
@@ -38,6 +39,13 @@ class ProgramMatrixTable extends StatefulWidget {
   final Taxonomy taxonomy;
   final Dialect dialect;
 
+  /// App-wide program-matrix column configuration (issue #935). Threaded in
+  /// only so the on-screen column headers honour the config's **renames** —
+  /// hide/reorder are already baked into [matrix] by [buildProgramMatrix], so
+  /// this table never re-applies them. Defaults to [MatrixColumnConfig.empty]
+  /// (today's labels) for callers that don't wire the config (tests/embeds).
+  final MatrixColumnConfig config;
+
   /// Number of free-text slots omitted from the matrix (shown as a caption so
   /// the omission is explicit).
   final int omittedFreeTextCount;
@@ -45,18 +53,21 @@ class ProgramMatrixTable extends StatefulWidget {
   /// Dance ids whose row is an alternate slot (badged "ALT").
   final Set<String> altDanceIds;
 
-  /// Indices into [matrix]'s columns (its move columns — the pinned
-  /// formation column is never hideable) that the caller has hidden from
-  /// view (#669). Purely a render-layer filter: [matrix] itself keeps
-  /// computing debut/collision analysis over every column, and this table
-  /// never mutates it — the host screen owns this set and is the only thing
-  /// that changes it (via [onHideColumn] and its own reset control).
-  final Set<int> hiddenColumns;
+  /// Column **ids** ([MatrixColumn.moveId] of [matrix]'s move columns — the
+  /// pinned formation column is never hideable) that the caller has hidden
+  /// from view (#669). Keyed by id, not index (#935), so an app-wide column
+  /// reorder can never make a stored index hide the wrong column. Purely a
+  /// render-layer filter: [matrix] itself keeps computing debut/collision
+  /// analysis over every column, and this table never mutates it — the host
+  /// screen owns this set and is the only thing that changes it (via
+  /// [onHideColumn] and its own reset control).
+  final Set<String> hiddenColumns;
 
-  /// Called with a column's index when its hide glyph is activated. Null
-  /// (the default) disables the hide affordance's button — used by callers
-  /// that only need the read-only matrix (e.g. most existing tests/embeds).
-  final ValueChanged<int>? onHideColumn;
+  /// Called with a column's **id** ([MatrixColumn.moveId]) when its hide glyph
+  /// is activated. Null (the default) disables the hide affordance's button —
+  /// used by callers that only need the read-only matrix (e.g. most existing
+  /// tests/embeds).
+  final ValueChanged<String>? onHideColumn;
 
   static const double columnWidth = 64;
   static const double rowHeight = 48;
@@ -139,7 +150,12 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
 
     final labels = [
       for (final c in matrix.columns)
-        matrixColumnLabel(c, widget.taxonomy, widget.dialect),
+        matrixColumnLabel(
+          c,
+          widget.taxonomy,
+          widget.dialect,
+          config: widget.config,
+        ),
     ];
 
     return LayoutBuilder(
@@ -221,11 +237,17 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                     child: Row(
                       children: [
                         for (var c = 0; c < matrix.columns.length; c++)
-                          if (!widget.hiddenColumns.contains(c))
+                          if (!widget.hiddenColumns.contains(
+                            matrix.columns[c].moveId,
+                          ))
                             _HideableColumnHeader(
                               label: labels[c],
                               columnIndex: c,
-                              onHide: widget.onHideColumn,
+                              onHide: widget.onHideColumn == null
+                                  ? null
+                                  : () => widget.onHideColumn!(
+                                      matrix.columns[c].moveId,
+                                    ),
                             ),
                       ],
                     ),
@@ -308,7 +330,9 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                                     c < matrix.columns.length;
                                     c++
                                   )
-                                    if (!widget.hiddenColumns.contains(c))
+                                    if (!widget.hiddenColumns.contains(
+                                      matrix.columns[c].moveId,
+                                    ))
                                       _Cell(
                                         danceTitle: matrix.rows[r].title,
                                         moveLabel: labels[c],
@@ -514,7 +538,7 @@ class _HideableColumnHeader extends StatefulWidget {
 
   final String label;
   final int columnIndex;
-  final ValueChanged<int>? onHide;
+  final VoidCallback? onHide;
 
   @override
   State<_HideableColumnHeader> createState() => _HideableColumnHeaderState();
@@ -573,7 +597,7 @@ class _HideableColumnHeaderState extends State<_HideableColumnHeader> {
                     ),
                     onPressed: widget.onHide == null
                         ? null
-                        : () => widget.onHide!(widget.columnIndex),
+                        : () => widget.onHide!(),
                   ),
                 ),
               ),
@@ -840,11 +864,11 @@ class _CompactMatrix extends StatelessWidget {
   final Set<String> altDanceIds;
 
   /// Columns hidden by the caller (#669) — see
-  /// [ProgramMatrixTable.hiddenColumns]. The compact view has no per-column
-  /// hide UI of its own (no header row to hover/tap), but it still respects
-  /// a hidden set supplied from the wide view/host so a column stays hidden
-  /// consistently across breakpoints.
-  final Set<int> hiddenColumns;
+  /// [ProgramMatrixTable.hiddenColumns]. Keyed by [MatrixColumn.moveId]. The
+  /// compact view has no per-column hide UI of its own (no header row to
+  /// hover/tap), but it still respects a hidden set supplied from the wide
+  /// view/host so a column stays hidden consistently across breakpoints.
+  final Set<String> hiddenColumns;
 
   @override
   Widget build(BuildContext context) {
@@ -859,7 +883,7 @@ class _CompactMatrix extends StatelessWidget {
     final repeated = <_MoveSummary>[];
     final singles = <_MoveSummary>[];
     for (var c = 0; c < matrix.columns.length; c++) {
-      if (hiddenColumns.contains(c)) continue;
+      if (hiddenColumns.contains(matrix.columns[c].moveId)) continue;
       final dances = <_DanceUse>[];
       for (var r = 0; r < matrix.rows.length; r++) {
         if (matrix.isPresent(r, c)) {
@@ -969,10 +993,10 @@ class _CompactMatrix extends StatelessWidget {
 /// compact view actually renders (it drops columns no dance uses). Also
 /// excludes any [hiddenColumns] (#669), so the announced count matches what's
 /// actually rendered.
-int _presentColumnCount(ProgramMatrix matrix, Set<int> hiddenColumns) {
+int _presentColumnCount(ProgramMatrix matrix, Set<String> hiddenColumns) {
   var count = 0;
   for (var c = 0; c < matrix.columns.length; c++) {
-    if (hiddenColumns.contains(c)) continue;
+    if (hiddenColumns.contains(matrix.columns[c].moveId)) continue;
     for (var r = 0; r < matrix.rows.length; r++) {
       if (matrix.isPresent(r, c)) {
         count++;
@@ -987,10 +1011,10 @@ int _presentColumnCount(ProgramMatrix matrix, Set<int> hiddenColumns) {
 /// except those in [hiddenColumns] (#669). Unlike [_presentColumnCount], the
 /// wide grid shows every column regardless of whether any dance uses it, so
 /// this doesn't check presence — only the hidden set.
-int _visibleColumnCount(ProgramMatrix matrix, Set<int> hiddenColumns) {
+int _visibleColumnCount(ProgramMatrix matrix, Set<String> hiddenColumns) {
   var count = 0;
   for (var c = 0; c < matrix.columns.length; c++) {
-    if (!hiddenColumns.contains(c)) count++;
+    if (!hiddenColumns.contains(matrix.columns[c].moveId)) count++;
   }
   return count;
 }

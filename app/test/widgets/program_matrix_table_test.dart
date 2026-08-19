@@ -43,8 +43,8 @@ void main() {
     Set<String> altDanceIds = const {},
     Dialect? dialect,
     List<ProgramHalf?>? halves,
-    Set<int> hiddenColumns = const {},
-    ValueChanged<int>? onHideColumn,
+    Set<String> hiddenColumns = const {},
+    ValueChanged<String>? onHideColumn,
   }) async {
     await tester.binding.setSurfaceSize(const Size(1400, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -452,7 +452,7 @@ void main() {
       Set<String> altDanceIds = const {},
       Dialect? dialect,
       List<ProgramHalf?>? halves,
-      Set<int> hiddenColumns = const {},
+      Set<String> hiddenColumns = const {},
     }) async {
       // A 360dp phone: below ProgramMatrixTable.compactBreakpoint (600), so the
       // wide scrolling grid is replaced by the condensed by-move view.
@@ -980,66 +980,55 @@ void main() {
   });
 
   group('hide columns (#669)', () {
-    testWidgets(
-      'tapping a column\'s hide glyph reports its index; hiding that index '
-      'removes only that column\'s header and cells, leaving the rest '
-      'correctly paired',
-      (tester) async {
-        int? hiddenIndex;
-        final dances = [
-          dance('d1', 'A', [swing(), move('balance')]),
-          dance('d2', 'B', [move('balance'), swing()]),
-        ];
-        await pump(
-          tester,
-          dances: dances,
-          onHideColumn: (c) => hiddenIndex = c,
-        );
+    testWidgets('tapping a column\'s hide glyph reports its id; hiding that id '
+        'removes only that column\'s header and cells, leaving the rest '
+        'correctly paired', (tester) async {
+      String? hiddenId;
+      final dances = [
+        dance('d1', 'A', [swing(), move('balance')]),
+        dance('d2', 'B', [move('balance'), swing()]),
+      ];
+      await pump(tester, dances: dances, onHideColumn: (id) => hiddenId = id);
 
-        await tester.tap(find.byTooltip('Hide balance column'));
-        await tester.pump();
-        expect(hiddenIndex, isNotNull);
+      await tester.tap(find.byTooltip('Hide balance column'));
+      await tester.pump();
+      expect(hiddenId, isNotNull);
 
-        // Re-pump with that index hidden — mirrors how the host screen reacts
-        // to `onHideColumn` by adding the reported index to its own state.
-        await pump(tester, dances: dances, hiddenColumns: {hiddenIndex!});
+      // Re-pump with that id hidden — mirrors how the host screen reacts
+      // to `onHideColumn` by adding the reported id to its own state.
+      await pump(tester, dances: dances, hiddenColumns: {hiddenId!});
 
-        expect(find.text('balance'), findsNothing);
-        expect(
-          find.bySemanticsLabel('A, balance: present, introduced here'),
-          findsNothing,
-        );
-        // The other columns are unaffected and still correctly paired with
-        // their own data — confirms columns are skipped by identity, not by
-        // silently reindexing the remaining ones.
-        expect(find.text('partner swing'), findsOneWidget);
-        expect(find.text('neighbor swing'), findsOneWidget);
-        expect(
-          find.bySemanticsLabel(
-            "A, partner swing: present, introduced here, dance's first figure",
-          ),
-          findsOneWidget,
-        );
-        expect(
-          find.bySemanticsLabel('B, partner swing: present'),
-          findsOneWidget,
-        );
-      },
-    );
+      expect(find.text('balance'), findsNothing);
+      expect(
+        find.bySemanticsLabel('A, balance: present, introduced here'),
+        findsNothing,
+      );
+      // The other columns are unaffected and still correctly paired with
+      // their own data — confirms columns are skipped by identity, not by
+      // silently reindexing the remaining ones.
+      expect(find.text('partner swing'), findsOneWidget);
+      expect(find.text('neighbor swing'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(
+          "A, partner swing: present, introduced here, dance's first figure",
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel('B, partner swing: present'),
+        findsOneWidget,
+      );
+    });
 
     testWidgets(
       'the announced dances-by-moves count drops when a column is hidden',
       (tester) async {
-        int? hiddenIndex;
         final dances = [
           dance('d1', 'A', [swing()]),
           dance('d2', 'B', [swing()]),
         ];
-        await pump(
-          tester,
-          dances: dances,
-          onHideColumn: (c) => hiddenIndex = c,
-        );
+        String? hiddenId;
+        await pump(tester, dances: dances, onHideColumn: (id) => hiddenId = id);
 
         // Unlike the compact view, the wide grid counts every column
         // (partner + the always-emitted neighbor baseline), not just present
@@ -1054,9 +1043,9 @@ void main() {
 
         await tester.tap(find.byTooltip('Hide neighbor swing column'));
         await tester.pump();
-        expect(hiddenIndex, isNotNull);
+        expect(hiddenId, isNotNull);
 
-        await pump(tester, dances: dances, hiddenColumns: {hiddenIndex!});
+        await pump(tester, dances: dances, hiddenColumns: {hiddenId!});
 
         expect(
           find.bySemanticsLabel(
@@ -1071,22 +1060,18 @@ void main() {
       'the compact (phone-width) view also respects an externally-supplied '
       'hidden set, though it has no hide UI of its own',
       (tester) async {
-        int? hiddenIndex;
+        String? hiddenId;
         final dances = [
           dance('d1', 'A', [swing(), move('balance')]),
           dance('d2', 'B', [move('balance')]),
         ];
-        // Learn balance's stable column index from the wide view first —
+        // Learn balance's stable column id from the wide view first —
         // the compact view has no per-column hide glyph, but shares the same
-        // underlying column indices from the same `buildProgramMatrix` call.
-        await pump(
-          tester,
-          dances: dances,
-          onHideColumn: (c) => hiddenIndex = c,
-        );
+        // underlying columns from the same `buildProgramMatrix` call.
+        await pump(tester, dances: dances, onHideColumn: (id) => hiddenId = id);
         await tester.tap(find.byTooltip('Hide balance column'));
         await tester.pump();
-        expect(hiddenIndex, isNotNull);
+        expect(hiddenId, isNotNull);
 
         await tester.binding.setSurfaceSize(const Size(360, 720));
         addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -1099,7 +1084,7 @@ void main() {
                 matrix: buildProgramMatrix(dances),
                 taxonomy: contraTaxonomy,
                 dialect: Dialect.canonical,
-                hiddenColumns: {hiddenIndex!},
+                hiddenColumns: {hiddenId!},
               ),
             ),
           ),

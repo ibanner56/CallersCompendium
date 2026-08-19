@@ -1,3 +1,5 @@
+import 'package:compendium_core/compendium_core.dart' show MatrixColumnConfig;
+
 import '../screens/perform_card.dart' show kPerformMinScale;
 import '../screens/settings/settings_keys.dart';
 import '../update/update_config.dart'
@@ -129,6 +131,13 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // Shorthand mappings persist as a JSON list; the decoder also tolerates a raw
   // JSON string, so accept either and let it validate entries.
   kShorthandMappingsKey: _isListOrString,
+  // Program-matrix column config (issue #935): a JSON object the codec must be
+  // able to parse. `MatrixColumnConfig.decode` throws on a malformed blob
+  // (wrong types, mis-namespaced/duplicate custom ids) and the live loader
+  // falls back to the empty default via `tryDecode` — but a restore is a trust
+  // boundary, so reject a wrong-shaped value here rather than persisting it and
+  // relying on the reader. Only a Map that round-trips through the codec passes.
+  kProgramMatrixColumnsKey: _isValidMatrixColumnConfig,
 };
 
 bool _isBool(Object? v) => v is bool;
@@ -138,6 +147,13 @@ bool _isValidPerformScale(Object? v) =>
     v is num && v.isFinite && v >= kPerformMinScale;
 bool _isMap(Object? v) => v is Map;
 bool _isListOrString(Object? v) => v is List || v is String;
+
+/// Accepts a program-matrix column config only when it is a JSON object the
+/// codec can fully parse (`MatrixColumnConfig.tryDecode` returns non-null),
+/// dropping any malformed or wrong-typed blob so it never reaches the throwing
+/// decode path at restore.
+bool _isValidMatrixColumnConfig(Object? v) =>
+    v is Map && MatrixColumnConfig.tryDecode(v) != null;
 
 /// Validates a restored settings [value] for [key] against the backup schema.
 ///

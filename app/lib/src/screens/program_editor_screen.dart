@@ -12,6 +12,7 @@ import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/matrix_collision_mode_scope.dart';
+import '../data/program_matrix_column_config_scope.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
@@ -133,15 +134,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   bool _saving = false;
   bool _dirty = false;
 
-  /// Move-column indices the caller has hidden from the on-screen program
-  /// matrix via each column header's hide glyph (#669). Purely an ephemeral
-  /// view preference — session-only, not persisted with the program — and
-  /// scoped to this screen instance, so it naturally resets whenever a
-  /// different program is opened (each open creates a fresh
+  /// Column **ids** (`MatrixColumn.moveId`) the caller has hidden from the
+  /// on-screen program matrix via each column header's hide glyph (#669).
+  /// Keyed by id, not index (issue #935), so a reorder or removal of the
+  /// app-wide column config can never make a stored index hide the wrong
+  /// column. Purely an ephemeral view preference — session-only, not persisted
+  /// with the program — and scoped to this screen instance, so it naturally
+  /// resets whenever a different program is opened (each open creates a fresh
   /// `ProgramEditorScreen`/state, never reuses this one for another
   /// program id). Never affects the PDF export, which always renders every
   /// column regardless of what's hidden on screen.
-  final Set<int> _hiddenMatrixColumns = {};
+  final Set<String> _hiddenMatrixColumns = {};
 
   /// Debounced autosave timer for the in-progress draft (issue #436). Persists
   /// the working set list to [SettingsRepository] so an OS background/kill
@@ -198,6 +201,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// once behind a first-load guard never re-reads on a later scope change).
   bool _matrixExactBeatCollision = true;
 
+  /// The app-wide program-matrix column configuration (issue #935), read live
+  /// from [ProgramMatrixColumnConfigScope] in [didChangeDependencies] (same
+  /// #948 reasoning as [_matrixExactBeatCollision]) so an edit to the config
+  /// rebuilds the Matrix tab immediately. Defaults to
+  /// [MatrixColumnConfig.empty] — today's matrix — when no scope is present.
+  MatrixColumnConfig _matrixColumnConfig = MatrixColumnConfig.empty;
+
   /// Always-on search enrichment for the embedded [CollectionPicker], built
   /// from the union of every saved dialect (presets + custom) so the picker's
   /// search resolves saved-dialect vocabulary regardless of the active dialect
@@ -231,6 +241,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // Read unconditionally so a live toggle of the setting updates the Matrix
     // tab immediately (the #948 lesson — see the field doc comment).
     _matrixExactBeatCollision = MatrixCollisionModeScope.of(context);
+    _matrixColumnConfig = ProgramMatrixColumnConfigScope.of(context);
 
     // Build the always-on enrichment from the union of every saved dialect
     // (presets + custom). Registers a rebuild dependency on the library so a
@@ -1529,6 +1540,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       collisionMode: _matrixExactBeatCollision
           ? MatrixCollisionMode.exactBeats
           : MatrixCollisionMode.phrase,
+      config: _matrixColumnConfig,
     );
 
     return Column(
@@ -1544,7 +1556,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 icon: const Icon(Icons.visibility),
                 tooltip: l10n.programsMatrixShowAllColumnsSemantic,
                 onPressed:
-                    _hiddenMatrixColumns.any((c) => c < matrix.columns.length)
+                    matrix.columns.any(
+                      (c) => _hiddenMatrixColumns.contains(c.moveId),
+                    )
                     ? () => setState(_hiddenMatrixColumns.clear)
                     : null,
               ),
@@ -1569,10 +1583,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             matrix: matrix,
             taxonomy: data.taxonomy,
             dialect: _dialect,
+            config: _matrixColumnConfig,
             omittedFreeTextCount: omittedFreeText,
             altDanceIds: altDanceIds,
             hiddenColumns: _hiddenMatrixColumns,
-            onHideColumn: (c) => setState(() => _hiddenMatrixColumns.add(c)),
+            onHideColumn: (id) => setState(() => _hiddenMatrixColumns.add(id)),
           ),
         ),
       ],
@@ -1607,6 +1622,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         formatDate: localizations.formatMediumDate,
         labels: programMatrixExportLabels(l10n),
         formatFormation: (formation) => formationLabel(l10n, formation),
+        config: _matrixColumnConfig,
       ),
     );
   }
