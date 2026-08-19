@@ -1,8 +1,8 @@
-# Release: on a `v*` tag, gate on the reusable checks, build UNSIGNED desktop
-# binaries, package them under the ADR-002 deterministic name contract, and
-# create a **DRAFT** GitHub Release (a human publishes). Everything here is FREE
-# and needs NO secrets and NO code-signing (signing is a deliberately deferred
-# later wave — see docs/adr/002-distribution-and-update-channels.md).
+# Release: on a `v*` tag, gate on the reusable checks, build desktop binaries,
+# optionally sign Windows artifacts, package them under the ADR-002 deterministic
+# name contract, and
+# create a **DRAFT** GitHub Release (a human publishes). Linux remains unsigned;
+# Windows signing is optional and uses OIDC rather than a stored secret.
 #
 # SAFETY MODEL (A6):
 #   * Global token is read-only (`permissions: contents: read`); ONLY the
@@ -174,6 +174,9 @@ jobs:
             arch: universal
             os: macos-latest
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write  # Azure Trusted Signing uses GitHub OIDC
     env:
       VERSION: ${{ needs.meta.outputs.version }}
     steps:
@@ -941,20 +944,21 @@ jobs:
 
       - name: Azure Login
         if: matrix.platform == 'windows' && steps.windows_signing.outputs.signing == 'configured'
-        uses: azure/login@v2
+        uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Sign Windows binaries with Azure Artifact Signing
+      - name: Sign Windows bundle binaries with Azure Artifact Signing
         if: matrix.platform == 'windows' && steps.windows_signing.outputs.signing == 'configured'
-        uses: Azure/artifact-signing-action@v1
+        uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
         with:
-          current-tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          protected-item-name: ${{ vars.AZURE_CERT_PROFILE_NAME }}
-          trusted-signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME }}
-          files-to-sign: app/build/windows/x64/runner/Release/compendium_app.exe
+          endpoint: https://wus2.codesigning.azure.net/
+          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_CERT_PROFILE_NAME }}
+          files-folder: ${{ github.workspace }}\app\build\windows\x64\runner\Release
+          files-folder-filter: exe,dll
 
       - name: Package Windows (zip + installer)
         if: matrix.platform == 'windows'
@@ -1031,6 +1035,15 @@ jobs:
             "/DOutputBaseName=CallersCompendium-$env:VERSION-windows-x64" `
             packaging\windows\CallersCompendium.iss
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed ($LASTEXITCODE)" }
+
+      - name: Sign Windows installer with Azure Artifact Signing
+        if: matrix.platform == 'windows' && steps.windows_signing.outputs.signing == 'configured'
+        uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
+        with:
+          endpoint: https://wus2.codesigning.azure.net/
+          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_CERT_PROFILE_NAME }}
+          files: ${{ github.workspace }}\dist\CallersCompendium-${{ needs.meta.outputs.version }}-windows-x64.exe
 
       # --- Android: signed universal APK -----------------------------------
       # Reconstruct the upload keystore + key.properties from repo secrets at
