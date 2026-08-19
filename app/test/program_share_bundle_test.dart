@@ -573,11 +573,9 @@ void main() {
       expect(result.primaryProgramId, isNotNull);
 
       final imported = await danceByTitle(repos, 'Rory O\'More');
-      expect(
-        await authorNamesOf(repos, imported),
-        ['Cary Ravitz'],
-        reason: 'the received dance is attributed, not authorless',
-      );
+      expect(await authorNamesOf(repos, imported), [
+        'Cary Ravitz',
+      ], reason: 'the received dance is attributed, not authorless');
 
       // The program slot resolves to the imported dance (no placeholder).
       final importedProgram = (await repos.programs.listAll()).single;

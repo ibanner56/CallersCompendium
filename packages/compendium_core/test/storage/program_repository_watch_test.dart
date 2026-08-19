@@ -556,11 +556,10 @@ void main() {
       );
 
       final next = await probe.next();
-      expect(
-        next.single.slots.map((s) => s.id),
-        ['s1', 's2'],
-        reason: 'the new slot must reach a subscriber',
-      );
+      expect(next.single.slots.map((s) => s.id), [
+        's1',
+        's2',
+      ], reason: 'the new slot must reach a subscriber');
     });
 
     test('GUARD: renaming a program re-emits', () async {

@@ -1,4 +1,4 @@
-# gen-l10n configuration (Flutter 3.44.6). `flutter pub get` / `flutter gen-l10n`
+# gen-l10n configuration (Flutter 3.47.0). `flutter pub get` / `flutter gen-l10n`
 # reads this and generates the AppLocalizations sources from the ARB files.
 #
 # Generated Dart lands in `lib/l10n/` (same dir as the ARB templates) and is
