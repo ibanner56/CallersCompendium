@@ -207,10 +207,10 @@ jobs:
             && [ -n "${AZURE_SIGNING_ACCOUNT_NAME:-}" ] \
             && [ -n "${AZURE_CERT_PROFILE_NAME:-}" ]; then
             echo "signing=configured" >> "$GITHUB_OUTPUT"
-            echo "Windows Azure Artifact Signing secrets configured; signing the Windows binaries."
+            echo "Windows Azure Trusted Signing variables configured; signing the Windows binaries."
           else
             echo "signing=missing" >> "$GITHUB_OUTPUT"
-            echo "::notice::Windows Azure signing not configured; producing UNSIGNED Windows artifacts (unchanged from today)."
+            echo "::notice::Windows Azure Trusted Signing not configured; producing UNSIGNED Windows artifacts (unchanged from today)."
           fi
 
       # Android signing gate. `secrets` context is NOT allowed in a step-level
