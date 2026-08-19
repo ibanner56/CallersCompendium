@@ -6,6 +6,7 @@
 library;
 
 export 'src/analysis/half_calling_stats.dart';
+export 'src/analysis/matrix_column_config.dart';
 export 'src/analysis/program_matrix.dart';
 export 'src/diagnostics/crash_log_record.dart';
 export 'src/diagnostics/crash_redactor.dart';

@@ -22,6 +22,14 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Configurable program-matrix columns (foundation)** — the program matrix can
+  now honour an app-wide column configuration: built-in columns can be hidden,
+  reordered, and renamed, applied live wherever the matrix is shown (on-screen
+  and in the PDF export). The configuration is stored as a preference that
+  travels in local backups and is validated on restore, so a malformed blob is
+  dropped rather than applied. No editor UI is exposed yet — this PR lands the
+  model, persistence, and wiring only. (issue #935)
+
 - **`promenade.destination`** — single-file promenade figures can now carry a
   structured destination param (e.g. "to next neighbors", "to neighbors"). The
   ContraDB importer recognises `to new neighbors`, `to the same neighbors`, and

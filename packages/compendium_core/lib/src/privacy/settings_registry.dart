@@ -90,6 +90,16 @@ final Map<String, DataClassification> settingsClassifications = {
   // issue #962. A working preference, same as every other display/behaviour
   // toggle above.
   'matrix_exact_beat_collision': _preference,
+  // The app-wide program-matrix column configuration (issue #935): hidden /
+  // reordered / renamed built-in columns plus user-defined parameterized and
+  // compound columns, as one JSON blob. A working preference — it describes how
+  // the user likes their matrix laid out, which is the same on any device they
+  // own — so it is `_preference` like every other authored-config blob above
+  // (custom_themes, default_move_param_overrides). It contains only column ids,
+  // label overrides, and move/param tokens the user chose; no personal data and
+  // nothing device-specific, so it travels in local backups (validated on
+  // restore by backup_settings_schema.dart).
+  'program_matrix_columns': _preference,
 
   // -- Programs and performance --------------------------------------------
   'default_program_band': const DataClassification(

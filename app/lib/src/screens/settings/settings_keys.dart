@@ -92,3 +92,15 @@ const String kCollectionTileVisibleFieldsKey = 'collection_tile_visible_fields';
 /// rather than merely starting in the same named phrase (A1/A2/B1/B2…). When
 /// `false`, the matrix falls back to the original (#582) phrase-bucket check.
 const String kMatrixExactBeatCollisionKey = 'matrix_exact_beat_collision';
+
+/// Key used to persist the app-wide program-matrix **column configuration**
+/// (issue #935) — hidden/reordered/renamed built-in columns plus user-defined
+/// parameterized/compound columns. Stored as the JSON object produced by
+/// `MatrixColumnConfig.toJson()`; absent/unset (or any value the codec rejects)
+/// means the empty config, which reproduces today's default matrix exactly.
+///
+/// A working preference: it describes how the user likes their matrix laid out,
+/// the same on any device they own, so it is classified `_preference` and
+/// **travels in local backups** — validated on restore against the codec (see
+/// `backup_settings_schema.dart`) so a malformed blob can never reach the app.
+const String kProgramMatrixColumnsKey = 'program_matrix_columns';
