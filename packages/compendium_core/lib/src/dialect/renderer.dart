@@ -1835,9 +1835,9 @@ class FigureRenderer {
       // v30 (#989): `turn` shown iff it is non-default OR a destination is
       // stated. `dir` shown iff `turn` is being shown (joint silencing — see
       // the class comment above) OR `dir` itself is non-default.
-      final showTurn = 
-          !_isUnspecified(turnRaw) 
-          && (turnRaw != turnDefault || destStated || dirRaw == 'along');
+      final showTurn =
+          !_isUnspecified(turnRaw) &&
+          (turnRaw != turnDefault || destStated || dirRaw == 'along');
       final turn = showTurn ? _displayScalar(turnRaw) : '';
       final showDir = showTurn || dirRaw != dirDefault;
       final dir = showDir ? _displayScalar(dirRaw) : '';
