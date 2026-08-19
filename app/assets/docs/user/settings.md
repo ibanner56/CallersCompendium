@@ -26,16 +26,17 @@ rail.
 
 Inside, a list of sections sits beside the controls for the section you've
 chosen. On a narrow screen you pick a section and it opens as its own page, then
-you step back to switch sections. There are eight sections, always in this order:
+you step back to switch sections. There are nine sections, always in this order:
 
 1. **General**
-2. **Appearance**
-3. **Dialect**
-4. **Language & region**
-5. **Defaults**
-6. **Updates**
-7. **Diagnostics**
-8. **About**
+2. **Program**
+3. **Appearance**
+4. **Dialect**
+5. **Language & region**
+6. **Defaults**
+7. **Updates**
+8. **Diagnostics**
+9. **About**
 
 ## General
 
@@ -46,6 +47,54 @@ The **General** section gathers everyday behavior into small groups.
 - **Ignore leading articles when sorting** (on by default) — alphabetizes titles
   by their first meaningful word. With this on, "The Nice Combination" files under
   **N**, not **T**.
+
+### Accessibility
+
+- **Reduce motion** — trims animations and movement. Follows your device's system
+  *Reduce Motion* setting by default; flip this switch to override it either way.
+- **Always show verbose figure text** — shows the full spoken-style
+  [figure](./glossary.md#figure) wording on screen in the dance view, not only to
+  screen readers. Turn it off for the terse notation. This affects the dance view;
+  [Perform mode](./perform.md) has its own text-size controls.
+- **Show turns as decimals** — shows turn and rotation amounts as decimals (0.75)
+  instead of fractions (¾). Screen-reader wording is unaffected.
+- **Confirm before delete** — adds a prompt before you delete a dance or program.
+  Deletes are still undoable either way.
+
+These are the highlights; the [Accessibility guide](./accessibility.md) gives you
+the full picture.
+
+### Deleted items
+
+- **Keep deleted dances for** — choose **30 days**, **60 days**, **90 days**, or
+  **Never** (default is **30 days**). Deleted dances are held for this long and
+  then purged. For how soft-delete and restore work, see
+  [Collection & search](./collection.md).
+
+### Import
+
+- **Import dances** — the entry point for bringing dances in from other sources.
+  See [Imports & migration](./imports.md).
+- **Re-check custom figures** — re-reads imported dances whose figures were kept
+  as plain custom text only because the app couldn't recognise them at the time.
+  You preview and confirm before anything changes, and your tags, ratings, and
+  notes are preserved. See
+  [Write & edit dances](./authoring.md#fix-figures-an-import-could-not-read).
+
+### Backup & restore
+
+- **Export a backup** and **Restore from a backup** — save a copy of everything or
+  bring a copy back.
+- **Backup reminder** — set to **Off**, **Weekly**, or **Monthly**, with a "last
+  backup" date so you know where you stand.
+
+For the whole workflow, see [Backup & portability](./backup-portability.md).
+
+## Program
+
+The **Program** section gathers the settings that shape how you build, check, and
+perform your [programs](./glossary.md#program) — venues, the programming matrix,
+Perform mode, and calling history.
 
 ### Venues
 
@@ -99,48 +148,6 @@ details are handled when you export.
   or leave the default caller blank — to track every program that contains the
   dance. Matching ignores surrounding spaces and letter case, and applies on top
   of the *Require "mark performed"* setting (both must pass).
-
-### Accessibility
-
-- **Reduce motion** — trims animations and movement. Follows your device's system
-  *Reduce Motion* setting by default; flip this switch to override it either way.
-- **Always show verbose figure text** — shows the full spoken-style
-  [figure](./glossary.md#figure) wording on screen in the dance view, not only to
-  screen readers. Turn it off for the terse notation. This affects the dance view;
-  [Perform mode](./perform.md) has its own text-size controls.
-- **Show turns as decimals** — shows turn and rotation amounts as decimals (0.75)
-  instead of fractions (¾). Screen-reader wording is unaffected.
-- **Confirm before delete** — adds a prompt before you delete a dance or program.
-  Deletes are still undoable either way.
-
-These are the highlights; the [Accessibility guide](./accessibility.md) gives you
-the full picture.
-
-### Deleted items
-
-- **Keep deleted dances for** — choose **30 days**, **60 days**, **90 days**, or
-  **Never** (default is **30 days**). Deleted dances are held for this long and
-  then purged. For how soft-delete and restore work, see
-  [Collection & search](./collection.md).
-
-### Import
-
-- **Import dances** — the entry point for bringing dances in from other sources.
-  See [Imports & migration](./imports.md).
-- **Re-check custom figures** — re-reads imported dances whose figures were kept
-  as plain custom text only because the app couldn't recognise them at the time.
-  You preview and confirm before anything changes, and your tags, ratings, and
-  notes are preserved. See
-  [Write & edit dances](./authoring.md#fix-figures-an-import-could-not-read).
-
-### Backup & restore
-
-- **Export a backup** and **Restore from a backup** — save a copy of everything or
-  bring a copy back.
-- **Backup reminder** — set to **Off**, **Weekly**, or **Monthly**, with a "last
-  backup" date so you know where you stand.
-
-For the whole workflow, see [Backup & portability](./backup-portability.md).
 
 ## Appearance
 

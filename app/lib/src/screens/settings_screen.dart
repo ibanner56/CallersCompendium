@@ -12,6 +12,7 @@ import 'settings/defaults_section.dart';
 import 'settings/diagnostics_section.dart';
 import 'settings/dialect_section.dart';
 import 'settings/general_section.dart';
+import 'settings/program_section.dart';
 import 'settings/regional_section.dart';
 import 'settings/updates_section.dart';
 
@@ -94,6 +95,7 @@ class SettingsScreen extends StatefulWidget {
 /// a value (and its content in [_SettingsScreenState._content]) to add a page.
 enum _SettingsSection {
   general(Icons.tune_outlined, Icons.tune),
+  program(Icons.grid_view_outlined, Icons.grid_view),
   appearance(Icons.palette_outlined, Icons.palette),
   dialect(Icons.groups_outlined, Icons.groups),
   regional(Icons.translate_outlined, Icons.translate),
@@ -116,6 +118,7 @@ String _sectionLabel(BuildContext context, _SettingsSection section) {
   final l10n = AppLocalizations.of(context);
   return switch (section) {
     _SettingsSection.general => l10n.settingsGeneralTitle,
+    _SettingsSection.program => l10n.settingsProgramTitle,
     _SettingsSection.appearance => l10n.settingsAppearanceTitle,
     _SettingsSection.dialect => l10n.settingsDialectTitle,
     _SettingsSection.regional => l10n.settingsLanguageRegionTitle,
@@ -149,6 +152,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       case _SettingsSection.defaults:
         return const DefaultsSection();
+      case _SettingsSection.program:
+        return const ProgramSection();
       case _SettingsSection.updates:
         return const UpdatesSection();
       case _SettingsSection.diagnostics:

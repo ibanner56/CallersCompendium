@@ -147,6 +147,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsGeneralTitle => 'Algemeen';
 
   @override
+  String get settingsProgramTitle => 'Programma';
+
+  @override
   String get settingsAppearanceTitle => 'Weergave';
 
   @override

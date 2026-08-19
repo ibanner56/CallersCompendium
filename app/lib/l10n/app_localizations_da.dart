@@ -149,6 +149,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsGeneralTitle => 'Generelt';
 
   @override
+  String get settingsProgramTitle => 'Program';
+
+  @override
   String get settingsAppearanceTitle => 'Udseende';
 
   @override

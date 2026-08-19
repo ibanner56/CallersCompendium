@@ -11,6 +11,15 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
+### Changed
+
+- **Settings → Program** — a new **Program** settings section now holds the
+  program-facing preferences that previously lived under **General**: the reusable
+  **Venues** toggle and venue manager, the programming-matrix **Flag exact beat
+  overlap only** toggle, the **Auto-size Perform cards** toggle, and the two
+  **Calling history** toggles. Nothing about what these settings do changed — only
+  where they live. (issue #935)
+
 ### Added
 
 - **`promenade.destination`** — single-file promenade figures can now carry a

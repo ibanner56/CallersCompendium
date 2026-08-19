@@ -145,6 +145,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsGeneralTitle => '一般';
 
   @override
+  String get settingsProgramTitle => 'プログラム';
+
+  @override
   String get settingsAppearanceTitle => '外観';
 
   @override

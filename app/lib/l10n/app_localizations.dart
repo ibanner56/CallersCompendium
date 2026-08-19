@@ -334,6 +334,12 @@ abstract class AppLocalizations {
   /// **'General'**
   String get settingsGeneralTitle;
 
+  /// Settings section navigation title (sidebar/app bar) for program-related preferences: venues, the programming matrix, Perform mode, and calling history.
+  ///
+  /// In en, this message translates to:
+  /// **'Program'**
+  String get settingsProgramTitle;
+
   /// Settings section navigation title (sidebar/app bar) for visual appearance: theme, colours, easter eggs.
   ///
   /// In en, this message translates to:
