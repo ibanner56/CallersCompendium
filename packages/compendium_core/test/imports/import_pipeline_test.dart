@@ -491,11 +491,9 @@ void main() {
           reason: 'adopting an existing tombstone is not a creation',
         );
         expect(resolution.created, isFalse);
-        expect(
-          session.revivedChoreographerIds,
-          ['ghost'],
-          reason: 'undo needs to know the import resurrected this row',
-        );
+        expect(session.revivedChoreographerIds, [
+          'ghost',
+        ], reason: 'undo needs to know the import resurrected this row');
       });
 
       test('undo re-tombstones a choreographer the import resurrected', () async {

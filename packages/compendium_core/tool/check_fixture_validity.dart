@@ -352,9 +352,9 @@ class FixtureVisitor extends RecursiveAstVisitor<void> {
     String? move;
     final params = <String, Object?>{};
     for (final arg in args.arguments) {
-      if (arg is! NamedExpression) return _Parsed.dynamic_();
-      final name = arg.name.label.name;
-      final value = arg.expression;
+      if (arg is! NamedArgument) return _Parsed.dynamic_();
+      final name = arg.name.lexeme;
+      final value = arg.argumentExpression;
       switch (name) {
         case 'move':
           if (value is! SimpleStringLiteral) return _Parsed.dynamic_();

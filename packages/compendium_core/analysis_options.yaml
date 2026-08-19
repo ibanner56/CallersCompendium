@@ -16,6 +16,15 @@
 # strict-raw-types and the error escalations defined there) actually apply to
 # this package. The analyzer only reads the *nearest* options file, so without
 # this explicit include the intended strictness would be silently unenforced.
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 include:
   - package:lints/recommended.yaml
   - ../../analysis_options.yaml

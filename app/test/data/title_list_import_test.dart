@@ -559,11 +559,9 @@ void main() {
         );
 
         expect(progress.first, (0, 3));
-        expect(
-          service.searchedTitles,
-          ['One'],
-          reason: 'cancel must stop the batch before the next request',
-        );
+        expect(service.searchedTitles, [
+          'One',
+        ], reason: 'cancel must stop the batch before the next request');
       },
     );
 
