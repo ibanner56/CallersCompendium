@@ -142,9 +142,9 @@ details are handled when you export.
   - **Restore removed columns** brings back everything you removed and returns the
     built-in columns to their original order, while keeping your renames and any
     custom columns.
-  - **Restore defaults** clears every customisation and returns the matrix to how
-    it ships. Because it discards your renames and custom columns, it asks you to
-    confirm first.
+  - **Restore all defaults** clears every customisation and returns the matrix to
+    how it ships. Because it discards your renames and custom columns, it asks
+    you to confirm first.
 
 ### Performance
 

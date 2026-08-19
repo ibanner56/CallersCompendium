@@ -395,9 +395,10 @@ typedef CustomColumnLabel = ({String id, String label});
 /// Computes the `order` list produced by the **"restore removed defaults"**
 /// reset (issue #935, decision D4): the built-in columns return to their
 /// catalog order, and every custom column is appended after them, sorted by its
-/// displayed [label] (case-insensitive, with the opaque id as a stable final
-/// tie-break). Renames and the custom columns themselves are preserved by the
-/// caller — this only rebuilds ordering; it never drops a column.
+/// displayed [label] using case-insensitive Unicode code-point ordering (with
+/// the opaque id as a stable final tie-break). Renames and the custom columns
+/// themselves are preserved by the caller — this only rebuilds ordering; it
+/// never drops a column.
 ///
 /// Pure and taxonomy-free so it can be unit-tested directly. [catalogOrder] is
 /// the built-in column ids in [builtInColumnCatalog] order; [customs] are the

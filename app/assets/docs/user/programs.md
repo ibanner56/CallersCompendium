@@ -201,7 +201,7 @@ Here is how to read it:
   you'd rather flag any repeat that merely lands in the same **named phrase**
   (A1, A2, B1, B2…) — even when the beats themselves don't overlap, which is how
   the matrix used to behave — turn off **Flag exact beat overlap only** in
-  **Settings ▸ General ▸ Programs**.
+  **Settings ▸ Program**.
 - **Headers stay pinned** as you scroll, so you never lose track of which row or
   column you are looking at.
 - **Hide a column you do not need** using the eye icon in its header. The icon is
