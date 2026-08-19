@@ -1256,7 +1256,10 @@ void main() {
         'pass through along': Figure(move: 'pass_through'),
         'right left through across': Figure(move: 'right_left_through'),
         'role2s chain across': Figure(move: 'chain'),
-        'partners promenade across': Figure(move: 'promenade'),
+        // v30 (#989): canonical now always includes `turn` too (unless it's
+        // the `unspecified` sentinel), matching the pre-existing rule for
+        // `dir` — a concrete default is never silenced in canonical.
+        'partners promenade counterclockwise across': Figure(move: 'promenade'),
         'pull by along right': Figure(move: 'pull_by_direction'),
         'everyone down the hall forward': Figure(move: 'down_the_hall'),
         'everyone up the hall forward': Figure(move: 'up_the_hall'),
@@ -1428,13 +1431,37 @@ void main() {
           'partner promenade',
         );
       });
-      test('promenade keeps a non-default direction', () {
+      test('promenade keeps a non-default direction and gains '
+          'the default turn "counterclockwise"', () {
         expect(
           renderer.render(
             Figure(move: 'promenade', params: {'dir': 'along'}),
             d,
           ),
-          'partner promenade along',
+          'partner promenade counterclockwise along',
+        );
+      });
+      test('promenade keeps a non-default direction and drops '
+          'turn for directions without turns', () {
+        expect(
+          renderer.render(Figure(move: 'promenade', params: {'dir': 'up'}), d),
+          'partner promenade up',
+        );
+      });
+      test('promenade gains target when set', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'promenade',
+              params: {
+                'dir': 'along',
+                'destination': 'nextNeighbors',
+                'turn': 'clockwise',
+              },
+            ),
+            d,
+          ),
+          'partner promenade clockwise along to next neighbors',
         );
       });
       test('pull_by_direction drops the default "along"', () {

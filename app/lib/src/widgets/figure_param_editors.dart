@@ -174,15 +174,24 @@ class FigureParamEditor extends StatelessWidget {
         value != null &&
         value != ParamVocab.unspecified) {
       // An out-of-domain value with no valid substitute available: every
-      // sentinel-admitting spec defaults TO the sentinel, so the default rung
-      // misses too and the chain lands on `null`. Normalise the draft to the
-      // sentinel rather than leaving it holding a token the field is already
-      // displaying as "not stated" — that mismatch would keep rendering the bad
-      // token into the figure text while offering no single-step way to fix it,
-      // since Clear is hidden whenever nothing is selected. This stores exactly
-      // what is displayed, so it corrects invalid data rather than inventing a
-      // value, and it keeps the "invalid values can't linger behind the UI"
-      // invariant that the fixed-vocabulary path has always had.
+      // sentinel-admitting spec CURRENTLY IN THIS BRANCH defaults TO the
+      // sentinel, so the default rung misses too and the chain lands on
+      // `null`. (v30 #989: `promenade.turn` is the one sentinel-admitting spec
+      // whose default is a concrete value, not the sentinel — for it, the
+      // default rung above does NOT miss, `current` lands on the concrete
+      // default instead of `null`, and this branch is simply never reached.
+      // That is the correct, desired self-healing behaviour for a concrete
+      // default: an out-of-domain `turn` value corrects to
+      // `'counterclockwise'`, the same way any ordinary non-sentinel spec's
+      // out-of-domain value corrects to its default, rather than to "not
+      // stated".) Normalise the draft to the sentinel rather than leaving it
+      // holding a token the field is already displaying as "not stated" —
+      // that mismatch would keep rendering the bad token into the figure text
+      // while offering no single-step way to fix it, since Clear is hidden
+      // whenever nothing is selected. This stores exactly what is displayed,
+      // so it corrects invalid data rather than inventing a value, and it
+      // keeps the "invalid values can't linger behind the UI" invariant that
+      // the fixed-vocabulary path has always had.
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => onChanged(ParamVocab.unspecified),
       );
@@ -225,14 +234,23 @@ class FigureParamEditor extends StatelessWidget {
     );
     if (!admitsUnstated) return dropdown;
 
+    // v30 (#989): the Clear affordance additionally requires
+    // `spec.allowManualClear` (default `true`, so this changes nothing for
+    // any existing spec). `promenade.turn` sets it `false` — the owner
+    // explicitly does not want a manual UX escape hatch back to "not stated"
+    // for a spec whose default is a concrete value; only the automatic reset
+    // triggered by `dir` (in/out/up/down) may drive it there (see
+    // `figure_list_editor.dart`).
+    if (!spec.allowManualClear) return dropdown;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         dropdown,
-        // Mirrors `_RotationStepper`'s clear affordance for this same sentinel:
-        // offered only once a value is set, so a transcriber who picked one by
-        // mistake can put the field back to "the source didn't say" rather than
-        // being stuck with a value the source never gave.
+        // Mirrors `_RotationStepper`'s clear affordance for this same
+        // sentinel: offered only once a value is set, so a transcriber who
+        // picked one by mistake can put the field back to "the source didn't
+        // say" rather than being stuck with a value the source never gave.
         if (current != null)
           IconButton(
             key: ValueKey('$_key-clear'),

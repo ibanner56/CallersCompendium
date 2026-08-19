@@ -95,6 +95,7 @@ export 'src/storage/database.dart'
         starPromenadeHandRemovalDoneKey,
         gripSingleFileCanonicalInclusionDoneKey,
         chainHandBackfillDoneKey,
+        promenadeTurnCircleWordingCanonicalRebuildDoneKey,
         kSectionRuleVersion,
         kCompendiumSchemaVersion,
         kMinSupportedSchemaVersion;

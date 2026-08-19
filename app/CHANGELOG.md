@@ -38,6 +38,30 @@ each release so store builds and tags can be traced back to an entry.
   (`nextNeighbors`, `neighbors`, `partners`, …) and defaults to `unspecified`
   (= "not stated"), so existing figures are unaffected. Destinations appear in
   display, search, and filter. (taxonomy v29, issue #921)
+- **`promenade.turn`** — promenades can now record a rotation sense
+  (`clockwise`/`counterclockwise`), the slot the ContraDB/TCB parser
+  extensions in issue #771 are blocked on. Editable in the dance editor;
+  hidden and automatically reset to "not stated" whenever `dir` is
+  `in`/`out`/`up`/`down`, where a rotation sense doesn't apply. (taxonomy v30,
+  issue #989)
+
+### Changed
+
+- **Single-file circle wording** now matches the rest of the app: `turn` is
+  shown as `left`/`right` (was previously shown as
+  `clockwise`/`counterclockwise`) in both the dance view and search text.
+  (taxonomy v30, issue #989)
+- **`promenade.destination` now appears on any promenade whose direction is
+  stated as something other than the default** (previously it only appeared
+  on single-file promenades). A single-file promenade with an unstated (i.e.
+  default `across`) direction that already had a destination set will no
+  longer show that destination in the rendered text — the stored value is
+  kept, not deleted, in case direction support is added for it later.
+  (taxonomy v30, issue #989)
+- One-time startup migration: existing promenade and single-file-circle
+  figures are re-indexed for search once, to pick up the wording and
+  rendering changes above. This is automatic and does not require any user
+  action. (taxonomy v30, issue #989)
 
 ## [0.1.0] - 2026-08-14
 

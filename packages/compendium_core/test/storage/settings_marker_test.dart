@@ -169,6 +169,44 @@ void main() {
     expect(await repos.settings.get(starPromenadeHandRemovalDoneKey), 'done');
   });
 
+  test('a tombstoned promenade-turn/circle-wording marker does NOT skip the '
+      'canonical rebuild', () async {
+    // Added by #989 (taxonomy v30): promenade.turn's concrete default and
+    // circle.singleFile's widened parenthetical both change canonical text
+    // for figures whose figures_json never changes — exactly the
+    // grip/singleFile shape (#749 Gap B, v27), which is the same class of
+    // "done marker wrongly read as present permanently leaves stale
+    // canonical/FTS text" hazard #898 exists to close.
+    final repos = _CountingRepositories(db, contraTaxonomy);
+    await tombstoneMarker(
+      repos,
+      promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+      'done',
+    );
+    await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
+    await repos.settings.set(inversePairNormalisationDoneKey, 'done');
+    await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
+    await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
+
+    await repos.ensureMigrated();
+
+    expect(
+      repos.rebuildAttempts,
+      greaterThan(0),
+      reason:
+          'a tombstoned done-marker must not suppress the v30 canonical '
+          'rebuild, or every stored promenade/circle keeps stale '
+          'clockwise/counterclockwise wording and a missing turn token in '
+          'its FTS-indexed canonical text',
+    );
+    expect(
+      await repos.settings.get(
+        promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+      ),
+      'done',
+    );
+  });
+
   test(
     'a tombstoned chain-hand-backfill marker does NOT skip the backfill',
     () async {
@@ -194,6 +232,10 @@ void main() {
       await repos.settings.set(inversePairNormalisationDoneKey, 'done');
       await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
       await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
+      await repos.settings.set(
+        promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+        'done',
+      );
 
       await repos.ensureMigrated();
 
@@ -249,6 +291,10 @@ void main() {
     await repos.settings.set(inversePairNormalisationDoneKey, 'done');
     await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
     await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
+    await repos.settings.set(
+      promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+      'done',
+    );
 
     await repos.ensureMigrated();
 
@@ -289,6 +335,10 @@ void main() {
     await repos.settings.set(inversePairNormalisationDoneKey, 'done');
     await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
     await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
+    await repos.settings.set(
+      promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+      'done',
+    );
 
     await repos.ensureMigrated();
 
@@ -334,6 +384,10 @@ void main() {
     await repos.settings.set(inversePairNormalisationDoneKey, 'done');
     await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
     await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
+    await repos.settings.set(
+      promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+      'done',
+    );
 
     // First attempt: the row rewrite (and the durable
     // derivedRebuildRequiredKey write alongside it) commits, then the
@@ -414,6 +468,10 @@ void main() {
       await repos.settings.set(inversePairNormalisationDoneKey, 'done');
       await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
       await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
+      await repos.settings.set(
+        promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+        'done',
+      );
       await repos.settings.set(chainHandBackfillDoneKey, 'done');
 
       await repos.ensureMigrated();

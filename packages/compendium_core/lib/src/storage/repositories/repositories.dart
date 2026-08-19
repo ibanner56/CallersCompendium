@@ -505,6 +505,11 @@ class CompendiumRepositories {
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
+      rebuiltThisCall =
+          await _emitPromenadeTurnAndCircleWordingIntoCanonicalIfNeeded(
+            alreadyRebuilt: rebuiltThisCall,
+            onProgress: onDerivedRebuildProgress,
+          );
       // The last sweep's result is deliberately not assigned: nothing
       // follows it today. It still REPORTS, so that adding a sweep after it
       // is a one-line change rather than a change to the contract above.
@@ -816,6 +821,53 @@ class CompendiumRepositories {
     // Write the marker AFTER success — if the rebuild throws, the marker is
     // not written and the next startup retries.
     await _writeSweepMarker(gripSingleFileCanonicalInclusionDoneKey, '"done"');
+    // Reached only by running a rebuild (or having had one run earlier this
+    // call), so a rebuild has always happened by this point.
+    return true;
+  }
+
+  /// One-time promenade/circle canonical-text rebuild owed by the v30
+  /// taxonomy change (#989). See
+  /// [promenadeTurnCircleWordingCanonicalRebuildDoneKey]'s doc comment for the
+  /// full rationale (`circle.singleFile`'s widened parenthetical,
+  /// `promenade.turn`'s concrete default, `promenade.destination`'s re-gate).
+  ///
+  /// Identical shape to [_emitGripAndSingleFileIntoCanonicalIfNeeded]: no
+  /// `figures_json` rewrite, only the derived index changes, so this pass
+  /// calls [runDerivedRebuild] and then writes its marker, with no preceding
+  /// data sweep. The debt is owed by the taxonomy change, not by rewrite
+  /// count — the same reasoning applies here as it did there.
+  ///
+  /// Guarded by [promenadeTurnCircleWordingCanonicalRebuildDoneKey] so it runs
+  /// at most once per database. The marker is written AFTER the rebuild
+  /// succeeds — an interrupted pass retries on the next open (crash-safe).
+  ///
+  /// Returns whether a derived rebuild has happened during this call —
+  /// [alreadyRebuilt] OR this pass ran one — matching the other sweeps.
+  Future<bool> _emitPromenadeTurnAndCircleWordingIntoCanonicalIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [
+            Variable.withString(
+              promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+            ),
+          ],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    if (!alreadyRebuilt) await runDerivedRebuild(onProgress: onProgress);
+
+    // Write the marker AFTER success — if the rebuild throws, the marker is
+    // not written and the next startup retries.
+    await _writeSweepMarker(
+      promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+      '"done"',
+    );
     // Reached only by running a rebuild (or having had one run earlier this
     // call), so a rebuild has always happened by this point.
     return true;

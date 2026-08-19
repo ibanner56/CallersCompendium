@@ -1475,6 +1475,87 @@ fails a PR that moves the constant without adding the matching entry.
 
     **No DB schema bump.** `destination` rides the existing `figures_json`
     codec.
+- v30 (#989): whole-set promenade rendering — three changes to the same
+    `promenade`/`circle` corner of the taxonomy, shipped together because the
+    third depends on the first two's plumbing. **Supersedes issue #771's
+    sentinel ruling for `promenade.turn`** (see below) — #771's implementer
+    must not treat that ruling as still binding.
+
+    **1. `circle.singleFile` wording (both paths).** Previously, a
+    single-file circle's stored `turn` (`left`/`right`) was substituted to
+    `clockwise`/`counterclockwise` in both display and canonical text. Both
+    paths now render the raw `turn` value instead, matching every other
+    circle. Canonical's parenthetical — which exists purely to keep "circle"
+    in the FTS index — widens from `(circle)` to carry the spin word too:
+    `(circle, clockwise)` / `(circle, counterclockwise)`, so a search for the
+    TCB source's own wording ("clockwise") still matches.
+
+    **2. `promenade.destination` re-gate.** The render gate for the
+    `to {destination}` clause widens from `singleFile==true` to
+    `dir != 'across'` — a promenade doesn't need to be single-file to have a
+    stated destination once `dir` is non-default. **Data-loss note, stated
+    plainly and not as a migration:** an existing `singleFile==true,
+    dir=='across'` figure that already carries a stored `destination` keeps
+    the param in `figures_json` but stops rendering the clause — owner
+    ruling (2026-08-18), accepted knowingly.
+
+    **3. `promenade.turn`** — a new `ParamKind.spinDirection` param
+    (`clockwise`/`counterclockwise`) capturing the promenade's rotation
+    sense, the taxonomy slot issue #771's parser work is blocked on (that
+    parser extension is #771's own scope, not this PR's — this PR adds 0 of
+    #771's measured declines by itself).
+
+    **⚠️ Owner-decided default is the CONCRETE `'counterclockwise'`**, not the
+    `unspecified` sentinel `mad_robin.direction` / `butterfly_whirl.direction`
+    use for the same `ParamKind.spinDirection` (v20 #295). #771's own
+    "Decision requested" section had asked for the sentinel default so
+    existing figures would render byte-identically with no migration; **that
+    ruling is SUPERSEDED by this owner decision (2026-08-18)**, made with the
+    rebuild cost known and explicitly accepted ("this is beta, our users will
+    survive"). `choices` still lists the sentinel
+    (`_spinOrUnspecified`) — reachable only via the automatic `dir`-driven
+    editor reset (below), never a user-facing Clear control
+    (`ParamSpec.allowManualClear: false`, the first param to set it) — so
+    `promenade.turn` is the first param in the taxonomy to combine a
+    CONCRETE default with sentinel-admitting `choices`; every other
+    sentinel-admitting param still defaults TO the sentinel.
+
+    **Rendering silencing (derived, not templated).** `turn` is silenced in
+    display only at the pure-default combination — `turn=='counterclockwise'`
+    **and** no `destination` stated — mirroring how `dir` has always been
+    silenced only at its own default. Any departure (a non-default `turn`, a
+    non-default `dir`, or a stated `destination`) shows both `dir` and `turn`
+    together. Canonical never applies this default-silencing: `turn` is
+    omitted from canonical text only at the `unspecified` sentinel, exactly
+    like `dir`'s existing canonical behaviour of always rendering even at its
+    default.
+
+    **Editor.** `figure_list_editor.dart` hides `turn` (and resets it to the
+    `unspecified` sentinel via an explicit write, never `.remove()` — removal
+    would fall back to the concrete default and render it) whenever `dir` is
+    `in`/`out`/`up`/`down`, where a rotation sense is meaningless. It also
+    hides `destination` whenever `dir == 'across'` (mirroring the render
+    gate), leaving its stored value untouched rather than clearing it.
+    `figure_param_editors.dart`'s Clear affordance is gated on the new
+    `ParamSpec.allowManualClear` field (default `true`, so every existing
+    sentinel-admitting param is unaffected); `promenade.turn` is the only spec
+    that sets it `false`.
+
+    **Derived rebuild — REQUIRED**, unlike v29's `destination` addition. All
+    three changes above alter canonical/FTS text for figures whose
+    `figures_json` never changes: existing single-file circles lose
+    "clockwise"/"counterclockwise" from their canonical text (change 1);
+    existing `singleFile+across+destination` promenades lose their clause
+    (change 2); every stored promenade gains (or, at the pure-default
+    combination, does not gain) a `turn` token (change 3). One settings marker
+    (`promenadeTurnCircleWordingCanonicalRebuildDoneKey`, mirroring
+    `gripSingleFileCanonicalInclusionDoneKey`'s v27 shape) covers all three —
+    the debt is attributed to the taxonomy change as a whole, not to `turn`
+    alone. No `figures_json` rewrite; the sweep calls `runDerivedRebuild` and
+    is guarded so it runs at most once per database, retrying on an
+    interrupted pass.
+
+    **No DB schema bump.** `turn` rides the existing `figures_json` codec.
 
 ## Open questions (to resolve during implementation, with user input)
 

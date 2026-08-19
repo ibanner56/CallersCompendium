@@ -593,6 +593,65 @@ void main() {
     });
   });
 
+  group('promenade turn/destination visibility & reset (#989, v30)', () {
+    testWidgets('turn is hidden and reset to unspecified once dir leaves the '
+        'across/along plane; destination is hidden (but not cleared) at the '
+        'across default', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'promenade',
+            params: const {
+              'dir': 'along',
+              'turn': 'clockwise',
+              'destination': 'nextNeighbors',
+              'beats': 8,
+            },
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+      await tester.pumpAndSettle();
+
+      // dir=='along': turn is visible (a rotation is meaningful travelling
+      // along the set) and destination is visible (dir != 'across').
+      expect(find.byKey(const ValueKey('figure-0-turn')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('figure-0-destination')),
+        findsOneWidget,
+      );
+
+      // Switching dir to 'in' (rotationless): turn disappears AND is reset
+      // to the sentinel — not merely removed, since `turn`'s spec default
+      // is the concrete 'counterclockwise' and removal would fall back to
+      // it. destination stays visible: the render gate is `dir != 'across'`
+      // (Q3), and 'in' satisfies that just as much as 'along' did — only
+      // `across` (the default) hides it.
+      await _selectDropdownOption(tester, 'figure-0-dir', 'in');
+      expect(find.byKey(const ValueKey('figure-0-turn')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('figure-0-destination')),
+        findsOneWidget,
+      );
+      expect(drafts.single.params['turn'], ParamVocab.unspecified);
+      expect(drafts.single.params['destination'], 'nextNeighbors');
+
+      // Switching to 'across' (the default): destination disappears (its
+      // render gate no longer holds) but its stored value survives
+      // untouched — Q3's "keeps the param, loses the clause" ruling, not a
+      // migration. turn reappears (rotation is meaningful again at
+      // across) and stays at the sentinel it was reset to, never
+      // fabricated back to the concrete default.
+      await _selectDropdownOption(tester, 'figure-0-dir', 'across');
+      expect(find.byKey(const ValueKey('figure-0-turn')), findsOneWidget);
+      expect(find.byKey(const ValueKey('figure-0-destination')), findsNothing);
+      expect(drafts.single.params['turn'], ParamVocab.unspecified);
+      expect(drafts.single.params['destination'], 'nextNeighbors');
+    });
+  });
+
   group('per-move insert defaults (DD.3)', () {
     testWidgets('overlay overrides the taxonomy default on select', (
       tester,

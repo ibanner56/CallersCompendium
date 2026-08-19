@@ -178,6 +178,35 @@ const String gripSingleFileCanonicalInclusionDoneKey =
 /// unconditionally.
 const String chainHandBackfillDoneKey = '__chain_hand_backfill_done__';
 
+/// Settings key for the one-time promenade/circle canonical-text rebuild
+/// owed by the v30 taxonomy change (#989): `circle.singleFile`'s canonical
+/// parenthetical widened from `(circle)` to carry the spin word (e.g.
+/// `(circle, clockwise)`), and `promenade.turn` — a brand-new param with a
+/// CONCRETE default (`counterclockwise`) — now renders into every stored
+/// promenade's canonical text unless silenced, which happens only at the
+/// pure-default combination (`dir=='across' && turn=='counterclockwise'`,
+/// mirroring how `dir` itself has always been silenced only at its own
+/// default). `destination`'s render gate also widened from
+/// `singleFile==true` to `dir != 'across'`, which can newly SUPPRESS a
+/// clause that was rendering before (an existing
+/// `singleFile==true, dir=='across'` figure with a stored `destination`
+/// stops emitting it) as well as newly emit one that wasn't rendering
+/// before.
+///
+/// Exactly the [gripSingleFileCanonicalInclusionDoneKey] shape: no
+/// `figures_json` rewrite, only the derived index (canonical text + FTS row)
+/// changes, and the rebuild is owed by the TAXONOMY CHANGE, not by rewrite
+/// count — a stored promenade whose `figures_json` never changes still has
+/// stale canonical/FTS text after this ships. Owner ruling (2026-08-18): "the
+/// risks of a rebuild" are accepted knowingly ("this is beta, our users will
+/// survive"), overriding the sentinel-default alternative that would have
+/// made this rebuild avoidable (see the taxonomy's `promenade.turn` doc
+/// comment for the full record).
+///
+/// Written after a successful pass so it runs at most once per database.
+const String promenadeTurnCircleWordingCanonicalRebuildDoneKey =
+    '__promenade_turn_circle_wording_canonical_rebuild_done__';
+
 /// The current on-disk schema version of [CompendiumDatabase].
 ///
 /// Exposed as a top-level constant (in addition to the [CompendiumDatabase.

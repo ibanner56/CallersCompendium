@@ -534,6 +534,60 @@ void main() {
     });
   });
 
+  group('ParamSpec.allowManualClear (v30, #989)', () {
+    testWidgets(
+      'allowManualClear: false suppresses the Clear affordance even with a '
+      'value set',
+      (tester) async {
+        // Mirrors `promenade.turn`'s real shape: a concrete default plus
+        // sentinel-admitting choices, with the manual escape hatch turned
+        // off. This is the actual regression guard for F16/W5b — the
+        // synthetic specs in the group above are `allowManualClear: true`
+        // (the default) and must keep showing Clear; this one must not.
+        const spec = ParamSpec(
+          ParamKind.spinDirection,
+          defaultValue: 'counterclockwise',
+          choices: [...ParamVocab.spins, ParamVocab.unspecified],
+          allowManualClear: false,
+        );
+        await _pumpEditor(
+          tester,
+          paramKey: 'turn',
+          spec: spec,
+          value: 'clockwise',
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('p-turn-clear')),
+          findsNothing,
+          reason:
+              'allowManualClear: false must suppress Clear regardless of '
+              'whether a value is set',
+        );
+      },
+    );
+
+    testWidgets('allowManualClear: true (the default) still shows Clear for a '
+        'sentinel-admitting spec with a concrete default', (tester) async {
+      // The zero-blast-radius companion to the test above: a spec shaped
+      // exactly like `promenade.turn` except for the flag must behave
+      // exactly like every pre-v30 sentinel-admitting spec.
+      const spec = ParamSpec(
+        ParamKind.spinDirection,
+        defaultValue: 'counterclockwise',
+        choices: [...ParamVocab.spins, ParamVocab.unspecified],
+      );
+      await _pumpEditor(
+        tester,
+        paramKey: 'turn',
+        spec: spec,
+        value: 'clockwise',
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('p-turn-clear')), findsOneWidget);
+    });
+  });
+
   testWidgets('choice dropdown round-trips a value', (tester) async {
     final read = await _pumpEditor(
       tester,

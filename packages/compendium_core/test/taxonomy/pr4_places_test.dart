@@ -94,11 +94,11 @@ void main() {
       });
     });
 
-    test('contraTaxonomyVersion is 29', () {
+    test('contraTaxonomyVersion is 30', () {
       // Guard: fails when the version is bumped without updating this test.
       // Update this assertion (and add a new test group documenting the new
       // version's changes) when bumping contraTaxonomyVersion.
-      expect(contraTaxonomyVersion, 29);
+      expect(contraTaxonomyVersion, 30);
     });
 
     test(
@@ -134,15 +134,17 @@ void main() {
     );
 
     test(
-      'circle renderCanonical: "single file promenade clockwise N places (circle)" (v27)',
+      'circle renderCanonical: "single file promenade {left|right} N places (circle, {spin})" (v27, reworded v30 #989)',
       () {
         // Since v27, singleFile is canonical. The parenthetical "(circle)"
-        // retains "circle" in the FTS index.
+        // retains "circle" in the FTS index. v30 (#989): `turn` renders raw
+        // (left/right) instead of a spin-word substitution; the spin word
+        // moves into the parenthetical instead, so it stays searchable.
         expect(
           renderer.renderCanonical(
             testFigure(move: 'circle', params: {'singleFile': true}),
           ),
-          'single file promenade clockwise 4 places (circle)',
+          'single file promenade left 4 places (circle, clockwise)',
         );
         // Default (singleFile=false) is unchanged.
         expect(
@@ -155,15 +157,19 @@ void main() {
     );
 
     test(
-      'promenade renderCanonical: "single file promenade {dir}" (v27), with destination (v29)',
+      'promenade renderCanonical: "single file promenade {turn} {dir}" (v27, turn added v30 #989), with destination (v29)',
       () {
         // Since v27, singleFile is canonical. `who` is dropped; `dir` always
-        // present (even the `across` default).
+        // present (even the `across` default). v30 (#989): `turn` is added
+        // and, like `dir`, is never silenced for equalling its own concrete
+        // default in canonical (only the `unspecified` sentinel suppresses
+        // it) — so an all-default singleFile promenade now also carries
+        // "counterclockwise".
         expect(
           renderer.renderCanonical(
             testFigure(move: 'promenade', params: {'singleFile': true}),
           ),
-          'single file promenade across',
+          'single file promenade counterclockwise across',
         );
         // Explicit `dir:'along'` (ContraDB import) included in canonical key.
         expect(
@@ -173,7 +179,7 @@ void main() {
               params: {'singleFile': true, 'dir': 'along'},
             ),
           ),
-          'single file promenade along',
+          'single file promenade counterclockwise along',
         );
         // v29 (#921): destination appended when stated.
         expect(
@@ -187,7 +193,7 @@ void main() {
               },
             ),
           ),
-          'single file promenade along to next neighbors',
+          'single file promenade counterclockwise along to next neighbors',
         );
         // destination:neighbors
         expect(
@@ -201,7 +207,7 @@ void main() {
               },
             ),
           ),
-          'single file promenade along to neighbors',
+          'single file promenade counterclockwise along to neighbors',
         );
         // unspecified destination — same as no destination
         expect(
@@ -215,14 +221,43 @@ void main() {
               },
             ),
           ),
-          'single file promenade along',
+          'single file promenade counterclockwise along',
         );
         // Default (singleFile=false) is unchanged.
         expect(
           renderer.renderCanonical(
             testFigure(move: 'promenade', params: {'singleFile': false}),
           ),
-          'partners promenade across',
+          'partners promenade counterclockwise across',
+        );
+        // v30 (#989): the destination gate is `dir != 'across'`, decoupled
+        // from `singleFile` — an ORDINARY (non-singleFile) promenade with a
+        // non-default `dir` and a stated `destination` now renders the
+        // clause in canonical too, which the pre-v30 `singleFile==true` gate
+        // would have suppressed.
+        expect(
+          renderer.renderCanonical(
+            testFigure(
+              move: 'promenade',
+              params: {'dir': 'rightDiagonal', 'destination': 'prevNeighbors'},
+            ),
+          ),
+          'partners promenade counterclockwise right diagonal to prev '
+          'neighbors',
+        );
+        // The inverse: a `dir=='across'` (default) promenade with a stored
+        // `destination` does NOT render the clause, even though nothing
+        // about `singleFile` changed — the F9 case this re-gate must keep
+        // suppressing (a stored value that keeps the param but loses the
+        // clause, not a migration).
+        expect(
+          renderer.renderCanonical(
+            testFigure(
+              move: 'promenade',
+              params: {'destination': 'prevNeighbors'},
+            ),
+          ),
+          'partners promenade counterclockwise across',
         );
       },
     );
@@ -311,7 +346,7 @@ void main() {
       });
 
       test(
-        'singleFile: true, destination:nextNeighbors — "single file promenade along to next neighbors"',
+        'singleFile: true, destination:nextNeighbors — "single file promenade counterclockwise along to next neighbors"',
         () {
           final f = testFigure(
             move: 'promenade',
@@ -321,15 +356,18 @@ void main() {
               'destination': 'nextNeighbors',
             },
           );
+          // v30 (#989): a stated destination un-silences `turn` even though
+          // it's the default — "to next neighbors" alone doesn't say which
+          // way they travel.
           expect(
             renderer.render(f, d),
-            'single file promenade along to next neighbors',
+            'single file promenade counterclockwise along to next neighbors',
           );
         },
       );
 
       test(
-        'singleFile: true, destination:neighbors — "single file promenade along to neighbors"',
+        'singleFile: true, destination:neighbors — "single file promenade counterclockwise along to neighbors"',
         () {
           final f = testFigure(
             move: 'promenade',
@@ -341,7 +379,7 @@ void main() {
           );
           expect(
             renderer.render(f, d),
-            'single file promenade along to neighbors',
+            'single file promenade counterclockwise along to neighbors',
           );
         },
       );
@@ -371,16 +409,15 @@ void main() {
       });
 
       test(
-        'singleFile: true — "single file circle clockwise 4 places" (prefix form)',
+        'singleFile: true — "single file circle left 4 places" (prefix form, raw turn v30 #989)',
         () {
           final f = testFigure(move: 'circle', params: {'singleFile': true});
           // Prefix form replaces the v26 suffix ("circle … - single file").
-          // turn:'left' maps to clockwise (contra convention: circle left
-          // travels clockwise).
-          expect(
-            renderer.render(f, d),
-            'single file circle clockwise 4 places',
-          );
+          // v30 (#989): `turn` renders its raw stored value (`left`/`right`)
+          // — the clockwise/counterclockwise substitution this test used to
+          // assert is REMOVED; the spin word now lives only in canonical's
+          // parenthetical.
+          expect(renderer.render(f, d), 'single file circle left 4 places');
         },
       );
 
@@ -389,25 +426,22 @@ void main() {
           move: 'circle',
           params: {'singleFile': true, 'places': 3},
         );
-        expect(renderer.render(f, d), 'single file circle clockwise 3 places');
+        expect(renderer.render(f, d), 'single file circle left 3 places');
       });
 
-      test('singleFile: true, turn:right — counterclockwise', () {
+      test('singleFile: true, turn:right — raw "right" (v30 #989)', () {
         final f = testFigure(
           move: 'circle',
           params: {'singleFile': true, 'turn': 'right'},
         );
-        expect(
-          renderer.render(f, d),
-          'single file circle counterclockwise 4 places',
-        );
+        expect(renderer.render(f, d), 'single file circle right 4 places');
       });
 
       test('singleFile: true shows in renderSummary', () {
         final f = testFigure(move: 'circle', params: {'singleFile': true});
         expect(
           renderer.renderSummary(f, d),
-          'single file circle clockwise 4 places',
+          'single file circle left 4 places',
         );
       });
     });

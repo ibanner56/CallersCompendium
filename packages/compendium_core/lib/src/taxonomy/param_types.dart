@@ -219,7 +219,12 @@ String? chainHandForWho(String who) {
 /// [ParamKind.choice], or to narrow dancer kinds) an explicit value domain.
 @immutable
 class ParamSpec {
-  const ParamSpec(this.kind, {required this.defaultValue, this.choices});
+  const ParamSpec(
+    this.kind, {
+    required this.defaultValue,
+    this.choices,
+    this.allowManualClear = true,
+  });
 
   final ParamKind kind;
 
@@ -229,6 +234,28 @@ class ParamSpec {
   /// Explicit allowed values. Required for [ParamKind.choice]; optional for
   /// dancer kinds (narrows the shared vocabulary to what the move accepts).
   final List<String>? choices;
+
+  /// Whether the editor may offer a manual Clear affordance that resets this
+  /// param to [ParamVocab.unspecified] (`figure_param_editors.dart`'s
+  /// dropdown Clear button). Only meaningful when [choices] admits the
+  /// sentinel; ignored otherwise.
+  ///
+  /// Defaults to `true` — every sentinel-admitting spec before taxonomy v30
+  /// also DEFAULTS to the sentinel (see the enumeration in
+  /// `figure_param_editors.dart`), so a manual Clear is simply "return to the
+  /// baseline" for all of them and this flag is a no-op.
+  ///
+  /// `promenade.turn` (v30, #989) is the first spec to admit the sentinel
+  /// while defaulting to a CONCRETE value (`'counterclockwise'`) — for it,
+  /// clicking Clear would not be "returning to baseline", it would be an
+  /// active choice to erase a stated rotation down to "not stated", which the
+  /// taxonomy owner explicitly does not want reachable as a manual action
+  /// (owner ruling, 2026-08-18): the sentinel is reachable ONLY via the
+  /// automatic reset the editor performs when `dir` is set to `in`/`out`/
+  /// `up`/`down` (see `figure_list_editor.dart`), never via a button. Set
+  /// `false` there for that reason; every other spec leaves this at its
+  /// default.
+  final bool allowManualClear;
 
   /// Whether [value] belongs to this parameter's domain.
   bool validate(Object? value) {
