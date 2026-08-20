@@ -249,20 +249,41 @@ class _CollectionShellState extends State<CollectionShell> {
     final target = _reimportTargetId;
     if (_importing || target == null) return;
     _importing = true;
-    DanceReimportResult result;
     try {
-      result = await replaceDanceChoreography(
+      final result = await replaceDanceChoreography(
         RepositoriesScope.of(context),
         targetDanceId: target,
         incoming: preview.dance,
       );
+      if (!mounted) return;
+      if (result == DanceReimportResult.replaced) {
+        setState(() {
+          _selectedDanceId = target;
+          _detailMode = _DetailMode.none;
+          _onlinePreview = null;
+          _onlinePreviewLoading = false;
+          _onlinePreviewError = null;
+          _reimportTargetId = null;
+          _reimportPreview = null;
+        });
+        _detailMessengerKey.currentState?.showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).danceReimported)),
+        );
+      } else {
+        _detailMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).danceReimportTargetMissing,
+            ),
+          ),
+        );
+      }
     } catch (error, stackTrace) {
       logCaughtErrorTypeOnly(
         error,
         stackTrace,
         source: 'collection_shell._commitReimport',
       );
-      _importing = false;
       if (mounted) {
         _detailMessengerKey.currentState?.showSnackBar(
           SnackBar(
@@ -272,32 +293,9 @@ class _CollectionShellState extends State<CollectionShell> {
           ),
         );
       }
-      return;
+    } finally {
+      _importing = false;
     }
-    if (!mounted) return;
-    if (result == DanceReimportResult.replaced) {
-      setState(() {
-        _selectedDanceId = target;
-        _detailMode = _DetailMode.none;
-        _onlinePreview = null;
-        _onlinePreviewLoading = false;
-        _onlinePreviewError = null;
-        _reimportTargetId = null;
-        _reimportPreview = null;
-      });
-      _detailMessengerKey.currentState?.showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).danceReimported)),
-      );
-    } else {
-      _detailMessengerKey.currentState?.showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context).danceReimportTargetMissing,
-          ),
-        ),
-      );
-    }
-    _importing = false;
   }
 
   /// Fetches the tapped online result's full record and shows it in the detail

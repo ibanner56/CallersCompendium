@@ -101,6 +101,14 @@ void main() {
       planSingleDanceJson(repos, payload([dance('one'), dance('two')])),
       throwsA(isA<DanceReimportJsonException>()),
     );
+    await expectLater(
+      planSingleDanceJson(repos, '{ not JSON'),
+      throwsA(isA<DanceReimportJsonException>()),
+    );
+    await expectLater(
+      planSingleDanceJson(repos, '[]'),
+      throwsA(isA<DanceReimportJsonException>()),
+    );
   });
 
   test('JSON planning rejects archives containing programs', () async {

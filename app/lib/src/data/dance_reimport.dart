@@ -36,6 +36,12 @@ Future<ImportRecordPlan> planSingleDanceJson(
   String payload,
 ) async {
   final decoded = decodeArchive(payload);
+  if (decoded.errors.any(
+    (error) =>
+        error.entityType == 'archive' && error.kind == ArchiveErrorKind.read,
+  )) {
+    throw const DanceReimportJsonException.cardinality(0);
+  }
   if (decoded.archive.programs.isNotEmpty) {
     throw const DanceReimportJsonException.programArchive();
   }

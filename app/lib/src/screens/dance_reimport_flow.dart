@@ -29,8 +29,8 @@ Future<DanceDetailData?> selectReimportDance(
         mainAxisSize: MainAxisSize.min,
         children: [
           for (final entry in [
-            (_ReimportSource.callersBox, "Caller's Box"),
-            (_ReimportSource.contraDb, 'ContraDB'),
+            (_ReimportSource.callersBox, OnlineSource.callersBox.label),
+            (_ReimportSource.contraDb, OnlineSource.contraDb.label),
             (_ReimportSource.json, l10n.danceReimportJson),
           ])
             ListTile(
