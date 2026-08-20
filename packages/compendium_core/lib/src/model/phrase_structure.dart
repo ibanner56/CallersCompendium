@@ -13,11 +13,10 @@ import 'figure.dart';
 /// or editing beats stays consistent.
 @immutable
 class PhraseStructure {
-  PhraseStructure._(List<PhraseComponent> components, this.raw)
-    : components = List.unmodifiable(components);
+  const PhraseStructure._(this.components, this.raw);
 
   /// The standard contra structure: 4 phrases of 16 beats (A1 A2 B1 B2).
-  static final PhraseStructure standard = PhraseStructure._(const [
+  static const PhraseStructure standard = PhraseStructure._([
     PhraseComponent._(4, 8, 2),
   ], '');
 
@@ -40,10 +39,13 @@ class PhraseStructure {
       );
     }
 
-    return PhraseStructure._([
-      for (final component in componentStrings)
-        _parseComponent(component.trim(), raw),
-    ], trimmed);
+    return PhraseStructure._(
+      List.unmodifiable([
+        for (final component in componentStrings)
+          _parseComponent(component.trim(), raw),
+      ]),
+      trimmed,
+    );
   }
 
   static PhraseComponent _parseComponent(String component, String raw) {

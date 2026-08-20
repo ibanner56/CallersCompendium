@@ -13,6 +13,11 @@ void main() {
       expect(s.labels, ['A1', 'A2', 'B1', 'B2']);
     });
 
+    test('standard structure remains a compile-time constant', () {
+      const structure = PhraseStructure.standard;
+      expect(structure, same(PhraseStructure.standard));
+    });
+
     test('whitespace-only string is standard too', () {
       expect(PhraseStructure.parse('  '), PhraseStructure.standard);
     });
