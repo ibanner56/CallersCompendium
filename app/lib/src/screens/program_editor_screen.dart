@@ -635,7 +635,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   void _scheduleAutoCommit() {
-    if (!_autoCommitEnabled || !_loaded || _restoringDraft || !_dirty) return;
+    if (!_autoCommitEnabled ||
+        !_loaded ||
+        _restoringDraft ||
+        !_dirty ||
+        _saving) {
+      return;
+    }
     _autoCommitTimer?.cancel();
     _autoCommitTimer = Timer(
       const Duration(milliseconds: 500),
@@ -644,7 +650,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   void _enqueueAutoCommit() {
-    if (!_autoCommitEnabled || !_dirty || !mounted) return;
+    if (!_autoCommitEnabled || !_dirty || _saving || !mounted) return;
     final generation = _editGeneration;
     final future = _commitQueueTail.then((_) => _autoCommit(generation));
     _commitQueueTail = future;
@@ -701,7 +707,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     await _saveQueueTail;
     if (!mounted) return;
     if (generation == _draftGeneration) {
-      await _repos.settings.remove(key);
+      await _repos.settings.remove(key, permanent: true);
     }
   }
 
@@ -954,16 +960,39 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             final slots = _renumber(updated.slots.toList());
             final existing = _existing;
             if (existing != null) {
-              final persisted = existing.copyWith(
+              // Perform may follow metadata edits that are still queued for
+              // auto-commit. Rebase the performed slots onto that working
+              // snapshot and serialize the whole update with the same queue.
+              final base = _draftProgram ?? existing;
+              final persisted = base.copyWith(
                 slots: slots,
                 updatedAt: DateTime.now().toUtc(),
               );
-              try {
+              _autoCommitTimer?.cancel();
+              _editGeneration++;
+              final operation = _commitQueueTail.then((_) async {
                 await _repos.programs.update(persisted);
+                await _clearDraft(waitForCommits: false);
+              });
+              // Keep later commits usable if this live-gig write fails, while
+              // still surfacing the failure to this callback.
+              _commitQueueTail = operation.then<void>(
+                (_) {},
+                onError: (Object error, StackTrace stackTrace) {
+                  logCaughtError(
+                    error,
+                    stackTrace,
+                    source: 'program_editor_screen._performPersist',
+                  );
+                },
+              );
+              try {
+                await operation;
                 if (!mounted) return;
                 setState(() {
                   _existing = persisted;
                   _slots = slots;
+                  _dirty = false;
                 });
                 // A mark-performed stamp changes the Collection's "called N
                 // times" badge and any mounted dance detail's calling history.
@@ -1266,6 +1295,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     final l10n = AppLocalizations.of(context);
+    _autoCommitTimer?.cancel();
+    _editGeneration++;
     setState(() => _saving = true);
     try {
       await _commitQueueTail;

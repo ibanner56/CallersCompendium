@@ -44,6 +44,7 @@ Future<void> _pumpBuilder(
   WidgetTester tester,
   CompendiumRepositories repos, {
   String? programId,
+  bool autoCommit = false,
   void Function(String)? onSaved,
   VoidCallback? onDeleted,
   void Function(String)? onNavigateTo,
@@ -53,13 +54,21 @@ Future<void> _pumpBuilder(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
   addTearDown(notifier.dispose);
+  final autoCommitNotifier = ValueNotifier<bool>(autoCommit);
+  addTearDown(autoCommitNotifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(notifier: notifier, child: child!),
+        child: ActiveDialectScope(
+          notifier: notifier,
+          child: ProgramAutoCommitScope(
+            notifier: autoCommitNotifier,
+            child: child!,
+          ),
+        ),
       ),
       home: ProgramEditorScreen(
         programId: programId,
@@ -877,6 +886,57 @@ void main() {
       );
     },
   );
+
+  testWidgets('serializes Perform persistence behind a pending auto-commit', (
+    tester,
+  ) async {
+    installFakeWakelock();
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(
+      _dance(id: 'd1', title: 'Chase the Squirrel'),
+    );
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    final writesBeforeEditor = delayed.programs.writesStarted;
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+      size: const Size(800, 1600),
+    );
+
+    delayed.programs.holdNextWrite();
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Updated metadata',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await delayed.programs.writeStarted;
+
+    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('adjust-done')));
+    await tester.pump();
+
+    // The Perform update must be queued behind the held metadata update.
+    expect(delayed.programs.writesStarted, writesBeforeEditor + 1);
+    delayed.programs.releaseWrite();
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.title, 'Updated metadata');
+    expect(saved.slots.single.performedAt, isNotNull);
+  });
 
   testWidgets('blocks clearing a free-text slot to empty', (tester) async {
     final repos = openTestRepositories();

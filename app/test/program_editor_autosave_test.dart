@@ -464,6 +464,32 @@ void main() {
       expect(all.single.title, 'To Save');
     });
 
+    testWidgets('explicit Save before the debounce cannot create a duplicate', (
+      tester,
+    ) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await _pumpEditor(tester, delayed.repos, autoCommit: true);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Immediate Save',
+      );
+      delayed.programs.holdNextWrite();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await delayed.programs.writeStarted;
+
+      // Let the original debounce expire while explicit creation is held.
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(delayed.programs.writesStarted, 1);
+
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+
+      final all = await delayed.repos.programs.listAll();
+      expect(all, hasLength(1));
+      expect(all.single.title, 'Immediate Save');
+    });
+
     testWidgets(
       'auto-commit creates once, migrates the draft key, and updates',
       (tester) async {
@@ -494,6 +520,14 @@ void main() {
         expect(
           await delayed.repos.settings.contains('program_editor_draft:new'),
           isFalse,
+        );
+        final oldDraftRows = await (delayed.repos.db.select(
+          delayed.repos.db.settings,
+        )..where((row) => row.key.equals('program_editor_draft:new'))).get();
+        expect(
+          oldDraftRows,
+          isEmpty,
+          reason: 'migrating a device-local draft must remove its tombstone',
         );
 
         delayed.programs.holdNextWrite();
