@@ -1054,10 +1054,9 @@ class CallersBoxAdapter implements SourceAdapter {
     // `[…]` is TCB's "who does it" annotation — a different payload we do not
     // model here, so a line carrying one stays custom.
     if (lower.contains('[')) return null;
-    final annotations = RegExp(r'\(([^)]*)\)')
-        .allMatches(lower)
-        .map((m) => m.group(1)!.trim())
-        .toList();
+    final annotations = RegExp(
+      r'\(([^)]*)\)',
+    ).allMatches(lower).map((m) => m.group(1)!.trim()).toList();
     if (annotations.length > 1) return null;
     final head = lower
         .replaceAll(RegExp(r'\([^)]*\)'), ' ')
