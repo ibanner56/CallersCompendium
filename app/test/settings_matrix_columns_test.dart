@@ -236,6 +236,7 @@ void main() {
           find.byKey(const ValueKey('matrix-parameterized-label')),
           'Partner swing',
         );
+        await tester.pump();
         await tester.tap(
           find.byKey(const ValueKey('matrix-parameterized-save')),
         );
@@ -266,6 +267,35 @@ void main() {
         });
       },
     );
+
+    testWidgets('requires a non-empty parameterized column name', (
+      tester,
+    ) async {
+      await _pumpEditor(tester, taxonomy: _parameterizedTaxonomy);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-add-parameterized')),
+      );
+      await tester.pumpAndSettle();
+
+      TextButton saveButton() => tester.widget(
+        find.byKey(const ValueKey('matrix-parameterized-save')),
+      );
+      expect(saveButton().onPressed, isNull);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-parameterized-label')),
+        '   ',
+      );
+      await tester.pump();
+      expect(saveButton().onPressed, isNull);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-parameterized-label')),
+        'Partner swing',
+      );
+      await tester.pump();
+      expect(saveButton().onPressed, isNotNull);
+    });
 
     testWidgets('deleting a parameterized column removes all references', (
       tester,
@@ -338,6 +368,11 @@ void main() {
         ),
         findsNothing,
       );
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-parameterized-label')),
+        'Repaired column',
+      );
+      await tester.pump();
       await tester.tap(find.byKey(const ValueKey('matrix-parameterized-save')));
       await tester.pumpAndSettle();
 

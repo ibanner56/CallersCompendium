@@ -707,6 +707,7 @@ class _ParameterizedColumnDialogState
                 decoration: InputDecoration(
                   labelText: l10n.settingsMatrixColumnsParameterizedLabel,
                 ),
+                onChanged: (_) => setState(() {}),
               ),
             ],
           ),
@@ -719,13 +720,15 @@ class _ParameterizedColumnDialogState
         ),
         TextButton(
           key: const ValueKey('matrix-parameterized-save'),
-          onPressed: () => Navigator.of(context).pop(
-            _ParameterizedColumnDraft(
-              baseMove: _baseMove,
-              params: Map<String, Object?>.of(_params),
-              label: _label.text.trim(),
-            ),
-          ),
+          onPressed: _label.text.trim().isEmpty
+              ? null
+              : () => Navigator.of(context).pop(
+                  _ParameterizedColumnDraft(
+                    baseMove: _baseMove,
+                    params: Map<String, Object?>.of(_params),
+                    label: _label.text.trim(),
+                  ),
+                ),
           child: Text(l10n.commonSave),
         ),
       ],

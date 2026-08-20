@@ -563,7 +563,7 @@ String columnKeyForFigure(
 ]) {
   if (figure.isCustom) return customMove;
   final canonicalId = taxonomy.resolve(figure.move)?.id;
-  if (canonicalId != null) {
+  if (canonicalId != null && config.parameterized.isNotEmpty) {
     final effective = taxonomy.effectiveParams(figure);
     ParameterizedColumn? best;
     var bestSpecificity = -1;
