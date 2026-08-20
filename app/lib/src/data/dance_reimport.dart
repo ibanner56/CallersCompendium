@@ -16,20 +16,22 @@ Future<DanceReimportResult> replaceDanceChoreography(
   required DateTime expectedUpdatedAt,
   DateTime? now,
 }) async {
-  final existing = await repos.dances.getById(targetDanceId);
-  if (existing == null) return DanceReimportResult.targetMissing;
-  if (existing.updatedAt != expectedUpdatedAt) {
-    return DanceReimportResult.targetChanged;
-  }
-  await repos.dances.update(
-    existing.copyWith(
-      figures: incoming.figures,
-      formation: incoming.formation,
-      progression: incoming.progression,
-      updatedAt: now ?? DateTime.now().toUtc(),
-    ),
-  );
-  return DanceReimportResult.replaced;
+  return repos.db.transaction(() async {
+    final existing = await repos.dances.getById(targetDanceId);
+    if (existing == null) return DanceReimportResult.targetMissing;
+    if (existing.updatedAt != expectedUpdatedAt) {
+      return DanceReimportResult.targetChanged;
+    }
+    await repos.dances.update(
+      existing.copyWith(
+        figures: incoming.figures,
+        formation: incoming.formation,
+        progression: incoming.progression,
+        updatedAt: now ?? DateTime.now().toUtc(),
+      ),
+    );
+    return DanceReimportResult.replaced;
+  });
 }
 
 /// Plans exactly one dance from a generic JSON payload without ever committing
