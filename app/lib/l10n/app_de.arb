@@ -6235,5 +6235,9 @@
   "danceReimportTargetMissing": "Dieser Tanz wurde gelöscht, bevor er aktualisiert werden konnte.",
   "@danceReimportTargetMissing": {
     "x-sourceSha256": "a7fa7158d909cc3495b34beac015092677355e05077a53e14e161e9c5b2f6113"
+  },
+  "danceReimportTargetChanged": "Dieser Tanz wurde geändert, bevor er aktualisiert werden konnte. Überprüfen Sie ihn und versuchen Sie es erneut.",
+  "@danceReimportTargetChanged": {
+    "x-sourceSha256": "7213bdad9aa2abba7fd089889171b48ce5c3d80ecc5a5760c1881cf8c4a6125a"
   }
 }

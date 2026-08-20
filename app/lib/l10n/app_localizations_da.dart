@@ -6212,4 +6212,8 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get danceReimportTargetMissing =>
       'Denne dans blev slettet, før den kunne opdateres.';
+
+  @override
+  String get danceReimportTargetChanged =>
+      'Denne dans blev ændret, før den kunne opdateres. Gennemgå den, og prøv igen.';
 }

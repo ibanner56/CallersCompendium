@@ -9508,6 +9508,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This dance was deleted before it could be updated.'**
   String get danceReimportTargetMissing;
+
+  /// No description provided for @danceReimportTargetChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance changed before it could be updated. Review it and try again.'**
+  String get danceReimportTargetChanged;
 }
 
 class _AppLocalizationsDelegate

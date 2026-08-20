@@ -6252,4 +6252,8 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get danceReimportTargetMissing =>
       'Deze dans is verwijderd voordat deze kon worden bijgewerkt.';
+
+  @override
+  String get danceReimportTargetChanged =>
+      'Deze dans is gewijzigd voordat deze kon worden bijgewerkt. Controleer de dans en probeer het opnieuw.';
 }

@@ -8224,5 +8224,6 @@
   "danceReimportInvalidJson": "Choose a valid file containing exactly one dance.",
   "danceReimportSourceFailed": "Could not load a dance from that source. Please try again.",
   "danceReimported": "Choreography updated.",
-  "danceReimportTargetMissing": "This dance was deleted before it could be updated."
+  "danceReimportTargetMissing": "This dance was deleted before it could be updated.",
+  "danceReimportTargetChanged": "This dance changed before it could be updated. Review it and try again."
 }

@@ -43,6 +43,7 @@ void main() {
           repos,
           targetDanceId: original.id,
           incoming: incoming,
+          expectedUpdatedAt: original.updatedAt,
           now: DateTime.utc(2026, 2),
         ),
         DanceReimportResult.replaced,
@@ -73,8 +74,42 @@ void main() {
         repos,
         targetDanceId: 'missing',
         incoming: incoming,
+        expectedUpdatedAt: DateTime.utc(2026),
       ),
       DanceReimportResult.targetMissing,
+    );
+  });
+
+  test('re-import reports a target changed while previewing', () async {
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+    final original = Dance(
+      id: 'saved',
+      title: 'Saved',
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+    );
+    await repos.dances.create(original);
+    await repos.dances.update(
+      original.copyWith(
+        callingNotes: 'Changed while previewing',
+        updatedAt: DateTime.utc(2026, 1, 2),
+      ),
+    );
+    final incoming = original.copyWith(title: 'Incoming');
+
+    expect(
+      await replaceDanceChoreography(
+        repos,
+        targetDanceId: original.id,
+        incoming: incoming,
+        expectedUpdatedAt: original.updatedAt,
+      ),
+      DanceReimportResult.targetChanged,
+    );
+    expect(
+      (await repos.dances.getById(original.id))!.callingNotes,
+      'Changed while previewing',
     );
   });
 

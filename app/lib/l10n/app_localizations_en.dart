@@ -6198,4 +6198,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get danceReimportTargetMissing =>
       'This dance was deleted before it could be updated.';
+
+  @override
+  String get danceReimportTargetChanged =>
+      'This dance changed before it could be updated. Review it and try again.';
 }

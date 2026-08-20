@@ -6297,4 +6297,8 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get danceReimportTargetMissing =>
       'Cette danse a été supprimée avant de pouvoir être mise à jour.';
+
+  @override
+  String get danceReimportTargetChanged =>
+      'Cette danse a changé avant de pouvoir être mise à jour. Vérifiez-la et réessayez.';
 }

@@ -6290,4 +6290,8 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get danceReimportTargetMissing =>
       'Dieser Tanz wurde gelöscht, bevor er aktualisiert werden konnte.';
+
+  @override
+  String get danceReimportTargetChanged =>
+      'Dieser Tanz wurde geändert, bevor er aktualisiert werden konnte. Überprüfen Sie ihn und versuchen Sie es erneut.';
 }

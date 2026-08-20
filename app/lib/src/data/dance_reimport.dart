@@ -7,16 +7,20 @@ import '../search/dance_detail_data.dart';
 /// Normal imports use their dedupe decision and can replace an entire record.
 /// This path is different: it keeps the collection entry's user-maintained
 /// metadata and refreshes only the choreography supplied by the source.
-enum DanceReimportResult { replaced, targetMissing }
+enum DanceReimportResult { replaced, targetMissing, targetChanged }
 
 Future<DanceReimportResult> replaceDanceChoreography(
   CompendiumRepositories repos, {
   required String targetDanceId,
   required Dance incoming,
+  required DateTime expectedUpdatedAt,
   DateTime? now,
 }) async {
   final existing = await repos.dances.getById(targetDanceId);
   if (existing == null) return DanceReimportResult.targetMissing;
+  if (existing.updatedAt != expectedUpdatedAt) {
+    return DanceReimportResult.targetChanged;
+  }
   await repos.dances.update(
     existing.copyWith(
       figures: incoming.figures,

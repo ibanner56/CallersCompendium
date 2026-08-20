@@ -1007,6 +1007,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
                   _repos,
                   targetDanceId: target.dance.id,
                   incoming: preview.dance,
+                  expectedUpdatedAt: target.dance.updatedAt,
                 );
                 if (!mounted) return;
                 if (result == DanceReimportResult.replaced) {
@@ -1015,7 +1016,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
                   messenger.showSnackBar(
                     SnackBar(
                       content: Text(
-                        AppLocalizations.of(context).danceReimportTargetMissing,
+                        result == DanceReimportResult.targetMissing
+                            ? AppLocalizations.of(
+                                context,
+                              ).danceReimportTargetMissing
+                            : AppLocalizations.of(
+                                context,
+                              ).danceReimportTargetChanged,
                       ),
                     ),
                   );

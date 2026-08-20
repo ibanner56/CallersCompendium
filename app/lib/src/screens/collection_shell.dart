@@ -144,6 +144,7 @@ class _CollectionShellState extends State<CollectionShell> {
   /// preview Import button cannot commit the same plan twice.
   bool _importing = false;
   String? _reimportTargetId;
+  DateTime? _reimportTargetUpdatedAt;
   DanceDetailData? _reimportPreview;
 
   void _onSelectDance(String danceId) {
@@ -197,6 +198,7 @@ class _CollectionShellState extends State<CollectionShell> {
     _onlinePreviewLoading = false;
     _onlinePreviewError = null;
     _reimportTargetId = null;
+    _reimportTargetUpdatedAt = null;
     _reimportPreview = null;
   }
 
@@ -213,6 +215,7 @@ class _CollectionShellState extends State<CollectionShell> {
       if (!mounted || preview == null) return;
       setState(() {
         _reimportTargetId = detail.dance.id;
+        _reimportTargetUpdatedAt = detail.dance.updatedAt;
         _reimportPreview = preview;
         _onlinePreview = null;
         _onlinePreviewLoading = false;
@@ -250,13 +253,15 @@ class _CollectionShellState extends State<CollectionShell> {
 
   Future<void> _commitReimport(DanceDetailData preview) async {
     final target = _reimportTargetId;
-    if (_importing || target == null) return;
+    final expectedUpdatedAt = _reimportTargetUpdatedAt;
+    if (_importing || target == null || expectedUpdatedAt == null) return;
     _importing = true;
     try {
       final result = await replaceDanceChoreography(
         RepositoriesScope.of(context),
         targetDanceId: target,
         incoming: preview.dance,
+        expectedUpdatedAt: expectedUpdatedAt,
       );
       if (!mounted) return;
       if (result == DanceReimportResult.replaced) {
@@ -267,6 +272,7 @@ class _CollectionShellState extends State<CollectionShell> {
           _onlinePreviewLoading = false;
           _onlinePreviewError = null;
           _reimportTargetId = null;
+          _reimportTargetUpdatedAt = null;
           _reimportPreview = null;
         });
         _detailMessengerKey.currentState?.showSnackBar(
@@ -276,7 +282,9 @@ class _CollectionShellState extends State<CollectionShell> {
         _detailMessengerKey.currentState?.showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context).danceReimportTargetMissing,
+              result == DanceReimportResult.targetMissing
+                  ? AppLocalizations.of(context).danceReimportTargetMissing
+                  : AppLocalizations.of(context).danceReimportTargetChanged,
             ),
           ),
         );

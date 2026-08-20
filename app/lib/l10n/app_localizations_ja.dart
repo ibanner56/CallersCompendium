@@ -6002,4 +6002,8 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceReimportTargetMissing => 'このダンスは更新前に削除されました。';
+
+  @override
+  String get danceReimportTargetChanged =>
+      'このダンスは更新前に変更されました。内容を確認して、もう一度お試しください。';
 }
