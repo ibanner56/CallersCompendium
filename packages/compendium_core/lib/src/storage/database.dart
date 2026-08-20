@@ -213,7 +213,7 @@ const String promenadeTurnCircleWordingCanonicalRebuildDoneKey =
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 26;
+const int kCompendiumSchemaVersion = 27;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -295,6 +295,7 @@ const int kMinSupportedSchemaVersion = 20;
     ProgramProvenance,
     Venues,
     VenueProvenance,
+    CollectionImportEvents,
   ],
 )
 class CompendiumDatabase extends _$CompendiumDatabase {
@@ -653,6 +654,9 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // row here and will not provenance-dedupe; the new path takes effect
         // for every bundle imported after this migration.
         await m.createTable(venueProvenance);
+      }
+      if (from < 27) {
+        await m.createTable(collectionImportEvents);
       }
     },
     beforeOpen: (details) async {

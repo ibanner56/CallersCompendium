@@ -435,6 +435,40 @@ final Map<String, DataClassification> fieldClassifications = {
   'venue_provenance.permission': _choreography,
   'venue_provenance.license': _choreography,
   'venue_provenance.source_version': _choreography,
+  // Import history is device-local because it reveals which published
+  // collections the app user chose to keep, rather than collection content.
+  'collection_import_events.collection_id': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.deviceLocal,
+    note:
+        'Published collection import history reveals the app user’s interests; '
+        'it is not collection content and must remain on this device.',
+  ),
+  'collection_import_events.version': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.deviceLocal,
+    note:
+        'Published collection import history reveals the app user’s interests; '
+        'it is not collection content and must remain on this device.',
+  ),
+  'collection_import_events.archive_digest': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.deviceLocal,
+    note:
+        'The digest identifies the specific published archive the app user '
+        'imported and is retained only as local import history.',
+  ),
+  'collection_import_events.imported_at': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.deviceLocal,
+    note:
+        'The timestamp records the app user’s import activity and is retained '
+        'only as local import history.',
+  ),
 
   // ------------------------------------------------------- settings, cache --
   'settings.key': const DataClassification(

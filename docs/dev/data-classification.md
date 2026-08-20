@@ -212,7 +212,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**171 columns**: 137 shareable, 17 device-local, 17 derived. 24 personal data by category.
+**175 columns**: 137 shareable, 21 device-local, 17 derived. 24 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -226,6 +226,10 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `choreographers` | `notes` | `dpv:PersonalData` | PersonalData | third party | shareable | Unbounded freeform text attached to a person, place or source. Personal data by category, shareable by decision (maintainer ruling: this is the user's own commentary on their own collection). May incidentally contain contact details the user typed there. |
 | `choreographers` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `choreographers` | `website` | `cc:WebsiteUrl` | WebsiteUrl | third party | shareable | A public page the author chose to publish. |
+| `collection_import_events` | `archive_digest` | `dpv:NonPersonalData` | NonPersonalData | app user | **device-local** | The digest identifies the specific published archive the app user imported and is retained only as local import history. |
+| `collection_import_events` | `collection_id` | `dpv:NonPersonalData` | NonPersonalData | app user | **device-local** | Published collection import history reveals the app user’s interests; it is not collection content and must remain on this device. |
+| `collection_import_events` | `imported_at` | `dpv:NonPersonalData` | NonPersonalData | app user | **device-local** | The timestamp records the app user’s import activity and is retained only as local import history. |
+| `collection_import_events` | `version` | `dpv:NonPersonalData` | NonPersonalData | app user | **device-local** | Published collection import history reveals the app user’s interests; it is not collection content and must remain on this device. |
 | `custom_field_defs` | `choices_json` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `custom_field_defs` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind in #898. |
 | `custom_field_defs` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. Added in #898. |

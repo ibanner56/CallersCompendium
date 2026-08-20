@@ -6,6 +6,7 @@ import '../../serialization/figure_codec.dart';
 import '../../taxonomy/taxonomy.dart';
 import '../database.dart';
 import 'choreographer_repository.dart';
+import 'collection_import_event_repository.dart';
 import 'custom_field_repository.dart';
 import 'dance_repository.dart';
 import 'program_repository.dart';
@@ -33,6 +34,7 @@ class CompendiumRepositories {
     Taxonomy taxonomy, {
     SettingsRepository? settings,
     DanceRepository? dances,
+    CollectionImportEventRepository? collectionImports,
   }) : dances = dances ?? DanceRepository(db, taxonomy),
        choreographers = ChoreographerRepository(db),
        tags = TagRepository(db),
@@ -40,6 +42,8 @@ class CompendiumRepositories {
        programs = ProgramRepository(db),
        publishedSources = PublishedSourceRepository(db),
        venues = VenueRepository(db),
+       collectionImports =
+           collectionImports ?? CollectionImportEventRepository(db),
        settings = settings ?? SettingsRepository(db);
 
   final CompendiumDatabase db;
@@ -50,6 +54,7 @@ class CompendiumRepositories {
   final ProgramRepository programs;
   final PublishedSourceRepository publishedSources;
   final VenueRepository venues;
+  final CollectionImportEventRepository collectionImports;
   final SettingsRepository settings;
 
   /// Emits once whenever anything the Collection's reference/vocabulary data is
