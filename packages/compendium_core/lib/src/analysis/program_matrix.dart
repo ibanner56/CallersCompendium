@@ -557,11 +557,12 @@ class ProgramMatrix {
 /// `hey:<length>` (issue #933 extends the existing swing/hey split mechanism
 /// to allemande, chain, and swing's prefix). Every other figure maps to its
 /// raw move id — aliases are intentionally NOT resolved for a non-split
-/// target, so a "see saw" column stays distinct from "do si do" — EXCEPT an
-/// alias whose target move IS itself split, like `meltdown_swing` -> `swing`:
-/// reading [Taxonomy.effectiveParams] (which folds the alias's pinned params
-/// in) naturally routes it to `swing:<role>:meltdown` instead of a stray
-/// column of its own, with no special-case code needed here.
+/// target, so a "see saw" column stays distinct from "do si do" — EXCEPT when
+/// a parameterized column captures the alias's canonical target, or when its
+/// target move is itself split, like `meltdown_swing` -> `swing`: reading
+/// [Taxonomy.effectiveParams] (which folds the alias's pinned params in)
+/// naturally routes it to `swing:<role>:meltdown` instead of a stray column of
+/// its own, with no special-case code needed here.
 String columnKeyForFigure(
   Figure figure,
   Taxonomy taxonomy, [

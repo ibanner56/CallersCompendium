@@ -177,12 +177,7 @@ class MatrixColumnEditor extends StatelessWidget {
         params: draft.params,
       ),
     ];
-    final renames = Map<String, String>.of(config.renames);
-    if (draft.label.isEmpty) {
-      renames.remove(id);
-    } else {
-      renames[id] = draft.label;
-    }
+    final renames = Map<String, String>.of(config.renames)..[id] = draft.label;
 
     onConfigChanged(
       config.copyWith(parameterized: parameterized, renames: renames),
@@ -300,12 +295,8 @@ class MatrixColumnEditor extends StatelessWidget {
               )
             : current,
     ];
-    final renames = Map<String, String>.of(config.renames);
-    if (draft.label.isEmpty) {
-      renames.remove(column.id);
-    } else {
-      renames[column.id] = draft.label;
-    }
+    final renames = Map<String, String>.of(config.renames)
+      ..[column.id] = draft.label;
     onConfigChanged(
       config.copyWith(parameterized: parameterized, renames: renames),
     );
