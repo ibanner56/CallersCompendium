@@ -562,14 +562,13 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           onPressed: _duplicate,
         ),
         _addToProgramButton(detail),
-        IconButton(
-          key: const ValueKey('reimport-dance'),
-          tooltip: l10n.danceReimport,
-          icon: const Icon(Icons.refresh),
-          onPressed: widget.onReimport == null
-              ? null
-              : () => widget.onReimport!(detail),
-        ),
+        if (widget.onReimport != null)
+          IconButton(
+            key: const ValueKey('reimport-dance'),
+            tooltip: l10n.danceReimport,
+            icon: const Icon(Icons.refresh),
+            onPressed: () => widget.onReimport!(detail),
+          ),
         IconButton(
           key: const ValueKey('delete-dance'),
           tooltip: l10n.danceDeleteTooltip,

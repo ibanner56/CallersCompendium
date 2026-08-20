@@ -8217,13 +8217,43 @@
     }
   },
   "danceReimport": "Re-import choreography",
+  "@danceReimport": {
+    "description": "Action label for replacing one saved dance's choreography from another source."
+  },
   "danceReimportJson": "Callers Compendium JSON",
+  "@danceReimportJson": {
+    "description": "Source option for choosing a Callers Compendium JSON file for re-import."
+  },
   "danceReimportNoResults": "No matching dances were found. Choose another source or try again later.",
+  "@danceReimportNoResults": {
+    "description": "Message shown when an online re-import search finds no dances."
+  },
   "danceReimportChooseResult": "Choose the dance to re-import",
+  "@danceReimportChooseResult": {
+    "description": "Title of the dialog where the user selects an online dance to re-import."
+  },
   "danceReimportProgramArchive": "This file contains a program and cannot be used to re-import one dance.",
+  "@danceReimportProgramArchive": {
+    "description": "Error shown when a JSON re-import file contains a program."
+  },
   "danceReimportInvalidJson": "Choose a valid file containing exactly one dance.",
+  "@danceReimportInvalidJson": {
+    "description": "Error shown when a JSON re-import file is invalid or has the wrong dance count."
+  },
   "danceReimportSourceFailed": "Could not load a dance from that source. Please try again.",
+  "@danceReimportSourceFailed": {
+    "description": "Error shown when a re-import source cannot be loaded."
+  },
   "danceReimported": "Choreography updated.",
+  "@danceReimported": {
+    "description": "Confirmation shown after saved dance choreography is re-imported."
+  },
   "danceReimportTargetMissing": "This dance was deleted before it could be updated.",
-  "danceReimportTargetChanged": "This dance changed before it could be updated. Review it and try again."
+  "@danceReimportTargetMissing": {
+    "description": "Error shown when the saved dance was deleted before re-import could commit."
+  },
+  "danceReimportTargetChanged": "This dance changed before it could be updated. Review it and try again.",
+  "@danceReimportTargetChanged": {
+    "description": "Error shown when the saved dance changed while its re-import preview was open."
+  }
 }
