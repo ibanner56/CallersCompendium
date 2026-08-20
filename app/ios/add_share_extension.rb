@@ -27,7 +27,7 @@ group.new_reference('ShareExtension.entitlements')
 
 # --- Target ----------------------------------------------------------------
 ext = project.new_target(
-  :app_extension, ext_name, :ios, '14.0', project.products_group, :swift
+  :app_extension, ext_name, :ios, '15.0', project.products_group, :swift
 )
 ext.source_build_phase.add_file_reference(swift_ref)
 
