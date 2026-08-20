@@ -47,22 +47,21 @@ class CollectionImportEventRepository {
   /// Counts the published dances from [collectionId] still held locally.
   ///
   /// When [version] is supplied, only that manifest version is counted.
-  /// Filtering the collection prefix in Dart avoids treating a collection id
-  /// containing SQL wildcard characters as a pattern.
+  /// The prefix comparison is performed with SQLite `substr`, so collection
+  /// identifiers containing SQL wildcard characters remain literal values.
   Future<int> heldCount(String collectionId, {String? version}) async {
+    final prefix = '$collectionId/';
     final rows =
         await (_db.select(_db.provenance)..where(
               (t) =>
                   t.source.equals(ProvenanceSource.publishedCollection.name) &
                   (version == null
                       ? const Constant(true)
-                      : t.sourceVersion.equals(version)),
+                      : t.sourceVersion.equals(version)) &
+                  t.externalId.substr(1, prefix.length).equals(prefix),
             ))
             .get();
-    final prefix = '$collectionId/';
-    return rows
-        .where((row) => row.externalId?.startsWith(prefix) ?? false)
-        .length;
+    return rows.length;
   }
 
   CollectionImportEvent _toModel(CollectionImportEventRow row) =>

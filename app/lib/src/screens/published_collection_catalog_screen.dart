@@ -46,6 +46,7 @@ class _PublishedCollectionCatalogScreenState
       widget.service ?? PublishedCollectionService();
   late final Future<PublishedCollectionManifest> _catalog = _service
       .fetchCatalog();
+  final _statusByCollectionId = <String, Future<PublishedCollectionStatus>>{};
   PublishedCollectionEntry? _loadingEntry;
   PublishedCollectionFetchFailure? _archiveError;
   PublishedCollectionEntry? _archiveErrorEntry;
@@ -123,7 +124,12 @@ class _PublishedCollectionCatalogScreenState
     final loading = _loadingEntry == entry;
     final unsupported = !entry.isSupported;
     final archiveError = _archiveError != null && _archiveErrorEntry == entry;
-    final statusFuture = widget.statusLoader?.call(entry.id);
+    final statusFuture = widget.statusLoader == null
+        ? null
+        : _statusByCollectionId.putIfAbsent(
+            entry.id,
+            () => widget.statusLoader!(entry.id),
+          );
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Padding(

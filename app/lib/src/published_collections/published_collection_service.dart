@@ -177,12 +177,12 @@ Future<List<int>> _fetchBytes(Uri uri, int maxBytes) async {
         return bytes;
       }
       if (!_isRedirect(response.statusCode)) {
-        await response.stream.drain<void>();
+        await response.stream.listen((_) {}).cancel();
         throw const PublishedCollectionFetchException(
           PublishedCollectionFetchFailure.unavailable,
         );
       }
-      await response.stream.drain<void>();
+      await response.stream.listen((_) {}).cancel();
       if (redirects >= kMaxPublishedCollectionRedirects) {
         throw const PublishedCollectionFetchException(
           PublishedCollectionFetchFailure.redirectRefused,

@@ -159,5 +159,29 @@ void main() {
       expect(await events.heldCount('book'), 1);
       expect(await events.heldCount('book', version: 'v2'), 0);
     });
+
+    test(
+      'held count treats wildcard characters in collection ids literally',
+      () async {
+        final wildcardMetadata = PublishedCollectionMetadata(
+          collectionId: 'book%',
+          collectionVersion: 'v1',
+          archiveDigest: 'sha256:digest',
+          permission: 'author-granted',
+          license: 'CC-BY-NC-4.0',
+        );
+        final batch = await importer.plan(_payload(), wildcardMetadata);
+        final result = await importer.commit(
+          batch,
+          metadata: wildcardMetadata,
+          now: DateTime.utc(2026, 8, 20),
+          newId: () => 'local-wildcard',
+        );
+        await events.record(result.event);
+
+        expect(await events.heldCount('book%'), 1);
+        expect(await events.heldCount('book'), 0);
+      },
+    );
   });
 }

@@ -13,11 +13,12 @@ import 'published_collection_catalog_screen.dart';
 Future<void> pushPublishedCollectionCatalog(BuildContext context) async {
   final navigator = Navigator.of(context);
   final repositories = RepositoriesScope.of(context);
+  final eventsFuture = repositories.collectionImports.listAll();
   await navigator.push<void>(
     MaterialPageRoute<void>(
       builder: (_) => PublishedCollectionCatalogScreen(
         statusLoader: (collectionId) async {
-          final events = await repositories.collectionImports.listAll();
+          final events = await eventsFuture;
           final matching = events
               .where((event) => event.collectionId == collectionId)
               .map((event) => event.version)
