@@ -635,15 +635,17 @@ versions, and required capabilities are refused. A capability that affects
 membership, decoding, rights, provenance, or validation must be declared as a
 reader requirement; an older client must not silently ignore it.
 
-Version 1 is a dance collection boundary: dances and referenced choreographer
-and published-source records are accepted, while programs, venues,
-custom-field content, and unknown top-level entities are rejected before
-planning. Archive-embedded provenance is not trusted. The importer stamps
-every dance with `ProvenanceSource.publishedCollection`, external id
-`<collection-id>/<dance-id>`, the manifest version, and the manifest's
-permission and licence declaration. Collection-level consent is required
-before commit, including when every dance is new; only potential duplicate
-rows need individual decisions.
+Version 1 is a dance collection boundary: dances and referenced choreographers
+are accepted, while published-source records, source citations, programs,
+venues, custom-field content, and unknown top-level entities are rejected
+before planning. Published-source citation import is intentionally deferred
+until the importer can namespace source identities and transactionally undo
+source rows with their dances. Archive-embedded provenance is not trusted. The
+importer stamps every dance with `ProvenanceSource.publishedCollection`,
+external id `<collection-id>/<dance-id>`, the manifest version, and the
+manifest's permission and licence declaration. Collection-level consent is
+required before commit, including when every dance is new; only potential
+duplicate rows need individual decisions.
 
 ### 5. A list of titles (#823)
 

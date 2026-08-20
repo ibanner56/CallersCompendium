@@ -5,6 +5,13 @@ import 'package:compendium_app/src/update/semver.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('compares published collection versions by SemVer precedence', () {
+    expect(
+      comparePublishedCollectionVersions('1.10.0', '1.9.0'),
+      greaterThan(0),
+    );
+    expect(comparePublishedCollectionVersions('1.0.0', '1.0.0+build.1'), 0);
+  });
   test('parses a signed collection entry and ignores metadata fields', () {
     final manifest = PublishedCollectionManifest.parse(
       jsonEncode({

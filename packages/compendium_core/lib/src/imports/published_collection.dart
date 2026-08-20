@@ -41,6 +41,10 @@ class PublishedCollectionMetadata {
 }
 
 /// Decodes and validates the hard dance-only v1 archive contract.
+///
+/// Choreographers are carried through because they are required to preserve
+/// dance authorship. Published-source entities and citations are deliberately
+/// excluded until this importer can namespace and transactionally undo them.
 class PublishedCollectionArchive {
   const PublishedCollectionArchive._();
 
@@ -119,6 +123,7 @@ class PublishedCollectionArchive {
         );
       }
       _rejectNonEmptyDanceEntity(dance, 'customFields', id);
+      _rejectNonEmptyDanceEntity(dance, 'sourceCitations', id);
     }
 
     final result = decodeArchive(payload);
@@ -159,7 +164,7 @@ class PublishedCollectionArchive {
     final value = dance[key];
     if (value is List && value.isNotEmpty) {
       throw _invalid(
-        'Published collection dance "$danceId" contains custom-field content.',
+        'Published collection dance "$danceId" contains "$key" content.',
       );
     }
     if (value != null && value is! List) {

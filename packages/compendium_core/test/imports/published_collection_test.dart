@@ -41,7 +41,12 @@ void main() {
       );
     });
 
-    for (final entity in ['programs', 'venues', 'customFields']) {
+    for (final entity in [
+      'programs',
+      'venues',
+      'publishedSources',
+      'customFields',
+    ]) {
       test('rejects non-empty top-level $entity', () {
         final root = _root()
           ..[entity] = <Map<String, Object?>>[<String, Object?>{}];
@@ -51,6 +56,20 @@ void main() {
         );
       });
     }
+
+    test('rejects source citations until source import is transactional', () {
+      final root = _root();
+      final dance =
+          Map<String, Object?>.from((root['dances'] as List).single as Map)
+            ..['sourceCitations'] = [
+              {'sourceId': 'source-1', 'page': '12'},
+            ];
+      root['dances'] = [dance];
+      expect(
+        () => PublishedCollectionArchive.decode(_json(root)),
+        throwsA(isA<ImportError>()),
+      );
+    });
 
     test('rejects an unknown top-level entity', () {
       final root = _root()..['surprise'] = [];

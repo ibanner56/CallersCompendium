@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../data/import_io.dart';
 import '../data/repositories_scope.dart';
+import '../published_collections/published_collection_manifest.dart';
 import 'import_review_screen.dart';
 import 'published_collection_catalog_screen.dart';
 
@@ -28,7 +29,10 @@ Future<void> pushPublishedCollectionCatalog(BuildContext context) async {
             heldCount: held,
             importedVersion: matching.isEmpty
                 ? null
-                : matching.reduce((a, b) => a.compareTo(b) >= 0 ? a : b),
+                : matching.reduce(
+                    (a, b) =>
+                        comparePublishedCollectionVersions(a, b) >= 0 ? a : b,
+                  ),
           );
         },
         onImport: (entry, archiveBytes) async {

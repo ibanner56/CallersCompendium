@@ -98,6 +98,18 @@ class PublishedCollectionEntry {
   bool get isSupported => unsupportedCapabilities.isEmpty;
 }
 
+/// Compares collection versions using SemVer precedence when both values are
+/// valid SemVer strings. The manifest currently permits identifier versions, so
+/// invalid SemVer values use a deterministic lexical fallback.
+int comparePublishedCollectionVersions(String a, String b) {
+  final parsedA = SemVer.tryParse(a);
+  final parsedB = SemVer.tryParse(b);
+  if (parsedA != null && parsedB != null) return parsedA.compareTo(parsedB);
+  if (parsedA != null) return 1;
+  if (parsedB != null) return -1;
+  return a.compareTo(b);
+}
+
 class PublishedCollectionManifest {
   const PublishedCollectionManifest({
     required this.schemaMajor,
