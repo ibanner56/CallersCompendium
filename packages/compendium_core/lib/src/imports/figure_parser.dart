@@ -824,6 +824,7 @@ final List<_Recognizer> _recognizers = [
   _balance,
   _shoulderRound,
   _allemande,
+  _twoHandTurn,
   _doSiDo,
   _revolvingDoor,
   _boxTheGnat,
@@ -870,6 +871,7 @@ final List<_Recognizer> _recognizers = [
   _longLines,
   _slice,
   _turnAlone,
+  _turnAsCouples,
   _contraCorners,
   _giveAndTake,
   _poussette,
@@ -1007,6 +1009,21 @@ _Match? _allemande(List<String> w) {
   return _Match(
     'allemande',
     {'who': who2 ?? 'neighbors', 'hand': ?hand, 'turn': ?turn},
+    null,
+    who2 == null,
+  );
+}
+
+_Match? _twoHandTurn(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['two', 'hand', 'turn'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  final turn = _takeRotation(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match(
+    'two_hand_turn',
+    {'who': who2 ?? 'partners', 'turn': ?turn},
     null,
     who2 == null,
   );
@@ -1725,6 +1742,20 @@ _Match? _turnAlone(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('turn_alone', {'who': ?who2});
+}
+
+_Match? _turnAsCouples(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['turn', 'as', 'couples'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match(
+    'turn_as_couples',
+    {'who': who2 ?? 'partners'},
+    null,
+    who2 == null,
+  );
 }
 
 /// Tier A: TCB writes "Partner poussette clockwise 1/2" (dance id 488 "Rough
