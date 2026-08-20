@@ -6350,4 +6350,44 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get danceReimportTargetChanged =>
       'Dieser Tanz wurde geändert, bevor er aktualisiert werden konnte. Überprüfen Sie ihn und versuchen Sie es erneut.';
+
+  @override
+  String get publishedCollectionsTitle => 'Veröffentlichte Sammlungen';
+
+  @override
+  String get importSourceLabelPublishedCollection => 'Veröffentlichte Sammlung';
+
+  @override
+  String get publishedCollectionsDescription =>
+      'Signierte, unveränderliche Tanzsammlungen aus Compendium Analect importieren.';
+
+  @override
+  String get publishedCollectionsLoading =>
+      'Veröffentlichte Sammlungen werden geladen…';
+
+  @override
+  String get publishedCollectionsUnavailable =>
+      'Veröffentlichte Sammlungen sind vorübergehend nicht verfügbar.';
+
+  @override
+  String get publishedCollectionImport => 'Sammlung importieren';
+
+  @override
+  String get publishedCollectionUnsupported =>
+      'Diese Sammlung benötigt eine neuere App-Version.';
+
+  @override
+  String publishedCollectionImportedVersion(String version) {
+    return 'Importierte Version: $version';
+  }
+
+  @override
+  String publishedCollectionHeldCount(int held, int total) {
+    return '$held von $total Tänzen vorhanden';
+  }
+
+  @override
+  String publishedCollectionSupersedes(String version) {
+    return 'Ersetzt Version $version';
+  }
 }

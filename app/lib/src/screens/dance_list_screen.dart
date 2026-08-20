@@ -91,6 +91,7 @@ class DanceListScreen extends StatefulWidget {
     this.onNewDance,
     this.selectedDanceId,
     this.onImport,
+    this.onPublishedCollections,
     this.onSelectOnlineDance,
     this.selectedOnlineId,
     this.callersBoxOnline,
@@ -115,6 +116,9 @@ class DanceListScreen extends StatefulWidget {
   /// import view in a detail pane (wide) or push it as a route (narrow), so the
   /// list itself stays layout-agnostic (mirrors [onSelectDance]).
   final VoidCallback? onImport;
+
+  /// Opens the signed published-collection catalog.
+  final VoidCallback? onPublishedCollections;
 
   /// Called with a tapped online result when the split-pane shell owns the
   /// preview pane. Null ⇒ the list pushes its own preview route (narrow mode).
@@ -1760,6 +1764,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
               tooltip: l10n.importDances,
               icon: const Icon(Icons.download_outlined),
               onPressed: widget.onImport,
+            ),
+          if (widget.onPublishedCollections != null)
+            IconButton(
+              key: const ValueKey('published-collections'),
+              tooltip: l10n.publishedCollectionsTitle,
+              icon: const Icon(Icons.library_books_outlined),
+              onPressed: widget.onPublishedCollections,
             ),
           IconButton(
             key: const ValueKey('batch-select'),

@@ -6312,4 +6312,43 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get danceReimportTargetChanged =>
       'Deze dans is gewijzigd voordat deze kon worden bijgewerkt. Controleer de dans en probeer het opnieuw.';
+
+  @override
+  String get publishedCollectionsTitle => 'Gepubliceerde collecties';
+
+  @override
+  String get importSourceLabelPublishedCollection => 'Gepubliceerde collectie';
+
+  @override
+  String get publishedCollectionsDescription =>
+      'Importeer ondertekende, onveranderlijke danscollecties uit Compendium Analect.';
+
+  @override
+  String get publishedCollectionsLoading => 'Gepubliceerde collecties laden…';
+
+  @override
+  String get publishedCollectionsUnavailable =>
+      'Gepubliceerde collecties zijn tijdelijk niet beschikbaar.';
+
+  @override
+  String get publishedCollectionImport => 'Collectie importeren';
+
+  @override
+  String get publishedCollectionUnsupported =>
+      'Voor deze collectie is een nieuwere appversie nodig.';
+
+  @override
+  String publishedCollectionImportedVersion(String version) {
+    return 'Geïmporteerde versie: $version';
+  }
+
+  @override
+  String publishedCollectionHeldCount(int held, int total) {
+    return '$held van $total dansen in bezit';
+  }
+
+  @override
+  String publishedCollectionSupersedes(String version) {
+    return 'Vervangt versie $version';
+  }
 }

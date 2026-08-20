@@ -58,6 +58,17 @@ class SharedBundleImport {
   final int entityCount;
 }
 
+/// A verified published archive seeded directly into the review flow. The
+/// archive bytes were authenticated by the catalog service; this class only
+/// carries the decoded text and manifest-authoritative metadata to planning.
+@immutable
+class PublishedCollectionSeed {
+  const PublishedCollectionSeed({required this.json, required this.metadata});
+
+  final String json;
+  final PublishedCollectionMetadata metadata;
+}
+
 /// The adapter-agnostic in-app import experience (ROADMAP 6.3): pick or paste a
 /// source payload, [ImportPipeline.plan] it non-destructively, review every
 /// discovered record (with its parse quality, issues, and dedupe verdict),
@@ -89,6 +100,7 @@ class ImportReviewScreen extends StatefulWidget {
     this.onlineService,
     this.onClose,
     this.sharedBundle,
+    this.publishedCollection,
     this.programAmbiguousImport,
     this.onProgramCommitted,
   }) : assert(sources.length > 0, 'at least one import source is required'),
@@ -101,6 +113,11 @@ class ImportReviewScreen extends StatefulWidget {
          programAmbiguousImport == null || sharedBundle == null,
          'programAmbiguousImport and sharedBundle are two different seeding '
          'paths and are never combined by any caller',
+       ),
+       assert(
+         publishedCollection == null ||
+             (sharedBundle == null && programAmbiguousImport == null),
+         'publishedCollection is a standalone verified seed',
        );
 
   /// The selectable import sources. The screen opens on the one marked
@@ -144,6 +161,9 @@ class ImportReviewScreen extends StatefulWidget {
   /// offers a transient Undo snackbar. When null the screen behaves exactly as
   /// the manual import flows do.
   final SharedBundleImport? sharedBundle;
+
+  /// A verified signed collection whose archive should open directly in review.
+  final PublishedCollectionSeed? publishedCollection;
 
   /// Program-import lines online resolution could not confidently resolve
   /// (issue #943), pre-previewed non-committingly. When non-null the screen
@@ -403,7 +423,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _started = true;
       _repos = RepositoriesScope.of(context);
       final bundle = widget.sharedBundle;
-      if (bundle != null) {
+      final published = widget.publishedCollection;
+      if (published != null) {
+        _lastDecodedText = published.json;
+        _pasteController.text = published.json;
+        _sourceUri = null;
+        _plan();
+      } else if (bundle != null) {
         // Share-target intake (issue #432): the bundle was already decoded and
         // validated Dart-side. Seed it and plan immediately so the user lands
         // on the review/consent list — skipping the manual input phase — with
@@ -1070,6 +1096,34 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // the file's InsertCall call buttons. Runs after the result dialog so
         // it never blocks the dance/program import; declining seeds nothing.
         await _maybeSeedShorthands(archive);
+      } else if (adapter is PublishedCollectionAdapter) {
+        final metadata = adapter.metadata;
+        final importer = PublishedCollectionImporter(pipeline);
+        final result = await importer.commit(
+          commitBatch,
+          metadata: metadata,
+          now: DateTime.now().toUtc(),
+          newId: uuidV4,
+          resolutions: resolutions,
+        );
+        try {
+          await _repos.collectionImports.record(result.event);
+        } catch (_) {
+          // diagnostics: silent — the outer commit handler presents a safe
+          // localized error after compensating the imported batch.
+          // The event is part of the published import's all-or-nothing
+          // contract. Remove the just-committed dances before surfacing the
+          // failure so an event-less import cannot remain.
+          await pipeline.undo(result.session);
+          rethrow;
+        }
+        if (!mounted) return;
+        setState(() => _phase = _Phase.review);
+        await _showResult(
+          session: result.session,
+          skipped: skipped,
+          onUndo: () => pipeline.undo(result.session),
+        );
       } else {
         final session = await pipeline.commit(
           commitBatch,

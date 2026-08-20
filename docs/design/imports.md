@@ -17,6 +17,7 @@
   - [3. ContraDB (6.4)](#3-contradb-64) — 33 lines
   - [Compound-shorthand fan-out: grand right and left (#295)](#compound-shorthand-fan-out-grand-right-and-left-295) — 186 lines
   - [4. Generic JSON (6.6)](#4-generic-json-66) — 5 lines
+  - [Signed published collections (#862)](#signed-published-collections-862) — 22 lines
   - [5. A list of titles (#823)](#5-a-list-of-titles-823) — 72 lines
   - [Simultaneous-action fan-out (`meanwhile`) (#591/#572)](#simultaneous-action-fan-out-meanwhile-591572) — 59 lines
   - [Shared free-text figure parser (cross-cutting)](#shared-free-text-figure-parser-cross-cutting) — 299 lines
@@ -619,6 +620,30 @@ what the fix removes is the fabricated dancers and the doubled balance.
 - Our own canonical export format (full fidelity: figures, programs, custom
   fields, provenance, dialect definitions). Serves backup/restore and
   user-to-user sharing. Versioned schema; forward-compatible reader.
+
+### Signed published collections (#862)
+
+Signed published collections are a separate trust boundary from generic JSON
+sharing. The app fetches a static manifest and detached signature from the
+pinned HTTPS origin, verifies the signature over the exact manifest bytes
+before parsing, then streams each immutable archive to its signed byte count
+and verifies its SHA-256 digest before decoding.
+
+The manifest is app-owned and vendors must not silently expand its semantics.
+Unknown metadata is tolerated, but unsupported schema majors, minimum-reader
+versions, and required capabilities are refused. A capability that affects
+membership, decoding, rights, provenance, or validation must be declared as a
+reader requirement; an older client must not silently ignore it.
+
+Version 1 is a dance collection boundary: dances and referenced choreographer
+and published-source records are accepted, while programs, venues,
+custom-field content, and unknown top-level entities are rejected before
+planning. Archive-embedded provenance is not trusted. The importer stamps
+every dance with `ProvenanceSource.publishedCollection`, external id
+`<collection-id>/<dance-id>`, the manifest version, and the manifest's
+permission and licence declaration. Collection-level consent is required
+before commit, including when every dance is new; only potential duplicate
+rows need individual decisions.
 
 ### 5. A list of titles (#823)
 

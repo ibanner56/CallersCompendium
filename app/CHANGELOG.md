@@ -27,6 +27,11 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Signed published collections** — discover and import immutable dance
+  collections from the trusted Compendium Analect catalog after detached
+  signature and archive digest verification, with collection-level consent and
+  provenance tracking. (issue #862)
+
 - **Re-import choreography from a dance detail** — choose Caller's Box,
   ContraDB, or a single-dance Caller's Compendium JSON file, review the parsed
   dance, then update only its figures, formation, and progression. Your notes,

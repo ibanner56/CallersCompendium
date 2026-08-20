@@ -6303,5 +6303,45 @@
   "danceReimportTargetChanged": "このダンスは更新前に変更されました。内容を確認して、もう一度お試しください。",
   "@danceReimportTargetChanged": {
     "x-sourceSha256": "7213bdad9aa2abba7fd089889171b48ce5c3d80ecc5a5760c1881cf8c4a6125a"
+  },
+  "publishedCollectionsTitle": "公開コレクション",
+  "@publishedCollectionsTitle": {
+    "x-sourceSha256": "950ff774d5f3db217773cf01ce4ae60c38f9bfed26f61dd9fc93d95418ba25c0"
+  },
+  "importSourceLabelPublishedCollection": "公開コレクション",
+  "@importSourceLabelPublishedCollection": {
+    "x-sourceSha256": "cbe9f82b949f72c2ccc2b1c43faa476f5a2bcfc029acec8a9f9134bcbdb31519"
+  },
+  "publishedCollectionsDescription": "Compendium Analect から署名済みの不変なダンスコレクションをインポートします。",
+  "@publishedCollectionsDescription": {
+    "x-sourceSha256": "e1671a3834e080728891ab2b1f3ea03b2c98e2d0d8ef06dc390fe492f02f8c8b"
+  },
+  "publishedCollectionsLoading": "公開コレクションを読み込み中…",
+  "@publishedCollectionsLoading": {
+    "x-sourceSha256": "104e1648ac53e3c6c700dd537eeafa4528426d11729a8516e3590853f65ec96e"
+  },
+  "publishedCollectionsUnavailable": "公開コレクションは一時的に利用できません。",
+  "@publishedCollectionsUnavailable": {
+    "x-sourceSha256": "286ca7d1f2dfaf05d973b18f9d8167ca700dd94c02afc27cd91e74f85abbd35f"
+  },
+  "publishedCollectionImport": "コレクションをインポート",
+  "@publishedCollectionImport": {
+    "x-sourceSha256": "48d395b802beef0dd13c557a830a47099fb3fa969755558fd63c92677674e022"
+  },
+  "publishedCollectionUnsupported": "このコレクションには新しいアプリバージョンが必要です。",
+  "@publishedCollectionUnsupported": {
+    "x-sourceSha256": "7bcb35dcc2b5b0c01fbdb7fae8eb4eee909ad16bda159641021e13a2814c1f7c"
+  },
+  "publishedCollectionImportedVersion": "インポート済みバージョン: {version}",
+  "@publishedCollectionImportedVersion": {
+    "x-sourceSha256": "8ca9a7cb8f393306ec52a9d3d6efa46fdba7ac540cc8c04b156f44a2b9f977a6"
+  },
+  "publishedCollectionHeldCount": "{total} 件中 {held} 件のダンスを保持",
+  "@publishedCollectionHeldCount": {
+    "x-sourceSha256": "e9782539b6eab4a6c801a4323da794be6567d4c71363b94c2a4ee6b57747b2b0"
+  },
+  "publishedCollectionSupersedes": "バージョン {version} を置き換え",
+  "@publishedCollectionSupersedes": {
+    "x-sourceSha256": "284aeb42ae95b58f9aafc2bf463c0cfbd95a7e3a6707441badaf38a7e0e037e1"
   }
 }

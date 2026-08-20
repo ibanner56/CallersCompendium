@@ -6252,4 +6252,43 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get danceReimportTargetChanged =>
       'This dance changed before it could be updated. Review it and try again.';
+
+  @override
+  String get publishedCollectionsTitle => 'Published collections';
+
+  @override
+  String get importSourceLabelPublishedCollection => 'Published collection';
+
+  @override
+  String get publishedCollectionsDescription =>
+      'Import signed, immutable dance collections from Compendium Analect.';
+
+  @override
+  String get publishedCollectionsLoading => 'Loading published collections…';
+
+  @override
+  String get publishedCollectionsUnavailable =>
+      'Published collections are temporarily unavailable.';
+
+  @override
+  String get publishedCollectionImport => 'Import collection';
+
+  @override
+  String get publishedCollectionUnsupported =>
+      'This collection needs a newer app version.';
+
+  @override
+  String publishedCollectionImportedVersion(String version) {
+    return 'Imported version: $version';
+  }
+
+  @override
+  String publishedCollectionHeldCount(int held, int total) {
+    return '$held of $total dances held';
+  }
+
+  @override
+  String publishedCollectionSupersedes(String version) {
+    return 'Supersedes version $version';
+  }
 }
