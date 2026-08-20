@@ -189,6 +189,7 @@ class PublishedCollectionAdapter implements SourceAdapter {
 
   @override
   Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
+    _delegate.clearCache();
     final archive = PublishedCollectionArchive.decode(request.payload ?? '');
     return _delegate.discoverArchive(archive);
   }
@@ -217,6 +218,7 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
 
   @override
   Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
+    clearCache();
     final result = decodeArchive(request.payload!);
     final rootError = _rootReadError(result);
     if (rootError != null) {
@@ -233,8 +235,6 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
   Future<List<DiscoveredRecord>> discoverArchive(
     CompendiumArchive archive,
   ) async {
-    _dancesById.clear();
-    _choreographersById.clear();
     _schemaVersion = archive.schemaVersion;
     _dancesById.addEntries(
       archive.dances.map((dance) => MapEntry(dance.id, dance)),
@@ -251,6 +251,11 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
           locator: {'danceId': dance.id},
         ),
     ];
+  }
+
+  void clearCache() {
+    _dancesById.clear();
+    _choreographersById.clear();
   }
 
   @override
