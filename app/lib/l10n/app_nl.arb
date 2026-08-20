@@ -952,6 +952,54 @@
   "@settingsMatrixColumnsResetTrueConfirm": {
     "x-sourceSha256": "602f8e637002a585092d04310da6f16cba500d1940e4201239bb56e00314137a"
   },
+  "settingsMatrixColumnsParameterizedAdd": "Geparametriseerde kolom toevoegen",
+  "@settingsMatrixColumnsParameterizedAdd": {
+    "x-sourceSha256": "6217dbfc77253f19da344b6112d4fbe50e53aea94b0a6bdf7e33d20ea11b4387"
+  },
+  "settingsMatrixColumnsParameterizedTitle": "Geparametriseerde kolom toevoegen",
+  "@settingsMatrixColumnsParameterizedTitle": {
+    "x-sourceSha256": "6217dbfc77253f19da344b6112d4fbe50e53aea94b0a6bdf7e33d20ea11b4387"
+  },
+  "settingsMatrixColumnsParameterizedEditTitle": "Geparametriseerde kolom bewerken",
+  "@settingsMatrixColumnsParameterizedEditTitle": {
+    "x-sourceSha256": "fc7260597f7b88fd2618b8400137b8537791840c4221f819fe6ce2e69b9432a7"
+  },
+  "settingsMatrixColumnsParameterizedMove": "Figuur",
+  "@settingsMatrixColumnsParameterizedMove": {
+    "x-sourceSha256": "6ecc3df6bffdd06c58cd4f6e276929e119c8f653c53f5a6a5a5e66dfa1c3fc93"
+  },
+  "settingsMatrixColumnsParameterizedConstraints": "Exacte parameters om te matchen",
+  "@settingsMatrixColumnsParameterizedConstraints": {
+    "x-sourceSha256": "c23ee5dcee08c117c55b926179971535e2a711238fbe00effc1be97eb2132511"
+  },
+  "settingsMatrixColumnsParameterizedNoParams": "Deze figuur heeft geen parameters.",
+  "@settingsMatrixColumnsParameterizedNoParams": {
+    "x-sourceSha256": "c58cbe05a04a3835da51804006e8978698c5baf157a242d5bc6ca8ea0e4970ed"
+  },
+  "settingsMatrixColumnsParameterizedLabel": "Kolomnaam",
+  "@settingsMatrixColumnsParameterizedLabel": {
+    "x-sourceSha256": "f9db5b899bd26e72408362d106f5ce2f371661168cc3c1155ba1166d19487b9f"
+  },
+  "settingsMatrixColumnsParameterizedEdit": "Matchingsdetails bewerken",
+  "@settingsMatrixColumnsParameterizedEdit": {
+    "x-sourceSha256": "08ed7923b5502c97cb5634fd6d24a2005aef308e2897df2b9376e51038cd53d6"
+  },
+  "settingsMatrixColumnsParameterizedDelete": "Geparametriseerde kolom verwijderen",
+  "@settingsMatrixColumnsParameterizedDelete": {
+    "x-sourceSha256": "7994bc0925b189b9c13c938e0033b4e54116dfc13f0b1c2a3a3fe5200ac61c11"
+  },
+  "settingsMatrixColumnsParameterizedDeleteTitle": "Geparametriseerde kolom verwijderen?",
+  "@settingsMatrixColumnsParameterizedDeleteTitle": {
+    "x-sourceSha256": "2b4e4e65aa54f6d0964fe893dc508a355149a0555a674e0cc83c813527a1a8fb"
+  },
+  "settingsMatrixColumnsParameterizedDeleteBody": "Dit verwijdert de kolom en de bijbehorende matchregels uit de matrix. Dit kan niet ongedaan worden gemaakt.",
+  "@settingsMatrixColumnsParameterizedDeleteBody": {
+    "x-sourceSha256": "a8306396270aaffdc91b27aaaa13bcf8f059dba3cc0c00f72ca9baa6f8bac573"
+  },
+  "settingsMatrixColumnsParameterizedDeleteConfirm": "Kolom verwijderen",
+  "@settingsMatrixColumnsParameterizedDeleteConfirm": {
+    "x-sourceSha256": "837dbb2c66b1a90f46e7de1ea5b51e2da583a675dd6a3d4131dc2a7d44b0eaef"
+  },
   "settingsGeneralPerformanceHeader": "Uitvoering",
   "@settingsGeneralPerformanceHeader": {
     "x-sourceSha256": "442aded87a55aa8c8f7d5ff0c30228150d4b1cb8756e4be138d615ca4708fc26"

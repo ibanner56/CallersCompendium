@@ -854,6 +854,52 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsMatrixColumnsResetTrueConfirm => 'Standaard herstellen';
 
   @override
+  String get settingsMatrixColumnsParameterizedAdd =>
+      'Geparametriseerde kolom toevoegen';
+
+  @override
+  String get settingsMatrixColumnsParameterizedTitle =>
+      'Geparametriseerde kolom toevoegen';
+
+  @override
+  String get settingsMatrixColumnsParameterizedEditTitle =>
+      'Geparametriseerde kolom bewerken';
+
+  @override
+  String get settingsMatrixColumnsParameterizedMove => 'Figuur';
+
+  @override
+  String get settingsMatrixColumnsParameterizedConstraints =>
+      'Exacte parameters om te matchen';
+
+  @override
+  String get settingsMatrixColumnsParameterizedNoParams =>
+      'Deze figuur heeft geen parameters.';
+
+  @override
+  String get settingsMatrixColumnsParameterizedLabel => 'Kolomnaam';
+
+  @override
+  String get settingsMatrixColumnsParameterizedEdit =>
+      'Matchingsdetails bewerken';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDelete =>
+      'Geparametriseerde kolom verwijderen';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteTitle =>
+      'Geparametriseerde kolom verwijderen?';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteBody =>
+      'Dit verwijdert de kolom en de bijbehorende matchregels uit de matrix. Dit kan niet ongedaan worden gemaakt.';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteConfirm =>
+      'Kolom verwijderen';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Uitvoering';
 
   @override

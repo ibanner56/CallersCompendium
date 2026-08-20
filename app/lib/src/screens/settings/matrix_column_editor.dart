@@ -5,16 +5,16 @@
 // and reports every change up via [onConfigChanged]; the parent persists it
 // through the live scope + settings so an open matrix rebuilds immediately.
 //
-// Parameterized/compound custom columns (Phases 4/5) are not *created* here, but
-// the ordered list is assembled to carry them: any entry in
-// [MatrixColumnConfig.parameterized]/[compound] appears as a row so those phases
-// only add a creation entry point, not new list plumbing.
+// Parameterized columns are created here; compound custom columns (Phase 5) are
+// already carried by the ordered list so their creation flow can be added later.
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/figure_param_editors.dart';
 
 /// Editor surface for the program matrix's built-in (and custom-bucket) columns.
 ///
@@ -66,6 +66,7 @@ class MatrixColumnEditor extends StatelessWidget {
     for (var i = 0; i < config.order.length; i++) {
       orderIndex.putIfAbsent(config.order[i], () => i);
     }
+
     final listed = <MatrixColumn>[];
     final unlisted = <MatrixColumn>[];
     for (final c in universe) {
@@ -161,6 +162,111 @@ class MatrixColumnEditor extends StatelessWidget {
     if (result != null) _applyRename(id, result.trim());
   }
 
+  Future<void> _addParameterized(BuildContext context) async {
+    final draft = await showDialog<_ParameterizedColumnDraft>(
+      context: context,
+      builder: (context) => _ParameterizedColumnDialog(taxonomy: _taxonomy),
+    );
+    if (draft == null) return;
+    final id = '$parameterizedColumnIdPrefix${uuidV4()}';
+    final parameterized = [
+      ...config.parameterized,
+      ParameterizedColumn(
+        id: id,
+        baseMove: draft.baseMove,
+        params: draft.params,
+      ),
+    ];
+    final renames = Map<String, String>.of(config.renames);
+    if (draft.label.isEmpty) {
+      renames.remove(id);
+    } else {
+      renames[id] = draft.label;
+    }
+    onConfigChanged(
+      config.copyWith(parameterized: parameterized, renames: renames),
+    );
+  }
+
+  Future<void> _editParameterized(
+    BuildContext context,
+    ParameterizedColumn column,
+  ) async {
+    final draft = await showDialog<_ParameterizedColumnDraft>(
+      context: context,
+      builder: (context) => _ParameterizedColumnDialog(
+        taxonomy: _taxonomy,
+        initial: column,
+        initialLabel: config.renames[column.id] ?? '',
+      ),
+    );
+    if (draft == null) return;
+    final parameterized = [
+      for (final current in config.parameterized)
+        current.id == column.id
+            ? ParameterizedColumn(
+                id: column.id,
+                baseMove: draft.baseMove,
+                params: draft.params,
+              )
+            : current,
+    ];
+    final renames = Map<String, String>.of(config.renames);
+    if (draft.label.isEmpty) {
+      renames.remove(column.id);
+    } else {
+      renames[column.id] = draft.label;
+    }
+    onConfigChanged(
+      config.copyWith(parameterized: parameterized, renames: renames),
+    );
+  }
+
+  Future<void> _deleteParameterized(
+    BuildContext context,
+    ParameterizedColumn column,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.settingsMatrixColumnsParameterizedDeleteTitle),
+        content: Text(l10n.settingsMatrixColumnsParameterizedDeleteBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            key: ValueKey('matrix-column-delete-confirm-${column.id}'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.settingsMatrixColumnsParameterizedDeleteConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final parameterized = [
+      for (final current in config.parameterized)
+        if (current.id != column.id) current,
+    ];
+    final order = [
+      for (final id in config.order)
+        if (id != column.id) id,
+    ];
+    final hidden = Set<String>.of(config.hidden)..remove(column.id);
+    final renames = Map<String, String>.of(config.renames)..remove(column.id);
+    onConfigChanged(
+      config.copyWith(
+        parameterized: parameterized,
+        order: order,
+        hidden: hidden,
+        renames: renames,
+      ),
+    );
+  }
+
   Future<void> _confirmRestoreTrueDefaults(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
@@ -211,16 +317,7 @@ class MatrixColumnEditor extends StatelessWidget {
             buildDefaultDragHandles: false,
             children: [
               for (var i = 0; i < columns.length; i++)
-                _ColumnRow(
-                  key: ValueKey('matrix-column-row-${columns[i].moveId}'),
-                  index: i,
-                  label: _effectiveLabel(columns[i]),
-                  hidden: config.hidden.contains(columns[i].moveId),
-                  renamed: config.renames.containsKey(columns[i].moveId),
-                  onRename: () => _promptRename(context, columns[i]),
-                  onToggleHidden: () => _toggleHidden(columns[i].moveId),
-                  columnId: columns[i].moveId,
-                ),
+                _buildColumnRow(context, columns[i], i),
             ],
           ),
         ),
@@ -236,6 +333,12 @@ class MatrixColumnEditor extends StatelessWidget {
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.xs,
             children: [
+              OutlinedButton.icon(
+                key: const ValueKey('matrix-column-add-parameterized'),
+                onPressed: () => _addParameterized(context),
+                icon: const Icon(Icons.add),
+                label: Text(l10n.settingsMatrixColumnsParameterizedAdd),
+              ),
               OutlinedButton.icon(
                 key: const ValueKey('matrix-column-reset-removed'),
                 onPressed: _restoreRemovedDefaults,
@@ -254,6 +357,33 @@ class MatrixColumnEditor extends StatelessWidget {
       ],
     );
   }
+
+  Widget _buildColumnRow(BuildContext context, MatrixColumn column, int index) {
+    ParameterizedColumn? parameterized;
+    for (final candidate in config.parameterized) {
+      if (candidate.id == column.moveId) {
+        parameterized = candidate;
+        break;
+      }
+    }
+    final parameterizedColumn = parameterized;
+    return _ColumnRow(
+      key: ValueKey('matrix-column-row-${column.moveId}'),
+      index: index,
+      label: _effectiveLabel(column),
+      hidden: config.hidden.contains(column.moveId),
+      renamed: config.renames.containsKey(column.moveId),
+      onRename: () => _promptRename(context, column),
+      onToggleHidden: () => _toggleHidden(column.moveId),
+      columnId: column.moveId,
+      onEditDetails: parameterizedColumn == null
+          ? null
+          : () => _editParameterized(context, parameterizedColumn),
+      onDelete: parameterizedColumn == null
+          ? null
+          : () => _deleteParameterized(context, parameterizedColumn),
+    );
+  }
 }
 
 /// One reorderable column row: drag handle, label (struck through when hidden),
@@ -268,6 +398,8 @@ class _ColumnRow extends StatelessWidget {
     required this.onRename,
     required this.onToggleHidden,
     required this.columnId,
+    this.onEditDetails,
+    this.onDelete,
   });
 
   final int index;
@@ -277,6 +409,8 @@ class _ColumnRow extends StatelessWidget {
   final VoidCallback onRename;
   final VoidCallback onToggleHidden;
   final String columnId;
+  final VoidCallback? onEditDetails;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -307,6 +441,13 @@ class _ColumnRow extends StatelessWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (onEditDetails != null)
+            IconButton(
+              key: ValueKey('matrix-column-edit-details-$columnId'),
+              icon: const Icon(Icons.tune),
+              tooltip: l10n.settingsMatrixColumnsParameterizedEdit,
+              onPressed: onEditDetails,
+            ),
           IconButton(
             key: ValueKey('matrix-column-rename-$columnId'),
             icon: const Icon(Icons.edit_outlined),
@@ -327,6 +468,13 @@ class _ColumnRow extends StatelessWidget {
                 : l10n.settingsMatrixColumnsRemoveTooltip,
             onPressed: onToggleHidden,
           ),
+          if (onDelete != null)
+            IconButton(
+              key: ValueKey('matrix-column-delete-$columnId'),
+              icon: const Icon(Icons.delete_outline),
+              tooltip: l10n.settingsMatrixColumnsParameterizedDelete,
+              onPressed: onDelete,
+            ),
         ],
       ),
     );
@@ -381,6 +529,206 @@ class _RenameDialogState extends State<_RenameDialog> {
         TextButton(
           key: const ValueKey('matrix-column-rename-confirm'),
           onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: Text(l10n.commonSave),
+        ),
+      ],
+    );
+  }
+}
+
+class _ParameterizedColumnDraft {
+  const _ParameterizedColumnDraft({
+    required this.baseMove,
+    required this.params,
+    required this.label,
+  });
+
+  final String baseMove;
+  final Map<String, Object?> params;
+  final String label;
+}
+
+class _ParameterizedColumnDialog extends StatefulWidget {
+  const _ParameterizedColumnDialog({
+    required this.taxonomy,
+    this.initial,
+    this.initialLabel = '',
+  });
+
+  final Taxonomy taxonomy;
+  final ParameterizedColumn? initial;
+  final String initialLabel;
+
+  @override
+  State<_ParameterizedColumnDialog> createState() =>
+      _ParameterizedColumnDialogState();
+}
+
+class _ParameterizedColumnDialogState
+    extends State<_ParameterizedColumnDialog> {
+  late String _baseMove = _initialMove();
+  late final TextEditingController _label = TextEditingController(
+    text: widget.initialLabel,
+  );
+  late Map<String, Object?> _params = _initialParams();
+  late Set<String> _selected = _params.keys.toSet();
+
+  MoveDef get _move => widget.taxonomy.moves[_baseMove]!;
+
+  String _initialMove() {
+    final initialMove = widget.initial?.baseMove;
+    if (initialMove != null && widget.taxonomy.moves.containsKey(initialMove)) {
+      return initialMove;
+    }
+    return widget.taxonomy.moves.keys.first;
+  }
+
+  Map<String, Object?> _initialParams() {
+    final params = widget.initial?.params;
+    if (params == null) return {};
+    return {
+      for (final entry in params.entries)
+        if (_move.params.containsKey(entry.key))
+          entry.key: _move.params[entry.key]!.validate(entry.value)
+              ? entry.value
+              : _move.params[entry.key]!.defaultValue,
+    };
+  }
+
+  @override
+  void dispose() {
+    _label.dispose();
+    super.dispose();
+  }
+
+  void _changeMove(String move) {
+    setState(() {
+      _baseMove = move;
+      _params = {};
+      _selected = {};
+    });
+  }
+
+  void _toggleParam(String key, bool selected) {
+    setState(() {
+      if (selected) {
+        _selected.add(key);
+        _params[key] = _move.params[key]!.defaultValue;
+      } else {
+        _selected.remove(key);
+        _params.remove(key);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final params = _move.params.entries.toList();
+    return AlertDialog(
+      title: Text(
+        widget.initial == null
+            ? l10n.settingsMatrixColumnsParameterizedTitle
+            : l10n.settingsMatrixColumnsParameterizedEditTitle,
+      ),
+      content: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DropdownButtonFormField<String>(
+                key: const ValueKey('matrix-parameterized-move'),
+                initialValue: _baseMove,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsMatrixColumnsParameterizedMove,
+                ),
+                items: [
+                  for (final move in widget.taxonomy.moves.values)
+                    DropdownMenuItem(
+                      value: move.id,
+                      child: Text(move.displayName),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) _changeMove(value);
+                },
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                l10n.settingsMatrixColumnsParameterizedConstraints,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              if (params.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.xs),
+                  child: Text(l10n.settingsMatrixColumnsParameterizedNoParams),
+                )
+              else ...[
+                Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
+                  children: [
+                    for (final entry in params)
+                      FilterChip(
+                        key: ValueKey(
+                          'matrix-parameterized-constraint-${entry.key}',
+                        ),
+                        label: Text(figureParamKeyLabel(entry.key)),
+                        selected: _selected.contains(entry.key),
+                        onSelected: (selected) =>
+                            _toggleParam(entry.key, selected),
+                      ),
+                  ],
+                ),
+                for (final entry in params)
+                  if (_selected.contains(entry.key))
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.sm),
+                      child: FigureParamEditor(
+                        key: ValueKey(
+                          'matrix-parameterized-editor-${entry.key}',
+                        ),
+                        keyPrefix: 'matrix-parameterized',
+                        paramKey: entry.key,
+                        spec: entry.value,
+                        value: _params[entry.key],
+                        onChanged: (value) =>
+                            setState(() => _params[entry.key] = value),
+                        dialect: Dialect.canonical,
+                      ),
+                    ),
+              ],
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                key: const ValueKey('matrix-parameterized-label'),
+                controller: _label,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsMatrixColumnsParameterizedLabel,
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.commonCancel),
+        ),
+        TextButton(
+          key: const ValueKey('matrix-parameterized-save'),
+          onPressed: _label.text.trim().isEmpty
+              ? null
+              : () => Navigator.of(context).pop(
+                  _ParameterizedColumnDraft(
+                    baseMove: _baseMove,
+                    params: Map<String, Object?>.of(_params),
+                    label: _label.text.trim(),
+                  ),
+                ),
           child: Text(l10n.commonSave),
         ),
       ],

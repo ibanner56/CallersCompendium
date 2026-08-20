@@ -21,14 +21,30 @@ final _smallTaxonomy = Taxonomy(
   ],
 );
 
+final _parameterizedTaxonomy = Taxonomy(
+  version: contraTaxonomy.version,
+  form: contraTaxonomy.form,
+  moves: [
+    contraTaxonomy.moves['swing']!,
+    contraTaxonomy.moves['do_si_do']!,
+    contraTaxonomy.moves['balance']!,
+    contraTaxonomy.moves['petronella']!,
+  ],
+);
+
 /// A stateful harness that renders [MatrixColumnEditor], keeps the edited
 /// config in state (so the editor re-reads it after each change, exactly as the
 /// real settings pane does), and exposes the latest config to assertions.
 class _Harness extends StatefulWidget {
-  const _Harness({required this.initial, required this.onChanged});
+  const _Harness({
+    required this.initial,
+    required this.onChanged,
+    required this.taxonomy,
+  });
 
   final MatrixColumnConfig initial;
   final ValueChanged<MatrixColumnConfig> onChanged;
+  final Taxonomy taxonomy;
 
   @override
   State<_Harness> createState() => _HarnessState();
@@ -41,7 +57,7 @@ class _HarnessState extends State<_Harness> {
   Widget build(BuildContext context) => MatrixColumnEditor(
     config: _config,
     dialect: Dialect.larksRobins,
-    taxonomy: _smallTaxonomy,
+    taxonomy: widget.taxonomy,
     onConfigChanged: (config) {
       setState(() => _config = config);
       widget.onChanged(config);
@@ -52,7 +68,9 @@ class _HarnessState extends State<_Harness> {
 Future<MatrixColumnConfig Function()> _pumpEditor(
   WidgetTester tester, {
   MatrixColumnConfig initial = MatrixColumnConfig.empty,
+  Taxonomy? taxonomy,
 }) async {
+  final activeTaxonomy = taxonomy ?? _smallTaxonomy;
   await tester.binding.setSurfaceSize(const Size(1200, 1400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   var latest = initial;
@@ -63,6 +81,7 @@ Future<MatrixColumnConfig Function()> _pumpEditor(
       home: Scaffold(
         body: _Harness(
           initial: initial,
+          taxonomy: activeTaxonomy,
           onChanged: (config) => latest = config,
         ),
       ),
@@ -192,6 +211,192 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(read().isEmpty, isTrue);
+    });
+
+    testWidgets(
+      'adds, edits, and labels a parameterized column from taxonomy',
+      (tester) async {
+        final read = await _pumpEditor(
+          tester,
+          taxonomy: _parameterizedTaxonomy,
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('matrix-column-add-parameterized')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('matrix-parameterized-move')),
+          findsOneWidget,
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('matrix-parameterized-constraint-who')),
+        );
+        await tester.enterText(
+          find.byKey(const ValueKey('matrix-parameterized-label')),
+          'Partner swing',
+        );
+        await tester.pump();
+        await tester.tap(
+          find.byKey(const ValueKey('matrix-parameterized-save')),
+        );
+        await tester.pumpAndSettle();
+
+        final added = read().parameterized.single;
+        expect(added.baseMove, 'swing');
+        expect(added.params, {'who': 'partners'});
+        expect(read().renames[added.id], 'Partner swing');
+
+        final editFinder = find.byKey(
+          ValueKey('matrix-column-edit-details-${added.id}'),
+        );
+        await tester.scrollUntilVisible(editFinder, 400);
+        await tester.tap(editFinder);
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('matrix-parameterized-constraint-prefix')),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('matrix-parameterized-save')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(read().parameterized.single.params, {
+          'who': 'partners',
+          'prefix': 'none',
+        });
+      },
+    );
+
+    testWidgets('requires a non-empty parameterized column name', (
+      tester,
+    ) async {
+      await _pumpEditor(tester, taxonomy: _parameterizedTaxonomy);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-add-parameterized')),
+      );
+      await tester.pumpAndSettle();
+
+      TextButton saveButton() => tester.widget(
+        find.byKey(const ValueKey('matrix-parameterized-save')),
+      );
+      expect(saveButton().onPressed, isNull);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-parameterized-label')),
+        '   ',
+      );
+      await tester.pump();
+      expect(saveButton().onPressed, isNull);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-parameterized-label')),
+        'Partner swing',
+      );
+      await tester.pump();
+      expect(saveButton().onPressed, isNotNull);
+    });
+
+    testWidgets('deleting a parameterized column removes all references', (
+      tester,
+    ) async {
+      const id = 'param:partner-swing';
+      final initial = MatrixColumnConfig(
+        order: const [id],
+        hidden: const {id},
+        renames: const {id: 'Partner swing'},
+        parameterized: const [
+          ParameterizedColumn(
+            id: id,
+            baseMove: 'swing',
+            params: {'who': 'partners'},
+          ),
+        ],
+      );
+      final read = await _pumpEditor(tester, initial: initial);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-delete-param:partner-swing')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('matrix-column-delete-confirm-param:partner-swing'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final config = read();
+      expect(config.parameterized, isEmpty);
+      expect(config.order, isEmpty);
+      expect(config.hidden, isEmpty);
+      expect(config.renames, isEmpty);
+    });
+
+    testWidgets('repairs stale parameterized definitions when editing', (
+      tester,
+    ) async {
+      const id = 'param:stale-column';
+      final initial = MatrixColumnConfig(
+        order: const [id],
+        parameterized: const [
+          ParameterizedColumn(
+            id: id,
+            baseMove: 'removed_move',
+            params: {'removed_param': 'stale'},
+          ),
+        ],
+      );
+      final read = await _pumpEditor(
+        tester,
+        initial: initial,
+        taxonomy: _parameterizedTaxonomy,
+      );
+      final editFinder = find.byKey(
+        const ValueKey('matrix-column-edit-details-param:stale-column'),
+      );
+      await tester.scrollUntilVisible(editFinder, 400);
+      await tester.tap(editFinder);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('matrix-parameterized-move')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('matrix-parameterized-constraint-removed_param'),
+        ),
+        findsNothing,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-parameterized-label')),
+        'Repaired column',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('matrix-parameterized-save')));
+      await tester.pumpAndSettle();
+
+      expect(read().parameterized.single.baseMove, 'swing');
+      expect(read().parameterized.single.params, isEmpty);
+    });
+
+    testWidgets('reorders parameterized and built-in columns together', (
+      tester,
+    ) async {
+      const id = 'param:partner-swing';
+      final initial = MatrixColumnConfig(
+        parameterized: const [ParameterizedColumn(id: id, baseMove: 'swing')],
+      );
+      final read = await _pumpEditor(tester, initial: initial);
+      final rlv = tester.widget<ReorderableListView>(
+        find.byType(ReorderableListView),
+      );
+      final parameterizedIndex = catalogIds.length;
+      rlv.onReorderItem!(parameterizedIndex, 0);
+      await tester.pumpAndSettle();
+
+      expect(read().order.first, id);
+      expect(read().order.length, catalogIds.length + 1);
     });
 
     testWidgets('editing through the live scope rebuilds an open dependent '

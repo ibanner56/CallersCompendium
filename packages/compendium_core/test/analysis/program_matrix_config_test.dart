@@ -20,6 +20,9 @@ void main() {
   );
   Figure swing([String? who]) =>
       testFigure(move: 'swing', params: {'who': ?who});
+  Figure prefixedSwing(String who, String prefix) =>
+      testFigure(move: 'swing', params: {'who': who, 'prefix': prefix});
+  Figure aliasSwing(String move) => testFigure(move: move, params: const {});
   Figure doSiDo() => testFigure(move: 'do_si_do', params: const {});
   Figure hey([String? length]) =>
       testFigure(move: 'hey', params: {'length': ?length});
@@ -161,6 +164,177 @@ void main() {
         'hey:full',
         'zebra_move',
       ]);
+    });
+  });
+
+  group('parameterized routing', () {
+    test('matches canonical move and exact effective params, present-only', () {
+      const config = MatrixColumnConfig(
+        parameterized: [
+          ParameterizedColumn(
+            id: 'param:partner-swing',
+            baseMove: 'swing',
+            params: {'who': 'partners'},
+          ),
+        ],
+      );
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [swing('partners')]),
+        dance('d2', 'B', [swing('neighbors')]),
+      ], config: config);
+
+      expect(ids(matrix), ['swing:neighbor', 'param:partner-swing']);
+      expect(matrix.rows[0].presentMoveIds, {'param:partner-swing'});
+      expect(matrix.rows[1].presentMoveIds, {'swing:neighbor'});
+      expect(matrix.programDebutRowByMove['param:partner-swing'], 0);
+      expect(matrix.programDebutRowByMove, isNot(contains('swing:partner')));
+    });
+
+    test('alias-pinned effective params participate in exact matching', () {
+      const config = MatrixColumnConfig(
+        parameterized: [
+          ParameterizedColumn(
+            id: 'param:meltdown',
+            baseMove: 'swing',
+            params: {'prefix': 'meltdown'},
+          ),
+        ],
+      );
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [aliasSwing('meltdown_swing')]),
+      ], config: config);
+
+      expect(matrix.rows.single.presentMoveIds, {'param:meltdown'});
+      expect(ids(matrix), [
+        'swing:partner',
+        'swing:neighbor',
+        'param:meltdown',
+      ]);
+    });
+
+    test('specificity beats declaration order and ties use list order', () {
+      const config = MatrixColumnConfig(
+        parameterized: [
+          ParameterizedColumn(
+            id: 'param:any-partner',
+            baseMove: 'swing',
+            params: {'who': 'partners'},
+          ),
+          ParameterizedColumn(
+            id: 'param:balance-partner',
+            baseMove: 'swing',
+            params: {'who': 'partners', 'prefix': 'balance'},
+          ),
+          ParameterizedColumn(
+            id: 'param:tie-first',
+            baseMove: 'swing',
+            params: {'who': 'neighbors'},
+          ),
+          ParameterizedColumn(
+            id: 'param:tie-second',
+            baseMove: 'swing',
+            params: {'who': 'neighbors'},
+          ),
+        ],
+      );
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [prefixedSwing('partners', 'balance')]),
+        dance('d2', 'B', [swing('neighbors')]),
+      ], config: config);
+
+      expect(matrix.rows[0].presentMoveIds, {'param:balance-partner'});
+      expect(matrix.rows[1].presentMoveIds, {'param:tie-first'});
+      expect(ids(matrix), [
+        'swing:partner',
+        'param:balance-partner',
+        'param:tie-first',
+      ]);
+    });
+
+    test(
+      'replacement keeps parameterized phrase and beat data under its id',
+      () {
+        const config = MatrixColumnConfig(
+          parameterized: [
+            ParameterizedColumn(
+              id: 'param:partner',
+              baseMove: 'swing',
+              params: {'who': 'partners'},
+            ),
+          ],
+        );
+        final matrix = buildProgramMatrix([
+          dance('d1', 'A', [swing('partners')]),
+          dance('d2', 'B', [swing('partners')]),
+        ], config: config);
+
+        expect(matrix.rows[0].firstMoveId, 'param:partner');
+        expect(matrix.rows[0].phraseLabelsByMove, contains('param:partner'));
+        expect(matrix.rows[0].beatSpansByMove, contains('param:partner'));
+        expect(
+          matrix.isCollision(0, ids(matrix).indexOf('param:partner')),
+          isTrue,
+        );
+        expect(matrix.programDebutRowByMove, {'param:partner': 0});
+        expect(matrix.programDebutRowByMove, isNot(contains('swing:partner')));
+      },
+    );
+
+    test(
+      'D1 suppresses fully captured baselines but keeps mixed baselines',
+      () {
+        const config = MatrixColumnConfig(
+          parameterized: [
+            ParameterizedColumn(
+              id: 'param:partner',
+              baseMove: 'swing',
+              params: {'who': 'partners'},
+            ),
+            ParameterizedColumn(
+              id: 'param:neighbor',
+              baseMove: 'swing',
+              params: {'who': 'neighbors'},
+            ),
+          ],
+        );
+        final fullyCaptured = buildProgramMatrix([
+          dance('d1', 'A', [swing('partners')]),
+          dance('d2', 'B', [swing('neighbors')]),
+        ], config: config);
+        expect(ids(fullyCaptured), ['param:partner', 'param:neighbor']);
+
+        final mixed = buildProgramMatrix(
+          [
+            dance('d1', 'A', [swing('partners')]),
+            dance('d2', 'B', [swing('partners')]),
+          ],
+          config: const MatrixColumnConfig(
+            parameterized: [
+              ParameterizedColumn(
+                id: 'param:partner',
+                baseMove: 'swing',
+                params: {'who': 'partners'},
+              ),
+            ],
+          ),
+        );
+        expect(ids(mixed), ['swing:neighbor', 'param:partner']);
+      },
+    );
+
+    test('no plain baseline candidate preserves the legacy baseline', () {
+      final matrix = buildProgramMatrix(
+        [
+          dance('d1', 'A', [move('do_si_do')]),
+        ],
+        config: const MatrixColumnConfig(
+          parameterized: [
+            ParameterizedColumn(id: 'param:swing', baseMove: 'swing'),
+          ],
+        ),
+      );
+      expect(ids(matrix), containsAll(['swing:partner', 'swing:neighbor']));
+      expect(ids(matrix), isNot(contains('param:swing')));
     });
   });
 
