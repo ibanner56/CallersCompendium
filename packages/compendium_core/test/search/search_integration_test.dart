@@ -274,8 +274,9 @@ void main() {
             ],
           ),
         );
-        await dances.create(_dance(id: 'b', title: 'Unrelated'));
-        // Raw hyphens would be FTS5 syntax; the sanitizer makes this a phrase.
+        await dances.create(_dance(id: 'b', title: 'Do Si Do Delight'));
+        // Long Omni queries are literal substrings: punctuation must remain
+        // significant rather than matching the space-separated variant.
         expect(await dances.search(const FullTextFilter('do-si-do')), ['a']);
         expect(
           await dances.search(const FullTextFilter('right-and-left')),
@@ -297,29 +298,27 @@ void main() {
       });
 
       test('an unbalanced double quote does not throw', () async {
-        await dances.create(_dance(id: 'a', title: 'Foo Bar'));
+        await dances.create(_dance(id: 'a', title: 'Foo"Bar'));
         expect(await dances.search(const FullTextFilter('foo"')), ['a']);
       });
 
       test(
         'unbalanced parentheses match literally instead of throwing',
         () async {
-          await dances.create(_dance(id: 'a', title: 'Swing Time'));
+          await dances.create(_dance(id: 'a', title: '(swing time'));
           await dances.create(
             _dance(
               id: 'b',
-              title: 'Plain',
+              title: 'swing) time',
               figures: [
                 Figure(move: 'balance', params: const {'beats': 16}),
               ],
             ),
           );
-          // A lone `(` / `)` is FTS5 grouping syntax; unbalanced it is a syntax
-          // error. Quoting ("(swing") makes FTS5 read a phrase literal, not
-          // grouping; at match time the tokenizer drops the paren, so the
-          // phrase reduces to the term `swing`.
+          // Long queries keep grouping punctuation in the literal substring,
+          // so each query matches only the title with the same punctuation.
           expect(await dances.search(const FullTextFilter('(swing')), ['a']);
-          expect(await dances.search(const FullTextFilter('swing)')), ['a']);
+          expect(await dances.search(const FullTextFilter('swing)')), ['b']);
         },
       );
 
@@ -350,35 +349,25 @@ void main() {
         );
       });
 
-      test(
-        'prefix / column / initial-token operators never inject or throw',
-        () async {
-          await dances.create(_dance(id: 'a', title: 'Swing Time'));
-          await dances.create(
-            _dance(
-              id: 'b',
-              title: 'Plain',
-              figures: [
-                Figure(move: 'balance', params: const {'beats': 16}),
-              ],
-            ),
-          );
-          // Quoting each token ("swing*", "^swing") stops FTS5 reading `*` as a
-          // prefix query or `^` as a first-token match; the tokenizer then
-          // drops the punctuation so the phrase matches the term `swing`.
-          expect(await dances.search(const FullTextFilter('swing*')), ['a']);
-          expect(await dances.search(const FullTextFilter('^swing')), ['a']);
-          // A raw column filter on a non-existent column would be an FTS5
-          // 'no such column: foo' error; quoting ("foo:swing") makes FTS5 parse
-          // a phrase literal instead, which the tokenizer splits into `foo` +
-          // `swing`, so it matches only a row with that adjacent phrase (none
-          // here).
-          expect(
-            await dances.search(const FullTextFilter('foo:swing')),
-            isEmpty,
-          );
-        },
-      );
+      test('prefix / column / initial-token operators stay literal', () async {
+        await dances.create(_dance(id: 'a', title: 'swing* time'));
+        await dances.create(
+          _dance(
+            id: 'b',
+            title: '^swing time',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        // Quoting the whole long input keeps FTS5 operators inside the
+        // literal substring query.
+        expect(await dances.search(const FullTextFilter('swing*')), ['a']);
+        expect(await dances.search(const FullTextFilter('^swing')), ['b']);
+        // A raw column filter on a non-existent column remains a literal
+        // substring and cannot alter the SQL query.
+        expect(await dances.search(const FullTextFilter('foo:swing')), isEmpty);
+      });
 
       test(
         'empty / whitespace-only text returns no rows, never throws',
@@ -1427,11 +1416,21 @@ void main() {
       await dances.create(_dance(id: 'strong', title: 'swing swing swing'));
       await dances.create(_dance(id: 'weak', title: 'swing once'));
       final result = await dances.search(
-        const FullTextFilter('swing'),
+        const FullTextFilter('sw'),
         sort: SearchSort.relevance,
       );
       expect(result, containsAll(['strong', 'weak']));
       expect(result.first, 'strong');
+    });
+
+    test('long relevance keeps the substring result set', () async {
+      await dances.create(_dance(id: 'infix', title: 'Northwing Special'));
+      await dances.create(_dance(id: 'other', title: 'Swing Special'));
+      final result = await dances.search(
+        const FullTextFilter('thwin'),
+        sort: SearchSort.relevance,
+      );
+      expect(result, ['infix']);
     });
 
     test(

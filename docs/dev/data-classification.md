@@ -212,7 +212,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**175 columns**: 137 shareable, 21 device-local, 17 derived. 24 personal data by category.
+**183 columns**: 137 shareable, 21 device-local, 25 derived. 24 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -276,6 +276,14 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dance_sources` | `page` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dance_sources` | `position` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dance_sources` | `source_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `dance_substring_fts` | `authors` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_substring_fts` | `custom_values` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_substring_fts` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_substring_fts` | `figures_text` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_substring_fts` | `hook` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_substring_fts` | `notes` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_substring_fts` | `sources` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_substring_fts` | `title` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
 | `dance_tags` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dance_tags` | `tag_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dances` | `calling_notes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |

@@ -84,7 +84,8 @@ class FilterCompiler {
     // dedicated shape that can `ORDER BY bm25(dance_fts)`.
     if (sort == SearchSort.relevance &&
         filter is FullTextFilter &&
-        filter.scope == FullTextScope.omni) {
+        filter.scope == FullTextScope.omni &&
+        ftsQueryScalarLength(filter.query) <= 2) {
       return _compileRelevance(filter, dir);
     }
 
@@ -98,13 +99,15 @@ class FilterCompiler {
   }
 
   CompiledFilter _compileRelevance(FullTextFilter filter, SortDirection dir) {
-    final query = toFtsMatchQuery(
+    final canonicalQuery = toFtsPrefixMatchQuery(
       canonicalizeText(
         filter.query,
         dialect,
         extraRoleSynonyms: enrichment.roleSynonyms,
       ),
     );
+    final rawTitleQuery = toFtsPrefixMatchQuery(filter.query);
+    final query = '($canonicalQuery OR title : $rawTitleQuery)';
     // bm25 returns lower (more negative) for better matches, so ascending
     // (the default) is best-match-first; descending flips to worst-match-first.
     final order = dir == SortDirection.descending
@@ -262,13 +265,6 @@ class FilterCompiler {
         extraRoleSynonyms: enrichment.roleSynonyms,
       ),
     );
-    final legacyCanonicalQuery = toFtsMatchQuery(
-      canonicalizeText(
-        rawQuery,
-        dialect,
-        extraRoleSynonyms: enrichment.roleSynonyms,
-      ),
-    );
     final rawTextQuery = queryBuilder(rawQuery);
 
     String columnMatch(String column, String query) {
@@ -282,25 +278,17 @@ class FilterCompiler {
       case FullTextScope.figure:
         return columnMatch('figures_text', canonicalQuery);
       case FullTextScope.omni:
-        // Preserve the historical canonical cross-field path, but add a raw
-        // title-only branch so a title such as "Hey Man" cannot be rewritten
-        // away by the role synonym map.
-        if (!isPrefix) {
-          // Keep the legacy token semantics for existing Omni callers whose
-          // punctuation is only a token separator (for example `swing*`),
-          // while the trigram branches provide true literal substrings.
-          binds.add(legacyCanonicalQuery);
-        }
+        // Preserve canonical cross-field matching, but add a raw title-only
+        // branch so a title such as "Hey Man" cannot be rewritten away by the
+        // role synonym map. Both branches use the active prefix/substr index,
+        // so long queries remain literal substrings rather than falling back
+        // to unicode61 token semantics.
         binds.add(canonicalQuery);
         binds.add(rawTextQuery);
-        final legacy = !isPrefix
-            ? 'id IN (SELECT dance_id FROM dance_fts '
-                  'WHERE dance_fts MATCH ?)'
-            : null;
         final canonical =
             'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
         final raw = 'id IN (SELECT dance_id FROM $table WHERE title MATCH ?)';
-        return '(${[if (legacy != null) legacy, canonical, raw].join(' OR ')})';
+        return '($canonical OR $raw)';
     }
   }
 

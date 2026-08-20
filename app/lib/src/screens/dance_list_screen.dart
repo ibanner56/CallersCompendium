@@ -748,10 +748,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   void _onFtsChanged(String _) {
     _debounceTimer?.cancel();
-    _searchSeq++;
     if (_onlineEnabled) {
+      _onlineSeq++;
       _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
     } else {
+      _searchSeq++;
       _debounceTimer = Timer(_debounce, _runSearch);
     }
 
@@ -793,6 +794,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     setState(() {});
     if (_onlineEnabled) {
       _debounceTimer?.cancel();
+      _onlineSeq++;
       _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
     } else {
       _runSearch();
@@ -805,6 +807,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   void _onOnlineToggled(bool value) {
     _debounceTimer?.cancel();
     _searchSeq++;
+    _onlineSeq++;
     setState(() {
       _onlineEnabled = value;
       _onlineError = null;
@@ -829,6 +832,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   void _onOnlineSourceChanged(OnlineSource source) {
     if (source == _onlineSource) return;
     _debounceTimer?.cancel();
+    _onlineSeq++;
     setState(() {
       _onlineSource = source;
       _onlineResults = const [];
@@ -1228,6 +1232,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   void _clearAll() {
     _debounceTimer?.cancel();
+    _searchSeq++;
+    _onlineSeq++;
     setState(() {
       _ftsController.clear();
       _facets.clear();

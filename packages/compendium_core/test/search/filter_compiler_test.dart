@@ -63,15 +63,12 @@ void main() {
       final c = compiler.compile(const FullTextFilter('swing'));
       expect(
         pred(const FullTextFilter('swing')),
-        '(id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?) '
-        'OR id IN (SELECT dance_id FROM dance_substring_fts '
+        '(id IN (SELECT dance_id FROM dance_substring_fts '
         'WHERE dance_substring_fts MATCH ?) '
         'OR id IN (SELECT dance_id FROM dance_substring_fts '
         'WHERE title MATCH ?))',
       );
-      // The legacy token branch preserves existing Omni semantics while the
-      // trigram branches provide literal substring matching.
-      expect(c.binds, ['"swing"', '"swing"', '"swing"']);
+      expect(c.binds, ['"swing"', '"swing"']);
     });
 
     test('Author', () {
@@ -475,9 +472,9 @@ void main() {
   });
 
   group('relevance / bm25', () {
-    test('bare FullText with relevance sort orders by bm25', () {
+    test('short bare FullText with relevance sort orders by bm25', () {
       final c = compiler.compile(
-        const FullTextFilter('reel'),
+        const FullTextFilter('re'),
         sort: SearchSort.relevance,
       );
       expect(
@@ -487,8 +484,20 @@ void main() {
         'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL '
         'ORDER BY bm25(dance_fts)',
       );
-      expect(c.binds, ['"reel"']);
+      expect(c.binds, ['("re"* OR title : "re"*)']);
     });
+
+    test(
+      'long bare FullText relevance degrades to the substring result set',
+      () {
+        final c = compiler.compile(
+          const FullTextFilter('reel'),
+          sort: SearchSort.relevance,
+        );
+        expect(c.sql, contains('dance_substring_fts'));
+        expect(c.sql, isNot(contains('bm25')));
+      },
+    );
 
     test('relevance on a non-bare tree degrades to title order', () {
       final c = compiler.compile(
@@ -632,7 +641,7 @@ void main() {
       expect(
         compiler
             .compile(
-              const FullTextFilter('reel'),
+              const FullTextFilter('re'),
               sort: SearchSort.relevance,
               direction: SortDirection.descending,
             )
@@ -647,8 +656,9 @@ void main() {
       final c = FilterCompiler(
         Dialect.larksRobins,
       ).compile(const FullTextFilter('robins allemande'));
-      // Canonicalized to role tokens, then each token sanitized to a phrase.
-      expect(c.binds.first, '"role2s" "allemande"');
+      // Canonicalized to role tokens while keeping the long query as one
+      // literal substring phrase.
+      expect(c.binds.first, '"role2s allemande"');
     });
 
     test('role-valued figure params are canonicalized', () {
