@@ -422,6 +422,11 @@ can still fire.
   no `venue_provenance` row and will not provenance-dedupe, but the new path
   takes effect for every bundle imported after the upgrade). No figure index
   is touched; no derived rebuild is required.
+- v27 (issue #862): published collection import history. Adds the
+  `collection_import_events` table, keyed by collection id and manifest
+  version, with the archive digest and import timestamp. The row is
+  idempotent and remains after imported dances are deleted; no existing data is
+  back-filled and no derived rebuild is required.
 
 ## The delete model
 
@@ -545,4 +550,3 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   the snapshot is stamped at the older `user_version`, opening it with the build
   that created the backup migrates it forward again; if the migration itself was
   the problem, open it with the matching older app version instead.
-

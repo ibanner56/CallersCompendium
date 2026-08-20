@@ -6311,5 +6311,49 @@
   "danceReimportTargetChanged": "Cette danse a changé avant de pouvoir être mise à jour. Vérifiez-la et réessayez.",
   "@danceReimportTargetChanged": {
     "x-sourceSha256": "7213bdad9aa2abba7fd089889171b48ce5c3d80ecc5a5760c1881cf8c4a6125a"
+  },
+  "publishedCollectionsTitle": "Collections publiées",
+  "@publishedCollectionsTitle": {
+    "x-sourceSha256": "950ff774d5f3db217773cf01ce4ae60c38f9bfed26f61dd9fc93d95418ba25c0"
+  },
+  "importSourceLabelPublishedCollection": "Collection publiée",
+  "@importSourceLabelPublishedCollection": {
+    "x-sourceSha256": "cbe9f82b949f72c2ccc2b1c43faa476f5a2bcfc029acec8a9f9134bcbdb31519"
+  },
+  "publishedCollectionsDescription": "Importez des collections de danses signées et immuables depuis Compendium Analect.",
+  "@publishedCollectionsDescription": {
+    "x-sourceSha256": "e1671a3834e080728891ab2b1f3ea03b2c98e2d0d8ef06dc390fe492f02f8c8b"
+  },
+  "publishedCollectionsLoading": "Chargement des collections publiées…",
+  "@publishedCollectionsLoading": {
+    "x-sourceSha256": "104e1648ac53e3c6c700dd537eeafa4528426d11729a8516e3590853f65ec96e"
+  },
+  "publishedCollectionsUnavailable": "Les collections publiées sont temporairement indisponibles.",
+  "@publishedCollectionsUnavailable": {
+    "x-sourceSha256": "286ca7d1f2dfaf05d973b18f9d8167ca700dd94c02afc27cd91e74f85abbd35f"
+  },
+  "publishedCollectionImport": "Importer la collection",
+  "@publishedCollectionImport": {
+    "x-sourceSha256": "48d395b802beef0dd13c557a830a47099fb3fa969755558fd63c92677674e022"
+  },
+  "publishedCollectionUnsupported": "Cette collection nécessite une version plus récente de l’application.",
+  "@publishedCollectionUnsupported": {
+    "x-sourceSha256": "7bcb35dcc2b5b0c01fbdb7fae8eb4eee909ad16bda159641021e13a2814c1f7c"
+  },
+  "publishedCollectionImportedVersion": "Version importée : {version}",
+  "@publishedCollectionImportedVersion": {
+    "x-sourceSha256": "8ca9a7cb8f393306ec52a9d3d6efa46fdba7ac540cc8c04b156f44a2b9f977a6"
+  },
+  "publishedCollectionHeldCount": "{held} danses sur {total} conservées",
+  "@publishedCollectionHeldCount": {
+    "x-sourceSha256": "e9782539b6eab4a6c801a4323da794be6567d4c71363b94c2a4ee6b57747b2b0"
+  },
+  "publishedCollectionDetails": "{id} · {version} · {count} danses",
+  "@publishedCollectionDetails": {
+    "x-sourceSha256": "ebb910dba0722f7dd04d3ea953aceee41ba0238f0dd1bbfb3c03a93663f7fd67"
+  },
+  "publishedCollectionSupersedes": "Remplace la version {version}",
+  "@publishedCollectionSupersedes": {
+    "x-sourceSha256": "284aeb42ae95b58f9aafc2bf463c0cfbd95a7e3a6707441badaf38a7e0e037e1"
   }
 }

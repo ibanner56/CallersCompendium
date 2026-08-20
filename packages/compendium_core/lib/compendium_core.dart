@@ -45,6 +45,7 @@ export 'src/imports/fmp/fmp_reader.dart';
 export 'src/imports/generic_json_adapter.dart';
 export 'src/imports/import_error.dart';
 export 'src/imports/import_pipeline.dart';
+export 'src/imports/published_collection.dart';
 export 'src/imports/insert_call_shorthands.dart';
 export 'src/imports/program_import_marker.dart';
 export 'src/imports/program_slot_note.dart';
@@ -55,6 +56,7 @@ export 'src/imports/source_adapter.dart';
 export 'src/imports/structured_draft.dart';
 export 'src/imports/venue_dedupe.dart';
 export 'src/model/choreographer.dart';
+export 'src/model/collection_import_event.dart';
 export 'src/model/custom_field.dart';
 export 'src/model/dance.dart';
 export 'src/model/dance_link.dart';
@@ -114,6 +116,7 @@ export 'src/storage/database.dart'
 export 'src/storage/existence.dart'
     show existenceStampTick, nextExistenceStamp, unixSeconds;
 export 'src/storage/repositories/choreographer_repository.dart';
+export 'src/storage/repositories/collection_import_event_repository.dart';
 export 'src/storage/repositories/custom_field_repository.dart'
     show
         CustomFieldDefRepository,

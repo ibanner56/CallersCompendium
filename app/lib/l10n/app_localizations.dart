@@ -9622,6 +9622,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This dance changed before it could be updated. Review it and try again.'**
   String get danceReimportTargetChanged;
+
+  /// Title for the signed published-collection catalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Published collections'**
+  String get publishedCollectionsTitle;
+
+  /// Import source label for a verified signed collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Published collection'**
+  String get importSourceLabelPublishedCollection;
+
+  /// Introductory text for the published-collection catalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Import signed, immutable dance collections from Compendium Analect.'**
+  String get publishedCollectionsDescription;
+
+  /// Loading label while the signed published-collection catalog is fetched.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading published collections…'**
+  String get publishedCollectionsLoading;
+
+  /// Non-leaking error shown when the signed catalog cannot be fetched or verified.
+  ///
+  /// In en, this message translates to:
+  /// **'Published collections are temporarily unavailable.'**
+  String get publishedCollectionsUnavailable;
+
+  /// Action that begins importing one signed published collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Import collection'**
+  String get publishedCollectionImport;
+
+  /// Message shown for a signed collection requiring an unsupported capability.
+  ///
+  /// In en, this message translates to:
+  /// **'This collection needs a newer app version.'**
+  String get publishedCollectionUnsupported;
+
+  /// Catalog metadata showing the version of a collection already imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported version: {version}'**
+  String publishedCollectionImportedVersion(String version);
+
+  /// Catalog metadata showing currently held versus published dance count.
+  ///
+  /// In en, this message translates to:
+  /// **'{held} of {total} dances held'**
+  String publishedCollectionHeldCount(int held, int total);
+
+  /// Catalog metadata showing a collection identifier, version, and published dance count.
+  ///
+  /// In en, this message translates to:
+  /// **'{id} · {version} · {count} dances'**
+  String publishedCollectionDetails(String id, String version, int count);
+
+  /// Catalog metadata showing that this collection version replaces an older version.
+  ///
+  /// In en, this message translates to:
+  /// **'Supersedes version {version}'**
+  String publishedCollectionSupersedes(String version);
 }
 
 class _AppLocalizationsDelegate

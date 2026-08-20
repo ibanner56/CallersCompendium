@@ -18,6 +18,7 @@ import 'dance_list_screen.dart';
 import 'dance_reimport_flow.dart';
 import 'import_review_screen.dart';
 import 'online_import_variation_dialog.dart';
+import 'published_collection_navigation.dart';
 
 /// Responsive collection shell (`docs/design/ux.md` — list/detail split pane
 /// for desktop/tablet; `docs/ROADMAP.md` deferred follow-up
@@ -190,6 +191,10 @@ class _CollectionShellState extends State<CollectionShell> {
         ),
       ),
     );
+  }
+
+  void _pushPublishedCollectionCatalog() {
+    pushPublishedCollectionCatalog(context);
   }
 
   /// Resets the online-preview sub-state. Call when leaving the online preview.
@@ -509,6 +514,7 @@ class _CollectionShellState extends State<CollectionShell> {
         return DanceListScreen(
           key: _listKey,
           onImport: _pushImportRoute,
+          onPublishedCollections: _pushPublishedCollectionCatalog,
           callersBoxOnline: _callersBox,
           contraDbOnline: _contraDb,
         );
@@ -532,6 +538,7 @@ class _CollectionShellState extends State<CollectionShell> {
               onNewDance: _onNewDance,
               selectedDanceId: _selectedDanceId,
               onImport: _onImport,
+              onPublishedCollections: _pushPublishedCollectionCatalog,
               onSelectOnlineDance: _onSelectOnlineDance,
               selectedOnlineId: _onlinePreview?.result.id,
               callersBoxOnline: _callersBox,

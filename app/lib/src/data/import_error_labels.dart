@@ -112,6 +112,8 @@ String importSourceLabel(AppLocalizations l10n, ImportSourceKind kind) =>
       ImportSourceKind.callersCompanionUsr =>
         l10n.importSourceLabelCallersCompanionUsr,
       ImportSourceKind.titleList => l10n.importSourceLabelTitleList,
+      ImportSourceKind.publishedCollection =>
+        l10n.importSourceLabelPublishedCollection,
     };
 
 /// Localized refusal for a pasted title list that tripped a hard cap

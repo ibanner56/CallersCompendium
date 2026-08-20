@@ -24,6 +24,7 @@ import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
 import '../import_review_screen.dart';
+import '../published_collection_navigation.dart';
 import '../reparse_custom_figures_screen.dart';
 
 /// The General settings section: app-wide toggles, soft-delete retention,
@@ -385,6 +386,9 @@ class _GeneralSectionState extends State<GeneralSection> {
     );
   }
 
+  Future<void> _onPublishedCollections() =>
+      pushPublishedCollectionCatalog(context);
+
   Future<void> _onSortIgnoreArticlesChanged(bool value) async {
     // Same instant-notifier-then-persist pattern: flip the live notifier so the
     // dance list re-sorts immediately, then persist in the background.
@@ -443,6 +447,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       onExportBackup: _onExportBackup,
       onRestoreBackup: _onRestoreBackup,
       onImportDances: _onImportDances,
+      onPublishedCollections: _onPublishedCollections,
       onReparseCustomFigures: _onReparseCustomFigures,
     );
   }
@@ -473,6 +478,7 @@ class _GeneralView extends StatelessWidget {
     required this.onExportBackup,
     required this.onRestoreBackup,
     required this.onImportDances,
+    required this.onPublishedCollections,
     required this.onReparseCustomFigures,
   });
 
@@ -503,6 +509,7 @@ class _GeneralView extends StatelessWidget {
 
   /// Opens the import review flow (ROADMAP 6.3).
   final Future<void> Function() onImportDances;
+  final Future<void> Function() onPublishedCollections;
 
   /// Opens the #417 re-check-custom-figures flow.
   final Future<void> Function() onReparseCustomFigures;
@@ -592,6 +599,13 @@ class _GeneralView extends StatelessWidget {
             icon: const Icon(Icons.file_download_outlined),
             label: Text(l10n.settingsGeneralImportEllipsisAction),
           ),
+        ),
+        ListTile(
+          key: const ValueKey('published-collections-button'),
+          title: Text(l10n.publishedCollectionsTitle),
+          subtitle: Text(l10n.publishedCollectionsDescription),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: onPublishedCollections,
         ),
         ListTile(
           title: Text(l10n.settingsGeneralReparseCustomFiguresTitle),

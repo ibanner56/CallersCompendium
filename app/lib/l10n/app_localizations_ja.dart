@@ -6062,4 +6062,46 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get danceReimportTargetChanged =>
       'このダンスは更新前に変更されました。内容を確認して、もう一度お試しください。';
+
+  @override
+  String get publishedCollectionsTitle => '公開コレクション';
+
+  @override
+  String get importSourceLabelPublishedCollection => '公開コレクション';
+
+  @override
+  String get publishedCollectionsDescription =>
+      'Compendium Analect から署名済みの不変なダンスコレクションをインポートします。';
+
+  @override
+  String get publishedCollectionsLoading => '公開コレクションを読み込み中…';
+
+  @override
+  String get publishedCollectionsUnavailable => '公開コレクションは一時的に利用できません。';
+
+  @override
+  String get publishedCollectionImport => 'コレクションをインポート';
+
+  @override
+  String get publishedCollectionUnsupported => 'このコレクションには新しいアプリバージョンが必要です。';
+
+  @override
+  String publishedCollectionImportedVersion(String version) {
+    return 'インポート済みバージョン: $version';
+  }
+
+  @override
+  String publishedCollectionHeldCount(int held, int total) {
+    return '$total 件中 $held 件のダンスを保持';
+  }
+
+  @override
+  String publishedCollectionDetails(String id, String version, int count) {
+    return '$id · $version · ダンス $count件';
+  }
+
+  @override
+  String publishedCollectionSupersedes(String version) {
+    return 'バージョン $version を置き換え';
+  }
 }

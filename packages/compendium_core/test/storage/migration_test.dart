@@ -1290,6 +1290,52 @@ void main() {
       );
     });
   });
+
+  group('v26 -> v27 upgrade (issue #862 published collection history)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v27_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      final fixture = File(
+        p.join(
+          await packageRootPath(),
+          'test',
+          'storage',
+          'fixtures',
+          'v26.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('creates the idempotent collection import event table', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
+      await db.customSelect('SELECT 1').get();
+      final tables = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type='table' "
+            "AND name='collection_import_events'",
+          )
+          .get();
+      expect(tables, hasLength(1));
+
+      final event = CollectionImportEvent(
+        collectionId: 'book',
+        version: 'v1',
+        archiveDigest: 'sha256:digest',
+        importedAt: DateTime.utc(2026, 8, 20),
+      );
+      final events = CollectionImportEventRepository(db);
+      await events.record(event);
+      await events.record(event);
+      expect(await events.listAll(), hasLength(1));
+    });
+  });
 }
 
 /// A [CompendiumRepositories] whose derived-index rebuild throws on its first

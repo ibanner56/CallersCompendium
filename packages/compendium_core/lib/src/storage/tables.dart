@@ -544,6 +544,21 @@ class ProgramProvenance extends Table {
   Set<Column> get primaryKey => {programId};
 }
 
+/// One idempotent row per published collection version imported on this device.
+///
+/// The digest is retained so the app can display which immutable archive was
+/// imported without deriving that fact from the surviving dances.
+@DataClassName('CollectionImportEventRow')
+class CollectionImportEvents extends Table {
+  TextColumn get collectionId => text()();
+  TextColumn get version => text()();
+  TextColumn get archiveDigest => text()();
+  DateTimeColumn get importedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {collectionId, version};
+}
+
 /// Free-form app settings (dialect choice, prefs, source URLs), keyed by a
 /// stable string key; `valueJson` holds an arbitrary JSON-encoded value.
 @DataClassName('SettingRow')

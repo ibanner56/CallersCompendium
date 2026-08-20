@@ -10569,6 +10569,346 @@ class VenueProvenanceCompanion extends UpdateCompanion<VenueProvenanceRow> {
   }
 }
 
+class $CollectionImportEventsTable extends CollectionImportEvents
+    with TableInfo<$CollectionImportEventsTable, CollectionImportEventRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CollectionImportEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _collectionIdMeta = const VerificationMeta(
+    'collectionId',
+  );
+  @override
+  late final GeneratedColumn<String> collectionId = GeneratedColumn<String>(
+    'collection_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<String> version = GeneratedColumn<String>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _archiveDigestMeta = const VerificationMeta(
+    'archiveDigest',
+  );
+  @override
+  late final GeneratedColumn<String> archiveDigest = GeneratedColumn<String>(
+    'archive_digest',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _importedAtMeta = const VerificationMeta(
+    'importedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> importedAt = GeneratedColumn<DateTime>(
+    'imported_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    collectionId,
+    version,
+    archiveDigest,
+    importedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'collection_import_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CollectionImportEventRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('collection_id')) {
+      context.handle(
+        _collectionIdMeta,
+        collectionId.isAcceptableOrUnknown(
+          data['collection_id']!,
+          _collectionIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_collectionIdMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_versionMeta);
+    }
+    if (data.containsKey('archive_digest')) {
+      context.handle(
+        _archiveDigestMeta,
+        archiveDigest.isAcceptableOrUnknown(
+          data['archive_digest']!,
+          _archiveDigestMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_archiveDigestMeta);
+    }
+    if (data.containsKey('imported_at')) {
+      context.handle(
+        _importedAtMeta,
+        importedAt.isAcceptableOrUnknown(data['imported_at']!, _importedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_importedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {collectionId, version};
+  @override
+  CollectionImportEventRow map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CollectionImportEventRow(
+      collectionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}collection_id'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}version'],
+      )!,
+      archiveDigest: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}archive_digest'],
+      )!,
+      importedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}imported_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CollectionImportEventsTable createAlias(String alias) {
+    return $CollectionImportEventsTable(attachedDatabase, alias);
+  }
+}
+
+class CollectionImportEventRow extends DataClass
+    implements Insertable<CollectionImportEventRow> {
+  final String collectionId;
+  final String version;
+  final String archiveDigest;
+  final DateTime importedAt;
+  const CollectionImportEventRow({
+    required this.collectionId,
+    required this.version,
+    required this.archiveDigest,
+    required this.importedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['collection_id'] = Variable<String>(collectionId);
+    map['version'] = Variable<String>(version);
+    map['archive_digest'] = Variable<String>(archiveDigest);
+    map['imported_at'] = Variable<DateTime>(importedAt);
+    return map;
+  }
+
+  CollectionImportEventsCompanion toCompanion(bool nullToAbsent) {
+    return CollectionImportEventsCompanion(
+      collectionId: Value(collectionId),
+      version: Value(version),
+      archiveDigest: Value(archiveDigest),
+      importedAt: Value(importedAt),
+    );
+  }
+
+  factory CollectionImportEventRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CollectionImportEventRow(
+      collectionId: serializer.fromJson<String>(json['collectionId']),
+      version: serializer.fromJson<String>(json['version']),
+      archiveDigest: serializer.fromJson<String>(json['archiveDigest']),
+      importedAt: serializer.fromJson<DateTime>(json['importedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'collectionId': serializer.toJson<String>(collectionId),
+      'version': serializer.toJson<String>(version),
+      'archiveDigest': serializer.toJson<String>(archiveDigest),
+      'importedAt': serializer.toJson<DateTime>(importedAt),
+    };
+  }
+
+  CollectionImportEventRow copyWith({
+    String? collectionId,
+    String? version,
+    String? archiveDigest,
+    DateTime? importedAt,
+  }) => CollectionImportEventRow(
+    collectionId: collectionId ?? this.collectionId,
+    version: version ?? this.version,
+    archiveDigest: archiveDigest ?? this.archiveDigest,
+    importedAt: importedAt ?? this.importedAt,
+  );
+  CollectionImportEventRow copyWithCompanion(
+    CollectionImportEventsCompanion data,
+  ) {
+    return CollectionImportEventRow(
+      collectionId: data.collectionId.present
+          ? data.collectionId.value
+          : this.collectionId,
+      version: data.version.present ? data.version.value : this.version,
+      archiveDigest: data.archiveDigest.present
+          ? data.archiveDigest.value
+          : this.archiveDigest,
+      importedAt: data.importedAt.present
+          ? data.importedAt.value
+          : this.importedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CollectionImportEventRow(')
+          ..write('collectionId: $collectionId, ')
+          ..write('version: $version, ')
+          ..write('archiveDigest: $archiveDigest, ')
+          ..write('importedAt: $importedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(collectionId, version, archiveDigest, importedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CollectionImportEventRow &&
+          other.collectionId == this.collectionId &&
+          other.version == this.version &&
+          other.archiveDigest == this.archiveDigest &&
+          other.importedAt == this.importedAt);
+}
+
+class CollectionImportEventsCompanion
+    extends UpdateCompanion<CollectionImportEventRow> {
+  final Value<String> collectionId;
+  final Value<String> version;
+  final Value<String> archiveDigest;
+  final Value<DateTime> importedAt;
+  final Value<int> rowid;
+  const CollectionImportEventsCompanion({
+    this.collectionId = const Value.absent(),
+    this.version = const Value.absent(),
+    this.archiveDigest = const Value.absent(),
+    this.importedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CollectionImportEventsCompanion.insert({
+    required String collectionId,
+    required String version,
+    required String archiveDigest,
+    required DateTime importedAt,
+    this.rowid = const Value.absent(),
+  }) : collectionId = Value(collectionId),
+       version = Value(version),
+       archiveDigest = Value(archiveDigest),
+       importedAt = Value(importedAt);
+  static Insertable<CollectionImportEventRow> custom({
+    Expression<String>? collectionId,
+    Expression<String>? version,
+    Expression<String>? archiveDigest,
+    Expression<DateTime>? importedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (collectionId != null) 'collection_id': collectionId,
+      if (version != null) 'version': version,
+      if (archiveDigest != null) 'archive_digest': archiveDigest,
+      if (importedAt != null) 'imported_at': importedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CollectionImportEventsCompanion copyWith({
+    Value<String>? collectionId,
+    Value<String>? version,
+    Value<String>? archiveDigest,
+    Value<DateTime>? importedAt,
+    Value<int>? rowid,
+  }) {
+    return CollectionImportEventsCompanion(
+      collectionId: collectionId ?? this.collectionId,
+      version: version ?? this.version,
+      archiveDigest: archiveDigest ?? this.archiveDigest,
+      importedAt: importedAt ?? this.importedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (collectionId.present) {
+      map['collection_id'] = Variable<String>(collectionId.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<String>(version.value);
+    }
+    if (archiveDigest.present) {
+      map['archive_digest'] = Variable<String>(archiveDigest.value);
+    }
+    if (importedAt.present) {
+      map['imported_at'] = Variable<DateTime>(importedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CollectionImportEventsCompanion(')
+          ..write('collectionId: $collectionId, ')
+          ..write('version: $version, ')
+          ..write('archiveDigest: $archiveDigest, ')
+          ..write('importedAt: $importedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$CompendiumDatabase extends GeneratedDatabase {
   _$CompendiumDatabase(QueryExecutor e) : super(e);
   $CompendiumDatabaseManager get managers => $CompendiumDatabaseManager(this);
@@ -10598,6 +10938,8 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
   late final $VenueProvenanceTable venueProvenance = $VenueProvenanceTable(
     this,
   );
+  late final $CollectionImportEventsTable collectionImportEvents =
+      $CollectionImportEventsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10621,6 +10963,7 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
     programProvenance,
     venues,
     venueProvenance,
+    collectionImportEvents,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -19217,6 +19560,212 @@ typedef $$VenueProvenanceTableProcessedTableManager =
       VenueProvenanceRow,
       PrefetchHooks Function({bool venueId})
     >;
+typedef $$CollectionImportEventsTableCreateCompanionBuilder =
+    CollectionImportEventsCompanion Function({
+      required String collectionId,
+      required String version,
+      required String archiveDigest,
+      required DateTime importedAt,
+      Value<int> rowid,
+    });
+typedef $$CollectionImportEventsTableUpdateCompanionBuilder =
+    CollectionImportEventsCompanion Function({
+      Value<String> collectionId,
+      Value<String> version,
+      Value<String> archiveDigest,
+      Value<DateTime> importedAt,
+      Value<int> rowid,
+    });
+
+class $$CollectionImportEventsTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $CollectionImportEventsTable> {
+  $$CollectionImportEventsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get collectionId => $composableBuilder(
+    column: $table.collectionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get archiveDigest => $composableBuilder(
+    column: $table.archiveDigest,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get importedAt => $composableBuilder(
+    column: $table.importedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CollectionImportEventsTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $CollectionImportEventsTable> {
+  $$CollectionImportEventsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get collectionId => $composableBuilder(
+    column: $table.collectionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get archiveDigest => $composableBuilder(
+    column: $table.archiveDigest,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get importedAt => $composableBuilder(
+    column: $table.importedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CollectionImportEventsTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $CollectionImportEventsTable> {
+  $$CollectionImportEventsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get collectionId => $composableBuilder(
+    column: $table.collectionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<String> get archiveDigest => $composableBuilder(
+    column: $table.archiveDigest,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get importedAt => $composableBuilder(
+    column: $table.importedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$CollectionImportEventsTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $CollectionImportEventsTable,
+          CollectionImportEventRow,
+          $$CollectionImportEventsTableFilterComposer,
+          $$CollectionImportEventsTableOrderingComposer,
+          $$CollectionImportEventsTableAnnotationComposer,
+          $$CollectionImportEventsTableCreateCompanionBuilder,
+          $$CollectionImportEventsTableUpdateCompanionBuilder,
+          (
+            CollectionImportEventRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $CollectionImportEventsTable,
+              CollectionImportEventRow
+            >,
+          ),
+          CollectionImportEventRow,
+          PrefetchHooks Function()
+        > {
+  $$CollectionImportEventsTableTableManager(
+    _$CompendiumDatabase db,
+    $CollectionImportEventsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CollectionImportEventsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$CollectionImportEventsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$CollectionImportEventsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> collectionId = const Value.absent(),
+                Value<String> version = const Value.absent(),
+                Value<String> archiveDigest = const Value.absent(),
+                Value<DateTime> importedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CollectionImportEventsCompanion(
+                collectionId: collectionId,
+                version: version,
+                archiveDigest: archiveDigest,
+                importedAt: importedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String collectionId,
+                required String version,
+                required String archiveDigest,
+                required DateTime importedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CollectionImportEventsCompanion.insert(
+                collectionId: collectionId,
+                version: version,
+                archiveDigest: archiveDigest,
+                importedAt: importedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CollectionImportEventsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $CollectionImportEventsTable,
+      CollectionImportEventRow,
+      $$CollectionImportEventsTableFilterComposer,
+      $$CollectionImportEventsTableOrderingComposer,
+      $$CollectionImportEventsTableAnnotationComposer,
+      $$CollectionImportEventsTableCreateCompanionBuilder,
+      $$CollectionImportEventsTableUpdateCompanionBuilder,
+      (
+        CollectionImportEventRow,
+        BaseReferences<
+          _$CompendiumDatabase,
+          $CollectionImportEventsTable,
+          CollectionImportEventRow
+        >,
+      ),
+      CollectionImportEventRow,
+      PrefetchHooks Function()
+    >;
 
 class $CompendiumDatabaseManager {
   final _$CompendiumDatabase _db;
@@ -19256,4 +19805,9 @@ class $CompendiumDatabaseManager {
       $$VenuesTableTableManager(_db, _db.venues);
   $$VenueProvenanceTableTableManager get venueProvenance =>
       $$VenueProvenanceTableTableManager(_db, _db.venueProvenance);
+  $$CollectionImportEventsTableTableManager get collectionImportEvents =>
+      $$CollectionImportEventsTableTableManager(
+        _db,
+        _db.collectionImportEvents,
+      );
 }

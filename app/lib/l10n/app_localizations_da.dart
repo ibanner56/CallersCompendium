@@ -6275,4 +6275,48 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get danceReimportTargetChanged =>
       'Denne dans blev ændret, før den kunne opdateres. Gennemgå den, og prøv igen.';
+
+  @override
+  String get publishedCollectionsTitle => 'Udgivne samlinger';
+
+  @override
+  String get importSourceLabelPublishedCollection => 'Udgiven samling';
+
+  @override
+  String get publishedCollectionsDescription =>
+      'Importér signerede, uforanderlige dansesamlinger fra Compendium Analect.';
+
+  @override
+  String get publishedCollectionsLoading => 'Indlæser udgivne samlinger…';
+
+  @override
+  String get publishedCollectionsUnavailable =>
+      'Udgivne samlinger er midlertidigt utilgængelige.';
+
+  @override
+  String get publishedCollectionImport => 'Importér samling';
+
+  @override
+  String get publishedCollectionUnsupported =>
+      'Denne samling kræver en nyere appversion.';
+
+  @override
+  String publishedCollectionImportedVersion(String version) {
+    return 'Importeret version: $version';
+  }
+
+  @override
+  String publishedCollectionHeldCount(int held, int total) {
+    return '$held af $total danse gemt';
+  }
+
+  @override
+  String publishedCollectionDetails(String id, String version, int count) {
+    return '$id · $version · $count danse';
+  }
+
+  @override
+  String publishedCollectionSupersedes(String version) {
+    return 'Erstatter version $version';
+  }
 }

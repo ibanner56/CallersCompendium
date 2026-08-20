@@ -1180,6 +1180,7 @@ class _ProvenanceLine extends StatelessWidget {
         ProvenanceSource.callersCompanion => "Caller's Companion",
         ProvenanceSource.manual => l10n.danceProvenanceSourceManual,
         ProvenanceSource.json => l10n.danceProvenanceSourceJson,
+        ProvenanceSource.publishedCollection => l10n.publishedCollectionsTitle,
       };
 }
 

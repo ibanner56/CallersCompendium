@@ -8327,5 +8327,85 @@
   "danceReimportTargetChanged": "This dance changed before it could be updated. Review it and try again.",
   "@danceReimportTargetChanged": {
     "description": "Error shown when the saved dance changed while its re-import preview was open."
+  },
+  "publishedCollectionsTitle": "Published collections",
+  "@publishedCollectionsTitle": {
+    "description": "Title for the signed published-collection catalog."
+  },
+  "importSourceLabelPublishedCollection": "Published collection",
+  "@importSourceLabelPublishedCollection": {
+    "description": "Import source label for a verified signed collection."
+  },
+  "publishedCollectionsDescription": "Import signed, immutable dance collections from Compendium Analect.",
+  "@publishedCollectionsDescription": {
+    "description": "Introductory text for the published-collection catalog."
+  },
+  "publishedCollectionsLoading": "Loading published collections…",
+  "@publishedCollectionsLoading": {
+    "description": "Loading label while the signed published-collection catalog is fetched."
+  },
+  "publishedCollectionsUnavailable": "Published collections are temporarily unavailable.",
+  "@publishedCollectionsUnavailable": {
+    "description": "Non-leaking error shown when the signed catalog cannot be fetched or verified."
+  },
+  "publishedCollectionImport": "Import collection",
+  "@publishedCollectionImport": {
+    "description": "Action that begins importing one signed published collection."
+  },
+  "publishedCollectionUnsupported": "This collection needs a newer app version.",
+  "@publishedCollectionUnsupported": {
+    "description": "Message shown for a signed collection requiring an unsupported capability."
+  },
+  "publishedCollectionImportedVersion": "Imported version: {version}",
+  "@publishedCollectionImportedVersion": {
+    "description": "Catalog metadata showing the version of a collection already imported.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.1"
+      }
+    }
+  },
+  "publishedCollectionHeldCount": "{held} of {total} dances held",
+  "@publishedCollectionHeldCount": {
+    "description": "Catalog metadata showing currently held versus published dance count.",
+    "placeholders": {
+      "held": {
+        "type": "int",
+        "example": "42"
+      },
+      "total": {
+        "type": "int",
+        "example": "50"
+      }
+    }
+  },
+  "publishedCollectionDetails": "{id} · {version} · {count} dances",
+  "@publishedCollectionDetails": {
+    "description": "Catalog metadata showing a collection identifier, version, and published dance count.",
+    "placeholders": {
+      "id": {
+        "type": "String",
+        "example": "foda-1-1"
+      },
+      "version": {
+        "type": "String",
+        "example": "1.1.0"
+      },
+      "count": {
+        "type": "int",
+        "example": "50"
+      }
+    }
+  },
+  "publishedCollectionSupersedes": "Supersedes version {version}",
+  "@publishedCollectionSupersedes": {
+    "description": "Catalog metadata showing that this collection version replaces an older version.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.0"
+      }
+    }
   }
 }

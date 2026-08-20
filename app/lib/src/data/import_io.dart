@@ -654,6 +654,11 @@ enum ImportSourceKind {
   /// collection and then The Caller's Box (issue #823). The only source whose
   /// input is neither a file nor a URL.
   titleList,
+
+  /// A signed, immutable collection from the pinned Compendium Analect
+  /// catalog. Its payload and metadata are verified before this source enters
+  /// review.
+  publishedCollection,
 }
 
 class ImportSource {

@@ -38,4 +38,11 @@ enum LinkKind { source, video, relatedDance, other }
 enum CustomFieldType { text, number, boolean, choice }
 
 /// Where an imported dance came from.
-enum ProvenanceSource { callersbox, contradb, callersCompanion, manual, json }
+enum ProvenanceSource {
+  callersbox,
+  contradb,
+  callersCompanion,
+  manual,
+  json,
+  publishedCollection,
+}
