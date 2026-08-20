@@ -782,6 +782,52 @@ class AppLocalizationsJa extends AppLocalizations {
       'プログラムマトリクスでは、連続する2つのダンス間で繰り返される動きは、拍が実際に重なる場合のみフラグが立ちます。同じ名前のフレーズ（A1、A2、B1、B2…）に含まれるだけではフラグは立ちません。オフにすると、拍自体が重ならなくても、同じフレーズ内の繰り返しがすべてフラグとして表示されます。';
 
   @override
+  String get settingsMatrixColumnsHeader => 'マトリクスの列';
+
+  @override
+  String get settingsMatrixColumnsSubtitle =>
+      'プログラミングマトリクスに表示される列を並べ替え、名前変更、または削除します。変更はすべてのプログラムに適用されます。';
+
+  @override
+  String settingsMatrixColumnsDragToReorder(String label) {
+    return 'ドラッグして$label列を並べ替え';
+  }
+
+  @override
+  String get settingsMatrixColumnsRenamedBadge => '名前変更済み';
+
+  @override
+  String get settingsMatrixColumnsRenameTooltip => '列の名前を変更';
+
+  @override
+  String get settingsMatrixColumnsRemoveTooltip => '列を削除';
+
+  @override
+  String get settingsMatrixColumnsRestoreTooltip => '列を復元';
+
+  @override
+  String get settingsMatrixColumnsRenameTitle => '列の名前を変更';
+
+  @override
+  String get settingsMatrixColumnsRenameLabel => '列ラベル';
+
+  @override
+  String get settingsMatrixColumnsResetRemoved => '削除した列を復元';
+
+  @override
+  String get settingsMatrixColumnsResetTrue => 'すべての既定値に戻す';
+
+  @override
+  String get settingsMatrixColumnsResetTrueTitle => 'すべての既定値に戻しますか？';
+
+  @override
+  String get settingsMatrixColumnsResetTrueBody =>
+      '列の並べ替え、名前変更、削除（カスタム列を含む）をすべて消去し、マトリクスを既定の列に戻します。この操作は元に戻せません。';
+
+  @override
+  String get settingsMatrixColumnsResetTrueConfirm => '既定に戻す';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'パフォーマンス';
 
   @override

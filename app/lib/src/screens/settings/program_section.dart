@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import 'matrix_column_editor_screen.dart';
 import 'settings_keys.dart';
 import '../../data/matrix_collision_mode_scope.dart';
 import '../../data/repositories_scope.dart';
@@ -111,6 +112,12 @@ class _ProgramSectionState extends State<ProgramSection> {
     await repos.settings.set(kTrackHistoryForAllCallersKey, value);
   }
 
+  Future<void> _onConfigureMatrixColumns() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const MatrixColumnEditorScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _ensureAutoSizeLoaded(context);
@@ -120,6 +127,7 @@ class _ProgramSectionState extends State<ProgramSection> {
       onManageVenues: _onManageVenues,
       matrixExactBeatCollision: MatrixCollisionModeScope.of(context),
       onMatrixExactBeatCollisionChanged: _onMatrixExactBeatCollisionChanged,
+      onConfigureMatrixColumns: _onConfigureMatrixColumns,
       autoSizePerform: _autoSizePerform ?? true,
       onAutoSizeChanged: _onAutoSizeChanged,
       requirePerformedForHistory: RequirePerformedForHistoryScope.of(context),
@@ -140,6 +148,7 @@ class _ProgramView extends StatelessWidget {
     required this.onManageVenues,
     required this.matrixExactBeatCollision,
     required this.onMatrixExactBeatCollisionChanged,
+    required this.onConfigureMatrixColumns,
     required this.autoSizePerform,
     required this.onAutoSizeChanged,
     required this.requirePerformedForHistory,
@@ -158,6 +167,9 @@ class _ProgramView extends StatelessWidget {
   /// (issue #962). On by default.
   final bool matrixExactBeatCollision;
   final ValueChanged<bool> onMatrixExactBeatCollisionChanged;
+
+  /// Opens the program-matrix column editor screen (issue #935).
+  final Future<void> Function() onConfigureMatrixColumns;
 
   final bool autoSizePerform;
   final ValueChanged<bool> onAutoSizeChanged;
@@ -198,6 +210,14 @@ class _ProgramView extends StatelessWidget {
           title: Text(l10n.settingsGeneralMatrixExactCollisionTitle),
           subtitle: Text(l10n.settingsGeneralMatrixExactCollisionSubtitle),
           isThreeLine: true,
+        ),
+        ListTile(
+          key: const ValueKey('program-configure-matrix-columns'),
+          leading: const Icon(Icons.view_column_outlined),
+          title: Text(l10n.settingsMatrixColumnsHeader),
+          subtitle: Text(l10n.settingsMatrixColumnsSubtitle),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: onConfigureMatrixColumns,
         ),
         SectionHeader(title: l10n.settingsGeneralPerformanceHeader),
         SwitchListTile(

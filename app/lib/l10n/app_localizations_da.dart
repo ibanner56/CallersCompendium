@@ -806,6 +806,52 @@ class AppLocalizationsDa extends AppLocalizations {
       'I programmeringsmatrixen markeres en gentaget figur mellem to danse i træk kun, når dens slag rent faktisk overlapper — ikke blot når den falder i samme navngivne frase (A1, A2, B1, B2…). Slå fra for at markere enhver gentagelse i samme frase, selv hvis slagene ikke overlapper.';
 
   @override
+  String get settingsMatrixColumnsHeader => 'Matrixkolonner';
+
+  @override
+  String get settingsMatrixColumnsSubtitle =>
+      'Omarranger, omdøb eller fjern kolonnerne i programmeringsmatrixen. Ændringer gælder for alle programmer.';
+
+  @override
+  String settingsMatrixColumnsDragToReorder(String label) {
+    return 'Træk for at omarrangere kolonnen $label';
+  }
+
+  @override
+  String get settingsMatrixColumnsRenamedBadge => 'Omdøbt';
+
+  @override
+  String get settingsMatrixColumnsRenameTooltip => 'Omdøb kolonne';
+
+  @override
+  String get settingsMatrixColumnsRemoveTooltip => 'Fjern kolonne';
+
+  @override
+  String get settingsMatrixColumnsRestoreTooltip => 'Gendan kolonne';
+
+  @override
+  String get settingsMatrixColumnsRenameTitle => 'Omdøb kolonne';
+
+  @override
+  String get settingsMatrixColumnsRenameLabel => 'Kolonneetiket';
+
+  @override
+  String get settingsMatrixColumnsResetRemoved => 'Gendan fjernede kolonner';
+
+  @override
+  String get settingsMatrixColumnsResetTrue => 'Gendan alle standarder';
+
+  @override
+  String get settingsMatrixColumnsResetTrueTitle => 'Gendan alle standarder?';
+
+  @override
+  String get settingsMatrixColumnsResetTrueBody =>
+      'Dette rydder alle omarrangeringer, omdøbninger og fjernelser af kolonner — inklusive eventuelle brugerdefinerede kolonner — og fører matrixen tilbage til dens standardkolonner. Dette kan ikke fortrydes.';
+
+  @override
+  String get settingsMatrixColumnsResetTrueConfirm => 'Gendan standarder';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Performance';
 
   @override

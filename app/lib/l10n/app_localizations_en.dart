@@ -801,6 +801,52 @@ class AppLocalizationsEn extends AppLocalizations {
       'In the programming matrix, only flag a repeated move between two back-to-back dances when its beats actually overlap — not just when it lands in the same named phrase (A1, A2, B1, B2…). Turn off to flag any repeat in the same phrase, even if the beats themselves don’t overlap.';
 
   @override
+  String get settingsMatrixColumnsHeader => 'Matrix columns';
+
+  @override
+  String get settingsMatrixColumnsSubtitle =>
+      'Reorder, rename, or remove the columns shown in the programming matrix. Changes apply to every program.';
+
+  @override
+  String settingsMatrixColumnsDragToReorder(String label) {
+    return 'Drag to reorder $label column';
+  }
+
+  @override
+  String get settingsMatrixColumnsRenamedBadge => 'Renamed';
+
+  @override
+  String get settingsMatrixColumnsRenameTooltip => 'Rename column';
+
+  @override
+  String get settingsMatrixColumnsRemoveTooltip => 'Remove column';
+
+  @override
+  String get settingsMatrixColumnsRestoreTooltip => 'Restore column';
+
+  @override
+  String get settingsMatrixColumnsRenameTitle => 'Rename column';
+
+  @override
+  String get settingsMatrixColumnsRenameLabel => 'Column label';
+
+  @override
+  String get settingsMatrixColumnsResetRemoved => 'Restore removed columns';
+
+  @override
+  String get settingsMatrixColumnsResetTrue => 'Restore all defaults';
+
+  @override
+  String get settingsMatrixColumnsResetTrueTitle => 'Restore all defaults?';
+
+  @override
+  String get settingsMatrixColumnsResetTrueBody =>
+      'This clears every column reorder, rename, and removal — including any custom columns — and returns the matrix to its default columns. This can\'t be undone.';
+
+  @override
+  String get settingsMatrixColumnsResetTrueConfirm => 'Restore defaults';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Performance';
 
   @override

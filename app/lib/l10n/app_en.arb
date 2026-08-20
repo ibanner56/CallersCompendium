@@ -1035,6 +1035,68 @@
   "@settingsGeneralMatrixExactCollisionSubtitle": {
     "description": "Subtitle explaining the exact-beat-overlap matrix collision toggle and what turning it off restores."
   },
+  "settingsMatrixColumnsHeader": "Matrix columns",
+  "@settingsMatrixColumnsHeader": {
+    "description": "Header for the Program settings editor that reorders, renames, and removes program-matrix columns."
+  },
+  "settingsMatrixColumnsSubtitle": "Reorder, rename, or remove the columns shown in the programming matrix. Changes apply to every program.",
+  "@settingsMatrixColumnsSubtitle": {
+    "description": "Explanatory subtitle beneath the matrix-columns editor header."
+  },
+  "settingsMatrixColumnsDragToReorder": "Drag to reorder {label} column",
+  "@settingsMatrixColumnsDragToReorder": {
+    "description": "Accessibility label on a matrix-column row's drag handle.",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "partner swing"
+      }
+    }
+  },
+  "settingsMatrixColumnsRenamedBadge": "Renamed",
+  "@settingsMatrixColumnsRenamedBadge": {
+    "description": "Small badge shown under a matrix column whose label has a user rename override."
+  },
+  "settingsMatrixColumnsRenameTooltip": "Rename column",
+  "@settingsMatrixColumnsRenameTooltip": {
+    "description": "Tooltip on the rename button for a matrix column."
+  },
+  "settingsMatrixColumnsRemoveTooltip": "Remove column",
+  "@settingsMatrixColumnsRemoveTooltip": {
+    "description": "Tooltip on the button that removes a matrix column from display."
+  },
+  "settingsMatrixColumnsRestoreTooltip": "Restore column",
+  "@settingsMatrixColumnsRestoreTooltip": {
+    "description": "Tooltip on the button that restores a previously removed matrix column."
+  },
+  "settingsMatrixColumnsRenameTitle": "Rename column",
+  "@settingsMatrixColumnsRenameTitle": {
+    "description": "Title of the dialog for renaming a matrix column."
+  },
+  "settingsMatrixColumnsRenameLabel": "Column label",
+  "@settingsMatrixColumnsRenameLabel": {
+    "description": "Label for the text field in the matrix-column rename dialog; leaving it empty restores the default label."
+  },
+  "settingsMatrixColumnsResetRemoved": "Restore removed columns",
+  "@settingsMatrixColumnsResetRemoved": {
+    "description": "Button that restores removed built-in columns and restores their default order, keeping renames and custom columns."
+  },
+  "settingsMatrixColumnsResetTrue": "Restore all defaults",
+  "@settingsMatrixColumnsResetTrue": {
+    "description": "Button that clears all matrix-column customisation back to the app defaults."
+  },
+  "settingsMatrixColumnsResetTrueTitle": "Restore all defaults?",
+  "@settingsMatrixColumnsResetTrueTitle": {
+    "description": "Title of the confirmation dialog for restoring all matrix-column defaults."
+  },
+  "settingsMatrixColumnsResetTrueBody": "This clears every column reorder, rename, and removal — including any custom columns — and returns the matrix to its default columns. This can't be undone.",
+  "@settingsMatrixColumnsResetTrueBody": {
+    "description": "Body of the confirmation dialog warning that restoring all defaults discards all customisation."
+  },
+  "settingsMatrixColumnsResetTrueConfirm": "Restore defaults",
+  "@settingsMatrixColumnsResetTrueConfirm": {
+    "description": "Confirm button in the restore-all-defaults dialog."
+  },
   "settingsGeneralPerformanceHeader": "Performance",
   "@settingsGeneralPerformanceHeader": {
     "description": "General settings section header for performance-mode display preferences."

@@ -896,6 +896,62 @@
   "@settingsGeneralMatrixExactCollisionSubtitle": {
     "x-sourceSha256": "d433fe862ddd3dc1f28811aa7a4fdf16562e53f4ad6e664bb57d18586a978c77"
   },
+  "settingsMatrixColumnsHeader": "Colonnes de la matrice",
+  "@settingsMatrixColumnsHeader": {
+    "x-sourceSha256": "97677d73528538ac01a2289458bc8a0e7a0fd937d5306437fc4b6cd98b617f94"
+  },
+  "settingsMatrixColumnsSubtitle": "Réorganisez, renommez ou supprimez les colonnes affichées dans la matrice de programmation. Les modifications s'appliquent à tous les programmes.",
+  "@settingsMatrixColumnsSubtitle": {
+    "x-sourceSha256": "a923fcb0980209c9171fbe9fee4cf1f3a2c4f704731a92a6237411706b6bd13c"
+  },
+  "settingsMatrixColumnsDragToReorder": "Faire glisser pour réorganiser la colonne {label}",
+  "@settingsMatrixColumnsDragToReorder": {
+    "x-sourceSha256": "aceb3d0609969f6a6e7761ea093479f243ff773b14b3f77dcbcea13058e0e65a"
+  },
+  "settingsMatrixColumnsRenamedBadge": "Renommée",
+  "@settingsMatrixColumnsRenamedBadge": {
+    "x-sourceSha256": "05487af3f074b4f31e4f9a1ec75044ab182f037a7978e1a8909c42103fb1297a"
+  },
+  "settingsMatrixColumnsRenameTooltip": "Renommer la colonne",
+  "@settingsMatrixColumnsRenameTooltip": {
+    "x-sourceSha256": "330f94268dd0a326453ae56726f8bc033e009ab65666d89525644a1ad26c5fb9"
+  },
+  "settingsMatrixColumnsRemoveTooltip": "Supprimer la colonne",
+  "@settingsMatrixColumnsRemoveTooltip": {
+    "x-sourceSha256": "9807a23d19fdf7b2ba48b6b66d5f996444a8ab2e758b5453e1c36e6da99a986d"
+  },
+  "settingsMatrixColumnsRestoreTooltip": "Restaurer la colonne",
+  "@settingsMatrixColumnsRestoreTooltip": {
+    "x-sourceSha256": "be8579c76881431d6c6e493b9dddd1167329f5cf41a5d8a470cea08bb4d62276"
+  },
+  "settingsMatrixColumnsRenameTitle": "Renommer la colonne",
+  "@settingsMatrixColumnsRenameTitle": {
+    "x-sourceSha256": "330f94268dd0a326453ae56726f8bc033e009ab65666d89525644a1ad26c5fb9"
+  },
+  "settingsMatrixColumnsRenameLabel": "Libellé de la colonne",
+  "@settingsMatrixColumnsRenameLabel": {
+    "x-sourceSha256": "7036f73df7286849ba4ad7069dcc66653dd0bcf15e642946563ca594794b9556"
+  },
+  "settingsMatrixColumnsResetRemoved": "Restaurer les colonnes supprimées",
+  "@settingsMatrixColumnsResetRemoved": {
+    "x-sourceSha256": "eef52a509d4369d8a2dbd005139538ccfda5c3f1c1e7768e1db5e608e866845c"
+  },
+  "settingsMatrixColumnsResetTrue": "Restaurer toutes les valeurs par défaut",
+  "@settingsMatrixColumnsResetTrue": {
+    "x-sourceSha256": "852b18700e935563af668b8706259da2dea54c90c4012f6843c22d1005033c52"
+  },
+  "settingsMatrixColumnsResetTrueTitle": "Restaurer toutes les valeurs par défaut ?",
+  "@settingsMatrixColumnsResetTrueTitle": {
+    "x-sourceSha256": "bf5c00240e2ff9d8ea793e0681b7a1813f0ec874c4e0d10c61b682599509545b"
+  },
+  "settingsMatrixColumnsResetTrueBody": "Cela efface toutes les réorganisations, renommages et suppressions de colonnes — y compris les colonnes personnalisées — et rétablit les colonnes par défaut de la matrice. Cette action est irréversible.",
+  "@settingsMatrixColumnsResetTrueBody": {
+    "x-sourceSha256": "0fe78ad2546c3d2d324e4da409b7775c33e3fb619ba1ad1fa62ff3c168ab58da"
+  },
+  "settingsMatrixColumnsResetTrueConfirm": "Restaurer les valeurs par défaut",
+  "@settingsMatrixColumnsResetTrueConfirm": {
+    "x-sourceSha256": "602f8e637002a585092d04310da6f16cba500d1940e4201239bb56e00314137a"
+  },
   "settingsGeneralPerformanceHeader": "Performance",
   "@settingsGeneralPerformanceHeader": {
     "x-sourceSha256": "442aded87a55aa8c8f7d5ff0c30228150d4b1cb8756e4be138d615ca4708fc26"

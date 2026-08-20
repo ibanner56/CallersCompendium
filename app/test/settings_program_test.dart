@@ -13,6 +13,7 @@ import 'package:compendium_app/src/data/require_performed_for_history_scope.dart
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/screens/settings/matrix_column_editor_screen.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
@@ -119,6 +120,23 @@ void main() {
       find.byKey(const ValueKey('general-track-history-for-all-callers')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('matrix-columns entry point opens the editor screen', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpProgram(tester, repos);
+
+    final entry = find.byKey(
+      const ValueKey('program-configure-matrix-columns'),
+    );
+    expect(entry, findsOneWidget);
+    await tester.ensureVisible(entry);
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MatrixColumnEditorScreen), findsOneWidget);
   });
 
   testWidgets('auto-size Perform toggle defaults on and is AT-reachable', (

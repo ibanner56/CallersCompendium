@@ -386,6 +386,36 @@ class MatrixColumnConfig {
   );
 }
 
+/// A custom (parameterized/compound) column paired with the label it currently
+/// displays — the input the "restore removed defaults" reset needs to append
+/// custom columns in label order. [label] is the column's effective header
+/// (its rename if set, else its Phase 4/5 default), resolved by the caller.
+typedef CustomColumnLabel = ({String id, String label});
+
+/// Computes the `order` list produced by the **"restore removed defaults"**
+/// reset (issue #935, decision D4): the built-in columns return to their
+/// catalog order, and every custom column is appended after them, sorted by its
+/// displayed [label] using case-insensitive Unicode code-point ordering (with
+/// the opaque id as a stable final tie-break). Renames and the custom columns
+/// themselves are preserved by the caller — this only rebuilds ordering; it
+/// never drops a column.
+///
+/// Pure and taxonomy-free so it can be unit-tested directly. [catalogOrder] is
+/// the built-in column ids in [builtInColumnCatalog] order; [customs] are the
+/// config's parameterized+compound columns with their displayed labels.
+List<String> restoreRemovedDefaultsOrder({
+  required List<String> catalogOrder,
+  required List<CustomColumnLabel> customs,
+}) {
+  final sortedCustoms = [...customs]
+    ..sort((a, b) {
+      final byLabel = a.label.toLowerCase().compareTo(b.label.toLowerCase());
+      if (byLabel != 0) return byLabel;
+      return a.id.compareTo(b.id);
+    });
+  return [...catalogOrder, for (final c in sortedCustoms) c.id];
+}
+
 List<String> _stringList(Object? raw, String field) {
   if (raw == null) return const [];
   if (raw is! List) {

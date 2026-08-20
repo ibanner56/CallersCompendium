@@ -1454,6 +1454,90 @@ abstract class AppLocalizations {
   /// **'In the programming matrix, only flag a repeated move between two back-to-back dances when its beats actually overlap — not just when it lands in the same named phrase (A1, A2, B1, B2…). Turn off to flag any repeat in the same phrase, even if the beats themselves don’t overlap.'**
   String get settingsGeneralMatrixExactCollisionSubtitle;
 
+  /// Header for the Program settings editor that reorders, renames, and removes program-matrix columns.
+  ///
+  /// In en, this message translates to:
+  /// **'Matrix columns'**
+  String get settingsMatrixColumnsHeader;
+
+  /// Explanatory subtitle beneath the matrix-columns editor header.
+  ///
+  /// In en, this message translates to:
+  /// **'Reorder, rename, or remove the columns shown in the programming matrix. Changes apply to every program.'**
+  String get settingsMatrixColumnsSubtitle;
+
+  /// Accessibility label on a matrix-column row's drag handle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder {label} column'**
+  String settingsMatrixColumnsDragToReorder(String label);
+
+  /// Small badge shown under a matrix column whose label has a user rename override.
+  ///
+  /// In en, this message translates to:
+  /// **'Renamed'**
+  String get settingsMatrixColumnsRenamedBadge;
+
+  /// Tooltip on the rename button for a matrix column.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename column'**
+  String get settingsMatrixColumnsRenameTooltip;
+
+  /// Tooltip on the button that removes a matrix column from display.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove column'**
+  String get settingsMatrixColumnsRemoveTooltip;
+
+  /// Tooltip on the button that restores a previously removed matrix column.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore column'**
+  String get settingsMatrixColumnsRestoreTooltip;
+
+  /// Title of the dialog for renaming a matrix column.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename column'**
+  String get settingsMatrixColumnsRenameTitle;
+
+  /// Label for the text field in the matrix-column rename dialog; leaving it empty restores the default label.
+  ///
+  /// In en, this message translates to:
+  /// **'Column label'**
+  String get settingsMatrixColumnsRenameLabel;
+
+  /// Button that restores removed built-in columns and restores their default order, keeping renames and custom columns.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore removed columns'**
+  String get settingsMatrixColumnsResetRemoved;
+
+  /// Button that clears all matrix-column customisation back to the app defaults.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore all defaults'**
+  String get settingsMatrixColumnsResetTrue;
+
+  /// Title of the confirmation dialog for restoring all matrix-column defaults.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore all defaults?'**
+  String get settingsMatrixColumnsResetTrueTitle;
+
+  /// Body of the confirmation dialog warning that restoring all defaults discards all customisation.
+  ///
+  /// In en, this message translates to:
+  /// **'This clears every column reorder, rename, and removal — including any custom columns — and returns the matrix to its default columns. This can\'t be undone.'**
+  String get settingsMatrixColumnsResetTrueBody;
+
+  /// Confirm button in the restore-all-defaults dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore defaults'**
+  String get settingsMatrixColumnsResetTrueConfirm;
+
   /// General settings section header for performance-mode display preferences.
   ///
   /// In en, this message translates to:
