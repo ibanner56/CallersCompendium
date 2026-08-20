@@ -226,7 +226,7 @@ Here is how to read it:
 
 In **Settings ▸ Program ▸ Matrix columns**, **Add parameterized column** lets you
 make a column for one taxonomy move with optional exact parameter values, such as
-partner swings or balance-and swings. The move must be a canonical taxonomy
+partner swings or balance-and-swings. The move must be a canonical taxonomy
 move; matching uses the figure's effective parameters, including taxonomy
 defaults and alias-pinned values. A configured parameterized column appears only
 when at least one figure matches it.

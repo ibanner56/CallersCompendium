@@ -565,28 +565,23 @@ String columnKeyForFigure(
   final canonicalId = taxonomy.resolve(figure.move)?.id;
   if (canonicalId != null) {
     final effective = taxonomy.effectiveParams(figure);
-    final parameterized =
-        [
-          for (var i = 0; i < config.parameterized.length; i++)
-            (index: i, column: config.parameterized[i]),
-        ]..sort((a, b) {
-          final bySpecificity = b.column.params.length.compareTo(
-            a.column.params.length,
-          );
-          return bySpecificity == 0
-              ? a.index.compareTo(b.index)
-              : bySpecificity;
-        });
-    for (final candidate in parameterized) {
-      final column = candidate.column;
+    ParameterizedColumn? best;
+    var bestSpecificity = -1;
+    for (final column in config.parameterized) {
       if (column.baseMove != canonicalId) continue;
       final matches = column.params.entries.every(
         (entry) =>
             effective.containsKey(entry.key) &&
             effective[entry.key] == entry.value,
       );
-      if (matches) return column.id;
+      if (!matches) continue;
+      final specificity = column.params.length;
+      if (specificity > bestSpecificity) {
+        best = column;
+        bestSpecificity = specificity;
+      }
     }
+    if (best != null) return best.id;
   }
   switch (canonicalId) {
     case swingMoveId:
