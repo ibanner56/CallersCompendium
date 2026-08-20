@@ -117,6 +117,14 @@ void main() {
   });
 
   group('#729 — promenade: annotation adds a note (no collision)', () {
+    test('explicit rotation is structured by the TCB front-end', () {
+      final f = _single('Partner promenade across clockwise', beats: 8);
+      expect(f.move, 'promenade');
+      expect(f.params['dir'], 'across');
+      expect(f.params['turn'], 'clockwise');
+      expect(f.note, isNull);
+    });
+
     test('the issue\'s own example lines', () {
       for (final who in ['Partner', 'Neighbor']) {
         final f = _single(

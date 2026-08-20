@@ -234,60 +234,86 @@ void main() {
       expect(f.params.containsKey('singleFile'), isFalse);
     });
 
+    group('promenade rotation wording', () {
+      test('on the left maps to clockwise', () {
+        final f = _parse('partners promenade on the left');
+        expect(f.params['turn'], 'clockwise');
+        expect(f.note, isNull);
+      });
+
+      test('on the right maps to counterclockwise', () {
+        final f = _parse('partners promenade on the right');
+        expect(f.params['turn'], 'counterclockwise');
+        expect(f.note, isNull);
+      });
+
+      test('spatial direction precedes on the left', () {
+        final f = _parse('partners promenade across on the left');
+        expect(f.params['dir'], 'across');
+        expect(f.params['turn'], 'clockwise');
+        expect(f.note, isNull);
+      });
+
+      test('along precedes on the right', () {
+        final f = _parse('partners promenade along on the right');
+        expect(f.params['dir'], 'along');
+        expect(f.params['turn'], 'counterclockwise');
+        expect(f.note, isNull);
+      });
+
+      test(
+        'unrelated tail remains a note without duplicating the qualifier',
+        () {
+          final f = _parse(
+            'partners promenade across on the left with hands joined',
+          );
+          expect(f.params['turn'], 'clockwise');
+          expect(f.note, 'with hands joined');
+          expect(f.note, isNot(contains('on the left')));
+        },
+      );
+    });
+
     // Issue #634 / #749 — real render: Strange New Worlds #3107, A2 (8 beats).
     // No dancer subject precedes "single file" — a true single-file promenade
     // travels the whole major set. Since taxonomy v27 (#749 Part A), a bare
     // `along` direction token immediately after `promenade` is consumed into
     // `dir:'along'`. Since taxonomy v29 (#921), the destination tail is
     // structured: "major set to new neightbors" → destination:nextNeighbors.
-    test(
-      'single file promenade along → promenade singleFile, dir:along, destination:nextNeighbors',
-      () {
-        final f = _parse(
-          'single file promenade along major set to new neightbors',
-        );
-        expect(f.isCustom, isFalse);
-        expect(f.move, 'promenade');
-        expect(f.params['who'], 'everyone');
-        expect(f.params['singleFile'], isTrue);
-        // `along` is captured as `dir` (v27 Part A change).
-        expect(f.params['dir'], 'along');
-        // Destination tail now structured (v29 #921).
-        expect(f.params['destination'], 'nextNeighbors');
-        expect(f.note, isNull);
-      },
-    );
+    test('single file promenade along → promenade singleFile, dir:along, destination:nextNeighbors', () {
+      final f = _parse(
+        'single file promenade along major set to new neightbors',
+      );
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'promenade');
+      expect(f.params['who'], 'everyone');
+      expect(f.params['singleFile'], isTrue);
+      // `along` is captured as `dir` (v27 Part A change).
+      expect(f.params['dir'], 'along');
+      // Destination tail now structured (v29 #921).
+      expect(f.params['destination'], 'nextNeighbors');
+      expect(f.note, isNull);
+    });
 
-    test(
-      'single file promenade along to new neighbors — destination:nextNeighbors',
-      () {
-        final f = _parse('single file promenade along to new neighbors');
-        expect(f.params['singleFile'], isTrue);
-        expect(f.params['dir'], 'along');
-        expect(f.params['destination'], 'nextNeighbors');
-        expect(f.note, isNull);
-      },
-    );
+    test('single file promenade along to new neighbors — destination:nextNeighbors', () {
+      final f = _parse('single file promenade along to new neighbors');
+      expect(f.params['singleFile'], isTrue);
+      expect(f.params['dir'], 'along');
+      expect(f.params['destination'], 'nextNeighbors');
+      expect(f.note, isNull);
+    });
 
-    test(
-      'single file promenade along to new neighbors at home — destination:nextNeighbors, at home consumed',
-      () {
-        final f = _parse(
-          'single file promenade along to new neighbors at home',
-        );
-        expect(f.params['destination'], 'nextNeighbors');
-        expect(f.note, isNull);
-      },
-    );
+    test('single file promenade along to new neighbors at home — destination:nextNeighbors, at home consumed', () {
+      final f = _parse('single file promenade along to new neighbors at home');
+      expect(f.params['destination'], 'nextNeighbors');
+      expect(f.note, isNull);
+    });
 
-    test(
-      'single file promenade along to the same neighbors — destination:neighbors',
-      () {
-        final f = _parse('single file promenade along to the same neighbors');
-        expect(f.params['destination'], 'neighbors');
-        expect(f.note, isNull);
-      },
-    );
+    test('single file promenade along to the same neighbors — destination:neighbors', () {
+      final f = _parse('single file promenade along to the same neighbors');
+      expect(f.params['destination'], 'neighbors');
+      expect(f.note, isNull);
+    });
 
     test(
       'single file promenade along to neighbors — destination:neighbors',
