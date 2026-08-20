@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
@@ -122,6 +123,32 @@ Program _program({
   updatedAt: _now,
 );
 
+class _EditorHost extends StatefulWidget {
+  const _EditorHost({required this.onResult});
+
+  final ValueChanged<Object?> onResult;
+
+  @override
+  State<_EditorHost> createState() => _EditorHostState();
+}
+
+class _EditorHostState extends State<_EditorHost> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final result = await Navigator.of(context).push<Object?>(
+        MaterialPageRoute<Object?>(builder: (_) => const ProgramEditorScreen()),
+      );
+      if (mounted) widget.onResult(result);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
+}
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -171,6 +198,42 @@ void main() {
     expect(saved!.title, 'Barn Dance');
     expect(saved.venue, 'The Grange');
     expect(saved.status, ProgramStatus.draft);
+  });
+
+  testWidgets('clean Back after auto-create returns the persisted id', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final autoCommit = ValueNotifier(true);
+    final results = <Object?>[];
+    addTearDown(autoCommit.dispose);
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ProgramAutoCommitScope(notifier: autoCommit, child: child!),
+        ),
+        home: _EditorHost(onResult: results.add),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Back selects me',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    final id = (await repos.programs.listAll()).single.id;
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(results, [id]);
   });
 
   testWidgets('edit updates existing metadata', (tester) async {

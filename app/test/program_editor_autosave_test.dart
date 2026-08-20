@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/editor/program_editor_draft_codec.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
@@ -68,20 +69,35 @@ Future<void> _pumpEditor(
   WidgetTester tester,
   CompendiumRepositories repos, {
   String? programId,
+  bool autoCommit = false,
+  ValueNotifier<bool>? autoCommitController,
+  void Function(String)? onSaved,
 }) async {
   await tester.binding.setSurfaceSize(const Size(800, 1400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+  final autoCommitNotifier =
+      autoCommitController ?? ValueNotifier<bool>(autoCommit);
   addTearDown(notifier.dispose);
+  if (autoCommitController == null) addTearDown(autoCommitNotifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(notifier: notifier, child: child!),
+        child: ActiveDialectScope(
+          notifier: notifier,
+          child: ProgramAutoCommitScope(
+            notifier: autoCommitNotifier,
+            child: child!,
+          ),
+        ),
       ),
-      home: ProgramEditorScreen(programId: programId, onSaved: (_) {}),
+      home: ProgramEditorScreen(
+        programId: programId,
+        onSaved: onSaved ?? (_) {},
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -446,6 +462,268 @@ void main() {
       );
       final all = await delayed.repos.programs.listAll();
       expect(all.single.title, 'To Save');
+    });
+
+    testWidgets(
+      'auto-commit creates once, migrates the draft key, and updates',
+      (tester) async {
+        final delayed = openTestRepositoriesWithDelayedPrograms();
+        String? savedId;
+        await _pumpEditor(
+          tester,
+          delayed.repos,
+          autoCommit: true,
+          onSaved: (id) => savedId = id,
+        );
+
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'First title',
+        );
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+
+        var all = await delayed.repos.programs.listAll();
+        expect(all, hasLength(1));
+        final id = all.single.id;
+        expect(
+          savedId,
+          isNull,
+          reason: 'background commits must not call onSaved',
+        );
+        expect(
+          await delayed.repos.settings.contains('program_editor_draft:new'),
+          isFalse,
+        );
+
+        delayed.programs.holdNextWrite();
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'Second title',
+        );
+        await tester.pump(const Duration(milliseconds: 600));
+        await delayed.programs.writeStarted;
+
+        expect(
+          await delayed.repos.settings.contains('program_editor_draft:$id'),
+          isTrue,
+          reason: 'the post-create draft must use the persisted id key',
+        );
+        expect(
+          await delayed.repos.settings.contains('program_editor_draft:new'),
+          isFalse,
+        );
+
+        delayed.programs.releaseWrite();
+        await tester.pumpAndSettle();
+        all = await delayed.repos.programs.listAll();
+        expect(all, hasLength(1));
+        expect(all.single.id, id);
+        expect(all.single.title, 'Second title');
+      },
+    );
+
+    testWidgets('auto-commit updates an existing program', (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p1', title: 'Before'));
+      await _pumpEditor(tester, repos, programId: 'p1', autoCommit: true);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'After',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final all = await repos.programs.listAll();
+      expect(all, hasLength(1));
+      expect(all.single.id, 'p1');
+      expect(all.single.title, 'After');
+    });
+
+    testWidgets('auto-created program exposes Delete and deletes its id', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpEditor(tester, repos, autoCommit: true);
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Delete me',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final id = (await repos.programs.listAll()).single.id;
+      final delete = find.byKey(const ValueKey('delete-program'));
+      expect(delete, findsOneWidget);
+      await tester.tap(delete);
+      await tester.pumpAndSettle();
+
+      expect(await repos.programs.listAll(), isEmpty);
+      expect(
+        (await repos.programs.getById(id, includeDeleted: true))?.deletedAt,
+        isNotNull,
+      );
+    });
+
+    testWidgets('explicit Save after auto-create updates and returns its id', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      String? savedId;
+      await _pumpEditor(
+        tester,
+        repos,
+        autoCommit: true,
+        onSaved: (id) => savedId = id,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Created',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      final id = (await repos.programs.listAll()).single.id;
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Explicit update',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      expect(savedId, id);
+      final all = await repos.programs.listAll();
+      expect(all, hasLength(1));
+      expect(all.single.id, id);
+      expect(all.single.title, 'Explicit update');
+    });
+
+    testWidgets('enabling auto-commit while dirty schedules a commit', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final autoCommit = ValueNotifier(false);
+      addTearDown(autoCommit.dispose);
+      await _pumpEditor(tester, repos, autoCommitController: autoCommit);
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Enabled later',
+      );
+      autoCommit.value = true;
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect((await repos.programs.listAll()).single.title, 'Enabled later');
+    });
+
+    testWidgets('disabling auto-commit cancels a queued commit', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final autoCommit = ValueNotifier(true);
+      addTearDown(autoCommit.dispose);
+      await _pumpEditor(tester, repos, autoCommitController: autoCommit);
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Should remain a draft',
+      );
+      autoCommit.value = false;
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      expect(await repos.programs.listAll(), isEmpty);
+    });
+
+    testWidgets('restored draft auto-commits when enabled', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        'program_editor_draft:new',
+        encodeProgramDraft(_draft(title: 'Restored')),
+      );
+      await _pumpEditor(tester, repos, autoCommit: true);
+      await tester.tap(find.byKey(const ValueKey('program-draft-restore')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect((await repos.programs.listAll()).single.title, 'Restored');
+    });
+
+    testWidgets(
+      'auto-commit errors keep edits dirty and retry on a later edit',
+      (tester) async {
+        final failing = openTestRepositoriesWithFailingPrograms();
+        await _pumpEditor(tester, failing.repos, autoCommit: true);
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'Retry me',
+        );
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+
+        expect(await failing.repos.programs.listAll(), isEmpty);
+        expect(find.text('Save *'), findsOneWidget);
+        expect(failing.programs.attempts, 1);
+
+        failing.programs.failWrites = false;
+        await tester.enterText(
+          find.byKey(const ValueKey('program-title')),
+          'Retried',
+        );
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+
+        expect(
+          (await failing.repos.programs.listAll()).single.title,
+          'Retried',
+        );
+      },
+    );
+
+    testWidgets('queued auto-commits preserve edits made during a held write', (
+      tester,
+    ) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await _pumpEditor(tester, delayed.repos, autoCommit: true);
+
+      delayed.programs.holdNextWrite();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Commit A',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await delayed.programs.writeStarted;
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Commit B',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(await delayed.repos.programs.listAll(), isEmpty);
+      expect(
+        decodeProgramDraft(
+          await delayed.repos.settings.get('program_editor_draft:new'),
+        ).title,
+        'Commit B',
+      );
+
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+
+      final all = await delayed.repos.programs.listAll();
+      expect(all, hasLength(1));
+      expect(all.single.title, 'Commit B');
+      expect(
+        await delayed.repos.settings.contains('program_editor_draft:new'),
+        isFalse,
+      );
+      expect(
+        await delayed.repos.settings.contains(
+          'program_editor_draft:${all.single.id}',
+        ),
+        isFalse,
+      );
     });
   });
 }
