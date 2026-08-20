@@ -214,6 +214,9 @@ class _CollectionShellState extends State<CollectionShell> {
       setState(() {
         _reimportTargetId = detail.dance.id;
         _reimportPreview = preview;
+        _onlinePreview = null;
+        _onlinePreviewLoading = false;
+        _onlinePreviewError = null;
         _detailMode = _DetailMode.onlinePreview;
       });
     } on DanceReimportJsonException catch (error) {
