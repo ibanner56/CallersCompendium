@@ -15,23 +15,7 @@ class CollectionImportEventRepository {
   Future<void> record(CollectionImportEvent event) async {
     assertUtc(event.importedAt, 'collectionImportEvent.importedAt');
     await _db.transaction(() async {
-      final existing =
-          await (_db.select(_db.collectionImportEvents)..where(
-                (t) =>
-                    t.collectionId.equals(event.collectionId) &
-                    t.version.equals(event.version),
-              ))
-              .getSingleOrNull();
-      if (existing != null) {
-        if (existing.archiveDigest != event.archiveDigest) {
-          throw StateError(
-            'collection import event digest conflict for '
-            '${event.collectionId}/${event.version}',
-          );
-        }
-        return;
-      }
-      await _db
+      final inserted = await _db
           .into(_db.collectionImportEvents)
           .insert(
             CollectionImportEventsCompanion.insert(
@@ -40,7 +24,23 @@ class CollectionImportEventRepository {
               archiveDigest: event.archiveDigest,
               importedAt: event.importedAt,
             ),
+            mode: InsertMode.insertOrIgnore,
           );
+      if (inserted == 0) {
+        final existing =
+            await (_db.select(_db.collectionImportEvents)..where(
+                  (t) =>
+                      t.collectionId.equals(event.collectionId) &
+                      t.version.equals(event.version),
+                ))
+                .getSingle();
+        if (existing.archiveDigest != event.archiveDigest) {
+          throw StateError(
+            'collection import event digest conflict for '
+            '${event.collectionId}/${event.version}',
+          );
+        }
+      }
     });
   }
 
