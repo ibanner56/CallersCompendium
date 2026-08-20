@@ -782,7 +782,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
         .get(kAutoCommitProgramChangesKey)
         .catchError(
           (_) => null,
-        ); // diagnostics: silent — preference read failed; preserves explicit-save behavior.
+        ); // diagnostics: silent — preference read failed; preserves
+    // explicit-save behavior.
     if (autoCommitProgramChanges is bool) {
       _autoCommitProgramChangesNotifier.value = autoCommitProgramChanges;
     }
