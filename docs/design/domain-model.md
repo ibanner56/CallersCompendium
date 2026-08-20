@@ -46,7 +46,7 @@ erDiagram
 | formation | `Formation` value | see below |
 | mixer | `bool`, default `false` | dancers change partners each time through; a flag orthogonal to `formation` — see below |
 | progression | enum | none/single/double/triple/quadruple/other |
-| phraseStructure | string, default `""` | empty = standard 4×16-beat (A1 A2 B1 B2); else e.g. `6*8*2` (TCB convention) |
+| phraseStructure | string, default `""` | empty = standard 4×16-beat (A1 A2 B1 B2); otherwise one or more ordered `phrases*bars*beatsPerBar` components, e.g. `6*8*2` or `3*8*2 + 1*4*2`; section labels derive from each component's beat boundaries |
 | figures | ordered `Figure[]` | the transcription; see design/figure-taxonomy.md |
 | hook | string | one-line "why call this" description |
 | callingNotes | text | teaching/history notes, dialect-aware free text |

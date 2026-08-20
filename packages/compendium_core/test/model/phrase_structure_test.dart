@@ -13,6 +13,11 @@ void main() {
       expect(s.labels, ['A1', 'A2', 'B1', 'B2']);
     });
 
+    test('standard structure remains a compile-time constant', () {
+      const structure = PhraseStructure.standard;
+      expect(structure, same(PhraseStructure.standard));
+    });
+
     test('whitespace-only string is standard too', () {
       expect(PhraseStructure.parse('  '), PhraseStructure.standard);
     });
@@ -29,6 +34,30 @@ void main() {
       expect(s.labels, ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
     });
 
+    test('preserves the existing 4*4*3 representation', () {
+      final s = PhraseStructure.parse('4*4*3');
+      expect(s.phraseCount, 4);
+      expect(s.beatsPerPhrase, 12);
+      expect(s.totalBeats, 48);
+      expect(s.labels, ['A1', 'A2', 'B1', 'B2']);
+    });
+
+    test('parses ordered components with uneven phrase lengths', () {
+      final s = PhraseStructure.parse('3*8*2 + 1*4*2');
+
+      expect(s.phraseCount, 4);
+      expect(s.beatsPerPhrase, isNull);
+      expect(s.totalBeats, 56);
+      expect(s.labels, ['A1', 'A2', 'B1', 'B2']);
+      expect(s.labelAtBeat(0), 'A1');
+      expect(s.labelAtBeat(16), 'A2');
+      expect(s.labelAtBeat(32), 'B1');
+      expect(s.labelAtBeat(44), 'B1');
+      expect(s.labelAtBeat(48), 'B2');
+      expect(s.labelAtBeat(55), 'B2');
+      expect(s.labelAtBeat(56), 'A1');
+    });
+
     test(
       'odd phrase counts label the trailing phrase with the next letter',
       () {
@@ -37,7 +66,19 @@ void main() {
     );
 
     test('rejects malformed input', () {
-      for (final bad in ['4*8', '4*8*2*1', 'abc', '4*x*2', '0*8*2', '-4*8*2']) {
+      for (final bad in [
+        '4*8',
+        '4*8*2*1',
+        'abc',
+        '4*x*2',
+        '0*8*2',
+        '-4*8*2',
+        '3*8*2 +',
+        '+ 3*8*2',
+        '3*8*2 + + 1*4*2',
+        '3*8*2 + 1*4',
+        '3*8*2 + 1 *4*2',
+      ]) {
         expect(
           () => PhraseStructure.parse(bad),
           throwsFormatException,
@@ -48,6 +89,7 @@ void main() {
 
     test('round-trips its raw representation', () {
       expect(PhraseStructure.parse('6*8*2').raw, '6*8*2');
+      expect(PhraseStructure.parse('3*8*2 + 1*4*2').raw, '3*8*2 + 1*4*2');
       expect(PhraseStructure.standard.raw, '');
     });
   });
@@ -96,6 +138,18 @@ void main() {
         fig(8),
       ], PhraseStructure.standard);
       expect(sections[1].label, 'A1'); // starts at beat 12, spans into A2
+    });
+
+    test('uses each composite component boundary for source labels', () {
+      final sections = deriveSections([
+        fig(16),
+        fig(16),
+        fig(16),
+        fig(8),
+      ], PhraseStructure.parse('3*8*2 + 1*4*2'));
+
+      expect(sections.map((s) => s.startBeat), [0, 16, 32, 48]);
+      expect(sections.map((s) => s.label), ['A1', 'A2', 'B1', 'B2']);
     });
 
     test('exact fit produces no issues', () {

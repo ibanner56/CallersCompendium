@@ -292,6 +292,29 @@ void main() {
       expect(pProv.sourceVersion, '2.3');
     });
 
+    test('composite phrase structures survive archive round-trips', () {
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026),
+        dances: [
+          Dance(
+            id: 'composite',
+            title: 'Composite Phrases',
+            phraseStructure: '3*8*2 + 1*4*2',
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        ],
+      );
+
+      final encoded = encodeArchive(archive);
+      final result = decodeArchive(encoded);
+
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      expect(result.warnings, isEmpty);
+      expect(result.archive.dances.single.phraseStructure.raw, '3*8*2 + 1*4*2');
+      expect(encodeArchive(result.archive), encoded);
+    });
+
     test('an empty archive round-trips', () {
       final archive = CompendiumArchive(exportedAt: DateTime.utc(2026));
       final result = decodeArchive(encodeArchive(archive));
