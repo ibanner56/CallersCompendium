@@ -780,7 +780,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // existing editors continue to require explicit Save.
     final autoCommitProgramChanges = await _appData.repositories.settings
         .get(kAutoCommitProgramChangesKey)
-        .catchError((_) => null); // diagnostics: silent — preference read failed; preserves explicit-save behavior.
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — preference read failed; preserves explicit-save behavior.
     if (autoCommitProgramChanges is bool) {
       _autoCommitProgramChangesNotifier.value = autoCommitProgramChanges;
     }
