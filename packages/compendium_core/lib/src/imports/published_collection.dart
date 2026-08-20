@@ -115,11 +115,9 @@ class PublishedCollectionArchive {
         );
       }
       final provenance = dance['provenance'];
-      if (provenance is Map &&
-          provenance['source'] == ProvenanceSource.publishedCollection.name) {
+      if (provenance != null) {
         throw _invalid(
-          'Published collection dance "$id" contains embedded published '
-          'provenance.',
+          'Published collection dance "$id" contains embedded provenance.',
         );
       }
       _rejectNonEmptyDanceEntity(dance, 'customFields', id);
@@ -273,7 +271,7 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
         CompendiumArchive(
           schemaVersion: _schemaVersion,
           exportedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
-          dances: [dance.copyWith(clearProvenance: true)],
+          dances: [dance],
           choreographers: [
             for (final authorId in dance.authorIds)
               if (_choreographersById[authorId] != null)
@@ -306,11 +304,7 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
       final name = namesById[id]?.trim();
       if (seen.add(id) && name != null && name.isNotEmpty) names.add(name);
     }
-    return StructuredDraft(
-      dance: dance.copyWith(clearProvenance: true),
-      raw: raw,
-      authorNames: names,
-    );
+    return StructuredDraft(dance: dance, raw: raw, authorNames: names);
   }
 
   static ArchiveError? _rootReadError(ArchiveReadResult result) {

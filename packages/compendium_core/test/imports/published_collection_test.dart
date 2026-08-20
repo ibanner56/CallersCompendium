@@ -111,6 +111,22 @@ void main() {
         throwsA(isA<ImportError>()),
       );
     });
+
+    test('rejects any embedded archive provenance', () {
+      final root = _root();
+      final dance =
+          Map<String, Object?>.from((root['dances'] as List).single as Map)
+            ..['provenance'] = {
+              'source': 'collection',
+              'externalId': 'foda-1/d1',
+              'sourceVersion': '1',
+            };
+      root['dances'] = [dance];
+      expect(
+        () => PublishedCollectionArchive.decode(_json(root)),
+        throwsA(isA<ImportError>()),
+      );
+    });
   });
 
   group('PublishedCollectionImporter', () {

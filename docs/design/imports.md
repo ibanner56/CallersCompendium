@@ -640,7 +640,7 @@ are accepted, while published-source records, source citations, programs,
 venues, custom-field content, and unknown top-level entities are rejected
 before planning. Published-source citation import is intentionally deferred
 until the importer can namespace source identities and transactionally undo
-source rows with their dances. Archive-embedded provenance is not trusted. The
+source rows with their dances. Archive-embedded provenance is rejected. The
 importer stamps every dance with `ProvenanceSource.publishedCollection`,
 external id `<collection-id>/<dance-id>`, the manifest version, and the
 manifest's permission and licence declaration. Collection-level consent is
