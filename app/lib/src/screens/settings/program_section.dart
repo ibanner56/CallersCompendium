@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import 'matrix_column_editor_screen.dart';
 import 'settings_keys.dart';
 import '../../data/matrix_collision_mode_scope.dart';
+import '../../data/program_auto_commit_scope.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/require_performed_for_history_scope.dart';
 import '../../data/track_history_for_all_callers_scope.dart';
@@ -36,6 +37,9 @@ class _ProgramSectionState extends State<ProgramSection> {
   bool? _autoSizePerform;
   bool _autoSizeRequested = false;
   bool _autoSizeUserSet = false;
+  bool? _autoCommitProgramChanges;
+  bool _autoCommitRequested = false;
+  bool _autoCommitUserSet = false;
 
   /// Lazily loads the persisted auto-size preference the first time this section
   /// is built (avoids reading settings in `initState`). A late read must not
@@ -65,6 +69,38 @@ class _ProgramSectionState extends State<ProgramSection> {
     });
     final repos = RepositoriesScope.of(context);
     await repos.settings.set(kAutoSizePerformKey, value);
+  }
+
+  void _ensureAutoCommitLoaded(BuildContext context) {
+    if (_autoCommitRequested) return;
+    _autoCommitRequested = true;
+    final repos = RepositoriesScope.of(context);
+    repos.settings
+        .get(kAutoCommitProgramChangesKey)
+        .then((value) {
+          if (!mounted || _autoCommitUserSet) return;
+          setState(
+            () => _autoCommitProgramChanges = value is bool ? value : false,
+          );
+        })
+        .catchError((_) {
+          // diagnostics: silent — auto-commit preference read failed; stays off.
+          if (!mounted || _autoCommitUserSet) return;
+          setState(() => _autoCommitProgramChanges = false);
+        });
+  }
+
+  Future<void> _onAutoCommitChanged(bool value) async {
+    setState(() {
+      _autoCommitUserSet = true;
+      _autoCommitProgramChanges = value;
+    });
+    final scoped = ProgramAutoCommitScope.maybeOf(context);
+    if (scoped != null) {
+      ProgramAutoCommitScope.notifierOf(context).value = value;
+    }
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kAutoCommitProgramChangesKey, value);
   }
 
   /// Opens the venue manager (browse/create/edit/delete reusable venues).
@@ -121,6 +157,8 @@ class _ProgramSectionState extends State<ProgramSection> {
   @override
   Widget build(BuildContext context) {
     _ensureAutoSizeLoaded(context);
+    final scopedAutoCommit = ProgramAutoCommitScope.maybeOf(context);
+    if (scopedAutoCommit == null) _ensureAutoCommitLoaded(context);
     return _ProgramView(
       venueEntityMode: VenueEntityModeScope.of(context),
       onVenueEntityModeChanged: _onVenueEntityModeChanged,
@@ -130,6 +168,9 @@ class _ProgramSectionState extends State<ProgramSection> {
       onConfigureMatrixColumns: _onConfigureMatrixColumns,
       autoSizePerform: _autoSizePerform ?? true,
       onAutoSizeChanged: _onAutoSizeChanged,
+      autoCommitProgramChanges:
+          scopedAutoCommit ?? _autoCommitProgramChanges ?? false,
+      onAutoCommitChanged: _onAutoCommitChanged,
       requirePerformedForHistory: RequirePerformedForHistoryScope.of(context),
       onRequirePerformedForHistoryChanged: _onRequirePerformedForHistoryChanged,
       trackHistoryForAllCallers: TrackHistoryForAllCallersScope.of(context),
@@ -151,6 +192,8 @@ class _ProgramView extends StatelessWidget {
     required this.onConfigureMatrixColumns,
     required this.autoSizePerform,
     required this.onAutoSizeChanged,
+    required this.autoCommitProgramChanges,
+    required this.onAutoCommitChanged,
     required this.requirePerformedForHistory,
     required this.onRequirePerformedForHistoryChanged,
     required this.trackHistoryForAllCallers,
@@ -173,6 +216,8 @@ class _ProgramView extends StatelessWidget {
 
   final bool autoSizePerform;
   final ValueChanged<bool> onAutoSizeChanged;
+  final bool autoCommitProgramChanges;
+  final ValueChanged<bool> onAutoCommitChanged;
 
   final bool requirePerformedForHistory;
   final ValueChanged<bool> onRequirePerformedForHistoryChanged;
@@ -209,6 +254,14 @@ class _ProgramView extends StatelessWidget {
           onChanged: onMatrixExactBeatCollisionChanged,
           title: Text(l10n.settingsGeneralMatrixExactCollisionTitle),
           subtitle: Text(l10n.settingsGeneralMatrixExactCollisionSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('settings-auto-commit-program-changes'),
+          value: autoCommitProgramChanges,
+          onChanged: onAutoCommitChanged,
+          title: Text(l10n.settingsProgramAutoCommitTitle),
+          subtitle: Text(l10n.settingsProgramAutoCommitSubtitle),
           isThreeLine: true,
         ),
         ListTile(

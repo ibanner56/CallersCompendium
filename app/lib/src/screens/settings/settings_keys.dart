@@ -30,6 +30,11 @@ const String kTrackHistoryForAllCallersKey = 'track_history_for_all_callers';
 /// (ROADMAP G.1). Defaults to `true` (on) when unset.
 const String kAutoSizePerformKey = 'auto_size_perform_cards';
 
+/// Key used to persist the opt-in "auto-commit program-editor changes"
+/// preference. Defaults to `false`, preserving explicit-save behavior until
+/// the caller enables background commits.
+const String kAutoCommitProgramChangesKey = 'auto_commit_program_changes';
+
 /// Key used to persist the in-Perform manual text scale (issue #449). Stored as
 /// a number; absent/invalid means the built-in default (`kPerformDefaultScale`),
 /// so a low-vision caller's manual size survives relaunch instead of resetting.

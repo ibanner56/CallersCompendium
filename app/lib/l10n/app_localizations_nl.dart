@@ -805,6 +805,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'In de programmeringsmatrix wordt een herhaalde figuur tussen twee opeenvolgende dansen alleen gemarkeerd als de beats daadwerkelijk overlappen — niet alleen wanneer deze in dezelfde benoemde frase (A1, A2, B1, B2…) valt. Zet uit om elke herhaling in dezelfde frase te markeren, ook als de beats zelf niet overlappen.';
 
   @override
+  String get settingsProgramAutoCommitTitle =>
+      'Programmawijzigingen automatisch opslaan';
+
+  @override
+  String get settingsProgramAutoCommitSubtitle =>
+      'Als dit is ingeschakeld, worden geldige wijzigingen tijdens het werken opgeslagen en wordt bij het verlaten van de editor niet gevraagd of je ze wilt verwerpen. Schakel dit uit om programma’s expliciet op te slaan.';
+
+  @override
   String get settingsMatrixColumnsHeader => 'Matrixkolommen';
 
   @override

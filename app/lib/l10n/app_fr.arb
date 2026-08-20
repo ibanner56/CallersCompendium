@@ -896,6 +896,14 @@
   "@settingsGeneralMatrixExactCollisionSubtitle": {
     "x-sourceSha256": "d433fe862ddd3dc1f28811aa7a4fdf16562e53f4ad6e664bb57d18586a978c77"
   },
+  "settingsProgramAutoCommitTitle": "Enregistrer automatiquement les modifications des programmes",
+  "@settingsProgramAutoCommitTitle": {
+    "x-sourceSha256": "3019f529a6978c53214d18fff6cc89260b4b7ccc1ec14cd6fd2774184e8288dc"
+  },
+  "settingsProgramAutoCommitSubtitle": "Lorsque cette option est activée, les modifications valides sont enregistrées au fil du travail et l’éditeur ne demande pas de les abandonner à la fermeture. Désactivez-la pour enregistrer les programmes explicitement.",
+  "@settingsProgramAutoCommitSubtitle": {
+    "x-sourceSha256": "dab382a008252ca4221a2fea20b8df985621a2d1c177cc36af31550940324e44"
+  },
   "settingsMatrixColumnsHeader": "Colonnes de la matrice",
   "@settingsMatrixColumnsHeader": {
     "x-sourceSha256": "97677d73528538ac01a2289458bc8a0e7a0fd937d5306437fc4b6cd98b617f94"

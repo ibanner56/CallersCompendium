@@ -820,6 +820,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Dans la matrice de programmation, ne signaler une figure répétée entre deux danses consécutives que lorsque ses temps se chevauchent réellement — pas seulement lorsqu\'elle tombe dans la même phrase nommée (A1, A2, B1, B2…). Désactivez pour signaler toute répétition dans la même phrase, même si les temps eux-mêmes ne se chevauchent pas.';
 
   @override
+  String get settingsProgramAutoCommitTitle =>
+      'Enregistrer automatiquement les modifications des programmes';
+
+  @override
+  String get settingsProgramAutoCommitSubtitle =>
+      'Lorsque cette option est activée, les modifications valides sont enregistrées au fil du travail et l’éditeur ne demande pas de les abandonner à la fermeture. Désactivez-la pour enregistrer les programmes explicitement.';
+
+  @override
   String get settingsMatrixColumnsHeader => 'Colonnes de la matrice';
 
   @override

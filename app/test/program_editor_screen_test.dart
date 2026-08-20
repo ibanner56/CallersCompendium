@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
@@ -43,6 +44,7 @@ Future<void> _pumpBuilder(
   WidgetTester tester,
   CompendiumRepositories repos, {
   String? programId,
+  bool autoCommit = false,
   void Function(String)? onSaved,
   VoidCallback? onDeleted,
   void Function(String)? onNavigateTo,
@@ -52,13 +54,21 @@ Future<void> _pumpBuilder(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
   addTearDown(notifier.dispose);
+  final autoCommitNotifier = ValueNotifier<bool>(autoCommit);
+  addTearDown(autoCommitNotifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(notifier: notifier, child: child!),
+        child: ActiveDialectScope(
+          notifier: notifier,
+          child: ProgramAutoCommitScope(
+            notifier: autoCommitNotifier,
+            child: child!,
+          ),
+        ),
       ),
       home: ProgramEditorScreen(
         programId: programId,
@@ -122,6 +132,32 @@ Program _program({
   updatedAt: _now,
 );
 
+class _EditorHost extends StatefulWidget {
+  const _EditorHost({required this.onResult});
+
+  final ValueChanged<Object?> onResult;
+
+  @override
+  State<_EditorHost> createState() => _EditorHostState();
+}
+
+class _EditorHostState extends State<_EditorHost> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final result = await Navigator.of(context).push<Object?>(
+        MaterialPageRoute<Object?>(builder: (_) => const ProgramEditorScreen()),
+      );
+      if (mounted) widget.onResult(result);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
+}
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -171,6 +207,42 @@ void main() {
     expect(saved!.title, 'Barn Dance');
     expect(saved.venue, 'The Grange');
     expect(saved.status, ProgramStatus.draft);
+  });
+
+  testWidgets('clean Back after auto-create returns the persisted id', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final autoCommit = ValueNotifier(true);
+    final results = <Object?>[];
+    addTearDown(autoCommit.dispose);
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ProgramAutoCommitScope(notifier: autoCommit, child: child!),
+        ),
+        home: _EditorHost(onResult: results.add),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Back selects me',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    final id = (await repos.programs.listAll()).single.id;
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(results, [id]);
   });
 
   testWidgets('edit updates existing metadata', (tester) async {
@@ -814,6 +886,57 @@ void main() {
       );
     },
   );
+
+  testWidgets('serializes Perform persistence behind a pending auto-commit', (
+    tester,
+  ) async {
+    installFakeWakelock();
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(
+      _dance(id: 'd1', title: 'Chase the Squirrel'),
+    );
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    final writesBeforeEditor = delayed.programs.writesStarted;
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+      size: const Size(800, 1600),
+    );
+
+    delayed.programs.holdNextWrite();
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Updated metadata',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await delayed.programs.writeStarted;
+
+    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('adjust-done')));
+    await tester.pump();
+
+    // The Perform update must be queued behind the held metadata update.
+    expect(delayed.programs.writesStarted, writesBeforeEditor + 1);
+    delayed.programs.releaseWrite();
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.title, 'Updated metadata');
+    expect(saved.slots.single.performedAt, isNotNull);
+  });
 
   testWidgets('blocks clearing a free-text slot to empty', (tester) async {
     final repos = openTestRepositories();

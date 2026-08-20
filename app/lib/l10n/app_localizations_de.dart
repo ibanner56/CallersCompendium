@@ -814,6 +814,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'In der Programmiermatrix wird eine wiederholte Figur zwischen zwei aufeinanderfolgenden Tänzen nur markiert, wenn sich ihre Takte tatsächlich überschneiden — nicht schon, wenn sie in dieselbe benannte Phrase (A1, A2, B1, B2…) fällt. Schalte dies aus, um jede Wiederholung in derselben Phrase zu markieren, selbst wenn sich die Takte selbst nicht überschneiden.';
 
   @override
+  String get settingsProgramAutoCommitTitle =>
+      'Programmänderungen automatisch speichern';
+
+  @override
+  String get settingsProgramAutoCommitSubtitle =>
+      'Wenn diese Option aktiviert ist, werden gültige Änderungen während der Arbeit gespeichert, sodass beim Verlassen des Editors nicht gefragt wird, ob sie verworfen werden sollen. Deaktiviere sie, um Programme ausdrücklich zu speichern.';
+
+  @override
   String get settingsMatrixColumnsHeader => 'Matrixspalten';
 
   @override

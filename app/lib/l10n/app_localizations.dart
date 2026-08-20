@@ -1454,6 +1454,18 @@ abstract class AppLocalizations {
   /// **'In the programming matrix, only flag a repeated move between two back-to-back dances when its beats actually overlap — not just when it lands in the same named phrase (A1, A2, B1, B2…). Turn off to flag any repeat in the same phrase, even if the beats themselves don’t overlap.'**
   String get settingsGeneralMatrixExactCollisionSubtitle;
 
+  /// Title of the Program settings toggle that commits valid program-editor changes automatically.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-save program changes'**
+  String get settingsProgramAutoCommitTitle;
+
+  /// Subtitle explaining the opt-in program-editor auto-commit preference and its effect on the discard warning.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, valid changes are saved as you work, so leaving the editor does not ask whether to discard them. Turn off to save programs explicitly.'**
+  String get settingsProgramAutoCommitSubtitle;
+
   /// Header for the Program settings editor that reorders, renames, and removes program-matrix columns.
   ///
   /// In en, this message translates to:

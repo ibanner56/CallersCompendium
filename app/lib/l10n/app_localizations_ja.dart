@@ -782,6 +782,13 @@ class AppLocalizationsJa extends AppLocalizations {
       'プログラムマトリクスでは、連続する2つのダンス間で繰り返される動きは、拍が実際に重なる場合のみフラグが立ちます。同じ名前のフレーズ（A1、A2、B1、B2…）に含まれるだけではフラグは立ちません。オフにすると、拍自体が重ならなくても、同じフレーズ内の繰り返しがすべてフラグとして表示されます。';
 
   @override
+  String get settingsProgramAutoCommitTitle => 'プログラムの変更を自動保存';
+
+  @override
+  String get settingsProgramAutoCommitSubtitle =>
+      'オンにすると、有効な変更が作業中に保存されるため、エディターを終了するときに破棄するかどうかを確認されません。オフにすると、プログラムを明示的に保存します。';
+
+  @override
   String get settingsMatrixColumnsHeader => 'マトリクスの列';
 
   @override

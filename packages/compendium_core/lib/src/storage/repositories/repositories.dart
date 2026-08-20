@@ -35,11 +35,12 @@ class CompendiumRepositories {
     SettingsRepository? settings,
     DanceRepository? dances,
     CollectionImportEventRepository? collectionImports,
+    ProgramRepository? programs,
   }) : dances = dances ?? DanceRepository(db, taxonomy),
        choreographers = ChoreographerRepository(db),
        tags = TagRepository(db),
        customFieldDefs = CustomFieldDefRepository(db),
-       programs = ProgramRepository(db),
+       programs = programs ?? ProgramRepository(db),
        publishedSources = PublishedSourceRepository(db),
        venues = VenueRepository(db),
        collectionImports =

@@ -806,6 +806,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'I programmeringsmatrixen markeres en gentaget figur mellem to danse i træk kun, når dens slag rent faktisk overlapper — ikke blot når den falder i samme navngivne frase (A1, A2, B1, B2…). Slå fra for at markere enhver gentagelse i samme frase, selv hvis slagene ikke overlapper.';
 
   @override
+  String get settingsProgramAutoCommitTitle =>
+      'Gem programændringer automatisk';
+
+  @override
+  String get settingsProgramAutoCommitSubtitle =>
+      'Når funktionen er slået til, gemmes gyldige ændringer, mens du arbejder, så du ikke bliver spurgt, om de skal kasseres, når du forlader editoren. Slå den fra for at gemme programmer eksplicit.';
+
+  @override
   String get settingsMatrixColumnsHeader => 'Matrixkolonner';
 
   @override

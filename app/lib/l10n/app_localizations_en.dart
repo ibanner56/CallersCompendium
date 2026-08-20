@@ -801,6 +801,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'In the programming matrix, only flag a repeated move between two back-to-back dances when its beats actually overlap — not just when it lands in the same named phrase (A1, A2, B1, B2…). Turn off to flag any repeat in the same phrase, even if the beats themselves don’t overlap.';
 
   @override
+  String get settingsProgramAutoCommitTitle => 'Auto-save program changes';
+
+  @override
+  String get settingsProgramAutoCommitSubtitle =>
+      'When on, valid changes are saved as you work, so leaving the editor does not ask whether to discard them. Turn off to save programs explicitly.';
+
+  @override
   String get settingsMatrixColumnsHeader => 'Matrix columns';
 
   @override

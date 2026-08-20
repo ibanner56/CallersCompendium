@@ -13,6 +13,11 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Changed
 
+- **Program editor auto-save** — enable **Settings → Program → Auto-save program
+  changes** to commit valid edits as you work and avoid the discard warning when
+  leaving the editor. It is off by default, so explicit Save remains unchanged
+  until you opt in.
+
 - **Windows release artifacts are now signed via Azure Trusted Signing** when the release
   workflow's repository variables are configured: the portable bundle binaries
   and generated installer are signed through the WUS2 endpoint. Releases retain
