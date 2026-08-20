@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -5937,34 +5936,31 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get danceReimport => 'Re-import choreography';
+  String get danceReimport => '振り付けを再インポート';
 
   @override
   String get danceReimportJson => 'Callers Compendium JSON';
 
   @override
   String get danceReimportNoResults =>
-      'No matching dances were found. Choose another source or try again later.';
+      '一致するダンスが見つかりませんでした。別のソースを選ぶか、後でもう一度お試しください。';
 
   @override
-  String get danceReimportChooseResult => 'Choose the dance to re-import';
+  String get danceReimportChooseResult => '再インポートするダンスを選択';
 
   @override
   String get danceReimportProgramArchive =>
-      'This file contains a program and cannot be used to re-import one dance.';
+      'このファイルにはプログラムが含まれているため、1つのダンスの再インポートには使用できません。';
 
   @override
-  String get danceReimportInvalidJson =>
-      'Choose a valid file containing exactly one dance.';
+  String get danceReimportInvalidJson => 'ダンスをちょうど1つ含む有効なファイルを選択してください。';
 
   @override
-  String get danceReimportSourceFailed =>
-      'Could not load a dance from that source. Please try again.';
+  String get danceReimportSourceFailed => 'そのソースからダンスを読み込めませんでした。もう一度お試しください。';
 
   @override
-  String get danceReimported => 'Choreography updated.';
+  String get danceReimported => '振り付けを更新しました。';
 
   @override
-  String get danceReimportTargetMissing =>
-      'This dance was deleted before it could be updated.';
+  String get danceReimportTargetMissing => 'このダンスは更新前に削除されました。';
 }

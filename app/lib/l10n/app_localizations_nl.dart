@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -5029,7 +5028,8 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count figuren toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
-      one: '1 figuur toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
+      one:
+          '1 figuur toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
     );
     return '$_temp0';
   }
@@ -5563,7 +5563,8 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count contrastparen onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
-      one: '1 contrastpaar onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
+      one:
+          '1 contrastpaar onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
     );
     return '$_temp0';
   }
@@ -6174,34 +6175,35 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get danceReimport => 'Re-import choreography';
+  String get danceReimport => 'Choreografie opnieuw importeren';
 
   @override
   String get danceReimportJson => 'Callers Compendium JSON';
 
   @override
   String get danceReimportNoResults =>
-      'No matching dances were found. Choose another source or try again later.';
+      'Geen overeenkomende dansen gevonden. Kies een andere bron of probeer het later opnieuw.';
 
   @override
-  String get danceReimportChooseResult => 'Choose the dance to re-import';
+  String get danceReimportChooseResult =>
+      'Kies de dans om opnieuw te importeren';
 
   @override
   String get danceReimportProgramArchive =>
-      'This file contains a program and cannot be used to re-import one dance.';
+      'Dit bestand bevat een programma en kan niet worden gebruikt om één dans opnieuw te importeren.';
 
   @override
   String get danceReimportInvalidJson =>
-      'Choose a valid file containing exactly one dance.';
+      'Kies een geldig bestand met precies één dans.';
 
   @override
   String get danceReimportSourceFailed =>
-      'Could not load a dance from that source. Please try again.';
+      'Kan geen dans uit die bron laden. Probeer het opnieuw.';
 
   @override
-  String get danceReimported => 'Choreography updated.';
+  String get danceReimported => 'Choreografie bijgewerkt.';
 
   @override
   String get danceReimportTargetMissing =>
-      'This dance was deleted before it could be updated.';
+      'Deze dans is verwijderd voordat deze kon worden bijgewerkt.';
 }
