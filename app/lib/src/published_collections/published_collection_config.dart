@@ -8,7 +8,7 @@ const String kPublishedCollectionManifestUrl =
 const String kPublishedCollectionSignatureUrl =
     'https://analect.callerscompendium.com/collections/manifest.json.sig';
 const String kPublishedCollectionPublicKey =
-    'pvJMNnRrOkSoTUEgPtiUxwDobjEpCKQ3TtELzhjsBww=';
+    'wT1TeOTv4opmfWstQXB8mFnLQEPgfQTKqR95ipYqaHk=';
 
 /// Signed collections have no product/entity cap. This is only a high
 /// defense-in-depth ceiling for an unbounded hostile response. It is intentionally
