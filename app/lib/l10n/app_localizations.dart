@@ -9677,6 +9677,12 @@ abstract class AppLocalizations {
   /// **'{held} of {total} dances held'**
   String publishedCollectionHeldCount(int held, int total);
 
+  /// Catalog metadata showing a collection identifier, version, and published dance count.
+  ///
+  /// In en, this message translates to:
+  /// **'{id} · {version} · {count} dances'**
+  String publishedCollectionDetails(String id, String version, int count);
+
   /// Catalog metadata showing that this collection version replaces an older version.
   ///
   /// In en, this message translates to:

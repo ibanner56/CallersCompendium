@@ -6356,6 +6356,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String publishedCollectionDetails(String id, String version, int count) {
+    return '$id · $version · $count dansen';
+  }
+
+  @override
   String publishedCollectionSupersedes(String version) {
     return 'Vervangt versie $version';
   }

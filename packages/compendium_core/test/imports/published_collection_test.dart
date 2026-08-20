@@ -148,6 +148,17 @@ void main() {
       );
       await events.record(result.event);
       await events.record(result.event);
+      await expectLater(
+        events.record(
+          CollectionImportEvent(
+            collectionId: result.event.collectionId,
+            version: result.event.version,
+            archiveDigest: 'sha256:other',
+            importedAt: now.add(const Duration(days: 1)),
+          ),
+        ),
+        throwsStateError,
+      );
 
       final dance = (await dances.listAll()).single;
       expect(dance.provenance?.source, ProvenanceSource.publishedCollection);

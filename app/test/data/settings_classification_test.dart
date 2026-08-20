@@ -55,6 +55,8 @@ void main() {
     // The Ed25519 public key that update manifests are verified against — the
     // root of trust for update authenticity (ADR-002 §6), not a preference.
     'kUpdateManifestPublicKey',
+    // This is a trust anchor, not a persisted user setting.
+    'kPublishedCollectionPublicKey',
   };
 
   /// Replaces comment bodies with blanks so a commented-out declaration is not

@@ -62,6 +62,9 @@ class _PublishedCollectionCatalogScreenState
       final bytes = await _service.fetchArchive(entry);
       if (!mounted) return;
       await widget.onImport(entry, bytes);
+      if (mounted) {
+        _statusByCollectionId.remove(entry.id);
+      }
     } on PublishedCollectionFetchException catch (error) {
       // diagnostics: silent — this expected typed failure is shown inline.
       if (!mounted) return;
@@ -139,7 +142,13 @@ class _PublishedCollectionCatalogScreenState
           children: [
             Text(entry.title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: AppSpacing.xs),
-            Text('${entry.id} · ${entry.version} · ${entry.danceCount} dances'),
+            Text(
+              l10n.publishedCollectionDetails(
+                entry.id,
+                entry.version,
+                entry.danceCount,
+              ),
+            ),
             if (statusFuture != null)
               FutureBuilder<PublishedCollectionStatus>(
                 future: statusFuture,

@@ -77,6 +77,6 @@ void main() {
 
     await tester.tap(find.text('Import collection'));
     await tester.pumpAndSettle();
-    expect(statusLoads, 1);
+    expect(statusLoads, 2);
   });
 }

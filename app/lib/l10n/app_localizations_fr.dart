@@ -6402,6 +6402,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String publishedCollectionDetails(String id, String version, int count) {
+    return '$id · $version · $count danses';
+  }
+
+  @override
   String publishedCollectionSupersedes(String version) {
     return 'Remplace la version $version';
   }

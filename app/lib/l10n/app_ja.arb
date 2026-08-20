@@ -6348,6 +6348,10 @@
   "@publishedCollectionHeldCount": {
     "x-sourceSha256": "e9782539b6eab4a6c801a4323da794be6567d4c71363b94c2a4ee6b57747b2b0"
   },
+  "publishedCollectionDetails": "{id} · {version} · ダンス {count}件",
+  "@publishedCollectionDetails": {
+    "x-sourceSha256": "ebb910dba0722f7dd04d3ea953aceee41ba0238f0dd1bbfb3c03a93663f7fd67"
+  },
   "publishedCollectionSupersedes": "バージョン {version} を置き換え",
   "@publishedCollectionSupersedes": {
     "x-sourceSha256": "284aeb42ae95b58f9aafc2bf463c0cfbd95a7e3a6707441badaf38a7e0e037e1"

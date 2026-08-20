@@ -8380,6 +8380,24 @@
       }
     }
   },
+  "publishedCollectionDetails": "{id} · {version} · {count} dances",
+  "@publishedCollectionDetails": {
+    "description": "Catalog metadata showing a collection identifier, version, and published dance count.",
+    "placeholders": {
+      "id": {
+        "type": "String",
+        "example": "foda-1-1"
+      },
+      "version": {
+        "type": "String",
+        "example": "1.1.0"
+      },
+      "count": {
+        "type": "int",
+        "example": "50"
+      }
+    }
+  },
   "publishedCollectionSupersedes": "Supersedes version {version}",
   "@publishedCollectionSupersedes": {
     "description": "Catalog metadata showing that this collection version replaces an older version.",

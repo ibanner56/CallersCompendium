@@ -6096,6 +6096,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String publishedCollectionDetails(String id, String version, int count) {
+    return '$id · $version · ダンス $count件';
+  }
+
+  @override
   String publishedCollectionSupersedes(String version) {
     return 'バージョン $version を置き換え';
   }

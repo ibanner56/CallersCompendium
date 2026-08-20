@@ -13,7 +13,9 @@ import 'published_collection_catalog_screen.dart';
 Future<void> pushPublishedCollectionCatalog(BuildContext context) async {
   final navigator = Navigator.of(context);
   final repositories = RepositoriesScope.of(context);
-  final eventsFuture = repositories.collectionImports.listAll();
+  Future<List<CollectionImportEvent>> eventsFuture = repositories
+      .collectionImports
+      .listAll();
   await navigator.push<void>(
     MaterialPageRoute<void>(
       builder: (_) => PublishedCollectionCatalogScreen(
@@ -61,6 +63,7 @@ Future<void> pushPublishedCollectionCatalog(BuildContext context) async {
               ),
             ),
           );
+          eventsFuture = repositories.collectionImports.listAll();
         },
       ),
     ),
