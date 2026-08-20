@@ -904,6 +904,14 @@ has to be judged in its own context.
   structure. Each recognizer requires BOTH stated facts, so a bare "mad robin" /
   "butterfly whirl" (ContraDB's own phrasing), or a butterfly whirl carrying an
   unmodeled rotation amount ("… counterclockwise 1 & 1/2"), still stays custom.
+  **Directed promenade (#771):** TCB's `clockwise`/`counterclockwise`
+  qualifiers now populate `promenade.turn` instead of causing the complete
+  line to fall to `custom`. The shared parser accepts TCB's supported
+  rotation-word forms; an unstated rotation keeps the taxonomy default.
+  ContraDB HTML's source-rendered `on the left`/`on the right` promenade tail
+  is likewise promoted from the existing figure note to `turn`, using the
+  maintainer mapping `on the left` → `clockwise` and `on the right` →
+  `counterclockwise`. Unrelated trailing text remains a note.
   **Grand right and left & flutterwheel (#295, NO taxonomy change):** both are
   compound shorthands, so neither becomes a move — `Grand right and left
   (<pass list>)` fans into one `pull_by_dancers` per stated pass (see
