@@ -63,6 +63,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kRequirePerformedForHistoryKey,
     kTrackHistoryForAllCallersKey,
     kAutoSizePerformKey,
+    kAutoCommitProgramChangesKey,
     kPerformStageModeKey,
     kPerformCanonicalViewKey,
     kSortIgnoreArticlesKey,

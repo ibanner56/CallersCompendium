@@ -121,6 +121,7 @@ final Map<String, DataClassification> settingsClassifications = {
         'programs.caller.',
   ),
   'auto_size_perform_cards': _preference,
+  'auto_commit_program_changes': _preference,
   'perform_canonical_view': _preference,
   'perform_stage_mode': _preference,
   'perform_text_scale': const DataClassification(

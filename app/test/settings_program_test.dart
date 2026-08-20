@@ -8,6 +8,7 @@ import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/matrix_collision_mode_scope.dart';
+import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
@@ -26,6 +27,7 @@ Future<ValueNotifier<bool>> _pumpProgram(
   WidgetTester tester,
   CompendiumRepositories repos, {
   bool initialExactBeatCollision = true,
+  bool initialAutoCommit = false,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 1400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -36,6 +38,7 @@ Future<ValueNotifier<bool>> _pumpProgram(
   final exactBeatCollision = ValueNotifier<bool>(initialExactBeatCollision);
   final requirePerformed = ValueNotifier<bool>(false);
   final trackAllCallers = ValueNotifier<bool>(false);
+  final autoCommit = ValueNotifier<bool>(initialAutoCommit);
   final customThemes = CustomThemesController(repos.settings);
   await customThemes.load();
   addTearDown(dialect.dispose);
@@ -44,6 +47,7 @@ Future<ValueNotifier<bool>> _pumpProgram(
   addTearDown(exactBeatCollision.dispose);
   addTearDown(requirePerformed.dispose);
   addTearDown(trackAllCallers.dispose);
+  addTearDown(autoCommit.dispose);
   addTearDown(customThemes.dispose);
 
   await tester.pumpWidget(
@@ -66,7 +70,10 @@ Future<ValueNotifier<bool>> _pumpProgram(
                     notifier: requirePerformed,
                     child: TrackHistoryForAllCallersScope(
                       notifier: trackAllCallers,
-                      child: child!,
+                      child: ProgramAutoCommitScope(
+                        notifier: autoCommit,
+                        child: child!,
+                      ),
                     ),
                   ),
                 ),
@@ -168,6 +175,56 @@ void main() {
     );
 
     handle.dispose();
+  });
+
+  testWidgets('program auto-commit toggle defaults off and is AT-reachable', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    final repos = openTestRepositories();
+
+    await _pumpProgram(tester, repos);
+
+    final toggle = find.byKey(
+      const ValueKey('settings-auto-commit-program-changes'),
+    );
+    expect(toggle, findsOneWidget);
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    expect(
+      tester.getSemantics(
+        find.descendant(of: toggle, matching: find.byType(Switch)),
+      ),
+      isSemantics(
+        hasToggledState: true,
+        isToggled: false,
+        hasTapAction: true,
+        isEnabled: true,
+      ),
+    );
+
+    handle.dispose();
+  });
+
+  testWidgets('toggling program auto-commit persists the setting', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpProgram(tester, repos);
+
+    await tester.tap(
+      find.byKey(const ValueKey('settings-auto-commit-program-changes')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<SwitchListTile>(
+            find.byKey(const ValueKey('settings-auto-commit-program-changes')),
+          )
+          .value,
+      isTrue,
+    );
+    expect(await repos.settings.get(kAutoCommitProgramChangesKey), isTrue);
   });
 
   testWidgets('toggling auto-size off persists the setting', (tester) async {

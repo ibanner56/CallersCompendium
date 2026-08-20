@@ -1035,6 +1035,14 @@
   "@settingsGeneralMatrixExactCollisionSubtitle": {
     "description": "Subtitle explaining the exact-beat-overlap matrix collision toggle and what turning it off restores."
   },
+  "settingsProgramAutoCommitTitle": "Auto-save program changes",
+  "@settingsProgramAutoCommitTitle": {
+    "description": "Title of the Program settings toggle that commits valid program-editor changes automatically."
+  },
+  "settingsProgramAutoCommitSubtitle": "When on, valid changes are saved as you work, so leaving the editor does not ask whether to discard them. Turn off to save programs explicitly.",
+  "@settingsProgramAutoCommitSubtitle": {
+    "description": "Subtitle explaining the opt-in program-editor auto-commit preference and its effect on the discard warning."
+  },
   "settingsMatrixColumnsHeader": "Matrix columns",
   "@settingsMatrixColumnsHeader": {
     "description": "Header for the Program settings editor that reorders, renames, and removes program-matrix columns."

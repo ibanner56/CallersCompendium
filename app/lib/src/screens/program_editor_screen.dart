@@ -13,6 +13,7 @@ import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/matrix_collision_mode_scope.dart';
 import '../data/program_matrix_column_config_scope.dart';
+import '../data/program_auto_commit_scope.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
@@ -133,6 +134,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   CollectionData? _data;
   bool _saving = false;
   bool _dirty = false;
+  bool _autoCommitEnabled = false;
+  int _editGeneration = 0;
 
   /// Column **ids** (`MatrixColumn.moveId`) the caller has hidden from the
   /// on-screen program matrix via each column header's hide glyph (#669).
@@ -150,6 +153,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// the working set list to [SettingsRepository] so an OS background/kill
   /// before an explicit Save no longer silently loses it.
   Timer? _autosaveTimer;
+  Timer? _autoCommitTimer;
 
   /// Chains every [_saveDraft] write onto its predecessor so writes to
   /// [_draftKey] never run concurrently. [_clearDraft] awaits the tail before
@@ -159,6 +163,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// autosave (however many are queued) can never complete *after* the
   /// removal and resurrect a just-cleared draft (issue #616).
   Future<void> _saveQueueTail = Future<void>.value();
+  Future<void> _commitQueueTail = Future<void>.value();
 
   /// Bumped by every [_clearDraft] call. A save started before the bump
   /// skips its write if it observes a newer generation, so a cleanup that
@@ -242,6 +247,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // tab immediately (the #948 lesson — see the field doc comment).
     _matrixExactBeatCollision = MatrixCollisionModeScope.of(context);
     _matrixColumnConfig = ProgramMatrixColumnConfigScope.of(context);
+    final autoCommitEnabled = ProgramAutoCommitScope.of(context);
+    if (_autoCommitEnabled != autoCommitEnabled) {
+      final wasEnabled = _autoCommitEnabled;
+      _autoCommitEnabled = autoCommitEnabled;
+      if (!autoCommitEnabled) {
+        _autoCommitTimer?.cancel();
+      } else if (!wasEnabled && _dirty) {
+        _scheduleAutoCommit();
+      }
+    }
 
     // Build the always-on enrichment from the union of every saved dialect
     // (presets + custom). Registers a rebuild dependency on the library so a
@@ -548,6 +563,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   @override
   void dispose() {
     _autosaveTimer?.cancel();
+    _autoCommitTimer?.cancel();
     _replaceSubscription();
     _pickerCounts.dispose();
     _tabController.dispose();
@@ -561,8 +577,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   void _markDirty() {
+    _editGeneration++;
     if (!_dirty) setState(() => _dirty = true);
     _scheduleAutosave();
+    _scheduleAutoCommit();
   }
 
   // --- Autosave / draft persistence (issue #436) ----------------------------
@@ -570,7 +588,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// Settings-table key for this editor's draft, keyed by program id (or `new`
   /// for an unsaved program), mirroring the dance editor's `editor_draft:<id>`.
   String get _draftKey =>
-      '$kProgramEditorDraftKeyPrefix${widget.programId ?? 'new'}';
+      '$kProgramEditorDraftKeyPrefix${_existing?.id ?? widget.programId ?? 'new'}';
 
   /// Debounces autosave writes (500 ms after the last change), matching the
   /// dance editor. No-op before the initial load completes or while restoring a
@@ -616,6 +634,83 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     return future;
   }
 
+  void _scheduleAutoCommit() {
+    if (!_autoCommitEnabled ||
+        !_loaded ||
+        _restoringDraft ||
+        !_dirty ||
+        _saving) {
+      return;
+    }
+    _autoCommitTimer?.cancel();
+    _autoCommitTimer = Timer(
+      const Duration(milliseconds: 500),
+      _enqueueAutoCommit,
+    );
+  }
+
+  void _enqueueAutoCommit() {
+    if (!_autoCommitEnabled || !_dirty || _saving || !mounted) return;
+    final generation = _editGeneration;
+    final future = _commitQueueTail.then((_) => _autoCommit(generation));
+    _commitQueueTail = future;
+  }
+
+  Future<void> _autoCommit(int generation) async {
+    if (!mounted ||
+        !_autoCommitEnabled ||
+        !_dirty ||
+        generation != _editGeneration) {
+      return;
+    }
+    final draft = _draftProgram;
+    if (draft == null) return;
+    final wasNew = _existing == null;
+    final oldDraftKey = _draftKey;
+    try {
+      final persisted = await _persistDraft(draft);
+      if (!mounted) return;
+      if (wasNew && _existing == null) {
+        _existing = persisted;
+        await _clearDraftKey(oldDraftKey);
+        if (_dirty && generation != _editGeneration) {
+          await _saveDraft();
+        }
+      }
+      if (!mounted || generation != _editGeneration) {
+        if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
+        return;
+      }
+      await _clearDraft(waitForCommits: false);
+      if (!mounted) return;
+      setState(() {
+        _existing = persisted;
+        _dirty = false;
+        _slots = persisted.slots;
+      });
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_editor_screen._autoCommit',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).programsSaveError)),
+      );
+    }
+  }
+
+  Future<void> _clearDraftKey(String key) async {
+    _autosaveTimer?.cancel();
+    final generation = ++_draftGeneration;
+    await _saveQueueTail;
+    if (!mounted) return;
+    if (generation == _draftGeneration) {
+      await _repos.settings.remove(key, permanent: true);
+    }
+  }
+
   Future<void> _writeDraft(int generation) async {
     if (!mounted) return;
     try {
@@ -636,9 +731,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// Awaits every autosave write scheduled so far (via the chained
   /// [_saveQueueTail]) before removing, so none of them can complete *after*
   /// the removal and resurrect the draft (issue #616).
-  Future<void> _clearDraft() async {
+  Future<void> _clearDraft({bool waitForCommits = true}) async {
     _autosaveTimer?.cancel();
+    _autoCommitTimer?.cancel();
+    _editGeneration++;
     _draftGeneration++;
+    if (mounted) setState(() => _dirty = false);
+    if (waitForCommits) await _commitQueueTail;
     await _saveQueueTail;
     try {
       await _repos.settings.remove(_draftKey, permanent: true);
@@ -728,6 +827,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     } finally {
       _restoringDraft = false;
     }
+    _editGeneration++;
+    _scheduleAutoCommit();
     // Resolve the linked venue's display name off the restore path. This only
     // refreshes the read-only simple-mode fallback hint; it does not re-arm
     // autosave, and the on-disk draft is left intact.
@@ -743,10 +844,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<void> _onVenueLinkChanged(String? id) async {
     setState(() {
       _venueId = id;
-      _dirty = true;
       if (id == null) _linkedVenue = null;
     });
-    _scheduleAutosave();
+    _markDirty();
     if (id == null) return;
     await _refreshLinkedVenue(id);
   }
@@ -849,8 +949,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           // primary Perform form factor), so — mirroring the wide summary
           // pane's persist callback in `programs_shell.dart` — we write the
           // change (e.g. a mark-performed stamp) straight to the repository
-          // immediately. The editor has no autosave, so without this a
-          // background/kill before an explicit Save would silently lose it.
+          // immediately. This keeps the live Perform path durable regardless of
+          // whether the optional metadata auto-commit preference is enabled.
           // A brand-new, still-unsaved program has nothing to update in the DB
           // yet, so its adjustments stay in the working slots to be saved
           // explicitly; a failed write falls back the same way rather than
@@ -860,16 +960,39 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             final slots = _renumber(updated.slots.toList());
             final existing = _existing;
             if (existing != null) {
-              final persisted = existing.copyWith(
+              // Perform may follow metadata edits that are still queued for
+              // auto-commit. Rebase the performed slots onto that working
+              // snapshot and serialize the whole update with the same queue.
+              final base = _draftProgram ?? existing;
+              final persisted = base.copyWith(
                 slots: slots,
                 updatedAt: DateTime.now().toUtc(),
               );
-              try {
+              _autoCommitTimer?.cancel();
+              _editGeneration++;
+              final operation = _commitQueueTail.then((_) async {
                 await _repos.programs.update(persisted);
+                await _clearDraft(waitForCommits: false);
+              });
+              // Keep later commits usable if this live-gig write fails, while
+              // still surfacing the failure to this callback.
+              _commitQueueTail = operation.then<void>(
+                (_) {},
+                onError: (Object error, StackTrace stackTrace) {
+                  logCaughtError(
+                    error,
+                    stackTrace,
+                    source: 'program_editor_screen._performPersist',
+                  );
+                },
+              );
+              try {
+                await operation;
                 if (!mounted) return;
                 setState(() {
                   _existing = persisted;
                   _slots = slots;
+                  _dirty = false;
                 });
                 // A mark-performed stamp changes the Collection's "called N
                 // times" badge and any mounted dance detail's calling history.
@@ -883,9 +1006,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             if (!mounted) return;
             setState(() {
               _slots = slots;
-              _dirty = true;
             });
-            _scheduleAutosave();
+            _markDirty();
           },
         ),
       ),
@@ -933,9 +1055,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ..._slots,
         ProgramSlot(id: uuidV4(), position: _slots.length, danceId: danceId),
       ]);
-      _dirty = true;
     });
-    _scheduleAutosave();
+    _markDirty();
     final l10n = AppLocalizations.of(context);
     final title = _titleForDance(danceId) ?? l10n.programsUntitledDanceFallback;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -959,9 +1080,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ..._slots,
         ProgramSlot(id: uuidV4(), position: _slots.length, text: text),
       ]);
-      _dirty = true;
     });
-    _scheduleAutosave();
+    _markDirty();
     SemanticsService.sendAnnouncement(
       View.of(context),
       AppLocalizations.of(context).programsAddedNoteAnnounce,
@@ -979,9 +1099,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           text: Program.breakSlotText,
         ),
       ]);
-      _dirty = true;
     });
-    _scheduleAutosave();
+    _markDirty();
     SemanticsService.sendAnnouncement(
       View.of(context),
       AppLocalizations.of(context).programsAddedBreakAnnounce,
@@ -995,9 +1114,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final item = list.removeAt(oldIndex);
       list.insert(newIndex.clamp(0, list.length), item);
       _slots = _renumber(list);
-      _dirty = true;
     });
-    _scheduleAutosave();
+    _markDirty();
   }
 
   void _updateSlot(int index, ProgramSlot updated) {
@@ -1005,18 +1123,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final list = [..._slots];
       list[index] = updated;
       _slots = _renumber(list);
-      _dirty = true;
     });
-    _scheduleAutosave();
+    _markDirty();
   }
 
   void _removeSlot(int index) {
     setState(() {
       final list = [..._slots]..removeAt(index);
       _slots = _renumber(list);
-      _dirty = true;
     });
-    _scheduleAutosave();
+    _markDirty();
   }
 
   /// Opens the dance editor seeded from the note-slot at [index]'s text
@@ -1089,9 +1205,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               ? s.copyWith(performedAt: now)
               : s,
       ];
-      _dirty = true;
     });
-    _scheduleAutosave();
+    _markDirty();
     SemanticsService.sendAnnouncement(
       View.of(context),
       l10n.programsMarkedAllPerformed,
@@ -1148,87 +1263,66 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
   }
 
+  Future<Program> _persistDraft(Program draft) async {
+    final now = DateTime.now().toUtc();
+    final existing = _existing;
+    final persisted = Program(
+      id: existing?.id ?? uuidV4(),
+      title: draft.title,
+      eventDate: draft.eventDate,
+      venue: draft.venue,
+      venueId: draft.venueId,
+      band: draft.band,
+      caller: draft.caller,
+      dancerLevel: draft.dancerLevel,
+      notes: draft.notes,
+      status: draft.status,
+      hideAlternates: draft.hideAlternates,
+      slots: draft.slots,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+      deletedAt: existing?.deletedAt,
+      provenance: existing?.provenance,
+    );
+    if (existing == null) {
+      await _repos.programs.create(persisted);
+    } else {
+      await _repos.programs.update(persisted);
+    }
+    return persisted;
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     final l10n = AppLocalizations.of(context);
+    _autoCommitTimer?.cancel();
+    _editGeneration++;
     setState(() => _saving = true);
-    final now = DateTime.now().toUtc();
-    final title = _titleController.text.trim();
-    final venue = _venueController.text.trim();
-    final band = _bandController.text.trim();
-    final caller = _callerController.text.trim();
-    final level = _levelController.text.trim();
-    final notes = _notesController.text.trim();
-    final slots = _renumber(_slots);
-    // The toggle is entry-mode only; both venue columns persist independently.
-    // CREATE writes both live values (each defaults to empty/null in the mode
-    // that isn't shown). UPDATE mutates ONLY the active mode's field so the
-    // inactive value survives a flip untouched (lossless guarantee).
-    final enriched = VenueEntityModeScope.of(context);
-
     try {
-      final String id;
-      if (widget.isNew) {
-        id = uuidV4();
-        await _repos.programs.create(
-          Program(
-            id: id,
-            title: title,
-            eventDate: _eventDate,
-            venue: venue.isEmpty ? null : venue,
-            venueId: _venueId,
-            band: band.isEmpty ? null : band,
-            caller: caller.isEmpty ? null : caller,
-            dancerLevel: level.isEmpty ? null : level,
-            notes: notes,
-            status: _status,
-            hideAlternates: _hideAlternates,
-            slots: slots,
-            createdAt: now,
-            updatedAt: now,
-          ),
-        );
-      } else {
-        id = _existing!.id;
-        final updated = _existing!.copyWith(
-          title: title,
-          eventDate: _eventDate,
-          clearEventDate: _eventDate == null,
-          venue: enriched ? null : (venue.isEmpty ? null : venue),
-          clearVenue: enriched ? false : venue.isEmpty,
-          venueId: enriched ? _venueId : null,
-          clearVenueId: enriched ? _venueId == null : false,
-          band: band.isEmpty ? null : band,
-          clearBand: band.isEmpty,
-          caller: caller.isEmpty ? null : caller,
-          clearCaller: caller.isEmpty,
-          dancerLevel: level.isEmpty ? null : level,
-          clearDancerLevel: level.isEmpty,
-          notes: notes,
-          status: _status,
-          hideAlternates: _hideAlternates,
-          slots: slots,
-          updatedAt: now,
-        );
-        await _repos.programs.update(updated);
-        _existing = updated;
+      await _commitQueueTail;
+      final draft = _draftProgram;
+      if (draft == null) {
+        if (mounted) setState(() => _saving = false);
+        return;
       }
+      final persisted = await _persistDraft(draft);
       // Work is committed — drop the autosave draft so it can't resurface.
       await _clearDraft();
       if (!mounted) return;
       setState(() {
         _saving = false;
         _dirty = false;
-        _slots = slots;
+        _existing = persisted;
+        _slots = persisted.slots;
       });
       final messenger = ScaffoldMessenger.of(context);
       if (widget.isEmbedded) {
         messenger.showSnackBar(
-          SnackBar(content: Text(l10n.programsSavedSnack(title))),
+          SnackBar(content: Text(l10n.programsSavedSnack(persisted.title))),
         );
-        widget.onSaved?.call(id);
+        widget.onSaved?.call(persisted.id);
       } else {
-        Navigator.of(context).pop(id);
+        Navigator.of(context).pop(persisted.id);
       }
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'program_editor_screen._save');
@@ -1276,6 +1370,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final title = source.title;
     // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
     if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
+    if (!mounted) return;
+    // Finish any already-started auto-commit before soft-deleting. Otherwise
+    // its update could land after the delete and clear the tombstone.
+    _autoCommitTimer?.cancel();
+    _editGeneration++;
+    await _commitQueueTail;
     if (!mounted) return;
     await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
     if (!mounted) return;
@@ -1334,8 +1434,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final hasPersistedProgram = _existing != null;
+    final isPersistedNewRoute = widget.isNew && hasPersistedProgram;
     return PopScope<Object?>(
-      canPop: !_dirty,
+      canPop: !_dirty && !isPersistedNewRoute,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final ok = await _confirmDiscard();
@@ -1345,13 +1447,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           // resurface, then pop.
           await _clearDraft();
           if (!context.mounted) return;
-          Navigator.of(context).pop();
+          Navigator.of(context).pop(isPersistedNewRoute ? _existing?.id : null);
         }
       },
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            widget.isNew ? l10n.programsNewProgram : l10n.programsBuildProgram,
+            hasPersistedProgram
+                ? l10n.programsBuildProgram
+                : l10n.programsNewProgram,
           ),
           bottom: TabBar(
             controller: _tabController,
@@ -1387,7 +1491,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 danceFor: _danceById,
                 choreographerFor: (id) => _data?.choreographersById[id],
               ),
-            if (!widget.isNew && _existing != null) ...[
+            if (hasPersistedProgram) ...[
               if (_slots.any((s) => s.danceId != null))
                 IconButton(
                   key: const ValueKey('mark-all-performed'),
@@ -1922,6 +2026,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   Widget _buildMetadataSection() {
     final l10n = AppLocalizations.of(context);
+    final hasPersistedProgram = _existing != null;
     final dateLabel = _eventDate == null
         ? l10n.programsNoDateSet
         : formatEventDate(
@@ -1937,7 +2042,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         TextFormField(
           key: const ValueKey('program-title'),
           controller: _titleController,
-          autofocus: widget.isNew,
+          autofocus: widget.isNew && !hasPersistedProgram,
           textInputAction: TextInputAction.next,
           onChanged: (_) => _markDirty(),
           decoration: InputDecoration(
@@ -1976,9 +2081,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   onPressed: () {
                     setState(() {
                       _eventDate = null;
-                      _dirty = true;
                     });
-                    _scheduleAutosave();
+                    _markDirty();
                   },
                 ),
             ],
@@ -2064,9 +2168,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             if (value != null) {
               setState(() {
                 _status = value;
-                _dirty = true;
               });
-              _scheduleAutosave();
+              _markDirty();
             }
           },
         ),
@@ -2080,9 +2183,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           onChanged: (value) {
             setState(() {
               _hideAlternates = value;
-              _dirty = true;
             });
-            _scheduleAutosave();
+            _markDirty();
           },
         ),
       ],
@@ -2106,9 +2208,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (picked != null) {
       setState(() {
         _eventDate = DateTime.utc(picked.year, picked.month, picked.day);
-        _dirty = true;
       });
-      _scheduleAutosave();
+      _markDirty();
     }
   }
 }

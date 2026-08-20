@@ -40,6 +40,7 @@ import 'src/data/track_history_for_all_callers_scope.dart';
 import 'src/data/seed_service.dart';
 import 'src/data/matrix_collision_mode_scope.dart';
 import 'src/data/program_matrix_column_config_scope.dart';
+import 'src/data/program_auto_commit_scope.dart';
 import 'src/data/set_list_color_coding_scope.dart';
 import 'src/data/shorthand_mappings_controller.dart';
 import 'src/data/shorthand_mappings_scope.dart';
@@ -62,6 +63,7 @@ import 'src/screens/import_review_screen.dart';
 import 'src/screens/settings_screen.dart'
     show
         kAppThemeKey,
+        kAutoCommitProgramChangesKey,
         kColourDanceThemeKey,
         kCollectionTileVisibleFieldsKey,
         kMatrixExactBeatCollisionKey,
@@ -292,6 +294,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
   );
   final ValueNotifier<bool> _confirmBeforeDeleteNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _venueEntityModeNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _autoCommitProgramChangesNotifier = ValueNotifier(
+    false,
+  );
   final ValueNotifier<bool> _colourDanceThemeNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _setListColorCodingNotifier = ValueNotifier(true);
   final ValueNotifier<bool> _matrixExactBeatCollisionNotifier = ValueNotifier(
@@ -771,6 +776,17 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (venueEntityMode is bool) {
       _venueEntityModeNotifier.value = venueEntityMode;
     }
+    // Load the opt-in program-editor auto-commit setting, off by default so
+    // existing editors continue to require explicit Save.
+    final autoCommitProgramChanges = await _appData.repositories.settings
+        .get(kAutoCommitProgramChangesKey)
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — preference read failed; preserves
+    // explicit-save behavior.
+    if (autoCommitProgramChanges is bool) {
+      _autoCommitProgramChangesNotifier.value = autoCommitProgramChanges;
+    }
     // Load the colour-tint easter egg (#307), off by default when unset. It is
     // opt-in, so a read failure or missing key stays off.
     final colourDanceTheme = await _appData.repositories.settings
@@ -913,6 +929,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _aggressiveBeatsUpdateNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
     _venueEntityModeNotifier.dispose();
+    _autoCommitProgramChangesNotifier.dispose();
     _colourDanceThemeNotifier.dispose();
     _setListColorCodingNotifier.dispose();
     _matrixExactBeatCollisionNotifier.dispose();
@@ -1314,7 +1331,12 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                                                 child: VenueEntityModeScope(
                                                                   notifier:
                                                                       _venueEntityModeNotifier,
-                                                                  child: child!,
+                                                                  child: ProgramAutoCommitScope(
+                                                                    notifier:
+                                                                        _autoCommitProgramChangesNotifier,
+                                                                    child:
+                                                                        child!,
+                                                                  ),
                                                                 ),
                                                               ),
                                                             ),

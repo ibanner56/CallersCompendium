@@ -130,6 +130,103 @@ class DelayedSettingsRepository extends SettingsRepository {
   }
 }
 
+/// A [ProgramRepository] whose next create/update can be held open, used to
+/// prove editor auto-commit generations preserve a newer edit while an older
+/// repository write is in flight.
+class DelayedProgramRepository extends ProgramRepository {
+  DelayedProgramRepository(super.db);
+
+  Completer<void>? _armedGate;
+  Completer<void>? _activeGate;
+  Completer<void>? _writeStarted;
+
+  int writesStarted = 0;
+
+  void holdNextWrite() {
+    _armedGate = Completer<void>();
+    _writeStarted = Completer<void>();
+  }
+
+  Future<void> get writeStarted =>
+      _writeStarted?.future ?? Future<void>.value();
+
+  void releaseWrite() {
+    final gate = _activeGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  Future<void> _beforeWrite() async {
+    writesStarted++;
+    final gate = _armedGate;
+    if (gate == null) return;
+    _armedGate = null;
+    _activeGate = gate;
+    _writeStarted?.complete();
+    _writeStarted = null;
+    await gate.future;
+    _activeGate = null;
+  }
+
+  @override
+  Future<void> create(Program program, {Set<String>? knownVenueIds}) async {
+    await _beforeWrite();
+    await super.create(program, knownVenueIds: knownVenueIds);
+  }
+
+  @override
+  Future<void> update(Program program, {Set<String>? knownVenueIds}) async {
+    await _beforeWrite();
+    await super.update(program, knownVenueIds: knownVenueIds);
+  }
+}
+
+class FailingProgramRepository extends ProgramRepository {
+  FailingProgramRepository(super.db);
+
+  bool failWrites = true;
+  int attempts = 0;
+
+  void _checkWrite() {
+    attempts++;
+    if (failWrites) throw const InjectedProgramFailure();
+  }
+
+  @override
+  Future<void> create(Program program, {Set<String>? knownVenueIds}) async {
+    _checkWrite();
+    await super.create(program, knownVenueIds: knownVenueIds);
+  }
+
+  @override
+  Future<void> update(Program program, {Set<String>? knownVenueIds}) async {
+    _checkWrite();
+    await super.update(program, knownVenueIds: knownVenueIds);
+  }
+}
+
+class InjectedProgramFailure implements Exception {
+  const InjectedProgramFailure();
+
+  @override
+  String toString() => 'Injected program-repository failure';
+}
+
+({CompendiumRepositories repos, FailingProgramRepository programs})
+openTestRepositoriesWithFailingPrograms() {
+  final db = openWidgetTestDatabase();
+  final programs = FailingProgramRepository(db);
+  final repos = CompendiumRepositories(db, contraTaxonomy, programs: programs);
+  return (repos: repos, programs: programs);
+}
+
+({CompendiumRepositories repos, DelayedProgramRepository programs})
+openTestRepositoriesWithDelayedPrograms() {
+  final db = openWidgetTestDatabase();
+  final programs = DelayedProgramRepository(db);
+  final repos = CompendiumRepositories(db, contraTaxonomy, programs: programs);
+  return (repos: repos, programs: programs);
+}
+
 /// Opens in-memory repositories backed by a [DelayedSettingsRepository], so
 /// tests can hold an autosave write open while exercising a concurrent draft
 /// cleanup.
