@@ -222,6 +222,27 @@ Here is how to read it:
   [Settings ▸ Program ▸ Programs](./settings.md#programs) for the
   full walkthrough.
 
+### Parameterized columns
+
+In **Settings ▸ Program ▸ Matrix columns**, **Add parameterized column** lets you
+make a column for one taxonomy move with optional exact parameter values, such as
+partner swings or balance-and swings. The move must be a canonical taxonomy
+move; matching uses the figure's effective parameters, including taxonomy
+defaults and alias-pinned values. A configured parameterized column appears only
+when at least one figure matches it.
+
+When parameterized columns overlap, the one with more exact constraints wins.
+Columns with the same number of constraints use their order in the settings
+list. A match replaces the ordinary built-in column rather than appearing in
+both columns, so the matrix and its first-figure, debut, phrase, and beat
+markers all refer to the selected parameterized column. Values are exact:
+there are no ranges, comparisons, wildcards, or multi-move matchers.
+
+Partner and neighbor swing baselines keep their legacy empty-program behavior
+when no plain swing candidate exists. Once plain candidates exist, a baseline is
+hidden only when every candidate is captured by parameterized columns; it stays
+visible when the capture is mixed.
+
 The matrix shows **presence, not counts** — whether a move is in a dance, not how
 many times, and not the order the moves come in. That is exactly what you want
 for spotting patterns across the evening: scan a move's column and you can see at
