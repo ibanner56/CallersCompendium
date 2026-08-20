@@ -144,6 +144,14 @@ class DanceListScreen extends StatefulWidget {
 /// the batch-edit affordances that don't fit as top-level action-bar icons.
 enum _BatchMoreAction { setRating, addTunes, clearTunes, editCustomField }
 
+enum _CollectionCompactAction {
+  importDances,
+  publishedCollections,
+  batchSelect,
+  manageCustomFields,
+  recentlyDeleted,
+}
+
 class _DanceListScreenState extends State<DanceListScreen> {
   /// Active dialect for search canonicalization — read from [ActiveDialectScope]
   /// in [didChangeDependencies] and updated live when the user changes it.
@@ -1758,38 +1766,42 @@ class _DanceListScreenState extends State<DanceListScreen> {
             onPressed: openSearch,
           ),
         if (_data != null) ...[
-          if (widget.onImport != null)
+          if (openSearch != null)
+            _buildCompactMoreActions(l10n)
+          else ...[
+            if (widget.onImport != null)
+              IconButton(
+                key: const ValueKey('import-dances'),
+                tooltip: l10n.importDances,
+                icon: const Icon(Icons.download_outlined),
+                onPressed: widget.onImport,
+              ),
+            if (widget.onPublishedCollections != null)
+              IconButton(
+                key: const ValueKey('published-collections'),
+                tooltip: l10n.publishedCollectionsTitle,
+                icon: const Icon(Icons.library_books_outlined),
+                onPressed: widget.onPublishedCollections,
+              ),
             IconButton(
-              key: const ValueKey('import-dances'),
-              tooltip: l10n.importDances,
-              icon: const Icon(Icons.download_outlined),
-              onPressed: widget.onImport,
+              key: const ValueKey('batch-select'),
+              tooltip: l10n.collectionSelectDancesTooltip,
+              icon: const Icon(Icons.checklist),
+              onPressed: _results.isEmpty ? null : () => _enterSelectionMode(),
             ),
-          if (widget.onPublishedCollections != null)
             IconButton(
-              key: const ValueKey('published-collections'),
-              tooltip: l10n.publishedCollectionsTitle,
-              icon: const Icon(Icons.library_books_outlined),
-              onPressed: widget.onPublishedCollections,
+              key: const ValueKey('manage-custom-fields'),
+              tooltip: l10n.collectionManageCustomFieldsTooltip,
+              icon: const Icon(Icons.list_alt_outlined),
+              onPressed: _openCustomFields,
             ),
-          IconButton(
-            key: const ValueKey('batch-select'),
-            tooltip: l10n.collectionSelectDancesTooltip,
-            icon: const Icon(Icons.checklist),
-            onPressed: _results.isEmpty ? null : () => _enterSelectionMode(),
-          ),
-          IconButton(
-            key: const ValueKey('manage-custom-fields'),
-            tooltip: l10n.collectionManageCustomFieldsTooltip,
-            icon: const Icon(Icons.list_alt_outlined),
-            onPressed: _openCustomFields,
-          ),
-          IconButton(
-            key: const ValueKey('recently-deleted'),
-            tooltip: l10n.collectionRecentlyDeletedTooltip,
-            icon: const Icon(Icons.restore_from_trash_outlined),
-            onPressed: _openRecentlyDeleted,
-          ),
+            IconButton(
+              key: const ValueKey('recently-deleted'),
+              tooltip: l10n.collectionRecentlyDeletedTooltip,
+              icon: const Icon(Icons.restore_from_trash_outlined),
+              onPressed: _openRecentlyDeleted,
+            ),
+          ],
           PopupMenuButton<CollectionSort>(
             tooltip: l10n.collectionSortByTooltip(
               collectionSortLabel(l10n, _sort),
@@ -1836,6 +1848,53 @@ class _DanceListScreenState extends State<DanceListScreen> {
             },
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _buildCompactMoreActions(AppLocalizations l10n) {
+    return PopupMenuButton<_CollectionCompactAction>(
+      key: const ValueKey('collection-more-actions'),
+      tooltip: l10n.danceMoreActions,
+      icon: const Icon(Icons.more_vert),
+      onSelected: (action) {
+        switch (action) {
+          case _CollectionCompactAction.importDances:
+            widget.onImport?.call();
+          case _CollectionCompactAction.publishedCollections:
+            widget.onPublishedCollections?.call();
+          case _CollectionCompactAction.batchSelect:
+            if (_results.isNotEmpty) _enterSelectionMode();
+          case _CollectionCompactAction.manageCustomFields:
+            _openCustomFields();
+          case _CollectionCompactAction.recentlyDeleted:
+            _openRecentlyDeleted();
+        }
+      },
+      itemBuilder: (context) => [
+        if (widget.onImport != null)
+          PopupMenuItem(
+            value: _CollectionCompactAction.importDances,
+            child: Text(l10n.importDances),
+          ),
+        if (widget.onPublishedCollections != null)
+          PopupMenuItem(
+            value: _CollectionCompactAction.publishedCollections,
+            child: Text(l10n.publishedCollectionsTitle),
+          ),
+        PopupMenuItem(
+          enabled: _results.isNotEmpty,
+          value: _CollectionCompactAction.batchSelect,
+          child: Text(l10n.collectionSelectDancesTooltip),
+        ),
+        PopupMenuItem(
+          value: _CollectionCompactAction.manageCustomFields,
+          child: Text(l10n.collectionManageCustomFieldsTooltip),
+        ),
+        PopupMenuItem(
+          value: _CollectionCompactAction.recentlyDeleted,
+          child: Text(l10n.collectionRecentlyDeletedTooltip),
+        ),
       ],
     );
   }

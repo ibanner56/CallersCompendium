@@ -25,6 +25,8 @@ import 'recently_deleted_screen.dart';
 /// The program-import sources offered by the Programs list "Import" menu.
 enum _ProgramImportSource { plaintext, contraDb }
 
+enum _ProgramsCompactAction { importPlaintext, importContraDb, recentlyDeleted }
+
 /// Programs list (`docs/design/ux.md` §4): non-deleted programs with title,
 /// event date, venue, slot count and a status chip (icon+text). Sort by title /
 /// recently-updated / event date; swipe-to-delete with undo; empty state that
@@ -474,41 +476,45 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
               onPressed: openSearch,
             ),
           if (_programs != null) ...[
-            PopupMenuButton<_ProgramImportSource>(
-              key: const ValueKey('programs-import'),
-              tooltip: l10n.importProgramTooltip,
-              icon: const Icon(Icons.file_download_outlined),
-              onSelected: (source) => switch (source) {
-                _ProgramImportSource.plaintext => _openPlaintextImport(),
-                _ProgramImportSource.contraDb => _openContraDbImport(),
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  key: const ValueKey('programs-import-plaintext'),
-                  value: _ProgramImportSource.plaintext,
-                  child: ListTile(
-                    leading: const Icon(Icons.playlist_add),
-                    title: Text(l10n.importFromTitleList),
-                    contentPadding: EdgeInsets.zero,
+            if (openSearch != null)
+              _buildCompactMoreActions(l10n)
+            else ...[
+              PopupMenuButton<_ProgramImportSource>(
+                key: const ValueKey('programs-import'),
+                tooltip: l10n.importProgramTooltip,
+                icon: const Icon(Icons.file_download_outlined),
+                onSelected: (source) => switch (source) {
+                  _ProgramImportSource.plaintext => _openPlaintextImport(),
+                  _ProgramImportSource.contraDb => _openContraDbImport(),
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    key: const ValueKey('programs-import-plaintext'),
+                    value: _ProgramImportSource.plaintext,
+                    child: ListTile(
+                      leading: const Icon(Icons.playlist_add),
+                      title: Text(l10n.importFromTitleList),
+                      contentPadding: EdgeInsets.zero,
+                    ),
                   ),
-                ),
-                PopupMenuItem(
-                  key: const ValueKey('programs-import-contradb'),
-                  value: _ProgramImportSource.contraDb,
-                  child: ListTile(
-                    leading: const Icon(Icons.cloud_download_outlined),
-                    title: Text(l10n.importFromContraDb),
-                    contentPadding: EdgeInsets.zero,
+                  PopupMenuItem(
+                    key: const ValueKey('programs-import-contradb'),
+                    value: _ProgramImportSource.contraDb,
+                    child: ListTile(
+                      leading: const Icon(Icons.cloud_download_outlined),
+                      title: Text(l10n.importFromContraDb),
+                      contentPadding: EdgeInsets.zero,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            IconButton(
-              key: const ValueKey('programs-recently-deleted'),
-              tooltip: l10n.collectionRecentlyDeletedTooltip,
-              icon: const Icon(Icons.restore_from_trash_outlined),
-              onPressed: _openRecentlyDeleted,
-            ),
+                ],
+              ),
+              IconButton(
+                key: const ValueKey('programs-recently-deleted'),
+                tooltip: l10n.collectionRecentlyDeletedTooltip,
+                icon: const Icon(Icons.restore_from_trash_outlined),
+                onPressed: _openRecentlyDeleted,
+              ),
+            ],
             PopupMenuButton<ProgramSort>(
               key: const ValueKey('programs-sort'),
               tooltip: l10n.programsSortByTooltip(
@@ -565,6 +571,38 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
               icon: const Icon(Icons.add),
               label: Text(l10n.programsNewProgram),
             ),
+    );
+  }
+
+  Widget _buildCompactMoreActions(AppLocalizations l10n) {
+    return PopupMenuButton<_ProgramsCompactAction>(
+      key: const ValueKey('programs-more-actions'),
+      tooltip: l10n.danceMoreActions,
+      icon: const Icon(Icons.more_vert),
+      onSelected: (action) {
+        switch (action) {
+          case _ProgramsCompactAction.importPlaintext:
+            _openPlaintextImport();
+          case _ProgramsCompactAction.importContraDb:
+            _openContraDbImport();
+          case _ProgramsCompactAction.recentlyDeleted:
+            _openRecentlyDeleted();
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: _ProgramsCompactAction.importPlaintext,
+          child: Text(l10n.importFromTitleList),
+        ),
+        PopupMenuItem(
+          value: _ProgramsCompactAction.importContraDb,
+          child: Text(l10n.importFromContraDb),
+        ),
+        PopupMenuItem(
+          value: _ProgramsCompactAction.recentlyDeleted,
+          child: Text(l10n.collectionRecentlyDeletedTooltip),
+        ),
+      ],
     );
   }
 
