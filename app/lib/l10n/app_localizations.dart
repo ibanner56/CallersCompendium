@@ -2702,6 +2702,30 @@ abstract class AppLocalizations {
   /// **'Search titles, authors, figures, notes…'**
   String get collectionSearchFieldHint;
 
+  /// Label for the local collection search scope selector.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in'**
+  String get collectionSearchScopeLabel;
+
+  /// Local collection search scope covering all indexed fields.
+  ///
+  /// In en, this message translates to:
+  /// **'All fields'**
+  String get collectionSearchScopeOmni;
+
+  /// Local collection search scope restricted to dance titles.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get collectionSearchScopeTitle;
+
+  /// Local collection search scope restricted to canonical figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure'**
+  String get collectionSearchScopeFigure;
+
   /// Tooltip for the button that clears the search text and all active filters.
   ///
   /// In en, this message translates to:

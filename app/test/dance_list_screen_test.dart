@@ -428,13 +428,13 @@ void main() {
           kLastUsedCollectionSortDirectionKey,
           SortDirection.ascending.name,
         );
-        await repos.dances.create(_dance(id: 'd1', title: 'Zesty Reel'));
-        await repos.dances.create(_dance(id: 'd2', title: 'Autumn Waltz'));
+        await repos.dances.create(_dance(id: 'd1', title: 'Alpha Reel'));
+        await repos.dances.create(_dance(id: 'd2', title: 'Beta Waltz'));
         await _pumpScreen(tester, repos);
         await tester.pumpAndSettle();
 
         // A bare full-text query makes "Best match" (relevance) available.
-        await _search(tester, 'reel');
+        await _search(tester, 'Al');
         await tester.tap(find.byIcon(Icons.sort));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Best match').last);
@@ -721,6 +721,32 @@ void main() {
     expect(find.text('1 dance'), findsOneWidget);
   });
 
+  testWidgets('title scope excludes figure-only matches', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'title', title: 'Swing Title'));
+    await repos.dances.create(
+      _dance(
+        id: 'figure',
+        title: 'Plain Title',
+        figures: [
+          Figure(move: 'swing', params: const {'beats': 16}),
+        ],
+      ),
+    );
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Title').last);
+    await tester.pumpAndSettle();
+    await _search(tester, 'swing');
+
+    expect(find.text('Swing Title'), findsOneWidget);
+    expect(find.text('Plain Title'), findsNothing);
+  });
+
   testWidgets('a facet chip filters the list', (tester) async {
     final repos = openTestRepositories();
     // ignore: unused_result
@@ -838,7 +864,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha Chase'));
 
     await _pumpScreen(tester, repos);
     await tester.pumpAndSettle();
@@ -850,8 +876,8 @@ void main() {
     await tester.tapAt(const Offset(10, 10)); // dismiss the menu
     await tester.pumpAndSettle();
 
-    // Bare full-text query → relevance offered.
-    await _search(tester, 'chase');
+    // A short bare full-text query uses the prefix index and keeps relevance.
+    await _search(tester, 'Al');
     await tester.tap(find.byIcon(Icons.sort));
     await tester.pumpAndSettle();
     expect(find.text('Best match'), findsOneWidget);

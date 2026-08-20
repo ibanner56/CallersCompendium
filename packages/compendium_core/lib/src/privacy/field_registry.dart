@@ -412,6 +412,14 @@ final Map<String, DataClassification> fieldClassifications = {
   'dance_fts.figures_text': _derivedIndex,
   'dance_fts.custom_values': _derivedIndex,
   'dance_fts.sources': _derivedIndex,
+  'dance_substring_fts.dance_id': _derivedIndex,
+  'dance_substring_fts.title': _derivedIndex,
+  'dance_substring_fts.authors': _derivedIndex,
+  'dance_substring_fts.hook': _derivedIndex,
+  'dance_substring_fts.notes': _derivedIndex,
+  'dance_substring_fts.figures_text': _derivedIndex,
+  'dance_substring_fts.custom_values': _derivedIndex,
+  'dance_substring_fts.sources': _derivedIndex,
 
   // ------------------------------------------------------------ provenance --
   'provenance.dance_id': _key,

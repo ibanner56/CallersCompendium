@@ -216,13 +216,16 @@ DanceFilter buildCollectionFilter({
   required String ftsText,
   required FacetSelections facets,
   required List<CustomFieldDef> defs,
+  FullTextScope scope = FullTextScope.omni,
   ByPhraseSelections? byPhrase,
   BuilderGroup? advancedRoot,
 }) {
   final branches = <DanceFilter>[];
 
   final text = ftsText.trim();
-  if (text.isNotEmpty) branches.add(FullTextFilter(text));
+  if (text.isNotEmpty) {
+    branches.add(FullTextFilter(text, scope: scope));
+  }
 
   void addOr(List<DanceFilter> leaves) {
     final g = orGroup(leaves);
@@ -320,10 +323,13 @@ DanceFilter buildCollectionFilter({
 bool isBareFullText({
   required String ftsText,
   required FacetSelections facets,
+  FullTextScope scope = FullTextScope.omni,
   ByPhraseSelections? byPhrase,
   BuilderGroup? advancedRoot,
 }) =>
     ftsText.trim().isNotEmpty &&
+    scope == FullTextScope.omni &&
+    ftsQueryScalarLength(ftsText) <= 2 &&
     facets.isEmpty &&
     (byPhrase == null || byPhrase.isEmpty) &&
     (advancedRoot == null || advancedRoot.toFilter() == null);

@@ -20,7 +20,18 @@ part 'database.g.dart';
 const String createDanceFtsSql = '''
 CREATE VIRTUAL TABLE dance_fts USING fts5(
   dance_id UNINDEXED,
-  title, authors, hook, notes, figures_text, custom_values, sources
+  title, authors, hook, notes, figures_text, custom_values, sources,
+  tokenize = 'unicode61 remove_diacritics 1',
+  prefix = '1 2'
+)
+''';
+
+/// FTS5 trigram index for literal 3+ character substring search.
+const String createDanceSubstringFtsSql = '''
+CREATE VIRTUAL TABLE dance_substring_fts USING fts5(
+  dance_id UNINDEXED,
+  title, authors, hook, notes, figures_text, custom_values, sources,
+  tokenize = 'trigram'
 )
 ''';
 
@@ -213,7 +224,7 @@ const String promenadeTurnCircleWordingCanonicalRebuildDoneKey =
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 27;
+const int kCompendiumSchemaVersion = 28;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -333,6 +344,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     onCreate: (m) async {
       await m.createAll();
       await customStatement(createDanceFtsSql);
+      await customStatement(createDanceSubstringFtsSql);
       for (final sql in searchIndexSql) {
         await customStatement(sql);
       }
@@ -658,17 +670,51 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       if (from < 27) {
         await m.createTable(collectionImportEvents);
       }
+      if (from < 28) {
+        // Issue #1005: add short-prefix and literal-substring search indexes.
+        // Recreate dance_fts so its prefix configuration is present on upgraded
+        // databases; the durable marker below makes the rebuild crash-safe.
+        await customStatement('DROP TABLE IF EXISTS dance_fts');
+        await customStatement('DROP TABLE IF EXISTS dance_substring_fts');
+        await customStatement(createDanceFtsSql);
+        await customStatement(createDanceSubstringFtsSql);
+        await customStatement(
+          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+          [derivedRebuildRequiredKey, 'true'],
+        );
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
       if (details.wasCreated) return;
-      // Defensive: guards a hand-rolled DB (e.g. restored from an
-      // external backup) that predates the FTS5 table.
+      // Older databases are repaired by the v28 migration itself. Waiting
+      // until the open is already at head avoids scheduling a duplicate
+      // rebuild marker while historical migration tests and real upgrades are
+      // still traversing the old schema.
+      if (details.versionBefore != kCompendiumSchemaVersion) return;
+      // Defensive: guards a hand-rolled DB (e.g. restored from an external
+      // backup) that predates either raw FTS5 table. Creating a missing index
+      // alone would silently return incomplete results, so schedule the same
+      // durable rebuild used by the schema migration.
       final tables = await customSelect(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='dance_fts'",
+        "SELECT name FROM sqlite_master WHERE type='table' "
+        "AND name IN ('dance_fts', 'dance_substring_fts')",
       ).get();
-      if (tables.isEmpty) {
+      final present = {for (final row in tables) row.read<String>('name')};
+      var repaired = false;
+      if (!present.contains('dance_fts')) {
         await customStatement(createDanceFtsSql);
+        repaired = true;
+      }
+      if (!present.contains('dance_substring_fts')) {
+        await customStatement(createDanceSubstringFtsSql);
+        repaired = true;
+      }
+      if (repaired) {
+        await customStatement(
+          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+          [derivedRebuildRequiredKey, 'true'],
+        );
       }
     },
   );

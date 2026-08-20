@@ -1470,6 +1470,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionSearchFieldHint => 'タイトル、作者、フィギュア、ノートを検索…';
 
   @override
+  String get collectionSearchScopeLabel => '検索対象';
+
+  @override
+  String get collectionSearchScopeOmni => 'すべてのフィールド';
+
+  @override
+  String get collectionSearchScopeTitle => 'タイトル';
+
+  @override
+  String get collectionSearchScopeFigure => 'フィギュア';
+
+  @override
   String get collectionClearSearchTooltip => '検索とフィルターをクリア';
 
   @override

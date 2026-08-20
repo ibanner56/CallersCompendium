@@ -63,10 +63,15 @@ void main() {
       final c = compiler.compile(const FullTextFilter('swing'));
       expect(
         pred(const FullTextFilter('swing')),
-        'id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?)',
+        '(id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?) '
+        'OR id IN (SELECT dance_id FROM dance_substring_fts '
+        'WHERE dance_substring_fts MATCH ?) '
+        'OR id IN (SELECT dance_id FROM dance_substring_fts '
+        'WHERE title MATCH ?))',
       );
-      // The bind is the sanitized FTS5 phrase, not the raw term.
-      expect(c.binds, ['"swing"']);
+      // The legacy token branch preserves existing Omni semantics while the
+      // trigram branches provide literal substring matching.
+      expect(c.binds, ['"swing"', '"swing"', '"swing"']);
     });
 
     test('Author', () {
@@ -643,7 +648,7 @@ void main() {
         Dialect.larksRobins,
       ).compile(const FullTextFilter('robins allemande'));
       // Canonicalized to role tokens, then each token sanitized to a phrase.
-      expect(c.binds.single, '"role2s" "allemande"');
+      expect(c.binds.first, '"role2s" "allemande"');
     });
 
     test('role-valued figure params are canonicalized', () {

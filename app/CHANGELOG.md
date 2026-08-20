@@ -13,6 +13,11 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Changed
 
+- **Collection search** — search can now be scoped to **All fields**, **Title**,
+  or **Figure**. Short prefixes and longer literal substrings, including
+  punctuation-spanning title text, use derived local indexes; online search
+  remains title-only.
+
 - **Program editor auto-save** — enable **Settings → Program → Auto-save program
   changes** to commit valid edits as you work and avoid the discard warning when
   leaving the editor. It is off by default, so explicit Save remains unchanged

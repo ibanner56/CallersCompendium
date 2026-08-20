@@ -427,6 +427,11 @@ can still fire.
   version, with the archive digest and import timestamp. The row is
   idempotent and remains after imported dances are deleted; no existing data is
   back-filled and no derived rebuild is required.
+- v28 (issue #1005): scoped Collection text search. Recreates `dance_fts` with
+  short-token prefix indexes and adds the raw `dance_substring_fts` trigram
+  index. Existing dances are repopulated through the durable derived-rebuild
+  marker before reads proceed; both indexes remain derived and are maintained
+  by every dance write, delete, archive replacement, and repair path.
 
 ## The delete model
 

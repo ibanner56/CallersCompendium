@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
@@ -185,6 +186,82 @@ void main() {
       );
       expect(await dances.search(const FullTextFilter('Petronella')), ['a']);
     });
+
+    test(
+      'scopes title and figure matching without the role collision',
+      () async {
+        await dances.create(
+          _dance(
+            id: 'hey-man',
+            title: 'Hey Man {alternating version}',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'figure-only',
+            title: 'Plain',
+            figures: [
+              Figure(move: 'swing', params: const {'beats': 16}),
+            ],
+          ),
+        );
+
+        expect(
+          await dances.search(
+            const FullTextFilter('man', scope: FullTextScope.title),
+          ),
+          ['hey-man'],
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('man {alter', scope: FullTextScope.title),
+          ),
+          ['hey-man'],
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('man', scope: FullTextScope.figure),
+          ),
+          isEmpty,
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('swing', scope: FullTextScope.figure),
+          ),
+          ['figure-only'],
+        );
+      },
+    );
+
+    test(
+      'Omni keeps canonical cross-field matching and raw title fallback',
+      () async {
+        await dances.create(
+          _dance(
+            id: 'title',
+            title: 'Hey Man {alternating version}',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'figure',
+            title: 'Plain',
+            figures: [
+              Figure(move: 'swing', params: const {'beats': 16}),
+            ],
+          ),
+        );
+
+        expect(await dances.search(const FullTextFilter('man')), ['title']);
+        expect(await dances.search(const FullTextFilter('swing')), ['figure']);
+      },
+    );
 
     group('FullText tolerates punctuation and operator-like text', () {
       test('hyphenated terms match instead of throwing', () async {
@@ -747,6 +824,36 @@ void main() {
         ['b'],
       );
     });
+
+    test(
+      'prefix and substring searches use their FTS virtual tables',
+      () async {
+        Future<List<String>> planFor(String sql, String query) async {
+          final rows = await db
+              .customSelect(sql, variables: [Variable.withString(query)])
+              .get();
+          return [for (final row in rows) row.read<String>('detail')];
+        }
+
+        final prefixPlan = await planFor(
+          'EXPLAIN QUERY PLAN '
+              'SELECT id FROM dances WHERE id IN ('
+              'SELECT dance_id FROM dance_fts WHERE title MATCH ?)',
+          '"Al"*',
+        );
+        expect(prefixPlan.join(' '), contains('dance_fts'));
+        expect(prefixPlan.join(' '), contains('VIRTUAL TABLE INDEX'));
+
+        final substringPlan = await planFor(
+          'EXPLAIN QUERY PLAN '
+              'SELECT id FROM dances WHERE id IN ('
+              'SELECT dance_id FROM dance_substring_fts WHERE title MATCH ?)',
+          '"alter"',
+        );
+        expect(substringPlan.join(' '), contains('dance_substring_fts'));
+        expect(substringPlan.join(' '), contains('VIRTUAL TABLE INDEX'));
+      },
+    );
   });
 
   group('sequence: Then', () {

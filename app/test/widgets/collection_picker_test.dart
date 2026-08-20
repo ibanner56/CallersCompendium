@@ -131,6 +131,33 @@ Future<void> _addPhraseMove(
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
+  testWidgets('picker text search keeps the default Omni scope', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'title', title: 'Swing Title'));
+    await repos.dances.create(
+      _dance(
+        id: 'figure',
+        title: 'Plain Title',
+        figures: [
+          Figure(move: 'swing', params: const {'beats': 16}),
+        ],
+      ),
+    );
+
+    await _pumpPicker(tester, repos, onAddDance: (_) {});
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('picker-search')),
+      'swing',
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    expect(_titles(tester), ['Plain Title', 'Swing Title']);
+  });
+
   testWidgets('by phrase: figure-in-A1 query filters the picker results', (
     tester,
   ) async {

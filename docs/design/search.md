@@ -13,12 +13,16 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    It compiles to exactly one parameterized `SELECT` — never an in-memory scan,
    never N per-leaf queries stitched in Dart (ContraDB pitfall #2).
 2. **Search the derived indexes, not the JSON.** Structural predicates hit
-   `dance_figures`; text hits `dance_fts`; scalars hit `dances` columns. The
+   `dance_figures`; short text prefixes hit `dance_fts`; longer literal
+   substrings hit `dance_substring_fts`; scalars hit `dances` columns. The
    authoritative `figures_json` is never parsed during search.
 3. **Canonical in, canonical matched.** Move names and free-text terms pass
    through `canonicalize()` at the compiler boundary, mirroring how data was
    canonicalized on the way in — so a dialect user's "robins allemande"
    query matches stored `role2s`/`allemande` (see [dialect.md](dialect.md)).
+   Collection text search may explicitly scope to raw title text or canonical
+   figure text; Omni is the OR of the historical canonical cross-field query
+   and a raw-title fallback.
 4. **Injection-safe by construction.** Every user value is a bind variable;
    only a fixed vocabulary of column names, operators, and JSON key paths is
    ever interpolated, and each is validated against an allow-list.
@@ -40,7 +44,8 @@ sealed DanceFilter
   NotFilter(DanceFilter child)
 
   // metadata leaves
-  FullTextFilter(String query)               // → dance_fts MATCH
+  FullTextFilter(String query, [FullTextScope scope = omni])
+                                              // → scoped FTS5 MATCH
   AuthorFilter(String choreographerId)
   SourceFilter(String query)                 // substring match on cited source title/author
   SourceIdFilter(String sourceId)            // identity match on cited source id

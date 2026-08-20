@@ -1544,6 +1544,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionSearchFieldHint => 'Titres, auteurs, figures, notes…';
 
   @override
+  String get collectionSearchScopeLabel => 'Rechercher dans';
+
+  @override
+  String get collectionSearchScopeOmni => 'Tous les champs';
+
+  @override
+  String get collectionSearchScopeTitle => 'Titre';
+
+  @override
+  String get collectionSearchScopeFigure => 'Figure';
+
+  @override
   String get collectionClearSearchTooltip =>
       'Effacer la recherche et les filtres';
 
