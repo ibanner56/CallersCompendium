@@ -243,6 +243,28 @@ when no plain swing candidate exists. Once plain candidates exist, a baseline is
 hidden only when every candidate is captured by parameterized columns; it stays
 visible when the capture is mixed.
 
+### Compound columns
+
+In **Settings ▸ Program ▸ Matrix columns**, **Add compound column** lets you
+define a named column for a sequence of at least two exact taxonomy moves. The
+sequence is a per-dance boolean: it appears when those moves occur in one
+strictly-adjacent, contiguous run in the dance's original figures. For example,
+a compound for **circle-left → swing → circle-left** matches that exact
+three-figure run; an intervening figure or a gap does not match.
+
+Compound columns are additive. The matching figures keep their built-in or
+parameterized memberships, while the compound column is emitted only for
+dances where it is present. Matching uses canonical move ids and exact
+effective parameter values, including taxonomy defaults and alias-pinned values.
+You can reorder, hide, rename, edit, or delete compounds alongside the built-in
+and parameterized columns, and the same display settings apply on screen and in
+the PDF.
+
+Compounds never match across dances, skip gaps or intervening figures, or use
+subsequences, ranges, comparisons, wildcards, or multi-move alternatives. They
+are presence markers rather than counts and do not participate in adjacent-dance
+phrase or beat collision warnings.
+
 The matrix shows **presence, not counts** — whether a move is in a dance, not how
 many times, and not the order the moves come in. That is exactly what you want
 for spotting patterns across the evening: scan a move's column and you can see at

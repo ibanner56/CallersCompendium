@@ -910,6 +910,62 @@ class AppLocalizationsDe extends AppLocalizations {
       'Spalte löschen';
 
   @override
+  String get settingsMatrixColumnsCompoundAdd =>
+      'Zusammengesetzte Spalte hinzufügen';
+
+  @override
+  String get settingsMatrixColumnsCompoundTitle =>
+      'Zusammengesetzte Spalte hinzufügen';
+
+  @override
+  String get settingsMatrixColumnsCompoundEditTitle =>
+      'Zusammengesetzte Spalte bearbeiten';
+
+  @override
+  String get settingsMatrixColumnsCompoundSteps => 'Schritte';
+
+  @override
+  String get settingsMatrixColumnsCompoundMove => 'Figur';
+
+  @override
+  String get settingsMatrixColumnsCompoundParameters => 'Exakte Parameter';
+
+  @override
+  String get settingsMatrixColumnsCompoundAddStep => 'Schritt hinzufügen';
+
+  @override
+  String get settingsMatrixColumnsCompoundRemoveStep => 'Schritt entfernen';
+
+  @override
+  String get settingsMatrixColumnsCompoundMoveUp =>
+      'Schritt nach oben verschieben';
+
+  @override
+  String get settingsMatrixColumnsCompoundMoveDown =>
+      'Schritt nach unten verschieben';
+
+  @override
+  String get settingsMatrixColumnsCompoundLabel => 'Spaltenname';
+
+  @override
+  String get settingsMatrixColumnsCompoundEdit => 'Sequenz bearbeiten';
+
+  @override
+  String get settingsMatrixColumnsCompoundDelete =>
+      'Zusammengesetzte Spalte löschen';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteTitle =>
+      'Zusammengesetzte Spalte löschen?';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteBody =>
+      'Dadurch werden die Spalte und ihre passende Sequenz aus der Matrix entfernt. Dies kann nicht rückgängig gemacht werden.';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteConfirm => 'Spalte löschen';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Leistung';
 
   @override

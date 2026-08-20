@@ -10,15 +10,11 @@
 /// config (every collection empty) is the canonical "today's defaults": it must
 /// reproduce the matrix exactly as it built before this config existed.
 ///
-/// ## Phase boundaries
-///
-/// This is the Phase 2 model. [buildProgramMatrix] honours [hidden] and [order]
-/// for built-in columns, and [matrixColumnLabel] honours [renames]. The
-/// [parameterized] and [compound] lists are defined and round-trip through the
-/// codec, but **do not yet affect figure routing** — Phase 4 adds parameterized
-/// matching (replacing built-in membership) and Phase 5 adds compound sequence
-/// matching (additive). Their ids are treated as inert if they appear in
-/// [order] / [hidden] before those phases land.
+/// [buildProgramMatrix] honours [hidden] and [order] for built-in and custom
+/// columns, and [matrixColumnLabel] honours [renames]. Parameterized columns
+/// replace matching built-in membership; compound columns add a present-only
+/// boolean for matching contiguous figure runs. Their ids are treated as inert
+/// if they appear in [order] / [hidden] without a corresponding definition.
 ///
 /// ## Id namespacing (a security/robustness boundary)
 ///
@@ -195,6 +191,11 @@ class CompoundColumn {
     if (rawSteps is! List) {
       throw const MatrixColumnConfigFormatException(
         'compound steps must be a list',
+      );
+    }
+    if (rawSteps.length < 2) {
+      throw const MatrixColumnConfigFormatException(
+        'compound steps must contain at least two steps',
       );
     }
     return CompoundColumn(

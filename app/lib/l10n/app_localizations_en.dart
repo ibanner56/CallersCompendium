@@ -891,6 +891,56 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsMatrixColumnsParameterizedDeleteConfirm => 'Delete column';
 
   @override
+  String get settingsMatrixColumnsCompoundAdd => 'Add compound column';
+
+  @override
+  String get settingsMatrixColumnsCompoundTitle => 'Add compound column';
+
+  @override
+  String get settingsMatrixColumnsCompoundEditTitle => 'Edit compound column';
+
+  @override
+  String get settingsMatrixColumnsCompoundSteps => 'Steps';
+
+  @override
+  String get settingsMatrixColumnsCompoundMove => 'Move';
+
+  @override
+  String get settingsMatrixColumnsCompoundParameters => 'Exact parameters';
+
+  @override
+  String get settingsMatrixColumnsCompoundAddStep => 'Add step';
+
+  @override
+  String get settingsMatrixColumnsCompoundRemoveStep => 'Remove step';
+
+  @override
+  String get settingsMatrixColumnsCompoundMoveUp => 'Move step earlier';
+
+  @override
+  String get settingsMatrixColumnsCompoundMoveDown => 'Move step later';
+
+  @override
+  String get settingsMatrixColumnsCompoundLabel => 'Column name';
+
+  @override
+  String get settingsMatrixColumnsCompoundEdit => 'Edit sequence';
+
+  @override
+  String get settingsMatrixColumnsCompoundDelete => 'Delete compound column';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteTitle =>
+      'Delete compound column?';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteBody =>
+      'This removes the column and its matching sequence from the matrix. This cannot be undone.';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteConfirm => 'Delete column';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Performance';
 
   @override

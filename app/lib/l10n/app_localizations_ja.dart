@@ -867,6 +867,55 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsMatrixColumnsParameterizedDeleteConfirm => '列を削除';
 
   @override
+  String get settingsMatrixColumnsCompoundAdd => '複合列を追加';
+
+  @override
+  String get settingsMatrixColumnsCompoundTitle => '複合列を追加';
+
+  @override
+  String get settingsMatrixColumnsCompoundEditTitle => '複合列を編集';
+
+  @override
+  String get settingsMatrixColumnsCompoundSteps => 'ステップ';
+
+  @override
+  String get settingsMatrixColumnsCompoundMove => 'フィギュア';
+
+  @override
+  String get settingsMatrixColumnsCompoundParameters => '完全一致パラメータ';
+
+  @override
+  String get settingsMatrixColumnsCompoundAddStep => 'ステップを追加';
+
+  @override
+  String get settingsMatrixColumnsCompoundRemoveStep => 'ステップを削除';
+
+  @override
+  String get settingsMatrixColumnsCompoundMoveUp => 'ステップを前へ移動';
+
+  @override
+  String get settingsMatrixColumnsCompoundMoveDown => 'ステップを後へ移動';
+
+  @override
+  String get settingsMatrixColumnsCompoundLabel => '列名';
+
+  @override
+  String get settingsMatrixColumnsCompoundEdit => 'シーケンスを編集';
+
+  @override
+  String get settingsMatrixColumnsCompoundDelete => '複合列を削除';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteTitle => '複合列を削除しますか？';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteBody =>
+      '列と一致するシーケンスをマトリックスから削除します。この操作は元に戻せません。';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteConfirm => '列を削除';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'パフォーマンス';
 
   @override

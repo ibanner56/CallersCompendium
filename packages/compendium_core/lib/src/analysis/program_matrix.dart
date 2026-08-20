@@ -393,9 +393,10 @@ class MatrixRow {
   /// than one phrase carries every label. Drives the phrase-mode collision
   /// check ([ProgramMatrix.isCollision] with [MatrixCollisionMode.phrase]).
   ///
-  /// The collapsed [customMove] column is intentionally **absent** here: custom
-  /// (free-text) figures aren't reliably comparable, so distinct customs that
-  /// happen to share a phrase must not read as the *same* figure repeating.
+  /// The collapsed [customMove] and compound columns are intentionally
+  /// **absent** here: custom (free-text) figures aren't reliably comparable,
+  /// and compound columns are per-dance booleans rather than comparable figure
+  /// occurrences.
   final Map<String, Set<String>> phraseLabelsByMove;
 
   /// For each comparable move (column key) present in the dance, every
@@ -403,7 +404,8 @@ class MatrixRow {
   /// the default exact-beat-overlap collision check ([ProgramMatrix.isCollision]
   /// with [MatrixCollisionMode.exactBeats], issue #962). Computed alongside
   /// [phraseLabelsByMove] from the same beat cursor; the collapsed [customMove]
-  /// column is excluded here for the same reason it is excluded there.
+  /// and compound columns are excluded here for the same reason they are
+  /// excluded there.
   final Map<String, List<BeatSpan>> beatSpansByMove;
 
   /// The dance's formation (Becket, 4x4, triplet, …) — surfaced as its own
@@ -503,12 +505,16 @@ class ProgramMatrix {
   ///    occurrence in the neighbouring dance.
   ///
   /// Adjacency is strictly the previous/next row in both modes (issue #582's
-  /// locked design — not a configurable window). The collapsed [customMove]
-  /// column never collides in either mode (custom figures aren't reliably
-  /// comparable), because neither [MatrixRow.phraseLabelsByMove] nor
-  /// [MatrixRow.beatSpansByMove] carries it. Returns `false` when the move
-  /// isn't present in this cell.
+  /// locked design — not a configurable window). The collapsed [customMove] and
+  /// compound columns never collide in either mode (custom figures aren't
+  /// reliably comparable, and compounds are per-dance booleans), because
+  /// neither [MatrixRow.phraseLabelsByMove] nor [MatrixRow.beatSpansByMove]
+  /// carries them. Returns `false` when the move isn't present in this cell.
   bool isCollision(int rowIndex, int colIndex) {
+    final kind = columns[colIndex].kind;
+    if (kind == MatrixColumnKind.custom || kind == MatrixColumnKind.compound) {
+      return false;
+    }
     final moveId = columns[colIndex].moveId;
     return switch (collisionMode) {
       MatrixCollisionMode.exactBeats => _isExactBeatCollision(rowIndex, moveId),
@@ -551,11 +557,12 @@ class ProgramMatrix {
 /// `hey:<length>` (issue #933 extends the existing swing/hey split mechanism
 /// to allemande, chain, and swing's prefix). Every other figure maps to its
 /// raw move id — aliases are intentionally NOT resolved for a non-split
-/// target, so a "see saw" column stays distinct from "do si do" — EXCEPT an
-/// alias whose target move IS itself split, like `meltdown_swing` -> `swing`:
-/// reading [Taxonomy.effectiveParams] (which folds the alias's pinned params
-/// in) naturally routes it to `swing:<role>:meltdown` instead of a stray
-/// column of its own, with no special-case code needed here.
+/// target, so a "see saw" column stays distinct from "do si do" — EXCEPT when
+/// a parameterized column captures the alias's canonical target, or when its
+/// target move is itself split, like `meltdown_swing` -> `swing`: reading
+/// [Taxonomy.effectiveParams] (which folds the alias's pinned params in)
+/// naturally routes it to `swing:<role>:meltdown` instead of a stray column of
+/// its own, with no special-case code needed here.
 String columnKeyForFigure(
   Figure figure,
   Taxonomy taxonomy, [
@@ -596,6 +603,40 @@ String columnKeyForFigure(
     default:
       return figure.move;
   }
+}
+
+bool _stepMatchesFigure(Figure figure, StepMatcher step, Taxonomy taxonomy) {
+  final canonicalId = taxonomy.resolve(figure.move)?.id;
+  if (canonicalId != step.move) return false;
+  final effective = taxonomy.effectiveParams(figure);
+  return step.params.entries.every(
+    (entry) =>
+        effective.containsKey(entry.key) && effective[entry.key] == entry.value,
+  );
+}
+
+bool _containsCompoundRun(
+  List<Figure> figures,
+  CompoundColumn compound,
+  Taxonomy taxonomy,
+) {
+  final steps = compound.steps;
+  if (steps.length < 2 || steps.length > figures.length) return false;
+  for (var start = 0; start <= figures.length - steps.length; start++) {
+    var matches = true;
+    for (var offset = 0; offset < steps.length; offset++) {
+      if (!_stepMatchesFigure(
+        figures[start + offset],
+        steps[offset],
+        taxonomy,
+      )) {
+        matches = false;
+        break;
+      }
+    }
+    if (matches) return true;
+  }
+  return false;
 }
 
 /// Effective beat length of [figure] under [taxonomy], for phrase math: the
@@ -666,12 +707,14 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// only" setting.
 ///
 /// [config] applies the app-wide [MatrixColumnConfig] (issue #935): matching
-/// parameterized columns replace built-in membership, matched parameterized
-/// columns are emitted present-only, and hidden/reordered ids are transformed
-/// at display time. Presence, program-debut, collision, and first-figure
-/// analysis are computed over every routed column and are independent of
-/// display hiding/reordering. [MatrixColumnConfig.renames] is a label-only
-/// override applied by [matrixColumnLabel].
+/// parameterized columns replace built-in membership; matching compound
+/// sequences add present-only boolean columns; and hidden/reordered ids are
+/// transformed at display time. Compound matching scans each dance's original
+/// [Dance.figures] for a strictly-adjacent run and never changes the routed
+/// first figure. Presence, program-debut, collision, and first-figure analysis
+/// are computed over every routed/custom column and are independent of display
+/// hiding/reordering. [MatrixColumnConfig.renames] is a label-only override
+/// applied by [matrixColumnLabel].
 /// [config] defaults to [MatrixColumnConfig.empty], which reproduces the matrix
 /// exactly as it built before this config existed.
 ProgramMatrix buildProgramMatrix(
@@ -694,6 +737,7 @@ ProgramMatrix buildProgramMatrix(
   final present = <String>{};
   var hasCustom = false;
   final plainSwingBaselineCandidates = <String>{};
+  final compoundIds = {for (final compound in config.compound) compound.id};
 
   for (var i = 0; i < dances.length; i++) {
     final dance = dances[i];
@@ -728,19 +772,28 @@ ProgramMatrix buildProgramMatrix(
       rowMoves.add(key);
       if (key == customMove) {
         hasCustom = true;
+      } else if (compoundIds.contains(key)) {
+        // Compound ids are per-dance booleans and are never collision
+        // candidates, just like the collapsed custom column.
       } else {
         present.add(key);
         // Track the phrase in which this move starts, and its exact beat
         // span, so strictly-adjacent dances can be checked for same-figure
-        // collisions under either [MatrixCollisionMode]. Custom figures are
-        // excluded (their column is un-comparable) but still advance the beat
-        // cursor below.
+        // collisions under either [MatrixCollisionMode]. Custom and compound
+        // columns are excluded (they are un-comparable) but still advance the
+        // beat cursor below.
         (phraseLabels[key] ??= <String>{}).add(
           labelForFigure(beat, effBeats, structure),
         );
         (beatSpans[key] ??= <BeatSpan>[]).add(BeatSpan(beat, effBeats));
       }
       beat += effBeats;
+    }
+    for (final compound in config.compound) {
+      if (_containsCompoundRun(dance.figures, compound, tax)) {
+        rowMoves.add(compound.id);
+        present.add(compound.id);
+      }
     }
     rows.add(
       MatrixRow(
@@ -831,10 +884,8 @@ ProgramMatrix buildProgramMatrix(
 
   // Anything left in `present` other than declared parameterized ids is an
   // unknown move id (not in the taxonomy), sorted for deterministic output.
-  final parameterizedIds = {
-    for (final parameterized in config.parameterized) parameterized.id,
-  };
-  final unknown = present.where((id) => !parameterizedIds.contains(id)).toList()
+  final customIds = config.customColumnIds;
+  final unknown = present.where((id) => !customIds.contains(id)).toList()
     ..sort();
   for (final id in unknown) {
     columns.add(MatrixColumn(moveId: id, kind: MatrixColumnKind.unknown));
@@ -854,6 +905,13 @@ ProgramMatrix buildProgramMatrix(
           moveId: parameterized.id,
           kind: MatrixColumnKind.parameterized,
         ),
+      );
+    }
+  }
+  for (final compound in config.compound) {
+    if (present.remove(compound.id)) {
+      columns.add(
+        MatrixColumn(moveId: compound.id, kind: MatrixColumnKind.compound),
       );
     }
   }

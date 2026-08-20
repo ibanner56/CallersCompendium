@@ -1145,6 +1145,70 @@
   "@settingsMatrixColumnsParameterizedDeleteConfirm": {
     "description": "Confirm button for deleting a parameterized column."
   },
+  "settingsMatrixColumnsCompoundAdd": "Add compound column",
+  "@settingsMatrixColumnsCompoundAdd": {
+    "description": "Button that opens the editor for adding a compound matrix column."
+  },
+  "settingsMatrixColumnsCompoundTitle": "Add compound column",
+  "@settingsMatrixColumnsCompoundTitle": {
+    "description": "Title of the add-compound-column dialog."
+  },
+  "settingsMatrixColumnsCompoundEditTitle": "Edit compound column",
+  "@settingsMatrixColumnsCompoundEditTitle": {
+    "description": "Title of the edit-compound-column dialog."
+  },
+  "settingsMatrixColumnsCompoundSteps": "Steps",
+  "@settingsMatrixColumnsCompoundSteps": {
+    "description": "Heading for the ordered steps in a compound-column dialog."
+  },
+  "settingsMatrixColumnsCompoundMove": "Move",
+  "@settingsMatrixColumnsCompoundMove": {
+    "description": "Label for a taxonomy move selector in a compound step."
+  },
+  "settingsMatrixColumnsCompoundParameters": "Exact parameters",
+  "@settingsMatrixColumnsCompoundParameters": {
+    "description": "Heading above exact parameter constraints for a compound step."
+  },
+  "settingsMatrixColumnsCompoundAddStep": "Add step",
+  "@settingsMatrixColumnsCompoundAddStep": {
+    "description": "Button that appends a step to a compound sequence."
+  },
+  "settingsMatrixColumnsCompoundRemoveStep": "Remove step",
+  "@settingsMatrixColumnsCompoundRemoveStep": {
+    "description": "Tooltip for removing a compound sequence step."
+  },
+  "settingsMatrixColumnsCompoundMoveUp": "Move step earlier",
+  "@settingsMatrixColumnsCompoundMoveUp": {
+    "description": "Tooltip for moving a compound step earlier in the sequence."
+  },
+  "settingsMatrixColumnsCompoundMoveDown": "Move step later",
+  "@settingsMatrixColumnsCompoundMoveDown": {
+    "description": "Tooltip for moving a compound step later in the sequence."
+  },
+  "settingsMatrixColumnsCompoundLabel": "Column name",
+  "@settingsMatrixColumnsCompoundLabel": {
+    "description": "Label for the compound column name field."
+  },
+  "settingsMatrixColumnsCompoundEdit": "Edit sequence",
+  "@settingsMatrixColumnsCompoundEdit": {
+    "description": "Tooltip for editing a compound column's sequence."
+  },
+  "settingsMatrixColumnsCompoundDelete": "Delete compound column",
+  "@settingsMatrixColumnsCompoundDelete": {
+    "description": "Tooltip for deleting a compound column definition."
+  },
+  "settingsMatrixColumnsCompoundDeleteTitle": "Delete compound column?",
+  "@settingsMatrixColumnsCompoundDeleteTitle": {
+    "description": "Title of the delete-compound-column confirmation dialog."
+  },
+  "settingsMatrixColumnsCompoundDeleteBody": "This removes the column and its matching sequence from the matrix. This cannot be undone.",
+  "@settingsMatrixColumnsCompoundDeleteBody": {
+    "description": "Warning shown before deleting a compound column."
+  },
+  "settingsMatrixColumnsCompoundDeleteConfirm": "Delete column",
+  "@settingsMatrixColumnsCompoundDeleteConfirm": {
+    "description": "Confirm button for deleting a compound column."
+  },
   "settingsGeneralPerformanceHeader": "Performance",
   "@settingsGeneralPerformanceHeader": {
     "description": "General settings section header for performance-mode display preferences."
