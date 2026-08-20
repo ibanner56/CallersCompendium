@@ -24,6 +24,8 @@ void main() {
       testFigure(move: 'swing', params: {'who': who, 'prefix': prefix});
   Figure aliasSwing(String move) => testFigure(move: move, params: const {});
   Figure doSiDo() => testFigure(move: 'do_si_do', params: const {});
+  Figure circleLeft() =>
+      testFigure(move: 'circle', params: const {'turn': 'left'});
   Figure hey([String? length]) =>
       testFigure(move: 'hey', params: {'length': ?length});
 
@@ -188,6 +190,134 @@ void main() {
       expect(matrix.rows[1].presentMoveIds, {'swing:neighbor'});
       expect(matrix.programDebutRowByMove['param:partner-swing'], 0);
       expect(matrix.programDebutRowByMove, isNot(contains('swing:partner')));
+    });
+
+    group('compound routing', () {
+      const compoundId = 'compound:circle-swing-circle';
+      const compound = CompoundColumn(
+        id: compoundId,
+        steps: [
+          StepMatcher(move: 'circle', params: {'turn': 'left'}),
+          StepMatcher(move: 'swing', params: {'who': 'partners'}),
+          StepMatcher(move: 'circle', params: {'turn': 'left'}),
+        ],
+      );
+
+      test('matches an adjacent run additively and emits present-only', () {
+        final matrix = buildProgramMatrix([
+          dance('d1', 'A', [circleLeft(), swing('partners'), circleLeft()]),
+          dance('d2', 'B', [doSiDo()]),
+        ], config: const MatrixColumnConfig(compound: [compound]));
+
+        expect(matrix.rows[0].presentMoveIds, contains(compoundId));
+        expect(
+          matrix.rows[0].presentMoveIds,
+          containsAll(['circle', 'swing:partner']),
+        );
+      });
+
+      test('matches exactly the contiguous original figure sequence', () {
+        const config = MatrixColumnConfig(compound: [compound]);
+        final matrix = buildProgramMatrix([
+          dance('gap', 'Gap', [
+            circleLeft(),
+            doSiDo(),
+            swing('partners'),
+            circleLeft(),
+          ]),
+          dance('adjacent', 'Adjacent', [
+            circleLeft(),
+            swing('partners'),
+            circleLeft(),
+          ]),
+        ], config: config);
+
+        expect(matrix.rows[0].presentMoveIds, isNot(contains(compoundId)));
+        expect(matrix.rows[1].presentMoveIds, contains(compoundId));
+      });
+
+      test(
+        'keeps parameterized routing independent from compound matching',
+        () {
+          const config = MatrixColumnConfig(
+            parameterized: [
+              ParameterizedColumn(
+                id: 'param:partner-swing',
+                baseMove: 'swing',
+                params: {'who': 'partners'},
+              ),
+            ],
+            compound: [compound],
+          );
+          final matrix = buildProgramMatrix([
+            dance('d1', 'A', [circleLeft(), swing('partners'), circleLeft()]),
+          ], config: config);
+
+          expect(matrix.rows.single.presentMoveIds, {
+            'circle',
+            'param:partner-swing',
+            compoundId,
+          });
+        },
+      );
+
+      test(
+        'debut follows first matching row and first figure stays routed',
+        () {
+          const config = MatrixColumnConfig(compound: [compound]);
+          final matrix = buildProgramMatrix([
+            dance('before', 'Before', [doSiDo()]),
+            dance('match', 'Match', [
+              circleLeft(),
+              swing('partners'),
+              circleLeft(),
+            ]),
+          ], config: config);
+          final compoundIndex = matrix.columns.indexWhere(
+            (column) => column.moveId == compoundId,
+          );
+
+          expect(matrix.programDebutRowByMove[compoundId], 1);
+          expect(matrix.rows[1].firstMoveId, 'circle');
+          expect(
+            matrix.rows[1].isFirst(matrix.columns[compoundIndex]),
+            isFalse,
+          );
+        },
+      );
+
+      test(
+        'compound columns never collide between adjacent matching dances',
+        () {
+          const config = MatrixColumnConfig(compound: [compound]);
+          final matrix = buildProgramMatrix([
+            dance('d1', 'A', [circleLeft(), swing('partners'), circleLeft()]),
+            dance('d2', 'B', [circleLeft(), swing('partners'), circleLeft()]),
+          ], config: config);
+          final compoundIndex = matrix.columns.indexWhere(
+            (column) => column.moveId == compoundId,
+          );
+
+          expect(
+            matrix.rows[0].phraseLabelsByMove,
+            isNot(contains(compoundId)),
+          );
+          expect(matrix.rows[0].beatSpansByMove, isNot(contains(compoundId)));
+          expect(matrix.isCollision(0, compoundIndex), isFalse);
+          final phraseMatrix = buildProgramMatrix(
+            [
+              dance('d1', 'A', [circleLeft(), swing('partners'), circleLeft()]),
+              dance('d2', 'B', [circleLeft(), swing('partners'), circleLeft()]),
+            ],
+            collisionMode: MatrixCollisionMode.phrase,
+            config: config,
+          );
+          final phraseIndex = phraseMatrix.columns.indexWhere(
+            (column) => column.moveId == compoundId,
+          );
+          expect(phraseMatrix.isCollision(0, phraseIndex), isFalse);
+        },
+      );
     });
 
     test('alias-pinned effective params participate in exact matching', () {
@@ -400,6 +530,7 @@ void main() {
             id: 'compound:1',
             steps: [
               StepMatcher(move: 'swing', params: {'who': 'partners'}),
+              StepMatcher(move: 'circle', params: {'turn': 'left'}),
             ],
           ),
         ],
@@ -441,6 +572,35 @@ void main() {
       );
     });
 
+    test('empty and one-step compounds throw', () {
+      final empty = {
+        'compound': [
+          {'id': 'compound:empty', 'steps': <Object?>[]},
+        ],
+      };
+      final oneStep = {
+        'compound': [
+          {
+            'id': 'compound:one',
+            'steps': [
+              {'move': 'swing', 'params': <String, Object?>{}},
+            ],
+          },
+        ],
+      };
+
+      expect(
+        () => MatrixColumnConfig.decode(empty),
+        throwsA(isA<MatrixColumnConfigFormatException>()),
+      );
+      expect(MatrixColumnConfig.tryDecode(empty), isNull);
+      expect(
+        () => MatrixColumnConfig.decode(oneStep),
+        throwsA(isA<MatrixColumnConfigFormatException>()),
+      );
+      expect(MatrixColumnConfig.tryDecode(oneStep), isNull);
+    });
+
     test('a mis-namespaced custom id is rejected', () {
       expect(
         () => MatrixColumnConfig.decode({
@@ -459,7 +619,13 @@ void main() {
             {'id': 'param:dup', 'baseMove': 'swing'},
           ],
           'compound': [
-            {'id': 'param:dup', 'steps': <Object?>[]},
+            {
+              'id': 'param:dup',
+              'steps': [
+                {'move': 'swing'},
+                {'move': 'circle'},
+              ],
+            },
           ],
         }),
         throwsA(isA<MatrixColumnConfigFormatException>()),

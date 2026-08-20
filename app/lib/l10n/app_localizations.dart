@@ -1610,6 +1610,102 @@ abstract class AppLocalizations {
   /// **'Delete column'**
   String get settingsMatrixColumnsParameterizedDeleteConfirm;
 
+  /// Button that opens the editor for adding a compound matrix column.
+  ///
+  /// In en, this message translates to:
+  /// **'Add compound column'**
+  String get settingsMatrixColumnsCompoundAdd;
+
+  /// Title of the add-compound-column dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Add compound column'**
+  String get settingsMatrixColumnsCompoundTitle;
+
+  /// Title of the edit-compound-column dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit compound column'**
+  String get settingsMatrixColumnsCompoundEditTitle;
+
+  /// Heading for the ordered steps in a compound-column dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Steps'**
+  String get settingsMatrixColumnsCompoundSteps;
+
+  /// Label for a taxonomy move selector in a compound step.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get settingsMatrixColumnsCompoundMove;
+
+  /// Heading above exact parameter constraints for a compound step.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact parameters'**
+  String get settingsMatrixColumnsCompoundParameters;
+
+  /// Button that appends a step to a compound sequence.
+  ///
+  /// In en, this message translates to:
+  /// **'Add step'**
+  String get settingsMatrixColumnsCompoundAddStep;
+
+  /// Tooltip for removing a compound sequence step.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove step'**
+  String get settingsMatrixColumnsCompoundRemoveStep;
+
+  /// Tooltip for moving a compound step earlier in the sequence.
+  ///
+  /// In en, this message translates to:
+  /// **'Move step earlier'**
+  String get settingsMatrixColumnsCompoundMoveUp;
+
+  /// Tooltip for moving a compound step later in the sequence.
+  ///
+  /// In en, this message translates to:
+  /// **'Move step later'**
+  String get settingsMatrixColumnsCompoundMoveDown;
+
+  /// Label for the compound column name field.
+  ///
+  /// In en, this message translates to:
+  /// **'Column name'**
+  String get settingsMatrixColumnsCompoundLabel;
+
+  /// Tooltip for editing a compound column's sequence.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit sequence'**
+  String get settingsMatrixColumnsCompoundEdit;
+
+  /// Tooltip for deleting a compound column definition.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete compound column'**
+  String get settingsMatrixColumnsCompoundDelete;
+
+  /// Title of the delete-compound-column confirmation dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete compound column?'**
+  String get settingsMatrixColumnsCompoundDeleteTitle;
+
+  /// Warning shown before deleting a compound column.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the column and its matching sequence from the matrix. This cannot be undone.'**
+  String get settingsMatrixColumnsCompoundDeleteBody;
+
+  /// Confirm button for deleting a compound column.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete column'**
+  String get settingsMatrixColumnsCompoundDeleteConfirm;
+
   /// General settings section header for performance-mode display preferences.
   ///
   /// In en, this message translates to:

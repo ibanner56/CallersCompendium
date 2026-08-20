@@ -896,6 +896,57 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsMatrixColumnsParameterizedDeleteConfirm => 'Slet kolonne';
 
   @override
+  String get settingsMatrixColumnsCompoundAdd => 'Tilføj sammensat kolonne';
+
+  @override
+  String get settingsMatrixColumnsCompoundTitle => 'Tilføj sammensat kolonne';
+
+  @override
+  String get settingsMatrixColumnsCompoundEditTitle =>
+      'Rediger sammensat kolonne';
+
+  @override
+  String get settingsMatrixColumnsCompoundSteps => 'Trin';
+
+  @override
+  String get settingsMatrixColumnsCompoundMove => 'Figur';
+
+  @override
+  String get settingsMatrixColumnsCompoundParameters => 'Eksakte parametre';
+
+  @override
+  String get settingsMatrixColumnsCompoundAddStep => 'Tilføj trin';
+
+  @override
+  String get settingsMatrixColumnsCompoundRemoveStep => 'Fjern trin';
+
+  @override
+  String get settingsMatrixColumnsCompoundMoveUp => 'Flyt trin tidligere';
+
+  @override
+  String get settingsMatrixColumnsCompoundMoveDown => 'Flyt trin senere';
+
+  @override
+  String get settingsMatrixColumnsCompoundLabel => 'Kolonnenavn';
+
+  @override
+  String get settingsMatrixColumnsCompoundEdit => 'Rediger sekvens';
+
+  @override
+  String get settingsMatrixColumnsCompoundDelete => 'Slet sammensat kolonne';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteTitle =>
+      'Slet sammensat kolonne?';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteBody =>
+      'Dette fjerner kolonnen og dens matchende sekvens fra matrixen. Det kan ikke fortrydes.';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteConfirm => 'Slet kolonne';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Performance';
 
   @override

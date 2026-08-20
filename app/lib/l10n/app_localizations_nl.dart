@@ -900,6 +900,62 @@ class AppLocalizationsNl extends AppLocalizations {
       'Kolom verwijderen';
 
   @override
+  String get settingsMatrixColumnsCompoundAdd =>
+      'Samengestelde kolom toevoegen';
+
+  @override
+  String get settingsMatrixColumnsCompoundTitle =>
+      'Samengestelde kolom toevoegen';
+
+  @override
+  String get settingsMatrixColumnsCompoundEditTitle =>
+      'Samengestelde kolom bewerken';
+
+  @override
+  String get settingsMatrixColumnsCompoundSteps => 'Stappen';
+
+  @override
+  String get settingsMatrixColumnsCompoundMove => 'Figuur';
+
+  @override
+  String get settingsMatrixColumnsCompoundParameters => 'Exacte parameters';
+
+  @override
+  String get settingsMatrixColumnsCompoundAddStep => 'Stap toevoegen';
+
+  @override
+  String get settingsMatrixColumnsCompoundRemoveStep => 'Stap verwijderen';
+
+  @override
+  String get settingsMatrixColumnsCompoundMoveUp =>
+      'Stap naar voren verplaatsen';
+
+  @override
+  String get settingsMatrixColumnsCompoundMoveDown =>
+      'Stap naar achteren verplaatsen';
+
+  @override
+  String get settingsMatrixColumnsCompoundLabel => 'Kolomnaam';
+
+  @override
+  String get settingsMatrixColumnsCompoundEdit => 'Reeks bewerken';
+
+  @override
+  String get settingsMatrixColumnsCompoundDelete =>
+      'Samengestelde kolom verwijderen';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteTitle =>
+      'Samengestelde kolom verwijderen?';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteBody =>
+      'Hiermee verwijder je de kolom en de bijbehorende reeks uit de matrix. Dit kan niet ongedaan worden gemaakt.';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteConfirm => 'Kolom verwijderen';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Uitvoering';
 
   @override

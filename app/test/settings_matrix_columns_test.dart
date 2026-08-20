@@ -332,6 +332,164 @@ void main() {
       expect(config.renames, isEmpty);
     });
 
+    testWidgets('adds and edits an ordered compound column sequence', (
+      tester,
+    ) async {
+      final read = await _pumpEditor(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-add-compound')),
+      );
+      await tester.pumpAndSettle();
+
+      final moveSelector = tester.widget<DropdownButtonFormField<String>>(
+        find.byKey(const ValueKey('matrix-compound-step-move-1')),
+      );
+      moveSelector.onChanged!('balance');
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-compound-label')),
+        'Dosido then balance',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('matrix-compound-save')));
+      await tester.pumpAndSettle();
+
+      final added = read().compound.single;
+      expect(added.id, startsWith(compoundColumnIdPrefix));
+      expect(added.steps.map((step) => step.move), ['do_si_do', 'balance']);
+      expect(read().renames[added.id], 'Dosido then balance');
+
+      await tester.scrollUntilVisible(
+        find.byKey(ValueKey('matrix-column-edit-details-${added.id}')),
+        400,
+      );
+      await tester.tap(
+        find.byKey(ValueKey('matrix-column-edit-details-${added.id}')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-compound-step-down-0')),
+      );
+      await tester.tap(find.byKey(const ValueKey('matrix-compound-save')));
+      await tester.pumpAndSettle();
+
+      expect(read().compound.single.steps.map((step) => step.move), [
+        'balance',
+        'do_si_do',
+      ]);
+    });
+
+    testWidgets('does not save an empty or one-step compound sequence', (
+      tester,
+    ) async {
+      await _pumpEditor(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-add-compound')),
+      );
+      await tester.pumpAndSettle();
+
+      TextButton saveButton() =>
+          tester.widget(find.byKey(const ValueKey('matrix-compound-save')));
+      expect(saveButton().onPressed, isNull);
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-compound-label')),
+        'Sequence',
+      );
+      await tester.pump();
+      expect(saveButton().onPressed, isNotNull);
+
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-compound-step-remove-1')),
+      );
+      await tester.pump();
+      expect(saveButton().onPressed, isNull);
+    });
+
+    testWidgets('deleting a compound column removes all references', (
+      tester,
+    ) async {
+      const id = 'compound:test-sequence';
+      final initial = MatrixColumnConfig(
+        order: const [id],
+        hidden: const {id},
+        renames: const {id: 'Sequence'},
+        compound: const [
+          CompoundColumn(
+            id: id,
+            steps: [
+              StepMatcher(move: 'do_si_do'),
+              StepMatcher(move: 'balance'),
+            ],
+          ),
+        ],
+      );
+      final read = await _pumpEditor(tester, initial: initial);
+      await tester.tap(
+        find.byKey(
+          const ValueKey('matrix-column-delete-compound:test-sequence'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('matrix-column-delete-confirm-compound:test-sequence'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final config = read();
+      expect(config.compound, isEmpty);
+      expect(config.order, isEmpty);
+      expect(config.hidden, isEmpty);
+      expect(config.renames, isEmpty);
+    });
+
+    testWidgets('repairs stale compound steps when editing', (tester) async {
+      const id = 'compound:stale-sequence';
+      final initial = MatrixColumnConfig(
+        order: const [id],
+        compound: const [
+          CompoundColumn(
+            id: id,
+            steps: [
+              StepMatcher(move: 'removed_move', params: {'removed': 'stale'}),
+              StepMatcher(move: 'balance'),
+            ],
+          ),
+        ],
+      );
+      final read = await _pumpEditor(tester, initial: initial);
+      final editFinder = find.byKey(
+        const ValueKey('matrix-column-edit-details-compound:stale-sequence'),
+      );
+      await tester.scrollUntilVisible(editFinder, 400);
+      await tester.tap(editFinder);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<DropdownButtonFormField<String>>(
+              find.byKey(const ValueKey('matrix-compound-step-move-0')),
+            )
+            .initialValue,
+        'do_si_do',
+      );
+      expect(
+        find.byKey(const ValueKey('matrix-compound-step-0-constraint-removed')),
+        findsNothing,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-compound-label')),
+        'Repaired sequence',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('matrix-compound-save')));
+      await tester.pumpAndSettle();
+
+      expect(read().compound.single.steps.first.move, 'do_si_do');
+      expect(read().compound.single.steps.first.params, isEmpty);
+    });
+
     testWidgets('repairs stale parameterized definitions when editing', (
       tester,
     ) async {

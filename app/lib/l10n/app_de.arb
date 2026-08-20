@@ -1000,6 +1000,70 @@
   "@settingsMatrixColumnsParameterizedDeleteConfirm": {
     "x-sourceSha256": "837dbb2c66b1a90f46e7de1ea5b51e2da583a675dd6a3d4131dc2a7d44b0eaef"
   },
+  "settingsMatrixColumnsCompoundAdd": "Zusammengesetzte Spalte hinzufügen",
+  "@settingsMatrixColumnsCompoundAdd": {
+    "x-sourceSha256": "4d622803476d89e16f3fd2ff9833f4af49c048b9e9db21d1a7152ac5acb0f2bf"
+  },
+  "settingsMatrixColumnsCompoundTitle": "Zusammengesetzte Spalte hinzufügen",
+  "@settingsMatrixColumnsCompoundTitle": {
+    "x-sourceSha256": "4d622803476d89e16f3fd2ff9833f4af49c048b9e9db21d1a7152ac5acb0f2bf"
+  },
+  "settingsMatrixColumnsCompoundEditTitle": "Zusammengesetzte Spalte bearbeiten",
+  "@settingsMatrixColumnsCompoundEditTitle": {
+    "x-sourceSha256": "1074aa2356eabe1f3d2432ca3d8e48c89982a409b005304046ff9aaecdb092f3"
+  },
+  "settingsMatrixColumnsCompoundSteps": "Schritte",
+  "@settingsMatrixColumnsCompoundSteps": {
+    "x-sourceSha256": "1de3df70ddf4faab9d799e3c45ea53c465aae9fccacd7ac77d8e85435828e6dc"
+  },
+  "settingsMatrixColumnsCompoundMove": "Figur",
+  "@settingsMatrixColumnsCompoundMove": {
+    "x-sourceSha256": "6ecc3df6bffdd06c58cd4f6e276929e119c8f653c53f5a6a5a5e66dfa1c3fc93"
+  },
+  "settingsMatrixColumnsCompoundParameters": "Exakte Parameter",
+  "@settingsMatrixColumnsCompoundParameters": {
+    "x-sourceSha256": "6f058b4c618a7c0076b1aa6fcdd87692af1cc0315b8f33b31b8cad08f4276ef8"
+  },
+  "settingsMatrixColumnsCompoundAddStep": "Schritt hinzufügen",
+  "@settingsMatrixColumnsCompoundAddStep": {
+    "x-sourceSha256": "839bd5e01e3a04602d29e4ff909f14ec32bb68799c3b25823c04852e8be735d7"
+  },
+  "settingsMatrixColumnsCompoundRemoveStep": "Schritt entfernen",
+  "@settingsMatrixColumnsCompoundRemoveStep": {
+    "x-sourceSha256": "d4c76f463480c865dae9e8296ca2d9771027b491012d6fb39a3ce4d9084ad677"
+  },
+  "settingsMatrixColumnsCompoundMoveUp": "Schritt nach oben verschieben",
+  "@settingsMatrixColumnsCompoundMoveUp": {
+    "x-sourceSha256": "744e115fb9a8c49c6d08f86a4fd3c886dac7ea25d69ffa84174566dcf4702f18"
+  },
+  "settingsMatrixColumnsCompoundMoveDown": "Schritt nach unten verschieben",
+  "@settingsMatrixColumnsCompoundMoveDown": {
+    "x-sourceSha256": "e03729442ac3cad0d7a2691e6167b56203087e5bb644cc52ece719b655b6a696"
+  },
+  "settingsMatrixColumnsCompoundLabel": "Spaltenname",
+  "@settingsMatrixColumnsCompoundLabel": {
+    "x-sourceSha256": "f9db5b899bd26e72408362d106f5ce2f371661168cc3c1155ba1166d19487b9f"
+  },
+  "settingsMatrixColumnsCompoundEdit": "Sequenz bearbeiten",
+  "@settingsMatrixColumnsCompoundEdit": {
+    "x-sourceSha256": "e21f369bd01e977beaeef0ec1b85651047f62bb0b88790d0d2e8318c3cc09c2b"
+  },
+  "settingsMatrixColumnsCompoundDelete": "Zusammengesetzte Spalte löschen",
+  "@settingsMatrixColumnsCompoundDelete": {
+    "x-sourceSha256": "5b58577782347f9594b07fb21cbdc6e9e8bb760cfb40940c20b31c86df9cfb11"
+  },
+  "settingsMatrixColumnsCompoundDeleteTitle": "Zusammengesetzte Spalte löschen?",
+  "@settingsMatrixColumnsCompoundDeleteTitle": {
+    "x-sourceSha256": "98831941b3740465659d3cc8318d4bdd24f9288e858ec211f9cf69cccf7def38"
+  },
+  "settingsMatrixColumnsCompoundDeleteBody": "Dadurch werden die Spalte und ihre passende Sequenz aus der Matrix entfernt. Dies kann nicht rückgängig gemacht werden.",
+  "@settingsMatrixColumnsCompoundDeleteBody": {
+    "x-sourceSha256": "b1e004080248e7e1e2d07c1add004fd0dc616326cf6479d4557902be999c16d1"
+  },
+  "settingsMatrixColumnsCompoundDeleteConfirm": "Spalte löschen",
+  "@settingsMatrixColumnsCompoundDeleteConfirm": {
+    "x-sourceSha256": "837dbb2c66b1a90f46e7de1ea5b51e2da583a675dd6a3d4131dc2a7d44b0eaef"
+  },
   "settingsGeneralPerformanceHeader": "Leistung",
   "@settingsGeneralPerformanceHeader": {
     "x-sourceSha256": "442aded87a55aa8c8f7d5ff0c30228150d4b1cb8756e4be138d615ca4708fc26"

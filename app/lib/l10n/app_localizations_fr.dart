@@ -916,6 +916,62 @@ class AppLocalizationsFr extends AppLocalizations {
       'Supprimer la colonne';
 
   @override
+  String get settingsMatrixColumnsCompoundAdd => 'Ajouter une colonne composée';
+
+  @override
+  String get settingsMatrixColumnsCompoundTitle =>
+      'Ajouter une colonne composée';
+
+  @override
+  String get settingsMatrixColumnsCompoundEditTitle =>
+      'Modifier la colonne composée';
+
+  @override
+  String get settingsMatrixColumnsCompoundSteps => 'Étapes';
+
+  @override
+  String get settingsMatrixColumnsCompoundMove => 'Figure';
+
+  @override
+  String get settingsMatrixColumnsCompoundParameters => 'Paramètres exacts';
+
+  @override
+  String get settingsMatrixColumnsCompoundAddStep => 'Ajouter une étape';
+
+  @override
+  String get settingsMatrixColumnsCompoundRemoveStep => 'Supprimer l’étape';
+
+  @override
+  String get settingsMatrixColumnsCompoundMoveUp =>
+      'Déplacer l’étape vers le haut';
+
+  @override
+  String get settingsMatrixColumnsCompoundMoveDown =>
+      'Déplacer l’étape vers le bas';
+
+  @override
+  String get settingsMatrixColumnsCompoundLabel => 'Nom de la colonne';
+
+  @override
+  String get settingsMatrixColumnsCompoundEdit => 'Modifier la séquence';
+
+  @override
+  String get settingsMatrixColumnsCompoundDelete =>
+      'Supprimer la colonne composée';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteTitle =>
+      'Supprimer la colonne composée ?';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteBody =>
+      'La colonne et sa séquence correspondante seront supprimées de la matrice. Cette action est irréversible.';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteConfirm =>
+      'Supprimer la colonne';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Performance';
 
   @override
