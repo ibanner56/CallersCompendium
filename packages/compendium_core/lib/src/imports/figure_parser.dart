@@ -1626,7 +1626,6 @@ _Match? _promenade(List<String> w) {
     dir = 'along';
   }
   final turn = _takeSpinDirection(w);
-  _consumePhrase(w, ['around', 'the', 'major', 'set']);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('promenade', {'who': ?who2, 'dir': ?dir, 'turn': ?turn});

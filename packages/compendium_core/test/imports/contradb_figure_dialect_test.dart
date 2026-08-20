@@ -235,43 +235,41 @@ void main() {
     });
 
     group('promenade rotation wording', () {
-      test('on the left maps to clockwise', () {
+      // ContraDB's upstream `promenadeWords` (app/javascript/libfigure/
+      // figure.js @ 13f38a5) renders the rotation qualifier as a trailing
+      // `on the left` (spin) or `on the right` (only when `dir === "along"`),
+      // and SILENCES the default `across` set-direction — so `across` is never
+      // emitted as a word. The rotation forms ContraDB actually renders are
+      // therefore `promenade on the left`, `promenade along on the left`, and
+      // `promenade along on the right`. Left → clockwise, right →
+      // counterclockwise is the maintainer's cross-vocabulary mapping.
+      test('on the left maps to clockwise (default across silenced)', () {
         final f = _parse('partners promenade on the left');
+        expect(f.params.containsKey('dir'), isFalse);
         expect(f.params['turn'], 'clockwise');
         expect(f.note, isNull);
       });
 
-      test('on the right maps to counterclockwise', () {
-        final f = _parse('partners promenade on the right');
-        expect(f.params['turn'], 'counterclockwise');
-        expect(f.note, isNull);
-      });
-
-      test('spatial direction precedes on the left', () {
-        final f = _parse('partners promenade across on the left');
-        expect(f.params['dir'], 'across');
+      test('along on the left maps to clockwise', () {
+        final f = _parse('partners promenade along on the left');
+        expect(f.params['dir'], 'along');
         expect(f.params['turn'], 'clockwise');
         expect(f.note, isNull);
       });
 
-      test('along precedes on the right', () {
+      test('along on the right maps to counterclockwise', () {
         final f = _parse('partners promenade along on the right');
         expect(f.params['dir'], 'along');
         expect(f.params['turn'], 'counterclockwise');
         expect(f.note, isNull);
       });
 
-      test(
-        'unrelated tail remains a note without duplicating the qualifier',
-        () {
-          final f = _parse(
-            'partners promenade across on the left with hands joined',
-          );
-          expect(f.params['turn'], 'clockwise');
-          expect(f.note, 'with hands joined');
-          expect(f.note, isNot(contains('on the left')));
-        },
-      );
+      test('bare promenade leaves turn unset (renders the default)', () {
+        final f = _parse('partners promenade');
+        expect(f.move, 'promenade');
+        expect(f.params.containsKey('turn'), isFalse);
+        expect(f.note, isNull);
+      });
     });
 
     // Issue #634 / #749 — real render: Strange New Worlds #3107, A2 (8 beats).
