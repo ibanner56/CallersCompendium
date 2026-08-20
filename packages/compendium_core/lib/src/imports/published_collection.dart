@@ -179,21 +179,19 @@ class PublishedCollectionArchive {
 /// provenance are rejected rather than being silently dropped or trusted.
 class PublishedCollectionAdapter implements SourceAdapter {
   PublishedCollectionAdapter(this.metadata)
-    : _delegate = _buildDelegate(metadata);
+    : _delegate = _PublishedGenericJsonAdapter(metadata);
 
   final PublishedCollectionMetadata metadata;
-  final SourceAdapter _delegate;
-
-  static SourceAdapter _buildDelegate(PublishedCollectionMetadata metadata) =>
-      _PublishedGenericJsonAdapter(metadata);
+  final _PublishedGenericJsonAdapter _delegate;
 
   @override
   ProvenanceSource get source => ProvenanceSource.publishedCollection;
 
   @override
   Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
-    PublishedCollectionArchive.decode(request.payload ?? '');
-    return _delegate.discover(request);
+    _delegate.clearCache();
+    final archive = PublishedCollectionArchive.decode(request.payload ?? '');
+    return _delegate.discoverArchive(archive);
   }
 
   @override
@@ -220,8 +218,7 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
 
   @override
   Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
-    _dancesById.clear();
-    _choreographersById.clear();
+    clearCache();
     final result = decodeArchive(request.payload!);
     final rootError = _rootReadError(result);
     if (rootError != null) {
@@ -232,15 +229,21 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
             'Published collection archive could not be decoded: $rootError',
       );
     }
-    _schemaVersion = result.archive.schemaVersion;
+    return discoverArchive(result.archive);
+  }
+
+  Future<List<DiscoveredRecord>> discoverArchive(
+    CompendiumArchive archive,
+  ) async {
+    _schemaVersion = archive.schemaVersion;
     _dancesById.addEntries(
-      result.archive.dances.map((dance) => MapEntry(dance.id, dance)),
+      archive.dances.map((dance) => MapEntry(dance.id, dance)),
     );
     _choreographersById.addEntries(
-      result.archive.choreographers.map((c) => MapEntry(c.id, c)),
+      archive.choreographers.map((c) => MapEntry(c.id, c)),
     );
     return [
-      for (final dance in result.archive.dances)
+      for (final dance in archive.dances)
         DiscoveredRecord(
           source: source,
           externalId: '${metadata.collectionId}/${dance.id}',
@@ -248,6 +251,11 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
           locator: {'danceId': dance.id},
         ),
     ];
+  }
+
+  void clearCache() {
+    _dancesById.clear();
+    _choreographersById.clear();
   }
 
   @override
