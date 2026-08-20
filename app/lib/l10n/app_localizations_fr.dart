@@ -870,6 +870,52 @@ class AppLocalizationsFr extends AppLocalizations {
       'Restaurer les valeurs par défaut';
 
   @override
+  String get settingsMatrixColumnsParameterizedAdd =>
+      'Ajouter une colonne paramétrée';
+
+  @override
+  String get settingsMatrixColumnsParameterizedTitle =>
+      'Ajouter une colonne paramétrée';
+
+  @override
+  String get settingsMatrixColumnsParameterizedEditTitle =>
+      'Modifier la colonne paramétrée';
+
+  @override
+  String get settingsMatrixColumnsParameterizedMove => 'Figure';
+
+  @override
+  String get settingsMatrixColumnsParameterizedConstraints =>
+      'Paramètres exacts à faire correspondre';
+
+  @override
+  String get settingsMatrixColumnsParameterizedNoParams =>
+      'Cette figure n’a aucun paramètre.';
+
+  @override
+  String get settingsMatrixColumnsParameterizedLabel => 'Nom de colonne';
+
+  @override
+  String get settingsMatrixColumnsParameterizedEdit =>
+      'Modifier les détails de correspondance';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDelete =>
+      'Supprimer la colonne paramétrée';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteTitle =>
+      'Supprimer la colonne paramétrée ?';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteBody =>
+      'La colonne et ses règles de correspondance seront supprimées de la matrice. Cette action est irréversible.';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteConfirm =>
+      'Supprimer la colonne';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Performance';
 
   @override

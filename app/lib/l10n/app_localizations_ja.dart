@@ -828,6 +828,45 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsMatrixColumnsResetTrueConfirm => '既定に戻す';
 
   @override
+  String get settingsMatrixColumnsParameterizedAdd => 'パラメーター付き列を追加';
+
+  @override
+  String get settingsMatrixColumnsParameterizedTitle => 'パラメーター付き列を追加';
+
+  @override
+  String get settingsMatrixColumnsParameterizedEditTitle => 'パラメーター付き列を編集';
+
+  @override
+  String get settingsMatrixColumnsParameterizedMove => 'フィギュア';
+
+  @override
+  String get settingsMatrixColumnsParameterizedConstraints => '一致させる正確なパラメーター';
+
+  @override
+  String get settingsMatrixColumnsParameterizedNoParams =>
+      'このフィギュアにはパラメーターがありません。';
+
+  @override
+  String get settingsMatrixColumnsParameterizedLabel => '列名';
+
+  @override
+  String get settingsMatrixColumnsParameterizedEdit => '一致条件を編集';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDelete => 'パラメーター付き列を削除';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteTitle =>
+      'パラメーター付き列を削除しますか？';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteBody =>
+      '列とその一致条件をマトリックスから削除します。この操作は元に戻せません。';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteConfirm => '列を削除';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'パフォーマンス';
 
   @override

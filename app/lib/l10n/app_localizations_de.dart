@@ -864,6 +864,52 @@ class AppLocalizationsDe extends AppLocalizations {
       'Standard wiederherstellen';
 
   @override
+  String get settingsMatrixColumnsParameterizedAdd =>
+      'Parametrisierte Spalte hinzufügen';
+
+  @override
+  String get settingsMatrixColumnsParameterizedTitle =>
+      'Parametrisierte Spalte hinzufügen';
+
+  @override
+  String get settingsMatrixColumnsParameterizedEditTitle =>
+      'Parametrisierte Spalte bearbeiten';
+
+  @override
+  String get settingsMatrixColumnsParameterizedMove => 'Figur';
+
+  @override
+  String get settingsMatrixColumnsParameterizedConstraints =>
+      'Exakt abzugleichende Parameter';
+
+  @override
+  String get settingsMatrixColumnsParameterizedNoParams =>
+      'Diese Figur hat keine Parameter.';
+
+  @override
+  String get settingsMatrixColumnsParameterizedLabel => 'Spaltenname';
+
+  @override
+  String get settingsMatrixColumnsParameterizedEdit =>
+      'Abgleichdetails bearbeiten';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDelete =>
+      'Parametrisierte Spalte löschen';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteTitle =>
+      'Parametrisierte Spalte löschen?';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteBody =>
+      'Dies entfernt die Spalte und ihre Abgleichregeln aus der Matrix. Dies kann nicht rückgängig gemacht werden.';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteConfirm =>
+      'Spalte löschen';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Leistung';
 
   @override
