@@ -566,15 +566,34 @@ class _ParameterizedColumnDialog extends StatefulWidget {
 
 class _ParameterizedColumnDialogState
     extends State<_ParameterizedColumnDialog> {
-  late String _baseMove =
-      widget.initial?.baseMove ?? widget.taxonomy.moves.keys.first;
+  late String _baseMove = _initialMove();
   late final TextEditingController _label = TextEditingController(
     text: widget.initialLabel,
   );
-  late Map<String, Object?> _params = {...?widget.initial?.params};
+  late Map<String, Object?> _params = _initialParams();
   late Set<String> _selected = _params.keys.toSet();
 
   MoveDef get _move => widget.taxonomy.moves[_baseMove]!;
+
+  String _initialMove() {
+    final initialMove = widget.initial?.baseMove;
+    if (initialMove != null && widget.taxonomy.moves.containsKey(initialMove)) {
+      return initialMove;
+    }
+    return widget.taxonomy.moves.keys.first;
+  }
+
+  Map<String, Object?> _initialParams() {
+    final params = widget.initial?.params;
+    if (params == null) return {};
+    return {
+      for (final entry in params.entries)
+        if (_move.params.containsKey(entry.key))
+          entry.key: _move.params[entry.key]!.validate(entry.value)
+              ? entry.value
+              : _move.params[entry.key]!.defaultValue,
+    };
+  }
 
   @override
   void dispose() {

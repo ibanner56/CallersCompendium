@@ -302,6 +302,49 @@ void main() {
       expect(config.renames, isEmpty);
     });
 
+    testWidgets('repairs stale parameterized definitions when editing', (
+      tester,
+    ) async {
+      const id = 'param:stale-column';
+      final initial = MatrixColumnConfig(
+        order: const [id],
+        parameterized: const [
+          ParameterizedColumn(
+            id: id,
+            baseMove: 'removed_move',
+            params: {'removed_param': 'stale'},
+          ),
+        ],
+      );
+      final read = await _pumpEditor(
+        tester,
+        initial: initial,
+        taxonomy: _parameterizedTaxonomy,
+      );
+      final editFinder = find.byKey(
+        const ValueKey('matrix-column-edit-details-param:stale-column'),
+      );
+      await tester.scrollUntilVisible(editFinder, 400);
+      await tester.tap(editFinder);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('matrix-parameterized-move')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('matrix-parameterized-constraint-removed_param'),
+        ),
+        findsNothing,
+      );
+      await tester.tap(find.byKey(const ValueKey('matrix-parameterized-save')));
+      await tester.pumpAndSettle();
+
+      expect(read().parameterized.single.baseMove, 'swing');
+      expect(read().parameterized.single.params, isEmpty);
+    });
+
     testWidgets('reorders parameterized and built-in columns together', (
       tester,
     ) async {
