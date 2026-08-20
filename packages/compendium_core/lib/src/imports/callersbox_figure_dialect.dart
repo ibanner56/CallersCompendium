@@ -105,7 +105,7 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     // the bespoke decoders above left behind, so none of them loses a line.
     _sideRunAnnotation,
   ],
-  recognitionNormalize: _stripAnnotations,
+  recognitionNormalize: _tcbRecognitionNormalize,
   declineToCustom: _declineSingleFileCircle,
 );
 
@@ -751,6 +751,31 @@ List<String> _splitTopLevel(String t, String sep) {
 String _stripAnnotations(String lowercased) => lowercased
     .replaceAll(RegExp(r'\([^)]*\)'), ' ')
     .replaceAll(RegExp(r'\[[^\]]*\]'), ' ');
+
+/// TCB's recognition-only normalization: the shared `()`/`[]` annotation strip
+/// ([_stripAnnotations]) plus one TCB-specific idiom.
+///
+/// TCB appends **`around the major set`** as a path descriptor on directed
+/// promenade lines — `Neighbor promenade counterclockwise around the major set`
+/// (dance id 64). It carries no param (the standard promenade already travels
+/// the major set), so the shared `_promenade` recognizer would reject the line
+/// for the leftover words and drop it to custom. Strip it for RECOGNITION only,
+/// scoped to lines that actually mention `promenade` so the same descriptor on
+/// another move — a courtesy-turn `face clockwise around the major set` clause,
+/// which must stay custom — is untouched. The custom fallback runs on the
+/// un-normalized scrubbed text, so an unrecognised promenade line still keeps
+/// the phrase verbatim. This idiom is TCB-specific and deliberately lives in
+/// the TCB dialect, not in the source-neutral shared recognizer.
+String _tcbRecognitionNormalize(String lowercased) {
+  final stripped = _stripAnnotations(lowercased);
+  if (!_promenadeAnchor.hasMatch(stripped)) return stripped;
+  return stripped.replaceAll(_promenadeMajorSetTail, ' ');
+}
+
+final RegExp _promenadeMajorSetTail = RegExp(
+  r'\baround\s+the\s+major\s+set\b',
+  caseSensitive: false,
+);
 
 // --- Balance hand annotation extraction (#870) --------------------------------
 

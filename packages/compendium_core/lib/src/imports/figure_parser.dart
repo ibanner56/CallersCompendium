@@ -1625,9 +1625,10 @@ _Match? _promenade(List<String> w) {
   } else if (_consumePhrase(w, ['along'])) {
     dir = 'along';
   }
+  final turn = _takeSpinDirection(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('promenade', {'who': ?who2, 'dir': ?dir});
+  return _Match('promenade', {'who': ?who2, 'dir': ?dir, 'turn': ?turn});
 }
 
 /// Tier B: TCB writes "Shift left/right" *and* "Slide left/right" for a slide

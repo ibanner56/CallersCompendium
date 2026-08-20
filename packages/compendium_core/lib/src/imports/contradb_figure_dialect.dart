@@ -875,8 +875,20 @@ FigureMatch? _promenade(String text) {
       s.take();
       params['dir'] = dir;
     }
+    final turn = _promenadeTurn(s);
+    if (turn != null) params['turn'] = turn;
   }
   return FigureMatch('promenade', params: params, note: s.note());
+}
+
+/// ContraDB renders promenade's optional rotation qualifier after its optional
+/// set direction as `on the left` / `on the right`. The canonical taxonomy
+/// mapping is a maintainer decision: left means clockwise, right means
+/// counterclockwise.
+String? _promenadeTurn(_Scan s) {
+  if (s.eatPhrase('on the left')) return 'clockwise';
+  if (s.eatPhrase('on the right')) return 'counterclockwise';
+  return null;
 }
 
 /// Consumes a "to [new|the same] {subject}" destination clause for the

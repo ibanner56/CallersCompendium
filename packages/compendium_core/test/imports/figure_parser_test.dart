@@ -895,6 +895,22 @@ void main() {
       'Balance ring': (move: 'balance_the_ring', params: {}),
       // 7. Promenade direction (recognizer previously never consumed it).
       'Promenade across': (move: 'promenade', params: {'dir': 'across'}),
+      'Partners promenade clockwise': (
+        move: 'promenade',
+        params: {'who': 'partners', 'turn': 'clockwise'},
+      ),
+      'Partners promenade counter clockwise': (
+        move: 'promenade',
+        params: {'who': 'partners', 'turn': 'counterclockwise'},
+      ),
+      'Partners promenade across clockwise': (
+        move: 'promenade',
+        params: {'who': 'partners', 'dir': 'across', 'turn': 'clockwise'},
+      ),
+      'Neighbor promenade counterclockwise around the major set': (
+        move: 'promenade',
+        params: {'who': 'neighbors', 'turn': 'counterclockwise'},
+      ),
       // 8. right-left-through "with X" (TCB writes this exclusively).
       'Right and left through with partner': (
         move: 'right_left_through',

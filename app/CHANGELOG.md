@@ -33,6 +33,13 @@ each release so store builds and tags can be traced back to an entry.
   ratings, tags, links, authors, citations, and other collection metadata stay
   intact. (issue #990)
   
+- **Directed promenades** now import their stated rotation sense into the
+  existing `promenade.turn` parameter. TCB `clockwise`/`counterclockwise`
+  qualifiers no longer force the whole line to custom, and ContraDB's
+  `on the left`/`on the right` wording is promoted from a note to
+  `clockwise`/`counterclockwise` respectively. Unrelated source tails remain
+  notes. (issue #771)
+  
 - **Parameterized program-matrix columns** — define taxonomy-move columns with
   optional exact parameter constraints, with most-specific matching and unified
   reorder, rename, hide, and delete controls. Matching figures replace their
