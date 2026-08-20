@@ -1557,6 +1557,15 @@ fails a PR that moves the constant without adding the matching entry.
 
     **No DB schema bump.** `turn` rides the existing `figures_json` codec.
 
+- v31 (#773): adds the two standalone turn figures reported by the CallersBox
+    census. `turn_as_couples` mirrors `star_through`/`california_twirl` with
+    `who` (default `partners`) and 4 beats. `two_hand_turn` mirrors
+    `allemande` with `who` (default `partners`), `turn` (default `1.0`), and
+    `beats` (default 8), intentionally omitting `hand` because both hands are
+    used together. Both are additive taxonomy moves with no schema migration.
+    The existing hall + `turnCouple` fold remains the representation for
+    turn-as-couples lines attached to a down/up-the-hall sequence.
+
 ## Open questions (to resolve during implementation, with user input)
 
 1. Exact positional definition of role1/role2 across formations (esp. Becket).

@@ -353,9 +353,10 @@ void main() {
       expect(d.figures[1].params['ender'], 'bendTheLine');
     });
 
-    test('standalone turn as couples (no hall) stays custom', () {
+    test('standalone turn as couples structures without a hall', () {
       final d = importA2(['(8) Neighbor turn as couples']);
-      expect(d.figures.single.isCustom, isTrue);
+      expect(d.figures.single.move, 'turn_as_couples');
+      expect(d.figures.single.params['who'], 'neighbors');
     });
   });
 }

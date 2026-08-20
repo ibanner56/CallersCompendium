@@ -19,7 +19,7 @@ import 'taxonomy.dart';
 /// It is kept there because it is a ledger of decisions already shipped: it
 /// constrains nothing on this line, and it grows on every bump, so readers of
 /// this file were paying for the whole history to reach one constant.
-const int contraTaxonomyVersion = 30;
+const int contraTaxonomyVersion = 31;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -253,6 +253,17 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {move} {hand} {turn}',
+      goodBeats: [8],
+    ),
+    const MoveDef(
+      id: 'two_hand_turn',
+      displayName: 'two hand turn',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        'turn': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate: '{who} {move} {turn}',
       goodBeats: [8],
     ),
     const MoveDef(
@@ -704,6 +715,16 @@ final Taxonomy contraTaxonomy = Taxonomy(
     const MoveDef(
       id: 'star_through',
       displayName: 'star through',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        'beats': _beats4,
+      },
+      renderTemplate: '{who} {move}',
+      goodBeats: [4],
+    ),
+    const MoveDef(
+      id: 'turn_as_couples',
+      displayName: 'turn as couples',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
         'beats': _beats4,

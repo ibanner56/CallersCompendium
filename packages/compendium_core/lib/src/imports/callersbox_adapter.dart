@@ -767,10 +767,12 @@ class CallersBoxAdapter implements SourceAdapter {
         (words.length == 3 && words[1] == 'the' && words[2] == 'line');
   }
 
-  /// A "turn as couples" line: a custom figure whose scrubbed text ENDS with
+  /// A "turn as couples" line: a standalone figure whose scrubbed text ENDS with
   /// "turn as couples" (optionally led by a dancer set, e.g. "neighbor turn as
-  /// couples"). turn_as_couples has no structured move, so it is always custom.
+  /// couples"). A structured turn_as_couples is also eligible for the hall
+  /// ender fold; other figures are never claimed here.
   static bool _isTurnAsCouplesLine(Figure f) {
+    if (f.move == 'turn_as_couples') return true;
     if (!f.isCustom) return false;
     final w = _figureWords(f);
     final n = w.length;
@@ -1052,9 +1054,10 @@ class CallersBoxAdapter implements SourceAdapter {
     // `[…]` is TCB's "who does it" annotation — a different payload we do not
     // model here, so a line carrying one stays custom.
     if (lower.contains('[')) return null;
-    final annotations = RegExp(
-      r'\(([^)]*)\)',
-    ).allMatches(lower).map((m) => m.group(1)!.trim()).toList();
+    final annotations = RegExp(r'\(([^)]*)\)')
+        .allMatches(lower)
+        .map((m) => m.group(1)!.trim())
+        .toList();
     if (annotations.length > 1) return null;
     final head = lower
         .replaceAll(RegExp(r'\([^)]*\)'), ' ')
