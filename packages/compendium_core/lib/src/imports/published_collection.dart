@@ -27,8 +27,8 @@ class PublishedCollectionMetadata {
     required this.collectionId,
     required this.collectionVersion,
     required this.archiveDigest,
-    this.permission,
-    this.license,
+    required this.permission,
+    required this.license,
   }) : assert(collectionId != ''),
        assert(collectionVersion != ''),
        assert(archiveDigest != '');
@@ -36,8 +36,8 @@ class PublishedCollectionMetadata {
   final String collectionId;
   final String collectionVersion;
   final String archiveDigest;
-  final String? permission;
-  final String? license;
+  final String permission;
+  final String license;
 }
 
 /// Decodes and validates the hard dance-only v1 archive contract.
