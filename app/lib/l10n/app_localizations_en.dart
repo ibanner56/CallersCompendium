@@ -847,6 +847,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsMatrixColumnsResetTrueConfirm => 'Restore defaults';
 
   @override
+  String get settingsMatrixColumnsParameterizedAdd =>
+      'Add parameterized column';
+
+  @override
+  String get settingsMatrixColumnsParameterizedTitle =>
+      'Add parameterized column';
+
+  @override
+  String get settingsMatrixColumnsParameterizedEditTitle =>
+      'Edit parameterized column';
+
+  @override
+  String get settingsMatrixColumnsParameterizedMove => 'Move';
+
+  @override
+  String get settingsMatrixColumnsParameterizedConstraints =>
+      'Exact parameters to match';
+
+  @override
+  String get settingsMatrixColumnsParameterizedNoParams =>
+      'This move has no parameters.';
+
+  @override
+  String get settingsMatrixColumnsParameterizedLabel => 'Column name';
+
+  @override
+  String get settingsMatrixColumnsParameterizedEdit => 'Edit matching details';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDelete =>
+      'Delete parameterized column';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteTitle =>
+      'Delete parameterized column?';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteBody =>
+      'This removes the column and its matching rules from the matrix. This cannot be undone.';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteConfirm => 'Delete column';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Performance';
 
   @override

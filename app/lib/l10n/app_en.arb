@@ -1097,6 +1097,54 @@
   "@settingsMatrixColumnsResetTrueConfirm": {
     "description": "Confirm button in the restore-all-defaults dialog."
   },
+  "settingsMatrixColumnsParameterizedAdd": "Add parameterized column",
+  "@settingsMatrixColumnsParameterizedAdd": {
+    "description": "Button that opens the editor for adding a parameterized matrix column."
+  },
+  "settingsMatrixColumnsParameterizedTitle": "Add parameterized column",
+  "@settingsMatrixColumnsParameterizedTitle": {
+    "description": "Title of the add-parameterized-column dialog."
+  },
+  "settingsMatrixColumnsParameterizedEditTitle": "Edit parameterized column",
+  "@settingsMatrixColumnsParameterizedEditTitle": {
+    "description": "Title of the edit-parameterized-column dialog."
+  },
+  "settingsMatrixColumnsParameterizedMove": "Move",
+  "@settingsMatrixColumnsParameterizedMove": {
+    "description": "Label for the taxonomy move selector in a parameterized-column dialog."
+  },
+  "settingsMatrixColumnsParameterizedConstraints": "Exact parameters to match",
+  "@settingsMatrixColumnsParameterizedConstraints": {
+    "description": "Heading above the optional exact parameter constraints in a parameterized-column dialog."
+  },
+  "settingsMatrixColumnsParameterizedNoParams": "This move has no parameters.",
+  "@settingsMatrixColumnsParameterizedNoParams": {
+    "description": "Message shown when the selected taxonomy move has no parameters."
+  },
+  "settingsMatrixColumnsParameterizedLabel": "Column name",
+  "@settingsMatrixColumnsParameterizedLabel": {
+    "description": "Label for the parameterized column name field."
+  },
+  "settingsMatrixColumnsParameterizedEdit": "Edit matching details",
+  "@settingsMatrixColumnsParameterizedEdit": {
+    "description": "Tooltip for editing a parameterized column's move and exact constraints."
+  },
+  "settingsMatrixColumnsParameterizedDelete": "Delete parameterized column",
+  "@settingsMatrixColumnsParameterizedDelete": {
+    "description": "Tooltip for deleting a parameterized column definition."
+  },
+  "settingsMatrixColumnsParameterizedDeleteTitle": "Delete parameterized column?",
+  "@settingsMatrixColumnsParameterizedDeleteTitle": {
+    "description": "Title of the delete-parameterized-column confirmation dialog."
+  },
+  "settingsMatrixColumnsParameterizedDeleteBody": "This removes the column and its matching rules from the matrix. This cannot be undone.",
+  "@settingsMatrixColumnsParameterizedDeleteBody": {
+    "description": "Warning shown before deleting a parameterized column."
+  },
+  "settingsMatrixColumnsParameterizedDeleteConfirm": "Delete column",
+  "@settingsMatrixColumnsParameterizedDeleteConfirm": {
+    "description": "Confirm button for deleting a parameterized column."
+  },
   "settingsGeneralPerformanceHeader": "Performance",
   "@settingsGeneralPerformanceHeader": {
     "description": "General settings section header for performance-mode display preferences."

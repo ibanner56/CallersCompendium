@@ -1538,6 +1538,78 @@ abstract class AppLocalizations {
   /// **'Restore defaults'**
   String get settingsMatrixColumnsResetTrueConfirm;
 
+  /// Button that opens the editor for adding a parameterized matrix column.
+  ///
+  /// In en, this message translates to:
+  /// **'Add parameterized column'**
+  String get settingsMatrixColumnsParameterizedAdd;
+
+  /// Title of the add-parameterized-column dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Add parameterized column'**
+  String get settingsMatrixColumnsParameterizedTitle;
+
+  /// Title of the edit-parameterized-column dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit parameterized column'**
+  String get settingsMatrixColumnsParameterizedEditTitle;
+
+  /// Label for the taxonomy move selector in a parameterized-column dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get settingsMatrixColumnsParameterizedMove;
+
+  /// Heading above the optional exact parameter constraints in a parameterized-column dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact parameters to match'**
+  String get settingsMatrixColumnsParameterizedConstraints;
+
+  /// Message shown when the selected taxonomy move has no parameters.
+  ///
+  /// In en, this message translates to:
+  /// **'This move has no parameters.'**
+  String get settingsMatrixColumnsParameterizedNoParams;
+
+  /// Label for the parameterized column name field.
+  ///
+  /// In en, this message translates to:
+  /// **'Column name'**
+  String get settingsMatrixColumnsParameterizedLabel;
+
+  /// Tooltip for editing a parameterized column's move and exact constraints.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit matching details'**
+  String get settingsMatrixColumnsParameterizedEdit;
+
+  /// Tooltip for deleting a parameterized column definition.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete parameterized column'**
+  String get settingsMatrixColumnsParameterizedDelete;
+
+  /// Title of the delete-parameterized-column confirmation dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete parameterized column?'**
+  String get settingsMatrixColumnsParameterizedDeleteTitle;
+
+  /// Warning shown before deleting a parameterized column.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the column and its matching rules from the matrix. This cannot be undone.'**
+  String get settingsMatrixColumnsParameterizedDeleteBody;
+
+  /// Confirm button for deleting a parameterized column.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete column'**
+  String get settingsMatrixColumnsParameterizedDeleteConfirm;
+
   /// General settings section header for performance-mode display preferences.
   ///
   /// In en, this message translates to:

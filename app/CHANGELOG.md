@@ -27,6 +27,12 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Parameterized program-matrix columns** — define taxonomy-move columns with
+  optional exact parameter constraints, with most-specific matching and unified
+  reorder, rename, hide, and delete controls. Matching figures replace their
+  ordinary built-in column, and unmatched parameterized columns stay out of the
+  matrix. (issue #935)
+
 - **Edit the program-matrix columns** — a new **Settings → Program → Matrix
   columns** editor lets you reorder, rename, and remove the matrix's built-in
   columns app-wide. Changes apply live on screen and in the PDF export. Removed

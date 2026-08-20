@@ -542,7 +542,9 @@ class ProgramMatrix {
   }
 }
 
-/// Column key for a [figure] under [taxonomy]: custom figures all map to
+/// Column key for a [figure] under [taxonomy] and optional [config]: a matching
+/// parameterized column captures the figure before the built-in route. Custom
+/// figures all map to
 /// [customMove]; `swing` maps to a compound `swing:<role>` key (widened to
 /// `swing:<role>:<prefix>` for a `balance`/`meltdown` prefix); `allemande` and
 /// `chain` map to `allemande:<role>` / `chain:<role>`; `hey` maps to
@@ -554,9 +556,33 @@ class ProgramMatrix {
 /// reading [Taxonomy.effectiveParams] (which folds the alias's pinned params
 /// in) naturally routes it to `swing:<role>:meltdown` instead of a stray
 /// column of its own, with no special-case code needed here.
-String columnKeyForFigure(Figure figure, Taxonomy taxonomy) {
+String columnKeyForFigure(
+  Figure figure,
+  Taxonomy taxonomy, [
+  MatrixColumnConfig config = MatrixColumnConfig.empty,
+]) {
   if (figure.isCustom) return customMove;
   final canonicalId = taxonomy.resolve(figure.move)?.id;
+  if (canonicalId != null && config.parameterized.isNotEmpty) {
+    final effective = taxonomy.effectiveParams(figure);
+    ParameterizedColumn? best;
+    var bestSpecificity = -1;
+    for (final column in config.parameterized) {
+      if (column.baseMove != canonicalId) continue;
+      final matches = column.params.entries.every(
+        (entry) =>
+            effective.containsKey(entry.key) &&
+            effective[entry.key] == entry.value,
+      );
+      if (!matches) continue;
+      final specificity = column.params.length;
+      if (specificity > bestSpecificity) {
+        best = column;
+        bestSpecificity = specificity;
+      }
+    }
+    if (best != null) return best.id;
+  }
   switch (canonicalId) {
     case swingMoveId:
       final effective = taxonomy.effectiveParams(figure);
@@ -608,8 +634,9 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// `twos`, `corners`, `same`, `other`, in that order); swing additionally
 /// splits each role by `prefix` into a bare (`none`-prefix) column plus
 /// `balance`/`meltdown` sub-columns. `partner`/`neighbor`'s BARE column is a
-/// fixed baseline, shown whenever the program has any dances (even if no
-/// dance swings those roles plain); every other swing role's bare column,
+/// legacy baseline, shown whenever the program has any dances unless every
+/// plain candidate for that role was captured by a parameterized column; every
+/// other swing role's bare column,
 /// and every role's `balance`/`meltdown` sub-column regardless of role, is
 /// present-only — so a program with only a `larks` swing that is ALWAYS
 /// balance-prefixed shows `larks bal & swing` but no empty plain `larks
@@ -638,16 +665,13 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// matrix and its PDF export both read this from the "flag exact beat overlap
 /// only" setting.
 ///
-/// [config] applies the app-wide [MatrixColumnConfig] (issue #935) to the
-/// **display** of built-in columns only: columns whose id is in
-/// [MatrixColumnConfig.hidden] are dropped from [ProgramMatrix.columns], and the
-/// surviving columns are reordered by [MatrixColumnConfig.order] (listed ids
-/// first, in that order; unlisted ids keep their natural derived order after).
-/// Presence, program-debut, collision, and first-figure analysis are computed
-/// over **every** column and are untouched — hiding and reordering are a
-/// render-layer transform over the same analysis. [MatrixColumnConfig.renames]
-/// is a label-only override applied by [matrixColumnLabel], not here. The
-/// parameterized/compound lists do not affect routing in this phase.
+/// [config] applies the app-wide [MatrixColumnConfig] (issue #935): matching
+/// parameterized columns replace built-in membership, matched parameterized
+/// columns are emitted present-only, and hidden/reordered ids are transformed
+/// at display time. Presence, program-debut, collision, and first-figure
+/// analysis are computed over every routed column and are independent of
+/// display hiding/reordering. [MatrixColumnConfig.renames] is a label-only
+/// override applied by [matrixColumnLabel].
 /// [config] defaults to [MatrixColumnConfig.empty], which reproduces the matrix
 /// exactly as it built before this config existed.
 ProgramMatrix buildProgramMatrix(
@@ -669,6 +693,7 @@ ProgramMatrix buildProgramMatrix(
   final rows = <MatrixRow>[];
   final present = <String>{};
   var hasCustom = false;
+  final plainSwingBaselineCandidates = <String>{};
 
   for (var i = 0; i < dances.length; i++) {
     final dance = dances[i];
@@ -685,7 +710,20 @@ ProgramMatrix buildProgramMatrix(
     final structure = dance.phraseStructure;
     var beat = 0;
     for (final figure in dance.figures) {
-      final key = columnKeyForFigure(figure, tax);
+      final key = columnKeyForFigure(figure, tax, config);
+      final canonicalId = tax.resolve(figure.move)?.id;
+      if (canonicalId == swingMoveId) {
+        final effective = tax.effectiveParams(figure);
+        final fallbackKey = swingColumnKey(
+          effective['who'],
+          effective['prefix'],
+        );
+        if (swingBaselineVariants.any(
+          (variant) => '$swingMoveId:$variant' == fallbackKey,
+        )) {
+          plainSwingBaselineCandidates.add(fallbackKey);
+        }
+      }
       final effBeats = _effectiveBeats(tax, figure);
       rowMoves.add(key);
       if (key == customMove) {
@@ -710,7 +748,7 @@ ProgramMatrix buildProgramMatrix(
         title: dance.title,
         firstMoveId: dance.figures.isEmpty
             ? null
-            : columnKeyForFigure(dance.figures.first, tax),
+            : columnKeyForFigure(dance.figures.first, tax, config),
         presentMoveIds: rowMoves,
         phraseLabelsByMove: phraseLabels,
         beatSpansByMove: beatSpans,
@@ -739,8 +777,11 @@ ProgramMatrix buildProgramMatrix(
       // convention, and locked in by a test).
       for (final variant in _swingVariantOrder) {
         final baseline = swingBaselineVariants.contains(variant);
-        final basePresent = present.remove('$swingMoveId:$variant');
-        if (baseline ? hasDances : basePresent) {
+        final baseKey = '$swingMoveId:$variant';
+        final basePresent = present.remove(baseKey);
+        final keepBaseline =
+            !plainSwingBaselineCandidates.contains(baseKey) || basePresent;
+        if (baseline ? hasDances && keepBaseline : basePresent) {
           columns.add(_splitColumn(swingMoveId, variant));
         }
         for (final prefixVariant in _swingPrefixVariantOrder) {
@@ -788,9 +829,13 @@ ProgramMatrix buildProgramMatrix(
     }
   }
 
-  // Anything left in `present` is an unknown move id (not in the taxonomy),
-  // sorted for deterministic output.
-  final unknown = present.toList()..sort();
+  // Anything left in `present` other than declared parameterized ids is an
+  // unknown move id (not in the taxonomy), sorted for deterministic output.
+  final parameterizedIds = {
+    for (final parameterized in config.parameterized) parameterized.id,
+  };
+  final unknown = present.where((id) => !parameterizedIds.contains(id)).toList()
+    ..sort();
   for (final id in unknown) {
     columns.add(MatrixColumn(moveId: id, kind: MatrixColumnKind.unknown));
   }
@@ -800,6 +845,17 @@ ProgramMatrix buildProgramMatrix(
     columns.add(
       const MatrixColumn(moveId: customMove, kind: MatrixColumnKind.custom),
     );
+  }
+
+  for (final parameterized in config.parameterized) {
+    if (present.remove(parameterized.id)) {
+      columns.add(
+        MatrixColumn(
+          moveId: parameterized.id,
+          kind: MatrixColumnKind.parameterized,
+        ),
+      );
+    }
   }
 
   // Program debut per move: the first row (program order) whose dance contains

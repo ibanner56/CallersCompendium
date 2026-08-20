@@ -852,6 +852,50 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsMatrixColumnsResetTrueConfirm => 'Gendan standarder';
 
   @override
+  String get settingsMatrixColumnsParameterizedAdd =>
+      'Tilføj parameteriseret kolonne';
+
+  @override
+  String get settingsMatrixColumnsParameterizedTitle =>
+      'Tilføj parameteriseret kolonne';
+
+  @override
+  String get settingsMatrixColumnsParameterizedEditTitle =>
+      'Rediger parameteriseret kolonne';
+
+  @override
+  String get settingsMatrixColumnsParameterizedMove => 'Figur';
+
+  @override
+  String get settingsMatrixColumnsParameterizedConstraints =>
+      'Præcise parametre at matche';
+
+  @override
+  String get settingsMatrixColumnsParameterizedNoParams =>
+      'Denne figur har ingen parametre.';
+
+  @override
+  String get settingsMatrixColumnsParameterizedLabel => 'Kolonnenavn';
+
+  @override
+  String get settingsMatrixColumnsParameterizedEdit => 'Rediger matchdetaljer';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDelete =>
+      'Slet parameteriseret kolonne';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteTitle =>
+      'Slet parameteriseret kolonne?';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteBody =>
+      'Dette fjerner kolonnen og dens matchregler fra matrixen. Det kan ikke fortrydes.';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteConfirm => 'Slet kolonne';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'Performance';
 
   @override
