@@ -2595,7 +2595,7 @@
   },
   "danceCallingHistoryError": "Could not load the calling history.",
   "@danceCallingHistoryError": {
-    "description": "Shown in the calling-history section when its query fails, instead of the empty state \u2014 which would otherwise claim the dance has never been called."
+    "description": "Shown in the calling-history section when its query fails, instead of the empty state — which would otherwise claim the dance has never been called."
   },
   "danceShowCanonicalTerms": "Show canonical terms",
   "@danceShowCanonicalTerms": {
@@ -8167,5 +8167,14 @@
         "example": "Grange Hall"
       }
     }
-  }
+  },
+  "danceReimport": "Re-import choreography",
+  "danceReimportJson": "Callers Compendium JSON",
+  "danceReimportNoResults": "No matching dances were found. Choose another source or try again later.",
+  "danceReimportChooseResult": "Choose the dance to re-import",
+  "danceReimportProgramArchive": "This file contains a program and cannot be used to re-import one dance.",
+  "danceReimportInvalidJson": "Choose a valid file containing exactly one dance.",
+  "danceReimportSourceFailed": "Could not load a dance from that source. Please try again.",
+  "danceReimported": "Choreography updated.",
+  "danceReimportTargetMissing": "This dance was deleted before it could be updated."
 }

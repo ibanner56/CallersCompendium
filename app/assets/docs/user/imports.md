@@ -372,7 +372,21 @@ watches for matches:
   incoming version — your edits, tags, and rating for the existing dance will be
   replaced — but your calling history is preserved.
 
-### Re-import to pick up a correction
+### Re-import an archive dance to pick up a correction
+
+### Refresh choreography on one saved dance
+
+Open a dance and choose **Re-import choreography**. Select Caller's Box,
+ContraDB, or a Caller's Compendium JSON file. Online searches use the saved
+dance title and always show their results for you to choose from; the app never
+selects an online match automatically. JSON must contain exactly one dance and
+cannot contain a program.
+
+Review the preview, then import to replace only the dance's **figures,
+formation, and progression**. This keeps your title, notes, rating, tags,
+links, custom fields, authors, citations, and other saved metadata. This is
+different from the normal import review's re-import/link choices, which can
+replace an entire imported record.
 
 When the review screen recognises a dance you already imported, it offers
 **Re-import onto** that dance, naming the dance it would update, so there is no

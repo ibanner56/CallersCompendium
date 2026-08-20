@@ -27,6 +27,12 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Re-import choreography from a dance detail** — choose Caller's Box,
+  ContraDB, or a single-dance Caller's Compendium JSON file, review the parsed
+  dance, then update only its figures, formation, and progression. Your notes,
+  ratings, tags, links, authors, citations, and other collection metadata stay
+  intact. (issue #990)
+
 - **Edit the program-matrix columns** — a new **Settings → Program → Matrix
   columns** editor lets you reorder, rename, and remove the matrix's built-in
   columns app-wide. Changes apply live on screen and in the PDF export. Removed

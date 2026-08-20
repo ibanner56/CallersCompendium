@@ -6151,5 +6151,41 @@
   "venuePickerCreateOption": "Nieuwe locatie “{name}” toevoegen",
   "@venuePickerCreateOption": {
     "x-sourceSha256": "4b84ab053f669f63cc251cbde509d7e14efcd7dec0ba7d2d0bbd63052d3660b4"
+  },
+  "danceReimport": "Choreografie opnieuw importeren",
+  "@danceReimport": {
+    "x-sourceSha256": "a421d81d5302fb71ab3107203740f95cda92b17f3b214b5b9016faa7fe81b31b"
+  },
+  "danceReimportJson": "Callers Compendium JSON",
+  "@danceReimportJson": {
+    "x-sourceSha256": "9e6528ee0a52cc61df154ec1ba8318a7b06bc0ffaa5ad64d249418687723193e"
+  },
+  "danceReimportNoResults": "Geen overeenkomende dansen gevonden. Kies een andere bron of probeer het later opnieuw.",
+  "@danceReimportNoResults": {
+    "x-sourceSha256": "88afdd2e4cc40336e4a08471d60dd0aa92e137934337e8e7079e85b9571f38cc"
+  },
+  "danceReimportChooseResult": "Kies de dans om opnieuw te importeren",
+  "@danceReimportChooseResult": {
+    "x-sourceSha256": "5b6c732424d926b66bbbcdb72df1718462dfe44c72edb5edef4a0fb9ba148257"
+  },
+  "danceReimportProgramArchive": "Dit bestand bevat een programma en kan niet worden gebruikt om één dans opnieuw te importeren.",
+  "@danceReimportProgramArchive": {
+    "x-sourceSha256": "d0bbbd3df72fe76a854b2fccf8395c7d8dc2e071c36afcec6be15242887f8a6f"
+  },
+  "danceReimportInvalidJson": "Kies een geldig bestand met precies één dans.",
+  "@danceReimportInvalidJson": {
+    "x-sourceSha256": "e860ca218ed99bfa69e97648c237c49b5c6b94f45d3b9a84da29b0e76e5ab268"
+  },
+  "danceReimportSourceFailed": "Kan geen dans uit die bron laden. Probeer het opnieuw.",
+  "@danceReimportSourceFailed": {
+    "x-sourceSha256": "371510b49b6ef1c1c2341ee4602ccf8152406a01ce800aee553bb4e964997bcc"
+  },
+  "danceReimported": "Choreografie bijgewerkt.",
+  "@danceReimported": {
+    "x-sourceSha256": "41ad06ceba83ea3efb3679735e069ed21dd1ad98aa9c1e6d35fb157b9b560959"
+  },
+  "danceReimportTargetMissing": "Deze dans is verwijderd voordat deze kon worden bijgewerkt.",
+  "@danceReimportTargetMissing": {
+    "x-sourceSha256": "a7fa7158d909cc3495b34beac015092677355e05077a53e14e161e9c5b2f6113"
   }
 }

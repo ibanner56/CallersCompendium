@@ -9382,6 +9382,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add new venue “{name}”'**
   String venuePickerCreateOption(String name);
+
+  /// No description provided for @danceReimport.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-import choreography'**
+  String get danceReimport;
+
+  /// No description provided for @danceReimportJson.
+  ///
+  /// In en, this message translates to:
+  /// **'Callers Compendium JSON'**
+  String get danceReimportJson;
+
+  /// No description provided for @danceReimportNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching dances were found. Choose another source or try again later.'**
+  String get danceReimportNoResults;
+
+  /// No description provided for @danceReimportChooseResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the dance to re-import'**
+  String get danceReimportChooseResult;
+
+  /// No description provided for @danceReimportProgramArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'This file contains a program and cannot be used to re-import one dance.'**
+  String get danceReimportProgramArchive;
+
+  /// No description provided for @danceReimportInvalidJson.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a valid file containing exactly one dance.'**
+  String get danceReimportInvalidJson;
+
+  /// No description provided for @danceReimportSourceFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load a dance from that source. Please try again.'**
+  String get danceReimportSourceFailed;
+
+  /// No description provided for @danceReimported.
+  ///
+  /// In en, this message translates to:
+  /// **'Choreography updated.'**
+  String get danceReimported;
+
+  /// No description provided for @danceReimportTargetMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance was deleted before it could be updated.'**
+  String get danceReimportTargetMissing;
 }
 
 class _AppLocalizationsDelegate
