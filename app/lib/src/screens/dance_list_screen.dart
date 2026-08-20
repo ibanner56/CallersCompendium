@@ -1000,13 +1000,26 @@ class _DanceListScreenState extends State<DanceListScreen> {
           builder: (_) => DanceDetailScreen.preview(
             data: preview,
             onImport: () async {
-              DanceReimportResult result;
+              if (_importing) return;
+              _importing = true;
               try {
-                result = await replaceDanceChoreography(
+                final result = await replaceDanceChoreography(
                   _repos,
                   targetDanceId: target.dance.id,
                   incoming: preview.dance,
                 );
+                if (!mounted) return;
+                if (result == DanceReimportResult.replaced) {
+                  Navigator.of(context).pop(true);
+                } else {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        AppLocalizations.of(context).danceReimportTargetMissing,
+                      ),
+                    ),
+                  );
+                }
               } catch (error, stackTrace) {
                 logCaughtErrorTypeOnly(
                   error,
@@ -1022,19 +1035,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
                     ),
                   );
                 }
-                return;
-              }
-              if (!mounted) return;
-              if (result == DanceReimportResult.replaced) {
-                Navigator.of(context).pop(true);
-              } else {
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      AppLocalizations.of(context).danceReimportTargetMissing,
-                    ),
-                  ),
-                );
+              } finally {
+                _importing = false;
               }
             },
           ),

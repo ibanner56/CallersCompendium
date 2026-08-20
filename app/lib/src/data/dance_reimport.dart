@@ -31,7 +31,7 @@ Future<DanceReimportResult> replaceDanceChoreography(
 /// Plans exactly one dance from a generic JSON payload without ever committing
 /// its archive-level entities. Program-bearing archives are intentionally not a
 /// valid detail re-import source.
-Future<ImportRecordPlan?> planSingleDanceJson(
+Future<ImportRecordPlan> planSingleDanceJson(
   CompendiumRepositories repos,
   String payload,
 ) async {

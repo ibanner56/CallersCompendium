@@ -48,7 +48,7 @@ Future<DanceDetailData?> selectReimportDance(
     final payload = await picker();
     if (payload == null) return null;
     final plan = await planSingleDanceJson(repos, payload);
-    return reimportPreviewData(plan!.draft.dance);
+    return reimportPreviewData(plan.draft.dance);
   }
 
   final service = source == _ReimportSource.callersBox ? callersBox : contraDb;
@@ -74,26 +74,31 @@ Future<DanceDetailData?> selectReimportDance(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(l10n.danceReimportChooseResult),
-      content: SizedBox(
-        width: 500,
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            for (final result in results)
-              ListTile(
-                key: ValueKey(
-                  'reimport-result-${result.source.name}-${result.id}',
+      content: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.6,
+        ),
+        child: SizedBox(
+          width: 500,
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              for (final result in results)
+                ListTile(
+                  key: ValueKey(
+                    'reimport-result-${result.source.name}-${result.id}',
+                  ),
+                  title: Text(result.name),
+                  subtitle: Text(
+                    [
+                      result.author,
+                      result.formation,
+                    ].where((s) => s.isNotEmpty).join(' · '),
+                  ),
+                  onTap: () => Navigator.pop(context, result),
                 ),
-                title: Text(result.name),
-                subtitle: Text(
-                  [
-                    result.author,
-                    result.formation,
-                  ].where((s) => s.isNotEmpty).join(' · '),
-                ),
-                onTap: () => Navigator.pop(context, result),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     ),

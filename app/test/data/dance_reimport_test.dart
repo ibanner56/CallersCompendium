@@ -1,5 +1,6 @@
 import 'package:compendium_app/src/data/dance_reimport.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
@@ -16,7 +17,7 @@ void main() {
         formation: const Formation(FormationShape.dupleImproper),
         progression: Progression.single,
         figures: [
-          Figure(move: customMove, params: {'text': 'old'}),
+          testFigure(move: customMove, params: {'text': 'old'}),
         ],
         callingNotes: 'Keep this note',
         rating: 5,
@@ -31,7 +32,7 @@ void main() {
         formation: const Formation(FormationShape.becketCw),
         progression: Progression.double,
         figures: [
-          Figure(move: customMove, params: {'text': 'new'}),
+          testFigure(move: customMove, params: {'text': 'new'}),
         ],
         createdAt: DateTime.utc(2026),
         updatedAt: DateTime.utc(2026),
@@ -91,7 +92,7 @@ void main() {
     );
 
     final planned = await planSingleDanceJson(repos, payload([dance('one')]));
-    expect(planned?.draft.dance.title, 'Dance one');
+    expect(planned.draft.dance.title, 'Dance one');
     await expectLater(
       planSingleDanceJson(repos, payload(const [])),
       throwsA(isA<DanceReimportJsonException>()),
