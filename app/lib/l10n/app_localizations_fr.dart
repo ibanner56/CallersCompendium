@@ -6321,4 +6321,40 @@ class AppLocalizationsFr extends AppLocalizations {
   String venuePickerCreateOption(String name) {
     return 'Ajouter un nouveau lieu « $name »';
   }
+
+  @override
+  String get danceReimport => 'Réimporter la chorégraphie';
+
+  @override
+  String get danceReimportJson => 'JSON de Callers Compendium';
+
+  @override
+  String get danceReimportNoResults =>
+      'Aucune danse correspondante trouvée. Choisissez une autre source ou réessayez plus tard.';
+
+  @override
+  String get danceReimportChooseResult => 'Choisissez la danse à réimporter';
+
+  @override
+  String get danceReimportProgramArchive =>
+      'Ce fichier contient un programme et ne peut pas servir à réimporter une seule danse.';
+
+  @override
+  String get danceReimportInvalidJson =>
+      'Choisissez un fichier valide contenant exactement une danse.';
+
+  @override
+  String get danceReimportSourceFailed =>
+      'Impossible de charger une danse depuis cette source. Veuillez réessayer.';
+
+  @override
+  String get danceReimported => 'Chorégraphie mise à jour.';
+
+  @override
+  String get danceReimportTargetMissing =>
+      'Cette danse a été supprimée avant de pouvoir être mise à jour.';
+
+  @override
+  String get danceReimportTargetChanged =>
+      'Cette danse a changé avant de pouvoir être mise à jour. Vérifiez-la et réessayez.';
 }

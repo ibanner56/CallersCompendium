@@ -27,6 +27,12 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Re-import choreography from a dance detail** — choose Caller's Box,
+  ContraDB, or a single-dance Caller's Compendium JSON file, review the parsed
+  dance, then update only its figures, formation, and progression. Your notes,
+  ratings, tags, links, authors, citations, and other collection metadata stay
+  intact. (issue #990)
+  
 - **Directed promenades** now import their stated rotation sense into the
   existing `promenade.turn` parameter. TCB `clockwise`/`counterclockwise`
   qualifiers no longer force the whole line to custom, and ContraDB's

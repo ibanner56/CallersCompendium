@@ -62,6 +62,7 @@ class DanceDetailScreen extends StatefulWidget {
     this.onRestored,
     this.onDeleted,
     this.onNavigateTo,
+    this.onReimport,
   }) : previewData = null,
        onImport = null;
 
@@ -78,7 +79,8 @@ class DanceDetailScreen extends StatefulWidget {
        previewData = data,
        onRestored = null,
        onDeleted = null,
-       onNavigateTo = null;
+       onNavigateTo = null,
+       onReimport = null;
 
   /// Id of the persisted dance to load, or `null` in preview mode (see
   /// [DanceDetailScreen.preview]).
@@ -107,6 +109,10 @@ class DanceDetailScreen extends StatefulWidget {
   /// parent updates the selected id; when null (routed mode), the screen uses
   /// [Navigator.pushReplacement] instead.
   final void Function(String danceId)? onNavigateTo;
+
+  /// Opens the owner-controlled re-import flow for this saved dance. The list
+  /// owns routed navigation; the collection shell owns its split-pane preview.
+  final Future<void> Function(DanceDetailData detail)? onReimport;
 
   /// App-bar action layout breakpoint (logical pixels). Below this width the
   /// screen collapses its secondary actions (dialect switch, Export, Duplicate,
@@ -388,7 +394,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   Future<void> _openDance(String danceId) async {
     await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
-        builder: (_) => DanceDetailScreen(danceId: danceId),
+        builder: (_) =>
+            DanceDetailScreen(danceId: danceId, onReimport: widget.onReimport),
       ),
     );
   }
@@ -421,7 +428,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     } else {
       await Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
-          builder: (_) => DanceDetailScreen(danceId: copy.id),
+          builder: (_) => DanceDetailScreen(
+            danceId: copy.id,
+            onReimport: widget.onReimport,
+          ),
         ),
       );
     }
@@ -552,6 +562,13 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           onPressed: _duplicate,
         ),
         _addToProgramButton(detail),
+        if (widget.onReimport != null)
+          IconButton(
+            key: const ValueKey('reimport-dance'),
+            tooltip: l10n.danceReimport,
+            icon: const Icon(Icons.refresh),
+            onPressed: () => widget.onReimport!(detail),
+          ),
         IconButton(
           key: const ValueKey('delete-dance'),
           tooltip: l10n.danceDeleteTooltip,
@@ -641,6 +658,16 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
         ),
         const PopupMenuDivider(),
+        if (widget.onReimport != null)
+          PopupMenuItem<void>(
+            key: const ValueKey('reimport-dance'),
+            onTap: () => widget.onReimport!(detail),
+            child: ListTile(
+              leading: const Icon(Icons.refresh),
+              title: Text(l10n.danceReimport),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
         PopupMenuItem<void>(
           key: const ValueKey('duplicate-dance'),
           onTap: _duplicate,

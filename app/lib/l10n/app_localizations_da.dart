@@ -6230,4 +6230,41 @@ class AppLocalizationsDa extends AppLocalizations {
   String venuePickerCreateOption(String name) {
     return 'Tilføj nyt spillested „$name“';
   }
+
+  @override
+  String get danceReimport => 'Genimportér koreografi';
+
+  @override
+  String get danceReimportJson => 'Callers Compendium JSON';
+
+  @override
+  String get danceReimportNoResults =>
+      'Ingen matchende danse blev fundet. Vælg en anden kilde, eller prøv igen senere.';
+
+  @override
+  String get danceReimportChooseResult =>
+      'Vælg den dans, der skal genimporteres';
+
+  @override
+  String get danceReimportProgramArchive =>
+      'Denne fil indeholder et program og kan ikke bruges til at genimportere én dans.';
+
+  @override
+  String get danceReimportInvalidJson =>
+      'Vælg en gyldig fil, der indeholder præcis én dans.';
+
+  @override
+  String get danceReimportSourceFailed =>
+      'Kunne ikke indlæse en dans fra denne kilde. Prøv igen.';
+
+  @override
+  String get danceReimported => 'Koreografien blev opdateret.';
+
+  @override
+  String get danceReimportTargetMissing =>
+      'Denne dans blev slettet, før den kunne opdateres.';
+
+  @override
+  String get danceReimportTargetChanged =>
+      'Denne dans blev ændret, før den kunne opdateres. Gennemgå den, og prøv igen.';
 }

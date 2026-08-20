@@ -9550,6 +9550,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add new venue “{name}”'**
   String venuePickerCreateOption(String name);
+
+  /// Action label for replacing one saved dance's choreography from another source.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-import choreography'**
+  String get danceReimport;
+
+  /// Source option for choosing a Callers Compendium JSON file for re-import.
+  ///
+  /// In en, this message translates to:
+  /// **'Callers Compendium JSON'**
+  String get danceReimportJson;
+
+  /// Message shown when an online re-import search finds no dances.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching dances were found. Choose another source or try again later.'**
+  String get danceReimportNoResults;
+
+  /// Title of the dialog where the user selects an online dance to re-import.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the dance to re-import'**
+  String get danceReimportChooseResult;
+
+  /// Error shown when a JSON re-import file contains a program.
+  ///
+  /// In en, this message translates to:
+  /// **'This file contains a program and cannot be used to re-import one dance.'**
+  String get danceReimportProgramArchive;
+
+  /// Error shown when a JSON re-import file is invalid or has the wrong dance count.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a valid file containing exactly one dance.'**
+  String get danceReimportInvalidJson;
+
+  /// Error shown when a re-import source cannot be loaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load a dance from that source. Please try again.'**
+  String get danceReimportSourceFailed;
+
+  /// Confirmation shown after saved dance choreography is re-imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Choreography updated.'**
+  String get danceReimported;
+
+  /// Error shown when the saved dance was deleted before re-import could commit.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance was deleted before it could be updated.'**
+  String get danceReimportTargetMissing;
+
+  /// Error shown when the saved dance changed while its re-import preview was open.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance changed before it could be updated. Review it and try again.'**
+  String get danceReimportTargetChanged;
 }
 
 class _AppLocalizationsDelegate

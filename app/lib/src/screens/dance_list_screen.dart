@@ -12,6 +12,7 @@ import '../data/callersbox_online.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/collection_tile_fields_scope.dart';
 import '../data/contradb_online.dart';
+import '../data/dance_reimport.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/import_error_labels.dart';
@@ -27,6 +28,7 @@ import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
+import '../search/dance_detail_data.dart';
 import '../theme/app_spacing.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
@@ -49,6 +51,7 @@ import '../screens/recently_deleted_screen.dart';
 import 'app_shell_search_scope.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
+import 'dance_reimport_flow.dart';
 import 'online_import_variation_dialog.dart';
 
 /// Collection screen: browse and search the dance library
@@ -947,6 +950,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       );
       return;
     }
+
     if (!mounted) return;
     navigator.pop();
     // The preview route pops with the import result once the user taps Import
@@ -979,6 +983,106 @@ class _DanceListScreenState extends State<DanceListScreen> {
         content: Text(onlineImportMessage(l10n, imported)),
       ),
     );
+  }
+
+  Future<void> _beginReimportRoute(DanceDetailData target) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final preview = await selectReimportDance(
+        context,
+        target: target.dance,
+        callersBox: _callersBox,
+        contraDb: _contraDb,
+      );
+      if (!mounted || preview == null) return;
+      final committed = await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (_) => DanceDetailScreen.preview(
+            data: preview,
+            onImport: () async {
+              if (_importing) return;
+              _importing = true;
+              try {
+                final result = await replaceDanceChoreography(
+                  _repos,
+                  targetDanceId: target.dance.id,
+                  incoming: preview.dance,
+                  expectedUpdatedAt: target.dance.updatedAt,
+                );
+                if (!mounted) return;
+                if (result == DanceReimportResult.replaced) {
+                  Navigator.of(context).pop(true);
+                } else {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        result == DanceReimportResult.targetMissing
+                            ? AppLocalizations.of(
+                                context,
+                              ).danceReimportTargetMissing
+                            : AppLocalizations.of(
+                                context,
+                              ).danceReimportTargetChanged,
+                      ),
+                    ),
+                  );
+                }
+              } catch (error, stackTrace) {
+                logCaughtErrorTypeOnly(
+                  error,
+                  stackTrace,
+                  source: 'dance_list_screen._commitReimport',
+                );
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        AppLocalizations.of(context).danceReimportSourceFailed,
+                      ),
+                    ),
+                  );
+                }
+              } finally {
+                _importing = false;
+              }
+            },
+          ),
+        ),
+      );
+      if (mounted && committed == true) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).danceReimported)),
+        );
+      }
+    } on DanceReimportJsonException catch (error) {
+      logCaughtErrorTypeOnly(
+        error,
+        StackTrace.current,
+        source: 'dance_list_screen._beginReimportRoute',
+      );
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            error.programBearing
+                ? AppLocalizations.of(context).danceReimportProgramArchive
+                : AppLocalizations.of(context).danceReimportInvalidJson,
+          ),
+        ),
+      );
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._beginReimportRoute',
+      );
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).danceReimportSourceFailed),
+        ),
+      );
+    }
   }
 
   /// Directly imports the previewed online dance into the local collection
@@ -2526,7 +2630,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
               // The detail screen broadcasts the undo itself — but that
               final deleted = await Navigator.of(context).push<bool>(
                 MaterialPageRoute(
-                  builder: (_) => DanceDetailScreen(danceId: entry.dance.id),
+                  builder: (_) => DanceDetailScreen(
+                    danceId: entry.dance.id,
+                    onReimport: _beginReimportRoute,
+                  ),
                 ),
               );
               if (mounted && deleted == true) await _boot();

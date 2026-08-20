@@ -3,16 +3,19 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/callersbox_online.dart';
 import '../data/contradb_online.dart';
+import '../data/dance_reimport.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/online_search_labels.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../search/dance_detail_data.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/brand_mark.dart';
 import 'dance_detail_screen.dart';
 import 'dance_list_screen.dart';
+import 'dance_reimport_flow.dart';
 import 'import_review_screen.dart';
 import 'online_import_variation_dialog.dart';
 
@@ -140,6 +143,9 @@ class _CollectionShellState extends State<CollectionShell> {
   /// Guards the direct-import commit so a rapid double-tap (or re-tap) of the
   /// preview Import button cannot commit the same plan twice.
   bool _importing = false;
+  String? _reimportTargetId;
+  DateTime? _reimportTargetUpdatedAt;
+  DanceDetailData? _reimportPreview;
 
   void _onSelectDance(String danceId) {
     setState(() {
@@ -191,6 +197,116 @@ class _CollectionShellState extends State<CollectionShell> {
     _onlinePreview = null;
     _onlinePreviewLoading = false;
     _onlinePreviewError = null;
+    _reimportTargetId = null;
+    _reimportTargetUpdatedAt = null;
+    _reimportPreview = null;
+  }
+
+  Future<void> _beginReimport(DanceDetailData detail) async {
+    final messenger = _detailMessengerKey.currentState;
+    try {
+      final preview = await selectReimportDance(
+        context,
+        target: detail.dance,
+        callersBox: _callersBox,
+        contraDb: _contraDb,
+        picker: widget.importPicker ?? pickImportFile,
+      );
+      if (!mounted || preview == null) return;
+      setState(() {
+        _reimportTargetId = detail.dance.id;
+        _reimportTargetUpdatedAt = detail.dance.updatedAt;
+        _reimportPreview = preview;
+        _onlinePreview = null;
+        _onlinePreviewLoading = false;
+        _onlinePreviewError = null;
+        _detailMode = _DetailMode.onlinePreview;
+      });
+    } on DanceReimportJsonException catch (error) {
+      logCaughtErrorTypeOnly(
+        error,
+        StackTrace.current,
+        source: 'collection_shell._beginReimport',
+      );
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(
+            error.programBearing
+                ? AppLocalizations.of(context).danceReimportProgramArchive
+                : AppLocalizations.of(context).danceReimportInvalidJson,
+          ),
+        ),
+      );
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'collection_shell._beginReimport',
+      );
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).danceReimportSourceFailed),
+        ),
+      );
+    }
+  }
+
+  Future<void> _commitReimport(DanceDetailData preview) async {
+    final target = _reimportTargetId;
+    final expectedUpdatedAt = _reimportTargetUpdatedAt;
+    if (_importing || target == null || expectedUpdatedAt == null) return;
+    _importing = true;
+    try {
+      final result = await replaceDanceChoreography(
+        RepositoriesScope.of(context),
+        targetDanceId: target,
+        incoming: preview.dance,
+        expectedUpdatedAt: expectedUpdatedAt,
+      );
+      if (!mounted) return;
+      if (result == DanceReimportResult.replaced) {
+        setState(() {
+          _selectedDanceId = target;
+          _detailMode = _DetailMode.none;
+          _onlinePreview = null;
+          _onlinePreviewLoading = false;
+          _onlinePreviewError = null;
+          _reimportTargetId = null;
+          _reimportTargetUpdatedAt = null;
+          _reimportPreview = null;
+        });
+        _detailMessengerKey.currentState?.showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).danceReimported)),
+        );
+      } else {
+        _detailMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(
+              result == DanceReimportResult.targetMissing
+                  ? AppLocalizations.of(context).danceReimportTargetMissing
+                  : AppLocalizations.of(context).danceReimportTargetChanged,
+            ),
+          ),
+        );
+      }
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'collection_shell._commitReimport',
+      );
+      if (mounted) {
+        _detailMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).danceReimportSourceFailed,
+            ),
+          ),
+        );
+      }
+    } finally {
+      _importing = false;
+    }
   }
 
   /// Fetches the tapped online result's full record and shows it in the detail
@@ -467,6 +583,14 @@ class _CollectionShellState extends State<CollectionShell> {
             );
           }
           final preview = _onlinePreview;
+          final reimportPreview = _reimportPreview;
+          if (reimportPreview != null) {
+            return DanceDetailScreen.preview(
+              key: ValueKey('reimport-preview-${_reimportTargetId!}'),
+              data: reimportPreview,
+              onImport: () => _commitReimport(reimportPreview),
+            );
+          }
           if (preview != null) {
             return DanceDetailScreen.preview(
               key: ValueKey('online-preview-${preview.result.id}'),
@@ -504,6 +628,7 @@ class _CollectionShellState extends State<CollectionShell> {
         onDeleted: _onDetailDeleted,
         onRestored: _onDetailRestored,
         onNavigateTo: _onNavigateTo,
+        onReimport: _beginReimport,
       );
     }
     return const _EmptyDetailPane();

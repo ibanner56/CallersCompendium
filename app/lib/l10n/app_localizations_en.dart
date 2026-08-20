@@ -6216,4 +6216,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String venuePickerCreateOption(String name) {
     return 'Add new venue “$name”';
   }
+
+  @override
+  String get danceReimport => 'Re-import choreography';
+
+  @override
+  String get danceReimportJson => 'Callers Compendium JSON';
+
+  @override
+  String get danceReimportNoResults =>
+      'No matching dances were found. Choose another source or try again later.';
+
+  @override
+  String get danceReimportChooseResult => 'Choose the dance to re-import';
+
+  @override
+  String get danceReimportProgramArchive =>
+      'This file contains a program and cannot be used to re-import one dance.';
+
+  @override
+  String get danceReimportInvalidJson =>
+      'Choose a valid file containing exactly one dance.';
+
+  @override
+  String get danceReimportSourceFailed =>
+      'Could not load a dance from that source. Please try again.';
+
+  @override
+  String get danceReimported => 'Choreography updated.';
+
+  @override
+  String get danceReimportTargetMissing =>
+      'This dance was deleted before it could be updated.';
+
+  @override
+  String get danceReimportTargetChanged =>
+      'This dance changed before it could be updated. Review it and try again.';
 }
