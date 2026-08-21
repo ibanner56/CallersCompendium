@@ -19,13 +19,15 @@ final RegExp _camelBoundary = RegExp(r'(?<=[a-z])(?=[A-Z])');
 /// embedded role would never be substituted (issue #832).
 final RegExp _singleDancerShape = RegExp(r'^(ones|twos)(Role[12])$');
 
+/// A display template's computed slots and literal sentence structure.
+typedef _DisplayTemplate = ({Map<String, String> slots, String template});
+
 /// Signature of a DISPLAY-ONLY base-line renderer (see
-/// [FigureRenderer._displayBaseRenderers]). Rebuilds the whole terse line for a
-/// move that adopts ContraDB's `words()` sentence structure verbatim, using the
-/// already-resolved effective [params] and the active [dialect]. Never invoked
-/// for the canonical render (which keeps expanding `renderTemplate`).
+/// [FigureRenderer._displayBaseRenderers]). Computes the slots for a move that
+/// adopts ContraDB's `words()` sentence structure verbatim. Never invoked for
+/// the canonical render (which keeps expanding `renderTemplate`).
 typedef _DisplayBaseRenderer =
-    String Function(
+    _DisplayTemplate Function(
       FigureRenderer r,
       MoveDef def,
       Map<String, Object?> params,
@@ -33,6 +35,53 @@ typedef _DisplayBaseRenderer =
       bool verbose,
       bool decimals,
     );
+
+/// Expands a display template in one pass.
+///
+/// Slot values are inserted as literal output and are never scanned again for
+/// placeholders. This is deliberate: callers may eventually provide the
+/// template text, but they can only control literal surrounding text, never
+/// substitution values. An unknown slot is empty, and an optional bracketed
+/// group is omitted when all of its slots are empty. The final whitespace
+/// collapse keeps omitted slots from leaving double spaces or dangling
+/// separators.
+String _assembleDisplayTemplate(_DisplayTemplate displayTemplate) {
+  final slots = displayTemplate.slots;
+  final template = displayTemplate.template;
+  final output = StringBuffer();
+  var index = 0;
+
+  String substitute(String source) =>
+      source.replaceAllMapped(_placeholder, (match) => slots[match[1]!] ?? '');
+
+  while (index < template.length) {
+    if (template[index] != '[') {
+      final next = template.indexOf('[', index);
+      final end = next < 0 ? template.length : next;
+      output.write(substitute(template.substring(index, end)));
+      index = end;
+      continue;
+    }
+    final close = template.indexOf(']', index + 1);
+    if (close < 0) {
+      output.write(substitute(template.substring(index)));
+      break;
+    }
+    final group = template.substring(index + 1, close);
+    final names = _placeholder
+        .allMatches(group)
+        .map((match) => match[1]!)
+        .toList();
+    final allEmpty =
+        names.isNotEmpty && names.every((name) => (slots[name] ?? '').isEmpty);
+    if (!allEmpty) output.write(substitute(group));
+    index = close + 1;
+  }
+  return FigureRenderer._collapseSpaces(output.toString());
+}
+
+_DisplayTemplate _displayTemplate(Map<String, String> slots, String template) =>
+    (slots: slots, template: template);
 
 /// Where a move's `balance` flag renders relative to the terse base line, per
 /// ContraDB `libfigure` word order. [leading] prepends the "balance &" prefix
@@ -260,7 +309,7 @@ class FigureRenderer {
     if (!forCanonical) {
       final displayBase = _displayBaseRenderers[def.id];
       if (displayBase != null) {
-        final line = _collapseSpaces(
+        final line = _assembleDisplayTemplate(
           displayBase(this, def, params, dialect, verbose, decimals),
         );
         // Base lines tag the subject's exact end with [_subjectMarkSentinel]
@@ -288,7 +337,7 @@ class FigureRenderer {
       if (def.id == 'star') {
         // Canonical mirrors the display entry for star: no display-only polish
         // exists, so the same word-order applies to both paths.
-        final canonicalLine = _collapseSpaces(
+        final canonicalLine = _assembleDisplayTemplate(
           _displayBaseRenderers['star']!(
             this,
             def,
@@ -1048,10 +1097,14 @@ class FigureRenderer {
       );
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       // Join with spaces exactly like the `{who} {prefix} {move}` template; the
-      // enclosing [_render] collapses the runs (and an empty `none` prefix) and
-      // handles the subject sentinel, so the `in` case matches today verbatim.
-      final base = '$swho $prefix $move';
-      return '$base${_swingEndFacingClause(params['endFacing'])}';
+      // The assembler collapses the runs (and an empty `none` prefix) and handles
+      // the subject sentinel, so the `in` case matches today verbatim.
+      return _displayTemplate({
+        'who': swho,
+        'prefix': prefix,
+        'move': move,
+        'end_facing': _swingEndFacingClause(params['endFacing']),
+      }, '{who} {prefix} {move}{end_facing}');
     },
     // The unified gate (taxonomy v22 — was ContraDB `gate` + TCB
     // `rotation_gate`). Word order, preserved from both predecessors:
@@ -1107,9 +1160,8 @@ class FigureRenderer {
           : _isUnspecified(turnRaw)
           ? ''
           : _displayScalar(turnRaw);
-      final head = direction == 'mirror'
-          ? '$swho mirror $move $objects $turn'
-          : '$swho $move $objects $direction $turn';
+      final modifier = direction == 'mirror' ? 'mirror ' : '';
+      final renderedDirection = direction == 'mirror' ? '' : direction;
       final faceRaw = params['face'];
       // Allow-listed exactly like `swing.endFacing` (v16): an unknown or
       // tolerantly-decoded token renders NO clause rather than being injected
@@ -1118,7 +1170,20 @@ class FigureRenderer {
       final facingClause = (faceRaw is String && gateFacings.contains(faceRaw))
           ? ' to face ${_gateFacingPhrase(faceRaw)}'
           : '';
-      return '$head$forwardClause$facingClause';
+      return _displayTemplate(
+        {
+          'subject': swho,
+          'modifier': modifier,
+          'move': move,
+          'objects': objects,
+          'direction': renderedDirection,
+          'turn': turn,
+          'forward': forwardClause,
+          'facing': facingClause,
+        },
+        '{subject} {modifier}{move} {objects} {direction} {turn}'
+        '{forward}{facing}',
+      );
     },
     // The Caller's Box's standalone courtesy turn (taxonomy v23). Maintainer's
     // stated wording, verbatim:
@@ -1157,9 +1222,15 @@ class FigureRenderer {
       final facing = (!_isUnspecified(facingRaw) && facingRaw != null)
           ? ' to face ${r._displaySubject(facingRaw, dialect)}'
           : '';
-      // The enclosing [_render] collapses the whitespace runs an empty slot
-      // leaves behind, so the all-defaults line reads "partner courtesy turn".
-      return '$swho $move $whom $direction$facing';
+      // The assembler collapses the whitespace runs an empty slot leaves behind,
+      // so the all-defaults line reads "partner courtesy turn".
+      return _displayTemplate({
+        'who': swho,
+        'move': move,
+        'whom': whom,
+        'direction': direction,
+        'facing': facing,
+      }, '{who} {move} {whom} {direction}{facing}');
     },
     // ContraDB `zigZagWords`: words(twho, "zig", sspin, "zag", return_sspin, …).
     // The zag direction is the mirror of the zig (`turn`) direction. ContraDB
@@ -1182,7 +1253,11 @@ class FigureRenderer {
       // Omit the "with <subject>" suffix entirely when the subject renders
       // empty — never emit a dangling "with".
       final suffix = swho.isEmpty ? '' : ' with $swho';
-      return 'zig $turn zag $zag$suffix';
+      return _displayTemplate({
+        'turn': turn,
+        'zag': zag,
+        'with': suffix,
+      }, 'zig {turn} zag {zag}{with}');
     },
     // ContraDB `slice` has no `words` fn → `figureGenericWords` over its labels:
     // words(smove, sslide, sincrement, sreturn). `slice_increment` couple→"",
@@ -1212,7 +1287,12 @@ class FigureRenderer {
           : ret == 'diagonal'
           ? 'and diagonal back'
           : _humanize(ret.toString());
-      return '$move $slide $byWord $retWord';
+      return _displayTemplate({
+        'move': move,
+        'slide': slide,
+        'by': byWord,
+        'return': retWord,
+      }, '{move} {slide} {by} {return}');
     },
     // ContraDB `madRobinWords`: words(smove, tangle, comma, srole, "in front"),
     // tangle = angle !== 360 && sangle + " around". Our `turn` is a rotation
@@ -1251,7 +1331,12 @@ class FigureRenderer {
       // Only emit the comma + "<subject> in front" when the subject renders
       // non-empty (never "mad robin, " with nothing after it).
       final subject = swho.isEmpty ? '' : ', $swho in front';
-      return '$move$dirWord$around$subject';
+      return _displayTemplate({
+        'move': move,
+        'direction': dirWord,
+        'around': around,
+        'subject': subject,
+      }, '{move}{direction}{around}{subject}');
     },
     // ContraDB `revolvingDoorWords`: words(smove, " - ", ssubject, "take",
     // shand, "hands and drop off", sobject, "on other side"). The subject
@@ -1264,7 +1349,12 @@ class FigureRenderer {
       final swho = r._displaySubject(params['who'], dialect);
       final hand = _displayScalar(params['hand']);
       final swhom = r._displaySubject(params['whom'], dialect);
-      return '$move - $swho take $hand hands and drop off $swhom on other side';
+      return _displayTemplate({
+        'move': move,
+        'who': swho,
+        'hand': hand,
+        'whom': swhom,
+      }, '{move} - {who} take {hand} hands and drop off {whom} on other side');
     },
     // ContraDB `boxCirculateWords`: words(sbal, smove, "-", words(ssubject,
     // "cross while", invertPair(subject), "loop", sspin)). The leading balance
@@ -1279,7 +1369,12 @@ class FigureRenderer {
       final swho = r._subjectWho(params, dialect);
       final other = r._invertPair(params['who'], dialect);
       final hand = _displayScalar(params['hand']);
-      return '$move - $swho cross while $other loop $hand';
+      return _displayTemplate({
+        'move': move,
+        'who': swho,
+        'other': other,
+        'hand': hand,
+      }, '{move} - {who} cross while {other} loop {hand}');
     },
     // ContraDB `crossTrailsWords`: words(smove, "-", sfirst_who, sfirst_dir,
     // sfirst_shoulder + ",", ssecond_who, ssecond_dir, ssecond_shoulder). The
@@ -1322,7 +1417,10 @@ class FigureRenderer {
         secondShoulder,
       ].where((s) => s.isNotEmpty).join(' ');
       final body = secondPart.isEmpty ? firstPart : '$firstPart, $secondPart';
-      return '$move - $body';
+      return _displayTemplate({
+        'move': move,
+        'body': body,
+      }, '{move}[ - {body}]');
     },
     // ContraDB `poussetteWords`: words(shalf_or_full, smove, "-", swho, "pull",
     // swhom, tturn). tturn: turn truthy (clockwise) -> "back then left", falsy
@@ -1342,14 +1440,13 @@ class FigureRenderer {
           ? 'back then *'
           : '';
       final pullClause = swhom.isEmpty ? 'pull' : 'pull $swhom';
-      return [
-        half,
-        move,
-        '-',
-        swho,
-        pullClause,
-        turnWord,
-      ].where((s) => s.isNotEmpty).join(' ');
+      return _displayTemplate({
+        'half': half,
+        'move': move,
+        'who': swho,
+        'pull': pullClause,
+        'turn': turnWord,
+      }, '{half} {move} - {who} {pull} {turn}');
     },
     // ContraDB `facingStarWords`: words(smove, sturn, splaces, "with", swho,
     // "putting their", shand, "hands in and backing up"). No leading subject.
@@ -1374,15 +1471,17 @@ class FigureRenderer {
           : _displayScalar(placesRaw);
       final swho = r._displaySubject(params['who'], dialect);
       final withClause = swho.isEmpty ? '' : 'with $swho';
-      return [
-        move,
-        turnWord,
-        places,
-        withClause,
-        'putting their',
-        hand,
-        'hands in and backing up',
-      ].where((s) => s.isNotEmpty).join(' ');
+      return _displayTemplate(
+        {
+          'move': move,
+          'turn': turnWord,
+          'places': places,
+          'with': withClause,
+          'hand': hand,
+        },
+        '{move} {turn} {places} {with} putting their {hand} hands in and '
+        'backing up',
+      );
     },
     // ContraDB `squareThroughWords`: words(smove, placewords, "-", ssubject1,
     // sbal, "pull by", shand, comma, "then", ssubject2, "pull by", shand2,
@@ -1428,7 +1527,11 @@ class FigureRenderer {
       } else if (placesRaw == 4) {
         seq.add('then repeat');
       }
-      return '$move $placeWord - ${seq.join(', ')}';
+      return _displayTemplate({
+        'move': move,
+        'places': placeWord,
+        'sequence': seq.join(', '),
+      }, '{move} {places} - {sequence}');
     },
     // ContraDB `heyWords`: words(sfirst_pass, "start", indefiniteArticleFor(mp),
     // mp, "-", sshoulder, first_place, comma, other_sshoulder, second_place,
@@ -1445,7 +1548,7 @@ class FigureRenderer {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final pass1 = params['pass1'];
       final pass2 = params['pass2'];
-      final sfirst = r._displaySubject(pass1, dialect);
+      final sfirst = r._subjectToken(pass1, dialect);
       final length = params['length'];
       final dir = params['dir'];
       final sdir2 = (dir == 'across' || dir == null) ? '' : _displayScalar(dir);
@@ -1468,13 +1571,12 @@ class FigureRenderer {
       final article = _indefiniteArticle(mainPhrase);
       final sh = params['shoulder'];
       final terse = _terseShoulder(sh);
-      final otherTerse = _terseShoulder(
-        sh == 'right'
-            ? 'left'
-            : sh == 'left'
-            ? 'right'
-            : sh,
-      );
+      final otherShoulder = sh == 'right'
+          ? 'left'
+          : sh == 'left'
+          ? 'right'
+          : sh;
+      final otherTerse = _terseShoulder(otherShoulder);
       final firstIsPair = _isPairToken(pass1);
       final firstPlace = firstIsPair ? 'in center' : 'on ends';
       final secondPlace = firstIsPair ? 'on ends' : 'in center';
@@ -1545,15 +1647,28 @@ class FigureRenderer {
           if (who.isNotEmpty) ricoStrings.add('$who $verb$time');
         }
       }
-      final buffer = StringBuffer();
-      if (sfirst.isNotEmpty) buffer.write('$sfirst ');
-      buffer.write('start $article $mainPhrase');
-      if (shoulderClause.isNotEmpty) buffer.write(' - $shoulderClause');
-      if (usesUntil && untilClause.isNotEmpty) buffer.write(' - $untilClause');
-      if (ricoStrings.isNotEmpty) {
-        buffer.write(' - ${ricoStrings.join(', ')}');
-      }
-      return buffer.toString();
+      return _displayTemplate(
+        {
+          'who': sfirst,
+          'article': article,
+          'dir': sdir2,
+          'length': lengthWord,
+          'move': move,
+          'shoulder': _displayScalar(sh),
+          'other_shoulder': _displayScalar(otherShoulder),
+          'first_place': firstPlace,
+          'second_place': secondPlace,
+          'shoulder_clause': shoulderClause,
+          'meet_target': usesUntil ? untilSubject : '',
+          'meet_verb': usesUntil ? untilVerb : '',
+          'until': untilClause,
+          'ricochets': ricoStrings.join(', '),
+        },
+        '{who} start {article} {dir} {length} {move}'
+        '[ - {shoulder_clause}]'
+        '[ - {until}]'
+        '[ - {ricochets}]',
+      );
     },
     // ContraDB `dolphinHeyWords`: words(smove, "- start with", swho, "passing",
     // swhom, "by", sshoulder). `whom` is a single-dancer identity, rendered via
@@ -1567,13 +1682,12 @@ class FigureRenderer {
       final shoulder = sh == null
           ? ''
           : '${_humanize(sh.toString())} shoulders';
-      final buffer = StringBuffer('$move - start with');
-      if (swho.isNotEmpty) buffer.write(' $swho');
-      buffer.write(' passing');
-      if (swhom.isNotEmpty) buffer.write(' $swhom');
-      buffer.write(' by');
-      if (shoulder.isNotEmpty) buffer.write(' $shoulder');
-      return buffer.toString();
+      return _displayTemplate({
+        'move': move,
+        'who': swho,
+        'whom': swhom,
+        'shoulder': shoulder,
+      }, '{move} - start with {who} passing {whom} by {shoulder}');
     },
     // ContraDB `formLongWavesWords`: words(smove, "-", ssubject, "face in,",
     // invertPair(subject), "face out"). v21 (#295) extends it with the pair and
@@ -1600,7 +1714,11 @@ class FigureRenderer {
         '$swho facing in',
         '$other facing out',
       ].where((s) => s.isNotEmpty).join(', ');
-      return '$move - $body${_balanceSuffix(params['balance'])}';
+      return _displayTemplate({
+        'move': move,
+        'body': body,
+        'balance': _balanceSuffix(params['balance']),
+      }, '{move} - {body}{balance}');
     },
     // ContraDB `formALongWaveWords`: branches on in/out/balance. in only ->
     // "<who> dance in to a long wave in the center"; out+in -> "<other> dance
@@ -1621,21 +1739,33 @@ class FigureRenderer {
           : '';
       if (outFlag) {
         if (inFlag) {
-          return '$other dance out while $swho '
-              'dance in to a long wave in the center$maybeBalance';
+          return _displayTemplate(
+            {'other': other, 'subject': swho, 'balance': maybeBalance},
+            '{other} dance out while {subject} '
+            'dance in to a long wave in the center{balance}',
+          );
         }
-        return '$other dance out'
-            '${bal == true
-                ? ' & balance'
-                : bal == '*'
-                ? ' & *'
-                : ''}';
+        return _displayTemplate({
+          'other': other,
+          'balance': bal == true
+              ? ' & balance'
+              : bal == '*'
+              ? ' & *'
+              : '',
+        }, '{other} dance out{balance}');
       }
       if (inFlag) {
-        return '$swho dance in to a long wave in the center$maybeBalance';
+        return _displayTemplate({
+          'subject': swho,
+          'balance': maybeBalance,
+        }, '{subject} dance in to a long wave in the center{balance}');
       }
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      return '$swho $move in the center$maybeBalance';
+      return _displayTemplate({
+        'subject': swho,
+        'move': move,
+        'balance': maybeBalance,
+      }, '{subject} {move} in the center{balance}');
     },
     // #290 product splits of the retired `form_an_ocean_wave` — OUR extensions
     // with no ContraDB `words()` analog (see docs/research/parity-fix-decisions
@@ -1674,9 +1804,10 @@ class FigureRenderer {
         sideClause,
       ].where((s) => s.isNotEmpty).join(', ');
       final balance = _balanceSuffix(params['balance']);
-      return body.isEmpty
-          ? 'form short waves$balance'
-          : 'form short waves - $body$balance';
+      return _displayTemplate({
+        'body': body,
+        'balance': balance,
+      }, 'form short waves[ - {body}]{balance}');
     },
     // A non-default `dir` surfaces the diagonal word ("a right diagonal ocean
     // wave"), silent for the `across` default (ContraDB
@@ -1720,7 +1851,11 @@ class FigureRenderer {
         sideClause,
       ].where((s) => s.isNotEmpty).join(', ');
       final head = 'pass through to $article $noun';
-      return body.isEmpty ? '$head$balance' : '$head - $body$balance';
+      return _displayTemplate({
+        'head': head,
+        'body': body,
+        'balance': balance,
+      }, '{head}[ - {body}]{balance}');
     },
     // ContraDB `starWords`: `star <hand> [- <grip> -] <n> places`. The grip
     // clause appears between the hand and the count for the two non-`none`
@@ -1746,12 +1881,12 @@ class FigureRenderer {
           : grip == 'handsAcross'
           ? ' - hands across -'
           : ' - ${_humanize(grip.toString())} -';
-      return [
-        move,
-        hand,
-        if (gripClause.isNotEmpty) gripClause,
-        places,
-      ].where((s) => s.isNotEmpty).join(' ');
+      return _displayTemplate({
+        'move': move,
+        'hand': hand,
+        'grip': gripClause,
+        'places': places,
+      }, '{move} {hand}{grip} {places}');
     },
     // `promenade.singleFile` (taxonomy v18 #634, updated v27 #749, v29 #921
     // destination, v30 #989 turn):
@@ -1822,12 +1957,13 @@ class FigureRenderer {
         final dest = destStated
             ? 'to ${destRaw is String ? r._displayGroup(destRaw, dialect) : _displayScalar(destRaw)}'
             : '';
-        return [
-          'single file $move',
-          turn,
-          dir,
-          dest,
-        ].where((s) => s.isNotEmpty).join(' ');
+        return _displayTemplate({
+          'prefix': 'single file',
+          'move': move,
+          'turn': turn,
+          'direction': dir,
+          'destination': dest,
+        }, '{prefix} {move} {turn} {direction} {destination}');
       }
       final swho = r._subjectWho(params, dialect);
       // v30 (#989): `turn` shown iff it is non-default, a destination is
@@ -1843,7 +1979,13 @@ class FigureRenderer {
       final dest = destStated
           ? 'to ${destRaw is String ? r._displayGroup(destRaw, dialect) : _displayScalar(destRaw)}'
           : '';
-      return [swho, move, turn, dir, dest].where((s) => s.isNotEmpty).join(' ');
+      return _displayTemplate({
+        'who': swho,
+        'move': move,
+        'turn': turn,
+        'direction': dir,
+        'destination': dest,
+      }, '{who} {move} {turn} {direction} {destination}');
     },
     // `circle.singleFile` (taxonomy v18 #634, reworded v27 #840): a single-
     // file circulation around the ring (ContraDB source: "promenade single file
@@ -1881,16 +2023,21 @@ class FigureRenderer {
           params,
           dialect,
         );
-        return [
-          'single file $move',
-          turn,
-          places,
-        ].where((s) => s.isNotEmpty).join(' ');
+        return _displayTemplate({
+          'prefix': 'single file',
+          'move': move,
+          'turn': turn,
+          'places': places,
+        }, '{prefix} {move} {turn} {places}');
       }
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final turnRaw = params['turn'];
       final turn = _displayScalar(turnRaw);
-      return [move, turn, places].where((s) => s.isNotEmpty).join(' ');
+      return _displayTemplate({
+        'move': move,
+        'turn': turn,
+        'places': places,
+      }, '{move} {turn} {places}');
     },
     // pass_through (ContraDB `passThroughWords`): renders the shoulder ONLY when
     // it is not the default 'right' (right shoulders are implicit), and silences
@@ -1908,11 +2055,11 @@ class FigureRenderer {
       final dir = params['dir'];
       // Silence the default 'along' direction (ContraDB set_direction_along).
       final dirClause = (dir is String && dir != 'along') ? _humanize(dir) : '';
-      return [
-        move,
-        shoulderClause,
-        dirClause,
-      ].where((s) => s.isNotEmpty).join(' ');
+      return _displayTemplate({
+        'move': move,
+        'shoulder': shoulderClause,
+        'direction': dirClause,
+      }, '{move} {shoulder} {direction}');
     },
   };
 
