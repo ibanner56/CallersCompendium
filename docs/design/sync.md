@@ -2,12 +2,15 @@
 
 > **Decision record:** [ADR-004](../adr/004-device-sync-and-athenaeum.md).
 > **Normative specification:** [sync-spec.md](sync-spec.md).
+> **Execution plan:** [sync-implementation.md](sync-implementation.md).
 >
-> Three documents, three jobs. The ADR decides *what* we build and why. The
+> Four documents, four jobs. The ADR decides *what* we build and why. The
 > specification states *what a conforming implementation must do*, without
-> argument. This document holds the *reasoning* — the alternatives considered,
-> the defect each rule prevents, and the drafts that were wrong. Build from the
-> specification; come here to find out why a rule is the way it is.
+> argument. The implementation plan sequences the work — units, dependencies,
+> checkpoints — and carries no behaviour of its own. This document holds the
+> *reasoning* — the alternatives considered, the defect each rule prevents, and
+> the drafts that were wrong. Build from the specification; come here to find
+> out why a rule is the way it is.
 >
 > If the ADR and this document disagree, the ADR wins. If the specification and
 > this document disagree, that is a defect in one of them.

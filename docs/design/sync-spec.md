@@ -16,6 +16,11 @@ choice. Where the two disagree, the ADR governs the decision, this document
 governs the behaviour, and `sync.md` explains why — a disagreement between them
 is a defect in one of them and should be reported rather than resolved locally.
 
+It also carries **no schedule**. The order in which these sections are built,
+what may proceed in parallel, and the checkpoints between are in
+[sync-implementation.md](sync-implementation.md), which is a plan rather than a
+contract: nothing there constrains a conforming implementation.
+
 **Conformance language.** MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are used as
 in RFC 2119. A requirement stated without one of those words is descriptive.
 

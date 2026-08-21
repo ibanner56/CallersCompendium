@@ -11,6 +11,11 @@
   conformance requirements. Build from this.
 - **Design rationale**: [docs/design/sync.md](../design/sync.md) — why each rule
   is the way it is, the alternatives rejected, and the threat model.
+- **Execution plan**:
+  [docs/design/sync-implementation.md](../design/sync-implementation.md) — the
+  work broken into units, their dependency order, and the checkpoints between.
+  A schedule, not a contract; it binds nothing a conforming implementation does.
+  Nothing in it may start before this ADR is accepted.
 
 ## Implementation status
 
