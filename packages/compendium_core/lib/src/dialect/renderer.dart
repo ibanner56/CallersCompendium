@@ -661,9 +661,10 @@ class FigureRenderer {
   String? moveWordingTemplate(String moveId) {
     final def = taxonomy.resolve(moveId);
     if (def == null) return null;
-    final base = _displayBaseRenderers[moveId];
+    final canonicalMoveId = def.id;
+    final base = _displayBaseRenderers[canonicalMoveId];
     if (base == null) return def.renderTemplate;
-    final figure = Figure(move: moveId);
+    final figure = Figure(move: canonicalMoveId);
     final params = taxonomy.effectiveParams(figure);
     return base(this, def, params, Dialect.canonical, false, false).template;
   }

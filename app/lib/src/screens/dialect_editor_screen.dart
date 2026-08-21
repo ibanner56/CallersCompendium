@@ -375,6 +375,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     () => _EditorHeader(title: l10n.dialectEditorSectionMoveWordings),
     () => _MoveWordingsEditor(
       controllers: _wordingCtrls,
+      dialect: _working,
       expanded: _showWordings,
       onToggle: () => setState(() => _showWordings = !_showWordings),
       onEdited: _onEdited,
@@ -634,6 +635,7 @@ String _moveLabel(String id) => contraTaxonomy.moves[id]?.displayName ?? id;
 class _MoveWordingsEditor extends StatelessWidget {
   const _MoveWordingsEditor({
     required this.controllers,
+    required this.dialect,
     required this.expanded,
     required this.onToggle,
     required this.onEdited,
@@ -643,6 +645,7 @@ class _MoveWordingsEditor extends StatelessWidget {
   });
 
   final Map<String, TextEditingController> controllers;
+  final Dialect dialect;
   final bool expanded;
   final VoidCallback onToggle;
   final VoidCallback onEdited;
@@ -735,10 +738,10 @@ class _MoveWordingsEditor extends StatelessWidget {
     final missing = valid
         ? (_renderer.moveWordingMissingSlots(id, text).toList()..sort())
         : const <String>[];
-    final preview = _renderer.render(
-      Figure(move: id),
-      Dialect(name: 'Preview', moveWordings: {id: text}),
+    final previewDialect = dialect.copyWith(
+      moveWordings: {...dialect.moveWordings, id: text},
     );
+    final preview = _renderer.render(Figure(move: id), previewDialect);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),

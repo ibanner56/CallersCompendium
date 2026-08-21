@@ -2903,6 +2903,17 @@ void main() {
       expect(renderer.renderSummary(figure, dialect), 'swat the flea globally');
     });
 
+    test('editor wording slots use canonical alias display templates', () {
+      expect(
+        renderer.moveWordingTemplate('meltdown_swing'),
+        renderer.moveWordingTemplate('swing'),
+      );
+      expect(
+        renderer.moveWordingSlots('meltdown_swing'),
+        containsAll({'who', 'prefix', 'move', 'end_facing'}),
+      );
+    });
+
     test('invalid global wording falls back to existing display output', () {
       final dialect = Dialect(
         name: 'Wording',

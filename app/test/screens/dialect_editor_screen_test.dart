@@ -153,6 +153,14 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('Unknown slots are empty'), findsOneWidget);
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('dialect-wording-preview-swing')),
+            )
+            .data,
+        contains('twirl'),
+      );
       await tester.enterText(
         find.byKey(const ValueKey('dialect-wording-swing')),
         '{who',
