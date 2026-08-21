@@ -279,7 +279,7 @@ class ProgramRepository {
       if (!venueExists) {
         throw StateError(
           'cannot save program "${program.id}": venueId "$venueId" '
-          'references a venue that does not exist',
+          'references a venue that does not exist or is soft-deleted',
         );
       }
     }

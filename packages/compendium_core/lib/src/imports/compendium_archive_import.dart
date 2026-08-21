@@ -407,8 +407,8 @@ class CompendiumArchiveImporter {
       // fold in each venue this commit mints. The preload is skipped unless at
       // least one bundled venue has a strong-enough key to *possibly* match (a
       // non-null [venueFingerprint]): a bundle with no venues, or only weakly-
-      // described ones, can never dedupe cross-import, so the SELECT would be
-      // pure waste — such an import issues zero venue reads.
+      // described ones, can never dedupe by fingerprint, so that SELECT would
+      // be pure waste. Provenance and live-id snapshot reads may still occur.
       final canDedupe = archive.venues.any(
         (venue) => venueFingerprint(venue) != null,
       );
