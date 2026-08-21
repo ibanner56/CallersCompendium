@@ -1119,7 +1119,7 @@ void main() {
       expect(result.archive.dances.single.walkthrough, 'step1\nstep2');
     });
 
-    test('figure walkthroughOverride round-trips and is clamped (#411)', () {
+    test('figure display overrides round-trip, sanitize, and clamp (#822)', () {
       final archive = {
         'schemaVersion': archiveSchemaVersion,
         'exportedAt': '2026-01-01T00:00:00.000Z',
@@ -1134,12 +1134,14 @@ void main() {
                 'move': 'swing',
                 'params': {'who': 'partners', 'beats': 16},
                 'walkthroughOverride': 'Balance\u0007 and swing.\u202E',
+                'wordingOverride': 'Robins\u0007 pass right.\u202E',
               },
               {
                 'move': 'circle',
                 'params': {'turn': 'left'},
                 'walkthroughOverride':
                     'y' * (kMaxWalkthroughSnippetLength + 50),
+                'wordingOverride': 'z' * (kMaxWalkthroughSnippetLength + 50),
               },
             ],
             'createdAt': '2026-01-01T00:00:00.000Z',
@@ -1152,11 +1154,13 @@ void main() {
       final figures = result.archive.dances.single.figures;
       // Control/bidi stripped from the override, exactly like `note`.
       expect(figures[0].walkthroughOverride, 'Balance and swing.');
+      expect(figures[0].wordingOverride, 'Robins pass right.');
       // Oversized override truncated, never rejected.
       expect(
         figures[1].walkthroughOverride!.length,
         kMaxWalkthroughSnippetLength,
       );
+      expect(figures[1].wordingOverride!.length, kMaxWalkthroughSnippetLength);
     });
   });
 

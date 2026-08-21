@@ -4671,6 +4671,26 @@ class AppLocalizationsNl extends AppLocalizations {
       'Opgeslagen als je standaard voor deze figuur en overal hergebruikt waar ze voorkomt.';
 
   @override
+  String get danceEditorAddWordingOverride =>
+      'Woording voor deze dans aanpassen';
+
+  @override
+  String get danceEditorWordingOverrideLabel =>
+      'Woording van de figuur voor deze dans';
+
+  @override
+  String get danceEditorWordingOverrideHelper =>
+      'Vervangt de weergegeven regel voor deze figuur in deze dans. De canonieke figuur blijft doorzoekbaar.';
+
+  @override
+  String get danceEditorResetWordingOverride => 'Standaardwoording gebruiken';
+
+  @override
+  String danceEditorWordingOverridePreview(Object text) {
+    return 'Voorbeeld: $text';
+  }
+
+  @override
   String get danceEditorSnippetDivergenceTitle =>
       'Opgeslagen fragment bijwerken?';
 

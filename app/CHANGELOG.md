@@ -13,6 +13,10 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Changed
 
+- **Dance editor figure wording** — add an optional per-dance wording override
+  for structured figures. The override is previewed with the active dialect and
+  affects display only; canonical search and deduplication remain unchanged.
+
 - **Collection search** — search can now be scoped to **All fields**, **Title**,
   or **Figure**. Short prefixes and longer literal substrings, including
   punctuation-spanning title text, use derived local indexes; online search

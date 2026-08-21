@@ -10,6 +10,11 @@ Storage is canonical for structured data (move IDs, role IDs) and for
 figure-bearing free text; hand-typed prose is stored verbatim (see
 "Canonicalization on input").
 
+A dance may also carry a per-figure **wording override** for display-only
+authoring. It is stored with that dance occurrence, rendered through the
+active dialect, and replaces the rendered line (including summary additions).
+It is never included in canonical figure text, search, or deduplication.
+
 ```json
 {
   "name": "Custom",
@@ -63,6 +68,8 @@ free text (notes/custom) ──term regex (case-preserving)──▶ display tex
   (positional/relational sets and single-dancer identities alike), and terms
   inside free text (notes, hooks, custom figures) via compiled word-boundary
   regex with case preservation.
+- Per-dance wording overrides use the same dialect substitution, but do not
+  enter the canonical rendering or any search/deduplication identity.
 - Search always runs against canonical text/structures → dialect never affects
   results (dialect-agnostic search for free).
 - Print/export lets the user choose canonical or active dialect; exports embed
@@ -143,6 +150,7 @@ Edge rules:
 | Dance card, editor previews, performance mode | ✅ |
 | Free text: custom figures, figure notes | ✅ (canonical on save, rendered on read) |
 | Hand-typed prose: hooks, calling notes, walkthrough | ❌ verbatim (intentional; #613) |
+| Per-dance figure wording override | ✅ display-only; canonical identity unchanged |
 | Program notes / free-text slots | ❌ verbatim (intentional; #665 not planned) |
 | Search input | canonicalized before matching |
 | Stored data, snapshots, JSON export (canonical mode) | ❌ canonical |

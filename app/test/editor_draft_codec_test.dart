@@ -11,6 +11,7 @@ import 'package:compendium_app/src/editor/editor_snapshot.dart';
 EditorSnapshot _minimalSnapshot({
   List<LinkSnapshot> links = const [],
   List<SourceCitation> sourceCitations = const [],
+  List<FigureDraftSnapshot> figureDrafts = const [],
 }) => EditorSnapshot(
   title: 'Test',
   hook: '',
@@ -27,7 +28,7 @@ EditorSnapshot _minimalSnapshot({
   links: links,
   sourceCitations: sourceCitations,
   customValues: const {},
-  figureDrafts: const [],
+  figureDrafts: figureDrafts,
 );
 
 // ---------------------------------------------------------------------------
@@ -222,6 +223,29 @@ void main() {
       final user = decoded.figureDrafts.firstWhere((d) => d.id == 'f-user');
       expect(gap.customOrigin, CustomOrigin.importGap);
       expect(user.customOrigin, CustomOrigin.userEntered);
+    });
+
+    test('figure draft wordingOverride round-trips (#822)', () {
+      final snapshot = _minimalSnapshot(
+        figureDrafts: const [
+          FigureDraftSnapshot(
+            id: 'f-wording',
+            move: 'swing',
+            params: {'who': 'partners'},
+            note: '',
+            progression: false,
+            schemaVersion: figureSchemaVersion,
+            wordingOverride: 'A custom line.',
+          ),
+        ],
+      );
+
+      final encoded = encodeDraft(snapshot);
+      expect(encoded, contains('"wordingOverride":"A custom line."'));
+      expect(
+        decodeDraft(encoded).figureDrafts.single.wordingOverride,
+        'A custom line.',
+      );
     });
 
     test('a legacy/garbage customOrigin decodes to userEntered', () {

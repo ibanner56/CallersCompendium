@@ -157,6 +157,10 @@ class FigureRenderer {
     bool verbose = false,
     bool decimals = false,
   }) {
+    final override = figure.isCustom
+        ? null
+        : _renderWordingOverride(figure, dialect);
+    if (override != null) return override;
     final base = _render(figure, dialect, verbose: verbose, decimals: decimals);
     if (figure.isCustom) return base;
     final def = taxonomy.resolve(figure.move);
@@ -270,6 +274,10 @@ class FigureRenderer {
       return text.isEmpty ? customMove : renderFreeText(text, dialect);
     }
     if (figure.isMeanwhile) {
+      final override = !forCanonical
+          ? _renderWordingOverride(figure, dialect)
+          : null;
+      if (override != null) return override;
       // A meanwhile container (#590) renders its concurrent sides joined by a
       // fixed structural separator. `renderCanonical` (forCanonical) MUST stay
       // byte-stable across runs — it is the dedupe/FTS key — so it always
@@ -294,11 +302,16 @@ class FigureRenderer {
       );
       return rendered.join(forCanonical ? ' $meanwhileMove ' : ' while ');
     }
+    if (!forCanonical) {
+      final override = _renderWordingOverride(figure, dialect);
+      if (override != null) return override;
+    }
     final def = taxonomy.resolve(figure.move);
     if (def == null) {
       // Unknown move: fall back to the raw id so nothing is silently lost.
       return figure.move;
     }
+
     final params = taxonomy.effectiveParams(figure);
     // DISPLAY-ONLY base-line reword: a handful of moves adopt ContraDB's
     // `words()` sentence structure verbatim (not a suffix), so the whole terse
@@ -521,6 +534,11 @@ class FigureRenderer {
     return (!forCanonical && figure.assumedSubject)
         ? _spliceAssumedSubjectMarker(line)
         : _stripSubjectMark(line);
+  }
+
+  String? _renderWordingOverride(Figure figure, Dialect dialect) {
+    final text = figure.wordingOverride?.trim();
+    return text == null || text.isEmpty ? null : renderFreeText(text, dialect);
   }
 
   /// The non-authoritative marker spliced after an ASSUMED subject in the

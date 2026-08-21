@@ -19,6 +19,7 @@ class FigureDraftSnapshot {
     this.assumedSubject = false,
     this.customOrigin = CustomOrigin.userEntered,
     this.walkthroughOverride,
+    this.wordingOverride,
     this.meanwhileSides,
   });
 
@@ -33,6 +34,7 @@ class FigureDraftSnapshot {
         assumedSubject: draft.assumedSubject,
         customOrigin: draft.customOrigin,
         walkthroughOverride: draft.walkthroughOverride,
+        wordingOverride: draft.wordingOverride,
         meanwhileSides: draft.meanwhileSides == null
             ? null
             : List.unmodifiable(
@@ -61,6 +63,10 @@ class FigureDraftSnapshot {
   /// undo/redo and autosave so an in-progress per-dance snippet is never lost.
   final String? walkthroughOverride;
 
+  /// The per-dance figure wording override, preserved across undo/redo and
+  /// autosave.
+  final String? wordingOverride;
+
   /// Non-`null` ⇒ this snapshot is a **meanwhile group** (#590/#593): the
   /// concurrent sides' own snapshots, preserved recursively so a group
   /// round-trips losslessly through undo/redo and autosave. Mirrors
@@ -77,6 +83,7 @@ class FigureDraftSnapshot {
     assumedSubject: assumedSubject,
     customOrigin: customOrigin,
     walkthroughOverride: walkthroughOverride,
+    wordingOverride: wordingOverride,
     meanwhileSides: meanwhileSides
         ?.map((s) => s.toDraft())
         .toList(growable: true),

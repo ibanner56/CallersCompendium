@@ -7136,6 +7136,36 @@ abstract class AppLocalizations {
   /// **'Saved as your default for this figure and reused wherever it appears.'**
   String get danceEditorWalkthroughStepHelper;
 
+  /// Button that reveals the optional per-figure display wording override for the current dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Customize wording for this dance'**
+  String get danceEditorAddWordingOverride;
+
+  /// Label for the per-figure display wording override field.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure wording for this dance'**
+  String get danceEditorWordingOverrideLabel;
+
+  /// Helper text explaining that a per-dance wording override is display-only and preserves canonical search.
+  ///
+  /// In en, this message translates to:
+  /// **'Replaces the rendered line for this figure in this dance. The canonical figure stays searchable.'**
+  String get danceEditorWordingOverrideHelper;
+
+  /// Tooltip for clearing a per-dance figure wording override.
+  ///
+  /// In en, this message translates to:
+  /// **'Use default wording'**
+  String get danceEditorResetWordingOverride;
+
+  /// Live preview of the rendered per-dance figure wording override.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview: {text}'**
+  String danceEditorWordingOverridePreview(Object text);
+
   /// Title of the prompt shown when a per-figure walkthrough snippet differs from the saved default (#411).
   ///
   /// In en, this message translates to:

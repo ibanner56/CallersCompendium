@@ -56,6 +56,7 @@ const int kMaxFigureDiffLines = 200;
 ///
 /// **Deliberately excluded from the key** (owner-locked, #686): `beats`,
 /// [Figure.progression], [Figure.note], [Figure.walkthroughOverride],
+/// [Figure.wordingOverride],
 /// [Figure.customOrigin], [Figure.assumedSubject], and — by construction,
 /// since the key is built from structured params rather than rendered text —
 /// all dialect/rendered wording. This means two figures differing ONLY in

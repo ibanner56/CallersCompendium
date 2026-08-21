@@ -158,6 +158,53 @@ void main() {
       );
     });
 
+    group('wordingOverride (#822)', () {
+      test('omitted when null or blank', () {
+        expect(
+          figureToJson(Figure(move: 'swing')).containsKey('wordingOverride'),
+          isFalse,
+        );
+        expect(
+          figureToJson(
+            Figure(move: 'swing', wordingOverride: '   '),
+          ).containsKey('wordingOverride'),
+          isFalse,
+        );
+      });
+
+      test('written and round-trips when present', () {
+        final json = figureToJson(
+          Figure(move: 'swing', wordingOverride: 'Robins pass right.'),
+        );
+        expect(json['wordingOverride'], 'Robins pass right.');
+        expect(figureFromJson(json).wordingOverride, 'Robins pass right.');
+      });
+
+      test('missing, blank, and non-string values decode as null', () {
+        expect(figureFromJson({'move': 'swing'}).wordingOverride, isNull);
+        expect(
+          figureFromJson({
+            'move': 'swing',
+            'wordingOverride': '  ',
+          }).wordingOverride,
+          isNull,
+        );
+        expect(
+          figureFromJson({
+            'move': 'swing',
+            'wordingOverride': 42,
+          }).wordingOverride,
+          isNull,
+        );
+      });
+
+      test('soft-clamps an oversized override on decode', () {
+        final long = 'x' * (kMaxWalkthroughSnippetLength + 100);
+        final f = figureFromJson({'move': 'swing', 'wordingOverride': long});
+        expect(f.wordingOverride!.length, kMaxWalkthroughSnippetLength);
+      });
+    });
+
     test('written and round-trips when present', () {
       final json = figureToJson(
         Figure(move: 'swing', walkthroughOverride: 'Swing them.'),

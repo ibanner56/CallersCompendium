@@ -296,6 +296,65 @@ void main() {
     });
   });
 
+  group('per-dance wording override (#822)', () {
+    test('replaces every display line and still applies dialect terms', () {
+      final figure = Figure(
+        move: 'long_lines',
+        params: {'goBack': true},
+        wordingOverride: 'ROLE2S call the line',
+      );
+      expect(renderer.render(figure, larks), 'ROBINS call the line');
+      expect(renderer.renderVerbose(figure, larks), 'ROBINS call the line');
+      // Decision C: the override replaces the whole summary, including the
+      // balance prefix and long-lines suffix.
+      expect(renderer.renderSummary(figure, larks), 'ROBINS call the line');
+    });
+
+    test('does not affect canonical rendering', () {
+      final figure = Figure(
+        move: 'swing',
+        params: {'who': 'partners'},
+        wordingOverride: 'ROLE2S pass right to start a full hey',
+      );
+      expect(renderer.renderCanonical(figure), 'partners swing');
+    });
+
+    test('does not replace custom figure text', () {
+      final figure = testFigure(
+        move: customMove,
+        params: {'text': 'say this instead'},
+      ).copyWith(wordingOverride: 'ignored structured wording');
+      expect(renderer.render(figure, larks), 'say this instead');
+      expect(renderer.renderSummary(figure, larks), 'say this instead');
+    });
+
+    test('applies to meanwhile sides and can replace the container line', () {
+      final sideOverride = Figure(
+        move: 'swing',
+        wordingOverride: 'ROLE2S pass right',
+      );
+      final container = Figure.meanwhile(
+        figures: [
+          sideOverride,
+          Figure(move: 'allemande', params: {'who': 'neighbors'}),
+        ],
+        beats: 16,
+      );
+      expect(
+        renderer.render(container, larks),
+        'ROBINS pass right while neighbor allemande right once',
+      );
+      final wholeLine = container.copyWith(
+        wordingOverride: 'ROLE1S call together',
+      );
+      expect(renderer.render(wholeLine, larks), 'LARKS call together');
+      expect(
+        renderer.renderCanonical(wholeLine),
+        'partners swing meanwhile neighbors allemande right once',
+      );
+    });
+  });
+
   group('verbose (spoken-friendly) rendering', () {
     test('spells out mixed-turn rotations, no glyphs', () {
       expect(
