@@ -111,7 +111,7 @@ void main() {
     // that merely OVERLAPS a fixed vocabulary is legitimate and must not be
     // flagged: `gate.direction` is `spins` PLUS `mirror` (the two-couple gate,
     // which `ParamKind.spinDirection` cannot express, so converting it would
-    // silently drop `mirror`), and `swing.endFacing`/`gate.face` are the four
+    // silently drop `mirror`), and `swing.endFacing`/`gate.face` are the
     // set-relative `gateFacings`, a different concept from
     // `ParamKind.direction`'s eight spatial tokens.
     //
