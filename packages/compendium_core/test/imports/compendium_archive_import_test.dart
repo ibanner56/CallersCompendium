@@ -963,7 +963,10 @@ void main() {
       () async {
         final archive = bundleWithVenue(
           programVenueId: 'orig-v1',
-          venues: [Venue(id: 'orig-v1', name: 'Town Hall')],
+          venues: [
+            Venue(id: 'orig-v1', name: 'Town Hall', city: 'Amherst'),
+            Venue(id: 'orig-v2', name: 'Town Hall', city: 'Amherst'),
+          ],
         );
         final result1 = await run(archive);
         final deletedVenueId = (await venues.listAll()).single.id;

@@ -446,6 +446,10 @@ class CompendiumArchiveImporter {
           venueIdByOriginalId[venue.id] = deletedProvenanceMatchId;
           resolvedVenueByExternalId[venue.id] = deletedProvenanceMatchId;
           restoredVenueIds.add(deletedProvenanceMatchId);
+          final restoredVenue = await _venues.getById(deletedProvenanceMatchId);
+          if (restoredVenue != null) {
+            venueIndex.add(deletedProvenanceMatchId, restoredVenue);
+          }
           continue;
         }
 
