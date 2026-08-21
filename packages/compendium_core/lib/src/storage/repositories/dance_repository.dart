@@ -146,7 +146,8 @@ class DanceRepository {
       }
       if (subs == null) return figure;
       // copyWith, not a bare Figure(...), so schemaVersion / customOrigin /
-      // assumedSubject / walkthroughOverride survive the one-time pass.
+      // assumedSubject / walkthroughOverride / wordingOverride survive the
+      // one-time pass.
       return figure.copyWith(
         params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
       );
@@ -198,7 +199,8 @@ class DanceRepository {
       }
       if (subs == null) return figure;
       // copyWith, not a bare Figure(...), so schemaVersion / customOrigin /
-      // assumedSubject / walkthroughOverride survive the one-time pass.
+      // assumedSubject / walkthroughOverride / wordingOverride survive the
+      // one-time pass.
       return figure.copyWith(
         params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
       );
@@ -229,8 +231,9 @@ class DanceRepository {
       }
       if (subs == null) return figure;
       // Use copyWith so schemaVersion, customOrigin, assumedSubject, and
-      // walkthroughOverride survive — a bare Figure(...) resets them to
-      // defaults, which silently loses metadata during the one-time migration.
+      // walkthroughOverride / wordingOverride survive — a bare Figure(...)
+      // resets them to defaults, which silently loses metadata during the
+      // one-time migration.
       return figure.copyWith(
         params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
       );

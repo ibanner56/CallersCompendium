@@ -4636,6 +4636,24 @@ class AppLocalizationsDa extends AppLocalizations {
       'Gemt som din standard for denne figur og genbrugt overalt, hvor den optræder.';
 
   @override
+  String get danceEditorAddWordingOverride => 'Tilpas ordlyden for denne dans';
+
+  @override
+  String get danceEditorWordingOverrideLabel => 'Figurordlyd for denne dans';
+
+  @override
+  String get danceEditorWordingOverrideHelper =>
+      'Erstatter den viste linje for denne figur i denne dans. Den kanoniske figur forbliver søgbar.';
+
+  @override
+  String get danceEditorResetWordingOverride => 'Brug standardordlyd';
+
+  @override
+  String danceEditorWordingOverridePreview(Object text) {
+    return 'Forhåndsvisning: $text';
+  }
+
+  @override
   String get danceEditorSnippetDivergenceTitle => 'Opdater dit gemte uddrag?';
 
   @override

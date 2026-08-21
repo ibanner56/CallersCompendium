@@ -263,6 +263,7 @@ class DanceEditorForm extends StatelessWidget {
                   onDelete: controller.deleteFigure,
                   onDuplicate: controller.duplicateFigure,
                   onReorder: controller.reorderFigure,
+                  showWordingOverride: true,
                   onGroupWithNext: controller.groupFigureWithNext,
                   onCollapseMeanwhileGroup: controller.collapseMeanwhileGroup,
                   snippetLibraryDefaultFor: snippetLib == null

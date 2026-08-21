@@ -4706,6 +4706,27 @@ class AppLocalizationsFr extends AppLocalizations {
       'Enregistré comme valeur par défaut pour cette figure et réutilisé partout où elle apparaît.';
 
   @override
+  String get danceEditorAddWordingOverride =>
+      'Personnaliser la formulation de cette danse';
+
+  @override
+  String get danceEditorWordingOverrideLabel =>
+      'Formulation de la figure pour cette danse';
+
+  @override
+  String get danceEditorWordingOverrideHelper =>
+      'Remplace la ligne rendue pour cette figure dans cette danse. La figure canonique reste consultable.';
+
+  @override
+  String get danceEditorResetWordingOverride =>
+      'Utiliser la formulation par défaut';
+
+  @override
+  String danceEditorWordingOverridePreview(Object text) {
+    return 'Aperçu : $text';
+  }
+
+  @override
   String get danceEditorSnippetDivergenceTitle =>
       'Mettre à jour votre extrait enregistré ?';
 

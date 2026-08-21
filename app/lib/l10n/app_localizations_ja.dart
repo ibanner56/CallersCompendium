@@ -4473,6 +4473,24 @@ class AppLocalizationsJa extends AppLocalizations {
       'このフィギュアの既定値として保存され、登場するすべての箇所で再利用されます。';
 
   @override
+  String get danceEditorAddWordingOverride => 'このダンスの呼び方をカスタマイズ';
+
+  @override
+  String get danceEditorWordingOverrideLabel => 'このダンスでのフィギュアの呼び方';
+
+  @override
+  String get danceEditorWordingOverrideHelper =>
+      'このダンスでこのフィギュアに表示される行を置き換えます。標準のフィギュアは検索できます。';
+
+  @override
+  String get danceEditorResetWordingOverride => '標準の呼び方を使用';
+
+  @override
+  String danceEditorWordingOverridePreview(Object text) {
+    return 'プレビュー: $text';
+  }
+
+  @override
   String get danceEditorSnippetDivergenceTitle => '保存済みスニペットを更新しますか？';
 
   @override

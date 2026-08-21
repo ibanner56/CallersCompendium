@@ -1136,6 +1136,7 @@ class CallersBoxAdapter implements SourceAdapter {
     note: f.note,
     progression: f.progression,
     walkthroughOverride: f.walkthroughOverride,
+    wordingOverride: f.wordingOverride,
   );
 
   static bool _sameWords(List<String> a, List<String> b) {

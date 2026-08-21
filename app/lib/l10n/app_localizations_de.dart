@@ -4696,6 +4696,26 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wird als Standard für diese Figur gespeichert und überall wiederverwendet, wo sie vorkommt.';
 
   @override
+  String get danceEditorAddWordingOverride =>
+      'Wortlaut für diesen Tanz anpassen';
+
+  @override
+  String get danceEditorWordingOverrideLabel =>
+      'Figurenwortlaut für diesen Tanz';
+
+  @override
+  String get danceEditorWordingOverrideHelper =>
+      'Ersetzt die gerenderte Zeile für diese Figur in diesem Tanz. Die kanonische Figur bleibt durchsuchbar.';
+
+  @override
+  String get danceEditorResetWordingOverride => 'Standardwortlaut verwenden';
+
+  @override
+  String danceEditorWordingOverridePreview(Object text) {
+    return 'Vorschau: $text';
+  }
+
+  @override
   String get danceEditorSnippetDivergenceTitle =>
       'Gespeicherten Ausschnitt aktualisieren?';
 

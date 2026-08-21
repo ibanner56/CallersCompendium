@@ -6086,6 +6086,29 @@
   "@danceEditorWalkthroughStepHelper": {
     "description": "Helper text under the per-figure walkthrough step field explaining learn-on-first-entry (#411)."
   },
+  "danceEditorAddWordingOverride": "Customize wording for this dance",
+  "@danceEditorAddWordingOverride": {
+    "description": "Button that reveals the optional per-figure display wording override for the current dance."
+  },
+  "danceEditorWordingOverrideLabel": "Figure wording for this dance",
+  "@danceEditorWordingOverrideLabel": {
+    "description": "Label for the per-figure display wording override field."
+  },
+  "danceEditorWordingOverrideHelper": "Replaces the rendered line for this figure in this dance. The canonical figure stays searchable.",
+  "@danceEditorWordingOverrideHelper": {
+    "description": "Helper text explaining that a per-dance wording override is display-only and preserves canonical search."
+  },
+  "danceEditorResetWordingOverride": "Use default wording",
+  "@danceEditorResetWordingOverride": {
+    "description": "Tooltip for clearing a per-dance figure wording override."
+  },
+  "danceEditorWordingOverridePreview": "Preview: {text}",
+  "@danceEditorWordingOverridePreview": {
+    "description": "Live preview of the rendered per-dance figure wording override.",
+    "placeholders": {
+      "text": {}
+    }
+  },
   "danceEditorSnippetDivergenceTitle": "Update your saved snippet?",
   "@danceEditorSnippetDivergenceTitle": {
     "description": "Title of the prompt shown when a per-figure walkthrough snippet differs from the saved default (#411)."

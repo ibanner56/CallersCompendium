@@ -735,6 +735,10 @@ Map<String, Object?> _sanitizeFigureJson(
   if (override is String) {
     out['walkthroughOverride'] = sanitizeImportedText(override);
   }
+  final wordingOverride = out['wordingOverride'];
+  if (wordingOverride is String) {
+    out['wordingOverride'] = sanitizeImportedText(wordingOverride);
+  }
   final params = out['params'];
   if (params is Map) {
     final sanitizedParams = <String, Object?>{

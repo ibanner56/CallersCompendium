@@ -4630,6 +4630,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'Saved as your default for this figure and reused wherever it appears.';
 
   @override
+  String get danceEditorAddWordingOverride =>
+      'Customize wording for this dance';
+
+  @override
+  String get danceEditorWordingOverrideLabel => 'Figure wording for this dance';
+
+  @override
+  String get danceEditorWordingOverrideHelper =>
+      'Replaces the rendered line for this figure in this dance. The canonical figure stays searchable.';
+
+  @override
+  String get danceEditorResetWordingOverride => 'Use default wording';
+
+  @override
+  String danceEditorWordingOverridePreview(Object text) {
+    return 'Preview: $text';
+  }
+
+  @override
   String get danceEditorSnippetDivergenceTitle => 'Update your saved snippet?';
 
   @override

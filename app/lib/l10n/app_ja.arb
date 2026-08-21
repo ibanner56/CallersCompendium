@@ -4664,6 +4664,26 @@
   "@danceEditorWalkthroughStepHelper": {
     "x-sourceSha256": "4b53810b2ac46679f46122110d27603bdf29339b4264dfb9bff4471c52d42690"
   },
+  "danceEditorAddWordingOverride": "このダンスの呼び方をカスタマイズ",
+  "@danceEditorAddWordingOverride": {
+    "x-sourceSha256": "96cc21c207cb28a6f3e778e37321df2e4668b079b8639863872d662628c1a8f7"
+  },
+  "danceEditorWordingOverrideLabel": "このダンスでのフィギュアの呼び方",
+  "@danceEditorWordingOverrideLabel": {
+    "x-sourceSha256": "fcd6694dec4af263e410ae7ea671e17e63561aafaab0d3c3f25961429c2eaf06"
+  },
+  "danceEditorWordingOverrideHelper": "このダンスでこのフィギュアに表示される行を置き換えます。標準のフィギュアは検索できます。",
+  "@danceEditorWordingOverrideHelper": {
+    "x-sourceSha256": "8f6f458914763733e6c8e34636a148a001f9baf6d24e7591ea6021af4e23b748"
+  },
+  "danceEditorResetWordingOverride": "標準の呼び方を使用",
+  "@danceEditorResetWordingOverride": {
+    "x-sourceSha256": "ae76f93889ad5fbda4f449cb296762f929c46c4be3a3f28cdbeeed019a6701a9"
+  },
+  "danceEditorWordingOverridePreview": "プレビュー: {text}",
+  "@danceEditorWordingOverridePreview": {
+    "x-sourceSha256": "3f4e8845d312c56f6d88f902b9a0d9f5e7efa72821818c0c6edb068d4465de9f"
+  },
   "danceEditorSnippetDivergenceTitle": "保存済みスニペットを更新しますか？",
   "@danceEditorSnippetDivergenceTitle": {
     "x-sourceSha256": "5a4c8a5086f6c44c8cebb8a19ba7ea7c0a6faaa4c28ef7b0ca7f48c7a5d86141"

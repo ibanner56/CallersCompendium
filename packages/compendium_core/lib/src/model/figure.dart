@@ -6,7 +6,8 @@ import 'package:meta/meta.dart';
 const int figureSchemaVersion = 1;
 
 /// Upper bound on the length of a single figure's walkthrough snippet
-/// ([Figure.walkthroughOverride] and each entry of the global snippet library),
+/// ([Figure.walkthroughOverride], [Figure.wordingOverride], and each entry of
+/// the global snippet library),
 /// in UTF-16 code units (#411).
 ///
 /// Snippets are per-figure step descriptions — much shorter than a whole-dance
@@ -84,6 +85,7 @@ class Figure {
     this.customOrigin = CustomOrigin.userEntered,
     this.assumedSubject = false,
     this.walkthroughOverride,
+    this.wordingOverride,
   }) : params = Map.unmodifiable(params) {
     if (move.trim().isEmpty) {
       throw ArgumentError.value(move, 'move', 'must be non-empty');
@@ -112,6 +114,7 @@ class Figure {
     String? note,
     bool progression = false,
     Map<String, Object?> extraParams = const {},
+    String? wordingOverride,
   }) {
     if (figures.length < 2) {
       throw ArgumentError.value(
@@ -148,6 +151,7 @@ class Figure {
       },
       note: note,
       progression: progression,
+      wordingOverride: wordingOverride,
     );
   }
 
@@ -206,6 +210,17 @@ class Figure {
   /// only — it never changes the canonical (search/dedupe) render.
   final String? walkthroughOverride;
 
+  /// A per-dance, per-figure-instance **wording override**: display text to
+  /// use for THIS occurrence of the figure in THIS dance. It is rendered
+  /// through the dialect renderer's `renderFreeText` path, so role terms still
+  /// follow the active dialect. `null` means "use the renderer's wording".
+  ///
+  /// Additive and backward compatible: defaults to `null`, is written to JSON
+  /// only when non-null/non-empty, and absent/legacy data decodes as `null`, so
+  /// no schema migration is required. This is a DISPLAY/authoring field only —
+  /// it never changes the canonical (search/dedupe) render.
+  final String? wordingOverride;
+
   bool get isCustom => move == customMove;
 
   /// Whether this is a **meanwhile** container figure (#590) — a group of
@@ -237,6 +252,7 @@ class Figure {
   /// Sentinel so [copyWith] can distinguish "leave [walkthroughOverride]
   /// unchanged" (argument omitted) from "clear it to `null`" (explicit `null`).
   static const Object _unchangedOverride = Object();
+  static const Object _unchangedWordingOverride = Object();
 
   Figure copyWith({
     int? schemaVersion,
@@ -247,6 +263,7 @@ class Figure {
     CustomOrigin? customOrigin,
     bool? assumedSubject,
     Object? walkthroughOverride = _unchangedOverride,
+    Object? wordingOverride = _unchangedWordingOverride,
   }) => Figure(
     schemaVersion: schemaVersion ?? this.schemaVersion,
     move: move ?? this.move,
@@ -258,6 +275,9 @@ class Figure {
     walkthroughOverride: identical(walkthroughOverride, _unchangedOverride)
         ? this.walkthroughOverride
         : walkthroughOverride as String?,
+    wordingOverride: identical(wordingOverride, _unchangedWordingOverride)
+        ? this.wordingOverride
+        : wordingOverride as String?,
   );
 
   @override
@@ -270,7 +290,8 @@ class Figure {
       other.progression == progression &&
       other.customOrigin == customOrigin &&
       other.assumedSubject == assumedSubject &&
-      other.walkthroughOverride == walkthroughOverride;
+      other.walkthroughOverride == walkthroughOverride &&
+      other.wordingOverride == wordingOverride;
 
   @override
   int get hashCode => Object.hash(
@@ -282,6 +303,7 @@ class Figure {
     customOrigin,
     assumedSubject,
     walkthroughOverride,
+    wordingOverride,
   );
 
   @override

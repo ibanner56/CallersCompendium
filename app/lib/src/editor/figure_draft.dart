@@ -19,6 +19,7 @@ class FigureDraft {
     this.assumedSubject = false,
     this.customOrigin = CustomOrigin.userEntered,
     this.walkthroughOverride,
+    this.wordingOverride,
     this.meanwhileSides,
   }) : id = id ?? uuidV4(),
        params = params ?? <String, Object?>{};
@@ -51,6 +52,7 @@ class FigureDraft {
     assumedSubject: figure.assumedSubject,
     customOrigin: figure.customOrigin,
     walkthroughOverride: figure.walkthroughOverride,
+    wordingOverride: figure.wordingOverride,
     meanwhileSides: figure.isMeanwhile
         ? [for (final side in figure.subFigures) FigureDraft.fromFigure(side)]
         : null,
@@ -102,6 +104,10 @@ class FigureDraft {
   /// update the library and leave this `null`.
   String? walkthroughOverride;
 
+  /// The per-dance, per-figure-instance display wording override. `null` means
+  /// the figure uses the renderer's normal wording.
+  String? wordingOverride;
+
   /// Non-`null` ⇒ this draft is a **meanwhile group** (#590/#593): the
   /// concurrent sides being authored, in order. `move`/most `params` are
   /// unused for a group — `params['beats']` instead holds the single SHARED
@@ -137,6 +143,7 @@ class FigureDraft {
     assumedSubject: assumedSubject,
     customOrigin: customOrigin,
     walkthroughOverride: walkthroughOverride,
+    wordingOverride: wordingOverride,
     meanwhileSides: meanwhileSides
         ?.map((side) => side.clone())
         .toList(growable: true),
@@ -151,7 +158,8 @@ class FigureDraft {
   bool get _hasUnsavedContent =>
       note.trim().isNotEmpty ||
       params.isNotEmpty ||
-      walkthroughOverride != null;
+      walkthroughOverride != null ||
+      wordingOverride != null;
 
   /// Best-effort immutable figure for a meanwhile side that has no [move]
   /// chosen yet but does have [_hasUnsavedContent] (#679 review): rather than
@@ -174,6 +182,7 @@ class FigureDraft {
       customOrigin: customOrigin,
       assumedSubject: false,
       walkthroughOverride: walkthroughOverride,
+      wordingOverride: wordingOverride,
     );
   }
 
@@ -220,6 +229,7 @@ class FigureDraft {
         beats: beats,
         note: trimmedNote.isEmpty ? null : trimmedNote,
         progression: progression,
+        wordingOverride: _trimOptionalOverride(wordingOverride),
       );
     }
     final id = move;
@@ -237,6 +247,7 @@ class FigureDraft {
       walkthroughOverride: (trimmedOverride == null || trimmedOverride.isEmpty)
           ? null
           : trimmedOverride,
+      wordingOverride: _trimOptionalOverride(wordingOverride),
     );
   }
 }
@@ -245,3 +256,8 @@ class FigureDraft {
 /// transform: today's plain-trim behavior, used by any caller that doesn't
 /// supply a dialect-aware canonicalizer.
 String _trimNote(String note) => note.trim();
+
+String? _trimOptionalOverride(String? value) {
+  final trimmed = value?.trim();
+  return trimmed == null || trimmed.isEmpty ? null : trimmed;
+}

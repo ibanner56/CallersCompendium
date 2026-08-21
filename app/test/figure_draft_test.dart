@@ -32,9 +32,15 @@ void main() {
 
     test('a structured figure is unaffected (userEntered)', () {
       final draft = FigureDraft.fromFigure(
-        Figure(move: 'swing', params: const {'beats': 8}),
+        Figure(
+          move: 'swing',
+          params: const {'beats': 8},
+          wordingOverride: 'Use the other hand.',
+        ),
       );
       expect(draft.toFigure()!.customOrigin, CustomOrigin.userEntered);
+      expect(draft.wordingOverride, 'Use the other hand.');
+      expect(draft.toFigure()!.wordingOverride, 'Use the other hand.');
     });
   });
 
