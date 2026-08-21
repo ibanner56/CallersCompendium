@@ -12,10 +12,9 @@ details.
 > first time a dance term appears it links to the [Glossary](./glossary.md), so
 > you can get a plain-language definition without losing your place.
 
-*Wireframe sketch of the Settings screen: a section list on the left beside the
-settings for the chosen section. This is a low-fidelity layout sketch, not the
-finished app.*
-![Wireframe sketch of the Settings screen showing the section list beside the controls for the selected section](../design/wireframes/7-settings.svg)
+*The Settings Dialect section with the section list beside controls for the
+active dialect and custom wording.*
+![The Settings Dialect section showing the section list, active-dialect picker, and custom wording controls](images/settings-dialect.png)
 
 ## Finding Settings
 

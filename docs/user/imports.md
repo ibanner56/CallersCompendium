@@ -332,6 +332,11 @@ source you pick:
    everything that import added. This is the review-and-undo queue for
    bringing in more than one dance at a time.
 
+*The import review screen lists each dance and the action available for its
+current result, so you can inspect the batch before committing it.*
+
+![The import review screen showing per-dance results with actions to import, edit, skip, or resolve each item](images/import-review.png)
+
 ## Avoiding duplicates
 
 Re-importing the same dances should not clutter your collection, so the app
