@@ -168,7 +168,7 @@ choreography, so you can see the shape of the evening at a glance.
 *The program matrix with moves as columns, dances as rows, pinned headers, and
 markers that explain how figures are introduced and reused.*
 
-![The program matrix showing dances as rows, moves as columns, pinned headers, marker cells, and the legend](images/program-matrix.png)
+![The program matrix showing dances as rows and moves as columns, with pinned headers and a legend for introduced-here, dance's-first-figure, present, and adjacent-dance beat-overlap markers](images/program-matrix.png)
 
 Here is how to read it:
 

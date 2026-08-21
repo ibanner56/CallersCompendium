@@ -648,18 +648,24 @@ def test_pages_reference_only_first_party_assets() -> None:
                 if rel and href and rel.group(1) in fetching:
                     assert not href.group(1).startswith("http"), (page.name, tag)
             for match in re.finditer(r"<img[^>]*src=\"([^\"]+)\"", html):
-                assert match.group(1).startswith("../assets/"), (page.name, match.group(1))
+                assert match.group(1).startswith(
+                    ("../assets/", "images/")
+                ), (page.name, match.group(1))
 
 
-def test_guides_render_images_as_captions_not_img_tags() -> None:
+def test_guides_render_images_as_img_tags_and_stage_assets() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "site"
         rud.build_site(out)
+        assert (out / "guide" / "images").is_dir()
+        assert any((out / "guide" / "images").glob("*.png"))
         for page in sorted((out / "guide").glob("*.html")):
             html = page.read_text(encoding="utf-8")
             body = html.split('<article class="guide-body"')[1].split("</article>")[0]
-            assert "<img" not in body, f"{page.name} embedded an image"
-            assert ".svg" not in body and ".png" not in body, page.name
+            if page.name in {"collection.html", "programs.html", "perform.html"}:
+                assert "<img" in body, f"{page.name} did not embed its guide image"
+            for match in re.finditer(r"<img[^>]*src=\"([^\"]+)\"", body):
+                assert match.group(1).startswith("images/"), (page.name, match.group(1))
 
 
 def test_sidebar_lists_every_guide_and_marks_the_current_page() -> None:

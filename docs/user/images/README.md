@@ -6,10 +6,10 @@ diagrams, and illustrations.
 ## Status: screenshots are enhancements
 
 The user guides are bundled into the app, and the in-app reader does not render
-images — it shows the alt text as a caption instead. So an illustration only ever
-reaches readers on GitHub, and no guide may depend on one to make sense. The
-hosted guide keeps the same text-only behavior. Write every procedure so it
-stands on its own words; treat an image as an enhancement.
+images — it shows the alt text as a caption instead. GitHub and the hosted Pages
+guide render the screenshots themselves. No guide may depend on an image to make
+sense in the app. Write every procedure so it stands on its own words; treat an
+image as an enhancement.
 
 The guides use real PNG screenshots for the Collection, dance detail, Programs
 builder and matrix, Perform mode, Settings/Dialect, import review, and dance

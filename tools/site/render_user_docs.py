@@ -24,9 +24,8 @@ concurrent manifest push, so hosting the guides needs **no change** to it.
 as ``UserGuideDocs.slugify``, relative ``*.md`` links are rewritten to their
 rendered ``.html`` counterparts, and links that leave ``docs/user/`` (design
 docs, ``CONTRIBUTING.md``, the contributor-only style guide) are rewritten to
-GitHub URLs — mirroring ``UserGuideDocs.resolveLink``. Images render as an
-alt-text caption rather than an ``<img>``, exactly as the in-app reader does, so
-all three surfaces stay text-only (see ``docs/user/style-guide.md``).
+GitHub URLs — mirroring ``UserGuideDocs.resolveLink``. Images render as real
+``<img>`` elements on Pages; the in-app reader still renders their alt text.
 
 **Link integrity is enforced.** A relative link to a guide that doesn't exist,
 a ``#fragment`` with no matching heading, two headings in one guide that slug to
@@ -552,7 +551,25 @@ def render_guides(user_docs: Path = USER_DOCS) -> list[Guide]:
     for doc in docs:
         source = (user_docs / doc).read_text(encoding="utf-8")
         resolver = GuideLinkResolver(doc, published, repo_root)
-        result = render(source, link_resolver=resolver)
+        image_dir = user_docs / "images"
+
+        def image_resolver(href: str, *, source_doc: str = doc) -> Optional[str]:
+            if not href or href.startswith(("/", "\\", "#")):
+                return None
+            candidate = (user_docs / source_doc).parent / href
+            try:
+                relative = candidate.resolve().relative_to(image_dir.resolve())
+            except ValueError:
+                return None
+            if not (image_dir / relative).is_file():
+                return None
+            return f"images/{relative.as_posix()}"
+
+        result = render(
+            source,
+            link_resolver=resolver,
+            image_resolver=image_resolver,
+        )
         title = result.title or doc[: -len(".md")].replace("-", " ").capitalize()
         guides.append(
             Guide(
@@ -775,6 +792,9 @@ def build_site(out: Path, site_dir: Path = SITE_DIR, user_docs: Path = USER_DOCS
 
     guide_dir = (out / "guide").resolve()
     guide_dir.mkdir(parents=True, exist_ok=True)
+    image_source = user_docs / "images"
+    if image_source.is_dir():
+        shutil.copytree(image_source, guide_dir / "images")
     for guide in guides:
         target = (guide_dir / guide.page).resolve()
         if target.parent != guide_dir:

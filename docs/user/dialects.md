@@ -58,7 +58,7 @@ follow on their own:
 - **Nothing is ever lost in translation.** Switching between dialects — even
   repeatedly, even mid-evening — can't corrupt or reword your saved dances.
 
-![A dance detail view with figures grouped into A1, A2, B1, and B2 sections and the canonical-to-dialect wording toggle visible](images/dance-detail-dialect.png)
+![A dance detail view with figures grouped into A1, A2, B1, and B2 sections and the toggle for showing canonical wording visible](images/dance-detail-dialect.png)
 
 *The dance card in the active dialect, with the toggle that switches to shared
 canonical wording without changing the saved dance.*
