@@ -717,7 +717,7 @@ class DanceEditorController extends ChangeNotifier {
           if (text.isNotEmpty) value = text;
         case CustomFieldType.number:
           final text = customTextControllers[def.id]?.text.trim() ?? '';
-          if (text.isNotEmpty) value = num.tryParse(text);
+          if (text.isNotEmpty) value = parseFiniteNumber(text);
         case CustomFieldType.boolean:
           // Only persist when the field actually has a value — either loaded
           // from the dance or toggled by the user. Otherwise an untouched

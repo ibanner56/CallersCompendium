@@ -378,6 +378,29 @@ void main() {
     expect(dance.createdAt, now);
   });
 
+  test('collectCustomFields ignores non-finite number input', () async {
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+    final def = CustomFieldDef(
+      id: 'f-num',
+      key: 'number',
+      label: 'Number',
+      type: CustomFieldType.number,
+    );
+    final controller = DanceEditorController(
+      repositories: repos,
+      danceId: null,
+      dialect: Dialect.larksRobins,
+    );
+    addTearDown(controller.dispose);
+    await controller.load(dance: null, fieldDefs: [def]);
+
+    for (final raw in ['1e400', '-1e400', 'Infinity', 'NaN']) {
+      controller.customTextControllers['f-num']!.text = raw;
+      expect(controller.collectCustomFields(), isEmpty, reason: raw);
+    }
+  });
+
   test('buildDance stores typed prose VERBATIM, never canonicalized '
       '(issue #613)', () async {
     final repos = openTestRepositories();

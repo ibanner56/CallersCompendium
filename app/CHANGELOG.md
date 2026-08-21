@@ -13,6 +13,9 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Changed
 
+- **Numeric custom fields** — reject `NaN`, infinity, and overflowed numeric
+  input instead of allowing values that cannot be encoded in JSON.
+
 - **Dance editor figure wording** — add an optional per-dance wording override
   for structured figures. The override is previewed with the active dialect and
   affects display only; canonical search and deduplication remain unchanged.

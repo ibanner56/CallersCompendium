@@ -841,6 +841,31 @@ void main() {
     expect(dance.customFields.single.value, 'hello world');
   });
 
+  testWidgets('non-finite custom number values block save', (tester) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.customFieldDefs.upsert(
+      CustomFieldDef(
+        id: 'f-num',
+        key: 'number',
+        label: 'Number',
+        type: CustomFieldType.number,
+      ),
+    );
+    await _pumpEditor(tester, repos);
+
+    await tester.enterText(find.byKey(const ValueKey('title-field')), 'CF');
+    await _expandMoreDetails(tester);
+    final field = find.byKey(const ValueKey('custom-f-num'));
+    for (final raw in ['1e400', '-1e400', 'Infinity', 'NaN']) {
+      await tester.enterText(field, raw);
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      expect(find.text('Enter a number'), findsOneWidget, reason: raw);
+      expect(await repos.dances.listAll(), isEmpty, reason: raw);
+    }
+  });
+
   testWidgets('inline add-option on a choice field persists and selects it', (
     tester,
   ) async {
