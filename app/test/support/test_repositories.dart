@@ -168,13 +168,13 @@ class DelayedProgramRepository extends ProgramRepository {
   }
 
   @override
-  Future<void> create(Program program, {Set<String>? knownVenueIds}) async {
+  Future<void> create(Program program, {LiveVenueIds? knownVenueIds}) async {
     await _beforeWrite();
     await super.create(program, knownVenueIds: knownVenueIds);
   }
 
   @override
-  Future<void> update(Program program, {Set<String>? knownVenueIds}) async {
+  Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) async {
     await _beforeWrite();
     await super.update(program, knownVenueIds: knownVenueIds);
   }
@@ -192,13 +192,13 @@ class FailingProgramRepository extends ProgramRepository {
   }
 
   @override
-  Future<void> create(Program program, {Set<String>? knownVenueIds}) async {
+  Future<void> create(Program program, {LiveVenueIds? knownVenueIds}) async {
     _checkWrite();
     await super.create(program, knownVenueIds: knownVenueIds);
   }
 
   @override
-  Future<void> update(Program program, {Set<String>? knownVenueIds}) async {
+  Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) async {
     _checkWrite();
     await super.update(program, knownVenueIds: knownVenueIds);
   }

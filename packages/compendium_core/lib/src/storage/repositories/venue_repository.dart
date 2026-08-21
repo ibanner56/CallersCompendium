@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 
 import '../../model/enums.dart';
 import '../../model/provenance.dart';
@@ -15,6 +16,18 @@ import '../utc_datetime.dart';
 /// Venues are **soft-deleted** as of schema v25 (issue #898). They carry no
 /// UNIQUE natural key (two halls may share a name), so an upsert can only ever
 /// land on the row sharing its id.
+@immutable
+final class LiveVenueIds {
+  LiveVenueIds._(Iterable<String> ids) : _ids = Set.unmodifiable(ids);
+
+  /// The empty live-id snapshot, used when a bulk write has no venue links.
+  static final empty = LiveVenueIds._(const <String>[]);
+
+  final Set<String> _ids;
+
+  bool contains(String id) => _ids.contains(id);
+}
+
 class VenueRepository {
   VenueRepository(this._db);
 
@@ -151,12 +164,12 @@ class VenueRepository {
   /// Tombstoned venues are excluded: a soft-deleted venue is not one a program
   /// may newly link to, and letting one through here would re-admit exactly the
   /// dangling reference the write-time check exists to prevent.
-  Future<Set<String>> listAllIds() async {
+  Future<LiveVenueIds> listAllIds() async {
     final query = _db.selectOnly(_db.venues)
       ..addColumns([_db.venues.id])
       ..where(_db.venues.deletedAt.isNull());
     final rows = await query.get();
-    return {for (final r in rows) r.read(_db.venues.id)!};
+    return LiveVenueIds._({for (final r in rows) r.read(_db.venues.id)!});
   }
 
   /// Deletes the venue [id], guarding — **atomically** — against deleting a
@@ -212,6 +225,20 @@ class VenueRepository {
         deleted: true,
       );
     });
+  }
+
+  /// Restores a tombstoned venue without changing its fields. Exact archive
+  /// re-imports use this when the provenance row survives a prior deletion.
+  Future<void> restore(String id, {DateTime? at}) {
+    final now = resolveStamp(at);
+    return stampExistenceTransition(
+      _db,
+      table: _db.venues,
+      keyColumn: 'id',
+      key: id,
+      at: now,
+      deleted: false,
+    );
   }
 
   /// Unconditionally removes the venues [ids] in a single transaction, skipping
@@ -315,20 +342,58 @@ class VenueRepository {
     );
   }
 
-  /// Maps each existing venue's provenance external id → its venue id, for a
-  /// single [source]. Only rows whose `externalId` is non-null are included
-  /// (null-provenance venues never dedupe). Used by [CompendiumArchiveImporter]
-  /// to detect a re-import: a venue whose `(source, externalId)` key is already
-  /// present repoints incoming programs at the existing record instead of
-  /// minting a duplicate. Mirrors [ProgramRepository.externalIdToProgramId].
+  /// Maps each live venue's provenance external id → its venue id, for a single
+  /// [source]. Only rows whose `externalId` is non-null are included
+  /// (null-provenance venues never dedupe). Tombstoned venues are excluded so an
+  /// archive re-import cannot repoint a program at a deleted parent. Used by
+  /// [CompendiumArchiveImporter] to detect a re-import: a venue whose
+  /// `(source, externalId)` key is already present repoints incoming programs at
+  /// the existing record instead of minting a duplicate. Mirrors
+  /// [ProgramRepository.externalIdToProgramId].
   Future<Map<String, String>> externalIdToVenueId(
     ProvenanceSource source,
   ) async {
-    final rows = await (_db.select(
-      _db.venueProvenance,
-    )..where((t) => t.source.equalsValue(source))).get();
+    final rows =
+        await (_db.select(_db.venueProvenance).join([
+              innerJoin(
+                _db.venues,
+                _db.venues.id.equalsExp(_db.venueProvenance.venueId),
+              ),
+            ])..where(
+              _db.venueProvenance.source.equalsValue(source) &
+                  _db.venues.deletedAt.isNull(),
+            ))
+            .get();
     final map = <String, String>{};
-    for (final row in rows) {
+    for (final result in rows) {
+      final row = result.readTable(_db.venueProvenance);
+      final ext = row.externalId;
+      if (ext != null && ext.isNotEmpty) map[ext] = row.venueId;
+    }
+    return map;
+  }
+
+  /// Maps tombstoned venues' provenance external ids → venue ids for a single
+  /// [source]. This is separate from [externalIdToVenueId] so normal dedupe
+  /// never treats a deleted venue as live; an exact re-import can instead
+  /// restore the same row without colliding with the provenance unique key.
+  Future<Map<String, String>> deletedExternalIdToVenueId(
+    ProvenanceSource source,
+  ) async {
+    final rows =
+        await (_db.select(_db.venueProvenance).join([
+              innerJoin(
+                _db.venues,
+                _db.venues.id.equalsExp(_db.venueProvenance.venueId),
+              ),
+            ])..where(
+              _db.venueProvenance.source.equalsValue(source) &
+                  _db.venues.deletedAt.isNotNull(),
+            ))
+            .get();
+    final map = <String, String>{};
+    for (final result in rows) {
+      final row = result.readTable(_db.venueProvenance);
       final ext = row.externalId;
       if (ext != null && ext.isNotEmpty) map[ext] = row.venueId;
     }

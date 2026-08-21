@@ -1004,7 +1004,7 @@ class _FailingProgramRepository extends ProgramRepository {
   _FailingProgramRepository(super.db);
 
   @override
-  Future<void> create(Program program, {Set<String>? knownVenueIds}) async =>
+  Future<void> create(Program program, {LiveVenueIds? knownVenueIds}) async =>
       throw StateError('simulated program persist failure');
 }
 
