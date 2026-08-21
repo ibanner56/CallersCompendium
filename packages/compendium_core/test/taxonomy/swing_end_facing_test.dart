@@ -54,12 +54,9 @@ void main() {
       expect(spec.choices, ['in', 'out', 'up', 'down', 'along']);
     });
 
-    test(
-      'endFacing reuses the set-relative facing tokens (gateFacings)',
-      () {
-        expect(spec!.choices!.toSet(), gateFacings.toSet());
-      },
-    );
+    test('endFacing reuses the set-relative facing tokens (gateFacings)', () {
+      expect(spec!.choices!.toSet(), gateFacings.toSet());
+    });
 
     test(
       'endFacing has no beat cost — swing goodBeats/paramBeats unchanged',

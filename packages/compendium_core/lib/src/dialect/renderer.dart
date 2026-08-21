@@ -901,7 +901,12 @@ class FigureRenderer {
   /// exactly as before. Restricting to this allow-list means any unknown or
   /// tolerantly-decoded token renders no clause rather than being injected into
   /// the display line.
-  static const Set<String> _swingRenderedEndFacings = {'out', 'up', 'down', 'along'};
+  static const Set<String> _swingRenderedEndFacings = {
+    'out',
+    'up',
+    'down',
+    'along',
+  };
 
   /// The DISPLAY-ONLY " facing …" clause a swing appends for a non-default
   /// [endFacing] (issue #543), or the empty string for the default `in`, an
