@@ -772,6 +772,16 @@ def _guard_out_dir(out: Path) -> None:
     )
 
 
+def _stage_image_assets(source: Path, target: Path) -> None:
+    """Copy regular image assets without dereferencing repository symlinks."""
+    target.mkdir(parents=True, exist_ok=True)
+    for asset in sorted(source.iterdir()):
+        if asset.is_symlink():
+            _fail(f"refusing to publish symlinked image asset: {asset}")
+        if asset.is_file():
+            shutil.copy2(asset, target / asset.name)
+
+
 def build_site(out: Path, site_dir: Path = SITE_DIR, user_docs: Path = USER_DOCS) -> list[Guide]:
     """Stage a complete site (``site/`` + rendered ``guide/``) into ``out``."""
     if not (site_dir / "index.html").is_file():
@@ -794,7 +804,7 @@ def build_site(out: Path, site_dir: Path = SITE_DIR, user_docs: Path = USER_DOCS
     guide_dir.mkdir(parents=True, exist_ok=True)
     image_source = user_docs / "images"
     if image_source.is_dir():
-        shutil.copytree(image_source, guide_dir / "images")
+        _stage_image_assets(image_source, guide_dir / "images")
     for guide in guides:
         target = (guide_dir / guide.page).resolve()
         if target.parent != guide_dir:

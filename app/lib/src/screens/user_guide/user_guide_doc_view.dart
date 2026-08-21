@@ -21,10 +21,10 @@ import 'user_guide_docs.dart';
 ///    heading — whether the link points at another guide or at a section of the
 ///    guide already open. Without this, an "on this page" link would work on
 ///    GitHub but silently do nothing in the app.
-///  * **Images** are not bundled yet (the guide ships text-only). Each image
-///    reference renders as a subtle italic caption of its alt text via
-///    [_GuideImageCaption] — no asset lookup, no network, no broken-image icon —
-///    so the prose reads cleanly until real screenshots are added.
+/// * **Images** are not bundled with the app. Each image reference renders as
+///   a subtle italic caption of its alt text via [_GuideImageCaption] — no
+///   asset lookup, no network, no broken-image icon. GitHub and Pages render
+///   the same references as screenshots.
 ///
 /// The Markdown lays out inside a [SingleChildScrollView] rather than letting
 /// the renderer own a lazy [ListView], so every heading is built and therefore

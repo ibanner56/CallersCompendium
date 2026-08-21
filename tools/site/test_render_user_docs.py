@@ -695,6 +695,26 @@ def test_guides_render_images_as_img_tags_and_stage_assets() -> None:
             assert actual == expected_images.get(page.name, set()), page.name
 
 
+def test_image_staging_rejects_symlinks() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        source = root / "images"
+        target = root / "staged"
+        source.mkdir()
+        (source / "safe.png").write_bytes(b"PNG")
+        secret = root / "secret.txt"
+        secret.write_text("must not publish", encoding="utf-8")
+        (source / "leak.png").symlink_to(secret)
+
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                rud._stage_image_assets(source, target)
+        except SystemExit as error:
+            assert error.code == 2
+        else:
+            raise AssertionError("symlinked image assets must be rejected")
+
+
 def test_sidebar_lists_every_guide_and_marks_the_current_page() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "site"
