@@ -2450,6 +2450,34 @@ Canonical JSON means keys sorted lexicographically, no insignificant whitespace,
 and a pinned number form. Two devices that hold an identical record **must**
 produce an identical hash, or delta sync degrades to full sync.
 
+**The rules are RFC 8785 (JCS), adopted by reference, plus NFC.** That decision
+was made late and it corrects a real gap rather than tidying one. For a long
+time this section said "pick one form and pin it" about numbers and left the
+rest — string escaping, `-0.0`, exponent form, trailing zeros, and what
+"lexicographic" sorts by — to the encoder. Inside one Dart codebase that is
+invisible: one shared encoder makes every unstated rule agree with itself. It
+bites the *second* implementation, which is the entire premise of a document
+that carries a `v` version and a conformance section.
+
+The concrete case is not hypothetical. `custom_field_values.value_num` is a
+`RealColumn` classified `shareable`, and those join rows ride inline in the
+`dance` blob, so a fractional user value really is hashed. A shortest-round-trip
+encoder and a `double.toString()` encoder disagree on it, and the record then
+reads `changed`/`changed` on every pass forever.
+
+Adopting a standard beats writing our own three paragraphs here, because float
+formatting is exactly the kind of rule that looks simple and has been got wrong
+for decades; RFC 8785 has test vectors and existing implementations, and §9 can
+just cite them. Two things it does *not* settle we state ourselves: Unicode
+normalisation, which JCS explicitly puts out of scope, and the JSON-inexpressible
+floats. NFC matters because titles are arbitrary user text — the same title
+pasted from a macOS filename (NFD) and typed on Android (NFC) displays
+identically and hashes differently, which is the same permanent non-convergence
+tick truncation was introduced to close, arriving by a different door. NaN and
+±Infinity matter because SQLite `REAL` admits both and JSON encodes neither; the
+tempting coercion to `null` or `0` would silently alter a user's data *and*
+still not converge, so rejection is the only answer that is honest.
+
 **This is entirely new code.** The archive codec emits keys in *insertion* order,
 not lexicographic, and there is no SHA-256 anywhere in `packages/`. "Reuse the
 archive codec" applies to the record *body*; the canonicalisation and hashing
@@ -2460,15 +2488,17 @@ degrades delta sync to full sync by giving two devices different hashes for the
 same record:
 
 - **Numbers.** `encodeCustomFieldValue` forces `.toDouble()`, so an integer `8`
-  reaches the wire as `8.0`. An RFC 8785 canonicaliser rewrites that back to `8`.
-  Pick one form and pin it.
+  reaches the wire as `8.0`. An RFC 8785 canonicaliser rewrites that back to `8`
+  — which is now the rule rather than one candidate.
 - **Absent versus null.** The codec *omits* `deletedAt` when null; the blob
   envelope above shows `"deletedAt": null` present. Same record, two hashes.
   Policy: the envelope's fields are always present, `null` where empty; the
   body follows the sender rule in "Applying a record" — explicit `null` for
   empty `shareable` fields, omission only for `deviceLocal`.
 - **Key order.** Lexicographic, applied recursively, regardless of what the
-  codec produced.
+  codec produced — and "lexicographic" now means JCS's UTF-16 code unit order,
+  which for our ASCII camelCase keys is the same order it always was, and for a
+  future non-ASCII key is a rule rather than an assumption.
 
 A change to canonicalisation is a wire-format break and needs a `v` bump.
 
@@ -2565,6 +2595,29 @@ Both request and response are objects rather than bare arrays, so either can
 gain a field later without a version bump. A top-level array is the classic
 shape that cannot be extended.
 
+**`Content-Type` and `ETag` are pinned rather than left to convention**, and
+this is the same gap as the schema one, one layer down: the payloads were
+specified exactly, and the headers carrying them were never mentioned at all —
+`Content-Type` appeared nowhere in the normative spec, and `ETag` appeared twice
+without a definition, in a protocol that depends on `If-None-Match` for its
+delta behaviour. Two implementations agreeing perfectly on bytes can still fail
+to talk.
+
+`ETag` on a manifest `GET` is the manifest's own content hash, as an RFC 7232
+strong validator. Strong matters: a weak validator is defined as "equivalent for
+practical purposes", which is exactly the judgement the merge algorithm must not
+make. The value already exists and is already canonical, so the alternative —
+an opaque server-chosen token — would have added a second identity for a thing
+that has one, and made `304` mean something the client could not verify.
+
+For `Content-Type`, servers must accept a `; charset=utf-8` parameter rather
+than string-comparing the header, and must **not** treat a missing
+`Content-Type` as an error, since the body's interpretation is fixed by the path
+in every case. Rejecting an unsupported one with `415` is permitted but not
+required. This is deliberately the most permissive rule in the contract: no
+correctness property rests on the header, so every additional strictness here
+buys nothing and creates one more way for a conforming client to be turned away.
+
 ### Status codes
 
 | Code | Meaning |
@@ -2579,6 +2632,7 @@ shape that cannot be extended.
 | `404` | No such blob, manifest or device. |
 | `409` | **Epoch mismatch** — the client's epoch is not the store's. |
 | `413` | Payload exceeds a cap. |
+| `415` | Unsupported `Content-Type` (optional; see below). |
 | `422` | **Payload rejected by the allow-list** — a key not classified `shareable` for that kind was present. |
 | `429` | Rate limited. `Retry-After` set. |
 | `507` | Store quota exhausted. |
@@ -2708,6 +2762,34 @@ UUIDs into one record and existence therefore has to be settled between them.
 
 Everything else that the existing `DedupeIndex` flags is **deferred for review**.
 
+**`normalizeTitle` is specified by reference, not paraphrase**, and the reason
+is a defect caught in round 30 rather than a stylistic preference. The normative
+spec had restated the rule in four steps — NFC, trim, collapse whitespace,
+lowercase — which is a fair description of what a title normaliser *usually*
+does and is not what this one does. The shipped function also folds diacritics,
+replaces punctuation with spaces, and strips a single leading `the`/`a`/`an`.
+A second implementation built faithfully from that restatement would agree with
+the client on every lowercase ASCII fixture anyone would think to write, and
+disagree on `The Nice Combination` — which is *precisely* the case dedupe is for.
+
+Because this comparison merges records **silently**, a disagreement here is not
+a missed merge that a user could notice and repeat: it is two devices holding
+different opinions about how many dances exist, with no prompt and no queue
+entry on either. So the paraphrase is gone. Where a document names real code and
+then also describes it, it has published two definitions and only one of them is
+under test.
+
+The NFD hazard is worth calling out because it is not obvious even with the
+implementation in front of you. The diacritic fold is a lookup table keyed on
+*precomposed* characters, so a combining mark misses it entirely and is then
+caught by the punctuation rule, which turns it into a **space**. `résumé` folds
+to `resume` in NFC and to `re sume` in NFD. A *trailing* accent is harmless, as
+the injected space gets trimmed — so the failure shows up only on interior
+accents, which is exactly the distribution that makes a bug get filed as
+"sometimes duplicates my French dance titles" and never reproduced. Requiring
+NFC on ingest fixes this at the boundary; extending the fold table would not,
+since the combining sequence has no single character to key on.
+
 #### The review queue needs durable storage; today it has none
 
 An earlier draft said these go "to the review queue, through the import
@@ -2836,8 +2918,33 @@ The user is told the count afterwards ("merged 412 duplicates"), not asked.
    | changed | same | upload |
    | same | changed | download **only if `remote.updatedAt > local.updatedAt`** |
    | changed | changed | **conflict** → higher `updatedAt` wins |
-   | absent from baseline, present locally | — | upload (new here) |
-   | — | absent from baseline, present remotely | download (new elsewhere) |
+   | absent from baseline, present locally | absent remotely | upload (new here) |
+   | absent locally | absent from baseline, present remotely | download (new elsewhere) |
+   | absent from baseline, present locally | absent from baseline, present remotely | resolve as `changed`/`changed` |
+
+   **The last row was missing for twenty-nine review rounds**, and its absence
+   is the most consequential defect this design has carried: the two rows above
+   it were each written one-sided, with a `—` that reads as "not applicable"
+   but functions as "anything". A record absent from the baseline and present on
+   *both* sides matched both, so the table said "upload" **and** "download" for
+   a single case. Two engineers implementing it faithfully would pick different
+   halves and their devices would disagree forever — in the one table whose
+   entire purpose is convergence, and with nothing in either implementation
+   looking wrong.
+
+   What makes it worse than a typo is that the case is ordinary. Settings
+   records are keyed by the settings key itself rather than a UUID, so two
+   devices that each set `theme_mode` create the same id independently; 47 of
+   the settings keys carry the shareable `_preference` classification. Records
+   with UUID ids get there too, since archive import preserves ids.
+
+   The fix invents nothing. `changed`/`changed` already means "both sides moved
+   away from a common reference", which is exactly this — the reference is just
+   absence rather than a hash. And the correct rule was already written down in
+   the fresh-attach union above, which specifies precisely this collision; it
+   had simply never been lifted into steady state. That is the recurring shape:
+   not an unanswered question, but an answer living in only one of the two
+   places that need it.
 
    **A quarantined record is excluded from this table entirely**, in steady state
    exactly as in a fresh attach's union: its local row is retained, nothing is
@@ -3344,6 +3451,22 @@ did. Making the grace window shorter would trade this against the correctness
 margin above, which is the wrong direction — a confusing error beats a deleted
 blob.
 
+**That sentence was, strictly, not yet true when it was written.** "The only
+in-band remedy that acts at once is `DELETE /v1/store`" presumes the wipe
+ignores the grace window, and the grace rule was scoped to "after each manifest
+`PUT`, and during the sweep" — it never named `DELETE`, so a server author
+following the letter had every reason to apply the age bound there too and leave
+recently-uploaded blobs behind. The user's escape hatch from a quota error would
+then not clear the quota, and the one remedy offered as immediate would be the
+one that visibly did nothing. `DELETE /v1/store` now deletes unconditionally.
+
+The recurring shape is worth naming, because this is two rounds running: a fix
+and the rule it depends on land in the same commit, each correct, and their
+*interaction* goes unstated. Last round it was a no-op blob `PUT` refreshing
+`uploaded_at`, which the no-op rule did not cover because it spoke only of
+*bytes*. The grace window and the wipe were written a few paragraphs apart in
+one sitting. Reading either one alone raises nothing.
+
 ### Who mints the epoch
 
 Only the server, and this needs saying because the client-facing half of the
@@ -3510,9 +3633,24 @@ about making acquisition hard, not about limiting the blast radius:
   **format** is fixed at four hyphen-separated words, which rejects
   `isaac-banner-dances` structurally, and is enforced on **both** sides — the
   server returns `403` for it, because it is a mechanical rule two
-  implementations cannot disagree about. A **strength floor of ~2⁴⁰**, scored
-  on the actual string, then rejects four *weak* words that satisfy the
-  pattern; that one is enforced **client-side, at the point of choice**, and
+  implementations cannot disagree about. That last clause was aspirational
+  until round 30: the rule also required each word to fall "within the length
+  bounds", and no section defined them, so the one check described as
+  disagreement-proof was the one carrying an undefined constant. The bounds are
+  now stated as numbers — 1 to 32 code points per word — and chosen to be far
+  looser than anything the client emits, since generated IDs run 15 to 39
+  characters against an EFF wordlist whose words are 3 to 9 long. The minimum
+  of 1 exists to reject an *empty* word and nothing else: a one-character word
+  is weak, but weakness is the client's business, and a server tightening the
+  minimum to look sensible would be re-implementing the estimator the next
+  paragraph forbids. Normalisation is pinned for the same reason — trim, NFC,
+  locale-independent lowercase, applied identically on both sides before the
+  HMAC — because a disagreement there does not produce a `403`, it produces a
+  second, empty store and a sync that reports success.
+
+  A **strength floor of ~2⁴⁰**, scored on the actual string, then rejects four
+  *weak* words that satisfy the pattern; that one is enforced **client-side, at
+  the point of choice**, and
   the server deliberately does not re-run it. Estimating the strength of an
   arbitrary string is a heuristic with no canonical definition, so a server
   even slightly stricter than the client would reject an ID the user had
@@ -3608,6 +3746,14 @@ must say this plainly rather than implying sync is opaque to us.
 
 - **Canonical-JSON goldens.** Two devices must agree on a hash byte-for-byte.
 - **Merge table**, every row, both directions.
+- **A record new on both devices at once converges** — the row that was missing
+  until round 30. Two devices each set the same shareable settings key (whose id
+  *is* the key, so they collide without coordination), then sync. Assert they
+  agree afterwards. Mutation-proved twice, and it must be both: resolve the case
+  as unconditional upload, then as unconditional download. Each mutation is one
+  of the two one-sided rows applied in isolation, each passes every
+  single-device test, and each leaves two devices permanently divergent — which
+  is why the fixture has to be two-device to mean anything.
 - **Absence never deletes** — a peer manifest missing records must not delete
   them locally. Mutation-proved by making absence delete and watching it go red.
 - **Epoch mismatch → fresh attach, never deletion.** The catastrophic case; it
@@ -3756,6 +3902,13 @@ must say this plainly rather than implying sync is opaque to us.
   merge-by-recency carry B's live state across and undo the deletion. Mirrors
   *Reconciliation respects recency*, and exists for the same reason: this path
   never reaches the merge table.
+- **Title normalisation agrees across both implementations on the cases the
+  paraphrase missed** — a leading article, interior punctuation, folded
+  diacritics, and NFC versus NFD. Mutation-proved by implementing the four-step
+  paraphrase (NFC, trim, collapse, lowercase), which passes every lowercase
+  ASCII fixture and fails on `The Nice Combination`. Assert against
+  `normalizeTitle` directly rather than a copy, or the test re-creates the
+  second definition it exists to prevent.
 - **A tombstoned dance is not a dedupe candidate** — same title and identical
   choreography, one copy deleted; assert they are not silently merged and the
   deletion stands. Mutation-proved by letting tombstones into dedupe candidacy,
@@ -4114,6 +4267,22 @@ must say this plainly rather than implying sync is opaque to us.
   `encodeArchive`-shaped output. Never a hand-written key string.
 - **Canonical JSON determinism** — integer/float form, absent-versus-null, key
   order. Two independently constructed identical records hash identically.
+- **RFC 8785 conformance vectors**, run directly. Adopting a standard by
+  reference is only worth anything if the test suite comes with it.
+- **A fractional shareable value hashes identically on two encoders** — set
+  `custom_field_values.value_num` to a value whose shortest round-trip form and
+  naive `toString()` differ, and assert one hash. Mutation-proved by emitting
+  `double.toString()`. This is the case that makes JCS load-bearing rather than
+  decorative: a real, shareable, user-entered `double` that rides inline in the
+  `dance` blob.
+- **NFC/NFD titles converge** — ingest the same title in both forms and assert
+  one hash and one record. Mutation-proved by skipping normalisation on ingest,
+  which reproduces a permanent `changed`/`changed` between two devices whose
+  screens show the identical string. The test must normalise on *ingest*, not
+  only on emit, for the same reason tick truncation does.
+- **A record that would need NaN or ±Infinity is rejected** — not coerced to
+  `null` or `0`. Mutation-proved by coercing: the record then syncs, silently
+  carrying a value the user never entered, and still fails to converge.
 - **Hostile peer blob** — the `ArgumentError` case; a malformed date rejects one
   record and does not abort the batch or escape the isolate.
 - **An unmanifested blob survives collection** — upload a blob, have a *second*
@@ -4121,6 +4290,10 @@ must say this plainly rather than implying sync is opaque to us.
   still fetchable. Mutation-proved by collecting every unreferenced blob
   regardless of age. A single-device version of this test cannot fail, because
   nothing triggers GC in the window.
+- **`DELETE /v1/store` removes grace-protected blobs** — upload a blob, do not
+  manifest it, wipe the store, assert nothing remains and the quota reads zero.
+  Mutation-proved by applying the age bound to the wipe, which leaves the user's
+  only immediate quota remedy silently ineffective.
 - **A repeat blob `PUT` does not renew the grace window** — `PUT` an
   unreferenced blob, advance past 24 hours while re-`PUT`ting it each pass, and
   assert it is collected. Mutation-proved by refreshing `uploaded_at` on the
@@ -4140,6 +4313,12 @@ must say this plainly rather than implying sync is opaque to us.
 - **A weak-but-structurally-valid sync ID is accepted by the server** — the
   guard against re-implementing the strength estimator server-side, where a
   disagreement with the client is a lockout rather than a rejection.
+- **Client and server derive one `id_key` from one typed ID** — feed the same ID
+  with differing leading whitespace and in NFD, and assert a single store.
+  Mutation-proved by normalising on the client only. This is the nastiest
+  failure in the HTTP contract because it produces *no error*: the second device
+  authenticates fine, gets a real store that happens to be empty, and reports a
+  successful sync of nothing. Every other ID disagreement surfaces as a `403`.
 
 ## Resolved since first draft
 
