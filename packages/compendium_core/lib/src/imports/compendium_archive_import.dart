@@ -208,11 +208,13 @@ class CompendiumArchiveImportResult {
     List<String> insertedProgramIds = const [],
     List<Program> updatedProgramPriorStates = const [],
     List<String> insertedVenueIds = const [],
+    List<String> restoredVenueIds = const [],
   }) : programs = List.unmodifiable(programs),
        programIssues = List.unmodifiable(programIssues),
        insertedProgramIds = List.unmodifiable(insertedProgramIds),
        updatedProgramPriorStates = List.unmodifiable(updatedProgramPriorStates),
-       insertedVenueIds = List.unmodifiable(insertedVenueIds);
+       insertedVenueIds = List.unmodifiable(insertedVenueIds),
+       restoredVenueIds = List.unmodifiable(restoredVenueIds);
 
   /// The dance-side session (inserted dance ids, updated-dance prior states,
   /// created choreographer ids) — reverted via [ImportPipeline.undo].
@@ -235,6 +237,10 @@ class CompendiumArchiveImportResult {
   /// bundled venue). Hard-deleted on [undo] once the referencing programs have
   /// been reverted, so an undone import leaves no orphaned venue behind.
   final List<String> insertedVenueIds;
+
+  /// Ids of tombstoned venues restored by an exact provenance match. Soft-deleted
+  /// again on [undo] unless a surviving program references one.
+  final List<String> restoredVenueIds;
 
   /// Non-fatal issues raised while rebuilding the programs (unresolved dance
   /// references, skipped empty slots) — never fatal.
@@ -328,6 +334,7 @@ class CompendiumArchiveImporter {
     final priorCapturedFor = <String>{};
     final priorStates = <Program>[];
     final insertedVenueIds = <String>[];
+    final restoredVenueIds = <String>[];
     // Keyed by final program id so repeated externalIds collapse to one entry
     // carrying the final persisted state, preserving first-seen archive order.
     final persisted = <String, Program>{};
@@ -336,9 +343,11 @@ class CompendiumArchiveImporter {
       // record must exist before the program is written (the repository rejects
       // a non-existent `venueId`). Each *new* bundled venue is inserted under a
       // **freshly-minted** id, never the untrusted bundle id, so an import can
-      // never overwrite an existing venue; the original→new remap is what the
-      // rebuilt programs resolve their `venueId` against (a reference to a venue
-      // absent from the bundle is nulled — see [buildArchivePrograms]).
+      // never overwrite an existing venue. An exact match to a tombstoned
+      // provenance row restores that row instead, because its unique provenance
+      // key prevents minting a second copy. The original→new-or-restored remap is
+      // what rebuilt programs resolve their `venueId` against (a reference to a
+      // venue absent from the bundle is nulled — see [buildArchivePrograms]).
       //
       // Dedupe — two paths, in precedence order:
       //
@@ -384,6 +393,9 @@ class CompendiumArchiveImporter {
       final existingVenueByExternalId = archive.venues.isNotEmpty
           ? await _venues.externalIdToVenueId(ProvenanceSource.json)
           : const <String, String>{};
+      final deletedVenueByExternalId = archive.venues.isNotEmpty
+          ? await _venues.deletedExternalIdToVenueId(ProvenanceSource.json)
+          : const <String, String>{};
       // Also absorb ids freshly-minted during *this* commit so a duplicate
       // externalId inside a single bundle resolves to one row, not two.
       final resolvedVenueByExternalId = Map<String, String>.from(
@@ -425,6 +437,17 @@ class CompendiumArchiveImporter {
           venueIdByOriginalId[venue.id] = provenanceMatchId;
           continue;
         }
+        final deletedProvenanceMatchId = deletedVenueByExternalId[venue.id];
+        if (deletedProvenanceMatchId != null) {
+          // The provenance unique key prevents minting a second row for the
+          // same source record. Restore the exact tombstoned venue without
+          // accepting any fields from the untrusted bundle.
+          await _venues.restore(deletedProvenanceMatchId, at: now);
+          venueIdByOriginalId[venue.id] = deletedProvenanceMatchId;
+          resolvedVenueByExternalId[venue.id] = deletedProvenanceMatchId;
+          restoredVenueIds.add(deletedProvenanceMatchId);
+          continue;
+        }
 
         // 2. Content-fingerprint match: new venue, but looks like one the
         //    receiver already holds (e.g. same address from a .USR import).
@@ -458,14 +481,6 @@ class CompendiumArchiveImporter {
         now: now,
       );
 
-      // Every non-null `venueId` on a built program resolves (via
-      // `venueIdByOriginalId`) to either a venue this commit just minted or a
-      // pre-existing venue it deduped to — both are present in the DB — so this
-      // set lets the repository validate each write against memory instead of an
-      // N+1 of per-program venue SELECTs. Safe: this commit only inserts/reads
-      // venues, never deletes one, so a referenced venue can't vanish mid-write.
-      final knownVenueIds = venueIdByOriginalId.values.toSet();
-
       // A pre-venue archive cannot express `venueId` at all, so on a
       // provenance-matched re-import its programs carry a null one; honoring that
       // would silently drop a link the user established after the original
@@ -478,6 +493,14 @@ class CompendiumArchiveImporter {
       final archiveCarriesVenueLinks =
           requiredSchemaVersion(archive) >= archiveSchemaVersionVenues;
 
+      // Load live venue ids only if a program write needs them, and reuse the
+      // immutable snapshot for every linked program instead of issuing N+1
+      // existence queries.
+      LiveVenueIds? liveVenueIds;
+      Future<LiveVenueIds> ensureLiveVenueIds() async {
+        return liveVenueIds ??= await _venues.listAllIds();
+      }
+
       for (final program in built.programs) {
         final externalId = program.provenance?.externalId;
         final hasExternalId = externalId != null && externalId.isNotEmpty;
@@ -488,6 +511,9 @@ class CompendiumArchiveImporter {
             ? null
             : await _programs.getById(mappedId, includeDeleted: true);
         if (mappedId == null || existing == null) {
+          final knownVenueIds = program.venueId == null
+              ? LiveVenueIds.empty
+              : await ensureLiveVenueIds();
           await _programs.create(program, knownVenueIds: knownVenueIds);
           insertedIds.add(program.id);
           insertedIdSet.add(program.id);
@@ -509,17 +535,11 @@ class CompendiumArchiveImporter {
               priorCapturedFor.add(mappedId)) {
             priorStates.add(existing);
           }
-          // A preserved prior `venueId` (pre-venue re-import) references a venue
-          // already in the DB, not one this import inserted, so it is absent from
-          // [knownVenueIds]. Admit it for this write: the venue delete-guard keeps
-          // a referenced venue alive and this commit only inserts venues, so the
-          // reference is sound and needs no extra per-write SELECT.
           final venueId = target.venueId;
-          final knownForWrite =
-              venueId != null && !knownVenueIds.contains(venueId)
-              ? {...knownVenueIds, venueId}
-              : knownVenueIds;
-          await _programs.update(target, knownVenueIds: knownForWrite);
+          final knownVenueIds = venueId == null
+              ? LiveVenueIds.empty
+              : await ensureLiveVenueIds();
+          await _programs.update(target, knownVenueIds: knownVenueIds);
           persisted[mappedId] = target;
         }
       }
@@ -531,6 +551,7 @@ class CompendiumArchiveImporter {
         insertedProgramIds: insertedIds,
         updatedProgramPriorStates: priorStates,
         insertedVenueIds: insertedVenueIds,
+        restoredVenueIds: restoredVenueIds,
       );
     } catch (_) {
       // Compensate in reverse-dependency order: remove inserted programs and
@@ -541,6 +562,9 @@ class CompendiumArchiveImporter {
         await _programs.update(prior);
       }
       await _venues.hardDelete(insertedVenueIds);
+      for (final id in restoredVenueIds) {
+        await _venues.delete(id);
+      }
       await _pipeline.undo(danceSession);
       rethrow;
     }
@@ -617,6 +641,14 @@ class CompendiumArchiveImporter {
       } on StateError {
         // Still referenced by a surviving program — leave it in place rather
         // than orphan that program's venueId.
+      }
+    }
+    for (final id in result.restoredVenueIds) {
+      try {
+        await _venues.delete(id);
+      } on StateError {
+        // A surviving program may have linked to the restored venue after the
+        // import; keep it live rather than orphaning that reference.
       }
     }
     await _pipeline.undo(result.danceSession);

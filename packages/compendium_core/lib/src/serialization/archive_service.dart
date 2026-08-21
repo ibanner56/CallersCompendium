@@ -2,6 +2,7 @@ import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/program.dart';
 import '../storage/repositories/repositories.dart';
+import '../storage/repositories/venue_repository.dart';
 import 'compendium_archive.dart';
 
 /// Reads the entire core-persisted collection into a [CompendiumArchive] for
@@ -272,7 +273,7 @@ class ArchiveRestorer {
   /// OWASP-aligned import contract forbids, so it is nulled rather than
   /// persisted as an unresolvable reference. A resolvable (or already-null)
   /// `venueId` is left untouched.
-  Program _withResolvedVenue(Program p, Set<String> knownVenueIds) {
+  Program _withResolvedVenue(Program p, LiveVenueIds knownVenueIds) {
     final venueId = p.venueId;
     if (venueId == null) return p;
     return knownVenueIds.contains(venueId) ? p : p.copyWith(clearVenueId: true);

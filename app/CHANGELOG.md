@@ -35,6 +35,12 @@ each release so store builds and tags can be traced back to an entry.
   **Calling history** toggles. Nothing about what these settings do changed — only
   where they live. (issue #935)
 
+### Fixed
+
+- Archive re-imports no longer link programs to soft-deleted venues; an exact
+  provenance match restores the venue before the program is persisted. (issue
+  #1016)
+
 ### Added
 
 - **Signed published collections** — discover and import immutable dance

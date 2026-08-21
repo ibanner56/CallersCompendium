@@ -140,7 +140,7 @@ void main() {
         expect(await repos.publishedSources.listAll(), isEmpty);
         expect(await repos.customFieldDefs.listAll(), isEmpty);
         expect(await repos.venues.listAll(), isEmpty);
-        expect(await repos.venues.listAllIds(), isEmpty);
+        expect((await repos.venues.listAllIds()).contains('v1'), isFalse);
       },
     );
 

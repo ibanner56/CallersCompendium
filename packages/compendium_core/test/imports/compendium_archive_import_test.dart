@@ -958,6 +958,35 @@ void main() {
       },
     );
 
+    test(
+      're-import restores an exact soft-deleted venue before linking',
+      () async {
+        final archive = bundleWithVenue(
+          programVenueId: 'orig-v1',
+          venues: [Venue(id: 'orig-v1', name: 'Town Hall')],
+        );
+        final result1 = await run(archive);
+        final deletedVenueId = (await venues.listAll()).single.id;
+
+        // The venue delete guard counts soft-deleted programs too, so remove the
+        // imported program before tombstoning the venue.
+        await programs.hardDelete(result1.insertedProgramIds);
+        await venues.delete(deletedVenueId);
+        expect(await venues.getById(deletedVenueId), isNull);
+
+        final result2 = await run(archive);
+
+        expect(result2.insertedVenueCount, 0);
+        final program = (await programs.listAll()).single;
+        expect(program.venueId, deletedVenueId);
+        expect(await venues.getById(deletedVenueId), isNotNull);
+        expect(result2.restoredVenueIds, [deletedVenueId]);
+
+        await importer.undo(result2);
+        expect(await venues.getById(deletedVenueId), isNull);
+      },
+    );
+
     test('local-only venue with no provenance row is never matched by an '
         'incoming bundle id (no false provenance-match)', () async {
       // A locally-created venue (not imported from any bundle) has no
@@ -1206,7 +1235,7 @@ void main() {
       expect(await venues.listAll(), hasLength(1));
     });
 
-    test('validates venueIds against the minted set (no per-program venue '
+    test('validates venueIds against the live snapshot (no per-program venue '
         'SELECT)', () async {
       final counter = VenueSelectCounter();
       final countingDb = openCountingTestDatabase(counter);
@@ -1256,19 +1285,17 @@ void main() {
         newSlotId: sequentialIds('slot'),
       );
 
-      // The only venue SELECT the import issues is the single fingerprint-index
-      // preload (one `listAll` before the venue loop — O(1), not per-venue). The
-      // program write phase then validates each `venueId` against the in-memory
-      // known set, adding no per-program venue existence SELECT; with 3 programs
-      // an N+1 regression would push this to 4+.
-      expect(counter.count, 1);
+      // Two provenance lookups (live and tombstoned), one fingerprint-index
+      // preload, and one live-id snapshot are fixed reads; the program write
+      // phase adds no per-program venue existence SELECT.
+      expect(counter.count, 4);
       expect(await countingPrograms.listAll(), hasLength(3));
     });
 
-    test('a weak-key-only bundle skips the dedupe preload (zero venue '
-        'SELECTs)', () async {
-      // No bundled venue clears the strong-key threshold, so cross-import
-      // dedupe is impossible and the `listAll` preload must be skipped entirely.
+    test('a weak-key-only bundle skips the fingerprint preload', () async {
+      // No bundled venue clears the strong-key threshold, so the fingerprint
+      // preload is skipped. Provenance lookups and the linked-program snapshot
+      // remain necessary.
       final counter = VenueSelectCounter();
       final countingDb = openCountingTestDatabase(counter);
       addTearDown(countingDb.close);
@@ -1307,7 +1334,7 @@ void main() {
         newSlotId: sequentialIds('slot'),
       );
 
-      expect(counter.count, 0);
+      expect(counter.count, 3);
     });
 
     test(
