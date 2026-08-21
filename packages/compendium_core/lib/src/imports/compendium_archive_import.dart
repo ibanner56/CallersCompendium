@@ -563,7 +563,13 @@ class CompendiumArchiveImporter {
       }
       await _venues.hardDelete(insertedVenueIds);
       for (final id in restoredVenueIds) {
-        await _venues.delete(id);
+        try {
+          await _venues.delete(id);
+        } on StateError {
+          // A surviving program may have linked to the restored venue during
+          // the failed import; keep it live rather than masking the original
+          // failure or skipping dance rollback.
+        }
       }
       await _pipeline.undo(danceSession);
       rethrow;

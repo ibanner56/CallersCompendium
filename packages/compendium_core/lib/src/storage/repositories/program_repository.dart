@@ -259,7 +259,9 @@ class ProgramRepository {
     // dangling `venueId` before calling the repo — so a bundle referencing an
     // absent venue never reaches the throw below, and persisting N programs
     // stays O(1) in venue queries. Either way the integrity guarantee is
-    // identical: an unknown or tombstoned `venueId` throws.
+    // identical at the time of validation: an unknown or tombstoned `venueId`
+    // throws. A preloaded snapshot is point-in-time; callers that need atomic
+    // liveness must use the transactional single-write path.
     final venueId = program.venueId;
     if (venueId != null) {
       final venueExists = knownVenueIds != null

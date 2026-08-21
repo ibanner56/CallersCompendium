@@ -17,7 +17,7 @@ import '../utc_datetime.dart';
 /// UNIQUE natural key (two halls may share a name), so an upsert can only ever
 /// land on the row sharing its id.
 @immutable
-class LiveVenueIds {
+final class LiveVenueIds {
   LiveVenueIds._(Iterable<String> ids) : _ids = Set.unmodifiable(ids);
 
   /// The empty live-id snapshot, used when a bulk write has no venue links.
