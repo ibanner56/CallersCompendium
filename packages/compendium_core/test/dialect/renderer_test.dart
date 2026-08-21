@@ -320,11 +320,10 @@ void main() {
     });
 
     test('does not replace custom figure text', () {
-      final figure = Figure(
+      final figure = testFigure(
         move: customMove,
         params: {'text': 'say this instead'},
-        wordingOverride: 'ignored structured wording',
-      );
+      ).copyWith(wordingOverride: 'ignored structured wording');
       expect(renderer.render(figure, larks), 'say this instead');
       expect(renderer.renderSummary(figure, larks), 'say this instead');
     });
