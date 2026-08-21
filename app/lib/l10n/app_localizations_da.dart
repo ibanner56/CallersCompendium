@@ -6395,6 +6395,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String dialectEditorMoveWordingMissingSlots(String slots) {
+    return 'Denne skabelon udelader tilgængelige pladsholdere: $slots';
+  }
+
+  @override
   String dialectEditorMoveWordingPreview(String preview) {
     return 'Forhåndsvisning: $preview';
   }
@@ -6402,4 +6407,13 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get dialectEditorMoveWordingsReset =>
       'Nulstil skabeloner til bevægelsesformulering';
+
+  @override
+  String get dialectEditorMoveWordingConfirmTitle =>
+      'Gem ufuldstændige ordlydsskabeloner?';
+
+  @override
+  String dialectEditorMoveWordingConfirmBody(String figures) {
+    return 'Disse skabeloner udelader tilgængelige pladsholdere og kan skjule figurdetaljer:\n$figures\n\nGem alligevel?';
+  }
 }

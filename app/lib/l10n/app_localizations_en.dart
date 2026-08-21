@@ -6377,10 +6377,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String dialectEditorMoveWordingMissingSlots(String slots) {
+    return 'This template omits available slots: $slots';
+  }
+
+  @override
   String dialectEditorMoveWordingPreview(String preview) {
     return 'Preview: $preview';
   }
 
   @override
   String get dialectEditorMoveWordingsReset => 'Reset move wording templates';
+
+  @override
+  String get dialectEditorMoveWordingConfirmTitle =>
+      'Save incomplete wording templates?';
+
+  @override
+  String dialectEditorMoveWordingConfirmBody(String figures) {
+    return 'These templates omit available slots and may hide figure details:\n$figures\n\nSave anyway?';
+  }
 }

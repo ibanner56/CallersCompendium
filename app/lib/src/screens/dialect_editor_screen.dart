@@ -60,6 +60,8 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   /// edit so the live preview and validation both read from it.
   late Dialect _working;
 
+  static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
+
   @override
   void initState() {
     super.initState();
@@ -176,10 +178,27 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     });
   }
 
+  Map<String, String> _incompleteMoveWordings(Dialect dialect) {
+    final incomplete = <String, String>{};
+    for (final entry in dialect.moveWordings.entries) {
+      if (!FigureRenderer.isValidMoveWordingTemplate(entry.value)) continue;
+      final missing =
+          _renderer.moveWordingMissingSlots(entry.key, entry.value).toList()
+            ..sort();
+      if (missing.isNotEmpty) {
+        incomplete[_moveLabel(entry.key)] = missing
+            .map((slot) => '{$slot}')
+            .join(', ');
+      }
+    }
+    return incomplete;
+  }
+
   /// Returns the edited dialect to the caller. If the assembled dialect has
   /// validation issues (empty or ambiguous substitutions), they are surfaced
-  /// inline and the editor stays open.
-  void _save() {
+  /// inline and the editor stays open. Templates that omit available slots are
+  /// saved only after the user confirms the affected figures.
+  Future<void> _save() async {
     final edited = _assemble();
     final issues = edited.validate();
     if (issues.isNotEmpty) {
@@ -189,6 +208,36 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       });
       return;
     }
+    final incomplete = _incompleteMoveWordings(edited);
+    if (incomplete.isNotEmpty) {
+      final details = incomplete.entries
+          .map((entry) => '${entry.key}: ${entry.value}')
+          .join('\n');
+      final l10n = AppLocalizations.of(context);
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          key: const ValueKey('dialect-wording-confirm-dialog'),
+          title: Text(l10n.dialectEditorMoveWordingConfirmTitle),
+          content: SingleChildScrollView(
+            child: Text(l10n.dialectEditorMoveWordingConfirmBody(details)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.commonCancel),
+            ),
+            FilledButton(
+              key: const ValueKey('dialect-wording-confirm'),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.commonSave),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || confirmed != true) return;
+    }
+    if (!mounted) return;
     Navigator.of(context).pop(edited);
   }
 
@@ -267,6 +316,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final itemBuilders = _editorItemBuilders(l10n);
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.dialectEditorTitle(widget.initial.name)),
@@ -278,73 +328,72 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            if (_issues.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: Text(
-                  _issues
-                      .map((i) => validationIssueMessage(l10n, i))
-                      .join('\n'),
-                  key: const ValueKey('dialect-validation-error'),
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ),
-            _EditorHeader(title: l10n.dialectEditorSectionRoleTerms),
-            _RoleTermsEditor(
-              role1Singular: _role1Singular,
-              role1Plural: _role1Plural,
-              role2Singular: _role2Singular,
-              role2Plural: _role2Plural,
-              onChanged: _onEdited,
-            ),
-            _EditorHeader(title: l10n.dialectEditorSectionMoveSubs),
-            _MoveSubstitutionsEditor(
-              controllers: _moveCtrls,
-              expanded: _showMoves,
-              onToggle: () => setState(() => _showMoves = !_showMoves),
-              onEdited: _onEdited,
-              onAdd: _addMoveSubstitution,
-              onRemove: _removeMoveSubstitution,
-            ),
-            _EditorHeader(title: l10n.dialectEditorSectionDancerSubs),
-            _DancerSubstitutionsEditor(
-              controllers: _dancerCtrls,
-              dialect: _working,
-              expanded: _showDancers,
-              onToggle: () => setState(() => _showDancers = !_showDancers),
-              onEdited: _onEdited,
-              onAdd: _addDancerSubstitution,
-              onRemove: _removeDancerSubstitution,
-            ),
-            _EditorHeader(title: l10n.dialectEditorSectionMoveWordings),
-            _MoveWordingsEditor(
-              controllers: _wordingCtrls,
-              expanded: _showWordings,
-              onToggle: () => setState(() => _showWordings = !_showWordings),
-              onEdited: _onEdited,
-              onAdd: _addMoveWording,
-              onRemove: _removeMoveWording,
-              onRestoreDefaults: _restoreMoveWordings,
-            ),
-            _EditorHeader(title: l10n.dialectEditorSectionDiscouraged),
-            _DiscouragedTermsEditor(
-              terms: _discouraged,
-              input: _discouragedInput,
-              onAdd: _addDiscouraged,
-              onRemove: _removeDiscouraged,
-              onRestoreDefaults: _restoreDiscouragedDefaults,
-            ),
-            _EditorHeader(title: l10n.dialectEditorSectionPreview),
-            _DialectPreview(dialect: _working),
-            const SizedBox(height: 24),
-          ],
-        ),
+      body: ListView.builder(
+        itemCount: itemBuilders.length,
+        itemBuilder: (context, index) => itemBuilders[index](),
       ),
     );
   }
+
+  List<Widget Function()> _editorItemBuilders(AppLocalizations l10n) => [
+    if (_issues.isNotEmpty)
+      () => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        child: Text(
+          _issues.map((i) => validationIssueMessage(l10n, i)).join('\n'),
+          key: const ValueKey('dialect-validation-error'),
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
+      ),
+    () => _EditorHeader(title: l10n.dialectEditorSectionRoleTerms),
+    () => _RoleTermsEditor(
+      role1Singular: _role1Singular,
+      role1Plural: _role1Plural,
+      role2Singular: _role2Singular,
+      role2Plural: _role2Plural,
+      onChanged: _onEdited,
+    ),
+    () => _EditorHeader(title: l10n.dialectEditorSectionMoveSubs),
+    () => _MoveSubstitutionsEditor(
+      controllers: _moveCtrls,
+      expanded: _showMoves,
+      onToggle: () => setState(() => _showMoves = !_showMoves),
+      onEdited: _onEdited,
+      onAdd: _addMoveSubstitution,
+      onRemove: _removeMoveSubstitution,
+    ),
+    () => _EditorHeader(title: l10n.dialectEditorSectionDancerSubs),
+    () => _DancerSubstitutionsEditor(
+      controllers: _dancerCtrls,
+      dialect: _working,
+      expanded: _showDancers,
+      onToggle: () => setState(() => _showDancers = !_showDancers),
+      onEdited: _onEdited,
+      onAdd: _addDancerSubstitution,
+      onRemove: _removeDancerSubstitution,
+    ),
+    () => _EditorHeader(title: l10n.dialectEditorSectionMoveWordings),
+    () => _MoveWordingsEditor(
+      controllers: _wordingCtrls,
+      expanded: _showWordings,
+      onToggle: () => setState(() => _showWordings = !_showWordings),
+      onEdited: _onEdited,
+      onAdd: _addMoveWording,
+      onRemove: _removeMoveWording,
+      onRestoreDefaults: _restoreMoveWordings,
+    ),
+    () => _EditorHeader(title: l10n.dialectEditorSectionDiscouraged),
+    () => _DiscouragedTermsEditor(
+      terms: _discouraged,
+      input: _discouragedInput,
+      onAdd: _addDiscouraged,
+      onRemove: _removeDiscouraged,
+      onRestoreDefaults: _restoreDiscouragedDefaults,
+    ),
+    () => _EditorHeader(title: l10n.dialectEditorSectionPreview),
+    () => _DialectPreview(dialect: _working),
+    () => const SizedBox(height: 24),
+  ];
 }
 
 class _EditorHeader extends StatelessWidget {
@@ -577,6 +626,8 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
   }
 }
 
+String _moveLabel(String id) => contraTaxonomy.moves[id]?.displayName ?? id;
+
 /// Collapsible display-only per-move wording editor. Templates use the slots
 /// shown below each field; unknown slots are rendered empty and warned about,
 /// while malformed templates fall back to the normal renderer.
@@ -600,9 +651,6 @@ class _MoveWordingsEditor extends StatelessWidget {
   final VoidCallback onRestoreDefaults;
 
   static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
-
-  static String _moveLabel(String id) =>
-      contraTaxonomy.moves[id]?.displayName ?? id;
 
   @override
   Widget build(BuildContext context) {
@@ -684,6 +732,9 @@ class _MoveWordingsEditor extends StatelessWidget {
     ).allMatches(text).map((match) => match[1]!).toSet();
     final unknown = used.difference(known).toList()..sort();
     final valid = FigureRenderer.isValidMoveWordingTemplate(text);
+    final missing = valid
+        ? (_renderer.moveWordingMissingSlots(id, text).toList()..sort())
+        : const <String>[];
     final preview = _renderer.render(
       Figure(move: id),
       Dialect(name: 'Preview', moveWordings: {id: text}),
@@ -735,6 +786,13 @@ class _MoveWordingsEditor extends StatelessWidget {
           if (unknown.isNotEmpty)
             Text(
               l10n.dialectEditorMoveWordingUnknownSlots(unknown.join(', ')),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          if (missing.isNotEmpty)
+            Text(
+              l10n.dialectEditorMoveWordingMissingSlots(
+                missing.map((slot) => '{$slot}').join(', '),
+              ),
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           Text(

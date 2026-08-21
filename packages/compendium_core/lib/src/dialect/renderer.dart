@@ -21,6 +21,7 @@ final RegExp _singleDancerShape = RegExp(r'^(ones|twos)(Role[12])$');
 
 /// A display template's computed slots and literal sentence structure.
 typedef _DisplayTemplate = ({Map<String, String> slots, String template});
+typedef _AssembledTemplate = ({Set<String> slots, String text});
 
 /// Signature of a DISPLAY-ONLY base-line renderer (see
 /// [FigureRenderer._displayBaseRenderers]). Computes the slots for a move that
@@ -48,36 +49,43 @@ typedef _DisplayBaseRenderer =
 String _assembleDisplayTemplate(_DisplayTemplate displayTemplate) {
   final slots = displayTemplate.slots;
   final template = displayTemplate.template;
-  final output = StringBuffer();
   var index = 0;
 
   String substitute(String source) =>
       source.replaceAllMapped(_placeholder, (match) => slots[match[1]!] ?? '');
 
-  while (index < template.length) {
-    if (template[index] != '[') {
-      final next = template.indexOf('[', index);
-      final end = next < 0 ? template.length : next;
-      output.write(substitute(template.substring(index, end)));
+  _AssembledTemplate parse({required bool stopAtClose}) {
+    final output = StringBuffer();
+    final names = <String>{};
+    while (index < template.length) {
+      final char = template[index];
+      if (char == ']' && stopAtClose) break;
+      if (char == '[') {
+        index++;
+        final group = parse(stopAtClose: true);
+        if (index < template.length && template[index] == ']') index++;
+        names.addAll(group.slots);
+        final allEmpty =
+            group.slots.isNotEmpty &&
+            group.slots.every((name) => (slots[name] ?? '').isEmpty);
+        if (!allEmpty) output.write(group.text);
+        continue;
+      }
+      final nextOpen = template.indexOf('[', index);
+      final nextClose = stopAtClose ? template.indexOf(']', index) : -1;
+      final next = [if (nextOpen >= 0) nextOpen, if (nextClose >= 0) nextClose];
+      final end = next.isEmpty
+          ? template.length
+          : next.reduce((a, b) => a < b ? a : b);
+      final literal = template.substring(index, end);
+      output.write(substitute(literal));
+      names.addAll(_placeholder.allMatches(literal).map((match) => match[1]!));
       index = end;
-      continue;
     }
-    final close = template.indexOf(']', index + 1);
-    if (close < 0) {
-      output.write(substitute(template.substring(index)));
-      break;
-    }
-    final group = template.substring(index + 1, close);
-    final names = _placeholder
-        .allMatches(group)
-        .map((match) => match[1]!)
-        .toList();
-    final allEmpty =
-        names.isNotEmpty && names.every((name) => (slots[name] ?? '').isEmpty);
-    if (!allEmpty) output.write(substitute(group));
-    index = close + 1;
+    return (slots: names, text: output.toString());
   }
-  return FigureRenderer._collapseSpaces(output.toString());
+
+  return FigureRenderer._collapseSpaces(parse(stopAtClose: false).text);
 }
 
 _DisplayTemplate _displayTemplate(Map<String, String> slots, String template) =>
@@ -613,6 +621,8 @@ class FigureRenderer {
       } else if (char == '{') {
         final close = trimmed.indexOf('}', i + 1);
         if (close < 0) return false;
+        final name = trimmed.substring(i + 1, close);
+        if (!RegExp(r'^\w+$').hasMatch(name)) return false;
         i = close;
       } else if (char == '}') {
         return false;
@@ -624,8 +634,10 @@ class FigureRenderer {
   static bool _isUsableMoveWording(String? wording) =>
       wording != null && isValidMoveWordingTemplate(wording);
 
-  bool _hasUsableMoveWording(String moveId, Dialect dialect) =>
-      _isUsableMoveWording(dialect.moveWordings[moveId]);
+  bool _hasUsableMoveWording(String moveId, Dialect dialect) {
+    final canonicalMoveId = taxonomy.resolve(moveId)?.id ?? moveId;
+    return _isUsableMoveWording(dialect.moveWordings[canonicalMoveId]);
+  }
 
   /// The shipped display template's slots for [moveId], used by the editor's
   /// wording legend and preview.
@@ -633,6 +645,15 @@ class FigureRenderer {
     final template = moveWordingTemplate(moveId);
     if (template == null) return const {};
     return _placeholder.allMatches(template).map((match) => match[1]!).toSet();
+  }
+
+  /// Returns the available slots omitted by a custom wording template.
+  Set<String> moveWordingMissingSlots(String moveId, String wording) {
+    final used = _placeholder
+        .allMatches(wording)
+        .map((match) => match[1]!)
+        .toSet();
+    return moveWordingSlots(moveId).difference(used);
   }
 
   /// The default display template for [moveId], including the display-specific

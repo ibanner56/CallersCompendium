@@ -6481,6 +6481,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String dialectEditorMoveWordingMissingSlots(String slots) {
+    return 'Diese Vorlage lässt verfügbare Platzhalter aus: $slots';
+  }
+
+  @override
   String dialectEditorMoveWordingPreview(String preview) {
     return 'Vorschau: $preview';
   }
@@ -6488,4 +6493,13 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get dialectEditorMoveWordingsReset =>
       'Vorlagen für Bewegungsformulierungen zurücksetzen';
+
+  @override
+  String get dialectEditorMoveWordingConfirmTitle =>
+      'Unvollständige Formulierungsvorlagen speichern?';
+
+  @override
+  String dialectEditorMoveWordingConfirmBody(String figures) {
+    return 'Diese Vorlagen lassen verfügbare Platzhalter aus und können Figurdetails verbergen:\n$figures\n\nTrotzdem speichern?';
+  }
 }

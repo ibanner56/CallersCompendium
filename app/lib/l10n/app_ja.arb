@@ -6428,6 +6428,10 @@
   "@dialectEditorMoveWordingUnknownSlots": {
     "x-sourceSha256": "dde3c367ca0367ead22428fbc85f271dfced3551c383eaa1a7b802be45828d2e"
   },
+  "dialectEditorMoveWordingMissingSlots": "このテンプレートでは利用可能なスロットが省略されています: {slots}",
+  "@dialectEditorMoveWordingMissingSlots": {
+    "x-sourceSha256": "3426369df24bbb63eb6223087bcfe4c111e6c6e5424616d6bddb2d0e9f371b37"
+  },
   "dialectEditorMoveWordingPreview": "プレビュー: {preview}",
   "@dialectEditorMoveWordingPreview": {
     "x-sourceSha256": "eb74dfe9699ddb9f3228db695dcb5912dfd5d282c1dee2a3fe95b33ae2eaa42b"
@@ -6435,5 +6439,13 @@
   "dialectEditorMoveWordingsReset": "動作の文言テンプレートをリセット",
   "@dialectEditorMoveWordingsReset": {
     "x-sourceSha256": "c1384a65483f73ab0f7a946327262497817cd12c9e9e84faf569ff9539d36737"
+  },
+  "dialectEditorMoveWordingConfirmTitle": "不完全な文言テンプレートを保存しますか？",
+  "@dialectEditorMoveWordingConfirmTitle": {
+    "x-sourceSha256": "acf92e20c8a89719edfb58d0767e917e81bbee977fcfde70b83167f8e111d974"
+  },
+  "dialectEditorMoveWordingConfirmBody": "これらのテンプレートでは利用可能なスロットが省略されているため、フィギュアの詳細が隠れる可能性があります:\n{figures}\n\nそれでも保存しますか？",
+  "@dialectEditorMoveWordingConfirmBody": {
+    "x-sourceSha256": "4495d1a42205b677e8271a54bfab129e8bebcc9267877bf5fd4baba6d3fb9c73"
   }
 }

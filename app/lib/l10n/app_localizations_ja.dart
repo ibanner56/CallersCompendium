@@ -6175,10 +6175,23 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String dialectEditorMoveWordingMissingSlots(String slots) {
+    return 'このテンプレートでは利用可能なスロットが省略されています: $slots';
+  }
+
+  @override
   String dialectEditorMoveWordingPreview(String preview) {
     return 'プレビュー: $preview';
   }
 
   @override
   String get dialectEditorMoveWordingsReset => '動作の文言テンプレートをリセット';
+
+  @override
+  String get dialectEditorMoveWordingConfirmTitle => '不完全な文言テンプレートを保存しますか？';
+
+  @override
+  String dialectEditorMoveWordingConfirmBody(String figures) {
+    return 'これらのテンプレートでは利用可能なスロットが省略されているため、フィギュアの詳細が隠れる可能性があります:\n$figures\n\nそれでも保存しますか？';
+  }
 }

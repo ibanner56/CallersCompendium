@@ -2890,12 +2890,43 @@ void main() {
       expect(renderer.renderSummary(figure, dialect), 'custom local wording');
     });
 
+    test('canonical wording applies to aliases in renderSummary', () {
+      final dialect = Dialect(
+        name: 'Wording',
+        moveWordings: const {'box_the_gnat': '{move} globally'},
+      );
+      final figure = Figure(
+        move: 'swat_the_flea',
+        params: const {'balance': true},
+      );
+
+      expect(renderer.renderSummary(figure, dialect), 'swat the flea globally');
+    });
+
     test('invalid global wording falls back to existing display output', () {
       final dialect = Dialect(
         name: 'Wording',
         moveWordings: const {'swing': '{who'},
       );
       final figure = Figure(move: 'swing', params: const {'who': 'partners'});
+      expect(renderer.render(figure, dialect), 'partner swing');
+    });
+
+    test('rejects malformed placeholder names', () {
+      expect(FigureRenderer.isValidMoveWordingTemplate('{foo bar}'), isFalse);
+    });
+
+    test('nested optional groups render depth-aware', () {
+      final dialect = Dialect(
+        name: 'Wording',
+        moveWordings: const {'swing': '[[{who} ]]{move}'},
+      );
+      final figure = Figure(move: 'swing', params: const {'who': 'partners'});
+
+      expect(
+        FigureRenderer.isValidMoveWordingTemplate('[[{who} ]]{move}'),
+        isTrue,
+      );
       expect(renderer.render(figure, dialect), 'partner swing');
     });
 

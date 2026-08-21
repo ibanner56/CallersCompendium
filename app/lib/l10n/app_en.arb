@@ -8501,6 +8501,16 @@
       }
     }
   },
+  "dialectEditorMoveWordingMissingSlots": "This template omits available slots: {slots}",
+  "@dialectEditorMoveWordingMissingSlots": {
+    "description": "Warning shown when a move wording template omits available placeholders.",
+    "placeholders": {
+      "slots": {
+        "type": "String",
+        "example": "{who}, {move}"
+      }
+    }
+  },
   "dialectEditorMoveWordingPreview": "Preview: {preview}",
   "@dialectEditorMoveWordingPreview": {
     "description": "Representative rendered preview for one move wording template.",
@@ -8514,5 +8524,19 @@
   "dialectEditorMoveWordingsReset": "Reset move wording templates",
   "@dialectEditorMoveWordingsReset": {
     "description": "Action that independently clears all move wording templates."
+  },
+  "dialectEditorMoveWordingConfirmTitle": "Save incomplete wording templates?",
+  "@dialectEditorMoveWordingConfirmTitle": {
+    "description": "Confirmation dialog title shown before saving templates that omit available slots."
+  },
+  "dialectEditorMoveWordingConfirmBody": "These templates omit available slots and may hide figure details:\n{figures}\n\nSave anyway?",
+  "@dialectEditorMoveWordingConfirmBody": {
+    "description": "Confirmation dialog body listing figures whose wording templates omit available slots.",
+    "placeholders": {
+      "figures": {
+        "type": "String",
+        "example": "Swing: {who}, {prefix}"
+      }
+    }
   }
 }

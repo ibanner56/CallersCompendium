@@ -9797,6 +9797,12 @@ abstract class AppLocalizations {
   /// **'Unknown slots are empty: {slots}'**
   String dialectEditorMoveWordingUnknownSlots(String slots);
 
+  /// Warning shown when a move wording template omits available placeholders.
+  ///
+  /// In en, this message translates to:
+  /// **'This template omits available slots: {slots}'**
+  String dialectEditorMoveWordingMissingSlots(String slots);
+
   /// Representative rendered preview for one move wording template.
   ///
   /// In en, this message translates to:
@@ -9808,6 +9814,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reset move wording templates'**
   String get dialectEditorMoveWordingsReset;
+
+  /// Confirmation dialog title shown before saving templates that omit available slots.
+  ///
+  /// In en, this message translates to:
+  /// **'Save incomplete wording templates?'**
+  String get dialectEditorMoveWordingConfirmTitle;
+
+  /// Confirmation dialog body listing figures whose wording templates omit available slots.
+  ///
+  /// In en, this message translates to:
+  /// **'These templates omit available slots and may hide figure details:\n{figures}\n\nSave anyway?'**
+  String dialectEditorMoveWordingConfirmBody(String figures);
 }
 
 class _AppLocalizationsDelegate

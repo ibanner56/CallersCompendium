@@ -6488,6 +6488,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String dialectEditorMoveWordingMissingSlots(String slots) {
+    return 'Ce modèle omet des emplacements disponibles : $slots';
+  }
+
+  @override
   String dialectEditorMoveWordingPreview(String preview) {
     return 'Aperçu : $preview';
   }
@@ -6495,4 +6500,13 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get dialectEditorMoveWordingsReset =>
       'Réinitialiser les modèles de formulation';
+
+  @override
+  String get dialectEditorMoveWordingConfirmTitle =>
+      'Enregistrer les modèles de formulation incomplets ?';
+
+  @override
+  String dialectEditorMoveWordingConfirmBody(String figures) {
+    return 'Ces modèles omettent des emplacements disponibles et peuvent masquer des détails de figure :\n$figures\n\nEnregistrer quand même ?';
+  }
 }

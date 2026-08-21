@@ -6442,6 +6442,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String dialectEditorMoveWordingMissingSlots(String slots) {
+    return 'Deze template laat beschikbare slots weg: $slots';
+  }
+
+  @override
   String dialectEditorMoveWordingPreview(String preview) {
     return 'Voorbeeld: $preview';
   }
@@ -6449,4 +6454,13 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get dialectEditorMoveWordingsReset =>
       'Sjablonen voor bewegingsformuleringen resetten';
+
+  @override
+  String get dialectEditorMoveWordingConfirmTitle =>
+      'Onvolledige woordingssjablonen opslaan?';
+
+  @override
+  String dialectEditorMoveWordingConfirmBody(String figures) {
+    return 'Deze sjablonen laten beschikbare slots weg en kunnen figuurdetails verbergen:\n$figures\n\nToch opslaan?';
+  }
 }

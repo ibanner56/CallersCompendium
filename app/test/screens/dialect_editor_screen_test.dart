@@ -22,6 +22,20 @@ void main() {
     return buffer.toString();
   }
 
+  Future<void> reveal(WidgetTester tester, Finder target) async {
+    final scrollable = find.byType(Scrollable).first;
+    for (final delta in [-300.0, 300.0]) {
+      for (var attempt = 0; attempt < 30; attempt++) {
+        if (target.evaluate().isNotEmpty) break;
+        await tester.drag(scrollable, Offset(0, delta));
+        await tester.pumpAndSettle();
+      }
+      if (target.evaluate().isNotEmpty) break;
+    }
+    expect(target, findsOneWidget);
+    await tester.ensureVisible(target);
+  }
+
   testWidgets('typing a colliding substitution surfaces the collision live', (
     tester,
   ) async {
@@ -102,11 +116,7 @@ void main() {
     await tester.pump();
 
     // Scroll the preview (at the bottom of the editor list) into view.
-    await tester.scrollUntilVisible(
-      preview(),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await reveal(tester, preview());
     await tester.pumpAndSettle();
 
     // The sample figures + free text render the new plural role term, and no
@@ -134,11 +144,7 @@ void main() {
       );
 
       final toggle = find.byKey(const ValueKey('dialect-wordings-toggle'));
-      await tester.scrollUntilVisible(
-        toggle,
-        300,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await reveal(tester, toggle);
       await tester.tap(toggle);
       await tester.pumpAndSettle();
 
@@ -158,12 +164,44 @@ void main() {
       await tester.pump();
       expect(find.byKey(const ValueKey('dialect-wording-swing')), findsNothing);
       final movesToggle = find.byKey(const ValueKey('dialect-moves-toggle'));
-      await tester.ensureVisible(movesToggle);
+      await reveal(tester, movesToggle);
       await tester.tap(movesToggle);
       await tester.pump();
       expect(find.byKey(const ValueKey('dialect-move-swing')), findsOneWidget);
     },
   );
+
+  testWidgets('saving omitted wording slots requires confirmation', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(
+          initial: Dialect(
+            name: 'Wording',
+            moveWordings: const {'swing': '{move}'},
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('dialect-wording-confirm-dialog')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Save anyway?'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('dialect-wording-confirm')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('dialect-wording-confirm-dialog')),
+      findsNothing,
+    );
+  });
 
   testWidgets('Save is still guarded: an invalid dialect is not returned', (
     tester,
@@ -240,20 +278,20 @@ void main() {
 
       // Reveal both collapsed substitution editors.
       final movesToggle = find.byKey(const ValueKey('dialect-moves-toggle'));
-      await tester.ensureVisible(movesToggle);
+      await reveal(tester, movesToggle);
       await tester.tap(movesToggle);
       await tester.pumpAndSettle();
 
       final dancersToggle = find.byKey(
         const ValueKey('dialect-dancers-toggle'),
       );
-      await tester.ensureVisible(dancersToggle);
+      await reveal(tester, dancersToggle);
       await tester.tap(dancersToggle);
       await tester.pumpAndSettle();
 
       Future<void> expectFieldLabel(String key, String term) async {
         final field = find.byKey(ValueKey(key));
-        await tester.ensureVisible(field);
+        await reveal(tester, field);
         await tester.pumpAndSettle();
         // Target the field's editable node directly; the leading Text label
         // shares the same term, so we assert the term lands on the text field
@@ -295,7 +333,7 @@ void main() {
         ),
       );
       final toggle = find.byKey(const ValueKey('dialect-dancers-toggle'));
-      await tester.ensureVisible(toggle);
+      await reveal(tester, toggle);
       await tester.tap(toggle);
       await tester.pumpAndSettle();
     }
@@ -366,7 +404,7 @@ void main() {
       );
 
       final field = find.byKey(const ValueKey('dialect-dancer-twosRole2'));
-      await tester.ensureVisible(field);
+      await reveal(tester, field);
       await tester.pumpAndSettle();
 
       // The row names the token being overridden by its DEFAULT wording — not
@@ -435,7 +473,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final toggle = find.byKey(const ValueKey('dialect-dancers-toggle'));
-      await tester.ensureVisible(toggle);
+      await reveal(tester, toggle);
       await tester.tap(toggle);
       await tester.pumpAndSettle();
 
@@ -452,12 +490,12 @@ void main() {
       await tester.pumpAndSettle();
 
       final field = find.byKey(const ValueKey('dialect-dancer-twosRole2'));
-      await tester.ensureVisible(field);
+      await reveal(tester, field);
       await tester.enterText(field, 'robin two');
       await tester.pumpAndSettle();
 
       final save = find.byKey(const ValueKey('dialect-editor-save'));
-      await tester.ensureVisible(save);
+      await reveal(tester, save);
       await tester.tap(save);
       await tester.pumpAndSettle();
 
