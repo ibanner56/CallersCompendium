@@ -1542,6 +1542,18 @@ class AppLocalizationsDe extends AppLocalizations {
       'Titel, Autoren, Figuren, Notizen suchen…';
 
   @override
+  String get collectionSearchScopeLabel => 'Suchen in';
+
+  @override
+  String get collectionSearchScopeOmni => 'Alle Felder';
+
+  @override
+  String get collectionSearchScopeTitle => 'Titel';
+
+  @override
+  String get collectionSearchScopeFigure => 'Figur';
+
+  @override
   String get collectionClearSearchTooltip => 'Suche und Filter löschen';
 
   @override

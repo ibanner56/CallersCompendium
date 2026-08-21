@@ -182,6 +182,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   static const Duration _debounce = Duration(milliseconds: 250);
 
   final _ftsController = TextEditingController();
+  FullTextScope _ftsScope = FullTextScope.omni;
   final _facets = FacetSelections();
   final _byPhrase = ByPhraseSelections();
   final _advancedRoot = BuilderGroup();
@@ -677,6 +678,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   bool get _isBareFullText => isBareFullText(
     ftsText: _ftsController.text,
     facets: _facets,
+    scope: _ftsScope,
     byPhrase: _byPhrase,
     advancedRoot: _advancedEnabled ? _advancedRoot : null,
   );
@@ -711,6 +713,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ftsText: _ftsController.text,
         facets: _facets,
         defs: data.customFieldDefs,
+        scope: _ftsScope,
         byPhrase: _byPhrase,
         advancedRoot: _advancedEnabled ? _advancedRoot : null,
       );
@@ -746,13 +749,24 @@ class _DanceListScreenState extends State<DanceListScreen> {
   void _onFtsChanged(String _) {
     _debounceTimer?.cancel();
     if (_onlineEnabled) {
+      _onlineSeq++;
       _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
     } else {
+      _searchSeq++;
       _debounceTimer = Timer(_debounce, _runSearch);
     }
+
     // Reflect relevance availability / clear-button immediately (before the
     // debounce fires).
     setState(() {});
+  }
+
+  void _onFtsScopeChanged(FullTextScope? scope) {
+    if (scope == null || scope == _ftsScope || _onlineEnabled) return;
+    _debounceTimer?.cancel();
+    _searchSeq++;
+    setState(() => _ftsScope = scope);
+    unawaited(_runSearch());
   }
 
   /// Fires the current search immediately (on keyboard "search" / enter). In
@@ -780,6 +794,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     setState(() {});
     if (_onlineEnabled) {
       _debounceTimer?.cancel();
+      _onlineSeq++;
       _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
     } else {
       _runSearch();
@@ -791,6 +806,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// local list.
   void _onOnlineToggled(bool value) {
     _debounceTimer?.cancel();
+    _searchSeq++;
+    _onlineSeq++;
     setState(() {
       _onlineEnabled = value;
       _onlineError = null;
@@ -815,6 +832,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   void _onOnlineSourceChanged(OnlineSource source) {
     if (source == _onlineSource) return;
     _debounceTimer?.cancel();
+    _onlineSeq++;
     setState(() {
       _onlineSource = source;
       _onlineResults = const [];
@@ -1214,6 +1232,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   void _clearAll() {
     _debounceTimer?.cancel();
+    _searchSeq++;
+    _onlineSeq++;
     setState(() {
       _ftsController.clear();
       _facets.clear();
@@ -2132,6 +2152,37 @@ class _DanceListScreenState extends State<DanceListScreen> {
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.md,
             AppSpacing.sm,
+            AppSpacing.md,
+            0,
+          ),
+          child: DropdownButtonFormField<FullTextScope>(
+            key: const ValueKey('collection-search-scope'),
+            initialValue: _ftsScope,
+            decoration: InputDecoration(
+              labelText: l10n.collectionSearchScopeLabel,
+              isDense: true,
+            ),
+            items: [
+              DropdownMenuItem(
+                value: FullTextScope.omni,
+                child: Text(l10n.collectionSearchScopeOmni),
+              ),
+              DropdownMenuItem(
+                value: FullTextScope.title,
+                child: Text(l10n.collectionSearchScopeTitle),
+              ),
+              DropdownMenuItem(
+                value: FullTextScope.figure,
+                child: Text(l10n.collectionSearchScopeFigure),
+              ),
+            ],
+            onChanged: _onlineEnabled ? null : _onFtsScopeChanged,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xs,
             AppSpacing.md,
             0,
           ),

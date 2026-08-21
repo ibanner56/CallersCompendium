@@ -281,10 +281,12 @@ class ArchiveRestorer {
   /// Removes every user-content row (and its derived indexes) so a
   /// [RestoreMode.replace] loads into a clean database. Deletes join/derived
   /// tables before their parents to respect foreign keys, and clears the
-  /// non-FK-linked `dance_fts` virtual table explicitly.
+  /// non-FK-linked FTS5 virtual tables explicitly.
   Future<void> _clearAll() async {
     final db = _repos.db;
-    await db.customStatement('DELETE FROM dance_fts');
+    for (final table in const ['dance_fts', 'dance_substring_fts']) {
+      await db.customStatement('DELETE FROM $table');
+    }
     await db.delete(db.danceFigures).go();
     await db.delete(db.danceAuthors).go();
     await db.delete(db.danceTags).go();

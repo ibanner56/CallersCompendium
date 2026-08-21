@@ -59,4 +59,23 @@ void main() {
       expect(toFtsMatchQuery('   '), '""');
     });
   });
+
+  group('scoped query builders', () {
+    test('builds safe token prefixes', () {
+      expect(toFtsPrefixMatchQuery('Al'), '"Al"*');
+      expect(toFtsPrefixMatchQuery('right left'), '"right"* "left"*');
+      expect(toFtsPrefixMatchQuery('foo"'), '"foo"""*');
+    });
+
+    test('keeps a long substring query as one literal phrase', () {
+      expect(toFtsSubstringMatchQuery('man {alter'), '"man {alter"');
+      expect(toFtsSubstringMatchQuery('foo"bar'), '"foo""bar"');
+    });
+
+    test('counts trimmed Unicode scalar values', () {
+      expect(ftsQueryScalarLength('  Al  '), 2);
+      expect(ftsQueryScalarLength('é'), 1);
+      expect(ftsQueryScalarLength(''), 0);
+    });
+  });
 }

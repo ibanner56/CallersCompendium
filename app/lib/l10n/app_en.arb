@@ -1945,6 +1945,22 @@
   "@collectionSearchFieldHint": {
     "description": "Hint text of the local collection search field, listing what is searched."
   },
+  "collectionSearchScopeLabel": "Search in",
+  "@collectionSearchScopeLabel": {
+    "description": "Label for the local collection search scope selector."
+  },
+  "collectionSearchScopeOmni": "All fields",
+  "@collectionSearchScopeOmni": {
+    "description": "Local collection search scope covering all indexed fields."
+  },
+  "collectionSearchScopeTitle": "Title",
+  "@collectionSearchScopeTitle": {
+    "description": "Local collection search scope restricted to dance titles."
+  },
+  "collectionSearchScopeFigure": "Figure",
+  "@collectionSearchScopeFigure": {
+    "description": "Local collection search scope restricted to canonical figures."
+  },
   "collectionClearSearchTooltip": "Clear search and filters",
   "@collectionClearSearchTooltip": {
     "description": "Tooltip for the button that clears the search text and all active filters."

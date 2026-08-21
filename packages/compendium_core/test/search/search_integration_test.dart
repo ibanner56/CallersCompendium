@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
@@ -186,6 +187,82 @@ void main() {
       expect(await dances.search(const FullTextFilter('Petronella')), ['a']);
     });
 
+    test(
+      'scopes title and figure matching without the role collision',
+      () async {
+        await dances.create(
+          _dance(
+            id: 'hey-man',
+            title: 'Hey Man {alternating version}',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'figure-only',
+            title: 'Plain',
+            figures: [
+              Figure(move: 'swing', params: const {'beats': 16}),
+            ],
+          ),
+        );
+
+        expect(
+          await dances.search(
+            const FullTextFilter('man', scope: FullTextScope.title),
+          ),
+          ['hey-man'],
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('man {alter', scope: FullTextScope.title),
+          ),
+          ['hey-man'],
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('man', scope: FullTextScope.figure),
+          ),
+          isEmpty,
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('swing', scope: FullTextScope.figure),
+          ),
+          ['figure-only'],
+        );
+      },
+    );
+
+    test(
+      'Omni keeps canonical cross-field matching and raw title fallback',
+      () async {
+        await dances.create(
+          _dance(
+            id: 'title',
+            title: 'Hey Man {alternating version}',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'figure',
+            title: 'Plain',
+            figures: [
+              Figure(move: 'swing', params: const {'beats': 16}),
+            ],
+          ),
+        );
+
+        expect(await dances.search(const FullTextFilter('man')), ['title']);
+        expect(await dances.search(const FullTextFilter('swing')), ['figure']);
+      },
+    );
+
     group('FullText tolerates punctuation and operator-like text', () {
       test('hyphenated terms match instead of throwing', () async {
         await dances.create(
@@ -197,8 +274,9 @@ void main() {
             ],
           ),
         );
-        await dances.create(_dance(id: 'b', title: 'Unrelated'));
-        // Raw hyphens would be FTS5 syntax; the sanitizer makes this a phrase.
+        await dances.create(_dance(id: 'b', title: 'Do Si Do Delight'));
+        // Long Omni queries are literal substrings: punctuation must remain
+        // significant rather than matching the space-separated variant.
         expect(await dances.search(const FullTextFilter('do-si-do')), ['a']);
         expect(
           await dances.search(const FullTextFilter('right-and-left')),
@@ -220,29 +298,27 @@ void main() {
       });
 
       test('an unbalanced double quote does not throw', () async {
-        await dances.create(_dance(id: 'a', title: 'Foo Bar'));
+        await dances.create(_dance(id: 'a', title: 'Foo"Bar'));
         expect(await dances.search(const FullTextFilter('foo"')), ['a']);
       });
 
       test(
         'unbalanced parentheses match literally instead of throwing',
         () async {
-          await dances.create(_dance(id: 'a', title: 'Swing Time'));
+          await dances.create(_dance(id: 'a', title: '(swing time'));
           await dances.create(
             _dance(
               id: 'b',
-              title: 'Plain',
+              title: 'swing) time',
               figures: [
                 Figure(move: 'balance', params: const {'beats': 16}),
               ],
             ),
           );
-          // A lone `(` / `)` is FTS5 grouping syntax; unbalanced it is a syntax
-          // error. Quoting ("(swing") makes FTS5 read a phrase literal, not
-          // grouping; at match time the tokenizer drops the paren, so the
-          // phrase reduces to the term `swing`.
+          // Long queries keep grouping punctuation in the literal substring,
+          // so each query matches only the title with the same punctuation.
           expect(await dances.search(const FullTextFilter('(swing')), ['a']);
-          expect(await dances.search(const FullTextFilter('swing)')), ['a']);
+          expect(await dances.search(const FullTextFilter('swing)')), ['b']);
         },
       );
 
@@ -273,35 +349,25 @@ void main() {
         );
       });
 
-      test(
-        'prefix / column / initial-token operators never inject or throw',
-        () async {
-          await dances.create(_dance(id: 'a', title: 'Swing Time'));
-          await dances.create(
-            _dance(
-              id: 'b',
-              title: 'Plain',
-              figures: [
-                Figure(move: 'balance', params: const {'beats': 16}),
-              ],
-            ),
-          );
-          // Quoting each token ("swing*", "^swing") stops FTS5 reading `*` as a
-          // prefix query or `^` as a first-token match; the tokenizer then
-          // drops the punctuation so the phrase matches the term `swing`.
-          expect(await dances.search(const FullTextFilter('swing*')), ['a']);
-          expect(await dances.search(const FullTextFilter('^swing')), ['a']);
-          // A raw column filter on a non-existent column would be an FTS5
-          // 'no such column: foo' error; quoting ("foo:swing") makes FTS5 parse
-          // a phrase literal instead, which the tokenizer splits into `foo` +
-          // `swing`, so it matches only a row with that adjacent phrase (none
-          // here).
-          expect(
-            await dances.search(const FullTextFilter('foo:swing')),
-            isEmpty,
-          );
-        },
-      );
+      test('prefix / column / initial-token operators stay literal', () async {
+        await dances.create(_dance(id: 'a', title: 'swing* time'));
+        await dances.create(
+          _dance(
+            id: 'b',
+            title: '^swing time',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        // Quoting the whole long input keeps FTS5 operators inside the
+        // literal substring query.
+        expect(await dances.search(const FullTextFilter('swing*')), ['a']);
+        expect(await dances.search(const FullTextFilter('^swing')), ['b']);
+        // A raw column filter on a non-existent column remains a literal
+        // substring and cannot alter the SQL query.
+        expect(await dances.search(const FullTextFilter('foo:swing')), isEmpty);
+      });
 
       test(
         'empty / whitespace-only text returns no rows, never throws',
@@ -747,6 +813,36 @@ void main() {
         ['b'],
       );
     });
+
+    test(
+      'prefix and substring searches use their FTS virtual tables',
+      () async {
+        Future<List<String>> planFor(String sql, String query) async {
+          final rows = await db
+              .customSelect(sql, variables: [Variable.withString(query)])
+              .get();
+          return [for (final row in rows) row.read<String>('detail')];
+        }
+
+        final prefixPlan = await planFor(
+          'EXPLAIN QUERY PLAN '
+              'SELECT id FROM dances WHERE id IN ('
+              'SELECT dance_id FROM dance_fts WHERE title MATCH ?)',
+          '"Al"*',
+        );
+        expect(prefixPlan.join(' '), contains('dance_fts'));
+        expect(prefixPlan.join(' '), contains('VIRTUAL TABLE INDEX'));
+
+        final substringPlan = await planFor(
+          'EXPLAIN QUERY PLAN '
+              'SELECT id FROM dances WHERE id IN ('
+              'SELECT dance_id FROM dance_substring_fts WHERE title MATCH ?)',
+          '"alter"',
+        );
+        expect(substringPlan.join(' '), contains('dance_substring_fts'));
+        expect(substringPlan.join(' '), contains('VIRTUAL TABLE INDEX'));
+      },
+    );
   });
 
   group('sequence: Then', () {
@@ -1320,11 +1416,21 @@ void main() {
       await dances.create(_dance(id: 'strong', title: 'swing swing swing'));
       await dances.create(_dance(id: 'weak', title: 'swing once'));
       final result = await dances.search(
-        const FullTextFilter('swing'),
+        const FullTextFilter('sw'),
         sort: SearchSort.relevance,
       );
       expect(result, containsAll(['strong', 'weak']));
       expect(result.first, 'strong');
+    });
+
+    test('long relevance keeps the substring result set', () async {
+      await dances.create(_dance(id: 'infix', title: 'Northwing Special'));
+      await dances.create(_dance(id: 'other', title: 'Swing Special'));
+      final result = await dances.search(
+        const FullTextFilter('thwin'),
+        sort: SearchSort.relevance,
+      );
+      expect(result, ['infix']);
     });
 
     test(

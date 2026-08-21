@@ -1517,6 +1517,18 @@ class AppLocalizationsDa extends AppLocalizations {
       'Søg titler, forfattere, figurer, noter…';
 
   @override
+  String get collectionSearchScopeLabel => 'Søg i';
+
+  @override
+  String get collectionSearchScopeOmni => 'Alle felter';
+
+  @override
+  String get collectionSearchScopeTitle => 'Titel';
+
+  @override
+  String get collectionSearchScopeFigure => 'Figur';
+
+  @override
   String get collectionClearSearchTooltip => 'Ryd søgning og filtre';
 
   @override

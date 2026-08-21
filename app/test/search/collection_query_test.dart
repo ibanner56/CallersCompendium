@@ -72,6 +72,35 @@ void main() {
       expect((f as FullTextFilter).query, 'petronella');
     });
 
+    test('defaults full-text scope to Omni and preserves explicit scopes', () {
+      final omni =
+          buildCollectionFilter(
+                ftsText: 'swing',
+                facets: FacetSelections(),
+                defs: defs,
+              )
+              as FullTextFilter;
+      final title =
+          buildCollectionFilter(
+                ftsText: 'swing',
+                facets: FacetSelections(),
+                defs: defs,
+                scope: FullTextScope.title,
+              )
+              as FullTextFilter;
+
+      expect(omni.scope, FullTextScope.omni);
+      expect(title.scope, FullTextScope.title);
+      expect(
+        isBareFullText(
+          ftsText: 'swing',
+          facets: FacetSelections(),
+          scope: FullTextScope.title,
+        ),
+        isFalse,
+      );
+    });
+
     test('a single facet yields a single leaf', () {
       final facets = FacetSelections()..forms.add(DanceForm.contra);
       final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
@@ -441,10 +470,7 @@ void main() {
 
   group('isBareFullText', () {
     test('true for text with no facets/advanced', () {
-      expect(
-        isBareFullText(ftsText: 'swing', facets: FacetSelections()),
-        isTrue,
-      );
+      expect(isBareFullText(ftsText: 'Al', facets: FacetSelections()), isTrue);
     });
 
     test('false when a facet is selected', () {
@@ -597,7 +623,7 @@ void main() {
           op: CustomFieldOp.between,
           lo: 2,
         );
-        expect(isBareFullText(ftsText: 'swing', facets: facets), isTrue);
+        expect(isBareFullText(ftsText: 'Al', facets: facets), isTrue);
       },
     );
   });

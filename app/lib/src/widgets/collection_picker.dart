@@ -205,6 +205,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   void _onFtsChanged(String _) {
     _debounceTimer?.cancel();
+    _searchSeq++;
     _debounceTimer = Timer(_debounce, _runSearch);
     setState(() {});
   }
@@ -231,6 +232,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
       (_advancedEnabled && _advancedRoot.toFilter() != null);
 
   void _clearAll() {
+    _debounceTimer?.cancel();
+    _searchSeq++;
     setState(() {
       _ftsController.clear();
       _facets.clear();

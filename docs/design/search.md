@@ -13,12 +13,17 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    It compiles to exactly one parameterized `SELECT` — never an in-memory scan,
    never N per-leaf queries stitched in Dart (ContraDB pitfall #2).
 2. **Search the derived indexes, not the JSON.** Structural predicates hit
-   `dance_figures`; text hits `dance_fts`; scalars hit `dances` columns. The
+   `dance_figures`; short text prefixes hit `dance_fts`; longer literal
+   substrings hit `dance_substring_fts`; scalars hit `dances` columns. The
    authoritative `figures_json` is never parsed during search.
 3. **Canonical in, canonical matched.** Move names and free-text terms pass
    through `canonicalize()` at the compiler boundary, mirroring how data was
    canonicalized on the way in — so a dialect user's "robins allemande"
    query matches stored `role2s`/`allemande` (see [dialect.md](dialect.md)).
+   Collection text search may explicitly scope to raw title text or canonical
+   figure text; Omni is the OR of the canonical cross-field query and a
+   raw-title fallback. Long queries keep the complete input as one literal
+   substring.
 4. **Injection-safe by construction.** Every user value is a bind variable;
    only a fixed vocabulary of column names, operators, and JSON key paths is
    ever interpolated, and each is validated against an allow-list.
@@ -40,7 +45,8 @@ sealed DanceFilter
   NotFilter(DanceFilter child)
 
   // metadata leaves
-  FullTextFilter(String query)               // → dance_fts MATCH
+  FullTextFilter(String query, [FullTextScope scope = omni])
+                                              // → scoped FTS5 MATCH
   AuthorFilter(String choreographerId)
   SourceFilter(String query)                 // substring match on cited source title/author
   SourceIdFilter(String sourceId)            // identity match on cited source id
@@ -274,8 +280,9 @@ pair of aliases.
 **Execution model — one SELECT, plus a post-fetch sort for two cases.** The
 single compiled `SELECT` performs *all filtering* and every **SQL-expressible**
 sort: `title COLLATE NOCASE` (the default), `updated_at DESC` (recently added/
-edited), and — only when the tree is a bare `FullTextFilter` leaf — `bm25(dance_fts)`
-relevance. Two sorts are **not** expressible in that one statement and are
+edited), and — only for a bare Omni `FullTextFilter` leaf with at most two
+Unicode scalar values — `bm25(dance_fts)` relevance. Two sorts are **not**
+expressible in that one statement and are
 applied as a **post-fetch pass in Dart** over the returned id set:
 
 - `author` — needs the author-name join/ordering; and
@@ -285,8 +292,9 @@ applied as a **post-fetch pass in Dart** over the returned id set:
 So the compiler always emits exactly one `SELECT` (filter + SQL sort); when the
 requested sort is `author` or `last-called`, the id set it returns is reordered
 by an explicit Dart post-processing step — not by the SQL. `bm25` relevance is
-available only for a bare `FullTextFilter` tree; any other tree falls back to the
-`title` default, because `bm25` isn't defined outside a `MATCH` query.
+available only for a bare short Omni `FullTextFilter`; scoped queries,
+long-substring queries, and any other tree fall back to the `title` default
+because their result sets do not share the legacy rank source.
 
 ### Worked example
 
@@ -522,9 +530,10 @@ Flagged for coordinator/user input before 3.2b:
 5. **Mixing `FullTextFilter` with structural leaves** *(confirm)*. Freely allowed
    under `AndFilter`/`OrFilter` at dance level (each compiles independently); disallowed
    **inside `ThenFilter`** per Q1. Confirm.
-6. **`bm25` relevance vs. metadata sort** *(confirm)*. Relevance ordering is
-   offered only for a bare `FullTextFilter` tree; any other tree uses the fixed sort
-   allow-list. Acceptable, or is a blended ranking wanted later?
+6. **`bm25` relevance vs. metadata sort** *(settled for v1)*. Relevance ordering
+   is offered only for a bare short Omni `FullTextFilter`; scoped,
+   long-substring, and other trees use the fixed sort allow-list. A blended
+   ranking can be revisited later.
 7. **Multi-tag facet semantics** *(minor)*. When the user picks several tags in
    the Tag facet: AND (has all) or OR (has any)? Proposed: OR within a single
    facet, AND across facets (standard faceted-search behaviour).

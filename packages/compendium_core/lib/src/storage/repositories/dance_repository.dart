@@ -70,8 +70,9 @@ typedef DerivedRebuildProgressCallback =
 
 /// CRUD + search for [Dance]s.
 ///
-/// Every write rebuilds the two derived indexes ([DanceFigures] rows and the
-/// `dance_fts` row) from `figures_json` inside the same transaction, per
+/// Every write rebuilds the derived indexes ([DanceFigures] rows,
+/// `dance_fts`, and `dance_substring_fts`) from `figures_json` inside the same
+/// transaction, per
 /// `docs/design/storage.md` — the derived tables are never the source of
 /// truth and are always safe to drop and recompute (see [rebuildAllDerived]).
 class DanceRepository {
@@ -406,7 +407,8 @@ class DanceRepository {
     await _rebuildDerived(normalisedDance);
   });
 
-  /// Rewrites the derived `dance_figures`/`dance_fts` rows for a single dance:
+  /// Rewrites the derived `dance_figures`/`dance_fts`/`dance_substring_fts` rows
+  /// for a single dance:
   /// drops this dance's existing derived rows, then re-inserts them. Used by the
   /// per-write path ([_upsert]); the bulk [rebuildAllDerived] path instead
   /// clears every derived row once up front and calls [_insertDerivedRows]
@@ -415,13 +417,19 @@ class DanceRepository {
     await (_db.delete(
       _db.danceFigures,
     )..where((t) => t.danceId.equals(dance.id))).go();
-    // `dance_fts` carries `dance_id` UNINDEXED, so this delete-by-scan is O(rows
-    // in the FTS index). Fine for one dance on a write; [rebuildAllDerived]
-    // deliberately avoids doing it N times (see there).
-    await _db.customStatement('DELETE FROM dance_fts WHERE dance_id = ?', [
-      dance.id,
-    ]);
+    // Both FTS tables carry `dance_id` UNINDEXED, so these delete-by-scans are
+    // fine for one dance on a write; [rebuildAllDerived] deliberately avoids
+    // doing them N times (see there).
+    await _deleteFtsRows(dance.id);
     await _insertDerivedRows(dance);
+  }
+
+  Future<void> _deleteFtsRows(String danceId) async {
+    for (final table in const ['dance_fts', 'dance_substring_fts']) {
+      await _db.customStatement('DELETE FROM $table WHERE dance_id = ?', [
+        danceId,
+      ]);
+    }
   }
 
   /// Inserts this dance's `dance_figures` rows and its single `dance_fts` row,
@@ -499,22 +507,25 @@ class DanceRepository {
         .map((v) => v.value.toString())
         .join(' ');
     final sourceTexts = await _resolveSourceTexts(dance, sources);
-    await _db.customStatement(
-      'INSERT INTO dance_fts'
-      '(dance_id, title, authors, hook, notes, figures_text, custom_values, '
-      'sources) '
-      'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [
-        dance.id,
-        dance.title,
-        resolvedAuthors.join(' '),
-        dance.hook,
-        dance.callingNotes,
-        canonicalTexts.join(' '),
-        customValueText,
-        sourceTexts.join(' '),
-      ],
-    );
+    final values = [
+      dance.id,
+      dance.title,
+      resolvedAuthors.join(' '),
+      dance.hook,
+      dance.callingNotes,
+      canonicalTexts.join(' '),
+      customValueText,
+      sourceTexts.join(' '),
+    ];
+    for (final table in const ['dance_fts', 'dance_substring_fts']) {
+      await _db.customStatement(
+        'INSERT INTO $table'
+        '(dance_id, title, authors, hook, notes, figures_text, custom_values, '
+        'sources) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        values,
+      );
+    }
   }
 
   /// Author display names for [dance]'s `authorIds`, in position order. Uses
@@ -575,8 +586,9 @@ class DanceRepository {
   /// than holding one multi-minute transaction open.
   static const int _rebuildChunkSize = 250;
 
-  /// Recomputes `dance_figures` and `dance_fts` for **every** dance (including
-  /// soft-deleted — they stay in `dance_fts` and are filtered at query time,
+  /// Recomputes `dance_figures`, `dance_fts`, and `dance_substring_fts` for
+  /// **every** dance (including soft-deleted — they stay in the FTS tables and
+  /// are filtered at query time,
   /// see [searchText] and #439) from `figures_json`. Intended as an integrity
   /// repair after a migration that changes derived-table shape, or if
   /// corruption is detected by `PRAGMA quick_check`.
@@ -587,10 +599,9 @@ class DanceRepository {
   /// appearing hung (#440). [onProgress] fires once with `completed: 0` before
   /// work begins and again after each committed chunk.
   ///
-  /// Wall-clock: the whole derived index is cleared once up front
-  /// (`DELETE FROM dance_fts` + `DELETE FROM dance_figures`) and every dance is
-  /// then re-inserted, so the rebuild never runs the per-dance
-  /// `DELETE FROM dance_fts WHERE dance_id = ?` scan N times — that scan is
+  /// Wall-clock: both FTS tables and `dance_figures` are cleared once up front
+  /// and every dance is then re-inserted, so the rebuild never runs the
+  /// per-dance `DELETE ... WHERE dance_id = ?` scan N times — that scan is
   /// O(N²) because `dance_fts.dance_id` is `UNINDEXED` (#440). Shared author /
   /// source lookups are prefetched once to drop the last per-dance N+1 reads.
   ///
@@ -635,11 +646,13 @@ class DanceRepository {
         row.id: row,
     };
 
-    // One-shot bulk clear instead of N per-dance delete-by-scans. `dance_fts`
-    // is a regular (self-contained) FTS5 table, so an unqualified DELETE resets
-    // the whole index cheaply; `dance_figures` is an ordinary table.
+    // One-shot bulk clear instead of N per-dance delete-by-scans. Both FTS5
+    // tables are self-contained, so an unqualified DELETE resets each index
+    // cheaply; `dance_figures` is an ordinary table.
     await _db.transaction(() async {
-      await _db.customStatement('DELETE FROM dance_fts');
+      for (final table in const ['dance_fts', 'dance_substring_fts']) {
+        await _db.customStatement('DELETE FROM $table');
+      }
       await _db.delete(_db.danceFigures).go();
     });
 
@@ -851,9 +864,7 @@ class DanceRepository {
         for (final r in toPurge) (id: r.id, title: r.title),
       ]);
       for (final id in ids) {
-        await _db.customStatement('DELETE FROM dance_fts WHERE dance_id = ?', [
-          id,
-        ]);
+        await _deleteFtsRows(id);
       }
       // Delete exactly the rows we selected and cleaned up — by id, not by a
       // re-evaluated cutoff predicate — so cleanup and deletion can never
@@ -1112,9 +1123,7 @@ class DanceRepository {
         for (final r in rows) (id: r.id, title: r.title),
       ]);
       for (final id in list) {
-        await _db.customStatement('DELETE FROM dance_fts WHERE dance_id = ?', [
-          id,
-        ]);
+        await _deleteFtsRows(id);
       }
       await (_db.delete(_db.dances)..where((t) => t.id.isIn(list))).go();
       if (orphanCandidates != null) {

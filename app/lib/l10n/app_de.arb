@@ -1728,6 +1728,22 @@
   "@collectionSearchFieldHint": {
     "x-sourceSha256": "3316ce957d763fd3d3fa139ab42e7736d82431aa9416c2a6195085f9d1222861"
   },
+  "collectionSearchScopeLabel": "Suchen in",
+  "@collectionSearchScopeLabel": {
+    "x-sourceSha256": "fa792556a141483d685478f00d7e2cbe39e976b77da623aa3e2db312822c662c"
+  },
+  "collectionSearchScopeOmni": "Alle Felder",
+  "@collectionSearchScopeOmni": {
+    "x-sourceSha256": "b2525b1e37fccd0dff28251cc111418a88744225ad4850262e1f813504aaf0b1"
+  },
+  "collectionSearchScopeTitle": "Titel",
+  "@collectionSearchScopeTitle": {
+    "x-sourceSha256": "7e8cd2056da73a7fefb6cd91f4e5d199d08d9058c517b9a2476b1b520324d674"
+  },
+  "collectionSearchScopeFigure": "Figur",
+  "@collectionSearchScopeFigure": {
+    "x-sourceSha256": "1f5be66894e5ef6a6919e1f6499a7c1edd34f8edeaa2a736a6d31c341c9ba6ae"
+  },
   "collectionClearSearchTooltip": "Suche und Filter löschen",
   "@collectionClearSearchTooltip": {
     "x-sourceSha256": "c44ecec3b41f0261b31ad86d3b6079ec5128b52ce80c0e61a33317a2b84d3c1b"

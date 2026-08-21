@@ -21,3 +21,24 @@ String toFtsMatchQuery(String raw) {
   if (tokens.isEmpty) return '""';
   return tokens.map((t) => '"${t.replaceAll('"', '""')}"').join(' ');
 }
+
+/// Builds a literal FTS5 token-prefix query. Prefix syntax is appended outside
+/// the quoted phrase so punctuation in the user input remains literal.
+String toFtsPrefixMatchQuery(String raw) {
+  final tokens = raw.trim().split(RegExp(r'\s+')).where((t) => t.isNotEmpty);
+  if (tokens.isEmpty) return '""';
+  return tokens.map((t) => '"${t.replaceAll('"', '""')}"*').join(' ');
+}
+
+/// Builds a literal substring query for the FTS5 trigram tokenizer. The whole
+/// input stays one phrase: splitting it would turn punctuation-spanning and
+/// mid-token searches into a different query.
+String toFtsSubstringMatchQuery(String raw) {
+  final text = raw.trim();
+  if (text.isEmpty) return '""';
+  return '"${text.replaceAll('"', '""')}"';
+}
+
+/// Counts Unicode scalar values after the same trimming used by the query
+/// builders. FTS5's short-query boundary is character-based, not byte-based.
+int ftsQueryScalarLength(String raw) => raw.trim().runes.length;

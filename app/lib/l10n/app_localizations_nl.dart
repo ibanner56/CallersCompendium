@@ -1527,6 +1527,18 @@ class AppLocalizationsNl extends AppLocalizations {
       'Zoek titels, auteurs, figuren, notities…';
 
   @override
+  String get collectionSearchScopeLabel => 'Zoeken in';
+
+  @override
+  String get collectionSearchScopeOmni => 'Alle velden';
+
+  @override
+  String get collectionSearchScopeTitle => 'Titel';
+
+  @override
+  String get collectionSearchScopeFigure => 'Figuur';
+
+  @override
   String get collectionClearSearchTooltip => 'Zoekterm en filters wissen';
 
   @override

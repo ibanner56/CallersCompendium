@@ -688,27 +688,29 @@ void main() {
       expect(dance.customFields.first.value, 'good fun');
     });
 
-    test('no derived rebuild is scheduled by the v22->v23 migration', () async {
-      // The shareable column carries no figure data — the index is untouched.
-      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
-      addTearDown(db.close);
-      // After opening (which triggers onUpgrade), the rebuild key must NOT be
-      // set — this migration owes no rebuild.
-      final settings = await db
-          .customSelect(
-            "SELECT value_json FROM settings "
-            "WHERE key = '$derivedRebuildRequiredKey'",
-          )
-          .get();
-      final hasRebuildMarker =
-          settings.isNotEmpty &&
-          settings.first.read<String>('value_json') == 'true';
-      expect(
-        hasRebuildMarker,
-        isFalse,
-        reason: 'v22->v23 migration must not schedule a derived rebuild',
-      );
-    });
+    test(
+      'v28 rebuild remains scheduled after the v22->v23 migration',
+      () async {
+        // The v22->v23 step carries no figure data, but opening the old fixture
+        // all the way to the current schema must still retain v28's marker.
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        addTearDown(db.close);
+        final settings = await db
+            .customSelect(
+              "SELECT value_json FROM settings "
+              "WHERE key = '$derivedRebuildRequiredKey'",
+            )
+            .get();
+        final hasRebuildMarker =
+            settings.isNotEmpty &&
+            settings.first.read<String>('value_json') == 'true';
+        expect(
+          hasRebuildMarker,
+          isTrue,
+          reason: 'the v28 migration must schedule a derived rebuild',
+        );
+      },
+    );
   });
 
   group('v23 -> v24 upgrade (issue #732 dances.mixer)', () {
@@ -792,25 +794,28 @@ void main() {
       },
     );
 
-    test('no derived rebuild is scheduled by the v23->v24 migration', () async {
-      // The mixer column carries no figure data — the index is untouched.
-      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
-      addTearDown(db.close);
-      final settings = await db
-          .customSelect(
-            "SELECT value_json FROM settings "
-            "WHERE key = '$derivedRebuildRequiredKey'",
-          )
-          .get();
-      final hasRebuildMarker =
-          settings.isNotEmpty &&
-          settings.first.read<String>('value_json') == 'true';
-      expect(
-        hasRebuildMarker,
-        isFalse,
-        reason: 'v23->v24 migration must not schedule a derived rebuild',
-      );
-    });
+    test(
+      'v28 rebuild remains scheduled after the v23->v24 migration',
+      () async {
+        // The mixer column carries no figure data — the index is untouched.
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        addTearDown(db.close);
+        final settings = await db
+            .customSelect(
+              "SELECT value_json FROM settings "
+              "WHERE key = '$derivedRebuildRequiredKey'",
+            )
+            .get();
+        final hasRebuildMarker =
+            settings.isNotEmpty &&
+            settings.first.read<String>('value_json') == 'true';
+        expect(
+          hasRebuildMarker,
+          isTrue,
+          reason: 'the v28 migration must schedule a derived rebuild',
+        );
+      },
+    );
   });
 
   group('v24 -> v25 upgrade (issue #898 sync timestamps + soft delete)', () {
@@ -909,7 +914,8 @@ void main() {
               'UNION SELECT existence_at FROM published_sources '
               'UNION SELECT existence_at FROM custom_field_defs '
               'UNION SELECT existence_at FROM venues '
-              'UNION SELECT existence_at FROM settings',
+              "UNION SELECT existence_at FROM settings "
+              "WHERE key != '$derivedRebuildRequiredKey'",
             )
             .get();
         // UNION dedupes, so one row means one distinct value.
@@ -1105,7 +1111,7 @@ void main() {
       },
     );
 
-    test('no derived rebuild is scheduled by the v24->v25 migration', () async {
+    test('v28 rebuild remains scheduled after the v24->v25 migration', () async {
       // Twenty timestamp columns carry no figure data — the index is untouched.
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       addTearDown(db.close);
@@ -1120,8 +1126,8 @@ void main() {
           settings.first.read<String>('value_json') == 'true';
       expect(
         hasRebuildMarker,
-        isFalse,
-        reason: 'v24->v25 migration must not schedule a derived rebuild',
+        isTrue,
+        reason: 'the v28 migration must schedule a derived rebuild',
       );
     });
   });
@@ -1270,25 +1276,28 @@ void main() {
       expect(rows, hasLength(2));
     });
 
-    test('no derived rebuild is scheduled by the v25->v26 migration', () async {
-      // A new table with no figure data — the index is untouched.
-      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
-      addTearDown(db.close);
-      final settings = await db
-          .customSelect(
-            "SELECT value_json FROM settings "
-            "WHERE key = '$derivedRebuildRequiredKey'",
-          )
-          .get();
-      final hasRebuildMarker =
-          settings.isNotEmpty &&
-          settings.first.read<String>('value_json') == 'true';
-      expect(
-        hasRebuildMarker,
-        isFalse,
-        reason: 'v25->v26 migration must not schedule a derived rebuild',
-      );
-    });
+    test(
+      'v28 rebuild remains scheduled after the v25->v26 migration',
+      () async {
+        // A new table with no figure data — the index is untouched.
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        addTearDown(db.close);
+        final settings = await db
+            .customSelect(
+              "SELECT value_json FROM settings "
+              "WHERE key = '$derivedRebuildRequiredKey'",
+            )
+            .get();
+        final hasRebuildMarker =
+            settings.isNotEmpty &&
+            settings.first.read<String>('value_json') == 'true';
+        expect(
+          hasRebuildMarker,
+          isTrue,
+          reason: 'the v28 migration must schedule a derived rebuild',
+        );
+      },
+    );
   });
 
   group('v26 -> v27 upgrade (issue #862 published collection history)', () {
@@ -1334,6 +1343,76 @@ void main() {
       await events.record(event);
       await events.record(event);
       expect(await events.listAll(), hasLength(1));
+    });
+  });
+
+  group('v27 -> v28 upgrade (scoped collection search indexes)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v28_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      final fixture = File(
+        p.join(
+          await packageRootPath(),
+          'test',
+          'storage',
+          'fixtures',
+          'v27.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('preserves fixture data and rebuilds both search indexes', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      addTearDown(db.close);
+
+      await repos.ensureMigrated();
+
+      final dances = await repos.dances.listAll();
+      expect(dances, isNotEmpty);
+      expect(dances.map((dance) => dance.id), contains('dance-1'));
+
+      final indexTables = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master "
+            "WHERE type = 'table' AND name IN (?, ?)",
+            variables: [
+              Variable.withString('dance_fts'),
+              Variable.withString('dance_substring_fts'),
+            ],
+          )
+          .get();
+      expect(indexTables, hasLength(2));
+
+      final danceIds =
+          (await db.customSelect('SELECT id FROM dances ORDER BY id').get())
+              .map((row) => row.read<String>('id'))
+              .toList();
+      for (final table in ['dance_fts', 'dance_substring_fts']) {
+        final indexedIds =
+            (await db
+                    .customSelect(
+                      'SELECT dance_id FROM $table ORDER BY dance_id',
+                    )
+                    .get())
+                .map((row) => row.read<String>('dance_id'))
+                .toList();
+        expect(indexedIds, danceIds, reason: '$table must mirror dances');
+      }
+
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(marker, isEmpty);
     });
   });
 }
