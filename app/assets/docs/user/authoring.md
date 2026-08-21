@@ -48,6 +48,11 @@ Anything the app cannot recognise is still kept — it becomes a **custom figure
 holding your text exactly as you typed it. Nothing you type is ever thrown away
 because the app did not understand it.
 
+*The dance editor while entering figures, with recognized rows and the running
+beat total visible below the list.*
+
+![The dance editor showing figure entry in progress, recognized figure rows, and the running beat total](images/dance-editor-figure-entry.png)
+
 The box stays open after each figure so you can keep going: type, Enter, type,
 Enter. Press Escape when you are done.
 

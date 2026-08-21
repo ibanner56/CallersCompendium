@@ -3,21 +3,22 @@
 This folder holds the images used by the guides in [`../`](../) — screenshots,
 diagrams, and illustrations.
 
-## Status: the guides are text-only today
+## Status: screenshots are enhancements
 
 The user guides are bundled into the app, and the in-app reader does not render
-images — it shows the alt text as a caption instead. So an illustration only ever
-reaches readers on GitHub, and no guide may depend on one to make sense. Write
-every procedure so it stands on its own words; treat an image as an enhancement.
+images — it shows the alt text as a caption instead. GitHub and the hosted Pages
+guide render the screenshots themselves. No guide may depend on an image to make
+sense in the app. Write every procedure so it stands on its own words; treat an
+image as an enhancement.
 
-Where a guide does illustrate a screen today, it borrows an interim **wireframe
-SVG** from [`../../design/wireframes/`](../../design/wireframes/). These are
-monochrome, structure-only sketches — they show layout and content, not the final
-look — so any guide that uses one says so in its caption and alt text (for
-example, "Wireframe sketch of the Collection screen").
+The guides use real PNG screenshots for the Collection, dance detail, Programs
+builder and matrix, Perform mode, Settings/Dialect, import review, and dance
+editor figure entry. They show the finished app's layout and content, but remain
+optional context rather than required instructions.
 
-Real screenshots are tracked as follow-up work. When they land, they replace the
-wireframes in place and the captions drop the "wireframe" wording.
+The design documentation may still use interim **wireframe SVGs** from
+[`../../design/wireframes/`](../../design/wireframes/); those are monochrome,
+structure-only sketches and are not screenshots.
 
 ## Conventions
 
@@ -30,6 +31,3 @@ The full rules live in the [style guide](../style-guide.md); the essentials:
 - **Format:** PNG for screenshots, SVG for diagrams and wireframes.
 - **Size:** keep files small (aim for well under 500 KB per screenshot); crop to
   the relevant area rather than shipping full-desktop captures.
-
-This README keeps the directory tracked in version control until real images
-land.

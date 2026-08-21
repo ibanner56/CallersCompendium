@@ -490,6 +490,19 @@ def test_image_renders_as_an_alt_text_caption_not_an_img() -> None:
     assert '<em class="guide-figure">A wireframe of the Collection screen</em>' in out
 
 
+def test_image_resolver_emits_a_safe_img_with_alt_text() -> None:
+    out = md.render(
+        '![The Collection screen](images/collection.png "Collection")',
+        image_resolver=lambda href: (
+            "images/collection.png" if href.startswith("images/") else None
+        ),
+    ).html
+    assert (
+        '<img src="images/collection.png" alt="The Collection screen" '
+        'title="Collection" />'
+    ) in out
+
+
 def test_decorative_image_with_empty_alt_renders_nothing() -> None:
     assert _html("![](images/divider.png)") == "<p></p>"
 

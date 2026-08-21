@@ -146,12 +146,11 @@ Every image in the user docs **must** have alt text. This is not optional.
 
 ## Screenshots and images
 
-**The user guide is text-only.** The guides are bundled into the app and the
-in-app reader does not render images — it shows the alt text as a caption
-instead. The hosted guides on the Pages site do the same, deliberately, so all
-three surfaces stay consistent. So an illustration only ever reaches readers on
-GitHub, and a guide that *needs* a picture to make sense is broken for everyone
-reading it on stage.
+**The in-app user guide is text-only.** The guides are bundled into the app and
+the in-app reader does not render images — it shows the alt text as a caption
+instead. GitHub and the hosted Pages guide render screenshots as images. A guide
+that *needs* a picture to make sense is still broken for readers in the app, so
+every illustration remains an enhancement rather than a load-bearing step.
 
 Write every explanation so it stands on its own words. If you do add an image,
 treat it as an enhancement, never as a load-bearing part of a procedure, and
@@ -167,6 +166,8 @@ follow the rules below.
   high-contrast intent; show general screens on the default light theme unless the
   guide is specifically about appearance.
 - **Store images** in [`images/`](images/) and reference them with relative paths.
+  The Pages build publishes these assets beside the hosted guides; the in-app
+  bundle deliberately keeps only the alt text.
 
 ## Describing platform behavior neutrally
 
@@ -246,8 +247,9 @@ Four things follow from that:
   ```
 
 - **Write for all three.** A guide must read correctly on GitHub, in the app's
-  panel, and on the web — which is why images are alt-text only and headings
-  stay plain text.
+  panel, and on the web. GitHub and Pages show image assets; the app shows their
+  alt text as a caption, so every image needs useful descriptive alt text and
+  every procedure must stand on its own words. Headings stay plain text.
 - **New guides need no registration** — every consumer discovers whatever is in
   `docs/user/`. This style guide is deliberately excluded from both the app
   bundle and the website, because it is for contributors rather than callers;

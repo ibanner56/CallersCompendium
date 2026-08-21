@@ -102,11 +102,10 @@ panes side by side that work together. On a narrower screen, such as a phone,
 the same pieces are still there: your program fills the screen and the
 collection picker opens as a panel when you go to add a dance.
 
-*Wireframe sketch of the Programs builder: a two-pane layout with the ordered
-program slots on the left and a searchable collection picker on the right. This
-is a low-fidelity layout sketch, not the finished app.*
+*The Programs builder with ordered program slots beside a searchable collection
+picker.*
 
-![Wireframe sketch of the Programs builder, showing ordered program slots on the left and a collection picker with filters on the right](../design/wireframes/4-programs-builder.svg)
+![The Programs builder showing ordered program slots beside a searchable collection picker with filters](images/programs-builder.png)
 
 - **Your program** — the ordered list of
   [slots](./glossary.md#slot) that make up the evening.
@@ -166,13 +165,10 @@ Defaults** and new programs will prefill them — see
 The **Matrix** tab turns your program into a grid worked out from the
 choreography, so you can see the shape of the evening at a glance.
 
-*Wireframe sketch of the program matrix: a grid with moves as columns and dances
-as rows, a star marking where each move is first introduced in the program, a
-flag marking each dance's own first figure, and a check mark where a move
-appears, with the row and column headers pinned. This is a low-fidelity layout
-sketch, not the finished app.*
+*The program matrix with moves as columns, dances as rows, pinned headers, and
+markers that explain how figures are introduced and reused.*
 
-![Wireframe sketch of the program matrix, showing moves as columns and dances as rows, with a star marking where each move is first introduced in the program, a flag marking each dance's first figure, check marks where a move appears, and pinned row and column headers](../design/wireframes/5-program-matrix.svg)
+![The program matrix showing dances as rows and moves as columns, with pinned headers and a legend for introduced-here, dance's-first-figure, present, and adjacent-dance beat-overlap markers](images/program-matrix.png)
 
 Here is how to read it:
 
