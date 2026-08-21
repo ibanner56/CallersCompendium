@@ -276,10 +276,9 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   }
 
   void _addMoveWording(String moveId) {
-    final renderer = FigureRenderer(contraTaxonomy);
     setState(() {
       _wordingCtrls[moveId] = TextEditingController(
-        text: renderer.moveWordingTemplate(moveId) ?? '',
+        text: _renderer.moveWordingTemplate(moveId) ?? '',
       );
       _showWordings = true;
       _working = _assemble();
