@@ -247,8 +247,9 @@ Four things follow from that:
   ```
 
 - **Write for all three.** A guide must read correctly on GitHub, in the app's
-  panel, and on the web — which is why images are alt-text only and headings
-  stay plain text.
+  panel, and on the web. GitHub and Pages show image assets; the app shows their
+  alt text as a caption, so every image needs useful descriptive alt text and
+  every procedure must stand on its own words. Headings stay plain text.
 - **New guides need no registration** — every consumer discovers whatever is in
   `docs/user/`. This style guide is deliberately excluded from both the app
   bundle and the website, because it is for contributors rather than callers;

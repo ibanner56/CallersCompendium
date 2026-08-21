@@ -654,18 +654,45 @@ def test_pages_reference_only_first_party_assets() -> None:
 
 
 def test_guides_render_images_as_img_tags_and_stage_assets() -> None:
+    expected_images = {
+        "authoring.html": {"images/dance-editor-figure-entry.png"},
+        "collection.html": {
+            "images/collection-search-filters.png",
+            "images/dance-detail-dialect.png",
+        },
+        "dialects.html": {
+            "images/dance-detail-dialect.png",
+            "images/settings-dialect.png",
+        },
+        "getting-started.html": {
+            "images/collection-search-filters.png",
+            "images/programs-builder.png",
+            "images/perform-mode-dark.png",
+        },
+        "imports.html": {"images/import-review.png"},
+        "perform.html": {"images/perform-mode-dark.png"},
+        "programs.html": {
+            "images/program-matrix.png",
+            "images/programs-builder.png",
+        },
+        "settings.html": {"images/settings-dialect.png"},
+    }
+    expected_assets = {path.rsplit("/", 1)[-1] for paths in expected_images.values() for path in paths}
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "site"
         rud.build_site(out)
         assert (out / "guide" / "images").is_dir()
-        assert any((out / "guide" / "images").glob("*.png"))
+        assert {
+            path.name for path in (out / "guide" / "images").glob("*.png")
+        } == expected_assets
         for page in sorted((out / "guide").glob("*.html")):
             html = page.read_text(encoding="utf-8")
             body = html.split('<article class="guide-body"')[1].split("</article>")[0]
-            if page.name in {"collection.html", "programs.html", "perform.html"}:
-                assert "<img" in body, f"{page.name} did not embed its guide image"
-            for match in re.finditer(r"<img[^>]*src=\"([^\"]+)\"", body):
-                assert match.group(1).startswith("images/"), (page.name, match.group(1))
+            actual = {
+                match.group(1)
+                for match in re.finditer(r"<img[^>]*src=\"([^\"]+)\"", body)
+            }
+            assert actual == expected_images.get(page.name, set()), page.name
 
 
 def test_sidebar_lists_every_guide_and_marks_the_current_page() -> None:

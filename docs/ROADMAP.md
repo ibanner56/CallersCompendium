@@ -196,9 +196,14 @@ implementation notes and deviations against each item — is in
     alongside `site/` for the existing non-destructive `gh-pages` publisher, so
     the update manifests and the guides coexist on one branch. `docs/user/` now
     feeds three consumers — GitHub, the offline in-app reader, and the web. (#694)
-  - **Remaining (blocked on other work)**
+  - **Remaining**
     - Per-platform install page — the public landing page ([site/](../site/), #408) now surfaces per-platform downloads, and the [Installation guide](user/installation.md) covers first-launch steps; a dedicated install page is optional.
-    - Screenshots pass (#703) — needs a runnable branded build. Note neither the in-app reader nor the hosted guides render images, so guides must stay complete without them.
+    - **Delivered — screenshots pass (#703):** optimized screenshots now illustrate
+      the Collection, dance detail, Programs builder and matrix, Perform mode,
+      Settings/Dialect, import review, and dance editor. GitHub and the hosted
+      `/guide/` Pages site render them; the bundled in-app reader intentionally
+      shows their descriptive alt text instead. Guides remain complete without
+      images so the offline reader is fully usable.
     - Beta-program page — tracked under 7.3.
 - [ ] 7.3 Beta program with real callers; feedback triage
   - **Delivered**
