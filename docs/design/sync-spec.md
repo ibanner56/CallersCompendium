@@ -362,6 +362,57 @@ computes no MAC and MUST NOT hold the pepper.
 | `PUT` | `/v1/blobs/{hash}` | Upload one blob. Idempotent. |
 | `POST` | `/v1/blobs/missing` | Given hashes, return the subset the store lacks. |
 
+Blob and manifest bodies are specified byte-exactly in §4.3 and §4.5, because
+they are hashed. The two endpoints below are not content-addressed, so nothing
+forced their shape and it is stated here instead.
+
+**`GET /v1/store`.** Creates the store if absent (§7.1) and returns:
+
+```json
+{
+  "epoch": "9c4a1f2e8b7d4a6c9e0f1a2b3c4d5e6f",
+  "devices": ["b31f...", "7c02..."],
+  "quota": { "blobs": 1234, "bytes": 5242880,
+             "maxBlobs": 100000, "maxBytes": 262144000 }
+}
+```
+
+| Field | Requirement |
+| --- | --- |
+| `epoch` | The store's current epoch, lowercase hex. Compared at §6.3 step 1. |
+| `devices` | Device ids with a manifest in this store, including the caller if it has published. Order is unspecified; a client MUST NOT depend on it. |
+| `quota.blobs`, `quota.bytes` | Current usage. |
+| `quota.maxBlobs`, `quota.maxBytes` | The §5.4 caps, echoed so a client can warn before hitting them rather than discovering a `507`. |
+
+`devices` is the peer set that drives step 3's per-peer manifest fetches. A
+client MUST exclude its own id from that iteration.
+
+**`POST /v1/blobs/missing`.** Request and response are both objects, not bare
+arrays, so either can gain a field without a `v` bump:
+
+```json
+{ "hashes": ["e3b0c442...", "a3f5b1c9..."] }
+```
+
+```json
+{ "missing": ["a3f5b1c9..."] }
+```
+
+`missing` is the subset of `hashes` the store lacks; a hash the store already
+holds is omitted. Every hash in the request MUST match `^[0-9a-f]{64}$`
+(§7.1) — the whole request is rejected `400` if any does not, rather than the
+offending hash being skipped, so a client cannot read a short response as
+"present".
+
+**Blob `PUT` verification.** The server MUST verify that the body hashes to
+`{hash}` under §4.2 and MUST reject `400` if it does not. Without that check
+any holder of the sync ID can store arbitrary bytes under a chosen hash, which
+would break the content-addressing that "Immutable; long `Cache-Control`"
+depends on and let a peer serve one record's bytes under another's name. A
+`PUT` to a hash the store already holds MUST be treated as a no-op returning
+`200` and MUST NOT overwrite the stored bytes; once verified the bytes are
+identical by definition, so a rewrite can only be a downgrade.
+
 ### 5.3 Status codes
 
 | Code | Meaning |
@@ -372,7 +423,7 @@ computes no MAC and MUST NOT hold the pepper.
 | `304` | Manifest unchanged. |
 | `400` | Malformed request. |
 | `401` | Missing or malformed `Authorization`. |
-| `403` | Sync ID below the entropy floor. |
+| `403` | Sync ID fails the structural rule (four hyphen-separated words). |
 | `404` | No such blob, manifest, device — or store. |
 | `409` | Epoch mismatch. |
 | `413` | Payload exceeds a cap. |
@@ -383,6 +434,14 @@ computes no MAC and MUST NOT hold the pepper.
 There is no distinct "expired" status. Reset detection is the epoch's job. A
 client receiving `404` from a store-scoped endpoint recovers by calling
 `GET /v1/store`.
+
+`413` and `507` divide on **per-request versus per-store**, and the split is
+normative because it is otherwise a coin toss. A single request exceeding a
+size cap — blob size, manifest size, parse depth, decompressed size — is `413`.
+Any *aggregate* cap on the store is `507`: blobs per store, bytes per store,
+and **devices per store**, so the 33rd device attaching receives `507` rather
+than `413` or `429`. A client MUST surface `507` to the user and MUST NOT retry
+it without user action, since nothing the client does alone clears it.
 
 `422` MUST be surfaced to the user, logged, and MUST NOT be silently retried.
 
@@ -397,6 +456,7 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | Blobs per store | 100,000 |
 | Bytes per store | 250 MB |
 | Devices per store | 32 |
+| Hashes per `POST /v1/blobs/missing` request | 10,000 |
 | JSON parse depth | 32 |
 | Decompressed size of a `Content-Encoding: gzip` body (§4) | 10× compressed, cap 32 MB |
 | Request rate | per-IP and per-store |
@@ -473,7 +533,13 @@ Every settings key Device Sync introduces is `deviceScoped` and MUST NOT sync.
    With N peers, evaluate against all and take the newest `updatedAt`.
 5. `POST /v1/blobs/missing`; `PUT` only what is missing.
 6. `GET /v1/blobs/{hash}` for each needed hash. The client MUST verify the hash
-   before applying.
+   before applying. A `404` here MUST be treated as an **unresolved reference**
+   — skip the record and report it (§6.7) — and MUST NOT be treated as a
+   deletion, since absence never deletes (§6.8) and the peer's manifest still
+   asserts the record exists. The record MUST NOT advance in the baseline, so
+   the next pass retries it; if this device is the record's origin, step 5 will
+   find the blob missing and re-upload it. This is reachable without a faulty
+   peer: a manifest can outlive its blob by §7.3.
 7. Apply in one transaction (§6.7). Rebuild derived indexes.
 8. `PUT /v1/manifests/{self}`. A client relying on §3.1's forfeiture rule MUST
    record every record the manifest names in `published_records` **before**
@@ -827,6 +893,7 @@ CREATE TABLE manifests (
 );
 CREATE TABLE blob_refs (
   id_key TEXT NOT NULL, hash TEXT NOT NULL, size INTEGER NOT NULL,
+  uploaded_at INTEGER NOT NULL,
   PRIMARY KEY (id_key, hash)
 );
 ```
@@ -836,6 +903,32 @@ and MUST NOT be implemented.
 
 The server MUST NOT merge, lock, or interpret record content beyond §7.2.
 
+**Epoch.** The epoch is **minted by the server** and by nothing else; a client
+MUST NOT supply one on store creation. Only the server can mint it, because two
+devices creating the same store concurrently would otherwise choose different
+values and each treat the other as a reset.
+
+The server MUST mint a **fresh** 128-bit random epoch on every store creation:
+the first `GET /v1/store` for an unknown `id_key`, the next `GET` after
+`DELETE /v1/store`, and the next `GET` after the store was reaped by the sweep
+(§7.3). A fresh one MUST NOT be derived from the sync ID, the `id_key` or a
+counter, and an epoch MUST NOT be reused across incarnations of a store. This
+is the whole of the reset-detection mechanism: a device compares the epoch at
+§6.3 step 1 and fresh-attaches when it differs, so an implementation that
+reproduces an old epoch after a wipe leaves every peer believing its baseline
+still describes the store, and no device ever detects the reset.
+
+Store creation MUST be an atomic upsert on the `stores` primary key, and
+concurrent creators MUST both observe the **same** epoch — the loser of the
+race returns the winner's row rather than minting a second one.
+
+`409` has exactly one source: `PUT /v1/manifests/{deviceId}` where the
+manifest body's `epoch` (§4.5) does not equal the store's current epoch. The
+server MUST reject that request and MUST NOT store the manifest. No other
+endpoint emits `409`; blob uploads are content-addressed and store-scoped, so a
+blob written under a stale epoch is left unreferenced and is collected by §7.3
+once its grace period lapses, rather than being rejected.
+
 ### 7.2 Allow-list validation
 
 The server MUST reject (`422`) any blob carrying a key not classified
@@ -844,6 +937,25 @@ and proven by test — a hand-maintained list drifts and is worse than useless.
 
 This is a second line of defence. The client serialiser is the control, and
 neither is sufficient alone.
+
+**Deployment ordering.** Because that mapping is generated from the client's
+registry and lives on the server, **the server MUST be deployed before any
+client emits a new `shareable` field or a new record kind.** Adding either does
+not bump `v` (§4.1 bumps only for a canonicalisation change), so nothing in the
+wire format signals the difference: a client shipping ahead of the server gets
+`422` on every affected blob, and `422` MUST be surfaced to the user and MUST
+NOT be retried (§5.3). This ordering constraint is load-bearing for every
+future vocabulary change and is the one part of the design a client-side
+revision cannot absorb on its own.
+
+**Unknown envelope `v`.** The server MUST apply the key check regardless of the
+value of `v`, and MUST NOT reject a blob solely because `v` is unknown to it —
+`v` is for the client, which refuses an unknown value rather than guessing
+(§4.3). Rejecting it server-side would force a server-first rollout for every
+wire bump, including bumps that do not touch the key vocabulary. A future `v`
+that changes body *structure* enough that the key check no longer applies is
+the exception, and MUST be deployed server-first for the same reason a new
+field is.
 
 ### 7.3 TTL and garbage collection
 
@@ -858,7 +970,36 @@ any authenticated request, making this a rolling TTL on activity.
 
 A blob is reachable while any manifest for its store references it. After each
 manifest `PUT`, and during the sweep, unreferenced blobs for that store are
-deleted.
+deleted — **except** that a blob whose `uploaded_at` is within the last **24
+hours** MUST NOT be collected, whether or not any manifest references it. A
+recent upload is a temporary GC root.
+
+Without that exemption the specified GC deletes live data, because every upload
+passes through a window in which no manifest names it: the client uploads blobs
+at §6.3 step 5 and publishes its manifest at step 8, with a full
+download-and-apply in between. Device A `PUT`s a blob; before A's manifest
+lands, device B `PUT`s its own manifest, which triggers store-scoped GC; A's
+blob is unreferenced and is deleted, and A then publishes a manifest naming a
+blob the store no longer holds. The hourly sweep firing in the same window
+reproduces it with a single device.
+
+24 hours is chosen against the window it protects, not tuned: steps 5 through 8
+are one pass, bounded by request timeouts, so the exposure is seconds to
+minutes and the margin is three orders of magnitude. The cost of being generous
+is bounded twice over — by the 250 MB store cap, and by the fact that an
+abandoned upload is *reused* rather than duplicated, since step 5's
+`POST /v1/blobs/missing` reports it present. An age bound is preferred to an
+upload session or a client-declared intent because it keeps the server free of
+per-client state and needs no new endpoint, which is the property §7's
+architecture is built on.
+
+A pass that stalls for longer than the grace period and then publishes will
+name a collected blob. That is not silently wrong: peers skip and report the
+record (§6.7), and the next pass re-uploads it, because `blobs/missing` reports
+it missing again. The server is deliberately **not** required to reject a
+manifest naming a blob it lacks — that would make manifest `PUT` referentially
+interpret its own body, which §7.1 forbids, to catch a case the client already
+self-heals.
 
 ### 7.4 Break-glass access log
 
@@ -905,8 +1046,21 @@ redirects.
 
 **Sync ID.** Format is four hyphen-separated words, enforced. A generated ID
 uses the EFF long wordlist. A user-chosen ID MUST clear a strength floor of
-~2⁴⁰ scored on the actual string, and four weak words MUST be rejected. The
-server returns `403` below the floor.
+~2⁴⁰ scored on the actual string, and four weak words MUST be rejected.
+
+**The floor is enforced at the point of choice, on the client.** The server
+enforces only the *structural* rule — four hyphen-separated words, each within
+the length bounds — and returns `403` for a violation of that. The server MUST
+NOT run its own strength estimator, because client and server would then both
+gate the same string on two implementations of a heuristic that has no
+canonical definition. The failure is asymmetric and the strict direction is the
+bad one: a server marginally stricter than the client rejects an ID the user
+has already adopted, and since the ID *is* the store address, the user is
+locked out of their own data with no recovery path and no way to tell the
+difference from an outage. A server marginally more permissive accepts a weak
+self-chosen ID whose residual risk is bounded by the per-IP and per-ID-hash
+rate limits below, and is borne by the person who chose it. Pinning a specific
+estimator and version would close the gap only until either side upgraded it.
 
 **Transport.** TLS required except `localhost`/`127.0.0.1`. Redirects MUST be
 followed manually with per-hop validation — https only, no userinfo, default
@@ -1001,6 +1155,21 @@ restore converges rather than diverging.
 bijection over real `encodeArchive`-shaped output, never a hand-written key
 string. Hostile peer blob: a malformed date rejects one record without aborting
 the batch or escaping the isolate. Interrupted sync is a no-op.
+
+A blob uploaded but not yet manifested survives a concurrent peer's manifest
+`PUT` and survives the sweep (mutation: collect every unreferenced blob
+regardless of age — the two-device interleave of §7.3 then deletes it, which is
+the whole defect). Every store (re)creation mints an epoch no peer has seen
+before (mutation: derive the epoch from the `id_key`, so a `DELETE /v1/store`
+and recreate reproduces it and no peer ever fresh-attaches). Concurrent
+creators of the same store observe the same epoch. A manifest `PUT` carrying a
+stale epoch is rejected `409` and does not land. A blob `PUT` whose body does
+not hash to its path segment is rejected, and a `PUT` to an existing hash does
+not replace the stored bytes. A structurally valid but weak user-chosen ID is
+**accepted** by the server (mutation: re-run the client's strength estimator
+server-side — the test fails as soon as the two implementations disagree, which
+is the lockout). A blob `GET` returning `404` skips and reports the record and
+leaves the baseline unadvanced, rather than deleting it.
 
 ## 10. Deferred
 

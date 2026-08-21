@@ -2516,6 +2516,30 @@ client's cryptography is therefore unchanged from what the app ships today.
 without it, a device with 11,500 records issues 11,500 `HEAD` requests to find
 out what to upload.
 
+**Both of the endpoints that are not content-addressed carry a schema, and they
+did not always.** The blob and the manifest are specified to the byte because
+they are *hashed* — canonicalisation is a correctness requirement there, so the
+document had no choice. `GET /v1/store` and `POST /v1/blobs/missing` are
+ordinary JSON, nothing forced their shape, and for several rounds they were
+described only in prose: "epoch, device list, quota usage". Two servers
+emitting `devices` and `deviceIds` would both have satisfied that sentence and
+only one would work with any given client.
+
+The pattern is worth naming because it is not laziness and will recur: rigour
+had accumulated wherever some other mechanism *demanded* it, and the places
+nothing demanded it were invisible precisely because the surrounding document
+looked so precise. `GET /v1/store` is also the endpoint that has already caused
+a shipped defect of exactly this kind — alias pruning was once bounded on a
+per-device watermark "that `GET /v1/store` already returns", which it does not
+and cannot — and it was still, rounds later, the endpoint with no schema. The
+fourth invariant says to check that the data a rule names is reachable on the
+path where the rule runs; a reader can only do that where the path's shape is
+written down.
+
+Both request and response are objects rather than bare arrays, so either can
+gain a field later without a version bump. A top-level array is the classic
+shape that cannot be extended.
+
 ### Status codes
 
 | Code | Meaning |
@@ -2526,7 +2550,7 @@ out what to upload.
 | `304` | Manifest unchanged (`If-None-Match` matched). |
 | `400` | Malformed request. |
 | `401` | Missing or malformed `Authorization`. |
-| `403` | Sync ID below the entropy floor (see Security). |
+| `403` | Sync ID fails the structural rule — four hyphen-separated words (see Security). |
 | `404` | No such blob, manifest or device. |
 | `409` | **Epoch mismatch** — the client's epoch is not the store's. |
 | `413` | Payload exceeds a cap. |
@@ -3240,6 +3264,73 @@ A blob is reachable while any manifest for its store references it. After each
 manifest `PUT`, and during the sweep, unreferenced blobs for that store are
 deleted. Mark-and-sweep scoped to one store is cheap; no global scan.
 
+**Reachability alone is not a safe collection rule, and the first draft of this
+section used it as one.** The client uploads blobs at step 5 and publishes its
+manifest at step 8, with a full download-and-apply in between, so every upload
+spends a window referenced by no manifest at all. A concurrent peer's manifest
+`PUT` during that window triggers store-scoped GC and deletes a blob that is
+about to be published; the hourly sweep does the same thing with one device.
+Implemented literally, the rule deletes live user data under ordinary
+two-device concurrency — not under a race that needs arranging.
+
+The mistake is worth naming precisely, because it is not a missing case: the
+rule was written from the steady state, where "referenced by a manifest" and
+"live" coincide, and it silently assumed publication was atomic with upload.
+The protocol is deliberately *not* atomic there — the whole point of uploading
+before publishing is that a manifest never names a blob a peer cannot fetch.
+So the safety property that makes step 8 correct is exactly what makes the GC
+rule wrong, and reading either half alone reads as sound.
+
+A recent upload is therefore a temporary root: unreferenced blobs younger than
+24 hours are never collected. The alternatives — an upload session, or a
+client-declared set of intended hashes — both give the server per-client state
+and a new endpoint to manage it, which is precisely the interpretation-free
+posture the rest of §7 buys its testability with. An age bound needs one column
+and no protocol.
+
+The number is chosen against the window it protects rather than tuned: steps 5
+to 8 are a single pass bounded by request timeouts, so the exposure is seconds
+to minutes and 24 hours is three orders of magnitude of margin. Being generous
+is close to free, because unreferenced blobs are already bounded by the 250 MB
+store cap, and because an abandoned upload is *reused* rather than duplicated —
+the next pass's `POST /v1/blobs/missing` reports it present.
+
+The residual case is a pass that stalls past the grace period and then
+publishes, naming a blob that was collected. That resolves without a new rule:
+a peer that cannot fetch a blob treats it as an unresolved reference and skips
+and reports the record, and the origin device re-uploads on its next pass
+because `blobs/missing` reports it missing again. That downstream behaviour had
+to be written down too — the spec said what a client does when a *record*
+reference cannot be resolved and said nothing about a failed blob fetch, and
+the dangerous default reading is that an unfetchable record has gone away.
+Absence never deletes, on this path as on every other.
+
+### Who mints the epoch
+
+Only the server, and this needs saying because the client-facing half of the
+mechanism reads as complete without it: the manifest carries an `epoch`, a
+client compares it every pass and fresh-attaches when it differs, and the
+status table lists `409 Epoch mismatch`. None of that says who produces the
+value, and an implementer building strictly from the server section would ship
+a server that never emits `409` at all.
+
+Two facts belong to the server alone. A client cannot mint an epoch, because
+two devices creating the same store concurrently would choose different values
+and each would read the other as a reset; the atomic upsert that resolves the
+creation race must hand *both* callers the same row. And every re-creation must
+mint a **fresh** value — first contact, after `DELETE /v1/store`, and after a
+TTL reap — never derived from the sync ID and never reused.
+
+That last rule is the load-bearing one, and its failure mode is silent in the
+worst way. Reset detection is the *only* mechanism by which a peer learns the
+store was wiped. An implementation that derives the epoch from the `id_key`, or
+restores it with a backup, looks correct in every test that does not wipe a
+store: peers keep syncing, their baselines still describe a store that no
+longer exists, and each one believes every record the store now lacks was
+deleted by someone. Nothing reports an error. Deriving the epoch is the obvious
+convenience — it removes a random value from a schema — which is why it is
+prohibited explicitly rather than left to judgement.
+
 ### The break-glass access log
 
 Athenaeum is opaque in normal operation: the operator sees store sizes, device
@@ -3376,11 +3467,20 @@ about making acquisition hard, not about limiting the blast radius:
 
 - Generated IDs are four EFF-wordlist words, ~2⁵². At 1,000 guesses/second an
   exhaustive search is ~10⁵ years; rate limiting makes it far worse.
-- **Two checks, not one.** The **format** is fixed at four hyphen-separated
-  words, which rejects `isaac-banner-dances` structurally. A **strength floor of
-  ~2⁴⁰**, scored on the actual string, then rejects four *weak* words that
-  satisfy the pattern. Both are server-enforced with `403`; a client-side check
-  alone would be bypassable, and a warning alone would have stopped neither.
+- **Two checks, not one, and they are enforced in different places.** The
+  **format** is fixed at four hyphen-separated words, which rejects
+  `isaac-banner-dances` structurally, and is enforced on **both** sides — the
+  server returns `403` for it, because it is a mechanical rule two
+  implementations cannot disagree about. A **strength floor of ~2⁴⁰**, scored
+  on the actual string, then rejects four *weak* words that satisfy the
+  pattern; that one is enforced **client-side, at the point of choice**, and
+  the server deliberately does not re-run it. Estimating the strength of an
+  arbitrary string is a heuristic with no canonical definition, so a server
+  even slightly stricter than the client would reject an ID the user had
+  already adopted — and because the ID *is* the store address, that is a
+  lockout from their own data, indistinguishable from an outage. The permissive
+  direction costs a weak self-chosen ID whose residual risk is bounded by rate
+  limits and borne by the chooser. A warning alone would have stopped neither.
 - The ID never appears in a URL, so it does not reach logs or `Referer`.
 - The server stores only `HMAC-SHA256(pepper, syncID)`, with the pepper in
   configuration rather than the database, so a stolen database yields no IDs. A
@@ -3964,6 +4064,22 @@ must say this plainly rather than implying sync is opaque to us.
   order. Two independently constructed identical records hash identically.
 - **Hostile peer blob** — the `ArgumentError` case; a malformed date rejects one
   record and does not abort the batch or escape the isolate.
+- **An unmanifested blob survives collection** — upload a blob, have a *second*
+  device `PUT` its manifest before the first publishes, then assert the blob is
+  still fetchable. Mutation-proved by collecting every unreferenced blob
+  regardless of age. A single-device version of this test cannot fail, because
+  nothing triggers GC in the window.
+- **A wiped store is detected as wiped** — `DELETE /v1/store`, recreate, and
+  assert a peer holding the old baseline fresh-attaches. Mutation-proved by
+  deriving the epoch from the `id_key` so re-creation reproduces it; the peer
+  then syncs happily against a store with no content and treats the absence as
+  deletions.
+- **A blob `GET` that 404s does not delete** — serve a manifest naming a hash
+  the store lacks; assert the record is skipped and reported, the baseline does
+  not advance, and nothing local is removed.
+- **A weak-but-structurally-valid sync ID is accepted by the server** — the
+  guard against re-implementing the strength estimator server-side, where a
+  disagreement with the client is a lockout rather than a rejection.
 
 ## Resolved since first draft
 

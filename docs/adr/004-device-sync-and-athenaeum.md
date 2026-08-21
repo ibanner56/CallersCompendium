@@ -163,7 +163,10 @@ is not guessable at any realistic online rate. A user-chosen one is a different
 matter, so two checks apply rather than one: the **format** (four words) rejects
 `isaac-banner-dances` structurally, and a **strength floor of ~2⁴⁰**, scored on
 the actual string, rejects four weak words that satisfy the pattern. A warning
-alone would not have stopped either.
+alone would not have stopped either. The format check is enforced on both the
+client and the server; the strength floor is enforced client-side at the point
+of choice only, because a server running a second, marginally stricter
+estimator would lock a user out of a store their own ID addresses.
 
 **The sync ID is a bearer credential.** Anyone holding it has full read and
 write access to the collection. This is deliberate: it is what makes the design
@@ -728,6 +731,14 @@ makes self-hosting materially harder, which constraint 4 forbids.
   Mitigated by a persistent hint, not eliminated.
 - **We now operate infrastructure**, with the uptime, abuse and cost that
   implies — mitigated by the app working fully without it.
+- **The server must be deployed before any client that adds a `shareable` field
+  or a record kind.** The server validates blobs against an allow-list
+  generated from the same registry, and adding a field does not bump the wire
+  version, so a client released ahead of the server has every affected blob
+  rejected — visibly, since that rejection is surfaced to the user and not
+  retried. This binds release ordering for every future schema change, and it
+  applies to self-hosters too: their upgrade has to lead the app's, which is a
+  real obligation to document rather than a deployment detail.
 - **Settings sync requires a schema migration, and it should ship first.**
   `settings` is `(key, value_json)` with no timestamp, so the `updatedAt`
   conflict rule cannot reach it. The sync migration adds `updated_at`, stamping existing
