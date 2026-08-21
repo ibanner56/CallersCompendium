@@ -1096,7 +1096,7 @@ class FigureRenderer {
         verbose,
       );
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      // Join with spaces exactly like the `{who} {prefix} {move}` template; the
+      // Join with spaces exactly like the `{who} {prefix} {move}` template;
       // The assembler collapses the runs (and an empty `none` prefix) and handles
       // the subject sentinel, so the `in` case matches today verbatim.
       return _displayTemplate({
