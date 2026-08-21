@@ -282,6 +282,8 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
         text: renderer.moveWordingTemplate(moveId) ?? '',
       );
       _showWordings = true;
+      _working = _assemble();
+      _issues = _working.validate();
     });
   }
 

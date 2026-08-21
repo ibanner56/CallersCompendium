@@ -179,6 +179,38 @@ void main() {
     },
   );
 
+  testWidgets('adding a wording updates the main preview immediately', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(
+          initial: Dialect(name: 'Wording', moves: const {'swing': 'twirl'}),
+        ),
+      ),
+    );
+
+    final toggle = find.byKey(const ValueKey('dialect-wordings-toggle'));
+    await reveal(tester, toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    final menu = tester.widget<DropdownButton<String>>(
+      find.byKey(const ValueKey('dialect-add-move-wording')),
+    );
+    menu.onChanged!(
+      menu.items!
+          .map((item) => item.value)
+          .firstWhere((value) => value == 'swing'),
+    );
+    await tester.pumpAndSettle();
+
+    await reveal(tester, preview());
+    expect(previewText(tester), contains('twirl'));
+  });
+
   testWidgets('saving omitted wording slots requires confirmation', (
     tester,
   ) async {
