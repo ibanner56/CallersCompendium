@@ -51,15 +51,12 @@ void main() {
       expect(spec, isNotNull);
       expect(spec!.kind, ParamKind.choice);
       expect(spec.defaultValue, 'in');
-      expect(spec.choices, ['in', 'out', 'up', 'down']);
+      expect(spec.choices, ['in', 'out', 'up', 'down', 'along']);
     });
 
-    test(
-      'endFacing reuses the four set-relative facing tokens (gateFacings)',
-      () {
-        expect(spec!.choices!.toSet(), gateFacings.toSet());
-      },
-    );
+    test('endFacing reuses the set-relative facing tokens (gateFacings)', () {
+      expect(spec!.choices!.toSet(), gateFacings.toSet());
+    });
 
     test(
       'endFacing has no beat cost — swing goodBeats/paramBeats unchanged',
@@ -84,7 +81,7 @@ void main() {
       Figure(move: 'swing', params: {'who': 'partners'}),
     );
 
-    for (final facing in ['in', 'out', 'up', 'down']) {
+    for (final facing in ['in', 'out', 'up', 'down', 'along']) {
       test('endFacing=$facing does not change the canonical line', () {
         expect(
           renderer.renderCanonical(swing(who: 'partners', endFacing: facing)),
@@ -126,7 +123,7 @@ void main() {
       );
     });
 
-    test('up/down/out append a facing clause', () {
+    test('up/down/out/along append a facing clause', () {
       expect(
         renderer.render(
           swing(who: 'partners', endFacing: 'up'),
@@ -147,6 +144,13 @@ void main() {
           Dialect.canonical,
         ),
         'partner swing facing out of the set',
+      );
+      expect(
+        renderer.render(
+          swing(who: 'partners', endFacing: 'along'),
+          Dialect.canonical,
+        ),
+        'partner swing facing along the set',
       );
     });
 
@@ -271,7 +275,7 @@ void main() {
     });
 
     test('every allowed endFacing token validates clean', () {
-      for (final facing in ['in', 'out', 'up', 'down']) {
+      for (final facing in ['in', 'out', 'up', 'down', 'along']) {
         expect(
           tax.validateFigure(swing(who: 'partners', endFacing: facing)),
           isEmpty,

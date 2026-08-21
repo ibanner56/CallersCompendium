@@ -890,6 +890,7 @@ class FigureRenderer {
     'out': 'out of the set',
     'up': 'up the hall',
     'down': 'down the hall',
+    'along': 'along the set',
   };
 
   static String _gateFacingPhrase(String facing) =>
@@ -900,12 +901,18 @@ class FigureRenderer {
   /// exactly as before. Restricting to this allow-list means any unknown or
   /// tolerantly-decoded token renders no clause rather than being injected into
   /// the display line.
-  static const Set<String> _swingRenderedEndFacings = {'out', 'up', 'down'};
+  static const Set<String> _swingRenderedEndFacings = {
+    'out',
+    'up',
+    'down',
+    'along',
+  };
 
   /// The DISPLAY-ONLY " facing …" clause a swing appends for a non-default
   /// [endFacing] (issue #543), or the empty string for the default `in`, an
   /// unknown token, or a non-String value. The wording reuses
-  /// [_gateFacingPhrases] ("up the hall" / "down the hall" / "out of the set").
+  /// [_gateFacingPhrases] ("up the hall" / "down the hall" / "out of the set" /
+  /// "along the set").
   static String _swingEndFacingClause(Object? endFacing) {
     if (endFacing is! String || !_swingRenderedEndFacings.contains(endFacing)) {
       return '';
@@ -1036,7 +1043,7 @@ class FigureRenderer {
     // swings stay uncluttered. The clause is DISPLAY-ONLY (this map is consulted
     // only when `!forCanonical`), so the canonical render keeps expanding
     // `renderTemplate` (which omits `endFacing`) and stays byte-for-byte stable.
-    // `endFacing` is allow-listed here (out/up/down); `in`, an unknown token, or
+    // `endFacing` is allow-listed here (out/up/down/along); `in`, an unknown token, or
     // a non-String value all render NO clause (never injected), consistent with
     // the taxonomy's tolerant-decode contract.
     'swing': (r, def, params, dialect, verbose, decimals) {
