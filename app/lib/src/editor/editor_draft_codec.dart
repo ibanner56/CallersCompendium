@@ -61,7 +61,7 @@ const _kDraftVersion = 10;
 /// Schema (v10):
 /// ```jsonc
 /// {
-///   "v": 9,
+///   "v": 10,
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
