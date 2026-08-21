@@ -202,7 +202,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'endFacing': ParamSpec(
           ParamKind.choice,
           defaultValue: 'in',
-          choices: ['in', 'out', 'up', 'down'],
+          choices: ['in', 'out', 'up', 'down', 'along'],
         ),
       },
       renderTemplate: '{who} {prefix} {move}',
