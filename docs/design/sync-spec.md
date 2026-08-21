@@ -195,10 +195,15 @@ record reachable, and it survives detach; retiring against peer manifests alone
 would ignore it. The failure modes are also asymmetric, which is what settles
 it: a wrongly-retired alias skips and reports one record, while a
 wrongly-retired marker silently resurrects a deletion. Growth is bounded by the
-number of records ever published rather than by activity — a
-`(kind, record_id)` pair per record, smaller than the baseline entry that
-already exists for each — so an entry MUST be retained even after its record is
-tombstoned and purged.
+number of records ever published rather than by activity: one
+`(kind, record_id)` pair per record. Each row is smaller than the baseline entry
+for the same record, which additionally carries a hash — but the row *counts*
+diverge, because the baseline is rebuilt on an epoch reset and drops purged
+records while this table is rebuilt by nothing. On a device with churn this
+table MUST be expected to hold more rows than the baseline. The bound is
+therefore absolute rather than relative: tens of bytes per pair, so a device
+that has published 100,000 records over its lifetime carries a few megabytes.
+An entry MUST be retained even after its record is tombstoned and purged.
 
 `review_queue` requires a new review surface: `import_review_screen.dart`
 reviews dances only. A generic keep-both-or-merge list suffices; no per-kind
@@ -218,16 +223,24 @@ and the codec emits bare camelCase, so a generated mapping is required, and it
 MUST be proven by test rather than hand-maintained.
 
 **Keys with no entry.** A `settings` key may be constructed at runtime
-(`editor_draft:<id>`, `program_editor_draft:<id>`), so a persisted key can carry
-no registry entry at all — the registry is keyed by exact string and has no
-prefix form. The serialiser MUST fail closed: a key with no classification MUST
-NOT be serialised, exactly as if it were `deviceLocal`.
+(`editor_draft:<id>`, `program_editor_draft:<id>`), so resolution MUST go
+through `classifySettingsKey`, which matches an exact `settingsClassifications`
+entry first and the longest matching `settingsPrefixClassifications` prefix
+second. A serialiser that reads the exact map alone is non-conforming: it
+resolves every prefix-keyed classification to nothing.
+
+`classifySettingsKey` returns null for a key matching neither map, so a
+persisted key can still carry no classification at all. The serialiser MUST
+fail closed: a key with no classification MUST NOT be serialised, exactly as if
+it were `deviceLocal`.
 
 Filtering MUST therefore be expressed as an allow-list of keys classified
 `shareable`, never as a denylist of the other three classes. A denylist admits
-every unclassified key, and these particular keys hold unsaved user-authored
-dance and program content. §7.2's server-side rejection is not a substitute:
-it happens after the bytes have crossed the wire.
+every key the lookup fails to resolve, and an unresolved `settings` key can hold
+unsaved user-authored dance and program content — which is exactly what the
+editor draft keys held for as long as they went unclassified, until #973.
+§7.2's server-side rejection is not a substitute: it happens after the bytes
+have crossed the wire.
 
 ## 4. Wire format
 
@@ -411,7 +424,11 @@ would break the content-addressing that "Immutable; long `Cache-Control`"
 depends on and let a peer serve one record's bytes under another's name. A
 `PUT` to a hash the store already holds MUST be treated as a no-op returning
 `200` and MUST NOT overwrite the stored bytes; once verified the bytes are
-identical by definition, so a rewrite can only be a downgrade.
+identical by definition, so a rewrite can only be a downgrade. The no-op MUST
+NOT update `uploaded_at` either. That column is the sole input to §7.3's grace
+window, so refreshing it on each repeat `PUT` would let a client that re-uploads
+the same never-manifested blob every pass keep it collection-immune
+indefinitely, and the window would bound nothing.
 
 ### 5.3 Status codes
 
@@ -437,11 +454,21 @@ client receiving `404` from a store-scoped endpoint recovers by calling
 
 `413` and `507` divide on **per-request versus per-store**, and the split is
 normative because it is otherwise a coin toss. A single request exceeding a
-size cap — blob size, manifest size, parse depth, decompressed size — is `413`.
-Any *aggregate* cap on the store is `507`: blobs per store, bytes per store,
-and **devices per store**, so the 33rd device attaching receives `507` rather
-than `413` or `429`. A client MUST surface `507` to the user and MUST NOT retry
-it without user action, since nothing the client does alone clears it.
+size cap — blob size, manifest size, parse depth, decompressed size, or the
+number of elements in a request body such as §5.4's hashes-per-request cap — is
+`413`. Any *aggregate* cap on the store is `507`: blobs per store, bytes per
+store, and **devices per store**, so the 33rd device attaching receives `507`
+rather than `413` or `429`. A client MUST surface `507` to the user and MUST NOT
+retry it without user action, since nothing the client does alone clears it.
+
+That last rule has one qualification the client MUST honour. §7.3 keeps
+unreferenced blobs for a 24-hour grace window, so space freed by deleting
+records or detaching a device may not be reclaimable immediately: a `507` can
+persist after the user has already done the thing that should clear it. The
+client MUST NOT present such a `507` as permanent, and MUST NOT treat the
+user's corrective action as having failed. `DELETE /v1/store` is the only
+in-band remedy that acts at once, and it is destructive, so it MUST NOT be
+offered as the first response to a quota error.
 
 `422` MUST be surfaced to the user, logged, and MUST NOT be silently retried.
 
@@ -1104,6 +1131,18 @@ applied tombstone. Only a deliberate edit resurrects. A sync-initiated write
 never cancels a tombstone. `existenceAt` crosses a device boundary. A later sync
 write does not erase a revival (mutation: carry the signal as a boolean).
 
+**Soft-delete join coverage.** §3.1's rule that every read joining through to a
+soft-deletable parent filters `parent.deleted_at IS NULL` MUST be enforced by a
+test that enumerates such reads, not left as prose. Stated as a property it has
+no failure signal: a new read path that omits the filter compiles, passes, and
+is caught only when a screen misbehaves. It has already decayed once — issue
+#1016, where `VenueRepository.externalIdToVenueId` resolves an archive
+re-import onto a tombstoned venue while the sibling `listAllIds` on the same
+class filters correctly, so a program is written referencing a tombstone with no
+error. Under sync that program publishes while its venue publishes as deleted.
+The mutation the test must catch is dropping the `deleted_at` predicate from any
+one such read.
+
 **Classification.** `deviceLocal` never serialised — property test over the
 registry, and it MUST NOT be allowed to become vacuous. Inbound apply preserves
 device-local columns. Inbound apply rejects present non-shareable keys, using
@@ -1165,7 +1204,10 @@ and recreate reproduces it and no peer ever fresh-attaches). Concurrent
 creators of the same store observe the same epoch. A manifest `PUT` carrying a
 stale epoch is rejected `409` and does not land. A blob `PUT` whose body does
 not hash to its path segment is rejected, and a `PUT` to an existing hash does
-not replace the stored bytes. A structurally valid but weak user-chosen ID is
+not replace the stored bytes or refresh `uploaded_at` (mutation: touch
+`uploaded_at` on the no-op — a client that re-uploads the same never-manifested
+blob each pass then holds it past every grace window, indefinitely). A
+structurally valid but weak user-chosen ID is
 **accepted** by the server (mutation: re-run the client's strength estimator
 server-side — the test fails as soon as the two implementations disagree, which
 is the lockout). A blob `GET` returning `404` skips and reports the record and

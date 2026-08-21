@@ -57,11 +57,28 @@ of the ratchet walks the source for `const String k…Key = '…';` declarations
 it covers only keys that exist as declared constants. The editor drafts do not:
 they are built at runtime from a prefix (`editor_draft:<id>`,
 `program_editor_draft:<id>`) whose constants are named `…KeyPrefix` and are not
-matched by that pattern. Unclassified persisted keys therefore exist today, and
-they hold unsaved user-authored dance and program content. The serialiser MUST
-fail closed on them — `sync-spec.md` §3.3 states the rule, and filtering is
-expressed as an allow-list of `shareable` keys precisely so that an unclassified
-key is excluded by default rather than admitted by default.
+matched by that pattern.
+
+This design found that gap while checking an earlier review round and filed it
+as #923; the maintainer ruled both prefixes `deviceScoped`, and #973 closed it.
+`settings_registry.dart` now carries `settingsPrefixClassifications` alongside
+the exact map, and `classifySettingsKey` resolves a runtime key against both —
+exact first, longest matching prefix second. Both keys that motivated this
+paragraph are classified today, and being `deviceScoped` they are excluded from
+sync by the ordinary allow-list, not by the fallback.
+
+Two obligations survive that fix. The serialiser MUST resolve through
+`classifySettingsKey` rather than reading the exact map directly, because a
+future prefix classified `shareable` would otherwise resolve to nothing and be
+dropped from sync. That failure is safe but invisible — fail-closed produces
+exactly the outcome a correct lookup produces for a `deviceScoped` prefix, so
+the bug is indistinguishable from the rule working, and the coverage ratchet
+cannot see it because the registry entry exists and it is the *lookup* that is
+wrong. And `classifySettingsKey` still returns null for a key in neither map,
+so a genuinely unclassified key remains possible; fail-closed is what makes
+that safe. `sync-spec.md` §3.3 states both rules, and filtering is expressed as
+an allow-list of `shareable` keys precisely so that an unclassified key is
+excluded by default rather than admitted by default.
 
 **A record whose every field is `deviceLocal` produces no blob at all.** No
 current record is in that position; venues are the closest, and their identity
@@ -574,10 +591,18 @@ bound is unavailable here, because *this device's own manifest* is one of the
 manifests keeping the record reachable and it outlives the detach. The failure
 modes decide the rest: a wrongly-retired alias skips one record and reports it,
 whereas a wrongly-retired marker silently resurrects a deletion. Permanence is
-therefore required rather than merely tolerated, and the cost is small enough to
-state plainly — one `(kind, record_id)` pair per record ever published, less
-than the baseline entry that already exists for the same record, so an entry is
-kept even after its record is tombstoned and purged.
+therefore required rather than merely tolerated, and the cost is small — though
+not by the comparison that first suggested itself. Each row is smaller than the
+baseline entry for the same record: a `(kind, record_id)` pair against a pair
+plus a hash. But that compares row size, not trajectory. The baseline is rebuilt
+on an epoch reset and drops records that are purged; this table is rebuilt by
+nothing, which is the whole point of it. So on a device with churn the marker
+table will hold *more* rows than the baseline, and "smaller than the baseline"
+is a bound that quietly stops holding at exactly the moment anyone would want to
+lean on it. The figure that actually bounds it is absolute: tens of bytes per
+pair, one per record ever published, so a device that has published 100,000
+records over its lifetime carries a few megabytes. An entry is kept even after
+its record is tombstoned and purged.
 
 Stale entries after a restore are inert and need no revalidation for the same
 reason they need no clearing: the marker is consulted only when deleting the
@@ -3305,6 +3330,20 @@ reference cannot be resolved and said nothing about a failed blob fetch, and
 the dangerous default reading is that an unfetchable record has gone away.
 Absence never deletes, on this path as on every other.
 
+Being generous is close to free in *space*, but it is not free in *time*, and
+that is a second residual worth stating because §5.3 quietly assumes otherwise.
+`507` is documented as something only user action clears — which is true of the
+cause and false of the timing. Grace-protected blobs are immune for 24 hours, so
+a user who hits the quota, deletes records and detaches a device can do
+everything right and still see `507` on the next pass. The bound on *space* says
+nothing about the duration of denial. The only in-band remedy that acts at once
+is `DELETE /v1/store`, which is destructive and must not be the first thing
+offered. So the client's obligation is presentational rather than protocol-level:
+report the quota error as temporary and not as a failure of what the user just
+did. Making the grace window shorter would trade this against the correctness
+margin above, which is the wrong direction — a confusing error beats a deleted
+blob.
+
 ### Who mints the epoch
 
 Only the server, and this needs saying because the client-facing half of the
@@ -4048,6 +4087,19 @@ must say this plainly rather than implying sync is opaque to us.
   it no longer appears on any dance. Mutation-proved by omitting the
   `deleted_at IS NULL` filter on the join read, which is the regression the
   cascade previously prevented.
+- **Every read that resolves a soft-deletable parent id is enumerated** — the
+  bullet above tests one join; this tests the *class*. The rule is stated in
+  §3.1 as a property, and a property with no enumeration has no failure signal:
+  a new read path that omits the filter compiles and passes. It has already
+  decayed once, in shipped code — issue #1016, where
+  `VenueRepository.externalIdToVenueId` resolves an archive re-import onto a
+  tombstoned venue, so a program is written referencing a tombstone with no
+  error, while `listAllIds` on the same class filters correctly. Two things make
+  that instructive: the correct behaviour was already present *in the sibling
+  method*, and the write-time guard that would have caught it exists but is
+  bypassed on the `knownVenueIds` fast path. Neither a reviewer reading the
+  class nor one reading the guard would see it. Mutation-proved by dropping the
+  predicate from any one enumerated read.
 - **A referenced entity cannot be tombstoned away** — a device still crediting a
   choreographer keeps it live and re-publishes; assert no dance is left citing a
   tombstone.
@@ -4069,6 +4121,14 @@ must say this plainly rather than implying sync is opaque to us.
   still fetchable. Mutation-proved by collecting every unreferenced blob
   regardless of age. A single-device version of this test cannot fail, because
   nothing triggers GC in the window.
+- **A repeat blob `PUT` does not renew the grace window** — `PUT` an
+  unreferenced blob, advance past 24 hours while re-`PUT`ting it each pass, and
+  assert it is collected. Mutation-proved by refreshing `uploaded_at` on the
+  no-op path, which makes the grace window bound nothing: a client that
+  re-uploads the same never-manifested blob every pass keeps it forever. The
+  no-op rule says the server must not overwrite the stored *bytes*, and
+  `uploaded_at` is not bytes — the fix and the column it depends on landed in
+  the same pass, and their interaction went unstated.
 - **A wiped store is detected as wiped** — `DELETE /v1/store`, recreate, and
   assert a peer holding the old baseline fresh-attaches. Mutation-proved by
   deriving the epoch from the `id_key` so re-creation reproduces it; the peer
