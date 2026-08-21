@@ -2481,6 +2481,33 @@ tick truncation was introduced to close, arriving by a different door. NaN and
 tempting coercion to `null` or `0` would silently alter a user's data *and*
 still not converge, so rejection is the only answer that is honest.
 
+**Where NFC applies was wrong for thirty rounds, in a way the analogy caused.**
+The rule was originally written as "normalised on ingest as timestamps are", and
+the comparison is what hid the defect: for timestamps, ingest-scoping really is
+sufficient, because a `DateTimeColumn` persists as unix seconds and sub-tick
+precision cannot survive *any* write, local or remote. The representation
+enforces the invariant. A TEXT column enforces nothing, so the same scoping
+applied to strings leaves the largest population of strings in the app — the
+user's pre-existing library, which never arrived through a sync path — never
+normalised at all. §6.2 step 4 uploads it verbatim; the device re-serialises
+from the same unchanged rows every pass afterwards, so it emits NFD forever
+while every peer that ingests it stores NFC. One record id, two byte strings,
+permanently. It also quietly broke §6.10, which assumes its inputs are already
+NFC on the strength of this very rule, while at fresh attach one side of every
+dedupe comparison is exactly that never-ingested local library. The rule now
+covers every write path that can populate a `shareable` string. There is no
+Unicode normalisation anywhere in the app today, so this is new work on the
+local edit and import paths, not a restatement of something already true.
+
+**Unpaired surrogates are the string-shaped version of NaN.** Dart strings are
+UTF-16, so one can hold a lone surrogate; UTF-8 cannot encode it and therefore
+neither can JCS. Implementations diverge on what to do — `U+FFFD`, WTF-8, or
+throw — and any two that choose differently give one record two hashes, which
+is the identical failure the NaN rule closes. Rejection rather than repair, for
+the same reason: substituting `U+FFFD` converges only for as long as every
+implementation picks the same substitution, and it alters user data whenever it
+is wrong. Rejecting is loud, and loud is recoverable.
+
 **This is entirely new code.** The archive codec emits keys in *insertion* order,
 not lexicographic, and there is no SHA-256 anywhere in `packages/`. "Reuse the
 archive codec" applies to the record *body*; the canonicalisation and hashing
@@ -3727,13 +3754,33 @@ path's stance is deliberate and unchanged.
 ### Transport
 
 - TLS required, except `localhost`/`127.0.0.1` for self-hosters.
-- **Redirects are followed manually with per-hop validation**, mirroring
-  `_sendFollowingHttpsRedirects` in `artifact_downloader.dart` — https only, no userinfo, default port, hop
-  cap. The `package:http` default `followRedirects = true` is not used. This is
-  a **recurring** defect class in this codebase — found and fixed once in the
+- **Redirects are followed manually with per-hop validation**, taking the
+  pattern from `_sendFollowingHttpsRedirects` in `artifact_downloader.dart`, and
+  `package:http`'s default `followRedirects = true` is not used. This is a
+  **recurring** defect class in this codebase — found and fixed once in the
   ContraDB search path (#765), still open in the update-manifest fetcher (#784)
   — so the sync client adopts the hardened pattern from the start rather than
   becoming the third instance.
+- **Every hop must match the configured endpoint's origin, and the credential
+  must never cross one that does not.** This was missing until round 31, and how
+  it went missing is the more useful part. The spec cited the precedent and then
+  paraphrased it as "https only, no userinfo, default port, hop cap" — an
+  accurate list of that helper's *incidental* checks and a complete omission of
+  its actual safety property, the `isAllowedArtifactHost` call re-run on every
+  hop (`artifact_downloader.dart:412`), which its own doc comment names as what
+  closes "the downgrade/exfil hole". Every rule that survived the paraphrase
+  constrains what a hop looks like; the one that was dropped constrains where it
+  can go.
+- **The precedent is also weaker than what sync needs, which the citation
+  concealed.** The artifact downloader sends no `Authorization` at all, so for
+  it a followed redirect leaks nothing but the fact of a download. The sync
+  client puts the sync ID in `Authorization` on every request, and that ID is
+  not a session token: it is the store address *and* the full read, write and
+  `DELETE` credential, with no accounts, no rotation and no revocation. One
+  credentialed hop to a foreign origin is unrecoverable, total compromise of
+  everything the user has ever synced. Inheriting a precedent's rules is only
+  safe when the new caller's exposure is no greater than the old one's, and here
+  it is strictly greater.
 - The user-configured endpoint is validated on entry: https (or localhost), no
   userinfo, no fragment, no query.
 - A custom endpoint is a **deliberate trust decision** by the user, so the
@@ -4281,11 +4328,28 @@ must say this plainly rather than implying sync is opaque to us.
 - **NFC/NFD titles converge** — ingest the same title in both forms and assert
   one hash and one record. Mutation-proved by skipping normalisation on ingest,
   which reproduces a permanent `changed`/`changed` between two devices whose
-  screens show the identical string. The test must normalise on *ingest*, not
-  only on emit, for the same reason tick truncation does.
+  screens show the identical string.
+- **A locally-created NFD title uploads as NFC** — create it through the app's
+  own edit path, never through sync, and assert the first upload's bytes.
+  Mutation-proved by scoping normalisation to inbound values, which is what the
+  spec said until round 31. This one is worth writing even though the bullet
+  above looks like it covers it: that test ingests *both* forms through the sync
+  path, so it passes against the mutation. Only a string that never crossed the
+  wire distinguishes the two scopes.
+- **A `shareable` string carrying an unpaired surrogate is rejected** — not
+  repaired. Mutation-proved by substituting `U+FFFD`: the record then syncs and
+  converges against any implementation that made the same choice, and diverges
+  silently against one that threw or emitted WTF-8.
 - **A record that would need NaN or ±Infinity is rejected** — not coerced to
   `null` or `0`. Mutation-proved by coercing: the record then syncs, silently
   carrying a value the user never entered, and still fails to converge.
+- **A redirect to a foreign origin is refused and never credentialed** — assert
+  both halves: the request fails, *and* no request bearing `Authorization` was
+  issued to the other host. Mutation-proved by validating only scheme, userinfo
+  and port, which is what the spec required until round 31: an https `302` to an
+  attacker's host on port 443 with no userinfo passes every one of those checks
+  and takes the sync ID with it. Asserting only that the download failed would
+  pass against the mutation, because the leak happens before the failure.
 - **Hostile peer blob** — the `ArgumentError` case; a malformed date rejects one
   record and does not abort the batch or escape the isolate.
 - **An unmanifested blob survives collection** — upload a blob, have a *second*

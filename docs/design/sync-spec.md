@@ -275,7 +275,7 @@ Canonical JSON means:
   for a field that is not `shareable`;
 - **timestamps emitted at exactly one-tick precision** (§2), UTC, with the
   sub-tick component always zero;
-- **all strings in Unicode NFC**, normalised on ingest as timestamps are.
+- **all strings in Unicode NFC**, normalised on write as described below.
 
 RFC 8785 leaves the last of these out of scope, so it MUST be stated separately
 and it MUST be applied before hashing. Titles and
@@ -283,8 +283,25 @@ and it MUST be applied before hashing. Titles and
 from a macOS filename arrives in NFD while the same title typed on Android
 arrives in NFC. Both display identically and hash differently, which under §6.3
 is a permanent `changed`/`changed` for two records that are the same record.
-Normalising on ingest closes it for the same reason tick truncation does, and
-MUST NOT be skipped on the assumption that a sender normalised.
+
+**Unicode normalisation applies to every write path, not only to sync.** A
+conforming client MUST normalise a `shareable` string column to NFC on **every**
+path that can populate it — local edits, every import adapter, and inbound sync
+alike — and MUST NOT skip it on the assumption that a sender normalised.
+
+The scope is wider than the timestamp rule below, and the difference is
+load-bearing rather than stylistic. A timestamp is stored in a representation
+that *physically cannot* hold sub-tick precision, so normalising inbound values
+is belt-and-braces: no local write can reintroduce the problem. **A TEXT column
+enforces nothing.** If normalisation were scoped to ingest, a device's
+pre-existing library would never be normalised at all — §6.2 step 4 uploads it
+verbatim, and the device re-serialises from that same unchanged local storage on
+every subsequent pass, so an NFD title stays NFD forever. A peer ingesting it
+normalises to NFC. The two devices then hold one record id and two byte strings
+permanently, which is precisely the `changed`/`changed` this rule exists to
+prevent. §6.10's dedupe carries the same assumption: it treats its inputs as
+already NFC, and at fresh attach one side of every comparison is a local library
+that arrived through no sync path.
 
 Two number values that JSON cannot represent MUST be handled rather than
 emitted: a `shareable` float column can hold NaN or ±Infinity — `SQLite` REAL
@@ -292,6 +309,17 @@ admits both — and RFC 8785 has no encoding for either. A record whose canonica
 form would require one MUST be treated as malformed and rejected on the terms of
 §6.7, never coerced to `null` or `0`, which would silently alter user data and
 still not converge.
+
+**A string can be un-encodable for the same reason a number can.** Dart strings
+are UTF-16 and may contain an unpaired surrogate, which has no UTF-8 encoding
+and therefore no RFC 8785 encoding. Implementations disagree about it — some
+substitute `U+FFFD`, some emit WTF-8, some throw — and any two that disagree
+produce different bytes for one record, which is the same non-convergence the
+NaN rule closes. A `shareable` string containing an unpaired surrogate MUST be
+treated as malformed and rejected on the terms of §6.7, on both the sending and
+the receiving side. It MUST NOT be repaired by substitution: replacing it with
+`U+FFFD` converges only if every implementation chooses the same repair, and
+silently alters user data if it is ever wrong.
 
 **Timestamp canonicalisation is mandatory on ingest.** A receiver MUST truncate
 every inbound timestamp to a tick boundary *before* storing it and before
@@ -1246,11 +1274,38 @@ rate limits below, and is borne by the person who chose it. Pinning a specific
 estimator and version would close the gap only until either side upgraded it.
 
 **Transport.** TLS required except `localhost`/`127.0.0.1`. Redirects MUST be
-followed manually with per-hop validation — https only, no userinfo, default
-port, hop cap. `package:http`'s `followRedirects = true` MUST NOT be used. The
-user-configured endpoint is validated on entry: https or localhost, no userinfo,
-no fragment, no query. A custom endpoint MUST be shown prominently and a change
-MUST warn.
+followed manually with per-hop validation and `package:http`'s
+`followRedirects = true` MUST NOT be used. Every hop MUST be checked, before the
+request is issued, against all of:
+
+| Per-hop rule | |
+| --- | --- |
+| Scheme | https (or `localhost`/`127.0.0.1` under the same exemption as above) |
+| Origin | **identical to the configured endpoint's** scheme, host and port |
+| Userinfo | absent |
+| Port | the scheme default, or the endpoint's own explicit port |
+| Hop count | capped |
+
+A hop failing any of these MUST be refused rather than followed, and the
+`Authorization` header of §5.1 MUST NOT be sent to any origin other than the
+configured endpoint's. A client MAY instead refuse cross-origin redirects
+outright; it MUST NOT follow one while still carrying the credential.
+
+**The origin rule is the load-bearing one.** The other four bound what a hop may
+look like; only this one bounds *where the sync ID can go*. A redirect chain
+that satisfies every cosmetic check and terminates at an attacker-controlled
+https host on port 443 with no userinfo is exactly the case that matters, and it
+is not exotic: §7.5 treats a reverse proxy as the reference deployment, so a
+misconfigured proxy, an open redirect, or a stale `Location` target reaches this
+path without anyone doing anything unusual. The sync ID is not a session token —
+it is simultaneously the store address and the entire read, write and `DELETE`
+credential, with no accounts, no rotation and no revocation — so a single
+credentialed request to a foreign origin is unrecoverable and total. Bounding
+the shape of a hop while leaving its destination unbounded protects nothing.
+
+The user-configured endpoint is validated on entry: https or localhost, no
+userinfo, no fragment, no query. A custom endpoint MUST be shown prominently and
+a change MUST warn.
 
 **Threat model.** Anyone holding the sync ID has full read and write access,
 including `DELETE /v1/store`. This is inherent to the bearer model and MUST be
@@ -1285,8 +1340,14 @@ conformance vectors. A fractional `shareable` value round-trips to identical
 bytes on two independent encoders (mutation: emit `double.toString()` instead of
 the shortest round-tripping form). The same title in NFC and NFD hashes
 identically after ingest (mutation: skip normalisation, and watch two devices
-hold one record as a permanent `changed`/`changed`). A record requiring NaN or
-±Infinity is rejected rather than coerced.
+hold one record as a permanent `changed`/`changed`). **A title created locally
+in NFD and never synced serialises as NFC on its first upload** (mutation: scope
+normalisation to inbound values only — the device then uploads NFD forever from
+its own unchanged storage, and no test exercising both forms *through* the sync
+path can catch it). A record requiring NaN or ±Infinity is rejected rather than
+coerced, and so is a `shareable` string carrying an unpaired UTF-16 surrogate
+(mutation: substitute `U+FFFD`, which converges only while every implementation
+picks the same repair).
 
 **Merge.** Every row of the table, both directions. A stale peer does not roll
 back newer data (mutation: remove the `updatedAt` comparison). Equal `updatedAt`
@@ -1397,7 +1458,11 @@ exemption to `DELETE` as well, and the wipe silently leaves the data on disk).
 **Client isolate and robustness.** Allow-list bijection over real
 `encodeArchive`-shaped output, never a hand-written key string. Hostile peer
 blob: a malformed date rejects one record without aborting the batch or escaping
-the isolate. Interrupted sync is a no-op. These are client-side and are grouped
+the isolate. Interrupted sync is a no-op. **A `302` to a foreign https host is
+refused, and no request carrying `Authorization` is issued to it** (mutation:
+validate only scheme, userinfo and port — every cosmetic check still passes and
+the sync ID, which is the whole credential, leaves for an attacker-controlled
+origin on the first hop). These are client-side and are grouped
 here rather than under **Server** because the server never parses record content
 beyond §7.2's key check — a server suite written from a list that included them
 would be testing rules its implementation is forbidden to have.

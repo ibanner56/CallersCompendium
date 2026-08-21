@@ -14,7 +14,9 @@ the programme is visible *before* the decision, not to presume it.
 One unit has already shipped: the §3.1 schema migration, merged as
 [#898](https://github.com/ibanner56/CallersCompendium/issues/898), ahead of the
 ADR and deliberately — see *What must be serialised*, **S6**. Everything else is
-unstarted.
+unstarted. That unit shipped its *migration* cleanly but not its *invariant*:
+§3.1's soft-delete join rule is violated in `main` today (#1016), which is why
+**W17** exists and why C0 carries a caveat.
 
 Where this document and the spec disagree, the spec governs. Where this document
 and reality disagree, this document is wrong: it is a plan, and plans are the
@@ -37,11 +39,11 @@ numbers — the numbering is roughly execution order but two units with adjacent
 numbers are often parallel, and one late unit (**W10**) is needed unusually
 early.
 
-## 3. The four contracts
+## 3. The six contracts
 
 Parallelism in this programme is gated by **contracts, not files**. Two units
 can touch entirely disjoint paths and still collide, because both encode an
-assumption about one of these four:
+assumption about one of these six:
 
 1. **Canonical JSON and the content hash** (§4.1, §4.2). Every hash-derived
    behaviour — the baseline, the manifest, delta sync, the merge
@@ -54,10 +56,28 @@ assumption about one of these four:
 4. **The two non-content-addressed JSON shapes** — `GET /v1/store` and
    `POST /v1/blobs/missing` (§5.2). These are the endpoints nothing *forced*
    into a schema, which is exactly why they were the last to get one.
+5. **Sync-ID normalisation** (§5.1, §8). Trim → NFC → locale-independent
+   lowercase, applied identically by client and server before the HMAC. The
+   plan schedules **W5 and W10 in parallel from C1**, which is two units
+   independently implementing one algorithm with no file overlap — the exact
+   configuration contracts exist to catch. The spec calls the divergence the
+   nastiest failure in the HTTP contract *because it produces no error*: one ID
+   the user typed resolves to two storage keys, and the second device sees a
+   working sync of an empty store. This is the same argument that produced the
+   generated allow-list, and it applies here for the same reason.
+6. **`normalizeTitle`** (§6.10). Normative by reference since round 30,
+   consumed by W8. A second implementation that agrees on lowercase ASCII and
+   disagrees on a leading article merges records **silently**.
 
-A unit that changes any of the four is **never** parallel with a unit that
+A unit that changes any of the six is **never** parallel with a unit that
 consumes it, regardless of file overlap. A unit that merely consumes them is
 parallel with anything else that only consumes them.
+
+Contracts 5 and 6 were missing from this list until round 31, and both were
+missing for the same reason: they are *shipped or specified elsewhere*, so they
+did not look like something this programme decides. That is what makes them
+dangerous. A contract does not stop being a contract because it was written
+down in another document.
 
 ## 4. Work units
 
@@ -110,7 +130,11 @@ never reads the client.
   unclassified key is treated as `deviceLocal` and never serialised.
 - **Unblocks** W3 (client serialiser), W11 (server validator).
 - **Done when** the bijection ratchet passes over real `encodeArchive`-shaped
-  output, never a hand-written key string.
+  output, never a hand-written key string, **and the registry half of the §9
+  *Classification* bucket is green** — `deviceLocal` is never serialised, as a
+  property test over the registry that **must not be allowed to become
+  vacuous**. A property test that silently enumerates nothing passes forever;
+  assert the population it covered.
 
 Expressed as an allow-list, never a denylist. A denylist admits every key the
 lookup fails to resolve, and an unresolved settings key can hold unsaved dance
@@ -167,8 +191,10 @@ deletion silently reverts".
   is surfaced and **never retried**, `429` honours `Retry-After`.
 - **Unblocks** W6, W8, W13.
 - **Done when** the ID bound cases pass (one code point over rejected, at the
-  bound accepted) and a client/server `id_key` agreement test passes under
-  differing whitespace and Unicode form.
+  bound accepted), a client/server `id_key` agreement test passes under
+  differing whitespace and Unicode form, **and a `302` to a foreign https host
+  is refused with no credentialed request issued** (§9 *Client isolate and
+  robustness*).
 
 The strength floor is enforced here and **only** here. A server that re-runs it
 and is marginally stricter locks a user out of their own store, because the ID
@@ -176,7 +202,9 @@ and is marginally stricter locks a user out of their own store, because the ID
 
 #### W10 · Athenaeum core — storage, endpoints, limits
 
-- **Serves** §7.1, §5.1–§5.4 (server half).
+- **Serves** §7.1, §5.1–§5.4 (server half), §8 (server half — the structural
+  sync-ID rule and its `403`, and the prohibition on the server running its own
+  strength estimator).
 - **Inherits** W3 (schemas). W2 arrives later, via W11.
 - **Produces** the Dart + `shelf` service; `HMAC-SHA256(pepper, syncID)` storage
   keying with versioned peppers; the store, manifest and blob endpoints; strong
@@ -184,7 +212,17 @@ and is marginally stricter locks a user out of their own store, because the ID
   permissive `Content-Type` handling; and **every limit enforced before
   allocation**, streaming-abort style.
 - **Unblocks** W11, W12, W16 — and, critically, **W6**.
-- **Done when** the loopback round trip at **C2** passes.
+- **Done when** the loopback round trip at **C2** passes, and the
+  store-lifecycle half of §9 *Client isolate and robustness* is green: every
+  store creation mints
+  an epoch no peer has seen (mutation: derive it from the `id_key`, so a
+  `DELETE` and recreate reproduces it and nobody fresh-attaches); concurrent
+  creators observe one epoch; a stale-epoch manifest `PUT` is `409` and does not
+  land; a blob `PUT` not hashing to its path segment is rejected, and a `PUT` to
+  an existing hash neither replaces the bytes nor refreshes `uploaded_at`. Plus
+  the §8 server case: a structurally valid but *weak* user-chosen ID is
+  **accepted** (mutation: re-run the client's estimator server-side, which is
+  the lockout).
 
 **This unit is numbered late and must be scheduled early.** It is the cheaper
 half of the programme and it is the *test fixture* for the expensive half: a
@@ -226,6 +264,38 @@ import to attach a decision to. This is new storage plus a new surface, not a
 reuse of proven machinery — the ADR corrects an earlier draft that implied
 otherwise.
 
+#### W17 · Standing-invariant ratchets
+
+- **Serves** the enforcement of §3.1's join rule and §6.5's **I1**/**I2** — the
+  two properties that are not behaviours of any one unit.
+- **Inherits** W0 (the soft-delete columns exist). Independent of everything
+  else, and can start the moment the ADR is accepted.
+- **Produces** a CI ratchet enumerating every read that joins through to a
+  soft-deletable parent and asserting the `deleted_at IS NULL` filter; a ratchet
+  for I1/I2 over write paths; and, as its first act, **the fix for #1016**.
+- **Unblocks** nothing, in the sense that no unit must wait for it — but its
+  I1/I2 ratchet **constrains** W6 and every write path built after it, and it
+  gates **C0's honesty** (see below). A constraint is not a dependency: W6 can
+  start without W17, it just cannot be trusted to have held I1/I2 without it.
+- **Done when** the §9 *Soft-delete join coverage* bucket is green, proved by
+  dropping the `deleted_at` predicate from one existing read and watching CI go
+  red — not by adding a test beside the current code and observing it pass.
+
+**This unit exists because "exactly one owning unit" is the wrong tool for a
+standing property.** It is the right tool for a behaviour: a behaviour is built,
+tested and finished, and the unit closes with it. §3.1's join rule and I1/I2 are
+not built — they are *maintained*, against every future PR, for as long as the
+app has these columns. Assigning them to W0 and W6 means they are unowned the
+moment those units close, which is not hypothetical: the join rule decayed
+exactly that way. #1016 is an ordinary feature PR (#986) breaking a sync
+invariant months after v25 landed, found by review rather than by CI. That is
+the steady state for the duration of this programme, and prose in a spec has no
+failure signal.
+
+Nothing about this unit is sync-specific enough to wait for sync. It should be
+among the first things built, because every unit after it is a chance to decay
+what it protects.
+
 #### W15 · Privacy-policy amendment
 
 - **Serves** the ADR's *Blocking prerequisite*; §10.
@@ -233,7 +303,7 @@ otherwise.
 - **Produces** amended `docs/dev/store-submission/privacy-policy.md` **and** its
   mirror `site/privacy/index.html`, changed together, with the effective date
   bumped.
-- **Unblocks** nothing — but **C7 cannot pass without it**.
+- **Unblocks** nothing directly — but **C6 and C7 both depend on it** (S7).
 - **Done when** neither file claims "there is no cloud sync" or "we have no
   servers that receive or hold your content", both of which they say today, and
   both of which both app-store listings link to.
@@ -252,9 +322,15 @@ the programme and the only one that can block a release on its own.
   *before* the table is consulted and separately from content; the apply path;
   the isolate boundary; and enforcement of **I1** and **I2**.
 - **Unblocks** W7, W8, W9.
-- **Done when** the §9 *Merge* bucket is green, including ≥3-device convergence
-  with interleaved edits and the equal-`updatedAt` tie being **reported rather
-  than resolved**.
+- **Done when** the §9 *Merge* and *Existence* buckets are green, including
+  ≥3-device
+  convergence with interleaved edits, the equal-`updatedAt` tie being **reported
+  rather than resolved**, and a bystander failing to resurrect a tombstone. The
+  inbound-apply half of *Classification* is also W6's: apply preserves
+  `deviceLocal` columns, rejects present non-shareable keys by their **wire**
+  spelling, and refuses a peer's `deviceScoped` setting. The isolate half of
+  *Client isolate and robustness* lands here too — a malformed date rejects one
+  record without aborting the batch or escaping the isolate.
 
 I1 and I2 are normative constraints on *every* new write path in the app, not
 just sync's. I1 is easy to violate innocently, because a record's serialised
@@ -270,9 +346,15 @@ own row can still change what it publishes.
   reference rewriting that **bumps the referring record's `updated_at`**; and
   the forfeiture check against `published_records`.
 - **Unblocks** nothing directly; W8 assumes its rules exist.
-- **Done when** the §9 *Reconciliation* bucket is green, including the
-  rewrite-in-place mutation — where content changes but no row does, so peers
-  never learn of it and the reference stays broken everywhere else.
+- **Done when** the §9 *Reconciliation* and *Deletion* buckets are both green,
+  including the rewrite-in-place mutation — where content changes but no row
+  does, so peers never learn of it and the reference stays broken everywhere
+  else. *Deletion* is the bucket that matters most here and was gated by nothing
+  until round 31: absence never deletes, an epoch reset preserves pending
+  deletions, a published record tombstones rather than vanishing, and
+  detach-then-reattach does not reverse a deletion. This unit builds the whole
+  tombstone machinery, so a *Reconciliation*-only gate let it be "done" with
+  every one of those unwritten.
 
 Settings are deliberately **not** a collision kind: their id *is* their natural
 key, so two devices setting one key hold one id with two bodies, which is a
@@ -289,7 +371,13 @@ content conflict for W6's table rather than a reconciliation for this unit.
   and baseline persistence; and the after-the-fact count ("merged 412
   duplicates"), which is the mitigation rather than a prompt.
 - **Unblocks** nothing.
-- **Done when** the §9 *Dedupe* bucket is green.
+- **Done when** the §9 *Dedupe* bucket is green, and so is the attach half of
+  *Attach and restore* — epoch mismatch produces a fresh attach and never a
+  deletion;
+  union and silent merge; an equal-`updatedAt` fresh-attach tie reported rather
+  than swallowed *and* reported again on the next steady pass; referential
+  closure across a pending hold; the three-peer case of deleter, pending holder
+  and stale peer.
 
 Dedupe compares by reference to the shipped `normalizeTitle`, never a
 reimplementation. A second definition that agrees on lowercase ASCII and
@@ -306,7 +394,9 @@ and it merges records **silently**.
   `id_aliases` and `review_queue` with it while `pending_deletions` survives and
   is revalidated.
 - **Unblocks** nothing.
-- **Done when** the §9 *Quarantine and repair* bucket is green.
+- **Done when** the §9 *Quarantine and repair* bucket is green, and so is the
+  restore half of *Attach and restore* — a restore converges rather than
+  diverging.
 
 ### Phase 4 — server hardening and operations
 
@@ -379,10 +469,23 @@ graph LR
   W5 --> W13[W13 settings + pairing]
   W12 --> W16[W16 ops]
   W15[W15 privacy policy<br/>fully parallel]
+  W17[W17 standing-invariant<br/>ratchets] -.constrains.-> W6
 ```
 
-**The critical path is W1 → W3 → W5 → W6 → W8.** Everything else has slack, and
-the slack is worth spending deliberately:
+**The graph is a reading aid, not the authoritative edge list.** It is drawn as
+a transitive reduction, so edges implied by a path are omitted — W3→W6, W4→W7,
+W4→W8, W4→W9, W5→W8 and W10→W16 are all real dependencies that do not appear as
+arrows. The **Inherits** and **Unblocks** fields on each unit are authoritative;
+where they and this picture disagree, they win.
+
+**The critical path is W1 → W3 → W5 → W6 → W8**, with the caveat that it is a
+judgement rather than a derivation: W2 also gates W3, and no unit here carries a
+duration estimate, so nothing in this document *proves* the W1 leg is the long
+one. It is my expectation, from W1 carrying the golden corpus and W2 being a
+generator over a registry that already exists. If W2 turns out to be the longer
+leg, the path runs through it instead and nothing else about the plan changes.
+
+Everything else has slack, and the slack is worth spending deliberately:
 
 - **W2 runs beside W1.** It reads the privacy registry and touches none of W1's
   code. Both must land before W3.
@@ -391,9 +494,12 @@ the slack is worth spending deliberately:
   to trust against a real server than a mock.
 - **W13 and W14 run from C1** against fakes. They are leaves; W14 rejoins at W8.
 - **W15 runs whenever.** It should be done first, being the cheapest thing that
-  can block a release.
+  can block a release — and under S7 it blocks the beta, not just the release.
+- **W17 runs first, or as near to first as anything does.** It is independent of
+  every other unit and protects an invariant that decays under ordinary feature
+  work. Building it late means building it after the decay it exists to catch.
 - **W11, W12 and W16 follow W10** and are independent of the entire client
-  engine.
+  engine — but **C5 must precede C6**, so they are not deferrable past beta.
 
 ## 6. What must be serialised
 
@@ -414,10 +520,38 @@ cannot recover from.
 - **S4 · Every new table or settings key is classified in the PR that creates
   it** (§3.2). The ratchet enforces it; scheduling it as follow-up work means a
   red build, not a late doc.
-- **S5 · W15 lands before release, and is independent of code.** It gates C7
-  alone.
+- **S5 · W15 lands before release, and is independent of code.** Superseded in
+  scope by **S7** below: "before release" was too late, and W15 gates C6 as well
+  as C7.
 - **S6 · W0 stays early.** Already satisfied, and the gap it opened is doing
   work — see W0.
+- **S7 · W15 lands before *any real user's content leaves a device*, which is
+  C6, not C7.** Both published policy documents —
+  `docs/dev/store-submission/privacy-policy.md` and its mirror
+  `site/privacy/index.html` — currently say "We have no servers that receive or
+  hold your content, and there is no cloud sync." Both app-store listings link
+  to them. A beta running against that text means real dances, programs and
+  venue notes on project infrastructure while a store-linked statement says it
+  cannot happen. S5 was written as though C7 were the first moment content
+  moves; C6 is. This is the cheapest item in the whole plan and the only one
+  whose blast radius is outside the repository, which is a bad combination to
+  get wrong.
+- **S8 · The C1 contract freeze needs an amendment path, not just a freeze.**
+  Frozen does not mean immutable — a defect found at C4 in the manifest schema
+  has to be fixable. What it means is that a change after C1 is an *event*: it
+  reopens every unit that consumed the contract, and the units currently in
+  flight have to be told. Naming that here is what stops the freeze from being
+  quietly ignored the first time it is inconvenient.
+
+**Rollback posture**, which was missing and is reassuring once stated. W0 stands
+on its own terms — deletions became observable, defensible with or without sync
+— so abandoning the programme after C0 costs nothing already spent. The client
+is off by default until the user enables it, so abandoning after C6 strands no
+one who did not opt in. The server holds no unique data by construction, so
+decommissioning it loses nothing. **The one gap is a user who has attached and
+then wants out**, and the honest answer is that the shipped JSON export is the
+only rollback they will ever have. Taking an automatic export immediately before
+a first attach is the cheapest insurance in the programme and I would do it.
 
 ## 7. Checkpoints
 
@@ -426,19 +560,38 @@ cannot fail is not a checkpoint.
 
 | ID | Lands after | Gate |
 | --- | --- | --- |
-| **C0** | W0 | **Shipped.** Migration merged as #898 (schema v25, via #901 and #903); eight tables, twenty columns, six entity-level hard deletes converted to tombstones. |
-| **C1** | W1, W2, W3 | **Wire format frozen.** RFC 8785 vectors pass; two independently written encoders agree on a corpus including a fractional `value_num` and an NFC/NFD title pair; allow-list bijection green over real codec output. *Parallel work begins here.* |
-| **C2** | W10, W5 | **Loopback round trip.** One client against a local server: blob and manifest survive `PUT`/`GET` byte-identically; `413`, `415` and `422` paths exercised; `ETag`/`304` honoured. |
-| **C3** | W6 | **Two devices converge.** §9 *Merge* green, including the both-present row, ≥3-device interleaved edits, a stale peer failing to roll back newer data, and an equal-`updatedAt` tie being reported rather than broken. |
-| **C4** | W7, W8, W14 | **Attach and dedupe on a real library.** §9 *Dedupe* and *Reconciliation* green; the review queue survives a restart; the merge count is reported after the fact. |
+| **C0** | W0 | **Shipped, with a caveat.** Migration merged as #898 (schema v25, via #901 and #903); eight tables, twenty columns, six entity-level hard deletes converted to tombstones. But §3.1 carries a §9 bucket — *Soft-delete join coverage* — that is **violated in `main` today** (#1016). C0 is green on the migration and not on the invariant; **W17 is what closes it**. |
+| **C1** | W1, W2, W3 | **Wire format frozen.** RFC 8785 vectors pass; two independently written encoders agree on a corpus including a fractional `value_num`, an NFC/NFD title pair, and a locally-created never-synced NFD title; allow-list bijection green over real codec output, and non-vacuous. *Parallel work begins here.* |
+| **C2** | W10, W5 | **Loopback round trip.** One client against a local server: blob and manifest survive `PUT`/`GET` byte-identically; `413`, `415` and `422` paths exercised; `ETag`/`304` honoured; client and server agree on `id_key` for the same typed ID under differing whitespace and Unicode form (contract 5). |
+| **C3** | W6 | **Two devices converge.** §9 *Merge* and *Existence* green, including the both-present row, ≥3-device interleaved edits, a stale peer failing to roll back newer data, and an equal-`updatedAt` tie being reported rather than broken. |
+| **C4** | W7, W8, W14 | **Attach and dedupe on a real library.** §9 *Dedupe*, *Reconciliation*, *Deletion* and the attach half of *Attach and restore* green; the review queue survives a restart; the merge count is reported after the fact. |
 | **C5** | W11, W12 | **Server hardened.** §9 *Server* green; limits rejected before allocation; grace window honoured and `DELETE` exempt from it. |
-| **C6** | W9, W13 | **Beta, behind the setting.** Off by default with the no-network-call property proven; quarantine, repair and restore working; WiFi-only default honoured. |
+| **C6** | W9, W13, **and C5** | **Beta.** Exit criteria below. Off by default with the no-network-call property proven; quarantine, repair and restore working; WiFi-only default honoured. **W15 must have landed** if any real user's content moves (S7). |
 | **C7** | W15, W16 | **Ship gate.** Privacy policy amended in both files with the date bumped; ops prerequisites met; **server deployed ahead of the client release** (S3). |
 
 C2 is the checkpoint most likely to be skipped and least advisable to skip. It
 is the first moment the two halves of the programme touch, and every defect it
 catches is a contract defect — the class that is cheapest now and most expensive
 at C3.
+
+**C5 is a prerequisite of C6, and nothing in the dependency graph made it one.**
+W11 and W12 (server hardening) and W9 and W13 (quarantine, settings) have
+disjoint dependencies, so C6 was reachable with neither the server-side
+allow-list check nor GC, TTL and quota enforcement in place. That would have put
+beta users on a server missing half of the "enforced at both ends" property the
+whole design is sold on — and the client-side half is the half that runs on a
+device an attacker's peer can write to. I added the ordering; it is my call, not
+a ruling, and I would not run a beta without it.
+
+**C6 needs exit criteria, because a beta with none cannot fail.** The ADR
+defines revisit triggers, and not one of them can fire against a checkpoint that
+observes nothing. What is missing, and is the maintainer's to set: how many
+devices, over how long, what is watched, and which observation sends the
+programme back to the ADR rather than forward to C7. My suggestion is that the
+watched signals be the ones the design already predicts and cannot rule out —
+the rate of review-queue entries per sync, the rate of skipped-record reports,
+and any equal-`updatedAt` tie reported twice — because each maps to a named
+limitation in §10 and a trigger in the ADR.
 
 ## 8. Parallelism hazards
 
@@ -452,21 +605,38 @@ theoretical one.
 - **W8 and W13** share a contract that lives in neither: **what the user is
   told.** The merge count, the reported ties and the skipped-record reports are
   produced by W8 and rendered by W13. Different files, one contract.
+- **W5 and W10 both implement sync-ID normalisation** (contract 5), in different
+  units, in different languages' worth of code, scheduled in parallel from C1.
+  They share no file. A disagreement produces no error at all: the same typed ID
+  becomes two `id_key`s, and the second device sees a working sync of an empty
+  store. Write it once and have both sides import it, or pin both against one
+  shared vector set at C2.
+- **W8 and any future reimplementation of `normalizeTitle`** (contract 6). It is
+  normative by reference precisely so there is one of it; a copy that agrees on
+  lowercase ASCII and disagrees on a leading article merges records silently.
 - **Any unit adding a `shareable` field while the server is unreleased** trips
   S3 and produces `422` for real users.
 - **`app/CHANGELOG.md`.** Two individually mergeable PRs editing the same
   `## [Unreleased]` section conflict. Expect it and sequence the entries.
 
+**None of these is detectable by CI today**, and S3 is the one worth building a
+detector for: a PR adding a `shareable` field or a new record kind is
+mechanically recognisable from the registry diff, and recent history shows
+ordinary feature PRs adding classified fields routinely. Everything else on this
+list is caught by review or not at all.
+
 ## 9. Coverage
 
 Every implementable section of the spec is owned. This table is the check on the
 plan, and a section appearing twice or not at all is a defect in this document.
-§1 (status) and §2 (terminology) carry no behaviour and are not listed.
+§1 (status) and §2 (terminology) carry no behaviour and are not listed. §3.1 and
+§6.5 appear against two units each: one that *builds* the behaviour and one that
+*keeps it true* — see W17 for why those are different jobs.
 
 | Spec | Unit | Spec | Unit |
 | --- | --- | --- | --- |
-| §3.1 | W0 | §6.4 | W6 |
-| §3.2 | W4 | §6.5 | W6 |
+| §3.1 | W0 + W17 | §6.4 | W6 |
+| §3.2 | W4 | §6.5 | W6 + W17 |
 | §3.3 | W2 | §6.6 | W7 |
 | §4.1 | W1 | §6.7 | W6 |
 | §4.2 | W1 | §6.8 | W7 |
@@ -481,19 +651,49 @@ plan, and a section appearing twice or not at all is a defect in this document.
 | §6.2 | W8 | §7.5 | W16 |
 | §6.3 | W6 | §8 | W5 + W10 |
 
-§9 (conformance tests) is distributed across every unit by its **Done when**
-field. §10 (deferred) is owned by nobody by definition — but its last two
-entries are shipping prerequisites rather than deferrals, and are carried by
-W15 and W16.
+§9 is **not** distributed by prose. An earlier draft claimed it was, while only
+six of its twelve buckets were named by any unit — leaving *Existence*,
+*Soft-delete join coverage*, *Classification*, *Deletion*, *Attach and restore*
+and *Client isolate and robustness* gated by nothing, two of them the data-loss
+buckets. Ownership is now explicit:
 
-## 10. Relationship to the planned issues
-
-The ADR anticipated seven issues. This plan is finer-grained on purpose — an
-issue that spans W1 through W3 cannot say which half of it is blocking — and
-maps onto that shape rather than replacing it:
-
-| Planned issue | Units |
+| §9 bucket | Owning unit(s) |
 | --- | --- |
+| Wire format | W1 |
+| Merge | W6 |
+| Existence | W6 |
+| Soft-delete join coverage | **W17** |
+| Classification | W2 (registry property test) + W6 (inbound apply) |
+| Reconciliation | W7 |
+| Dedupe | W8 |
+| Quarantine and repair | W9 |
+| Deletion | W7 |
+| Attach and restore | W8 (attach) + W9 (restore) |
+| Server | W12 |
+| Client isolate and robustness | W6 (isolate) + W5 (redirect) + W10 (store lifecycle) |
+
+A bucket split across units is split by clause, not left jointly owned: each
+unit's **Done when** names the clauses it carries. §10 (deferred) is owned by
+nobody by definition — but its last two entries are shipping prerequisites
+rather than deferrals, and are carried by W15 and W16.
+
+## 10. Relationship to a coarser issue breakdown
+
+The grouping below is **mine, not the ADR's.** An earlier draft of this document
+said "the ADR anticipated seven issues"; it does not, and the word "seven"
+appears nowhere in it. I carried the list forward from my own planning notes and
+attributed it upward, which is the failure this repository's own guidance names
+— grep for the property, not the citation — committed in the same document that
+records two other instances of it. The grouping is still useful, and it is worth
+having because filing seventeen issues has real costs, but it carries no
+authority beyond my judgement.
+
+This plan is finer-grained on purpose — an issue that spans W1 through W3 cannot
+say which half of it is blocking:
+
+| Track | Units |
+| --- | --- |
+| *(shipped — #898)* | W0 |
 | Protocol + client engine | W1, W2, W3, W6 |
 | Identity + pairing | W5, and W13's pairing flow |
 | Fresh attach + dedupe | W4, W7, W8, W9, W14 |
@@ -501,16 +701,17 @@ maps onto that shape rather than replacing it:
 | Server ops | W12, W16 |
 | Settings & status UI | W13's blade, enablement and status surface |
 | Privacy policy amendment | W15 |
+| Standing invariants | W17 |
 
-W13 is the one place the ADR's split and this one disagree. The ADR separates
-pairing from settings; here they are a single unit, because pairing *is* a
-screen in the settings blade and splitting them puts one flow under two owners.
-Everything else maps cleanly.
+W13 spans two tracks, because pairing *is* a screen in the settings blade and
+splitting it puts one flow under two owners. W17 is a track of its own and does
+not fit the others at all, which is the point of it: it is the only work here
+that never finishes.
 
 Filing granularity is a separate decision from execution granularity, and it is
 the maintainer's. My recommendation is one issue per unit for W1–W3, because
 they are the units where "blocked on the other half" needs to be sayable, and
-one issue per planned track thereafter.
+one issue per track thereafter.
 
 ## 11. Decisions still open
 
@@ -521,7 +722,14 @@ details:
 2. **Whether W10 is scheduled early**, as recommended under W10 and in *Order of
    execution*. The alternative is a mocked server and a later, riskier first
    contact.
-3. **Beta scope** — whether C6 ships to real users behind the setting, or
-   whether the programme runs to C7 before anyone outside sees it.
-4. **Issue-filing granularity**, as raised under *Relationship to the planned
-   issues*.
+3. **C6's exit criteria** — how many devices, over how long, what is watched,
+   and which observation sends the programme back to the ADR. C6 currently
+   observes nothing, so none of the ADR's revisit triggers can fire against it.
+   *Whether* there is a beta is settled: C6 exists, it is off by default, and
+   under S7 it cannot run before W15. What is open is what would end it.
+4. **Issue-filing granularity**, as raised under *Relationship to a coarser
+   issue breakdown*.
+5. **Whether a pre-attach automatic export ships with W8.** The shipped JSON
+   export is the only rollback a user who attaches and regrets it will ever
+   have. I would do it; it is a scope addition to a unit already on the critical
+   path, so it is worth deciding deliberately rather than by default.
