@@ -6391,5 +6391,49 @@
   "publishedCollectionSupersedes": "Remplace la version {version}",
   "@publishedCollectionSupersedes": {
     "x-sourceSha256": "284aeb42ae95b58f9aafc2bf463c0cfbd95a7e3a6707441badaf38a7e0e037e1"
+  },
+  "dialectEditorSectionMoveWordings": "Modèles de formulation des mouvements",
+  "@dialectEditorSectionMoveWordings": {
+    "x-sourceSha256": "e776e219bd5c6c0c9a4c6e9dccb50dca6355b01218be78e525e72658db282512"
+  },
+  "dialectEditorMoveWordingsHelp": "Les modèles facultatifs, réservés à l’affichage, remplacent la phrase normale d’un mouvement. Le texte canonique et la recherche restent inchangés.",
+  "@dialectEditorMoveWordingsHelp": {
+    "x-sourceSha256": "afee3f5d46b074933a7ca14c8d1232545908bc9b7485f47a4ce6904bc1370142"
+  },
+  "dialectEditorMoveWordingsAdd": "Ajouter des modèles de formulation",
+  "@dialectEditorMoveWordingsAdd": {
+    "x-sourceSha256": "572c7331f1927051d65a5b8aad3901bbfca57eb16b7552303a562358bad7fa8f"
+  },
+  "dialectEditorMoveWordingsCount": "{count, plural, =1{1 modèle de formulation} other{{count} modèles de formulation}}",
+  "@dialectEditorMoveWordingsCount": {
+    "x-sourceSha256": "485175faa3ea285d529c9c0bdacbb7ab13fed23c22e9db1a74119f9d8372c478"
+  },
+  "dialectEditorAddMoveWording": "Ajouter un modèle de formulation…",
+  "@dialectEditorAddMoveWording": {
+    "x-sourceSha256": "e79095cf90f43cdae1d4dc4078672c76da8aefc8de7b1bc10bb10444afeb2ffb"
+  },
+  "dialectEditorMoveWordingLabel": "Modèle d’affichage",
+  "@dialectEditorMoveWordingLabel": {
+    "x-sourceSha256": "2a53764a5d944c36112e1c3e25a4da40826ce67bd23cd70552c23fe79f48e141"
+  },
+  "dialectEditorMoveWordingSlots": "Emplacements disponibles : {slots}",
+  "@dialectEditorMoveWordingSlots": {
+    "x-sourceSha256": "f48b49339c2633613c708334bcf874efa16032e1559f864855dab5c873622810"
+  },
+  "dialectEditorMoveWordingInvalid": "Ce modèle est incomplet ; la formulation normale sera donc utilisée.",
+  "@dialectEditorMoveWordingInvalid": {
+    "x-sourceSha256": "82d181f4940bf5056476d4c9ff8d14923cf765549b0916400dbebaea9f376c46"
+  },
+  "dialectEditorMoveWordingUnknownSlots": "Les emplacements inconnus sont vides : {slots}",
+  "@dialectEditorMoveWordingUnknownSlots": {
+    "x-sourceSha256": "dde3c367ca0367ead22428fbc85f271dfced3551c383eaa1a7b802be45828d2e"
+  },
+  "dialectEditorMoveWordingPreview": "Aperçu : {preview}",
+  "@dialectEditorMoveWordingPreview": {
+    "x-sourceSha256": "eb74dfe9699ddb9f3228db695dcb5912dfd5d282c1dee2a3fe95b33ae2eaa42b"
+  },
+  "dialectEditorMoveWordingsReset": "Réinitialiser les modèles de formulation",
+  "@dialectEditorMoveWordingsReset": {
+    "x-sourceSha256": "c1384a65483f73ab0f7a946327262497817cd12c9e9e84faf569ff9539d36737"
   }
 }

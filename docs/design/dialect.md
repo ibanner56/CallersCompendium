@@ -24,6 +24,7 @@ It is never included in canonical figure text, search, or deduplication.
   },
   "moves":  {"shoulder_round": "%S shoulder round", "do_si_do": "dosido"},
   "dancers": {"neighbors": "the others", "nextNeighbors": "the next couple"},
+  "moveWordings": {"swing": "[{who} ]{move}"},
   "discouragedTerms": ["gypsy", "gents", "ladies", "..."]
 }
 ```
@@ -47,6 +48,13 @@ It is never included in canonical figure text, search, or deduplication.
 - `discouragedTerms` is **user-editable data with shipped defaults**, not
   hardcoded (ContraDB pitfall #3): the entry editor flags these terms, it
   never blocks.
+- `moveWordings` maps canonical move IDs to optional **display-only sentence
+  templates**. Templates use the computed slots for that move (for example
+  `{who}` and `{move}`); unknown slots are empty, bracketed groups are omitted
+  when their slots are empty, and substituted values are not rescanned.
+  Incomplete or empty templates fall back to the normal renderer. Imported
+  templates are sanitized, capped at 512 UTF-16 code units each, and limited
+  to 256 entries per dialect.
 - Shipped presets are **role-neutral only**: **Larks/Robins (default)** and
   Leads/Follows (plus Canonical). Gendered role terms are **not** baked in as
   presets — a user who wants them enters them through the custom role-terms
@@ -70,6 +78,10 @@ free text (notes/custom) ──term regex (case-preserving)──▶ display tex
   regex with case preservation.
 - Per-dance wording overrides use the same dialect substitution, but do not
   enter the canonical rendering or any search/deduplication identity.
+- Display wording precedence is per-dance wording override, then the active
+  dialect's move template, then the existing renderer output. Move templates
+  replace the display line; summary modifiers are not appended to a templated
+  line.
 - Search always runs against canonical text/structures → dialect never affects
   results (dialect-agnostic search for free).
 - Print/export lets the user choose canonical or active dialect; exports embed

@@ -6134,4 +6134,51 @@ class AppLocalizationsJa extends AppLocalizations {
   String publishedCollectionSupersedes(String version) {
     return 'バージョン $version を置き換え';
   }
+
+  @override
+  String get dialectEditorSectionMoveWordings => '動作の文言テンプレート';
+
+  @override
+  String get dialectEditorMoveWordingsHelp =>
+      '表示専用の任意のテンプレートで、動作の通常の文を置き換えます。正規テキストと検索は変わりません。';
+
+  @override
+  String get dialectEditorMoveWordingsAdd => '動作の文言テンプレートを追加';
+
+  @override
+  String dialectEditorMoveWordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 個の動作の文言テンプレート',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialectEditorAddMoveWording => '動作の文言テンプレートを追加…';
+
+  @override
+  String get dialectEditorMoveWordingLabel => '表示テンプレート';
+
+  @override
+  String dialectEditorMoveWordingSlots(String slots) {
+    return '使用可能なスロット: $slots';
+  }
+
+  @override
+  String get dialectEditorMoveWordingInvalid => 'このテンプレートは不完全なため、通常の文言を使用します。';
+
+  @override
+  String dialectEditorMoveWordingUnknownSlots(String slots) {
+    return '不明なスロットは空になります: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingPreview(String preview) {
+    return 'プレビュー: $preview';
+  }
+
+  @override
+  String get dialectEditorMoveWordingsReset => '動作の文言テンプレートをリセット';
 }

@@ -6334,4 +6334,53 @@ class AppLocalizationsEn extends AppLocalizations {
   String publishedCollectionSupersedes(String version) {
     return 'Supersedes version $version';
   }
+
+  @override
+  String get dialectEditorSectionMoveWordings => 'Move wording templates';
+
+  @override
+  String get dialectEditorMoveWordingsHelp =>
+      'Optional display-only templates replace a move\'s normal sentence. Canonical text and search are unchanged.';
+
+  @override
+  String get dialectEditorMoveWordingsAdd => 'Add move wording templates';
+
+  @override
+  String dialectEditorMoveWordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count move wording templates',
+      one: '1 move wording template',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialectEditorAddMoveWording => 'Add a move wording template…';
+
+  @override
+  String get dialectEditorMoveWordingLabel => 'Display template';
+
+  @override
+  String dialectEditorMoveWordingSlots(String slots) {
+    return 'Available slots: $slots';
+  }
+
+  @override
+  String get dialectEditorMoveWordingInvalid =>
+      'This template is incomplete, so the normal wording will be used.';
+
+  @override
+  String dialectEditorMoveWordingUnknownSlots(String slots) {
+    return 'Unknown slots are empty: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingPreview(String preview) {
+    return 'Preview: $preview';
+  }
+
+  @override
+  String get dialectEditorMoveWordingsReset => 'Reset move wording templates';
 }

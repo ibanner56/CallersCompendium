@@ -127,6 +127,29 @@ void main() {
     expect(decoded.document.settings, isEmpty);
   });
 
+  test('custom dialect restore caps entries and records the skipped tail', () {
+    final custom = List.generate(
+      kMaxCustomDialects + 3,
+      (index) => <String, Object?>{'name': 'Dialect $index'},
+    );
+    final decoded = decodeBackup(
+      jsonEncode({
+        'backupVersion': 1,
+        'createdAt': '2026-07-15T00:00:00.000Z',
+        'core': <String, Object?>{},
+        'app': {
+          'dialects': {'custom': custom},
+        },
+      }),
+    );
+    expect(decoded.document.customDialects, hasLength(kMaxCustomDialects));
+    expect(decoded.document.customDialects.last.name, 'Dialect 127');
+    expect(
+      decoded.errors.where((e) => e.entityType == 'dialect'),
+      hasLength(1),
+    );
+  });
+
   group('integrity container (#536)', () {
     test('encodeBackup wraps the document in a SHA-256 checksum container', () {
       final envelope = jsonDecode(encodeBackup(_sampleDoc())) as Map;

@@ -116,6 +116,55 @@ void main() {
     expect(text, isNot(contains('role1s')));
   });
 
+  testWidgets(
+    'move wording templates show slots, warnings, and reset separately',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: DialectEditorScreen(
+            initial: Dialect(
+              name: 'Wording',
+              moves: const {'swing': 'twirl'},
+              moveWordings: const {'swing': '{who} {move} {future}'},
+            ),
+          ),
+        ),
+      );
+
+      final toggle = find.byKey(const ValueKey('dialect-wordings-toggle'));
+      await tester.scrollUntilVisible(
+        toggle,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('dialect-wording-swing')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Unknown slots are empty'), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-wording-swing')),
+        '{who',
+      );
+      await tester.pump();
+      expect(find.textContaining('incomplete'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('dialect-wordings-restore')));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('dialect-wording-swing')), findsNothing);
+      final movesToggle = find.byKey(const ValueKey('dialect-moves-toggle'));
+      await tester.ensureVisible(movesToggle);
+      await tester.tap(movesToggle);
+      await tester.pump();
+      expect(find.byKey(const ValueKey('dialect-move-swing')), findsOneWidget);
+    },
+  );
+
   testWidgets('Save is still guarded: an invalid dialect is not returned', (
     tester,
   ) async {

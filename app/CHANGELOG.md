@@ -13,6 +13,11 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Changed
 
+- **Dialect move wording templates** — optionally customize the display sentence
+  for each taxonomy move in Settings → Dialect. Templates support computed move
+  slots and are bounded and sanitized on import; canonical text, search, and
+  deduplication remain unchanged.
+
 - **Dance editor figure wording** — add an optional per-dance wording override
   for structured figures. The override is previewed with the active dialect and
   affects display only; canonical search and deduplication remain unchanged.

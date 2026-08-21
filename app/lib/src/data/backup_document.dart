@@ -28,6 +28,9 @@ const int backupSchemaVersion = 1;
 /// carried inside the payload.
 const int backupContainerVersion = 1;
 
+/// Maximum custom dialects restored from one backup.
+const int kMaxCustomDialects = 128;
+
 /// The only checksum algorithm the container understands. A backup that names
 /// anything else is refused rather than trusted.
 const String kBackupChecksumAlgorithm = 'sha256';
@@ -472,7 +475,19 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
       final dialects = rawDialects.cast<String, Object?>();
       final rawCustom = dialects['custom'];
       if (rawCustom is List) {
-        for (final entry in rawCustom) {
+        for (var index = 0; index < rawCustom.length; index++) {
+          if (index >= kMaxCustomDialects) {
+            errors.add(
+              ArchiveError(
+                kind: ArchiveErrorKind.read,
+                entityType: 'dialect',
+                message:
+                    'custom dialect limit exceeded; remaining entries skipped', // i18n-ignore: internal diagnostic, never shown
+              ),
+            );
+            break;
+          }
+          final entry = rawCustom[index];
           if (entry is Map) {
             try {
               customDialects.add(

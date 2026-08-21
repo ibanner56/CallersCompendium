@@ -161,6 +161,11 @@ class FigureRenderer {
         ? null
         : _renderWordingOverride(figure, dialect);
     if (override != null) return override;
+    if (!figure.isCustom &&
+        _hasUsableMoveWording(figure.move, dialect) &&
+        !figure.isMeanwhile) {
+      return _render(figure, dialect, verbose: verbose, decimals: decimals);
+    }
     final base = _render(figure, dialect, verbose: verbose, decimals: decimals);
     if (figure.isCustom) return base;
     final def = taxonomy.resolve(figure.move);
@@ -320,6 +325,31 @@ class FigureRenderer {
     // stays byte-for-byte stable — EXCEPT for the three moves below that have
     // explicit canonical overrides.
     if (!forCanonical) {
+      final wording = dialect.moveWordings[def.id];
+      if (_isUsableMoveWording(wording)) {
+        final displayBase = _displayBaseRenderers[def.id];
+        final displayTemplate = displayBase != null
+            ? displayBase(this, def, params, dialect, verbose, decimals)
+            : _displayTemplate(
+                _renderTemplateSlots(
+                  figure,
+                  def,
+                  params,
+                  dialect,
+                  verbose,
+                  decimals,
+                  forCanonical: false,
+                ),
+                wording!,
+              );
+        final line = _assembleDisplayTemplate((
+          slots: displayTemplate.slots,
+          template: wording!,
+        ));
+        return figure.assumedSubject
+            ? _spliceAssumedSubjectMarker(line)
+            : _stripSubjectMark(line);
+      }
       final displayBase = _displayBaseRenderers[def.id];
       if (displayBase != null) {
         final line = _assembleDisplayTemplate(
@@ -460,28 +490,62 @@ class FigureRenderer {
     }
     // Aliases render under their own name (a "see saw" is not shown as
     // "do si do"); dialect move substitution is still keyed canonically.
+    final slots = _renderTemplateSlots(
+      figure,
+      def,
+      params,
+      dialect,
+      verbose,
+      decimals,
+      forCanonical: forCanonical,
+    );
+    final rendered = def.renderTemplate.replaceAllMapped(
+      _placeholder,
+      (match) => slots[match[1]!] ?? '',
+    );
+    final line = _collapseSpaces(rendered);
+    // DISPLAY-ONLY: flag a subject the import parser DEFAULTED (the source
+    // omitted it) with a non-authoritative "(assumed)" marker, so fabricated
+    // choreography never reads as source-stated fact (#460). The marker is
+    // spliced at the sentinel emitted next to the subject above; the search/
+    // dedupe (canonical) render never emits the sentinel and stays byte-stable.
+    return (!forCanonical && figure.assumedSubject)
+        ? _spliceAssumedSubjectMarker(line)
+        : _stripSubjectMark(line);
+  }
+
+  Map<String, String> _renderTemplateSlots(
+    Figure figure,
+    MoveDef def,
+    Map<String, Object?> params,
+    Dialect dialect,
+    bool verbose,
+    bool decimals, {
+    required bool forCanonical,
+  }) {
     final alias = taxonomy.aliases[figure.move];
     final displayName = alias?.displayName ?? def.displayName;
-    // Params pinned by an alias are baked into its display name (e.g.
-    // "meltdown swing" pins prefix=meltdown), so they must not be rendered a
-    // second time as a template token — otherwise the word would double up.
-    // Since v25 (#870), this invariant is ENFORCED at write time by
-    // Taxonomy.resolvedMoveId: a figure whose effective param contradicts the
-    // alias pin is re-routed to the correct half of the pair before it
-    // reaches the renderer, so the pin and the data can never disagree.
+    // Params pinned by an alias are baked into its display name, so they must
+    // not be rendered a second time as a template token.
     final pinned = alias?.pinnedParams ?? const <String, Object?>{};
-    final rendered = def.renderTemplate.replaceAllMapped(_placeholder, (m) {
-      final name = m[1]!;
+    final slots = <String, String>{};
+    for (final match in _placeholder.allMatches(def.renderTemplate)) {
+      final name = match[1]!;
+      if (slots.containsKey(name)) continue;
       if (name == 'move') {
-        return _renderMoveName(
+        slots[name] = _renderMoveName(
           def.id,
           displayName,
           params,
           dialect,
           forCanonical,
         );
+        continue;
       }
-      if (pinned.containsKey(name)) return '';
+      if (pinned.containsKey(name)) {
+        slots[name] = '';
+        continue;
+      }
       // `chain.hand` (#976): silenced on BOTH paths — not display-only, unlike
       // every other entry in this loop — when it equals the side [who]
       // already implies (`chainHandForWho`). A stated hand that CONTRADICTS
@@ -494,16 +558,19 @@ class FigureRenderer {
       if (def.id == 'chain' && name == 'hand') {
         final rawHand = params[name];
         if (rawHand is! String || rawHand == ParamVocab.unspecified) {
-          return '';
+          slots[name] = '';
+          continue;
         }
         final who = params['who'];
         final impliedHand = who is String ? chainHandForWho(who) : null;
-        return rawHand == impliedHand ? '' : '$rawHand-hand';
+        slots[name] = rawHand == impliedHand ? '' : '$rawHand-hand';
+        continue;
       }
       // Display-only omission of a param whose value equals its silenced
       // default (direction/facing) or the move's default subject.
       if (!forCanonical && _isDisplaySilenced(def, name, params[name])) {
-        return '';
+        slots[name] = '';
+        continue;
       }
       final value = _renderValue(
         name,
@@ -520,20 +587,64 @@ class FigureRenderer {
       // when a move name or dialect substitution repeats the subject word).
       // The sentinel is stripped again below unless the subject was defaulted.
       if (!forCanonical && name == 'who' && value.isNotEmpty) {
-        return '${value.replaceAll(_subjectMarkSentinel, '')}'
+        slots[name] =
+            '${value.replaceAll(_subjectMarkSentinel, '')}'
             '$_subjectMarkSentinel';
+        continue;
       }
-      return value;
-    });
-    final line = _collapseSpaces(rendered);
-    // DISPLAY-ONLY: flag a subject the import parser DEFAULTED (the source
-    // omitted it) with a non-authoritative "(assumed)" marker, so fabricated
-    // choreography never reads as source-stated fact (#460). The marker is
-    // spliced at the sentinel emitted next to the subject above; the search/
-    // dedupe (canonical) render never emits the sentinel and stays byte-stable.
-    return (!forCanonical && figure.assumedSubject)
-        ? _spliceAssumedSubjectMarker(line)
-        : _stripSubjectMark(line);
+      slots[name] = value;
+    }
+    return slots;
+  }
+
+  static bool isValidMoveWordingTemplate(String template) {
+    final trimmed = template.trim();
+    if (trimmed.isEmpty || trimmed.length > kMaxMoveWordingLength) {
+      return false;
+    }
+    var depth = 0;
+    for (var i = 0; i < trimmed.length; i++) {
+      final char = trimmed[i];
+      if (char == '[') {
+        depth++;
+      } else if (char == ']') {
+        if (depth == 0) return false;
+        depth--;
+      } else if (char == '{') {
+        final close = trimmed.indexOf('}', i + 1);
+        if (close < 0) return false;
+        i = close;
+      } else if (char == '}') {
+        return false;
+      }
+    }
+    return depth == 0;
+  }
+
+  static bool _isUsableMoveWording(String? wording) =>
+      wording != null && isValidMoveWordingTemplate(wording);
+
+  bool _hasUsableMoveWording(String moveId, Dialect dialect) =>
+      _isUsableMoveWording(dialect.moveWordings[moveId]);
+
+  /// The shipped display template's slots for [moveId], used by the editor's
+  /// wording legend and preview.
+  Set<String> moveWordingSlots(String moveId) {
+    final template = moveWordingTemplate(moveId);
+    if (template == null) return const {};
+    return _placeholder.allMatches(template).map((match) => match[1]!).toSet();
+  }
+
+  /// The default display template for [moveId], including the display-specific
+  /// sentence structure where one exists.
+  String? moveWordingTemplate(String moveId) {
+    final def = taxonomy.resolve(moveId);
+    if (def == null) return null;
+    final base = _displayBaseRenderers[moveId];
+    if (base == null) return def.renderTemplate;
+    final figure = Figure(move: moveId);
+    final params = taxonomy.effectiveParams(figure);
+    return base(this, def, params, Dialect.canonical, false, false).template;
   }
 
   String? _renderWordingOverride(Figure figure, Dialect dialect) {

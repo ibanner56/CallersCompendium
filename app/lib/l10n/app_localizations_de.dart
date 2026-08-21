@@ -6435,4 +6435,57 @@ class AppLocalizationsDe extends AppLocalizations {
   String publishedCollectionSupersedes(String version) {
     return 'Ersetzt Version $version';
   }
+
+  @override
+  String get dialectEditorSectionMoveWordings =>
+      'Vorlagen für Bewegungsformulierungen';
+
+  @override
+  String get dialectEditorMoveWordingsHelp =>
+      'Optionale Vorlagen nur für die Anzeige ersetzen den normalen Satz einer Bewegung. Kanonischer Text und Suche bleiben unverändert.';
+
+  @override
+  String get dialectEditorMoveWordingsAdd =>
+      'Vorlagen für Bewegungsformulierungen hinzufügen';
+
+  @override
+  String dialectEditorMoveWordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Vorlagen für Bewegungsformulierungen',
+      one: '1 Vorlage für Bewegungsformulierungen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialectEditorAddMoveWording =>
+      'Vorlage für eine Bewegungsformulierung hinzufügen…';
+
+  @override
+  String get dialectEditorMoveWordingLabel => 'Anzeigevorlage';
+
+  @override
+  String dialectEditorMoveWordingSlots(String slots) {
+    return 'Verfügbare Platzhalter: $slots';
+  }
+
+  @override
+  String get dialectEditorMoveWordingInvalid =>
+      'Diese Vorlage ist unvollständig; daher wird die normale Formulierung verwendet.';
+
+  @override
+  String dialectEditorMoveWordingUnknownSlots(String slots) {
+    return 'Unbekannte Platzhalter bleiben leer: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingPreview(String preview) {
+    return 'Vorschau: $preview';
+  }
+
+  @override
+  String get dialectEditorMoveWordingsReset =>
+      'Vorlagen für Bewegungsformulierungen zurücksetzen';
 }

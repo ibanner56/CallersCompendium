@@ -9742,6 +9742,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Supersedes version {version}'**
   String publishedCollectionSupersedes(String version);
+
+  /// Dialect editor section header for display-only per-move wording templates.
+  ///
+  /// In en, this message translates to:
+  /// **'Move wording templates'**
+  String get dialectEditorSectionMoveWordings;
+
+  /// Helper text explaining that move wording templates affect display only.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional display-only templates replace a move\'s normal sentence. Canonical text and search are unchanged.'**
+  String get dialectEditorMoveWordingsHelp;
+
+  /// Collapsed header/empty state for the move wording template section.
+  ///
+  /// In en, this message translates to:
+  /// **'Add move wording templates'**
+  String get dialectEditorMoveWordingsAdd;
+
+  /// Header showing how many move wording templates are defined.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 move wording template} other{{count} move wording templates}}'**
+  String dialectEditorMoveWordingsCount(int count);
+
+  /// Placeholder for the dropdown that adds a move wording template.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a move wording template…'**
+  String get dialectEditorAddMoveWording;
+
+  /// Label for a display-only move wording template field.
+  ///
+  /// In en, this message translates to:
+  /// **'Display template'**
+  String get dialectEditorMoveWordingLabel;
+
+  /// Legend listing the placeholders available in a move wording template.
+  ///
+  /// In en, this message translates to:
+  /// **'Available slots: {slots}'**
+  String dialectEditorMoveWordingSlots(String slots);
+
+  /// Non-blocking warning shown for an incomplete move wording template.
+  ///
+  /// In en, this message translates to:
+  /// **'This template is incomplete, so the normal wording will be used.'**
+  String get dialectEditorMoveWordingInvalid;
+
+  /// Warning shown when a move wording template references unknown placeholders.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown slots are empty: {slots}'**
+  String dialectEditorMoveWordingUnknownSlots(String slots);
+
+  /// Representative rendered preview for one move wording template.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview: {preview}'**
+  String dialectEditorMoveWordingPreview(String preview);
+
+  /// Action that independently clears all move wording templates.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset move wording templates'**
+  String get dialectEditorMoveWordingsReset;
 }
 
 class _AppLocalizationsDelegate
