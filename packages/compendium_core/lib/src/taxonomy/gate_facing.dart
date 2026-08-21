@@ -42,7 +42,7 @@ library;
 /// Sourced from ContraDB `libfigure` `param.js` `_stringParamGateFace`:
 /// `{up: "up the set", down: "down the set", in: "into the set",
 /// out: "out of the set"}`.
-const List<String> gateFacings = ['up', 'down', 'in', 'out'];
+const List<String> gateFacings = ['up', 'down', 'in', 'out', 'along'];
 
 /// Valid `direction` tokens for a gate — The Caller's Box's rotation sense.
 /// `mirror` (the two-couple gate, where the two roles rotate in opposite
