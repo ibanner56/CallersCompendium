@@ -281,9 +281,14 @@ section { padding: 64px 0; }
 }
 .guide-body blockquote p { margin: .8rem 0; }
 
-/* Guides are text-only: an image renders as its alt text, matching the in-app
-   reader (see docs/user/style-guide.md). */
+/* The app renders guide images as alt-text captions; Pages renders the assets. */
 .guide-figure { display: block; color: var(--ink-faint); font-size: .94rem; }
+.guide-body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.2rem 0;
+}
 
 .guide-table-wrap { overflow-x: auto; margin: 1.2rem 0; }
 .guide-body table { border-collapse: collapse; width: 100%; font-size: .95rem; }
